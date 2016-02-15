@@ -97,22 +97,22 @@ type AppConfig struct {
 
 	KubeClient kclient.Interface
 
-	refBuilder *app.ReferenceBuilder
+	RefBuilder *app.ReferenceBuilder
 
-	dockerSearcher                  app.Searcher
-	imageStreamSearcher             app.Searcher
-	imageStreamByAnnotationSearcher app.Searcher
-	templateSearcher                app.Searcher
-	templateFileSearcher            app.Searcher
+	DockerSearcher                  app.Searcher
+	ImageStreamSearcher             app.Searcher
+	ImageStreamByAnnotationSearcher app.Searcher
+	TemplateSearcher                app.Searcher
+	TemplateFileSearcher            app.Searcher
 
-	detector app.Detector
+	Detector app.Detector
 
-	typer        runtime.ObjectTyper
-	mapper       meta.RESTMapper
-	clientMapper resource.ClientMapper
+	Typer        runtime.ObjectTyper
+	Mapper       meta.RESTMapper
+	ClientMapper resource.ClientMapper
 
-	osclient        client.Interface
-	originNamespace string
+	OSClient        client.Interface
+	OriginNamespace string
 }
 
 // UsageError is an interface for printing usage errors
@@ -158,78 +158,66 @@ type QueryResult struct {
 // and flags have been parsed.
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		detector: app.SourceRepositoryEnumerator{
+		Detector: app.SourceRepositoryEnumerator{
 			Detectors: source.DefaultDetectors,
 			Tester:    dockerfile.NewTester(),
 		},
-		refBuilder: &app.ReferenceBuilder{},
+		RefBuilder: &app.ReferenceBuilder{},
 	}
 }
 
-func (c *AppConfig) SetMapper(mapper meta.RESTMapper) {
-	c.mapper = mapper
-}
-
-func (c *AppConfig) SetTyper(typer runtime.ObjectTyper) {
-	c.typer = typer
-}
-
-func (c *AppConfig) SetClientMapper(clientMapper resource.ClientMapper) {
-	c.clientMapper = clientMapper
-}
-
-func (c *AppConfig) dockerImageSearcher() app.Searcher {
+func (c *AppConfig) DockerImageSearcher() app.Searcher {
 	return app.DockerRegistrySearcher{
 		Client:        dockerregistry.NewClient(30*time.Second, true),
 		AllowInsecure: c.InsecureRegistry,
 	}
 }
 
-func (c *AppConfig) ensureDockerSearcher() {
-	if c.dockerSearcher == nil {
-		c.dockerSearcher = c.dockerImageSearcher()
+func (c *AppConfig) ensureDockerSearch() {
+	if c.DockerSearcher == nil {
+		c.DockerSearcher = c.DockerImageSearcher()
 	}
 }
 
 // SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
-	c.dockerSearcher = app.DockerClientSearcher{
+	c.DockerSearcher = app.DockerClientSearcher{
 		Client:             dockerclient,
-		RegistrySearcher:   c.dockerImageSearcher(),
+		RegistrySearcher:   c.DockerImageSearcher(),
 		Insecure:           c.InsecureRegistry,
 		AllowMissingImages: c.AllowMissingImages,
 	}
 }
 
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
-func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
-	c.osclient = osclient
-	c.originNamespace = originNamespace
-	namespaces := []string{originNamespace}
-	if openshiftNamespace := "openshift"; originNamespace != openshiftNamespace {
+func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespace string) {
+	c.OSClient = osclient
+	c.OriginNamespace = OriginNamespace
+	namespaces := []string{OriginNamespace}
+	if openshiftNamespace := "openshift"; OriginNamespace != openshiftNamespace {
 		namespaces = append(namespaces, openshiftNamespace)
 	}
-	c.imageStreamSearcher = app.ImageStreamSearcher{
+	c.ImageStreamSearcher = app.ImageStreamSearcher{
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        namespaces,
 	}
-	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
-	c.templateSearcher = app.TemplateSearcher{
+	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
+	c.TemplateSearcher = app.TemplateSearcher{
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
 		Namespaces:                namespaces,
 	}
-	c.templateFileSearcher = &app.TemplateFileSearcher{
-		Typer:        c.typer,
-		Mapper:       c.mapper,
-		ClientMapper: c.clientMapper,
-		Namespace:    originNamespace,
+	c.TemplateFileSearcher = &app.TemplateFileSearcher{
+		Typer:        c.Typer,
+		Mapper:       c.Mapper,
+		ClientMapper: c.ClientMapper,
+		Namespace:    OriginNamespace,
 	}
-	c.dockerSearcher = app.ImageImportSearcher{
-		Client:        osclient.ImageStreams(originNamespace),
+	c.DockerSearcher = app.ImageImportSearcher{
+		Client:        osclient.ImageStreams(OriginNamespace),
 		AllowInsecure: c.InsecureRegistry,
-		Fallback:      c.dockerImageSearcher(),
+		Fallback:      c.DockerImageSearcher(),
 	}
 }
 
@@ -260,7 +248,7 @@ func (c *AppConfig) AddArguments(args []string) []string {
 // command line that are not associated with a builder using a '~'.
 func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, error) {
 	for _, s := range c.SourceRepositories {
-		if repo, ok := c.refBuilder.AddSourceRepository(s); ok {
+		if repo, ok := c.RefBuilder.AddSourceRepository(s); ok {
 			repo.SetContextDir(c.ContextDir)
 			if c.Strategy == "docker" {
 				repo.BuildWithDocker()
@@ -272,7 +260,7 @@ func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, erro
 			return nil, err
 		}
 	}
-	_, repos, errs := c.refBuilder.Result()
+	_, repos, errs := c.RefBuilder.Result()
 	return repos, errors.NewAggregate(errs)
 }
 
@@ -282,7 +270,7 @@ func (c *AppConfig) addDockerfile() error {
 	if len(c.Strategy) != 0 && c.Strategy != "docker" {
 		return fmt.Errorf("when directly referencing a Dockerfile, the strategy must must be 'docker'")
 	}
-	_, repos, errs := c.refBuilder.Result()
+	_, repos, errs := c.RefBuilder.Result()
 	if err := errors.NewAggregate(errs); err != nil {
 		return err
 	}
@@ -293,7 +281,7 @@ func (c *AppConfig) addDockerfile() error {
 		if err != nil {
 			return fmt.Errorf("provided Dockerfile is not valid: %v", err)
 		}
-		c.refBuilder.AddExistingSourceRepository(repo)
+		c.RefBuilder.AddExistingSourceRepository(repo)
 	case 1:
 		// Add the Dockerfile to the existing SourceRepository, so that
 		// eventually we generate a single BuildConfig with multiple
@@ -312,10 +300,10 @@ func (c *AppConfig) addDockerfile() error {
 func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 	b.AddComponents(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
-		input.Searcher = c.dockerSearcher
-		if c.dockerSearcher != nil {
+		input.Searcher = c.DockerSearcher
+		if c.DockerSearcher != nil {
 			resolver := app.PerfectMatchWeightedResolver{}
-			resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 0.0})
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 0.0})
 			if c.AllowMissingImages {
 				resolver = append(resolver, app.WeightedResolver{Searcher: app.MissingImageSearcher{}, Weight: 100.0})
 			}
@@ -325,45 +313,45 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 	})
 	b.AddComponents(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--image-stream=%q", input.From)
-		input.Searcher = c.imageStreamSearcher
-		if c.imageStreamSearcher != nil {
-			input.Resolver = app.FirstMatchResolver{Searcher: c.imageStreamSearcher}
+		input.Searcher = c.ImageStreamSearcher
+		if c.ImageStreamSearcher != nil {
+			input.Resolver = app.FirstMatchResolver{Searcher: c.ImageStreamSearcher}
 		}
 		return input
 	})
 	b.AddComponents(c.Templates, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--template=%q", input.From)
-		input.Searcher = c.templateSearcher
-		if c.templateSearcher != nil {
-			input.Resolver = app.HighestScoreResolver{Searcher: c.templateSearcher}
+		input.Searcher = c.TemplateSearcher
+		if c.TemplateSearcher != nil {
+			input.Resolver = app.HighestScoreResolver{Searcher: c.TemplateSearcher}
 		}
 		return input
 	})
 	b.AddComponents(c.TemplateFiles, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--file=%q", input.From)
-		input.Searcher = c.templateFileSearcher
-		if c.templateFileSearcher != nil {
-			input.Resolver = app.FirstMatchResolver{Searcher: c.templateFileSearcher}
+		input.Searcher = c.TemplateFileSearcher
+		if c.TemplateFileSearcher != nil {
+			input.Resolver = app.FirstMatchResolver{Searcher: c.TemplateFileSearcher}
 		}
 		return input
 	})
 	b.AddComponents(c.Components, func(input *app.ComponentInput) app.ComponentReference {
 		resolver := app.PerfectMatchWeightedResolver{}
 		searcher := app.MultiWeightedSearcher{}
-		if c.imageStreamSearcher != nil {
-			resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
-			searcher = append(searcher, app.WeightedSearcher{Searcher: c.imageStreamSearcher, Weight: 0.0})
+		if c.ImageStreamSearcher != nil {
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamSearcher, Weight: 0.0})
+			searcher = append(searcher, app.WeightedSearcher{Searcher: c.ImageStreamSearcher, Weight: 0.0})
 		}
-		if c.templateSearcher != nil && !input.ExpectToBuild {
-			resolver = append(resolver, app.WeightedResolver{Searcher: c.templateSearcher, Weight: 0.0})
-			searcher = append(searcher, app.WeightedSearcher{Searcher: c.templateSearcher, Weight: 0.0})
+		if c.TemplateSearcher != nil && !input.ExpectToBuild {
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.TemplateSearcher, Weight: 0.0})
+			searcher = append(searcher, app.WeightedSearcher{Searcher: c.TemplateSearcher, Weight: 0.0})
 		}
-		if c.templateFileSearcher != nil && !input.ExpectToBuild {
-			resolver = append(resolver, app.WeightedResolver{Searcher: c.templateFileSearcher, Weight: 0.0})
+		if c.TemplateFileSearcher != nil && !input.ExpectToBuild {
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.TemplateFileSearcher, Weight: 0.0})
 		}
-		if c.dockerSearcher != nil {
-			resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 2.0})
-			searcher = append(searcher, app.WeightedSearcher{Searcher: c.dockerSearcher, Weight: 1.0})
+		if c.DockerSearcher != nil {
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 2.0})
+			searcher = append(searcher, app.WeightedSearcher{Searcher: c.DockerSearcher, Weight: 1.0})
 		}
 		if c.AllowMissingImages {
 			resolver = append(resolver, app.WeightedResolver{Searcher: app.MissingImageSearcher{}, Weight: 100.0})
@@ -381,7 +369,7 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 
 // validate converts all of the arguments on the config into references to objects, or returns an error
 func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories, cmdutil.Environment, cmdutil.Environment, error) {
-	b := c.refBuilder
+	b := c.RefBuilder
 	c.addReferenceBuilderComponents(b)
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
@@ -412,7 +400,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 // componentsForRepos creates components for repositories that have not been previously associated by a builder
 // these components have already gone through source code detection and have a SourceRepositoryInfo attached to them
 func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app.ComponentReferences, error) {
-	b := c.refBuilder
+	b := c.RefBuilder
 	errs := []error{}
 	result := app.ComponentReferences{}
 	for _, repo := range repositories {
@@ -430,11 +418,11 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			}
 			refs := b.AddComponents([]string{baseImage}, func(input *app.ComponentInput) app.ComponentReference {
 				resolver := app.PerfectMatchWeightedResolver{}
-				if c.imageStreamSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
+				if c.ImageStreamSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamSearcher, Weight: 0.0})
 				}
-				if c.dockerSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 1.0})
+				if c.DockerSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 1.0})
 				}
 				resolver = append(resolver, app.WeightedResolver{Searcher: &app.PassThroughDockerSearcher{}, Weight: 2.0})
 				input.Resolver = resolver
@@ -455,14 +443,14 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			refs := b.AddComponents([]string{info.Types[0].Term()}, func(input *app.ComponentInput) app.ComponentReference {
 				resolver := app.PerfectMatchWeightedResolver{}
 
-				if c.imageStreamSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
+				if c.ImageStreamSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamSearcher, Weight: 0.0})
 				}
-				if c.imageStreamByAnnotationSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamByAnnotationSearcher, Weight: 1.0})
+				if c.ImageStreamByAnnotationSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamByAnnotationSearcher, Weight: 1.0})
 				}
-				if c.dockerSearcher != nil {
-					resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 2.0})
+				if c.DockerSearcher != nil {
+					resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 2.0})
 				}
 				input.Resolver = resolver
 				input.ExpectToBuild = true
@@ -476,8 +464,8 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 	return result, errors.NewAggregate(errs)
 }
 
-// resolve the references to ensure they are all valid, and identify any images that don't match user input.
-func (c *AppConfig) resolve(components app.ComponentReferences) error {
+// Resolve the references to ensure they are all valid, and identify any images that don't match user input.
+func Resolve(components app.ComponentReferences) error {
 	errs := []error{}
 	for _, ref := range components {
 		if err := ref.Resolve(); err != nil {
@@ -488,8 +476,8 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 	return errors.NewAggregate(errs)
 }
 
-// searches on all references
-func (c *AppConfig) search(components app.ComponentReferences) error {
+// Search searches on all references
+func Search(components app.ComponentReferences) error {
 	errs := []error{}
 	for _, ref := range components {
 		if err := ref.Search(); err != nil {
@@ -621,11 +609,11 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 	return nil
 }
 
-// detectSource runs a code detector on the passed in repositories to obtain a SourceRepositoryInfo
-func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
+// DetectSource runs a code detector on the passed in repositories to obtain a SourceRepositoryInfo
+func (c *AppConfig) DetectSource(repositories []*app.SourceRepository) error {
 	errs := []error{}
 	for _, repo := range repositories {
-		err := repo.Detect(c.detector, c.Strategy == "docker")
+		err := repo.Detect(c.Detector, c.Strategy == "docker")
 		if err != nil {
 			if c.Strategy == "docker" && err == app.ErrNoLanguageDetected {
 				errs = append(errs, ErrNoDockerfileDetected)
@@ -707,7 +695,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			if err := common.Reduce(); err != nil {
 				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
 			}
-			describeBuildPipelineWithImage(c.Out, ref, pipeline, c.originNamespace)
+			describeBuildPipelineWithImage(c.Out, ref, pipeline, c.OriginNamespace)
 		}
 		pipelines = append(pipelines, common...)
 	}
@@ -721,7 +709,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 	for _, ref := range components {
 		tpl := ref.Input().ResolvedMatch.Template
 
-		glog.V(4).Infof("processing template %s/%s", c.originNamespace, tpl.Name)
+		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
 		for _, env := range environment.List() {
 			// only set environment values that match what's expected by the template.
 			if v := template.GetParameterByName(tpl, env.Name); v != nil {
@@ -733,18 +721,18 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 			}
 		}
 
-		result, err := c.osclient.TemplateConfigs(c.originNamespace).Create(tpl)
+		result, err := c.OSClient.TemplateConfigs(c.OriginNamespace).Create(tpl)
 		if err != nil {
-			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, err)
+			return nil, fmt.Errorf("error processing template %s/%s: %v", c.OriginNamespace, tpl.Name, err)
 		}
 		errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder())
 		if len(errs) > 0 {
 			err = errors.NewAggregate(errs)
-			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, errs)
+			return nil, fmt.Errorf("error processing template %s/%s: %v", c.OriginNamespace, tpl.Name, errs)
 		}
 		objects = append(objects, result.Objects...)
 
-		describeGeneratedTemplate(c.Out, ref, result, c.originNamespace)
+		describeGeneratedTemplate(c.Out, ref, result, c.OriginNamespace)
 	}
 	return objects, nil
 }
@@ -818,7 +806,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 
 	serviceAccountName := "installer"
 	if token != nil && token.ServiceAccount {
-		if _, err := c.KubeClient.ServiceAccounts(c.originNamespace).Get(serviceAccountName); err != nil {
+		if _, err := c.KubeClient.ServiceAccounts(c.OriginNamespace).Get(serviceAccountName); err != nil {
 			if kerrors.IsNotFound(err) {
 				objects = append(objects,
 					// create a new service account
@@ -849,19 +837,19 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		})
 	}
 
-	describeGeneratedJob(c.Out, job, pod, secret, c.originNamespace)
+	describeGeneratedJob(c.Out, job, pod, secret, c.OriginNamespace)
 
 	return objects, name, nil
 }
 
 // Run executes the provided config to generate objects.
 func (c *AppConfig) Run() (*AppResult, error) {
-	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
+	return c.run(app.Acceptors{app.NewAcceptUnique(c.Typer), app.AcceptNew})
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.
 func (c *AppConfig) RunQuery() (*QueryResult, error) {
-	c.ensureDockerSearcher()
+	c.ensureDockerSearch()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
 		return nil, err
@@ -900,7 +888,7 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 		return nil, errors.NewAggregate(errs)
 	}
 
-	if err := c.search(components); err != nil {
+	if err := Search(components); err != nil {
 		return nil, err
 	}
 
@@ -948,14 +936,14 @@ func (c *AppConfig) addImageSource(sourceRepos app.SourceRepositories) (app.Comp
 		return nil, nil, err
 	}
 	resolver := app.PerfectMatchWeightedResolver{}
-	if c.imageStreamByAnnotationSearcher != nil {
-		resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamByAnnotationSearcher, Weight: 0.0})
+	if c.ImageStreamByAnnotationSearcher != nil {
+		resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamByAnnotationSearcher, Weight: 0.0})
 	}
-	if c.imageStreamSearcher != nil {
-		resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 1.0})
+	if c.ImageStreamSearcher != nil {
+		resolver = append(resolver, app.WeightedResolver{Searcher: c.ImageStreamSearcher, Weight: 1.0})
 	}
-	if c.dockerSearcher != nil {
-		resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 2.0})
+	if c.DockerSearcher != nil {
+		resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 2.0})
 	}
 	compRef.Resolver = resolver
 	switch len(sourceRepos) {
@@ -973,12 +961,12 @@ func (c *AppConfig) addImageSource(sourceRepos app.SourceRepositories) (app.Comp
 
 // run executes the provided config applying provided acceptors.
 func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
-	c.ensureDockerSearcher()
+	c.ensureDockerSearch()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
 		return nil, err
 	}
-	err = c.detectSource(repositories)
+	err = c.DetectSource(repositories)
 	if err != nil {
 		return nil, err
 	}
@@ -996,7 +984,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	if imageComp != nil {
 		componentsIncludingImageComps = append(components, imageComp)
 	}
-	if err := c.resolve(componentsIncludingImageComps); err != nil {
+	if err := Resolve(componentsIncludingImageComps); err != nil {
 		return nil, err
 	}
 
@@ -1022,7 +1010,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 
 	// resolve the source repo components
-	if err := c.resolve(sourceComponents); err != nil {
+	if err := Resolve(sourceComponents); err != nil {
 		return nil, err
 	}
 	components = append(components, sourceComponents...)
@@ -1064,7 +1052,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		return &AppResult{
 			List:      &kapi.List{Items: installables},
 			Name:      name,
-			Namespace: c.originNamespace,
+			Namespace: c.OriginNamespace,
 
 			GeneratedJobs: true,
 		}, nil
@@ -1121,7 +1109,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		List:      &kapi.List{Items: objects},
 		Name:      name,
 		HasSource: len(repositories) != 0,
-		Namespace: c.originNamespace,
+		Namespace: c.OriginNamespace,
 	}, nil
 }
 

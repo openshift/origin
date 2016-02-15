@@ -1011,10 +1011,6 @@ func autoConvert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig
 	return nil
 }
 
-func Convert_api_BuildConfig_To_v1beta3_BuildConfig(in *buildapi.BuildConfig, out *v1beta3.BuildConfig, s conversion.Scope) error {
-	return autoConvert_api_BuildConfig_To_v1beta3_BuildConfig(in, out, s)
-}
-
 func autoConvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.BuildConfigList, out *v1beta3.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
@@ -1025,7 +1021,7 @@ func autoConvert_api_BuildConfigList_To_v1beta3_BuildConfigList(in *buildapi.Bui
 	if in.Items != nil {
 		out.Items = make([]v1beta3.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_api_BuildConfig_To_v1beta3_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1184,6 +1180,34 @@ func autoConvert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput
 	return nil
 }
 
+func autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1beta3.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in *buildapi.BuildPostCommitSpec, out *v1beta3.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource, out *v1beta3.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSource))(in)
@@ -1268,6 +1292,9 @@ func autoConvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out 
 		return err
 	}
 	if err := Convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -1756,10 +1783,6 @@ func autoConvert_v1beta3_BuildConfig_To_api_BuildConfig(in *v1beta3.BuildConfig,
 	return nil
 }
 
-func Convert_v1beta3_BuildConfig_To_api_BuildConfig(in *v1beta3.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
-	return autoConvert_v1beta3_BuildConfig_To_api_BuildConfig(in, out, s)
-}
-
 func autoConvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *v1beta3.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildConfigList))(in)
@@ -1770,7 +1793,7 @@ func autoConvert_v1beta3_BuildConfigList_To_api_BuildConfigList(in *v1beta3.Buil
 	if in.Items != nil {
 		out.Items = make([]buildapi.BuildConfig, len(in.Items))
 		for i := range in.Items {
-			if err := Convert_v1beta3_BuildConfig_To_api_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1929,6 +1952,34 @@ func autoConvert_v1beta3_BuildOutput_To_api_BuildOutput(in *v1beta3.BuildOutput,
 	return nil
 }
 
+func autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1beta3.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.BuildPostCommitSpec))(in)
+	}
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.Script = in.Script
+	return nil
+}
+
+func Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *v1beta3.BuildPostCommitSpec, out *buildapi.BuildPostCommitSpec, s conversion.Scope) error {
+	return autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in, out, s)
+}
+
 func autoConvert_v1beta3_BuildSource_To_api_BuildSource(in *v1beta3.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildSource))(in)
@@ -2014,6 +2065,9 @@ func autoConvert_v1beta3_BuildSpec_To_api_BuildSpec(in *v1beta3.BuildSpec, out *
 		return err
 	}
 	if err := Convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
 		return err
 	}
 	if in.CompletionDeadlineSeconds != nil {
@@ -2677,6 +2731,21 @@ func autoConvert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymen
 	return nil
 }
 
+func autoConvert_api_TagImageHook_To_v1beta3_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1beta3.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_TagImageHook_To_v1beta3_TagImageHook(in *deployapi.TagImageHook, out *deployapiv1beta3.TagImageHook, s conversion.Scope) error {
+	return autoConvert_api_TagImageHook_To_v1beta3_TagImageHook(in, out, s)
+}
+
 func autoConvert_v1beta3_DeploymentCause_To_api_DeploymentCause(in *deployapiv1beta3.DeploymentCause, out *deployapi.DeploymentCause, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapiv1beta3.DeploymentCause))(in)
@@ -2936,6 +3005,21 @@ func autoConvert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymen
 	return nil
 }
 
+func autoConvert_v1beta3_TagImageHook_To_api_TagImageHook(in *deployapiv1beta3.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1beta3.TagImageHook))(in)
+	}
+	out.ContainerName = in.ContainerName
+	if err := Convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta3_TagImageHook_To_api_TagImageHook(in *deployapiv1beta3.TagImageHook, out *deployapi.TagImageHook, s conversion.Scope) error {
+	return autoConvert_v1beta3_TagImageHook_To_api_TagImageHook(in, out, s)
+}
+
 func autoConvert_api_Image_To_v1beta3_Image(in *imageapi.Image, out *imageapiv1beta3.Image, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapi.Image))(in)
@@ -3083,6 +3167,9 @@ func autoConvert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *imageapi.Image
 	if err := Convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// in.Tag has no peer in out
+	out.Generation = in.Generation
+	// in.Conditions has no peer in out
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -3891,6 +3978,53 @@ func Convert_api_Route_To_v1beta3_Route(in *routeapi.Route, out *routeapiv1beta3
 	return autoConvert_api_Route_To_v1beta3_Route(in, out, s)
 }
 
+func autoConvert_api_RouteIngress_To_v1beta3_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1beta3.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1beta3.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngress_To_v1beta3_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1beta3.RouteIngress, s conversion.Scope) error {
+	return autoConvert_api_RouteIngress_To_v1beta3_RouteIngress(in, out, s)
+}
+
+func autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngressCondition))(in)
+	}
+	out.Type = routeapiv1beta3.RouteIngressConditionType(in.Type)
+	out.Status = apiv1beta3.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in, out, s)
+}
+
 func autoConvert_api_RouteList_To_v1beta3_RouteList(in *routeapi.RouteList, out *routeapiv1beta3.RouteList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteList))(in)
@@ -3967,6 +4101,16 @@ func autoConvert_api_RouteStatus_To_v1beta3_RouteStatus(in *routeapi.RouteStatus
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteStatus))(in)
 	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1beta3.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_api_RouteIngress_To_v1beta3_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -4009,6 +4153,53 @@ func autoConvert_v1beta3_Route_To_api_Route(in *routeapiv1beta3.Route, out *rout
 
 func Convert_v1beta3_Route_To_api_Route(in *routeapiv1beta3.Route, out *routeapi.Route, s conversion.Scope) error {
 	return autoConvert_v1beta3_Route_To_api_Route(in, out, s)
+}
+
+func autoConvert_v1beta3_RouteIngress_To_api_RouteIngress(in *routeapiv1beta3.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1beta3.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapi.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_RouteIngress_To_api_RouteIngress(in *routeapiv1beta3.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	return autoConvert_v1beta3_RouteIngress_To_api_RouteIngress(in, out, s)
+}
+
+func autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1beta3.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1beta3.RouteIngressCondition))(in)
+	}
+	out.Type = routeapi.RouteIngressConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1beta3.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in, out, s)
 }
 
 func autoConvert_v1beta3_RouteList_To_api_RouteList(in *routeapiv1beta3.RouteList, out *routeapi.RouteList, s conversion.Scope) error {
@@ -4086,6 +4277,16 @@ func Convert_v1beta3_RouteSpec_To_api_RouteSpec(in *routeapiv1beta3.RouteSpec, o
 func autoConvert_v1beta3_RouteStatus_To_api_RouteStatus(in *routeapiv1beta3.RouteStatus, out *routeapi.RouteStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapiv1beta3.RouteStatus))(in)
+	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapi.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_v1beta3_RouteIngress_To_api_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
 	}
 	return nil
 }
@@ -6642,6 +6843,7 @@ func init() {
 		autoConvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions,
 		autoConvert_api_BuildLog_To_v1beta3_BuildLog,
 		autoConvert_api_BuildOutput_To_v1beta3_BuildOutput,
+		autoConvert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec,
 		autoConvert_api_BuildSource_To_v1beta3_BuildSource,
 		autoConvert_api_BuildSpec_To_v1beta3_BuildSpec,
 		autoConvert_api_BuildStatus_To_v1beta3_BuildStatus,
@@ -6747,6 +6949,8 @@ func init() {
 		autoConvert_api_RoleList_To_v1beta3_RoleList,
 		autoConvert_api_Role_To_v1beta3_Role,
 		autoConvert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams,
+		autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition,
+		autoConvert_api_RouteIngress_To_v1beta3_RouteIngress,
 		autoConvert_api_RouteList_To_v1beta3_RouteList,
 		autoConvert_api_RoutePort_To_v1beta3_RoutePort,
 		autoConvert_api_RouteSpec_To_v1beta3_RouteSpec,
@@ -6762,6 +6966,7 @@ func init() {
 		autoConvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
 		autoConvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction,
 		autoConvert_api_TLSConfig_To_v1beta3_TLSConfig,
+		autoConvert_api_TagImageHook_To_v1beta3_TagImageHook,
 		autoConvert_api_TemplateList_To_v1beta3_TemplateList,
 		autoConvert_api_Template_To_v1beta3_Template,
 		autoConvert_api_UserIdentityMapping_To_v1beta3_UserIdentityMapping,
@@ -6782,6 +6987,7 @@ func init() {
 		autoConvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions,
 		autoConvert_v1beta3_BuildLog_To_api_BuildLog,
 		autoConvert_v1beta3_BuildOutput_To_api_BuildOutput,
+		autoConvert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec,
 		autoConvert_v1beta3_BuildSource_To_api_BuildSource,
 		autoConvert_v1beta3_BuildSpec_To_api_BuildSpec,
 		autoConvert_v1beta3_BuildStatus_To_api_BuildStatus,
@@ -6888,6 +7094,8 @@ func init() {
 		autoConvert_v1beta3_RoleList_To_api_RoleList,
 		autoConvert_v1beta3_Role_To_api_Role,
 		autoConvert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
+		autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition,
+		autoConvert_v1beta3_RouteIngress_To_api_RouteIngress,
 		autoConvert_v1beta3_RouteList_To_api_RouteList,
 		autoConvert_v1beta3_RoutePort_To_api_RoutePort,
 		autoConvert_v1beta3_RouteSpec_To_api_RouteSpec,
@@ -6903,6 +7111,7 @@ func init() {
 		autoConvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
 		autoConvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1beta3_TLSConfig_To_api_TLSConfig,
+		autoConvert_v1beta3_TagImageHook_To_api_TagImageHook,
 		autoConvert_v1beta3_TemplateList_To_api_TemplateList,
 		autoConvert_v1beta3_Template_To_api_Template,
 		autoConvert_v1beta3_UserIdentityMapping_To_api_UserIdentityMapping,

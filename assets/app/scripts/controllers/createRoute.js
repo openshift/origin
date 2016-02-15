@@ -31,15 +31,33 @@ angular.module('openshiftConsole')
             return;
           }
 
-          $scope.routing.portOptions = _.map(service.spec.ports, function(portMapping) {
-            return {
-              containerPort: portMapping.targetPort,
-              protocol: portMapping.protocol
+          var unnamedServicePort;
+          if (service.spec.ports.length === 1 && !service.spec.ports[0].name) {
+            unnamedServicePort = true;
+            $scope.alerts['unnamed-service-port'] = {
+              type: "warning",
+              message: "Service " + service.metadata.name + " has a single, unnamed port.",
+              details: "A route cannot specifically target an unnamed service port. " +
+                "If more service ports are added later, the route will also direct traffic to them."
             };
-          });
+          }
 
-          if ($scope.routing.portOptions.length) {
+          // Only show port options when there is more than one port or when a
+          // single service port has a name. We want to use the service port
+          // name when creating a route. (Port name is required for services
+          // with more than one port.)
+          if (service.spec.ports.length && !unnamedServicePort) {
+            $scope.routing.portOptions = _.map(service.spec.ports, function(portMapping) {
+              return {
+                port: portMapping.name,
+                // \u2192 is a Unicode right arrow.
+                label: portMapping.port + " \u2192 " +
+                       portMapping.targetPort + " (" + portMapping.protocol + ")"
+              };
+            });
             $scope.routing.targetPort = $scope.routing.portOptions[0];
+          } else {
+            $scope.routing.portOptions = [];
           }
         };
 

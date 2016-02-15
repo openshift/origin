@@ -460,7 +460,7 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
   * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.  Contains samples for the entire run at the native sampling resolution (100hz). Note: CPU profiling for Go does not currently work on Mac OS X - the stats are not correctly sampled
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
   * `block` -  will start a block wait time analysis and write `./block.pprof`
-  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
+  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser). This supports `OPENSHIFT_PROFILE_PORT=` to change default port `6060`.
 
 In order to start the server in CPU profiling mode, run:
 

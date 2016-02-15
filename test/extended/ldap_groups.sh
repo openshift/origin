@@ -229,6 +229,17 @@ for (( i=0; i<${#schema[@]}; i++ )); do
     popd > /dev/null
 done
 
+# special test for RFC2307
+pushd ${BASETMPDIR}/rfc2307 > /dev/null
+echo -e "\tTEST: Sync groups from LDAP server, tolerating errors"
+oadm groups sync --sync-config=sync-config-tolerating.yaml --confirm 2>"${LOG_DIR}/tolerated-output.txt"
+grep 'For group "cn=group1,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
+grep 'For group "cn=group2,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
+grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
+grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
+compare_and_cleanup valid_all_ldap_sync_tolerating.yaml		
+popd > /dev/null
+
 # special test for augmented-ad
 pushd ${BASETMPDIR}/augmented-ad > /dev/null
 echo -e "\tTEST: Sync all LDAP groups from LDAP server, remove LDAP group metadata entry, then prune OpenShift groups"

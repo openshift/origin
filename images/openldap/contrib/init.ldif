@@ -251,3 +251,45 @@ cn: extended-group3
 owner: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
 description: Person3's Group
 member: cn=fake
+
+dn: ou=incomplete-rfc2307,dc=example,dc=com
+objectClass: organizationalUnit
+ou: incomplete-rfc2307
+description: OrganizationalUnit to hold malformed entries
+
+dn: ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+objectClass: organizationalUnit
+ou: groups
+description: Group entries with member lists containing missing members
+
+dn: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+objectClass: groupOfNames
+cn: group1
+owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+description: Person1's Group
+member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+
+dn: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+objectClass: groupOfNames
+cn: group2
+owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+description: Person2's Group
+member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
+dn: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+objectClass: groupOfNames
+cn: group3
+owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+description: Person3's Group
+member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com

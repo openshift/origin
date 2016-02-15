@@ -109,6 +109,10 @@ os::provision::init-certs() {
   done
 
   popd > /dev/null
+
+  # Indicate to nodes that it's safe to begin provisioning by removing
+  # the stale marker.
+  rm -f ${config_root}/openshift.local.config/.stale
 }
 
 os::provision::set-os-env() {
@@ -353,7 +357,8 @@ os::provision::wait-for-node-config() {
   local msg="node configuration file"
   local config_file=$(os::provision::get-node-config "${config_root}" \
     "${node_name}")
-  local condition="test -f ${config_file}"
+  local condition="test ! -f ${config_root}/openshift.local.config/.stale -a \
+-f ${config_file}"
   os::provision::wait-for-condition "${msg}" "${condition}" \
     "${OS_WAIT_FOREVER}"
 }

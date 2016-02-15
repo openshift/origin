@@ -64,14 +64,15 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 	fromRefs := map[string]struct{}{}
 	specPath := field.NewPath("spec")
 	triggersPath := specPath.Child("triggers")
+	buildFrom := buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
 	for i, trg := range config.Spec.Triggers {
-		allErrs = append(allErrs, validateTrigger(&trg, triggersPath.Index(i))...)
+		allErrs = append(allErrs, validateTrigger(&trg, buildFrom, triggersPath.Index(i))...)
 		if trg.Type != buildapi.ImageChangeBuildTriggerType || trg.ImageChange == nil {
 			continue
 		}
 		from := trg.ImageChange.From
 		if from == nil {
-			from = buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
+			from = buildFrom
 		}
 		fromKey := refKey(config.Namespace, from)
 		_, exists := fromRefs[fromKey]
@@ -82,16 +83,6 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 	}
 
 	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec, specPath)...)
-
-	// validate ImageChangeTriggers of DockerStrategy builds
-	strategy := config.Spec.BuildSpec.Strategy
-	if strategy.DockerStrategy != nil && strategy.DockerStrategy.From == nil {
-		for i, trigger := range config.Spec.Triggers {
-			if trigger.Type == buildapi.ImageChangeBuildTriggerType && (trigger.ImageChange == nil || trigger.ImageChange.From == nil) {
-				allErrs = append(allErrs, field.Required(triggersPath.Index(i).Child("imageChange", "from"), ""))
-			}
-		}
-	}
 
 	return allErrs
 }
@@ -126,6 +117,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 
 	allErrs = append(allErrs, validateOutput(&spec.Output, fldPath.Child("output"))...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy, fldPath.Child("strategy"))...)
+	allErrs = append(allErrs, validatePostCommit(spec.PostCommit, fldPath.Child("postCommit"))...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 	return allErrs
@@ -453,7 +445,7 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *fie
 	return allErrs
 }
 
-func validateTrigger(trigger *buildapi.BuildTriggerPolicy, fldPath *field.Path) field.ErrorList {
+func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(trigger.Type) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("type"), ""))
@@ -480,6 +472,15 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, fldPath *field.Path) 
 			break
 		}
 		if trigger.ImageChange.From == nil {
+			if buildFrom == nil || buildFrom.Kind != "ImageStreamTag" {
+				invalidKindErr := field.Invalid(
+					fldPath.Child("imageChange"),
+					fmt.Sprintf("build from: %v", buildFrom),
+					"a default ImageChange trigger can only be used when the build strategy includes an ImageStreamTag reference.")
+				allErrs = append(allErrs, invalidKindErr)
+				break
+			}
+
 			break
 		}
 		if kind := trigger.ImageChange.From.Kind; kind != "ImageStreamTag" {
@@ -545,6 +546,14 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 		if ev.ValueFrom != nil {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("valueFrom"), ev.ValueFrom, "valueFrom is not supported in build strategy environment variables"))
 		}
+	}
+	return allErrs
+}
+
+func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if spec.Script != "" && len(spec.Command) > 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
 }

@@ -75,7 +75,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 	}
 }
 
-var _ = g.Describe("[images] openshift sample application repositories", func() {
+var _ = g.Describe("[images][Slow] openshift sample application repositories", func() {
 
 	g.Describe("[images][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{

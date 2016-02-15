@@ -132,7 +132,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		}
 	}
 	existingDeployerPods := []kapi.Pod{
-		mkpod("prehook"), mkpod("posthook"), mkpod("deployerpod"),
+		mkpod("hook-pre"), mkpod("hook-post"), mkpod("deployerpod"),
 	}
 
 	kubeClient := &ktc.Fake{}
@@ -171,7 +171,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 	}
 
 	sort.Strings(deletedPods)
-	expectedDeletions := []string{"deployerpod", "posthook", "prehook"}
+	expectedDeletions := []string{"deployerpod", "hook-post", "hook-pre"}
 	if e, a := expectedDeletions, deletedPods; !reflect.DeepEqual(e, a) {
 		t.Fatalf("Not all deployer pods for the failed deployment were deleted.\nEXPECTED: %v\nACTUAL: %v", e, a)
 	}

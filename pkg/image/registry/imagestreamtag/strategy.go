@@ -28,6 +28,14 @@ func (s *strategy) NamespaceScoped() bool {
 }
 
 func (s *strategy) PrepareForCreate(obj runtime.Object) {
+	newIST := obj.(*api.ImageStreamTag)
+
+	newIST.Conditions = nil
+	newIST.Image = api.Image{}
+}
+
+func (s *strategy) GenerateName(base string) string {
+	return base
 }
 
 func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
@@ -52,6 +60,12 @@ func (s *strategy) PrepareForUpdate(obj, old runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)
 
+	// for backwards compatibility, callers can't be required to set both annotation locations when
+	// doing a GET and then update.
+	if newIST.Tag != nil {
+		newIST.Tag.Annotations = newIST.Annotations
+	}
+	newIST.Conditions = oldIST.Conditions
 	newIST.SelfLink = oldIST.SelfLink
 	newIST.Image = oldIST.Image
 }

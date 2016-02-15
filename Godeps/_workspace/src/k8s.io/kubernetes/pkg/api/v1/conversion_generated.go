@@ -2866,6 +2866,7 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowEmptyDirVolumePlugin = &in.AllowEmptyDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -6084,6 +6085,9 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	if in.AllowEmptyDirVolumePlugin != nil {
+		out.AllowEmptyDirVolumePlugin = *in.AllowEmptyDirVolumePlugin
+	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID

@@ -54,6 +54,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 	if err != nil {
 		return nil, err
 	}
+
 	var sourceInfo *git.SourceInfo
 	if hasGitSource {
 		var errs []error
@@ -176,7 +177,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 		return nil
 	}
 
-	glog.V(2).Infof("Receiving source from STDIN as archive")
+	glog.Infof("Receiving source from STDIN as archive ...")
 
 	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
@@ -192,6 +193,8 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	if gitSource == nil {
 		return false, nil
 	}
+
+	glog.Infof("Downloading %q ...", gitSource.URI)
 
 	// Check source URI, trying to connect to the server only if not using a proxy.
 	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
@@ -312,6 +315,7 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	}
 
 	if !exists || forcePull {
+		glog.Infof("Pulling image %q ...", image)
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}

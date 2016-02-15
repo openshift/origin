@@ -151,7 +151,7 @@ func (c *MasterConfig) RunDNSServer() {
 		config.BindNetwork = "ipv6"
 	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
-	config.NoRec = true // do not want to deploy an open resolver
+	config.NoRec = !c.Options.DNSConfig.AllowRecursiveQueries
 
 	_, port, err := net.SplitHostPort(c.Options.DNSConfig.BindAddress)
 	if err != nil {

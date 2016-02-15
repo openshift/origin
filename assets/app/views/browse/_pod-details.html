@@ -49,7 +49,7 @@
       </pod-template>
       <div ng-if="pod.spec.volumes.length">
         <h4 style="margin-top: 20px;">Volumes</h4>
-        <a ng-if="pod | annotation:'deploymentConfig'" ng-href="project/{{project.metadata.name}}/attachPVC?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
+        <a ng-if="pod | annotation:'deploymentConfig'" ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
         <volumes volumes="pod.spec.volumes" namespace="project.metadata.name"></volumes>
       </div>
     </div>

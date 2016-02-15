@@ -14,7 +14,7 @@ var goToAddToProjectPage = function(projectName) {
 };
 
 var goToCreateProjectPage = function() {
-  h.goToPage('/createProject');
+  h.goToPage('/create-project');
   expect(element(by.cssContainingText('h1', "New Project")).isPresent()).toBe(true);
   expect(element(by.model('name')).isPresent()).toBe(true);
   expect(element(by.model('displayName')).isPresent()).toBe(true);
@@ -186,7 +186,7 @@ describe('', function() {
           element(by.model('name')).clear().sendKeys(project['name']);
           element(by.buttonText("Create")).click();
           expect(element(by.css("[ng-if=nameTaken]")).isDisplayed()).toBe(true);
-          expect(browser.getCurrentUrl()).toMatch(/\/createProject$/);
+          expect(browser.getCurrentUrl()).toMatch(/\/create-project$/);
         });
 
         it('should delete a project', function() {

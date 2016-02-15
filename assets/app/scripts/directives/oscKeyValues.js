@@ -45,7 +45,6 @@ angular.module("openshiftConsole")
         $scope.value = null;
         $scope.form.$setPristine();
         $scope.form.$setUntouched();
-        $scope.form.$setValidity();
       }
     };
     $scope.deleteEntry = function(key) {

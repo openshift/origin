@@ -4,6 +4,7 @@
 /third-party
 /.project
 /.vagrant
+/.vscode
 /cpu.pprof
 /assets/app/config.local.js
 /assets/nbproject
@@ -21,3 +22,4 @@ origin.iml
 .project
 *.go~
 tags
+.envrc

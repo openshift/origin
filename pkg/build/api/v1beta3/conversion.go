@@ -7,8 +7,42 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	newer "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	newTriggers := []newer.BuildTriggerPolicy{}
+	// strip off any default imagechange triggers where the buildconfig's
+	// "from" is not an ImageStreamTag, because those triggers
+	// will never be invoked.
+	imageRef := buildutil.GetImageStreamForStrategy(out.Spec.Strategy)
+	hasIST := imageRef != nil && imageRef.Kind == "ImageStreamTag"
+	for _, trigger := range out.Spec.Triggers {
+		if trigger.Type != newer.ImageChangeBuildTriggerType {
+			newTriggers = append(newTriggers, trigger)
+			continue
+		}
+		if (trigger.ImageChange == nil || trigger.ImageChange.From == nil) && !hasIST {
+			continue
+		}
+		newTriggers = append(newTriggers, trigger)
+	}
+	out.Spec.Triggers = newTriggers
+	return nil
+}
+
+// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
+func convert_api_BuildConfig_To_v1beta3_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	return nil
+}
 
 func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
@@ -220,6 +254,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	}
 
 	scheme.AddConversionFuncs(
+		convert_v1beta3_BuildConfig_To_api_BuildConfig,
+		convert_api_BuildConfig_To_v1beta3_BuildConfig,
 		convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
 		convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,

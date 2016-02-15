@@ -2,7 +2,6 @@ package builds
 
 import (
 	"fmt"
-	"path/filepath"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -13,8 +12,8 @@ import (
 var _ = g.Describe("[builds] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
-		dockerImageFixture = filepath.Join("fixtures", "test-docker-no-outputname.json")
-		s2iImageFixture    = filepath.Join("fixtures", "test-sti-no-outputname.json")
+		dockerImageFixture = exutil.FixturePath("fixtures", "test-docker-no-outputname.json")
+		s2iImageFixture    = exutil.FixturePath("fixtures", "test-sti-no-outputname.json")
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 

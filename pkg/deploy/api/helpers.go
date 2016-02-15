@@ -95,6 +95,11 @@ func EachTemplateImage(pod *kapi.PodSpec, triggerFn TriggeredByFunc, fn func(Tem
 // TriggeredByFunc returns a TemplateImage or error from the provided container
 type TriggeredByFunc func(container *kapi.Container) (TemplateImage, bool)
 
+// IgnoreTriggers ignores the triggers
+func IgnoreTriggers(container *kapi.Container) (TemplateImage, bool) {
+	return TemplateImage{}, false
+}
+
 // DeploymentConfigHasTrigger returns a function that can identify the image for each container.
 func DeploymentConfigHasTrigger(config *DeploymentConfig) TriggeredByFunc {
 	return func(container *kapi.Container) (TemplateImage, bool) {

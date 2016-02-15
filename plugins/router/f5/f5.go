@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
+	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 const (
@@ -370,9 +372,9 @@ func newF5LTM(cfg f5LTMCfg) (*f5LTM, error) {
 //     value.
 func (f5 *f5LTM) rest_request(verb string, url string, payload io.Reader,
 	result interface{}) error {
-	tr := &http.Transport{
+	tr := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: f5.insecure},
-	}
+	})
 
 	errorResult := F5Error{verb: verb, url: url}
 

@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds] starting a build using CLI", func() {
+var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture   = exutil.FixturePath("..", "extended", "fixtures", "test-build.json")

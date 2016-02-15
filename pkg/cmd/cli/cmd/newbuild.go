@@ -93,9 +93,9 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
 			mapper, typer := f.Object()
-			config.SetMapper(mapper)
-			config.SetTyper(typer)
-			config.SetClientMapper(resource.ClientMapperFunc(f.ClientForMapping))
+			config.Mapper = mapper
+			config.Typer = typer
+			config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 			config.AddEnvironmentToBuild = true
 			err := RunNewBuild(fullName, f, out, in, c, args, config)

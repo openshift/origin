@@ -86,6 +86,7 @@ angular.module("openshiftConsole")
       var service = scope._generateService(input, input.name, ports);
       if (service) {
         resources.service = service;
+
         // Only attempt to generate a route if there is a service.
         resources.route = scope._generateRoute(input, input.name, resources.service.metadata.name);
       }
@@ -133,7 +134,7 @@ angular.module("openshiftConsole")
 
       if (input.routing.targetPort) {
         route.spec.port = {
-          targetPort: input.routing.targetPort.containerPort
+          targetPort: input.routing.targetPort.port
         };
       }
 
@@ -328,6 +329,16 @@ angular.module("openshiftConsole")
       };
     };
 
+    scope.getServicePort = function(portSpec) {
+      return {
+        port: portSpec.containerPort,
+        targetPort: portSpec.containerPort,
+        protocol: portSpec.protocol,
+        // Use the same naming convention as CLI new-app.
+        name: (portSpec.containerPort + '-' + portSpec.protocol).toLowerCase()
+      };
+    };
+
     scope._generateService  = function(input, serviceName, ports){
       if (!ports || !ports.length) {
         return null;
@@ -345,19 +356,9 @@ angular.module("openshiftConsole")
           selector: {
             deploymentconfig: input.name
           },
-          ports: []
+          ports: _.map(ports, scope.getServicePort)
         }
       };
-
-      angular.forEach(ports, function(port) {
-        service.spec.ports.push({
-          port: port.containerPort,
-          targetPort: port.containerPort,
-          protocol: port.protocol,
-          // Use the same naming convention as CLI new-app.
-          name: (port.containerPort + '-' + port.protocol).toLowerCase()
-        });
-      });
 
       return service;
     };

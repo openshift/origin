@@ -8,8 +8,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -115,9 +117,9 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
 	mapper, _ := f.Object()
-	gvk, err := mapper.KindFor(imageapi.SchemeGroupVersion.WithResource(input))
+	gvks, err := mapper.KindsFor(unversioned.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
-		return gvk.Kind
+		return gvks[0].Kind
 	}
 
 	// DockerImage isn't in RESTMapper

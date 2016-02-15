@@ -42,7 +42,10 @@ module.exports = function (grunt) {
         files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
         tasks: ['newer:jshint:all'],
         options: {
-          livereload: '<%= connect.options.livereload %>'
+          livereload: {
+            key: grunt.file.read('server.key'),
+            cert: grunt.file.read('server.crt')
+          }
         }
       },
       jsTest: {
@@ -52,6 +55,15 @@ module.exports = function (grunt) {
       css: {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
+      },
+      html: {
+        files: '<%= yeoman.app %>/views/{,*/}*.html',
+        options: {
+          livereload: {
+            key: grunt.file.read('server.key'),
+            cert: grunt.file.read('server.crt')
+          }
+        }        
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
@@ -85,6 +97,8 @@ module.exports = function (grunt) {
         port: grunt.option('port') || 9000,
         // Change this to '0.0.0.0' to access the server from outside.
         hostname: grunt.option('hostname') || 'localhost',
+        key: grunt.file.read('server.key'),
+        cert: grunt.file.read('server.crt'),
         livereload: 35729
       },
       livereload: {

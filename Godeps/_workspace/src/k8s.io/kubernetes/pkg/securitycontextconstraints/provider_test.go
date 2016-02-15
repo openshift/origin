@@ -313,6 +313,19 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		},
 	}
 
+	failEmptyDirSCC := defaultSCC()
+	failEmptyDirSCC.AllowEmptyDirVolumePlugin = false
+
+	failEmptyDirPod := defaultPod()
+	failEmptyDirPod.Spec.Volumes = []api.Volume{
+		{
+			Name: "bad emptyDir volume",
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
@@ -344,7 +357,12 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failHostDirSCC": {
 			pod:           failHostDirPod,
 			scc:           defaultSCC(),
-			expectedError: "Host Volumes are not allowed to be used",
+			expectedError: "HostPath volumes are not allowed to be used",
+		},
+		"failEmptyDirSCC": {
+			pod:           failEmptyDirPod,
+			scc:           failEmptyDirSCC,
+			expectedError: "EmptyDir volumes are not allowed to be used",
 		},
 		"failHostPortSCC": {
 			pod:           failHostPortPod,
@@ -545,6 +563,18 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	hostPortPod := defaultPod()
 	hostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
+	allowEmptyDirSCC := defaultSCC()
+	allowEmptyDirSCC.AllowEmptyDirVolumePlugin = true
+	emptyDirPod := defaultPod()
+	emptyDirPod.Spec.Volumes = []api.Volume{
+		{
+			Name: "emptyDir volume",
+			VolumeSource: api.VolumeSource{
+				EmptyDir: &api.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
 	errorCases := map[string]struct {
 		pod *api.Pod
 		scc *api.SecurityContextConstraints
@@ -576,6 +606,10 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 		"pass hostPort validating SCC": {
 			pod: hostPortPod,
 			scc: hostPortSCC,
+		},
+		"pass allowEmptyDir SCC": {
+			pod: emptyDirPod,
+			scc: allowEmptyDirSCC,
 		},
 	}
 

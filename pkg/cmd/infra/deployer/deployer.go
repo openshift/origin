@@ -7,10 +7,12 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -29,36 +31,40 @@ This command launches a deployment as described by a deployment configuration.`
 )
 
 type config struct {
-	Config         *clientcmd.Config
 	DeploymentName string
 	Namespace      string
 }
 
 // NewCommandDeployer provides a CLI handler for deploy.
 func NewCommandDeployer(name string) *cobra.Command {
-	cfg := &config{
-		Config: clientcmd.NewConfig(),
-	}
+	cfg := &config{}
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Run the deployer",
 		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
-			_, kClient, err := cfg.Config.Clients()
-			if err != nil {
-				glog.Fatal(err)
-			}
-
 			if len(cfg.DeploymentName) == 0 {
 				glog.Fatal("deployment is required")
 			}
-
 			if len(cfg.Namespace) == 0 {
 				glog.Fatal("namespace is required")
 			}
 
-			deployer := NewDeployer(kClient)
+			kcfg, err := kclient.InClusterConfig()
+			if err != nil {
+				glog.Fatal(err)
+			}
+			kc, err := kclient.New(kcfg)
+			if err != nil {
+				glog.Fatal(err)
+			}
+			oc, err := client.New(kcfg)
+			if err != nil {
+				glog.Fatal(err)
+			}
+
+			deployer := NewDeployer(kc, oc)
 			if err = deployer.Deploy(cfg.Namespace, cfg.DeploymentName); err != nil {
 				glog.Fatal(err)
 			}
@@ -68,7 +74,6 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cmd.AddCommand(version.NewVersionCommand(name, false))
 
 	flag := cmd.Flags()
-	cfg.Config.Bind(flag)
 	flag.StringVar(&cfg.DeploymentName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
 	flag.StringVar(&cfg.Namespace, "namespace", util.Env("OPENSHIFT_DEPLOYMENT_NAMESPACE", ""), "The deployment namespace")
 
@@ -76,7 +81,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclient.Interface) *Deployer {
+func NewDeployer(client kclient.Interface, oclient client.Interface) *Deployer {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -89,10 +94,10 @@ func NewDeployer(client kclient.Interface) *Deployer {
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder()), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder()), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, kapi.Codecs.UniversalDecoder())
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, kapi.Codecs.UniversalDecoder(), recreate), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder())
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, kapi.Codecs.UniversalDecoder(), recreate), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}

@@ -15,11 +15,19 @@ angular.module('openshiftConsole')
               // If dynamic-content attr is set at all, even if it hasn't evaluated to a value
               if (attrs.dynamicContent || attrs.dynamicContent === "") {
                 $scope.$watch('dynamicContent', function() {
-                  $(element)
-                    .attr("data-content", $scope.dynamicContent)
-                    .popover("destroy")
-                    .popover();                
-                });                  
+                  $(element).popover("destroy");
+                  // Destroy is asynchronous. Wait for it to complete before updating content.
+                  // See https://github.com/twbs/bootstrap/issues/16376
+                  //     https://github.com/twbs/bootstrap/issues/15607
+                  //     http://stackoverflow.com/questions/27238938/bootstrap-popover-destroy-recreate-works-only-every-second-time
+                  // Destroy calls hide, which takes 150ms to complete.
+                  //     https://github.com/twbs/bootstrap/blob/87121181c8a4b63192865587381d4b8ada8de30c/js/tooltip.js#L31
+                  setTimeout(function() {
+                    $(element)
+                      .attr("data-content", $scope.dynamicContent)
+                      .popover();
+                  }, 200);
+                });
               }
               $(element).popover();
               break;
@@ -27,11 +35,19 @@ angular.module('openshiftConsole')
               // If dynamic-content attr is set at all, even if it hasn't evaluated to a value
               if (attrs.dynamicContent || attrs.dynamicContent === "") {
                 $scope.$watch('dynamicContent', function() {
-                  $(element)
-                    .attr("title", $scope.dynamicContent)
-                    .tooltip("destroy")
-                    .tooltip();                
-                });                  
+                  $(element).tooltip("destroy");
+                  // Destroy is asynchronous. Wait for it to complete before updating content.
+                  // See https://github.com/twbs/bootstrap/issues/16376
+                  //     https://github.com/twbs/bootstrap/issues/15607
+                  //     http://stackoverflow.com/questions/27238938/bootstrap-popover-destroy-recreate-works-only-every-second-time
+                  // Destroy calls hide, which takes 150ms to complete.
+                  //     https://github.com/twbs/bootstrap/blob/87121181c8a4b63192865587381d4b8ada8de30c/js/tooltip.js#L31
+                  setTimeout(function() {
+                    $(element)
+                      .attr("title", $scope.dynamicContent)
+                      .tooltip();
+                  }, 200);
+                });
               }
               $(element).tooltip();
               break;
@@ -52,17 +68,34 @@ angular.module('openshiftConsole')
       scope: {
         pod: '='
       },
-      link: function($scope, element) {
-        var warnings = podWarningsFilter($scope.pod);
-        var content = "";
-        angular.forEach(warnings, function(warning) {
-          content += warning.message + "<br>";
-        });       
-        $('.pficon-warning-triangle-o', element)
-          .attr("data-content", content)
-          .popover("destroy")
-          .popover();
+      link: function($scope) {
+        var i, content = '', warnings = podWarningsFilter($scope.pod);
+        for (i = 0; i < warnings.length; i++) {
+          if (content) {
+            content += '<br>';
+          }
+          content += warnings[i].message;
+        }
+        $scope.content = content;
       },
-      templateUrl: 'views/directives/_pod-warnings.html'
+      templateUrl: 'views/directives/_warnings-popover.html'
+    };
+  })
+  .directive('routeWarnings', function(RoutesService) {
+    return {
+      restrict: 'E',
+      scope: {
+        route: '=',
+        service: '='
+      },
+      link: function($scope) {
+        var updateWarnings = function() {
+          var warnings = RoutesService.getRouteWarnings($scope.route, $scope.service);
+          $scope.content = warnings.join('<br>');
+        };
+        $scope.$watch('route', updateWarnings, true);
+        $scope.$watch('service', updateWarnings, true);
+      },
+      templateUrl: 'views/directives/_warnings-popover.html'
     };
   });

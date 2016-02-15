@@ -71,8 +71,8 @@ angular.module('openshiftConsole')
 
 
 
-
-            var updateScrollLinks = function() {
+            // is just toggling show/hide, nothing else.
+            var updateScrollLinksVisibility = function() {
               $scope.$apply(function() {
                 // Show scroll links if the top or bottom of the log is off screen.
                 var r = cachedLogNode.getBoundingClientRect();
@@ -93,19 +93,21 @@ angular.module('openshiftConsole')
               } else {
                 // If the user scrolled the window manually, stop auto-scrolling.
                 $scope.$evalAsync(function() {
-                  $scope.autoScroll = false;
+                  $scope.autoScrollActive = false;
                 });
               }
             };
 
 
-
             var attachScrollEvents = function() {
-              if(window.innerWidth < BREAKPOINTS.screenSmMin) {
+              // always clear all scroll listeners before reattaching
+              $cachedScrollableNode.off('scroll', onScroll);
+              $win.off('scroll', onScroll);
+
+              // only add the appropriate event
+              if(window.innerWidth <= BREAKPOINTS.screenSmMin) {
                 $win.on('scroll', onScroll);
-                $cachedScrollableNode.off('scroll', onScroll);
               } else {
-                $win.off('scroll', onScroll);
                 $cachedScrollableNode.on('scroll', onScroll);
               }
             };
@@ -142,13 +144,13 @@ angular.module('openshiftConsole')
 
             // roll up & debounce the various fns to call on resize
             var onResize = _.debounce(function() {
-              // toggle off the follow behavior if the user resizes the window
-              onScroll();
-              // and udpate scroll handlers
+              // update scroll handlers
               detectScrollableNode();
               attachScrollEvents();
-              updateScrollLinks();
+              updateScrollLinksVisibility();  // toggles show/hide
               affix();
+              // toggle off the follow behavior if the user resizes the window
+              onScroll();
             }, 100);
 
 
@@ -168,8 +170,8 @@ angular.module('openshiftConsole')
 
 
             var toggleAutoScroll = function() {
-              $scope.autoScroll = !$scope.autoScroll;
-              if ($scope.autoScroll) {
+              $scope.autoScrollActive = !$scope.autoScrollActive;
+              if ($scope.autoScrollActive) {
                 // Scroll immediately. Don't wait the next message.
                 autoScrollBottom();
               }
@@ -182,12 +184,12 @@ angular.module('openshiftConsole')
               buffer = document.createDocumentFragment();
 
               // Follow the bottom of the log if auto-scroll is on.
-              if ($scope.autoScroll) {
+              if ($scope.autoScrollActive) {
                 autoScrollBottom();
               }
 
               if (!$scope.showScrollLinks) {
-                updateScrollLinks();
+                updateScrollLinksVisibility(); // toggles show/hide
               }
             }, 100, { maxWait: 300 });
 
@@ -266,7 +268,7 @@ angular.module('openshiftConsole')
               streamer.onClose(function() {
                 streamer = null;
                 $scope.$evalAsync(function() {
-                  $scope.autoScroll = false;
+                  $scope.autoScrollActive = false;
                 });
 
                 // Wrap in a timeout so that content displays before we remove the loading ellipses.
@@ -303,7 +305,7 @@ angular.module('openshiftConsole')
                 logLinks.scrollBottom(scrollableDOMNode);
               },
               onScrollTop: function() {
-                $scope.autoScroll = false;
+                $scope.autoScrollActive = false;
                 logLinks.scrollTop(scrollableDOMNode);
               },
               toggleAutoScroll: toggleAutoScroll,
@@ -342,6 +344,10 @@ angular.module('openshiftConsole')
                   return;
                 }
 
+                // 3 things needed:
+                // - kibanaAuthUrl to authorize user
+                // - access_token
+                // - kibanaArchiveUrl for the final destination once auth'd
                 angular.extend($scope, {
                   kibanaAuthUrl: $sce.trustAsResourceUrl(URI(url)
                                                           .segment('auth').segment('token')
@@ -353,7 +359,7 @@ angular.module('openshiftConsole')
                   angular.extend($scope, {
                     // The archive URL violates angular's built in same origin policy.
                     // Need to explicitly tell it to trust this location or it will throw errors.
-                    archiveLocation: $sce.trustAsResourceUrl(logLinks.archiveUri({
+                    kibanaArchiveUrl: $sce.trustAsResourceUrl(logLinks.archiveUri({
                                         namespace: $scope.context.project.metadata.name,
                                         podname: $scope.name,
                                         containername: $scope.options.container,

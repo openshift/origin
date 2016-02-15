@@ -130,9 +130,9 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
 			mapper, typer := f.Object()
-			config.SetMapper(mapper)
-			config.SetTyper(typer)
-			config.SetClientMapper(resource.ClientMapperFunc(f.ClientForMapping))
+			config.Mapper = mapper
+			config.Typer = typer
+			config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == cmdutil.ErrExit {

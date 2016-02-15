@@ -74,26 +74,40 @@ func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 	}
 
 	// different docker versions seem to use different cgroup directories,
-	// check for both.
-	cgroupDir := "/sys/fs/cgroup/cpuacct,cpu"
+	// check for all of them.
+
+	// seen on rhel systems
+	cpuDir := "/sys/fs/cgroup/cpuacct,cpu"
+
+	// seen on fedora systems with docker 1.9
+	// note that in this case there is also a /sys/fs/cgroup/cpu that symlinks
+	// to /sys/fs/cgroup/cpu,cpuacct, so technically the next check
+	// would be sufficient, but it seems better to rely on the real directory
+	// rather than a symlink.
 	if _, err := os.Stat("/sys/fs/cgroup/cpu,cpuacct"); err == nil {
-		cgroupDir = "/sys/fs/cgroup/cpu,cpuacct"
+		cpuDir = "/sys/fs/cgroup/cpu,cpuacct"
 	}
 
-	cpuQuota, err := readInt64(filepath.Join(cgroupDir, "cpu.cfs_quota_us"))
+	// seen on debian systems with docker 1.10
+	if _, err := os.Stat("/sys/fs/cgroup/cpu"); err == nil {
+		cpuDir = "/sys/fs/cgroup/cpu"
+	}
+
+	cpuQuota, err := readInt64(filepath.Join(cpuDir, "cpu.cfs_quota_us"))
 	if err != nil {
 		return nil, err
 	}
 
-	cpuShares, err := readInt64(filepath.Join(cgroupDir, "cpu.shares"))
+	cpuPeriod, err := readInt64(filepath.Join(cpuDir, "cpu.cfs_period_us"))
 	if err != nil {
 		return nil, err
 	}
 
-	cpuPeriod, err := readInt64(filepath.Join(cgroupDir, "cpu.cfs_period_us"))
+	cpuShares, err := readInt64(filepath.Join(cpuDir, "cpu.shares"))
 	if err != nil {
 		return nil, err
 	}
+
 	return &s2iapi.CGroupLimits{
 		CPUShares:        cpuShares,
 		CPUPeriod:        cpuPeriod,

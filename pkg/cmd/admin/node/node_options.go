@@ -164,11 +164,11 @@ func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kubectl.ResourceP
 }
 
 func (n *NodeOptions) GetPrintersByResource(resource unversioned.GroupVersionResource) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
-	gvk, err := n.Mapper.KindFor(resource)
+	gvks, err := n.Mapper.KindsFor(resource)
 	if err != nil {
 		return nil, nil, err
 	}
-	return n.GetPrinters(gvk)
+	return n.GetPrinters(gvks[0])
 }
 
 func (n *NodeOptions) GetPrinters(gvk unversioned.GroupVersionKind) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {

@@ -126,7 +126,7 @@ func (s *S2IBuilder) Build() error {
 	} else {
 		push = true
 	}
-	tag := s.build.Status.OutputDockerImageReference
+	pushTag := s.build.Status.OutputDockerImageReference
 	git := s.build.Spec.Source.Git
 
 	var ref string
@@ -153,6 +153,8 @@ func (s *S2IBuilder) Build() error {
 		})
 	}
 
+	buildTag := randomBuildTag(s.build.Namespace, s.build.Name)
+
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
 		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -168,7 +170,7 @@ func (s *S2IBuilder) Build() error {
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:       sourceURI.String(),
-		Tag:          tag,
+		Tag:          buildTag,
 		ContextDir:   s.build.Spec.Source.ContextDir,
 		CGroupLimits: s.cgLimits,
 		Injections:   injections,
@@ -205,7 +207,7 @@ func (s *S2IBuilder) Build() error {
 	// If DockerCfgPath is provided in api.Config, then attempt to read the the
 	// dockercfg file and get the authentication for pulling the builder image.
 	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
-	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(tag, dockercfg.PushAuthType)
+	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
 
 	glog.V(2).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
 	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
@@ -219,19 +221,31 @@ func (s *S2IBuilder) Build() error {
 		return err
 	}
 
+	cname := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
+	if err := execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cname); err != nil {
+		return err
+	}
+
+	if err := tagImage(s.dockerClient, buildTag, pushTag); err != nil {
+		return err
+	}
+	if err := removeImage(s.dockerClient, buildTag); err != nil {
+		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
+	}
+
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			tag,
+			pushTag,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided push secret for pushing %s image", tag)
+			glog.Infof("Using provided push secret for pushing %s image", pushTag)
 		} else {
 			glog.Infof("No push secret provided")
 		}
-		glog.Infof("Pushing %s image ...", tag)
-		if err := pushImage(s.dockerClient, tag, pushAuthConfig); err != nil {
+		glog.Infof("Pushing %s image ...", pushTag)
+		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
 			// write extended error message to assist in problem resolution
 			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)
 			if authPresent {
@@ -246,7 +260,7 @@ func (s *S2IBuilder) Build() error {
 			}
 			return errors.New(msg)
 		}
-		glog.Infof("Successfully pushed %s", tag)
+		glog.Infof("Successfully pushed %s", pushTag)
 		glog.Flush()
 	}
 	return nil

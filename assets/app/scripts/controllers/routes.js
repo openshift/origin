@@ -37,6 +37,11 @@ angular.module('openshiftConsole')
           updateFilterWarning();
         }));
 
+        // Watch services to display route warnings.
+        watches.push(DataService.watch("services", context, function(services) {
+          $scope.services = services.by("metadata.name");
+        }));
+
         function updateFilterWarning() {
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.routes)  && !$.isEmptyObject($scope.unfilteredRoutes)) {
             $scope.alerts["routes"] = {

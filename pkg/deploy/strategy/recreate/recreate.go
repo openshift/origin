@@ -11,8 +11,8 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -33,6 +33,8 @@ type RecreateDeploymentStrategy struct {
 	getUpdateAcceptor func(timeout time.Duration) strat.UpdateAcceptor
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
+	// tagClient is used to tag images
+	tagClient client.ImageStreamTagsNamespacer
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -50,7 +52,7 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, decoder runtime.Decoder) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, decoder runtime.Decoder) *RecreateDeploymentStrategy {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &RecreateDeploymentStrategy{
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -61,7 +63,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, decoder runtime.Dec
 		},
 		scaler:       scaler,
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
@@ -95,7 +97,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, "prehook"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
 			return fmt.Errorf("Pre hook failed: %s", err)
 		}
 		glog.Infof("Pre hook finished")
@@ -111,7 +113,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	}
 
 	if params != nil && params.Mid != nil {
-		if err := s.hookExecutor.Execute(params.Mid, to, "mid"); err != nil {
+		if err := s.hookExecutor.Execute(params.Mid, to, deployapi.MidHookPodSuffix); err != nil {
 			return fmt.Errorf("mid hook failed: %s", err)
 		}
 		glog.Infof("Mid hook finished")
@@ -143,10 +145,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 	}
 
-	// Execute any post-hook. Errors are logged and ignored.
+	// Execute any post-hook.
 	if params != nil && params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, "posthook"); err != nil {
-			util.HandleError(fmt.Errorf("post hook failed: %s", err))
+		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+			return fmt.Errorf("post hook failed: %s", err)
 		}
 		glog.Infof("Post hook finished")
 	}

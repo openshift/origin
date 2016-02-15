@@ -131,6 +131,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
 				cmd.NewCmdConvert(fullName, f, out),
+				cmd.NewCmdAutoscale(fullName, f, out),
 			},
 		},
 		{
