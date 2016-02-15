@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 lock_file=/var/lock/openshift-sdn.lock
 
@@ -80,10 +80,6 @@ add_subnet_route() {
     nsenter -n -t $pid -- $subnet_route
 }
 
-Init() {
-    true
-}
-
 Setup() {
     get_ipaddr_pid_veth
     add_ovs_port
@@ -103,29 +99,15 @@ Teardown() {
     del_ovs_flows
 }
 
-Status() {
-    # do nothing, empty output will default to address as picked by docker
-    true
-}
-
 case "$action" in
-    init)
-	lockwrap Init
-	;;
     setup)
-	set -x
 	lockwrap Setup
 	;;
     update)
-	set -x
 	lockwrap Update
 	;;
     teardown)
-	set -x
 	lockwrap Teardown
-	;;
-    status)
-	lockwrap Status
 	;;
     *)
         echo "Bad input: $@"
