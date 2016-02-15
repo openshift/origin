@@ -123,6 +123,8 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
+	mtuStr := fmt.Sprint(mtu)
+
 	itx := ipcmd.NewTransaction(LBR)
 	itx.SetLink("down")
 	itx.IgnoreError()
@@ -138,8 +140,8 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	}
 	defer deleteLocalSubnetRoute(LBR, localSubnetCIDR)
 
-	glog.V(5).Infof("[SDN setup] docker setup %s mtu %d", LBR, mtu)
-	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, fmt.Sprint(mtu)).CombinedOutput()
+	glog.V(5).Infof("[SDN setup] docker setup %s mtu %s", LBR, mtuStr)
+	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, mtuStr).CombinedOutput()
 	if err != nil {
 		glog.Errorf("Failed to configure docker networking: %v\n%s", err, out)
 		return err
@@ -156,7 +158,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	itx = ipcmd.NewTransaction(VLINUXBR)
 	itx.DeleteLink()
 	itx.IgnoreError()
-	itx.AddLink("type", "veth", "peer", "name", VOVSBR)
+	itx.AddLink("mtu", mtuStr, "type", "veth", "peer", "name", VOVSBR, "mtu", mtuStr)
 	itx.SetLink("up")
 	itx.SetLink("txqueuelen", "0")
 	err = itx.EndTransaction()
