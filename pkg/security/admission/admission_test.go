@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -20,7 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.Interface {
+func NewTestAdmission(store cache.Store, kclient clientset.Interface) kadmission.Interface {
 	return &constraint{
 		Handler: kadmission.NewHandler(kadmission.Create),
 		client:  kclient,
@@ -124,7 +124,7 @@ func TestAdmitCaps(t *testing.T) {
 func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
-	tc := testclient.NewSimpleFake(namespace, serviceAccount)
+	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 
 	for _, scc := range sccs {
@@ -152,7 +152,7 @@ func TestAdmit(t *testing.T) {
 	// used for cases where things are preallocated
 	defaultGroup := int64(2)
 
-	tc := testclient.NewSimpleFake(namespace, serviceAccount)
+	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
 	// create scc that requires allocation retrieval
 	saSCC := &kapi.SecurityContextConstraints{
@@ -813,7 +813,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 
 		// create the admission handler
-		tc := testclient.NewSimpleFake(v.namespace)
+		tc := clientsetfake.NewSimpleClientset(v.namespace)
 		admit := &constraint{
 			Handler: kadmission.NewHandler(kadmission.Create),
 			client:  tc,
@@ -1438,7 +1438,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
-	tc := testclient.NewSimpleFake(namespace, serviceAccount)
+	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	for _, scc := range sccsToSort {

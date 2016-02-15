@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
+	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -48,7 +49,9 @@ func TestAdmissionExists(t *testing.T) {
 	})
 
 	cache := projectcache.NewFake(mockClient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
-	handler := &lifecycle{client: mockClient}
+
+	mockClientset := clientsetfake.NewSimpleClientset()
+	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
@@ -94,7 +97,9 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
 	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
-	handler := &lifecycle{client: mockClient}
+
+	mockClientset := clientsetfake.NewSimpleClientset(namespaceObj)
+	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
@@ -175,7 +180,9 @@ func TestSAR(t *testing.T) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
 	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
-	handler := &lifecycle{client: mockClient}
+
+	mockClientset := clientsetfake.NewSimpleClientset()
+	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 
 	tests := map[string]struct {

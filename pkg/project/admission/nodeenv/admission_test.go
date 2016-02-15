@@ -6,6 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
+	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -24,7 +25,8 @@ func TestPodAdmission(t *testing.T) {
 	projectStore := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	projectStore.Add(project)
 
-	handler := &podNodeEnvironment{client: mockClient}
+	mockClientset := clientsetfake.NewSimpleClientset()
+	handler := &podNodeEnvironment{client: mockClientset}
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{Name: "testPod"},
 	}

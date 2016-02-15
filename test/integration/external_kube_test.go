@@ -89,7 +89,7 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	url.Path = "/healthz"
-	response, body, err := httpprobe.New().Probe(url, 1*time.Second)
+	response, body, err := httpprobe.New().Probe(url, nil, 1*time.Second)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

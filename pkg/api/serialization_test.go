@@ -14,7 +14,6 @@ import (
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -354,6 +353,11 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				// otherwise an empty value defaults to "default"
 				j.ISCSIInterface = "default"
 			}
+		},
+		func(j *kapi.CephFSVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// this field does not exist on v1beta3
+			j.Path = ""
 		},
 		func(j *kapi.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
