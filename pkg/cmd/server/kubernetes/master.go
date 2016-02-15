@@ -9,9 +9,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	osclient "github.com/openshift/origin/pkg/client"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -30,8 +27,9 @@ import (
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
-	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
+	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
+	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
@@ -47,6 +45,9 @@ import (
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
+
+	osclient "github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const (
@@ -238,8 +239,23 @@ func (c *MasterConfig) RunScheduler() {
 
 // RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
-	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(internalclientset.FromUnversionedClient(c.KubeClient), controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod))
-	go resourceQuotaManager.Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, utilwait.NeverStop)
+	client := internalclientset.FromUnversionedClient(c.KubeClient)
+	resourceQuotaRegistry := quotainstall.NewRegistry(client)
+	groupKindsToReplenish := []unversioned.GroupKind{
+		kapi.Kind("Pod"),
+		kapi.Kind("Service"),
+		kapi.Kind("ReplicationController"),
+		kapi.Kind("PersistentVolumeClaim"),
+		kapi.Kind("Secret"),
+	}
+	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
+		KubeClient:            client,
+		ResyncPeriod:          controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod),
+		Registry:              resourceQuotaRegistry,
+		GroupKindsToReplenish: groupKindsToReplenish,
+		ControllerFactory:     kresourcequota.NewReplenishmentControllerFactory(client),
+	}
+	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, utilwait.NeverStop)
 }
 
 // RunNodeController starts the node controller
