@@ -95,7 +95,7 @@ func (a *constraint) Stop() {
 //     with the validated SCC.  If we don't find any reject the pod and give all errors from the
 //     failed attempts.
 func (c *constraint) Admit(a kadmission.Attributes) error {
-	if a.GetResource().Resource != string(kapi.ResourcePods) {
+	if a.GetResource() != kapi.Resource("pods") {
 		return nil
 	}
 
