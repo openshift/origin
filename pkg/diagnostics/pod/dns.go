@@ -6,6 +6,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -100,6 +101,8 @@ func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 		}
 		return string(b)
 	}()
+	seenDP2014 := sets.String{}
+	seenDP2015 := sets.String{}
 	for _, domain := range resolvConf.Search {
 		if domain == "svc.cluster.local" {
 			foundDomain = true // this will make kubernetes.default work
@@ -109,18 +112,22 @@ func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 		msg.SetQuestion("wildcard."+randomString+"."+domain+".", dns.TypeA)
 		msg.RecursionDesired = true // otherwise we just get the authority section for the TLD
 		for _, server := range resolvConf.Servers {
-			if result, completed := dnsQueryWithTimeout(msg, server, 2); !completed {
-				r.Warn("DP2014", nil, fmt.Sprintf("A request to the nameserver %s timed out.\nThis could be temporary but could also indicate network or DNS problems.", server))
-			} else {
-				if in, err := result.in, result.err; err != nil {
-					r.Warn("DP2015", err, fmt.Sprintf("Error querying nameserver %s:\n  %v\nThis may indicate a problem with DNS.", server, err))
-				} else {
-					if in.Answer == nil || len(in.Answer) == 0 { // no news is good news
-						r.Debug("DP2017", fmt.Sprintf("Nameserver %s responded to wildcard with no answer, which is expected.\n%v", server, in))
-					} else { // the random domain is not supposed to resolve
-						r.Error("DP2016", nil, fmt.Sprintf(txtDP2016, server, domain, in))
-					}
+			result, completed := dnsQueryWithTimeout(msg, server, 2)
+			switch {
+			case !completed:
+				if !seenDP2014.Has(server) {
+					r.Warn("DP2014", nil, fmt.Sprintf("A request to the nameserver %s timed out.\nThis could be temporary but could also indicate network or DNS problems.", server))
+					seenDP2014.Insert(server) // no need to keep warning about the same server for every domain
 				}
+			case result.err != nil:
+				if !seenDP2015.Has(server) {
+					r.Warn("DP2015", result.err, fmt.Sprintf("Error querying nameserver %s:\n  %v\nThis may indicate a problem with DNS.", server, result.err))
+					seenDP2015.Insert(server) // don't repeat the error for the same nameserver; chances are it's the same error
+				}
+			case result.in.Answer == nil, len(result.in.Answer) == 0:
+				r.Debug("DP2017", fmt.Sprintf("Nameserver %s responded to wildcard with no answer, which is expected.\n%v", server, result.in))
+			default: // the random domain is not supposed to resolve
+				r.Error("DP2016", nil, fmt.Sprintf(txtDP2016, server, domain, result.in))
 			}
 		}
 	}
