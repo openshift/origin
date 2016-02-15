@@ -42,7 +42,7 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) error
+	Setup(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
 
 	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
