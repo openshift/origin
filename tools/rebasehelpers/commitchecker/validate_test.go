@@ -206,6 +206,7 @@ func TestValidateUpstreamCommitSummaries(t *testing.T) {
 	}{
 		{valid: true, summary: "UPSTREAM: 12345: a change"},
 		{valid: true, summary: "UPSTREAM: k8s.io/heapster: 12345: a change"},
+		{valid: true, summary: "UPSTREAM: gopkg.in/ldap.v2: 51: a change"},
 		{valid: true, summary: "UPSTREAM: <carry>: a change"},
 		{valid: true, summary: "UPSTREAM: <drop>: a change"},
 		{valid: true, summary: "UPSTREAM: coreos/etcd: <carry>: a change"},
