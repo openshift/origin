@@ -251,10 +251,10 @@ func GetBoostrapSCCAccess(infraNamespace string) (map[string][]string, map[strin
 	}
 
 	buildControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraBuildControllerServiceAccountName)
-	pvControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraPersistentVolumeBinderControllerServiceAccountName)
+	pvRecyclerControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	users := map[string][]string{
 		SecurityContextConstraintPrivileged:         {buildControllerUsername},
-		SecurityContextConstraintHostMountAndAnyUID: {pvControllerUsername},
+		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
 	}
 	return groups, users
 }
