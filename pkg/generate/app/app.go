@@ -18,6 +18,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/git"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -306,6 +307,8 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		},
 	}
 
+	annotations := make(map[string]string)
+
 	template := kapi.PodSpec{}
 	for i := range r.Images {
 		c, containerTriggers, err := r.Images[i].DeployableContainer()
@@ -314,6 +317,9 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		}
 		triggers = append(triggers, containerTriggers...)
 		template.Containers = append(template.Containers, *c)
+		if cmd, ok := r.Images[i].Command(); ok {
+			imageapi.SetContainerImageEntrypointAnnotation(annotations, c.Name, cmd)
+		}
 	}
 
 	// Create EmptyDir volumes for all container volume mounts
@@ -342,7 +348,8 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 			Selector: selector,
 			Template: &kapi.PodTemplateSpec{
 				ObjectMeta: kapi.ObjectMeta{
-					Labels: selector,
+					Labels:      selector,
+					Annotations: annotations,
 				},
 				Spec: template,
 			},
