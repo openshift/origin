@@ -11,12 +11,12 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	kubeutil "k8s.io/kubernetes/pkg/util"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
+	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 )
 
 type PluginHooks interface {
@@ -67,7 +67,7 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 		selfIP, err = netutils.GetNodeIP(hostname)
 		if err != nil {
 			log.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", hostname, err)
-			defaultIP, err := kubeutil.ChooseHostInterface()
+			defaultIP, err := kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return err
 			}
