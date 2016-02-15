@@ -75,59 +75,53 @@
     }
     .component-block {
       .flex-display(@display: flex);
-      .flex-direction(@direction: row);
+      .flex-direction(@direction: column);
       .flex-wrap(@wrap: wrap);
-      @media (max-width: @screen-sm-min) {
-        /* Switch to vertical layout at small sizes */
-        .flex-direction(@direction: column);
-      }
-      &.pod-container {
+      @media (min-width: @screen-md-min) {
+        // switch to horizontal layout when >=992
         .flex-direction(@direction: row);
       }
       &.component-meta {
         margin: 4px 0 6px;
       }
+      &.pod-container {
+        .flex-direction(@direction: row);
+      }
       .component {
-        // prevent content from overflowing the parent in Safari
-        width: 100%;
-        @media (min-width: @screen-sm-min) {
-          // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-          .flex(@columns: 2 1 0%);
-        }
-        h2,h3 {
-          margin: 0 0 5px;
-          .truncate();
+        @media (min-width: @screen-md-min) {
+          // assign flex properties when >=992 for proper layout so that .component no longer stack; % on flex-basis value necessary for IE
+          .flex(@columns: 2 0 0%);
+          // so that long strings with nowrap truncate
+          min-width: 0;
         }
         &.meta-data {
-          @media (min-width: @screen-sm-min) {
-            // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
-            .flex(@columns: 1 1 0%);
-          }
-          font-size: @component-label + 1;
-          text-align: right;
-          line-height: @line-height-base;
-          .align-self(@align: left);
           color: @gray-light;
-          @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max) {
-            // block display multiple port mappings at specific widths to prevent breaking of layout, but also prevent wrapping when not needed
+          font-size: @component-label;
+          line-height: @line-height-base;
+          @media (min-width: @screen-md-min) {
+            // assign flex properties when >=992 for proper layout so that .component no longer stack; % on flex-basis value necessary for IE
+            .flex(@columns: 1 0 0%);
+            text-align: right;
+            .more-ports,
             .port-mappings {
-              display: block;
+              white-space: nowrap;
             }
+          }
+        }
+        @media (max-width: @screen-sm-max) {
+          .ports {
+            margin-right: 5px;
           }
         }
         .add-route-link {
           text-transform: none;
-        }
-        @media (max-width: @screen-sm-min) {
-          // display side-by-side at mobile resolutions
-          .port-mappings, .add-route-link {
+          @media (max-width: @screen-sm-max) {
             display: inline-block;
-            margin-right: 5px;
           }
-          &.meta-data {
-            /* Left align for vertical layout at small sizes */
-            text-align: left;
-          }
+        }
+        h2,h3 {
+          margin: 0 0 5px;
+          .truncate();
         }
       }
     }
