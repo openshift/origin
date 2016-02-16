@@ -100,6 +100,7 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 }
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
+// TODO: refactor to share the common "patch resource" pattern of probe
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
 	resources, envArgs := []string{}, []string{}
 	first := true

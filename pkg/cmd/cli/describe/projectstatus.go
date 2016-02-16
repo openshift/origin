@@ -53,6 +53,7 @@ type ProjectStatusDescriber struct {
 
 	LogsCommandName             string
 	SecurityPolicyCommandFormat string
+	SetProbeCommandName         string
 }
 
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, sets.String, error) {
@@ -218,7 +219,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		allMarkers := osgraph.Markers{}
 		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
-		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat) {
+		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat, d.SetProbeCommandName) {
 			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
 
@@ -323,7 +324,7 @@ func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 	return markers
 }
 
-func getMarkerScanners(logsCommandName, securityPolicyCommandFormat string) []osgraph.MarkerScanner {
+func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCommandName string) []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return kubeanalysis.FindRestartingPods(g, f, logsCommandName, securityPolicyCommandFormat)
@@ -334,6 +335,9 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat string) []os
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
+		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
+		},
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,
 		routeanalysis.FindPathBasedPassthroughRoutes,
