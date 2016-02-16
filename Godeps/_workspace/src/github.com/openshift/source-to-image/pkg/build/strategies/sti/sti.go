@@ -266,7 +266,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 
 	env, err := scripts.GetEnvironment(b.config)
 	if err != nil {
-		glog.V(1).Infof("No .sti/environment provided (%v)", err)
+		glog.V(1).Infof("No user environment provided (%v)", err)
 	}
 
 	buildEnv := append(scripts.ConvertEnvironment(env), b.generateConfigEnv()...)
@@ -413,7 +413,7 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 
 	env, err := scripts.GetEnvironment(config)
 	if err != nil {
-		glog.V(1).Infof("No .sti/environment provided (%v)", err)
+		glog.V(1).Infof("No user environment provided (%v)", err)
 	}
 
 	buildEnv := append(scripts.ConvertEnvironment(env), b.generateConfigEnv()...)
