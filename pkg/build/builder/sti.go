@@ -226,9 +226,12 @@ func (s *S2IBuilder) Build() error {
 		return err
 	}
 
-	if err := tagImage(s.dockerClient, buildTag, pushTag); err != nil {
-		return err
+	if push {
+		if err := tagImage(s.dockerClient, buildTag, pushTag); err != nil {
+			return err
+		}
 	}
+
 	if err := removeImage(s.dockerClient, buildTag); err != nil {
 		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
 	}

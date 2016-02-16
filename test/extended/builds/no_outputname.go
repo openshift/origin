@@ -13,7 +13,7 @@ var _ = g.Describe("[builds] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
 		dockerImageFixture = exutil.FixturePath("fixtures", "test-docker-no-outputname.json")
-		s2iImageFixture    = exutil.FixturePath("fixtures", "test-sti-no-outputname.json")
+		s2iImageFixture    = exutil.FixturePath("fixtures", "test-s2i-no-outputname.json")
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 

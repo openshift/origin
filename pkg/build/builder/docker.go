@@ -95,9 +95,12 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
-		return err
+	if push {
+		if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
+			return err
+		}
 	}
+
 	if err := removeImage(d.dockerClient, buildTag); err != nil {
 		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
