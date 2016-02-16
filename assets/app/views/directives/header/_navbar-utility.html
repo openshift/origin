@@ -14,7 +14,7 @@
   <li uib-dropdown ng-cloak ng-if="user">
     <a href="" uib-dropdown-toggle id="user-dropdown" class="nav-item-iconic">
       <span class="pf-icon pficon-user" aria-hidden="true"></span>
-      <span class="username">{{user.fullName || user.metadata.name}}</span> <span class="caret" aria-hidden="true"></span>
+      <span class="username truncate">{{user.fullName || user.metadata.name}}</span> <span class="caret" aria-hidden="true"></span>
     </a>
     <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown" hawtio-extension name="nav-user-dropdown">
       <li>
