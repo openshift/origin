@@ -83,6 +83,9 @@ echo "[INFO] Pulled ruby-22-centos7"
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
 
+# check to make sure that logs for rc works
+oc logs rc/docker-registry-1 > /dev/null
+
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
