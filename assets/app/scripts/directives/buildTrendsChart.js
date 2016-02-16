@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('buildTrendsChart', function($filter, $location, $rootScope) {
+  .directive('buildTrendsChart', function($filter, $location, $rootScope, $timeout) {
     return {
       restrict: 'E',
       scope: {
@@ -268,7 +268,12 @@ angular.module('openshiftConsole')
 
           if (!chart) {
             config.data = angular.extend(data, config.data);
-            chart = c3.generate(config);
+            // Allow the rest of the page to load so c3 calculates the correct
+            // width for the chart based on the parent width.
+            $timeout(function() {
+              chart = c3.generate(config);
+              updateAvgLine();
+            });
           } else {
             data.unload = unload;
             // Call flush to work around a c3.js bug where the y-axis label
@@ -281,10 +286,8 @@ angular.module('openshiftConsole')
               }, animationDuration() + 25);
             };
             chart.load(data);
+            updateAvgLine();
           }
-
-          // Update average line.
-          updateAvgLine();
         };
 
         $scope.$watch(numCompleteBuilds, update);
