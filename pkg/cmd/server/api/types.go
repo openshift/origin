@@ -1004,6 +1004,9 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string
+
+	// PageSize is the maximum preferred page size, measured in LDAP entries. A page size of 0 means no paging will be done.
+	PageSize int
 }
 
 type AdmissionPluginConfig struct {

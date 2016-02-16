@@ -29,6 +29,7 @@ func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
 		DerefAliases: derefAliases,
 		TimeLimit:    config.TimeLimit,
 		Filter:       config.Filter,
+		PageSize:     config.PageSize,
 	}, nil
 }
 
@@ -50,10 +51,17 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string
+
+	// PageSize is the maximum preferred page size, measured in LDAP entries. A page size of 0 means no paging will be done.
+	PageSize int
 }
 
 // NewSearchRequest creates a new search request for the LDAP query and optionally includes more attributes
 func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.SearchRequest {
+	var controls []ldap.Control
+	if q.PageSize > 0 {
+		controls = append(controls, ldap.NewControlPaging(uint32(q.PageSize)))
+	}
 	return ldap.NewSearchRequest(
 		q.BaseDN,
 		int(q.Scope),
@@ -63,7 +71,7 @@ func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.Search
 		false, // not types only
 		q.Filter,
 		additionalAttributes,
-		nil, // no controls
+		controls,
 	)
 }
 
@@ -114,6 +122,10 @@ func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attribute
 // this is done by setting the DN to be the base DN for the search and setting the search scope
 // to only consider the base object found
 func (o *LDAPQueryOnAttribute) buildDNQuery(dn string, attributes []string) *ldap.SearchRequest {
+	var controls []ldap.Control
+	if o.PageSize > 0 {
+		controls = append(controls, ldap.NewControlPaging(uint32(o.PageSize)))
+	}
 	return ldap.NewSearchRequest(
 		dn,
 		ldap.ScopeBaseObject, // over-ride original
@@ -123,7 +135,7 @@ func (o *LDAPQueryOnAttribute) buildDNQuery(dn string, attributes []string) *lda
 		false,             // not types only
 		"(objectClass=*)", // filter that returns all values
 		attributes,
-		nil, // no controls
+		controls,
 	)
 }
 
@@ -137,6 +149,11 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 
 	filter := fmt.Sprintf("(&(%s)(%s))", o.Filter, specificFilter)
 
+	var controls []ldap.Control
+	if o.PageSize > 0 {
+		controls = append(controls, ldap.NewControlPaging(uint32(o.PageSize)))
+	}
+
 	return ldap.NewSearchRequest(
 		o.BaseDN,
 		int(o.Scope),
@@ -146,7 +163,7 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 		false, // not types only
 		filter,
 		attributes,
-		nil, // no controls
+		controls,
 	)
 }
 
@@ -200,8 +217,18 @@ func QueryForEntries(clientConfig ldapclient.Config, query *ldap.SearchRequest) 
 		}
 	}
 
-	glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
-	searchResult, err := connection.Search(query)
+	var searchResult *ldap.SearchResult
+	control := ldap.FindControl(query.Controls, ldap.ControlTypePaging)
+	if control == nil {
+		glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
+		searchResult, err = connection.Search(query)
+	} else if pagingControl, ok := control.(*ldap.ControlPaging); ok {
+		glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v with pageSize=%d", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes, pagingControl.PagingSize)
+		searchResult, err = connection.SearchWithPaging(query, pagingControl.PagingSize)
+	} else {
+		err = fmt.Errorf("invalid paging control type: %v", control)
+	}
+
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 			return nil, NewNoSuchObjectError(query.BaseDN)
