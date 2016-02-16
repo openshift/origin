@@ -247,10 +247,10 @@ const (
 // These constants represent the various reasons for cancelling a deployment
 // or for a deployment being placed in a failed state
 const (
-	DeploymentCancelledByUser                 = "The deployment was cancelled by the user"
-	DeploymentCancelledNewerDeploymentExists  = "The deployment was cancelled as a newer deployment was found running"
-	DeploymentFailedUnrelatedDeploymentExists = "The deployment failed as an unrelated pod with the same name as this deployment is already running"
-	DeploymentFailedDeployerPodNoLongerExists = "The deployment failed as the deployer pod no longer exists"
+	DeploymentCancelledByUser                 = "cancelled by the user"
+	DeploymentCancelledNewerDeploymentExists  = "cancelled as a newer deployment was found running"
+	DeploymentFailedUnrelatedDeploymentExists = "unrelated pod with the same name as this deployment is already running"
+	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
 )
 
 // MaxDeploymentDurationSeconds represents the maximum duration that a deployment is allowed to run
