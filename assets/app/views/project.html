@@ -113,6 +113,15 @@
                             (and
                             <a href="{{service | navigateResourceURL}}">{{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}</a>)
                           </span>
+                          <span ng-if="!otherRoutes">
+                            <route-warnings warnings="routeWarningsByService[serviceId][displayRouteByService[serviceId].metadata.name]"></route-warnings>
+                          </span>
+                          <div ng-if="(routeWarningsByService[serviceId] | hashSize) > 0 && otherRoutes">
+                            <small>
+                              <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                              This service has <a href="project/{{projectName}}/browse/routes">routes</a> with warnings.
+                            </small>
+                          </div>                          
                         </h2>
 
                         <!-- If no route is present, show the service name large -->

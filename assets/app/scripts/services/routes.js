@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .factory("RoutesService", function() {
+  .factory("RoutesService", function($filter) {
     var isPortNamed = function(port) {
       return angular.isString(port);
     };
@@ -62,6 +62,44 @@ angular.module("openshiftConsole")
       }
     };
 
+    var addIngressWarnings = function(route, warnings) {
+      angular.forEach(route.status.ingress, function(ingress) {
+        var condition = _.find(ingress.conditions, { type: "Admitted", status: "False" });
+        if (condition) {
+          var message = 'Requested host ' + ingress.host + ' was rejected by the router.';
+          if (condition.message || condition.reason) {
+            message += " Reason: " + (condition.message || condition.reason) + '.';
+          }
+          warnings.push(message);
+        }
+      });
+    };
+
+
+    function isCustomHost(route) {
+      return $filter('annotation')(route, "openshift.io/host.generated") !== "true";
+    }
+
+    // Gets the preferred route to display between two routes
+    // Preference order: admitted custom host with TLS -> admitted custom host -> custom host -> any route 
+    var getPreferredDisplayRoute = function(lhs, rhs) {
+      var isCustomHostLhs = isCustomHost(lhs);
+      var isCustomHostRhs = isCustomHost(rhs);
+      var isAdmittedLhs = $filter("routeStatus")(lhs) === "Admitted";
+      var isAdmittedRhs = $filter("routeStatus")(rhs) === "Admitted";
+      var isTLSLhs = lhs.spec.tls;
+      var isTLSRhs = rhs.spec.tls;
+      if (isTLSLhs && isAdmittedLhs && isCustomHostLhs) {
+        return lhs;
+      }
+      if (isAdmittedLhs && isCustomHostLhs) {
+        return (isTLSRhs && isAdmittedRhs && isCustomHostRhs) ? rhs : lhs;
+      }
+      if (isCustomHostLhs) {
+        return (isAdmittedRhs && isCustomHostRhs) ? rhs : lhs;
+      }
+    };
+
     return {
       // Gets warnings about a route.
       //
@@ -79,9 +117,12 @@ angular.module("openshiftConsole")
         }
         addTLSWarnings(route, warnings);
 
+        addIngressWarnings(route, warnings);
+
         return warnings;
       },
 
-      getServicePortForRoute: getServicePortForRoute
+      getServicePortForRoute: getServicePortForRoute,
+      getPreferredDisplayRoute: getPreferredDisplayRoute
     };
   });
