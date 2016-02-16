@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 lock_file=/var/lock/openshift-sdn.lock
 
@@ -44,6 +44,10 @@ add_ovs_port() {
     ovs-vsctl add-port br0 ${veth_host}
 }
 
+ensure_ovs_port() {
+    ovs-vsctl --may-exist add-port br0 ${veth_host}
+}
+
 del_ovs_port() {
     ovs-vsctl --if-exists del-port $veth_host
 }
@@ -75,59 +79,41 @@ del_ovs_flows() {
 }
 
 add_subnet_route() {
-    source /run/openshift-sdn/config.env
-    local subnet_route="ip route add ${OPENSHIFT_CLUSTER_SUBNET} dev eth0 proto kernel scope link src $ipaddr"
-    nsenter -n -t $pid -- $subnet_route
+    nsenter -n -t $pid -- ip route add $OPENSHIFT_CLUSTER_SUBNET dev eth0 proto kernel scope link src $ipaddr
 }
 
-Init() {
-    true
-}
-
-Setup() {
-    get_ipaddr_pid_veth
-    add_ovs_port
-    add_ovs_flows
+ensure_subnet_route() {
+    nsenter -n -t $pid -- ip route del $OPENSHIFT_CLUSTER_SUBNET dev eth0 || true
     add_subnet_route
 }
 
-Update() {
+run() {
     get_ipaddr_pid_veth
-    del_ovs_flows
-    add_ovs_flows
+    source /run/openshift-sdn/config.env
+
+    case "$action" in
+	setup)
+	    add_ovs_port
+	    add_ovs_flows
+	    add_subnet_route
+	    ;;
+
+	update)
+	    ensure_ovs_port
+	    del_ovs_flows
+	    add_ovs_flows
+	    ensure_subnet_route
+	    ;;
+
+	teardown)
+	    del_ovs_port
+	    del_ovs_flows
+	    ;;
+
+	*)
+            echo "Bad input: $@"
+            exit 1
+    esac
 }
 
-Teardown() {
-    get_ipaddr_pid_veth
-    del_ovs_port
-    del_ovs_flows
-}
-
-Status() {
-    # do nothing, empty output will default to address as picked by docker
-    true
-}
-
-case "$action" in
-    init)
-	lockwrap Init
-	;;
-    setup)
-	set -x
-	lockwrap Setup
-	;;
-    update)
-	set -x
-	lockwrap Update
-	;;
-    teardown)
-	set -x
-	lockwrap Teardown
-	;;
-    status)
-	lockwrap Status
-	;;
-    *)
-        echo "Bad input: $@"
-        exit 1
-esac
+lockwrap run

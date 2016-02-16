@@ -9,6 +9,8 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
@@ -113,7 +115,7 @@ func (oc *OvsController) SubnetStartNode(mtu uint) error {
 		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return err
 	}
-	err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
+	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
 	if err != nil {
 		return err
 	}
@@ -128,6 +130,19 @@ func (oc *OvsController) SubnetStartNode(mtu uint) error {
 	subnets := result.([]api.Subnet)
 	for _, s := range subnets {
 		oc.flowController.AddOFRules(s.NodeIP, s.SubnetCIDR, oc.localIP)
+	}
+
+	if networkChanged {
+		pods, err := oc.Registry.GetRunningPods(oc.hostName, kapi.NamespaceAll)
+		if err != nil {
+			return err
+		}
+		for _, p := range pods {
+			err = oc.pluginHooks.UpdatePod(p.Namespace, p.Name, kubetypes.DockerID(p.ContainerID))
+			if err != nil {
+				log.Warningf("Could not update pod %q (%s): %s", p.Name, p.ContainerID, err)
+			}
+		}
 	}
 
 	return nil
