@@ -142,7 +142,7 @@ os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_C
 os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
 # breaking the config fails the validation check
 cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
-os::util::sed '7,12d' ${BASETMPDIR}/master-config-broken.yaml
+echo "kubernetesMasterConfig: {}" >> ${BASETMPDIR}/master-config-broken.yaml
 os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
 
 cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml

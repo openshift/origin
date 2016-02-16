@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -187,6 +188,13 @@ window.OPENSHIFT_CONFIG = {
   	oauth_client_id: "{{ .OAuthClientID | js}}",
   	logout_uri: "{{ .LogoutURI | js}}"
   },
+  {{ with .LimitRequestOverrides }}
+  limitRequestOverrides: {
+	limitCPUToMemoryPercent: {{ .LimitCPUToMemoryPercent }},
+	cpuRequestToLimitPercent: {{ .CPURequestToLimitPercent }},
+	memoryRequestToLimitPercent: {{ .MemoryRequestToLimitPercent }}
+  },
+  {{ end }}
   loggingURL: "{{ .LoggingURL | js}}",
   metricsURL: "{{ .MetricsURL | js}}"
 };
@@ -222,6 +230,12 @@ type WebConsoleConfig struct {
 	LoggingURL string
 	// MetricsURL is the endpoint for metrics (optional)
 	MetricsURL string
+	// LimitRequestOverrides contains the ratios for overriding request/limit on containers.
+	// Applied in order:
+	//   LimitCPUToMemoryPercent
+	//   CPURequestToLimitPercent
+	//   MemoryRequestToLimitPercent
+	LimitRequestOverrides *api.ClusterResourceOverrideConfig
 }
 
 func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {

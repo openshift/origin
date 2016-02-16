@@ -198,20 +198,21 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
-		APIGroupAddr:        masterURL.Host,
-		APIGroupPrefix:      KubernetesAPIGroupPrefix,
-		MasterAddr:          masterURL.Host,
-		MasterPrefix:        OpenShiftAPIPrefix,
-		MasterResources:     originResources.List(),
-		KubernetesAddr:      masterURL.Host,
-		KubernetesPrefix:    KubernetesAPIPrefix,
-		KubernetesResources: k8sResources.List(),
-		OAuthAuthorizeURI:   OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthRedirectBase:   c.Options.PublicURL,
-		OAuthClientID:       OpenShiftWebConsoleClientID,
-		LogoutURI:           c.Options.LogoutURL,
-		LoggingURL:          c.Options.LoggingPublicURL,
-		MetricsURL:          c.Options.MetricsPublicURL,
+		APIGroupAddr:          masterURL.Host,
+		APIGroupPrefix:        KubernetesAPIGroupPrefix,
+		MasterAddr:            masterURL.Host,
+		MasterPrefix:          OpenShiftAPIPrefix,
+		MasterResources:       originResources.List(),
+		KubernetesAddr:        masterURL.Host,
+		KubernetesPrefix:      KubernetesAPIPrefix,
+		KubernetesResources:   k8sResources.List(),
+		OAuthAuthorizeURI:     OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthRedirectBase:     c.Options.PublicURL,
+		OAuthClientID:         OpenShiftWebConsoleClientID,
+		LogoutURI:             c.Options.LogoutURL,
+		LoggingURL:            c.Options.LoggingPublicURL,
+		MetricsURL:            c.Options.MetricsPublicURL,
+		LimitRequestOverrides: c.LimitRequestOverrides,
 	}
 	kVersionInfo := kversion.Get()
 	oVersionInfo := oversion.Get()
