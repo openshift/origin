@@ -14,12 +14,12 @@ html,body {
   .top-header {
     .flex-display(@display: flex);
     position:relative;
-    height: @navbar-os-header-height;
+    height: @navbar-os-header-height-mobile;
   }
   .wrap {
     height:100vh;
-    margin-top:-60px; /* top offset height */
-    padding-top:60px; /* top offset height */
+    margin-top:-@navbar-os-header-height-mobile; /* top offset height */
+    padding-top:@navbar-os-header-height-mobile; /* top offset height */
     position:relative;
     width:100%;
     .backface-visibility(hidden);
@@ -27,7 +27,7 @@ html,body {
     .flex-display(@display: flex);
     &.no-sidebar {
       .container {
-        margin-bottom: @grid-gutter-width * 2;
+        padding-bottom: @grid-gutter-width; // add spacing so content isn't next to bottom edge
         h1 {
           margin: 10px 0 20px;
         }
@@ -97,6 +97,8 @@ html,body {
   }
   .console-os {
     .wrap {
+      margin-top:-@navbar-os-header-height-desktop; /* top offset height */
+      padding-top:@navbar-os-header-height-desktop; /* top offset height */
       .flex-direction(@direction: row);
       overflow:hidden;
       &.no-sidebar {
@@ -123,7 +125,7 @@ html,body {
       }
     }
     .top-header {
-      height:60px; /* top offset height */
+      height: @navbar-os-header-height-desktop; /* top offset height */
     }
     .sidebar-left,.middle,.sidebar-right {
       -webkit-overflow-scrolling:touch;
