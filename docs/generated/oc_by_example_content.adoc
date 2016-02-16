@@ -4,6 +4,514 @@
 toc::[]
 
 
+== oc adm build-chain
+Output the inputs and dependencies of your builds
+
+====
+
+[options="nowrap"]
+----
+  # Build the dependency tree for the 'latest' tag in <image-stream>
+  $ oc adm build-chain <image-stream>
+
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  $ oc adm build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
+
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  $ oc adm build-chain <image-stream> -n test --all
+----
+====
+
+
+== oc adm config
+Change configuration files for the client
+
+====
+
+[options="nowrap"]
+----
+  # Change the config context to use
+  oc adm config use-context my-context
+  
+  # Set the value of a config preference
+  oc adm config set preferences.some true
+----
+====
+
+
+== oc adm config current-context
+Displays the current-context
+
+====
+
+[options="nowrap"]
+----
+  # Display the current-context
+  $ oc adm config current-context
+----
+====
+
+
+== oc adm config set-cluster
+Sets a cluster entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  # Set only the server field on the e2e cluster entry without touching other values.
+  $ oc adm config set-cluster e2e --server=https://1.2.3.4
+  
+  # Embed certificate authority data for the e2e cluster entry
+  $ oc adm config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
+  
+  # Disable cert checking for the dev cluster entry
+  $ oc adm config set-cluster e2e --insecure-skip-tls-verify=true
+----
+====
+
+
+== oc adm config set-context
+Sets a context entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  # Set the user field on the gce context entry without touching other values
+  $ oc adm config set-context gce --user=cluster-admin
+----
+====
+
+
+== oc adm config set-credentials
+Sets a user entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  # Set only the "client-key" field on the "cluster-admin"
+  # entry, without touching other values:
+  $ oc adm config set-credentials cluster-admin --client-key=~/.kube/admin.key
+  
+  # Set basic auth for the "cluster-admin" entry
+  $ oc adm config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
+  
+  # Embed client certificate data in the "cluster-admin" entry
+  $ oc adm config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
+----
+====
+
+
+== oc adm config view
+Displays merged kubeconfig settings or a specified kubeconfig file.
+
+====
+
+[options="nowrap"]
+----
+  # Show Merged kubeconfig settings.
+  $ oc adm config view
+  
+  # Get the password for the e2e user
+  $ oc adm config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+----
+====
+
+
+== oc adm groups add-users
+Add users to a group
+
+====
+
+[options="nowrap"]
+----
+  # Add user1 and user2 to my-group
+  $ oc adm groups add-users my-group user1 user2
+----
+====
+
+
+== oc adm groups new
+Create a new group
+
+====
+
+[options="nowrap"]
+----
+  # Add a group with no users
+  $ oc adm groups new my-group
+
+  # Add a group with two users
+  $ oc adm groups new my-group user1 user2
+----
+====
+
+
+== oc adm groups prune
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups
+  $ oc adm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  $ oc adm groups prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  $ oc adm groups prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  $ oc adm groups prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+----
+====
+
+
+== oc adm groups remove-users
+Remove users from a group
+
+====
+
+[options="nowrap"]
+----
+  # Remove user1 and user2 from my-group
+  $ oc adm groups remove-users my-group user1 user2
+----
+====
+
+
+== oc adm groups sync
+Sync OpenShift groups with records from an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Sync all groups from an LDAP server
+  $ oc adm groups sync --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync all groups except the ones from the blacklist file from an LDAP server
+  $ oc adm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific groups specified in a whitelist file with an LDAP server
+  $ oc adm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
+
+  # Sync all OpenShift Groups that have been synced previously with an LDAP server
+  $ oc adm groups sync --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
+  $ oc adm groups sync groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
+
+----
+====
+
+
+== oc adm ipfailover
+Install an IP failover group to a set of nodes
+
+====
+
+[options="nowrap"]
+----
+  # Check the default IP failover configuration ("ipfailover"):
+  $ oc adm ipfailover
+
+  # See what the IP failover configuration would look like if it is created:
+  $ oc adm ipfailover -o json
+
+  # Create an IP failover configuration if it does not already exist:
+  $ oc adm ipfailover ipf --virtual-ips="10.1.1.1-4" --create
+
+  # Create an IP failover configuration on a selection of nodes labeled
+  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  # listening on port 80, such as the router process).
+  $ oc adm ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+
+  # Use a different IP failover config image and see the configuration:
+  $ oc adm ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
+----
+====
+
+
+== oc adm manage-node
+Manage nodes - list pods, evacuate, or mark ready
+
+====
+
+[options="nowrap"]
+----
+	# Block accepting any pods on given nodes
+	$ oc adm manage-node <mynode> --schedulable=false
+
+	# Mark selected nodes as schedulable
+	$ oc adm manage-node --selector="<env=dev>" --schedulable=true
+
+	# Migrate selected pods
+	$ oc adm manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
+
+	# Show pods that will be migrated
+	$ oc adm manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+
+	# List all pods on given nodes
+	$ oc adm manage-node <mynode1> <mynode2> --list-pods
+----
+====
+
+
+== oc adm pod-network join-projects
+Join project network
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p2 to use project p1 network
+	$ oc adm pod-network join-projects --to=<p1> <p2>
+
+	# Allow all projects with label name=top-secret to use project p1 network
+	$ oc adm pod-network join-projects --to=<p1> --selector='name=top-secret'
+----
+====
+
+
+== oc adm pod-network make-projects-global
+Make project network global
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p1 to access all pods in the cluster and vice versa
+	$ oc adm pod-network make-projects-global <p1>
+
+	# Allow all projects with label name=share to access all pods in the cluster and vice versa
+	$ oc adm pod-network make-projects-global --selector='name=share'
+----
+====
+
+
+== oc adm policy add-role-to-user
+Add users or serviceaccounts to a role in the current project
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'view' role to user1 in the current project
+  $ oc adm policy add-role-to-user view user1
+
+  # Add the 'edit' role to serviceaccount1 in the current project
+  $ oc adm policy add-role-to-user edit -z serviceaccount1
+----
+====
+
+
+== oc adm policy add-scc-to-user
+Add users or serviceaccount to a security context constraint
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'restricted' security context contraint to user1 and user2
+  $ oc adm policy add-scc-to-user restricted user1 user2
+
+  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+  $ oc adm policy add-scc-to-user privileged -z serviceaccount1
+----
+====
+
+
+== oc adm policy reconcile-cluster-role-bindings
+Replace cluster role bindings to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster role bindings that would be modified
+  $ oc adm policy reconcile-cluster-role-bindings
+
+  # Display the cluster role bindings that would be modified, removing any extra subjects
+  $ oc adm policy reconcile-cluster-role-bindings --additive-only=false
+
+  # Update cluster role bindings that don't match the current defaults
+  $ oc adm policy reconcile-cluster-role-bindings --confirm
+
+  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
+  $ oc adm policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
+
+  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
+  $ oc adm policy reconcile-cluster-role-bindings --confirm --additive-only=false
+----
+====
+
+
+== oc adm policy reconcile-cluster-roles
+Replace cluster roles to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster roles that would be modified
+  $ oc adm policy reconcile-cluster-roles
+
+  # Replace cluster roles that don't match the current defaults
+  $ oc adm policy reconcile-cluster-roles --confirm
+
+  # Display the union of the default and modified cluster roles
+  $ oc adm policy reconcile-cluster-roles --additive-only
+----
+====
+
+
+== oc adm policy reconcile-sccs
+Replace cluster SCCs to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster SCCs that would be modified
+  $ oc adm policy reconcile-sccs
+
+  # Update cluster SCCs that don't match the current defaults preserving additional grants
+  # for users and group and keeping any priorities that are already set
+  $ oc adm policy reconcile-sccs --confirm
+
+  # Replace existing users, groups, and priorities that do not match defaults
+  $ oc adm policy reconcile-sccs --additive-only=false --confirm
+----
+====
+
+
+== oc adm prune builds
+Remove old completed and failed builds
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting older completed and failed builds and also including
+  # all builds whose associated BuildConfig no longer exists
+  $ oc adm prune builds --orphans
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oc adm prune builds --orphans --confirm
+----
+====
+
+
+== oc adm prune deployments
+Remove old completed and failed deployments
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting all but the last complete deployment for every deployment config
+  $ oc adm prune deployments --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oc adm prune deployments --keep-complete=1 --confirm
+----
+====
+
+
+== oc adm prune groups
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups
+  $ oc adm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  $ oc adm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  $ oc adm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  $ oc adm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+----
+====
+
+
+== oc adm prune images
+Remove unreferenced images
+
+====
+
+[options="nowrap"]
+----
+  # See, what the prune command would delete if only images more than an hour old and obsoleted
+  # by 3 newer revisions under the same tag were considered.
+  $ oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  $ oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+----
+====
+
+
+== oc adm registry
+Install the integrated Docker registry
+
+====
+
+[options="nowrap"]
+----
+  # Check if default Docker registry ("docker-registry") has been created
+  $ oc adm registry --dry-run
+
+  # See what the registry will look like if created
+  $ oc adm registry -o json --credentials=/path/to/registry-user.kubeconfig
+
+  # Create a registry if it does not exist with two replicas
+  $ oc adm registry --replicas=2 --credentials=/path/to/registry-user.kubeconfig
+
+  # Use a different registry image and see the registry configuration
+  $ oc adm registry -o yaml --images=myrepo/docker-registry:mytag --credentials=/path/to/registry-user.kubeconfig
+----
+====
+
+
+== oc adm router
+Install a router
+
+====
+
+[options="nowrap"]
+----
+  # Check the default router ("router")
+  $ oc adm router --dry-run
+
+  # See what the router would look like if created
+  $ oc adm router -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
+
+  # Create a router if it does not exist
+  $ oc adm router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
+
+  # Use a different router image and see the router configuration
+  $ oc adm router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  $ oc adm router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  
+----
+====
+
+
 == oc annotate
 Update the annotations on a resource
 
