@@ -97,9 +97,6 @@ type MasterConfig struct {
 	ImageFor func(component string) string
 
 	EtcdHelper storage.Interface
-	// Storage interface no longer exposes the client since it is now generic.  This allows us
-	// to provide access to the client for things that need it.
-	EtcdClient *etcdclient.Client
 
 	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
@@ -232,7 +229,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		ImageFor:            imageTemplate.ExpandOrDie,
 		EtcdHelper:          etcdHelper,
-		EtcdClient:          client,
 		KubeletClientConfig: kubeletClientConfig,
 
 		ClientCAs:    clientCAs,

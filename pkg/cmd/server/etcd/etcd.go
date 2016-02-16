@@ -21,6 +21,7 @@ import (
 // GetAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
+// TODO: switch this function to use EtcdHelper.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
 	etcdClient, err := EtcdClient(etcdClientInfo)
 	if err != nil {
