@@ -9,11 +9,11 @@
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
-            <div ng-if="deploymentConfig">
+            <div>
               <h1>
-                {{deploymentConfig.metadata.name}}
+                {{deploymentConfigName}}
 
-                <div class="pull-right dropdown">
+                <div class="pull-right dropdown" ng-if="deploymentConfig">
                   <!-- Primary Actions -->
                   <button
                       class="btn btn-default hidden-xs"
@@ -56,7 +56,7 @@
                   </ul>
                 </div>
                 <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
-                <small class="meta">created <relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></small>
+                <small class="meta" ng-if="deploymentConfig">created <relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></small>
               </h1>
               <labels labels="deploymentConfig.metadata.labels" clickable="true" kind="deployments" title-kind="deployment configs" project-name="{{deploymentConfig.metadata.namespace}}" limit="3"></labels>
             </div>
@@ -64,12 +64,12 @@
         </div><!-- /middle-header-->
         <div class="middle-content">
           <div class="container-fluid">
-            <div class="row" ng-if="deploymentConfig">
-              <div class="col-md-12">
+            <div class="row" ng-if="loaded">
+              <div class="col-md-12" ng-class="{ 'hide-tabs' : !deploymentConfig }">
                 <uib-tabset>
                   <uib-tab active="selectedTab.details">
                     <uib-tab-heading>Details</uib-tab-heading>
-                    <div class="resource-details">
+                    <div class="resource-details" ng-if="deploymentConfig">
                       <div class="row">
                         <div class="col-lg-6">
                           <h3>Configuration</h3>
@@ -199,7 +199,7 @@
                       </table>
                     </div>
                   </uib-tab>
-                  <uib-tab heading="Environment" active="selectedTab.environment">
+                  <uib-tab heading="Environment" active="selectedTab.environment" ng-if="deploymentConfig">
                     <uib-tab-heading>Environment</uib-tab-heading>
                     <div ng-repeat="container in deploymentConfig.spec.template.spec.containers">
                       <h3>Container {{container.name}}</h3>

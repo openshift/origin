@@ -9,6 +9,7 @@
 angular.module('openshiftConsole')
   .controller('BuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter, LabelFilter, AlertMessageService) {
     $scope.projectName = $routeParams.project;
+    $scope.buildConfigName = $routeParams.buildconfig;
     $scope.buildConfig = null;
     $scope.labelSuggestions = {};
     $scope.alerts = {};
@@ -71,8 +72,8 @@ angular.module('openshiftConsole')
             $scope.loaded = true;
             $scope.alerts["load"] = {
               type: "error",
-              message: "The build configuration details could not be loaded.",
-              details: "Reason: " + $filter('getErrorDetails')(e)
+              message: e.status === 404 ? "This build configuration can not be found, it may have been deleted." : "The build configuration details could not be loaded.",
+              details: e.status === 404 ? "Any remaining build history for this build will be shown." : "Reason: " + $filter('getErrorDetails')(e)
             };
           }
         );
