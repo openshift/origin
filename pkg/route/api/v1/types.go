@@ -9,7 +9,8 @@ import (
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the route
 	Spec RouteSpec `json:"spec" description:"desired state of the route"`
@@ -20,6 +21,7 @@ type Route struct {
 // RouteList is a collection of Routes.
 type RouteList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of routes

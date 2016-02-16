@@ -9,6 +9,7 @@ import (
 // ImageList is a list of Image objects.
 type ImageList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of images
@@ -18,7 +19,8 @@ type ImageList struct {
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" description:"string that can be used to pull this image"`
@@ -43,6 +45,7 @@ type ImageLayer struct {
 // ImageStreamList is a list of ImageStream objects.
 type ImageStreamList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of imageStreams
@@ -54,7 +57,8 @@ type ImageStreamList struct {
 // repository on a registry.
 type ImageStream struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec describes the desired state of this stream
 	Spec ImageStreamSpec `json:"spec" description:"desired state of the stream"`
@@ -87,6 +91,7 @@ type TagReference struct {
 	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" description:"attributes controlling how this reference is imported"`
 }
 
+// TagImportPolicy describes the tag import policy
 type TagImportPolicy struct {
 	// Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
 	Insecure bool `json:"insecure,omitempty" description:"if true, the server may bypass certificate verification or connect directly over HTTP during image import"`
@@ -106,7 +111,9 @@ type ImageStreamStatus struct {
 
 // NamedTagEventList relates a tag to its image history.
 type NamedTagEventList struct {
-	Tag   string     `json:"tag" description:"the tag"`
+	// Tag is the tag for which the history is recorded
+	Tag string `json:"tag" description:"the tag"`
+	// Standard object's metadata.
 	Items []TagEvent `json:"items" description:"list of tag events related to the tag"`
 	// Conditions is an array of conditions that apply to the tag event list.
 	Conditions []TagEventCondition `json:"conditions,omitempty" description:"the set of conditions that apply to this tag"`
@@ -152,7 +159,8 @@ type TagEventCondition struct {
 // well as the reference to the Docker image stream the image came from.
 type ImageStreamMapping struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Image is a Docker image.
 	Image Image `json:"image" description:"a Docker image"`
@@ -163,7 +171,8 @@ type ImageStreamMapping struct {
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
 	// if only pushes have occured to this image stream.
@@ -185,15 +194,18 @@ type ImageStreamTag struct {
 // ImageStreamTagList is a list of ImageStreamTag objects.
 type ImageStreamTagList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
+	// Items is the list of image stream tags
 	Items []ImageStreamTag `json:"items" description:"list of image stream tag objects"`
 }
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Image associated with the ImageStream and image name.
 	Image Image `json:"image" description:"the image associated with the ImageStream and image name"`
@@ -201,19 +213,27 @@ type ImageStreamImage struct {
 
 // DockerImageReference points to a Docker image.
 type DockerImageReference struct {
-	Registry  string
+	// Registry is the registry that contains the Docker image
+	Registry string
+	// Namespace is the namespace that contains the Docker image
 	Namespace string
-	Name      string
-	Tag       string
-	ID        string
+	// Name is the name of the Docker image
+	Name string
+	// Tag is which tag of the Docker image is being referenced
+	Tag string
+	// ID is the identifier for the Docker image
+	ID string
 }
 
 // ImageStreamImport imports an image from remote repositories into OpenShift.
 type ImageStreamImport struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty" description:"metadata about the image stream, name is required"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty" description:"metadata about the image stream, name is required"`
 
-	Spec   ImageStreamImportSpec   `json:"spec" description:"description of the images that the user wishes to import"`
+	// Spec is a description of the images that the user wishes to import
+	Spec ImageStreamImportSpec `json:"spec" description:"description of the images that the user wishes to import"`
+	// Status is the the result of importing the image
 	Status ImageStreamImportStatus `json:"status" description:"the result of importing the image"`
 }
 
@@ -241,10 +261,13 @@ type ImageStreamImportStatus struct {
 
 // RepositoryImportSpec describes a request to import images from a Docker image repository.
 type RepositoryImportSpec struct {
+	// From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed
 	From kapi.ObjectReference `json:"from" description:"the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed"`
 
-	ImportPolicy    TagImportPolicy `json:"importPolicy,omitempty" description:"policy controlling how the image is imported"`
-	IncludeManifest bool            `json:"includeManifest,omitempty" description:"if true, return the manifest for each image in the response"`
+	// ImportPolicy is the policy controlling how the image is imported
+	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" description:"policy controlling how the image is imported"`
+	// IncludeManifest determines if the manifest for each image is returned in the response
+	IncludeManifest bool `json:"includeManifest,omitempty" description:"if true, return the manifest for each image in the response"`
 }
 
 // RepositoryImportStatus describes the result of an image repository import
@@ -260,16 +283,23 @@ type RepositoryImportStatus struct {
 
 // ImageImportSpec describes a request to import a specific image.
 type ImageImportSpec struct {
-	From kapi.ObjectReference       `json:"from" description:"the source of an image to import; only kind DockerImage is allowed"`
-	To   *kapi.LocalObjectReference `json:"to,omitempty" description:"a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used"`
+	// From is the source of an image to import; only kind DockerImage is allowed
+	From kapi.ObjectReference `json:"from" description:"the source of an image to import; only kind DockerImage is allowed"`
+	// To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used
+	To *kapi.LocalObjectReference `json:"to,omitempty" description:"a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used"`
 
-	ImportPolicy    TagImportPolicy `json:"importPolicy,omitempty" description:"policy controlling how the image is imported"`
-	IncludeManifest bool            `json:"includeManifest,omitempty" description:"if true, return the manifest for this image in the response"`
+	// ImportPolicy is the policy controlling how the image is imported
+	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" description:"policy controlling how the image is imported"`
+	// IncludeManifest determines if the manifest for each image is returned in the response
+	IncludeManifest bool `json:"includeManifest,omitempty" description:"if true, return the manifest for this image in the response"`
 }
 
 // ImageImportStatus describes the result of an image import.
 type ImageImportStatus struct {
+	// Status is the status of the image import, including errors encountered while retrieving the image
 	Status unversioned.Status `json:"status" description:"the status of the image import, including errors encountered while retrieving the image"`
-	Image  *Image             `json:"image,omitempty" description:"if the image was located, the metadata of that image"`
-	Tag    string             `json:"tag,omitempty" description:"the tag this image was located under, if any"`
+	// Image is the metadata of that image, if the image was located
+	Image *Image `json:"image,omitempty" description:"if the image was located, the metadata of that image"`
+	// Tag is the tag this image was located under, if any
+	Tag string `json:"tag,omitempty" description:"the tag this image was located under, if any"`
 }

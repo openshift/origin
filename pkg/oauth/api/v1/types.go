@@ -5,9 +5,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+// OAuthAccessToken describes an OAuth access token
 type OAuthAccessToken struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this token"`
@@ -34,9 +36,11 @@ type OAuthAccessToken struct {
 	RefreshToken string `json:"refreshToken,omitempty" description:"optional value by which this token can be renewed"`
 }
 
+// OAuthAuthorizeToken describes an OAuth authorization token
 type OAuthAuthorizeToken struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this token"`
@@ -61,9 +65,11 @@ type OAuthAuthorizeToken struct {
 	UserUID string `json:"userUID,omitempty" description:"unique UID associated with this token.  userUID and userName must both match for this token to be valid"`
 }
 
+// OAuthClient describes an OAuth client
 type OAuthClient struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty" description:"unique secret associated with a client"`
@@ -75,9 +81,11 @@ type OAuthClient struct {
 	RedirectURIs []string `json:"redirectURIs,omitempty" description:"valid redirection URIs associated with a client"`
 }
 
+// OAuthClientAuthorization describes an authorization created by an OAuth client
 type OAuthClientAuthorization struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this authorization"`
@@ -93,26 +101,38 @@ type OAuthClientAuthorization struct {
 	Scopes []string `json:"scopes,omitempty" description:"list of granted scopes"`
 }
 
+// OAuthAccessTokenList is a collection of OAuth access tokens
 type OAuthAccessTokenList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
-	Items                []OAuthAccessToken `json:"items" description:"list of oauth access tokens"`
+	// Items is the list of OAuth access tokens
+	Items []OAuthAccessToken `json:"items" description:"list of oauth access tokens"`
 }
 
+// OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
 type OAuthAuthorizeTokenList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
-	Items                []OAuthAuthorizeToken `json:"items" description:"list of oauth authorization tokens"`
+	// Items is the list of OAuth authorization tokens
+	Items []OAuthAuthorizeToken `json:"items" description:"list of oauth authorization tokens"`
 }
 
+// OAuthClientList is a collection of OAuth clients
 type OAuthClientList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
-	Items                []OAuthClient `json:"items" description:"list of oauth clients"`
+	// Items is the list of OAuth clients
+	Items []OAuthClient `json:"items" description:"list of oauth clients"`
 }
 
+// OAuthClientAuthorizationList is a collection of OAuth client authorizations
 type OAuthClientAuthorizationList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
-	Items                []OAuthClientAuthorization `json:"items" description:"list of oauth client authorizations"`
+	// Items is the list of OAuth client authorizations
+	Items []OAuthClientAuthorization `json:"items" description:"list of oauth client authorizations"`
 }

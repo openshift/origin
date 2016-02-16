@@ -9,7 +9,8 @@ import (
 // Template contains the inputs needed to produce a Config.
 type Template struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Objects is an array of objects to include in this template. Required.
 	Objects []runtime.RawExtension `json:"objects" description:"list of objects to include in the template"`
@@ -26,6 +27,7 @@ type Template struct {
 // TemplateList is a list of Template objects.
 type TemplateList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of templates

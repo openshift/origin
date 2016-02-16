@@ -235,7 +235,8 @@ const (
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec `json:"spec" description:"a desired deployment state and how to deploy it"`
@@ -341,6 +342,7 @@ type DeploymentCauseImageTrigger struct {
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of deployment configs
