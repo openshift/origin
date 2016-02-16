@@ -29,7 +29,6 @@ func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache 
 func testConfig(n *int64) *api.RunOnceDurationConfig {
 	return &api.RunOnceDurationConfig{
 		ActiveDeadlineSecondsOverride: n,
-		Enabled: true,
 	}
 }
 
@@ -152,7 +151,6 @@ func TestReadConfig(t *testing.T) {
 	configStr := `apiVersion: v1
 kind: RunOnceDurationConfig
 activeDeadlineSecondsOverride: 3600
-enabled: true
 `
 	buf := bytes.NewBufferString(configStr)
 	config, err := readConfig(buf)
@@ -164,8 +162,5 @@ enabled: true
 	}
 	if *config.ActiveDeadlineSecondsOverride != 3600 {
 		t.Errorf("unexpected value for ActiveDeadlineSecondsOverride: %d", config.ActiveDeadlineSecondsOverride)
-	}
-	if !config.Enabled {
-		t.Errorf("unexpected value for Enabled")
 	}
 }

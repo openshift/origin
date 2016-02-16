@@ -19,5 +19,4 @@ The plugin is configured via a RunOnceDurationConfig object:
  enabled: true
  activeDeadlineSecondsOverride: 3600
 */
-
 package runonceduration

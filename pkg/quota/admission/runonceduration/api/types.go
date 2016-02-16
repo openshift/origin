@@ -11,14 +11,12 @@ import (
 type RunOnceDurationConfig struct {
 	unversioned.TypeMeta
 
-	// Enabled if false disables the effect of this plugin. A global override will
-	// not be applied and projects will not be checked for an override annotation.
-	Enabled bool
-
 	// ActiveDeadlineSecondsOverride is the value to set on containers of run-once pods
 	// Only a positive value is valid. Absence of a value means that the plugin
 	// won't make any changes to the pod
 	ActiveDeadlineSecondsOverride *int64
 }
 
+// ActiveDeadlineSecondsOverrideAnnotation can be set on a project to override the number of
+// seconds that a run-once pod can be active in that project
 const ActiveDeadlineSecondsOverrideAnnotation = "openshift.io/active-deadline-seconds-override"

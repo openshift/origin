@@ -47,7 +47,7 @@ func TestGetPluginConfig(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	resultConfig := &TestConfig{}
-	if err = latest.ReadYAMLFile(fileName, resultConfig); err != nil {
+	if err = latest.ReadYAMLFileInto(fileName, resultConfig); err != nil {
 		t.Fatalf("error reading config file: %v", err)
 	}
 	if !reflect.DeepEqual(testConfig, resultConfig) {

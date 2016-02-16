@@ -2,7 +2,6 @@ package clusterresourceoverride
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"testing"
@@ -38,7 +37,10 @@ apiVersion: v1
 kind: ClusterResourceOverrideConfig
 cpuRequestToLimitPercent: 200
 `
-	invalidConfig2 = ``
+	invalidConfig2 = `
+apiVersion: v1
+kind: ClusterResourceOverrideConfig
+`
 )
 
 var (
@@ -195,12 +197,16 @@ func TestLimitRequestAdmission(t *testing.T) {
 	for _, test := range tests {
 		var reader io.Reader
 		if test.config != nil { // we would get nil with the plugin un-configured
-			config, _ := json.Marshal(test.config)
+			config, err := configapilatest.WriteYAML(test.config)
+			if err != nil {
+				t.Fatalf("unexpected: %v", err)
+			}
 			reader = bytes.NewReader(config)
 		}
 		c, err := newClusterResourceOverride(fake.NewSimpleClientset(), reader)
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
+			continue
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
 		attrs := admission.NewAttributesRecord(test.object, unversioned.GroupKind{}, test.namespace.Name, "name", kapi.Resource("pods"), "", admission.Create, fakeUser())

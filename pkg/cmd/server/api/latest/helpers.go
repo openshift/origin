@@ -3,8 +3,10 @@ package latest
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path"
+	"reflect"
 
 	"github.com/ghodss/yaml"
 
@@ -16,7 +18,7 @@ import (
 
 func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
 	config := &configapi.SessionSecrets{}
-	if err := ReadYAMLFile(filename, config); err != nil {
+	if err := ReadYAMLFileInto(filename, config); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -24,7 +26,7 @@ func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
 
 func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 	config := &configapi.MasterConfig{}
-	if err := ReadYAMLFile(filename, config); err != nil {
+	if err := ReadYAMLFileInto(filename, config); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -45,7 +47,7 @@ func ReadAndResolveMasterConfig(filename string) (*configapi.MasterConfig, error
 
 func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	config := &configapi.NodeConfig{}
-	if err := ReadYAMLFile(filename, config); err != nil {
+	if err := ReadYAMLFileInto(filename, config); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -78,8 +80,23 @@ func WriteYAML(obj runtime.Object) ([]byte, error) {
 	return content, err
 }
 
+func ReadYAML(reader io.Reader) (runtime.Object, error) {
+	if reader == nil || reflect.ValueOf(reader).IsNil() {
+		return nil, nil
+	}
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	jsonData, err := kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	return runtime.Decode(Codec, jsonData)
+}
+
 // TODO: Remove this when a YAML serializer is available from upstream
-func ReadYAML(data []byte, obj runtime.Object) error {
+func ReadYAMLInto(data []byte, obj runtime.Object) error {
 	data, err := kyaml.ToJSON(data)
 	if err != nil {
 		return err
@@ -88,12 +105,12 @@ func ReadYAML(data []byte, obj runtime.Object) error {
 	return captureSurroundingJSONForError("error reading config: ", data, err)
 }
 
-func ReadYAMLFile(filename string, obj runtime.Object) error {
+func ReadYAMLFileInto(filename string, obj runtime.Object) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	err = ReadYAML(data, obj)
+	err = ReadYAMLInto(data, obj)
 	if err != nil {
 		return fmt.Errorf("could not load config file %q due to an error: %v", filename, err)
 	}

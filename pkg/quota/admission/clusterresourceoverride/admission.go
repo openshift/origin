@@ -3,8 +3,6 @@ package clusterresourceoverride
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"reflect"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -91,20 +89,17 @@ func (a *clusterResourceOverridePlugin) SetProjectCache(projectCache *cache.Proj
 }
 
 func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error) {
-	if configFile == nil || reflect.ValueOf(configFile).IsNil() /* pointer to nil */ {
-		glog.V(5).Infof("%s has no config to read.", api.PluginName)
-		return nil, nil
-	}
-	configBytes, err := ioutil.ReadAll(configFile)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &api.ClusterResourceOverrideConfig{}
-	err = configlatest.ReadYAML(configBytes, config)
+	obj, err := configlatest.ReadYAML(configFile)
 	if err != nil {
 		glog.V(5).Infof("%s error reading config: %v", api.PluginName, err)
 		return nil, err
+	}
+	if obj == nil {
+		return nil, nil
+	}
+	config, ok := obj.(*api.ClusterResourceOverrideConfig)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
 	glog.V(5).Infof("%s config is: %v", api.PluginName, config)
 	return config, nil
