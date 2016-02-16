@@ -191,7 +191,7 @@ describe('', function() {
 
         it('should delete a project', function() {
           h.goToPage('/project/' + project['name'] + '/settings');
-          element(by.css('.resource-actions-dropdown')).click();
+          element(by.css('.actions-dropdown-btn')).click();
           element(by.css('.button-delete')).click();
           element(by.cssContainingText(".modal-dialog .btn", "Delete")).click();
           h.waitForPresence(".alert-success", "marked for deletion");
