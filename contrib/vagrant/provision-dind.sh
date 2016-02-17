@@ -27,6 +27,9 @@ systemctl start docker
 # Docker-in-docker is not compatible with SELinux enforcement
 setenforce 0 || true
 
+# Add a convenience symlink to the gopath repo
+ln -sf "${ORIGIN_ROOT}" /
+
 function set_env {
   USER_DIR="${1}"
   # Prefer bashrc to bash_profile since bash_profile is only loaded on

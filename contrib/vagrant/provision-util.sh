@@ -187,7 +187,11 @@ os::provision::get-network-plugin() {
 }
 
 os::provision::base-provision() {
-  local is_master=${1:-false}
+  local origin_root=$1
+  local is_master=${2:-false}
+
+  # Add a convenience symlink to the gopath repo
+  ln -sf "${origin_root}" /
 
   os::provision::fixup-net-udev
 
