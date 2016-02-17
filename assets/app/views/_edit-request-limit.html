@@ -1,4 +1,4 @@
-<ng-form name="form">
+<ng-form name="form" ng-if="!requestCalculated || !limitCalculated">
   <h3>
     {{type | computeResourceLabel : true}}
     <small ng-if="limits.min && limits.max">
