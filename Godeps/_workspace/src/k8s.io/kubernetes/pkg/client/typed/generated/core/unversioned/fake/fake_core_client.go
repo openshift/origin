@@ -88,3 +88,7 @@ func (c *FakeCore) Services(namespace string) unversioned.ServiceInterface {
 func (c *FakeCore) ServiceAccounts(namespace string) unversioned.ServiceAccountInterface {
 	return &FakeServiceAccounts{c, namespace}
 }
+
+func (c *FakeCore) SecurityContextConstraints() unversioned.SecurityContextConstraintInterface {
+	return &FakeSecurityContextConstraints{Fake: c}
+}

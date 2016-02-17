@@ -39,6 +39,8 @@ type CoreInterface interface {
 	SecretsGetter
 	ServicesGetter
 	ServiceAccountsGetter
+
+	SecurityContextConstraintsInterface
 }
 
 // CoreClient is used to interact with features provided by the Core group.
@@ -162,4 +164,8 @@ func setConfigDefaults(config *unversioned.Config) error {
 		config.Burst = 10
 	}
 	return nil
+}
+
+func (c *CoreClient) SecurityContextConstraints() SecurityContextConstraintInterface {
+	return newSecurityContextConstraints(c)
 }
