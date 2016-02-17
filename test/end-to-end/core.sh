@@ -195,6 +195,7 @@ oc logs dc/failing-dc-mid | grep 'test mid hook executed'
 oc deploy failing-dc-mid --latest
 oc logs --version=1 dc/failing-dc-mid | grep 'test mid hook executed'
 oc logs --previous dc/failing-dc-mid | grep 'test mid hook executed'
+oc logs --previous --since-time=2100-02-15T15:21:26-05:00 --loglevel=6 dc/failing-dc-mid 2>&1 | grep 'sinceTime'
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
