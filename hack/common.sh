@@ -11,8 +11,14 @@ set -o pipefail
 readonly OS_ROOT=$(
   unset CDPATH
   os_root=$(dirname "${BASH_SOURCE}")/..
+  
   cd "${os_root}"
-  pwd
+  os_root=`pwd`
+  if [ -h "${os_root}" ]; then
+    readlink "${os_root}"
+  else
+    pwd
+  fi
 )
 
 readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
