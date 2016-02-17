@@ -119,6 +119,7 @@ const (
 // FeatureList contains a set of features
 type FeatureList []string
 
+// MasterConfig holds the necessary configuration options for the OpenShift master
 type MasterConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -202,6 +203,7 @@ type MasterConfig struct {
 	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
 }
 
+// ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
 type ImagePolicyConfig struct {
 	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
 	// does a bulk import of a Docker repository. This number defaults to 5 to prevent users from
@@ -217,6 +219,7 @@ type ImagePolicyConfig struct {
 	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
 }
 
+//  holds the necessary configuration options for
 type ProjectConfig struct {
 	// DefaultNodeSelector holds default project node label selector
 	DefaultNodeSelector string `json:"defaultNodeSelector"`
@@ -233,6 +236,7 @@ type ProjectConfig struct {
 	SecurityAllocator *SecurityAllocator `json:"securityAllocator"`
 }
 
+// SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.
 type SecurityAllocator struct {
 	// UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the
 	// block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks
@@ -255,6 +259,7 @@ type SecurityAllocator struct {
 	MCSLabelsPerProject int `json:"mcsLabelsPerProject"`
 }
 
+//  holds the necessary configuration options for
 type PolicyConfig struct {
 	// BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace
 	BootstrapPolicyFile string `json:"bootstrapPolicyFile"`
@@ -266,6 +271,7 @@ type PolicyConfig struct {
 	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
 }
 
+// RoutingConfig holds the necessary configuration options for routing to subdomains
 type RoutingConfig struct {
 	// Subdomain is the suffix appended to $service.$namespace. to form the default route hostname
 	Subdomain string `json:"subdomain"`
@@ -273,17 +279,25 @@ type RoutingConfig struct {
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {
-	NetworkPluginName  string `json:"networkPluginName"`
+	// NetworkPluginName is the name of the network plugin to use
+	NetworkPluginName string `json:"networkPluginName"`
+	// ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
-	HostSubnetLength   uint   `json:"hostSubnetLength"`
+	// HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host
+	HostSubnetLength uint `json:"hostSubnetLength"`
+	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 }
 
+// ImageConfig holds the necessary configuration options for building image names for system components
 type ImageConfig struct {
+	// Format is the format of the name to be built for the system component
 	Format string `json:"format"`
-	Latest bool   `json:"latest"`
+	// Latest determines if the latest tag will be pulled from the registry
+	Latest bool `json:"latest"`
 }
 
+// RemoteConnectionInfo holds information necessary for establishing a remote connection
 type RemoteConnectionInfo struct {
 	// URL is the remote URL to connect to
 	URL string `json:"url"`
@@ -294,6 +308,7 @@ type RemoteConnectionInfo struct {
 	CertInfo `json:",inline"`
 }
 
+// KubeletConnectionInfo holds information necessary for connecting to a kubelet
 type KubeletConnectionInfo struct {
 	// Port is the port to connect to kubelets on
 	Port uint `json:"port"`
@@ -304,6 +319,7 @@ type KubeletConnectionInfo struct {
 	CertInfo `json:",inline"`
 }
 
+// EtcdConnectionInfo holds information necessary for connecting to an etcd server
 type EtcdConnectionInfo struct {
 	// URLs are the URLs for etcd
 	URLs []string `json:"urls"`
@@ -314,6 +330,7 @@ type EtcdConnectionInfo struct {
 	CertInfo `json:",inline"`
 }
 
+// EtcdStorageConfig holds the necessary configuration options for the etcd storage underlying OpenShift and Kubernetes
 type EtcdStorageConfig struct {
 	// KubernetesStorageVersion is the API version that Kube resources in etcd should be
 	// serialized to. This value should *not* be advanced until all clients in the
@@ -333,6 +350,7 @@ type EtcdStorageConfig struct {
 	OpenShiftStoragePrefix string `json:"openShiftStoragePrefix"`
 }
 
+// ServingInfo holds information about serving web pages
 type ServingInfo struct {
 	// BindAddress is the ip:port to serve on
 	BindAddress string `json:"bindAddress"`
@@ -357,7 +375,9 @@ type NamedCertificate struct {
 	CertInfo `json:",inline"`
 }
 
+// HTTPServingInfo holds configuration for serving HTTP
 type HTTPServingInfo struct {
+	// ServingInfo is the HTTP serving information
 	ServingInfo `json:",inline"`
 	// MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.
 	MaxRequestsInFlight int `json:"maxRequestsInFlight"`
@@ -366,6 +386,7 @@ type HTTPServingInfo struct {
 	RequestTimeoutSeconds int `json:"requestTimeoutSeconds"`
 }
 
+// MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
@@ -373,6 +394,7 @@ type MasterClients struct {
 	ExternalKubernetesKubeConfig string `json:"externalKubernetesKubeConfig"`
 }
 
+// DNSConfig holds the necessary configuration options for DNS
 type DNSConfig struct {
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string `json:"bindAddress"`
@@ -385,7 +407,9 @@ type DNSConfig struct {
 	AllowRecursiveQueries bool `json:"allowRecursiveQueries"`
 }
 
+// AssetConfig holds the necessary configuration options for serving assets
 type AssetConfig struct {
+	// ServingInfo is the HTTP serving information for these assets
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
@@ -421,6 +445,7 @@ type AssetConfig struct {
 	ExtensionDevelopment bool `json:"extensionDevelopment"`
 }
 
+// OAuthConfig holds the necessary configuration options for OAuth authentication
 type OAuthConfig struct {
 	// MasterCA is the CA for verifying the TLS connection back to the MasterURL.
 	MasterCA *string `json:"masterCA"`
@@ -446,12 +471,14 @@ type OAuthConfig struct {
 	// SessionConfig hold information about configuring sessions.
 	SessionConfig *SessionConfig `json:"sessionConfig"`
 
+	// TokenConfig contains options for authorization and access tokens
 	TokenConfig TokenConfig `json:"tokenConfig"`
 
 	// Templates allow you to customize pages like the login page.
 	Templates *OAuthTemplates `json:"templates"`
 }
 
+// OAuthTemplates allow for customization of pages like the login page
 type OAuthTemplates struct {
 	// Login is a path to a file containing a go template used to render the login page.
 	// If unspecified, the default login page is used.
@@ -466,6 +493,7 @@ type OAuthTemplates struct {
 	Error string `json:"error"`
 }
 
+// ServiceAccountConfig holds the necessary configuration options for a service account
 type ServiceAccountConfig struct {
 	// ManagedNames is a list of service account names that will be auto-created in every namespace.
 	// If no names are specified, the ServiceAccountsController will not be started.
@@ -491,6 +519,7 @@ type ServiceAccountConfig struct {
 	MasterCA string `json:"masterCA"`
 }
 
+// TokenConfig holds the necessary configuration options for authorization and access tokens
 type TokenConfig struct {
 	// AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens
 	AuthorizeTokenMaxAgeSeconds int32 `json:"authorizeTokenMaxAgeSeconds"`
@@ -519,6 +548,7 @@ type SessionSecrets struct {
 	Secrets []SessionSecret `json:"secrets"`
 }
 
+// SessionSecret is a secret used to authenticate/decrypt cookie-based sessions
 type SessionSecret struct {
 	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
 	Authentication string `json:"authentication"`
@@ -526,6 +556,7 @@ type SessionSecret struct {
 	Encryption string `json:"encryption"`
 }
 
+// IdentityProvider provides identities for users authenticating using credentials
 type IdentityProvider struct {
 	// Name is used to qualify the identities returned by this provider
 	Name string `json:"name"`
@@ -539,6 +570,7 @@ type IdentityProvider struct {
 	Provider runtime.RawExtension `json:"provider"`
 }
 
+// BasicAuthPasswordIdentityProvider provides identities for users authenticating using HTTP basic auth credentials
 type BasicAuthPasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -546,14 +578,17 @@ type BasicAuthPasswordIdentityProvider struct {
 	RemoteConnectionInfo `json:",inline"`
 }
 
+// AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords
 type AllowAllPasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 }
 
+// DenyAllPasswordIdentityProvider provides no identities for users
 type DenyAllPasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 }
 
+// HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials
 type HTPasswdPasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -561,6 +596,7 @@ type HTPasswdPasswordIdentityProvider struct {
 	File string `json:"file"`
 }
 
+// LDAPPasswordIdentityProvider provides identities for users authenticating using LDAP credentials
 type LDAPPasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 	// URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
@@ -581,6 +617,7 @@ type LDAPPasswordIdentityProvider struct {
 	Attributes LDAPAttributeMapping `json:"attributes"`
 }
 
+// LDAPAttributeMapping maps LDAP attributes to OpenShift identity fields
 type LDAPAttributeMapping struct {
 	// ID is the list of attributes whose values should be used as the user ID. Required.
 	// LDAP standard identity attribute is "dn"
@@ -597,6 +634,7 @@ type LDAPAttributeMapping struct {
 	Email []string `json:"email"`
 }
 
+// KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials
 type KeystonePasswordIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 	// RemoteConnectionInfo contains information about how to connect to the keystone server
@@ -605,6 +643,7 @@ type KeystonePasswordIdentityProvider struct {
 	DomainName string `json:"domainName"`
 }
 
+// RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials
 type RequestHeaderIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -630,6 +669,7 @@ type RequestHeaderIdentityProvider struct {
 	Headers []string `json:"headers"`
 }
 
+// GitHubIdentityProvider provides identities for users authenticating using GitHub credentials
 type GitHubIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -641,6 +681,7 @@ type GitHubIdentityProvider struct {
 	Organizations []string `json:"organizations"`
 }
 
+// GitLabIdentityProvider provides identities for users authenticating using GitLab credentials
 type GitLabIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -655,6 +696,7 @@ type GitLabIdentityProvider struct {
 	ClientSecret string `json:"clientSecret"`
 }
 
+// GoogleIdentityProvider provides identities for users authenticating using Google credentials
 type GoogleIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -667,6 +709,7 @@ type GoogleIdentityProvider struct {
 	HostedDomain string `json:"hostedDomain"`
 }
 
+// OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials
 type OpenIDIdentityProvider struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -692,6 +735,7 @@ type OpenIDIdentityProvider struct {
 	Claims OpenIDClaims `json:"claims"`
 }
 
+// OpenIDURLs are URLs to use when authenticating with an OpenID identity provider
 type OpenIDURLs struct {
 	// Authorize is the oauth authorization URL
 	Authorize string `json:"authorize"`
@@ -703,6 +747,7 @@ type OpenIDURLs struct {
 	UserInfo string `json:"userInfo"`
 }
 
+// OpenIDClaims contains a list of OpenID claims to use when authenticating with an OpenID identity provider
 type OpenIDClaims struct {
 	// ID is the list of claims whose values should be used as the user ID. Required.
 	// OpenID standard identity claim is "sub"
@@ -718,6 +763,7 @@ type OpenIDClaims struct {
 	Email []string `json:"email"`
 }
 
+// GrantConfig holds the necessary configuration options for grant handlers
 type GrantConfig struct {
 	// Method: allow, deny, prompt
 	Method GrantHandlerType `json:"method"`
@@ -734,6 +780,7 @@ const (
 	GrantHandlerDeny GrantHandlerType = "deny"
 )
 
+// EtcdConfig holds the necessary configuration options for connecting with an etcd database
 type EtcdConfig struct {
 	// ServingInfo describes how to start serving the etcd master
 	ServingInfo ServingInfo `json:"servingInfo"`
@@ -744,9 +791,11 @@ type EtcdConfig struct {
 	// PeerAddress is the advertised host:port for peer connections to etcd
 	PeerAddress string `json:"peerAddress"`
 
+	// StorageDir is the path to the etcd storage directory
 	StorageDir string `json:"storageDirectory"`
 }
 
+// KubernetesMasterConfig holds the necessary configuration options for the Kubernetes master
 type KubernetesMasterConfig struct {
 	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
 	APILevels []string `json:"apiLevels"`
@@ -786,6 +835,7 @@ type KubernetesMasterConfig struct {
 	ControllerArguments ExtendedArguments `json:"controllerArguments"`
 }
 
+// CertInfo relates a certificate with a private key
 type CertInfo struct {
 	// CertFile is a file containing a PEM-encoded certificate
 	CertFile string `json:"certFile"`
@@ -793,6 +843,7 @@ type CertInfo struct {
 	KeyFile string `json:"keyFile"`
 }
 
+// PodManifestConfig holds the necessary configuration options for using pod manifests
 type PodManifestConfig struct {
 	// Path specifies the path for the pod manifest file or directory
 	// If its a directory, its expected to contain on or more manifest files
@@ -803,6 +854,7 @@ type PodManifestConfig struct {
 	FileCheckIntervalSeconds int64 `json:"fileCheckIntervalSeconds"`
 }
 
+// AssetExtensionsConfig holds the necessary configuration options for asset extensions
 type AssetExtensionsConfig struct {
 	// SubContext is the path under /<context>/extensions/ to serve files from SourceDirectory
 	Name string `json:"name"`
@@ -816,6 +868,7 @@ type AssetExtensionsConfig struct {
 	HTML5Mode bool `json:"html5Mode"`
 }
 
+// LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync
 type LDAPSyncConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Host is the scheme, host and port of the LDAP server to connect to:
@@ -853,6 +906,8 @@ type LDAPSyncConfig struct {
 	AugmentedActiveDirectoryConfig *AugmentedActiveDirectoryConfig `json:"augmentedActiveDirectory,omitempty"`
 }
 
+// RFC2307Config holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP
+// server using the RFC2307 schema
 type RFC2307Config struct {
 	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
 	AllGroupsQuery LDAPQuery `json:"groupsQuery"`
@@ -896,6 +951,8 @@ type RFC2307Config struct {
 	TolerateMemberOutOfScopeErrors bool `json:"tolerateMemberOutOfScopeErrors"`
 }
 
+// ActiveDirectoryConfig holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP
+// server using the Active Directory schema
 type ActiveDirectoryConfig struct {
 	// AllUsersQuery holds the template for an LDAP query that returns user entries.
 	AllUsersQuery LDAPQuery `json:"usersQuery"`
@@ -908,6 +965,8 @@ type ActiveDirectoryConfig struct {
 	GroupMembershipAttributes []string `json:"groupMembershipAttributes"`
 }
 
+// AugmentedActiveDirectoryConfig holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP
+// server using the augmented Active Directory schema
 type AugmentedActiveDirectoryConfig struct {
 	// AllUsersQuery holds the template for an LDAP query that returns user entries.
 	AllUsersQuery LDAPQuery `json:"usersQuery"`
@@ -931,6 +990,7 @@ type AugmentedActiveDirectoryConfig struct {
 	GroupNameAttributes []string `json:"groupNameAttributes"`
 }
 
+// LDAPQuery holds the options necessary to build an LDAP query
 type LDAPQuery struct {
 	// The DN of the branch of the directory where all searches should start from
 	BaseDN string `json:"baseDN"`
@@ -958,6 +1018,7 @@ type LDAPQuery struct {
 	Filter string `json:"filter"`
 }
 
+// AdmissionPluginConfig holds the necessary configuration options for admission plugins
 type AdmissionPluginConfig struct {
 	// Location is the path to a configuration file that contains the plugin's
 	// configuration
@@ -968,6 +1029,7 @@ type AdmissionPluginConfig struct {
 	Configuration runtime.RawExtension `json:"configuration"`
 }
 
+// AdmissionConfig holds the necessary configuration options for admission
 type AdmissionConfig struct {
 	// PluginConfig allows specifying a configuration file per admission control plugin
 	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`

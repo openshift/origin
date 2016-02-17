@@ -9,7 +9,7 @@ import (
 // The project that contains the pod may specify a different setting. That setting will
 // take precedence over the one configured for the plugin here.
 type RunOnceDurationConfig struct {
-	unversioned.TypeMeta
+	unversioned.TypeMeta `json:",inline"`
 
 	// Enabled if false disables the effect of this plugin. A global override will
 	// not be applied and projects will not be checked for an override annotation.
