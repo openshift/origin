@@ -1036,8 +1036,8 @@
 		},
 		{
 			"ImportPath": "gopkg.in/ldap.v2",
-			"Comment": "v2.2",
-			"Rev": "e9a325d64989e2844be629682cb085d2c58eef8d"
+			"Comment": "v2.2.1",
+			"Rev": "07a7330929b9ee80495c88a4439657d89c7dbd87"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

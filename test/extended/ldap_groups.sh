@@ -96,7 +96,7 @@ LDAP_SERVICE_IP=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP 
 
 function compare_and_cleanup() {
 	validation_file=$1
-	actual_file=actual-${validation_file}.yaml
+	actual_file=actual-${validation_file}
 	rm -f ${WORKINGDIR}/${actual_file}
 	oc get groups --no-headers | awk '{print $1}' | sort | xargs -I{} oc export group {} -o yaml >> ${WORKINGDIR}/${actual_file}
 	os::util::sed '/sync-time/d' ${WORKINGDIR}/${actual_file}
@@ -225,6 +225,11 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	oc patch group ${group2_osuid} -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage,${group2_ldapuid}\"}}}"
 	oadm groups prune --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_prune.yaml
+
+	# PAGING
+	echo -e "\tTEST: Sync all LDAP groups from LDAP server using paged queries"
+	oadm groups sync --sync-config=sync-config-paging.yaml --confirm
+	compare_and_cleanup valid_all_ldap_sync.yaml
 
     popd > /dev/null
 done

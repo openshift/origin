@@ -268,13 +268,32 @@ func NewSearchRequest(
 	}
 }
 
+// SearchWithPaging accepts a search request and desired page size in order to execute LDAP queries to fulfill the
+// search request. All paged LDAP query responses will be buffered and the final result will be returned atomically.
+// The following four cases are possible given the arguments:
+//  - given SearchRequest missing a control of type ControlTypePaging: we will add one with the desired paging size
+//  - given SearchRequest contains a control of type ControlTypePaging that isn't actually a ControlPaging: fail without issuing any queries
+//  - given SearchRequest contains a control of type ControlTypePaging with pagingSize equal to the size requested: no change to the search request
+//  - given SearchRequest contains a control of type ControlTypePaging with pagingSize not equal to the size requested: fail without issuing any queries
+// A requested pagingSize of 0 is interpreted as no limit by LDAP servers.
 func (l *Conn) SearchWithPaging(searchRequest *SearchRequest, pagingSize uint32) (*SearchResult, error) {
-	if searchRequest.Controls == nil {
-		searchRequest.Controls = make([]Control, 0)
+	var pagingControl *ControlPaging
+
+	control := FindControl(searchRequest.Controls, ControlTypePaging)
+	if control == nil {
+		pagingControl = NewControlPaging(pagingSize)
+		searchRequest.Controls = append(searchRequest.Controls, pagingControl)
+	} else {
+		castControl, ok := control.(*ControlPaging)
+		if !ok {
+			return nil, fmt.Errorf("Expected paging control to be of type *ControlPaging, got %v", control)
+		}
+		if castControl.PagingSize != pagingSize {
+			return nil, fmt.Errorf("Paging size given in search request (%d) conflicts with size given in search call (%d)", castControl.PagingSize, pagingSize)
+		}
+		pagingControl = castControl
 	}
 
-	pagingControl := NewControlPaging(pagingSize)
-	searchRequest.Controls = append(searchRequest.Controls, pagingControl)
 	searchResult := new(SearchResult)
 	for {
 		result, err := l.Search(searchRequest)
