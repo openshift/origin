@@ -811,7 +811,10 @@ a.disabled-link {
     border-bottom: 1px solid #bbbbbb;
     padding: 0;
     .alert {
-      margin-bottom: 0;
+      margin: 10px;
+      &:not(.ng-hide) + .ace_editor {
+        border-top: 1px solid #bbb;
+      }
     }
   }
   .modal-footer {
