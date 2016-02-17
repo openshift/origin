@@ -52,15 +52,7 @@ func TestResourceQuotaStatusConversion(t *testing.T) {
 	quota.Status.Hard[api.ResourcePods] = *expected
 
 	// round-trip the object
-	scheme := api.Scheme.Raw()
-	versionedObj, err := scheme.ConvertToVersion(quota, versioned.SchemeGroupVersion.String())
-	if err != nil {
-		t.Fatalf("Conversion error: %v", err)
-	}
-	object, err := scheme.ConvertToVersion(versionedObj, api.SchemeGroupVersion.String())
-	if err != nil {
-		t.Fatalf("Conversion error: %v", err)
-	}
+	object := roundTrip(t, quota)
 	after := object.(*api.ResourceQuota)
 
 	actualQuantity := after.Status.Hard[api.ResourcePods]

@@ -48,40 +48,29 @@ const (
 	restartPodReadyAgainTimeout = 5 * time.Minute
 )
 
-// TODO(ihmccreery): These tests haven't been run for a while, so until they're
-// known stable, consider them a non-core feature.
-var _ = Describe("Restart [Feature:Restart]", func() {
-	var c *client.Client
+var _ = Describe("Restart [Disruptive]", func() {
+	f := NewFramework("restart")
 	var ps *podStore
-	var skipped bool
 
 	BeforeEach(func() {
-		var err error
-		c, err = loadClient()
-		Expect(err).NotTo(HaveOccurred())
-
 		// This test requires the ability to restart all nodes, so the provider
 		// check must be identical to that call.
-		skipped = true
 		SkipUnlessProviderIs("gce", "gke")
-		skipped = false
 
-		ps = newPodStore(c, api.NamespaceSystem, labels.Everything(), fields.Everything())
+		ps = newPodStore(f.Client, api.NamespaceSystem, labels.Everything(), fields.Everything())
 	})
 
 	AfterEach(func() {
-		if skipped {
-			return
+		if ps != nil {
+			ps.Stop()
 		}
-
-		ps.Stop()
 	})
 
 	It("should restart all nodes and ensure all nodes and pods recover", func() {
 		nn := testContext.CloudConfig.NumNodes
 
 		By("ensuring all nodes are ready")
-		nodeNamesBefore, err := checkNodesReady(c, nodeReadyInitialTimeout, nn)
+		nodeNamesBefore, err := checkNodesReady(f.Client, nodeReadyInitialTimeout, nn)
 		Expect(err).NotTo(HaveOccurred())
 		Logf("Got the following nodes before restart: %v", nodeNamesBefore)
 
@@ -92,7 +81,7 @@ var _ = Describe("Restart [Feature:Restart]", func() {
 			podNamesBefore[i] = p.ObjectMeta.Name
 		}
 		ns := api.NamespaceSystem
-		if !checkPodsRunningReady(c, ns, podNamesBefore, podReadyBeforeTimeout) {
+		if !checkPodsRunningReady(f.Client, ns, podNamesBefore, podReadyBeforeTimeout) {
 			Failf("At least one pod wasn't running and ready at test start.")
 		}
 
@@ -101,7 +90,7 @@ var _ = Describe("Restart [Feature:Restart]", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("ensuring all nodes are ready after the restart")
-		nodeNamesAfter, err := checkNodesReady(c, restartNodeReadyAgainTimeout, nn)
+		nodeNamesAfter, err := checkNodesReady(f.Client, restartNodeReadyAgainTimeout, nn)
 		Expect(err).NotTo(HaveOccurred())
 		Logf("Got the following nodes after restart: %v", nodeNamesAfter)
 
@@ -121,7 +110,7 @@ var _ = Describe("Restart [Feature:Restart]", func() {
 		podNamesAfter, err := waitForNPods(ps, len(podNamesBefore), restartPodReadyAgainTimeout)
 		Expect(err).NotTo(HaveOccurred())
 		remaining := restartPodReadyAgainTimeout - time.Since(podCheckStart)
-		if !checkPodsRunningReady(c, ns, podNamesAfter, remaining) {
+		if !checkPodsRunningReady(f.Client, ns, podNamesAfter, remaining) {
 			Failf("At least one pod wasn't running and ready after the restart.")
 		}
 	})

@@ -10,6 +10,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -57,7 +58,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 				// no retries for a fatal error
 				if _, isFatal := err.(fatalError); isFatal {
 					glog.V(4).Infof("Will not retry fatal error for deploymentConfig %s/%s: %v", config.Namespace, config.Name, err)
-					kutil.HandleError(err)
+					utilruntime.HandleError(err)
 					return false
 				}
 				// infinite retries for a transient error
@@ -65,7 +66,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 					glog.V(4).Infof("Retrying deploymentConfig %s/%s with error: %v", config.Namespace, config.Name, err)
 					return true
 				}
-				kutil.HandleError(err)
+				utilruntime.HandleError(err)
 				// no retries for anything else
 				if retries.Count > 0 {
 					return false

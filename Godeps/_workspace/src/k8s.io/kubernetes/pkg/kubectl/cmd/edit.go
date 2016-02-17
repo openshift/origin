@@ -96,6 +96,7 @@ func NewCmdEdit(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().Bool("windows-line-endings", gruntime.GOOS == "windows", "Use Windows line-endings (default Unix line-endings)")
 	cmdutil.AddApplyAnnotationFlags(cmd)
+	cmdutil.AddRecordFlag(cmd)
 	return cmd
 }
 
@@ -250,6 +251,12 @@ outter:
 			// put configuration annotation in "updates"
 			if err := kubectl.CreateOrUpdateAnnotation(cmdutil.GetFlagBool(cmd, cmdutil.ApplyAnnotationsFlag), updates, encoder); err != nil {
 				return preservedFile(err, file, out)
+			}
+			if cmdutil.ShouldRecord(cmd, updates) {
+				err = cmdutil.RecordChangeCause(updates.Object, f.Command())
+				if err != nil {
+					return err
+				}
 			}
 			editedCopy := edited
 			if editedCopy, err = runtime.Encode(encoder, updates.Object); err != nil {

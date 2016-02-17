@@ -288,6 +288,18 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kPodSelectorForObjectFunc(object)
 		}
 	}
+
+	kMapBasedSelectorForObjectFunc := w.Factory.MapBasedSelectorForObject
+	w.MapBasedSelectorForObject = func(object runtime.Object) (string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return kubectl.MakeLabels(t.Spec.Selector), nil
+		default:
+			return kMapBasedSelectorForObjectFunc(object)
+		}
+
+	}
+
 	kPortsForObjectFunc := w.Factory.PortsForObject
 	w.PortsForObject = func(object runtime.Object) ([]string, error) {
 		switch t := object.(type) {
@@ -344,8 +356,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kLogsForObjectFunc(object, options)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, absoluteTimestamps, columnLabels), nil
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, showLabels, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, showLabels, absoluteTimestamps, columnLabels), nil
 	}
 	kCanBeExposed := w.Factory.CanBeExposed
 	w.CanBeExposed = func(kind unversioned.GroupKind) error {

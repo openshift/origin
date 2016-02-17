@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("BuildDefaults", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("BuildDefaults", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 
 		defaultsConfig, err := getConfig(config)
 		if err != nil {

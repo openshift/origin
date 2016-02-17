@@ -17,18 +17,19 @@ limitations under the License.
 package cmd
 
 import (
-  "io"
+	"io"
 
-  "github.com/golang/glog"
-  cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
-  cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-  "k8s.io/kubernetes/pkg/util"
+	"github.com/golang/glog"
+	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
-  "github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 const (
-  bash_completion_func = `# call kubectl get $1,
+	bash_completion_func = `# call kubectl get $1,
 __kubectl_parse_get()
 {
     local template
@@ -109,7 +110,7 @@ __custom_func() {
     esac
 }
 `
-  valid_resources = `Valid resource types include:
+	valid_resources = `Valid resource types include:
    * buildconfigs (aka 'bc')
    * builds
    * componentstatuses (aka 'cs')
@@ -134,6 +135,7 @@ __custom_func() {
    * projects
    * quota
    * resourcequotas (aka 'quota')
+   * replicasets (aka 'rs')
    * replicationcontrollers (aka 'rc')
    * rolebindings
    * routes
@@ -145,66 +147,67 @@ __custom_func() {
 
 // NewKubectlCommand creates the `kubectl` command and its nested children.
 func NewKubectlCommand(f *cmdutil.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
-  // Parent command to which all subcommands are added.
-  cmds := &cobra.Command{
-    Use:   "kubectl",
-    Short: "kubectl controls the Kubernetes cluster manager",
-    Long: `kubectl controls the Kubernetes cluster manager.
+	// Parent command to which all subcommands are added.
+	cmds := &cobra.Command{
+		Use:   "kubectl",
+		Short: "kubectl controls the Kubernetes cluster manager",
+		Long: `kubectl controls the Kubernetes cluster manager.
 
 Find more information at https://github.com/kubernetes/kubernetes.`,
-    Run: runHelp,
-    BashCompletionFunction: bash_completion_func,
-  }
+		Run: runHelp,
+		BashCompletionFunction: bash_completion_func,
+	}
 
-  f.BindFlags(cmds.PersistentFlags())
+	f.BindFlags(cmds.PersistentFlags())
 
-  // From this point and forward we get warnings on flags that contain "_" separators
-  cmds.SetGlobalNormalizationFunc(util.WarnWordSepNormalizeFunc)
+	// From this point and forward we get warnings on flags that contain "_" separators
+	cmds.SetGlobalNormalizationFunc(util.WarnWordSepNormalizeFunc)
 
-  cmds.AddCommand(NewCmdGet(f, out))
-  cmds.AddCommand(NewCmdDescribe(f, out))
-  cmds.AddCommand(NewCmdCreate(f, out))
-  cmds.AddCommand(NewCmdReplace(f, out))
-  cmds.AddCommand(NewCmdPatch(f, out))
-  cmds.AddCommand(NewCmdDelete(f, out))
-  cmds.AddCommand(NewCmdEdit(f, out))
-  cmds.AddCommand(NewCmdApply(f, out))
+	cmds.AddCommand(NewCmdGet(f, out))
+	cmds.AddCommand(NewCmdDescribe(f, out))
+	cmds.AddCommand(NewCmdCreate(f, out))
+	cmds.AddCommand(NewCmdReplace(f, out))
+	cmds.AddCommand(NewCmdPatch(f, out))
+	cmds.AddCommand(NewCmdDelete(f, out))
+	cmds.AddCommand(NewCmdEdit(f, out))
+	cmds.AddCommand(NewCmdApply(f, out))
 
-  cmds.AddCommand(NewCmdNamespace(out))
-  cmds.AddCommand(NewCmdLogs(f, out))
-  cmds.AddCommand(NewCmdRollingUpdate(f, out))
-  cmds.AddCommand(NewCmdScale(f, out))
-  cmds.AddCommand(NewCmdCordon(f, out))
-  cmds.AddCommand(NewCmdDrain(f, out))
-  cmds.AddCommand(NewCmdUncordon(f, out))
+	cmds.AddCommand(NewCmdNamespace(out))
+	cmds.AddCommand(NewCmdLogs(f, out))
+	cmds.AddCommand(NewCmdRollingUpdate(f, out))
+	cmds.AddCommand(NewCmdScale(f, out))
+	cmds.AddCommand(NewCmdCordon(f, out))
+	cmds.AddCommand(NewCmdDrain(f, out))
+	cmds.AddCommand(NewCmdUncordon(f, out))
 
-  cmds.AddCommand(NewCmdAttach(f, in, out, err))
-  cmds.AddCommand(NewCmdExec(f, in, out, err))
-  cmds.AddCommand(NewCmdPortForward(f))
-  cmds.AddCommand(NewCmdProxy(f, out))
+	cmds.AddCommand(NewCmdAttach(f, in, out, err))
+	cmds.AddCommand(NewCmdExec(f, in, out, err))
+	cmds.AddCommand(NewCmdPortForward(f))
+	cmds.AddCommand(NewCmdProxy(f, out))
 
-  cmds.AddCommand(NewCmdRun(f, in, out, err))
-  cmds.AddCommand(NewCmdStop(f, out))
-  cmds.AddCommand(NewCmdExposeService(f, out))
-  cmds.AddCommand(NewCmdAutoscale(f, out))
+	cmds.AddCommand(NewCmdRun(f, in, out, err))
+	cmds.AddCommand(NewCmdStop(f, out))
+	cmds.AddCommand(NewCmdExposeService(f, out))
+	cmds.AddCommand(NewCmdAutoscale(f, out))
+	cmds.AddCommand(rollout.NewCmdRollout(f, out))
 
-  cmds.AddCommand(NewCmdLabel(f, out))
-  cmds.AddCommand(NewCmdAnnotate(f, out))
+	cmds.AddCommand(NewCmdLabel(f, out))
+	cmds.AddCommand(NewCmdAnnotate(f, out))
 
-  cmds.AddCommand(cmdconfig.NewCmdConfig(cmdconfig.NewDefaultPathOptions(), out))
-  cmds.AddCommand(NewCmdClusterInfo(f, out))
-  cmds.AddCommand(NewCmdApiVersions(f, out))
-  cmds.AddCommand(NewCmdVersion(f, out))
-  cmds.AddCommand(NewCmdExplain(f, out))
-  cmds.AddCommand(NewCmdConvert(f, out))
+	cmds.AddCommand(cmdconfig.NewCmdConfig(cmdconfig.NewDefaultPathOptions(), out))
+	cmds.AddCommand(NewCmdClusterInfo(f, out))
+	cmds.AddCommand(NewCmdApiVersions(f, out))
+	cmds.AddCommand(NewCmdVersion(f, out))
+	cmds.AddCommand(NewCmdExplain(f, out))
+	cmds.AddCommand(NewCmdConvert(f, out))
 
-  return cmds
+	return cmds
 }
 
 func runHelp(cmd *cobra.Command, args []string) {
-  cmd.Help()
+	cmd.Help()
 }
 
 func printDeprecationWarning(command, alias string) {
-  glog.Warningf("%s is DEPRECATED and will be removed in a future version. Use %s instead.", alias, command)
+	glog.Warningf("%s is DEPRECATED and will be removed in a future version. Use %s instead.", alias, command)
 }

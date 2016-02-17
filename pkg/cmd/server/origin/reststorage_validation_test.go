@@ -83,6 +83,6 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 func fakeMasterConfig() *MasterConfig {
 	return &MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
+		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, "", false),
 	}
 }

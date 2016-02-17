@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("RunOnceDuration", func(client kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("RunOnceDuration", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

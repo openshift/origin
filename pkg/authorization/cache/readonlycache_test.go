@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/client"
@@ -41,7 +41,7 @@ func TestGetLocalPolicy(t *testing.T) {
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
 	name := "uniquePolicyName"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policy, err = testClient.GetPolicy(context, name)
 
 		if (err == nil) &&
@@ -78,7 +78,7 @@ func TestGetClusterPolicy(t *testing.T) {
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
 	name := "uniqueClusterPolicyName"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicy, err = testClient.GetPolicy(context, name)
 
 		if (err == nil) &&
@@ -113,7 +113,7 @@ func TestListLocalPolicyBindings(t *testing.T) {
 	namespace := "namespaceTwo"
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policyBindings, err = testClient.ListPolicyBindings(context, nil)
 
 		if (err == nil) &&
@@ -150,7 +150,7 @@ func TestListClusterPolicyBindings(t *testing.T) {
 	namespace := ""
 	context := kapi.WithNamespace(kapi.NewContext(), namespace)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicyBindings, err = testClient.ListPolicyBindings(context, nil)
 
 		if (err == nil) &&

@@ -1,12 +1,13 @@
 package kubernetes
 
 import (
-	"net"
 	"reflect"
 	"testing"
 	"time"
 
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 )
 
@@ -14,19 +15,26 @@ func TestProxyConfig(t *testing.T) {
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in buildKubeProxyConfig(), update this expected default to match the new upstream defaults
+	oomScoreAdj := qos.KubeProxyOOMScoreAdj
+	ipTablesMasqueratebit := 14
 	expectedDefaultConfig := &proxyoptions.ProxyServerConfig{
-		BindAddress:                    net.ParseIP("0.0.0.0"),
-		HealthzPort:                    10249,
-		HealthzBindAddress:             net.ParseIP("127.0.0.1"),
-		OOMScoreAdj:                    qos.KubeProxyOOMScoreAdj,
-		ResourceContainer:              "/kube-proxy",
-		IptablesSyncPeriod:             30 * time.Second,
-		ConfigSyncPeriod:               15 * time.Minute,
-		KubeAPIQPS:                     5.0,
-		KubeAPIBurst:                   10,
-		UDPIdleTimeout:                 250 * time.Millisecond,
-		ConntrackMax:                   256 * 1024, // 4x default (64k)
-		ConntrackTCPTimeoutEstablished: 86400,      // 1 day (1/5 default)
+		KubeProxyConfiguration: componentconfig.KubeProxyConfiguration{
+			BindAddress:        "0.0.0.0",
+			HealthzPort:        10249,
+			HealthzBindAddress: "127.0.0.1",
+			OOMScoreAdj:        &oomScoreAdj,
+			ResourceContainer:  "/kube-proxy",
+			IPTablesSyncPeriod: unversioned.Duration{Duration: 30 * time.Second},
+			// from k8s.io/kubernetes/cmd/kube-proxy/app/options/options.go
+			// defaults to 14.
+			IPTablesMasqueradeBit:          &ipTablesMasqueratebit,
+			UDPIdleTimeout:                 unversioned.Duration{Duration: 250 * time.Millisecond},
+			ConntrackMax:                   256 * 1024,                                          // 4x default (64k)
+			ConntrackTCPEstablishedTimeout: unversioned.Duration{Duration: 86400 * time.Second}, // 1 day (1/5 default)
+		},
+		ConfigSyncPeriod: 15 * time.Minute,
+		KubeAPIQPS:       5.0,
+		KubeAPIBurst:     10,
 	}
 
 	actualDefaultConfig := proxyoptions.NewProxyConfig()

@@ -38,7 +38,7 @@ func (c *hostSubnet) List(opts kapi.ListOptions) (result *sdnapi.HostSubnetList,
 	result = &sdnapi.HostSubnetList{}
 	err = c.r.Get().
 		Resource("hostSubnets").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -68,6 +68,6 @@ func (c *hostSubnet) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("hostSubnets").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
 }

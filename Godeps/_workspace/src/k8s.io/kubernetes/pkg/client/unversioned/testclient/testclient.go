@@ -230,6 +230,10 @@ func (c *Fake) Nodes() client.NodeInterface {
 	return &FakeNodes{Fake: c}
 }
 
+func (c *Fake) PodSecurityPolicies() client.PodSecurityPolicyInterface {
+	return &FakePodSecurityPolicy{Fake: c}
+}
+
 func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
 	return &FakeSecurityContextConstraints{Fake: c}
 }
@@ -286,6 +290,10 @@ func (c *Fake) ComponentStatuses() client.ComponentStatusInterface {
 	return &FakeComponentStatuses{Fake: c}
 }
 
+func (c *Fake) ConfigMaps(namespace string) client.ConfigMapsInterface {
+	return &FakeConfigMaps{Fake: c, Namespace: namespace}
+}
+
 // SwaggerSchema returns an empty swagger.ApiDeclaration for testing
 func (c *Fake) SwaggerSchema(version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	action := ActionImpl{}
@@ -333,12 +341,12 @@ func (c *FakeExperimental) Ingress(namespace string) client.IngressInterface {
 	return &FakeIngress{Fake: c, Namespace: namespace}
 }
 
-func (c *FakeExperimental) ConfigMaps(namespace string) client.ConfigMapsInterface {
-	return &FakeConfigMaps{Fake: c, Namespace: namespace}
-}
-
 func (c *FakeExperimental) ThirdPartyResources(namespace string) client.ThirdPartyResourceInterface {
 	return &FakeThirdPartyResources{Fake: c, Namespace: namespace}
+}
+
+func (c *FakeExperimental) ReplicaSets(namespace string) client.ReplicaSetInterface {
+	return &FakeReplicaSets{Fake: c, Namespace: namespace}
 }
 
 type FakeDiscovery struct {

@@ -6,14 +6,14 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 )
 
 func init() {
-	admission.RegisterPlugin("BuildOverrides", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("BuildOverrides", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 		overridesConfig, err := getConfig(config)
 		if err != nil {
 			return nil, err

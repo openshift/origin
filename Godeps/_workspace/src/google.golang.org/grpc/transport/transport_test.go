@@ -35,6 +35,7 @@ package transport
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math"
 	"net"
@@ -44,19 +45,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bradfitz/http2"
 	"golang.org/x/net/context"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/grpclog"
 )
 
 type server struct {
-	lis  net.Listener
-	port string
-	// channel to signal server is ready to serve.
-	readyChan chan bool
-	mu        sync.Mutex
-	conns     map[ServerTransport]bool
+	lis        net.Listener
+	port       string
+	startedErr chan error // error (or nil) with server start value
+	mu         sync.Mutex
+	conns      map[ServerTransport]bool
 }
 
 var (
@@ -78,7 +77,7 @@ const (
 	misbehaved
 )
 
-func (h *testStreamHandler) handleStream(s *Stream) {
+func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
 	req := expectedRequest
 	resp := expectedResponse
 	if s.Method() == "foo.Large" {
@@ -87,11 +86,11 @@ func (h *testStreamHandler) handleStream(s *Stream) {
 	}
 	p := make([]byte, len(req))
 	_, err := io.ReadFull(s, p)
-	if err != nil || !bytes.Equal(p, req) {
-		if err == ErrConnClosing {
-			return
-		}
-		grpclog.Fatalf("handleStream got error: %v, want <nil>; result: %v, want %v", err, p, req)
+	if err != nil {
+		return
+	}
+	if !bytes.Equal(p, req) {
+		t.Fatalf("handleStream got %v, want %v", p, req)
 	}
 	// send a response back to the client.
 	h.t.Write(s, resp, &Options{})
@@ -101,13 +100,15 @@ func (h *testStreamHandler) handleStream(s *Stream) {
 
 // handleStreamSuspension blocks until s.ctx is canceled.
 func (h *testStreamHandler) handleStreamSuspension(s *Stream) {
-	<-s.ctx.Done()
+	go func() {
+		<-s.ctx.Done()
+	}()
 }
 
-func (h *testStreamHandler) handleStreamMisbehave(s *Stream) {
+func (h *testStreamHandler) handleStreamMisbehave(t *testing.T, s *Stream) {
 	conn, ok := s.ServerTransport().(*http2Server)
 	if !ok {
-		grpclog.Fatalf("Failed to convert %v to *http2Server", s.ServerTransport())
+		t.Fatalf("Failed to convert %v to *http2Server", s.ServerTransport())
 	}
 	size := 1
 	if s.Method() == "foo.MaxFrame" {
@@ -127,7 +128,7 @@ func (h *testStreamHandler) handleStreamMisbehave(s *Stream) {
 }
 
 // start starts server. Other goroutines should block on s.readyChan for futher operations.
-func (s *server) start(port int, maxStreams uint32, ht hType) {
+func (s *server) start(t *testing.T, port int, maxStreams uint32, ht hType) {
 	var err error
 	if port == 0 {
 		s.lis, err = net.Listen("tcp", ":0")
@@ -135,49 +136,56 @@ func (s *server) start(port int, maxStreams uint32, ht hType) {
 		s.lis, err = net.Listen("tcp", ":"+strconv.Itoa(port))
 	}
 	if err != nil {
-		grpclog.Fatalf("failed to listen: %v", err)
+		s.startedErr <- fmt.Errorf("failed to listen: %v", err)
+		return
 	}
 	_, p, err := net.SplitHostPort(s.lis.Addr().String())
 	if err != nil {
-		grpclog.Fatalf("failed to parse listener address: %v", err)
+		s.startedErr <- fmt.Errorf("failed to parse listener address: %v", err)
+		return
 	}
 	s.port = p
 	s.conns = make(map[ServerTransport]bool)
-	if s.readyChan != nil {
-		close(s.readyChan)
-	}
+	s.startedErr <- nil
 	for {
 		conn, err := s.lis.Accept()
 		if err != nil {
 			return
 		}
-		t, err := NewServerTransport("http2", conn, maxStreams, nil)
+		transport, err := NewServerTransport("http2", conn, maxStreams, nil)
 		if err != nil {
 			return
 		}
 		s.mu.Lock()
 		if s.conns == nil {
 			s.mu.Unlock()
-			t.Close()
+			transport.Close()
 			return
 		}
-		s.conns[t] = true
+		s.conns[transport] = true
 		s.mu.Unlock()
-		h := &testStreamHandler{t}
+		h := &testStreamHandler{transport}
 		switch ht {
 		case suspended:
-			go t.HandleStreams(h.handleStreamSuspension)
+			go transport.HandleStreams(h.handleStreamSuspension)
 		case misbehaved:
-			go t.HandleStreams(h.handleStreamMisbehave)
+			go transport.HandleStreams(func(s *Stream) {
+				go h.handleStreamMisbehave(t, s)
+			})
 		default:
-			go t.HandleStreams(h.handleStream)
+			go transport.HandleStreams(func(s *Stream) {
+				go h.handleStream(t, s)
+			})
 		}
 	}
 }
 
 func (s *server) wait(t *testing.T, timeout time.Duration) {
 	select {
-	case <-s.readyChan:
+	case err := <-s.startedErr:
+		if err != nil {
+			t.Fatal(err)
+		}
 	case <-time.After(timeout):
 		t.Fatalf("Timed out after %v waiting for server to be ready", timeout)
 	}
@@ -194,8 +202,8 @@ func (s *server) stop() {
 }
 
 func setUp(t *testing.T, port int, maxStreams uint32, ht hType) (*server, ClientTransport) {
-	server := &server{readyChan: make(chan bool)}
-	go server.start(port, maxStreams, ht)
+	server := &server{startedErr: make(chan error, 1)}
+	go server.start(t, port, maxStreams, ht)
 	server.wait(t, 2*time.Second)
 	addr := "localhost:" + server.port
 	var (
@@ -422,6 +430,69 @@ func TestMaxStreams(t *testing.T) {
 	}
 	ct.Close()
 	server.stop()
+}
+
+func TestServerContextCanceledOnClosedConnection(t *testing.T) {
+	server, ct := setUp(t, 0, math.MaxUint32, suspended)
+	callHdr := &CallHdr{
+		Host:   "localhost",
+		Method: "foo",
+	}
+	var sc *http2Server
+	// Wait until the server transport is setup.
+	for {
+		server.mu.Lock()
+		if len(server.conns) == 0 {
+			server.mu.Unlock()
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		for k := range server.conns {
+			var ok bool
+			sc, ok = k.(*http2Server)
+			if !ok {
+				t.Fatalf("Failed to convert %v to *http2Server", k)
+			}
+		}
+		server.mu.Unlock()
+		break
+	}
+	cc, ok := ct.(*http2Client)
+	if !ok {
+		t.Fatalf("Failed to convert %v to *http2Client", ct)
+	}
+	s, err := ct.NewStream(context.Background(), callHdr)
+	if err != nil {
+		t.Fatalf("Failed to open stream: %v", err)
+	}
+	// Make sure the headers frame is flushed out.
+	<-cc.writableChan
+	if err = cc.framer.writeData(true, s.id, false, make([]byte, http2MaxFrameLen)); err != nil {
+		t.Fatalf("Failed to write data: %v", err)
+	}
+	cc.writableChan <- 0
+	// Loop until the server side stream is created.
+	var ss *Stream
+	for {
+		time.Sleep(time.Second)
+		sc.mu.Lock()
+		if len(sc.activeStreams) == 0 {
+			sc.mu.Unlock()
+			continue
+		}
+		ss = sc.activeStreams[s.id]
+		sc.mu.Unlock()
+		break
+	}
+	cc.Close()
+	select {
+	case <-ss.Context().Done():
+		if ss.Context().Err() != context.Canceled {
+			t.Fatalf("ss.Context().Err() got %v, want %v", ss.Context().Err(), context.Canceled)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Failed to cancel the context of the sever side stream.")
+	}
 }
 
 func TestServerWithMisbehavedClient(t *testing.T) {

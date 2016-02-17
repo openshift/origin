@@ -37,7 +37,7 @@ func (c *imageStreamSecrets) Secrets(name string, options kapi.ListOptions) (res
 		Resource("imageStreams").
 		Name(name).
 		SubResource("secrets").
-		VersionedParams(&options, kapi.Scheme).
+		VersionedParams(&options, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return

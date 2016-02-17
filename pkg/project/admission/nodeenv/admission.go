@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("OriginPodNodeEnvironment", func(client client.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("OriginPodNodeEnvironment", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewPodNodeEnvironment(client)
 	})
 }
@@ -23,7 +23,7 @@ func init() {
 // podNodeEnvironment is an implementation of admission.Interface.
 type podNodeEnvironment struct {
 	*admission.Handler
-	client client.Interface
+	client clientset.Interface
 	cache  *cache.ProjectCache
 }
 
@@ -82,7 +82,7 @@ func (p *podNodeEnvironment) Validate() error {
 	return nil
 }
 
-func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {
+func NewPodNodeEnvironment(client clientset.Interface) (admission.Interface, error) {
 	return &podNodeEnvironment{
 		Handler: admission.NewHandler(admission.Create),
 		client:  client,

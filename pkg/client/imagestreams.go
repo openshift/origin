@@ -54,7 +54,7 @@ func (c *imageStreams) List(opts kapi.ListOptions) (result *imageapi.ImageStream
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("imageStreams").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -100,7 +100,7 @@ func (c *imageStreams) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("imageStreams").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
 }
 

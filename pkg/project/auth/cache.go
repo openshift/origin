@@ -11,8 +11,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	policyclient "github.com/openshift/origin/pkg/authorization/client"
@@ -168,7 +169,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 
 	ac.skip = &statelessSkipSynchronizer{}
 
-	go util.Forever(func() { ac.synchronize() }, period)
+	go utilwait.Forever(func() { ac.synchronize() }, period)
 }
 
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
@@ -183,7 +184,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 			namespaceResourceVersion: namespace.ResourceVersion,
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			util.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
 		}
 	}
 	return &namespaceSet
@@ -193,7 +194,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
 	policyList, err := ac.policyClient.ReadOnlyPolicies(kapi.NamespaceAll).List(nil)
 	if err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 		return
 	}
 	for _, policy := range policyList.Items {
@@ -202,7 +203,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 			policyUIDToResourceVersion: map[types.UID]string{policy.UID: policy.ResourceVersion},
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			util.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
 		}
 	}
 }
@@ -211,7 +212,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
 	policyBindingList, err := ac.policyClient.ReadOnlyPolicyBindings(kapi.NamespaceAll).List(&kapi.ListOptions{})
 	if err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 		return
 	}
 	for _, policyBinding := range policyBindingList.Items {
@@ -220,7 +221,7 @@ func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore c
 			policyBindingUIDToResourceVersion: map[types.UID]string{policyBinding.UID: policyBinding.ResourceVersion},
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			util.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
 		}
 	}
 }
@@ -244,7 +245,7 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 
 	clusterPolicyList, err := ac.policyClient.ReadOnlyClusterPolicies().List(nil)
 	if err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 		return invalidateCache
 	}
 
@@ -259,7 +260,7 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 
 	clusterPolicyBindingList, err := ac.policyClient.ReadOnlyClusterPolicyBindings().List(nil)
 	if err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 		return invalidateCache
 	}
 

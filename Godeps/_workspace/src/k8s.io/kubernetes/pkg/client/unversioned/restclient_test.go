@@ -45,11 +45,13 @@ func TestDoRequestSuccess(t *testing.T) {
 	// TODO: Uncomment when fix #19254
 	// defer testServer.Close()
 	c, err := RESTClientFor(&Config{
-		Host:         testServer.URL,
-		GroupVersion: testapi.Default.GroupVersion(),
-		Codec:        testapi.Default.Codec(),
-		Username:     "user",
-		Password:     "pass",
+		Host: testServer.URL,
+		ContentConfig: ContentConfig{
+			GroupVersion: testapi.Default.GroupVersion(),
+			Codec:        testapi.Default.Codec(),
+		},
+		Username: "user",
+		Password: "pass",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -89,9 +91,11 @@ func TestDoRequestFailed(t *testing.T) {
 	// TODO: Uncomment when fix #19254
 	// defer testServer.Close()
 	c, err := RESTClientFor(&Config{
-		Host:         testServer.URL,
-		GroupVersion: testapi.Default.GroupVersion(),
-		Codec:        testapi.Default.Codec(),
+		Host: testServer.URL,
+		ContentConfig: ContentConfig{
+			GroupVersion: testapi.Default.GroupVersion(),
+			Codec:        testapi.Default.Codec(),
+		},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -105,7 +109,11 @@ func TestDoRequestFailed(t *testing.T) {
 		t.Errorf("unexpected error type %v", err)
 	}
 	actual := ss.Status()
-	if !reflect.DeepEqual(status, &actual) {
+	expected := *status
+	// The decoder will apply the default Version and Kind to the Status.
+	expected.APIVersion = "v1"
+	expected.Kind = "Status"
+	if !reflect.DeepEqual(&expected, &actual) {
 		t.Errorf("Unexpected mis-match: %s", util.ObjectDiff(status, &actual))
 	}
 }
@@ -122,11 +130,13 @@ func TestDoRequestCreated(t *testing.T) {
 	// TODO: Uncomment when fix #19254
 	// defer testServer.Close()
 	c, err := RESTClientFor(&Config{
-		Host:         testServer.URL,
-		GroupVersion: testapi.Default.GroupVersion(),
-		Codec:        testapi.Default.Codec(),
-		Username:     "user",
-		Password:     "pass",
+		Host: testServer.URL,
+		ContentConfig: ContentConfig{
+			GroupVersion: testapi.Default.GroupVersion(),
+			Codec:        testapi.Default.Codec(),
+		},
+		Username: "user",
+		Password: "pass",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

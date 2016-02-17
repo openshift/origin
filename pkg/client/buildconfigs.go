@@ -55,7 +55,7 @@ func (c *buildConfigs) List(opts kapi.ListOptions) (result *buildapi.BuildConfig
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("buildConfigs").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -106,7 +106,7 @@ func (c *buildConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("buildConfigs").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
 }
 
@@ -126,7 +126,7 @@ func (c *buildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOpt
 		Resource("buildConfigs").
 		Name(request.Name).
 		SubResource("instantiatebinary").
-		VersionedParams(request, kapi.Scheme).
+		VersionedParams(request, kapi.ParameterCodec).
 		Body(r).Do().Into(result)
 	return
 }

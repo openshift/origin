@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("ProjectRequestLimit", func(client kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("ProjectRequestLimit", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

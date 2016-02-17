@@ -26,7 +26,9 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful/swagger"
@@ -39,6 +41,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -80,19 +83,31 @@ type Factory struct {
 	// Returns a Describer for displaying the specified RESTMapping type or an error.
 	Describer func(mapping *meta.RESTMapping) (kubectl.Describer, error)
 	// Returns a Printer for formatting objects of the given type or an error.
-	Printer func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error)
+	Printer func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, showLabels bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error)
 	// Returns a Scaler for changing the size of the specified RESTMapping type or an error
 	Scaler func(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 	// Returns a Reaper for gracefully shutting down resources.
 	Reaper func(mapping *meta.RESTMapping) (kubectl.Reaper, error)
+	// Returns a HistoryViewer for viewing change history
+	HistoryViewer func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error)
+	// Returns a Rollbacker for changing the rollback version of the specified RESTMapping type or an error
+	Rollbacker func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error)
 	// PodSelectorForObject returns the pod selector associated with the provided object
 	PodSelectorForObject func(object runtime.Object) (string, error)
+	// MapBasedSelectorForObject returns the map-based selector associated with the provided object. If a
+	// new set-based selector is provided, an error is returned if the selector cannot be converted to a
+	// map-based selector
+	MapBasedSelectorForObject func(object runtime.Object) (string, error)
 	// PortsForObject returns the ports associated with the provided object
 	PortsForObject func(object runtime.Object) ([]string, error)
 	// LabelsForObject returns the labels associated with the provided object
 	LabelsForObject func(object runtime.Object) (map[string]string, error)
 	// LogsForObject returns a request for the logs associated with the provided object
 	LogsForObject func(object, options runtime.Object) (*client.Request, error)
+	// PauseObject marks the provided object as paused ie. it will not be reconciled by its controller.
+	PauseObject func(object runtime.Object) (bool, error)
+	// ResumeObject resumes a paused object ie. it will be reconciled by its controller.
+	ResumeObject func(object runtime.Object) (bool, error)
 	// Returns a schema that can validate objects stored on disk.
 	Validator func(validate bool, cacheDir string) (validation.Schema, error)
 	// SwaggerSchema returns the schema declaration for the provided group version kind.
@@ -226,8 +241,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		JSONEncoder: func() runtime.Encoder {
 			return api.Codecs.LegacyCodec(registered.EnabledVersions()...)
 		},
-		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-			return kubectl.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, absoluteTimestamps, columnLabels), nil
+		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, showLabels bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+			return kubectl.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, showLabels, absoluteTimestamps, columnLabels), nil
 		},
 		PodSelectorForObject: func(object runtime.Object) (string, error) {
 			// TODO: replace with a swagger schema based approach (identify pod selector via schema introspection)
@@ -245,7 +260,54 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				}
 				return kubectl.MakeLabels(t.Spec.Selector), nil
 			case *extensions.Deployment:
+				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+				if err != nil {
+					return "", fmt.Errorf("failed to convert label selector to selector: %v", err)
+				}
+				return selector.String(), nil
+			case *extensions.ReplicaSet:
+				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+				if err != nil {
+					return "", fmt.Errorf("failed to convert label selector to selector: %v", err)
+				}
+				return selector.String(), nil
+			default:
+				gvk, err := api.Scheme.ObjectKind(object)
+				if err != nil {
+					return "", err
+				}
+				return "", fmt.Errorf("cannot extract pod selector from %v", gvk)
+			}
+		},
+		MapBasedSelectorForObject: func(object runtime.Object) (string, error) {
+			// TODO: replace with a swagger schema based approach (identify pod selector via schema introspection)
+			switch t := object.(type) {
+			case *api.ReplicationController:
 				return kubectl.MakeLabels(t.Spec.Selector), nil
+			case *api.Pod:
+				if len(t.Labels) == 0 {
+					return "", fmt.Errorf("the pod has no labels and cannot be exposed")
+				}
+				return kubectl.MakeLabels(t.Labels), nil
+			case *api.Service:
+				if t.Spec.Selector == nil {
+					return "", fmt.Errorf("the service has no pod selector set")
+				}
+				return kubectl.MakeLabels(t.Spec.Selector), nil
+			case *extensions.Deployment:
+				// TODO(madhusudancs): Make this smarter by admitting MatchExpressions with Equals
+				// operator, DoubleEquals operator and In operator with only one element in the set.
+				if len(t.Spec.Selector.MatchExpressions) > 0 {
+					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format")
+				}
+				return kubectl.MakeLabels(t.Spec.Selector.MatchLabels), nil
+			case *extensions.ReplicaSet:
+				// TODO(madhusudancs): Make this smarter by admitting MatchExpressions with Equals
+				// operator, DoubleEquals operator and In operator with only one element in the set.
+				if len(t.Spec.Selector.MatchExpressions) > 0 {
+					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format")
+				}
+				return kubectl.MakeLabels(t.Spec.Selector.MatchLabels), nil
 			default:
 				gvk, err := api.Scheme.ObjectKind(object)
 				if err != nil {
@@ -264,6 +326,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 			case *api.Service:
 				return getServicePorts(t.Spec), nil
 			case *extensions.Deployment:
+				return getPorts(t.Spec.Template.Spec), nil
+			case *extensions.ReplicaSet:
 				return getPorts(t.Spec.Template.Spec), nil
 			default:
 				gvk, err := api.Scheme.ObjectKind(object)
@@ -297,6 +361,50 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return nil, fmt.Errorf("cannot get the logs from %v", gvk)
 			}
 		},
+		PauseObject: func(object runtime.Object) (bool, error) {
+			c, err := clients.ClientForVersion(nil)
+			if err != nil {
+				return false, err
+			}
+
+			switch t := object.(type) {
+			case *extensions.Deployment:
+				if t.Spec.Paused {
+					return true, nil
+				}
+				t.Spec.Paused = true
+				_, err := c.Extensions().Deployments(t.Namespace).Update(t)
+				return false, err
+			default:
+				gvk, err := api.Scheme.ObjectKind(object)
+				if err != nil {
+					return false, err
+				}
+				return false, fmt.Errorf("cannot pause %v", gvk)
+			}
+		},
+		ResumeObject: func(object runtime.Object) (bool, error) {
+			c, err := clients.ClientForVersion(nil)
+			if err != nil {
+				return false, err
+			}
+
+			switch t := object.(type) {
+			case *extensions.Deployment:
+				if !t.Spec.Paused {
+					return true, nil
+				}
+				t.Spec.Paused = false
+				_, err := c.Extensions().Deployments(t.Namespace).Update(t)
+				return false, err
+			default:
+				gvk, err := api.Scheme.ObjectKind(object)
+				if err != nil {
+					return false, err
+				}
+				return false, fmt.Errorf("cannot resume %v", gvk)
+			}
+		},
 		Scaler: func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 			mappingVersion := mapping.GroupVersionKind.GroupVersion()
 			client, err := clients.ClientForVersion(&mappingVersion)
@@ -312,6 +420,23 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return nil, err
 			}
 			return kubectl.ReaperFor(mapping.GroupVersionKind.GroupKind(), client)
+		},
+		HistoryViewer: func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
+			mappingVersion := mapping.GroupVersionKind.GroupVersion()
+			client, err := clients.ClientForVersion(&mappingVersion)
+			clientset := clientset.FromUnversionedClient(client)
+			if err != nil {
+				return nil, err
+			}
+			return kubectl.HistoryViewerFor(mapping.GroupVersionKind.GroupKind(), clientset)
+		},
+		Rollbacker: func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
+			mappingVersion := mapping.GroupVersionKind.GroupVersion()
+			client, err := clients.ClientForVersion(&mappingVersion)
+			if err != nil {
+				return nil, err
+			}
+			return kubectl.RollbackerFor(mapping.GroupVersionKind.GroupKind(), client)
 		},
 		Validator: func(validate bool, cacheDir string) (validation.Schema, error) {
 			if validate {
@@ -351,7 +476,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		},
 		CanBeExposed: func(kind unversioned.GroupKind) error {
 			switch kind {
-			case api.Kind("ReplicationController"), api.Kind("Service"), api.Kind("Pod"), extensions.Kind("Deployment"):
+			case api.Kind("ReplicationController"), api.Kind("Service"), api.Kind("Pod"), extensions.Kind("Deployment"), extensions.Kind("ReplicaSet"):
 				// nothing to do here
 			default:
 				return fmt.Errorf("cannot expose a %s", kind)
@@ -374,11 +499,20 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 			}
 			switch t := object.(type) {
 			case *api.ReplicationController:
-				return GetFirstPod(client, t.Namespace, t.Spec.Selector)
+				selector := labels.SelectorFromSet(t.Spec.Selector)
+				return GetFirstPod(client, t.Namespace, selector)
 			case *extensions.Deployment:
-				return GetFirstPod(client, t.Namespace, t.Spec.Selector)
+				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert label selector to selector: %v", err)
+				}
+				return GetFirstPod(client, t.Namespace, selector)
 			case *extensions.Job:
-				return GetFirstPod(client, t.Namespace, t.Spec.Selector.MatchLabels)
+				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert label selector to selector: %v", err)
+				}
+				return GetFirstPod(client, t.Namespace, selector)
 			case *api.Pod:
 				return t, nil
 			default:
@@ -396,12 +530,11 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 }
 
 // GetFirstPod returns the first pod of an object from its namespace and selector
-func GetFirstPod(client *client.Client, namespace string, selector map[string]string) (*api.Pod, error) {
+func GetFirstPod(client *client.Client, namespace string, selector labels.Selector) (*api.Pod, error) {
 	var pods *api.PodList
 	for pods == nil || len(pods.Items) == 0 {
 		var err error
-		labelSelector := labels.SelectorFromSet(selector)
-		options := api.ListOptions{LabelSelector: labelSelector}
+		options := api.ListOptions{LabelSelector: selector}
 		if pods, err = client.Pods(namespace).List(options); err != nil {
 			return nil, err
 		}
@@ -411,6 +544,18 @@ func GetFirstPod(client *client.Client, namespace string, selector map[string]st
 	}
 	pod := &pods.Items[0]
 	return pod, nil
+}
+
+// Command will stringify and return all environment arguments ie. a command run by a client
+// using the factory.
+// TODO: We need to filter out stuff like secrets.
+func (f *Factory) Command() string {
+	if len(os.Args) == 0 {
+		return ""
+	}
+	base := filepath.Base(os.Args[0])
+	args := append([]string{base}, os.Args[1:]...)
+	return strings.Join(args, " ")
 }
 
 // BindFlags adds any flags that are common to all kubectl sub commands.
@@ -670,7 +815,7 @@ func (f *Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMappin
 		if err != nil {
 			columnLabel = []string{}
 		}
-		printer, err = f.Printer(mapping, GetFlagBool(cmd, "no-headers"), withNamespace, GetWideFlag(cmd), GetFlagBool(cmd, "show-all"), isWatch(cmd), columnLabel)
+		printer, err = f.Printer(mapping, GetFlagBool(cmd, "no-headers"), withNamespace, GetWideFlag(cmd), GetFlagBool(cmd, "show-all"), GetFlagBool(cmd, "show-labels"), isWatch(cmd), columnLabel)
 		if err != nil {
 			return nil, err
 		}

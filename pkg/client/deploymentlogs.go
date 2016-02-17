@@ -33,5 +33,5 @@ func newDeploymentLogs(c *Client, namespace string) *deploymentLogs {
 
 // Get gets the deploymentlogs and return a deploymentLog request
 func (c *deploymentLogs) Get(name string, opts api.DeploymentLogOptions) *kclient.Request {
-	return c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("log").VersionedParams(&opts, kapi.Scheme)
+	return c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("log").VersionedParams(&opts, kapi.ParameterCodec)
 }

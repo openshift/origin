@@ -43,6 +43,9 @@ special_upstream_test_dirs() {
 # find the upstream test directories, excluding special-case directories and the upstream runtime package.
 # The tests for the upstream runtime package are not solvent currently due to a patch for:
 # https://github.com/kubernetes/kubernetes/pull/9971
+#
+# k8s.io/kubernetes/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned  - ignored because it is
+#   for testing types.generated.go which we are not currently using and will fail.
 find_upstream_test_dirs() {
   cd "${OS_ROOT}"
   find ./Godeps/_workspace/src/k8s.io/kubernetes -not \( \
@@ -51,6 +54,7 @@ find_upstream_test_dirs() {
         -o -wholename "${KUBE_GODEP_PATH}/api/v1" \
         -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/pkg/runtime' \
         -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/test/e2e' \
+        -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }

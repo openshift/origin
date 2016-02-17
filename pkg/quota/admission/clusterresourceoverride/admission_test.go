@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/testing/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -197,7 +198,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			config, _ := json.Marshal(test.config)
 			reader = bytes.NewReader(config)
 		}
-		c, err := newClusterResourceOverride(&ktestclient.Fake{}, reader)
+		c, err := newClusterResourceOverride(fake.NewSimpleClientset(), reader)
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
 		}

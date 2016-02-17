@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
@@ -67,7 +67,7 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		case *kubegraph.PodNode:
 			service.FulfillingPods = append(service.FulfillingPods, castContainer)
 		default:
-			util.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
+			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
 		}
 	}
 
@@ -78,7 +78,7 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		case *routegraph.RouteNode:
 			service.ExposingRoutes = append(service.ExposingRoutes, castContainer)
 		default:
-			util.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
+			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
 		}
 	}
 

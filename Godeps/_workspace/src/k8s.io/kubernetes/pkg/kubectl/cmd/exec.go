@@ -235,7 +235,7 @@ func (p *ExecOptions) Run() error {
 		Stdout:    p.Out != nil,
 		Stderr:    p.Err != nil,
 		TTY:       tty,
-	}, api.Scheme)
+	}, api.ParameterCodec)
 
 	postErr := p.Executor.Execute("POST", req.URL(), p.Config, stdin, p.Out, p.Err, tty)
 
@@ -261,7 +261,7 @@ func (p *ExecOptions) Run() error {
 		Stdout:    p.Out != nil,
 		Stderr:    p.Err != nil,
 		TTY:       tty,
-	}, api.Scheme)
+	}, api.ParameterCodec)
 
 	getErr := p.Executor.Execute("GET", getReq.URL(), p.Config, stdin, p.Out, p.Err, tty)
 	if getErr == nil {

@@ -8,6 +8,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
@@ -94,7 +95,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			podQueue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				kutil.HandleError(err)
+				utilruntime.HandleError(err)
 				// infinite retries for a transient error
 				if _, isTransient := err.(transientError); isTransient {
 					return true

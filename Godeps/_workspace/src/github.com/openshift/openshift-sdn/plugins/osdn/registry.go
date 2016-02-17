@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -156,7 +157,11 @@ func (registry *Registry) WatchPods(ready chan<- bool, start <-chan string, stop
 
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]osdnapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
-	podList, err := registry.kClient.Pods(namespace).List(kapi.ListOptions{FieldSelector: fieldSelector})
+	opts := kapi.ListOptions{
+		LabelSelector: labels.Everything(),
+		FieldSelector: fieldSelector,
+	}
+	podList, err := registry.kClient.Pods(namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}

@@ -7,8 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -37,7 +37,7 @@ func TestPolicyGet(t *testing.T) {
 	namespace := "namespaceTwo"
 	name := "uniquePolicyName"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policy, err = testCache.Get(name, namespace)
 
 		if (err == nil) &&
@@ -72,7 +72,7 @@ func TestPolicyGetRespectingNamespaces(t *testing.T) {
 	namespace := "namespaceOne"
 	name := "nonUniquePolicyName"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policy, err = testCache.Get(name, namespace)
 
 		if (err == nil) &&
@@ -105,7 +105,7 @@ func TestPolicyList(t *testing.T) {
 
 	namespace := "namespaceTwo"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policies, err = testCache.List(nil, namespace)
 
 		if (err == nil) &&
@@ -136,7 +136,7 @@ func TestPolicyListNamespaceAll(t *testing.T) {
 
 	namespace := kapi.NamespaceAll
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policies, err = testCache.List(nil, namespace)
 
 		if (err == nil) &&
@@ -177,7 +177,7 @@ func TestPolicyListRespectingLabels(t *testing.T) {
 
 	label := labels.NewSelector().Add(*requirement)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policies, err = testCache.List(&kapi.ListOptions{LabelSelector: label}, namespace)
 
 		if (err == nil) &&
@@ -213,7 +213,7 @@ func TestPolicyListRespectingFields(t *testing.T) {
 	namespace := "namespaceTwo"
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		policies, err = testCache.List(&kapi.ListOptions{FieldSelector: field}, namespace)
 
 		if (err == nil) &&

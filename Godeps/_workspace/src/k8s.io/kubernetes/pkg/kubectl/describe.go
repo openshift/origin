@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/fields"
@@ -84,13 +85,14 @@ func describerMap(c *client.Client) map[unversioned.GroupKind]Describer {
 		api.Kind("PersistentVolumeClaim"): &PersistentVolumeClaimDescriber{c},
 		api.Kind("Namespace"):             &NamespaceDescriber{c},
 		api.Kind("Endpoints"):             &EndpointsDescriber{c},
+		api.Kind("ConfigMap"):             &ConfigMapDescriber{c},
 
+		extensions.Kind("ReplicaSet"):              &ReplicaSetDescriber{c},
 		extensions.Kind("HorizontalPodAutoscaler"): &HorizontalPodAutoscalerDescriber{c},
 		extensions.Kind("DaemonSet"):               &DaemonSetDescriber{c},
+		extensions.Kind("Deployment"):              &DeploymentDescriber{clientset.FromUnversionedClient(c)},
 		extensions.Kind("Job"):                     &JobDescriber{c},
-		extensions.Kind("Deployment"):              &DeploymentDescriber{c},
 		extensions.Kind("Ingress"):                 &IngressDescriber{c},
-		extensions.Kind("ConfigMap"):               &ConfigMapDescriber{c},
 	}
 
 	return m
@@ -420,10 +422,7 @@ type PodDescriber struct {
 }
 
 func (d *PodDescriber) Describe(namespace, name string) (string, error) {
-	rc := d.ReplicationControllers(namespace)
-	pc := d.Pods(namespace)
-
-	pod, err := pc.Get(name)
+	pod, err := d.Pods(namespace).Get(name)
 	if err != nil {
 		eventsInterface := d.Events(namespace)
 		selector := eventsInterface.GetFieldSelector(&name, &namespace, nil, nil)
@@ -447,15 +446,10 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 		events, _ = d.Events(namespace).Search(ref)
 	}
 
-	rcs, err := getReplicationControllersForLabels(rc, labels.Set(pod.Labels))
-	if err != nil {
-		return "", err
-	}
-
-	return describePod(pod, rcs, events)
+	return describePod(pod, events)
 }
 
-func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.EventList) (string, error) {
+func describePod(pod *api.Pod, events *api.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", pod.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", pod.Namespace)
@@ -474,10 +468,6 @@ func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.Even
 		fmt.Fprintf(out, "Reason:\t%s\n", pod.Status.Reason)
 		fmt.Fprintf(out, "Message:\t%s\n", pod.Status.Message)
 		fmt.Fprintf(out, "IP:\t%s\n", pod.Status.PodIP)
-		var matchingRCs []*api.ReplicationController
-		for _, rc := range rcs {
-			matchingRCs = append(matchingRCs, &rc)
-		}
 		fmt.Fprintf(out, "Controllers:\t%s\n", printControllers(pod.Annotations))
 		fmt.Fprintf(out, "Containers:\n")
 		describeContainers(pod, out)
@@ -884,6 +874,72 @@ func describeReplicationController(controller *api.ReplicationController, events
 	})
 }
 
+func DescribePodTemplate(template *api.PodTemplateSpec) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		if template == nil {
+			fmt.Fprintf(out, "<no template>")
+			return nil
+		}
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(template.Labels))
+		fmt.Fprintf(out, "Annotations:\t%s\n", labels.FormatLabels(template.Annotations))
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&template.Spec))
+		describeVolumes(template.Spec.Volumes, out)
+		return nil
+	})
+}
+
+// ReplicaSetDescriber generates information about a ReplicaSet and the pods it has created.
+type ReplicaSetDescriber struct {
+	client.Interface
+}
+
+func (d *ReplicaSetDescriber) Describe(namespace, name string) (string, error) {
+	rsc := d.Extensions().ReplicaSets(namespace)
+	pc := d.Pods(namespace)
+
+	rs, err := rsc.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	selector, err := unversioned.LabelSelectorAsSelector(rs.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+
+	running, waiting, succeeded, failed, err := getPodStatusForController(pc, selector)
+	if err != nil {
+		return "", err
+	}
+
+	events, _ := d.Events(namespace).Search(rs)
+
+	return describeReplicaSet(rs, events, running, waiting, succeeded, failed)
+}
+
+func describeReplicaSet(rs *extensions.ReplicaSet, events *api.EventList, running, waiting, succeeded, failed int) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", rs.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", rs.Namespace)
+		if rs.Spec.Template != nil {
+			fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&rs.Spec.Template.Spec))
+		} else {
+			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
+		}
+		fmt.Fprintf(out, "Selector:\t%s\n", unversioned.FormatLabelSelector(rs.Spec.Selector))
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(rs.Labels))
+		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", rs.Status.Replicas, rs.Spec.Replicas)
+		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
+		if rs.Spec.Template != nil {
+			describeVolumes(rs.Spec.Template.Spec.Volumes, out)
+		}
+		if events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
 // JobDescriber generates information about a job and the pods it has created.
 type JobDescriber struct {
 	client *client.Client
@@ -905,7 +961,7 @@ func describeJob(job *extensions.Job, events *api.EventList) (string, error) {
 		fmt.Fprintf(out, "Name:\t%s\n", job.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", job.Namespace)
 		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&job.Spec.Template.Spec))
-		selector, _ := extensions.LabelSelectorAsSelector(job.Spec.Selector)
+		selector, _ := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
 		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Parallelism:\t%d\n", *job.Spec.Parallelism)
 		if job.Spec.Completions != nil {
@@ -943,7 +999,7 @@ func (d *DaemonSetDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	selector, err := extensions.LabelSelectorAsSelector(daemon.Spec.Selector)
+	selector, err := unversioned.LabelSelectorAsSelector(daemon.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
@@ -960,12 +1016,8 @@ func (d *DaemonSetDescriber) Describe(namespace, name string) (string, error) {
 func describeDaemonSet(daemon *extensions.DaemonSet, events *api.EventList, running, waiting, succeeded, failed int) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", daemon.Name)
-		if daemon.Spec.Template != nil {
-			fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&daemon.Spec.Template.Spec))
-		} else {
-			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
-		}
-		selector, err := extensions.LabelSelectorAsSelector(daemon.Spec.Selector)
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&daemon.Spec.Template.Spec))
+		selector, err := unversioned.LabelSelectorAsSelector(daemon.Spec.Selector)
 		if err != nil {
 			// this shouldn't happen if LabelSelector passed validation
 			return err
@@ -1074,6 +1126,9 @@ func (i *IngressDescriber) describeIngress(ing *extensions.Ingress) (string, err
 			ns = api.NamespaceSystem
 		}
 		fmt.Fprintf(out, "Default backend:\t%s (%s)\n", backendStringer(def), i.describeBackend(ns, def))
+		if len(ing.Spec.TLS) != 0 {
+			describeIngressTLS(out, ing.Spec.TLS)
+		}
 		fmt.Fprint(out, "Rules:\n  Host\tPath\tBackends\n")
 		fmt.Fprint(out, "  ----\t----\t--------\n")
 		for _, rules := range ing.Spec.Rules {
@@ -1093,6 +1148,14 @@ func (i *IngressDescriber) describeIngress(ing *extensions.Ingress) (string, err
 		}
 		return nil
 	})
+}
+
+func describeIngressTLS(out io.Writer, ingTLS []extensions.IngressTLS) {
+	fmt.Fprintf(out, "TLS:\n")
+	for _, t := range ingTLS {
+		fmt.Fprintf(out, "  %v terminates %v\n", t.SecretName, strings.Join(t.Hosts, ","))
+	}
+	return
 }
 
 // TODO: Move from annotations into Ingress status.
@@ -1578,11 +1641,15 @@ func DescribeEvents(el *api.EventList, w io.Writer) {
 
 // DeploymentDescriber generates information about a deployment.
 type DeploymentDescriber struct {
-	client.Interface
+	clientset.Interface
 }
 
 func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) {
 	d, err := dd.Extensions().Deployments(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
@@ -1591,26 +1658,27 @@ func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) 
 		fmt.Fprintf(out, "Namespace:\t%s\n", d.ObjectMeta.Namespace)
 		fmt.Fprintf(out, "CreationTimestamp:\t%s\n", d.CreationTimestamp.Time.Format(time.RFC1123Z))
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(d.Labels))
-		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(d.Spec.Selector))
+		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Replicas:\t%d updated | %d total | %d available | %d unavailable\n", d.Status.UpdatedReplicas, d.Spec.Replicas, d.Status.AvailableReplicas, d.Status.UnavailableReplicas)
 		fmt.Fprintf(out, "StrategyType:\t%s\n", d.Spec.Strategy.Type)
+		fmt.Fprintf(out, "MinReadySeconds:\t%d\n", d.Spec.MinReadySeconds)
 		if d.Spec.Strategy.RollingUpdate != nil {
 			ru := d.Spec.Strategy.RollingUpdate
-			fmt.Fprintf(out, "RollingUpdateStrategy:\t%s max unavailable, %s max surge, %d min ready seconds\n", ru.MaxUnavailable.String(), ru.MaxSurge.String(), ru.MinReadySeconds)
+			fmt.Fprintf(out, "RollingUpdateStrategy:\t%s max unavailable, %s max surge\n", ru.MaxUnavailable.String(), ru.MaxSurge.String())
 		}
-		oldRCs, err := deploymentutil.GetOldRCs(*d, dd)
+		oldRSs, _, err := deploymentutil.GetOldReplicaSets(*d, dd)
 		if err == nil {
-			fmt.Fprintf(out, "OldReplicationControllers:\t%s\n", printReplicationControllersByLabels(oldRCs))
+			fmt.Fprintf(out, "OldReplicaSets:\t%s\n", printReplicaSetsByLabels(oldRSs))
 		}
-		newRC, err := deploymentutil.GetNewRC(*d, dd)
+		newRS, err := deploymentutil.GetNewReplicaSet(*d, dd)
 		if err == nil {
-			var newRCs []*api.ReplicationController
-			if newRC != nil {
-				newRCs = append(newRCs, newRC)
+			var newRSs []*extensions.ReplicaSet
+			if newRS != nil {
+				newRSs = append(newRSs, newRS)
 			}
-			fmt.Fprintf(out, "NewReplicationController:\t%s\n", printReplicationControllersByLabels(newRCs))
+			fmt.Fprintf(out, "NewReplicaSet:\t%s\n", printReplicaSetsByLabels(newRSs))
 		}
-		events, err := dd.Events(namespace).Search(d)
+		events, err := dd.Core().Events(namespace).Search(d)
 		if err == nil && events != nil {
 			DescribeEvents(events, out)
 		}
@@ -1634,7 +1702,7 @@ func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.La
 	// Find the ones that match labelsToMatch.
 	var matchingDaemonSets []extensions.DaemonSet
 	for _, ds := range dss.Items {
-		selector, err := extensions.LabelSelectorAsSelector(ds.Spec.Selector)
+		selector, err := unversioned.LabelSelectorAsSelector(ds.Spec.Selector)
 		if err != nil {
 			// this should never happen if the DaemonSet passed validation
 			return nil, err
@@ -1646,29 +1714,6 @@ func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.La
 	return matchingDaemonSets, nil
 }
 
-// Get all replication controllers whose selectors would match a given set of
-// labels.
-// TODO Move this to pkg/client and ideally implement it server-side (instead
-// of getting all RC's and searching through them manually).
-func getReplicationControllersForLabels(c client.ReplicationControllerInterface, labelsToMatch labels.Labels) ([]api.ReplicationController, error) {
-	// Get all replication controllers.
-	// TODO this needs a namespace scope as argument
-	rcs, err := c.List(api.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error getting replication controllers: %v", err)
-	}
-
-	// Find the ones that match labelsToMatch.
-	var matchingRCs []api.ReplicationController
-	for _, controller := range rcs.Items {
-		selector := labels.SelectorFromSet(controller.Spec.Selector)
-		if selector.Matches(labelsToMatch) {
-			matchingRCs = append(matchingRCs, controller)
-		}
-	}
-	return matchingRCs, nil
-}
-
 func printReplicationControllersByLabels(matchingRCs []*api.ReplicationController) string {
 	// Format the matching RC's into strings.
 	var rcStrings []string
@@ -1677,6 +1722,20 @@ func printReplicationControllersByLabels(matchingRCs []*api.ReplicationControlle
 	}
 
 	list := strings.Join(rcStrings, ", ")
+	if list == "" {
+		return "<none>"
+	}
+	return list
+}
+
+func printReplicaSetsByLabels(matchingRSs []*extensions.ReplicaSet) string {
+	// Format the matching ReplicaSets into strings.
+	var rsStrings []string
+	for _, rs := range matchingRSs {
+		rsStrings = append(rsStrings, fmt.Sprintf("%s (%d/%d replicas created)", rs.Name, rs.Status.Replicas, rs.Spec.Replicas))
+	}
+
+	list := strings.Join(rsStrings, ", ")
 	if list == "" {
 		return "<none>"
 	}
@@ -1710,7 +1769,7 @@ type ConfigMapDescriber struct {
 }
 
 func (d *ConfigMapDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Extensions().ConfigMaps(namespace)
+	c := d.ConfigMaps(namespace)
 
 	configMap, err := c.Get(name)
 	if err != nil {
@@ -1720,7 +1779,7 @@ func (d *ConfigMapDescriber) Describe(namespace, name string) (string, error) {
 	return describeConfigMap(configMap)
 }
 
-func describeConfigMap(configMap *extensions.ConfigMap) (string, error) {
+func describeConfigMap(configMap *api.ConfigMap) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", configMap.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", configMap.Namespace)

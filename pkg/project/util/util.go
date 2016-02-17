@@ -3,7 +3,7 @@ package util
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/project/api"
@@ -20,7 +20,7 @@ func Associated(namespace *kapi.Namespace) bool {
 }
 
 // Associate adds the origin finalizer to spec.finalizers if its not there already
-func Associate(kubeClient kclient.Interface, namespace *kapi.Namespace) (*kapi.Namespace, error) {
+func Associate(kubeClient clientset.Interface, namespace *kapi.Namespace) (*kapi.Namespace, error) {
 	if Associated(namespace) {
 		return namespace, nil
 	}
@@ -38,7 +38,7 @@ func Finalized(namespace *kapi.Namespace) bool {
 }
 
 // Finalize will remove the origin finalizer from the namespace
-func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (result *kapi.Namespace, err error) {
+func Finalize(kubeClient clientset.Interface, namespace *kapi.Namespace) (result *kapi.Namespace, err error) {
 	if Finalized(namespace) {
 		return namespace, nil
 	}
@@ -56,7 +56,7 @@ func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (result *
 			return nil, err
 		}
 
-		namespace, err = kubeClient.Namespaces().Get(namespace.Name)
+		namespace, err = kubeClient.Core().Namespaces().Get(namespace.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (result *
 }
 
 // finalizeInternal will update the namespace finalizer list to either have or not have origin finalizer
-func finalizeInternal(kubeClient kclient.Interface, namespace *kapi.Namespace, withOrigin bool) (*kapi.Namespace, error) {
+func finalizeInternal(kubeClient clientset.Interface, namespace *kapi.Namespace, withOrigin bool) (*kapi.Namespace, error) {
 	namespaceFinalize := kapi.Namespace{}
 	namespaceFinalize.ObjectMeta = namespace.ObjectMeta
 	namespaceFinalize.Spec = namespace.Spec
@@ -84,5 +84,5 @@ func finalizeInternal(kubeClient kclient.Interface, namespace *kapi.Namespace, w
 	for _, value := range finalizerSet.List() {
 		namespaceFinalize.Spec.Finalizers = append(namespaceFinalize.Spec.Finalizers, kapi.FinalizerName(value))
 	}
-	return kubeClient.Namespaces().Finalize(&namespaceFinalize)
+	return kubeClient.Core().Namespaces().Finalize(&namespaceFinalize)
 }

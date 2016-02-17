@@ -47,7 +47,7 @@ func main() {
 		funcOut = file
 	}
 
-	generator := pkg_runtime.NewConversionGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api")
+	generator := pkg_runtime.NewConversionGenerator(api.Scheme, "github.com/openshift/origin/pkg/api")
 	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")
 	generator.AddImport("k8s.io/kubernetes/pkg/api/resource")
 	generator.AssumePrivateConversions()

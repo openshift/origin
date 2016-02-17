@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
@@ -104,7 +104,7 @@ func (e *DockercfgController) serviceAccountAdded(obj interface{}) {
 	serviceAccount := obj.(*api.ServiceAccount)
 
 	if err := e.createDockercfgSecretIfNeeded(serviceAccount); err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 
@@ -113,7 +113,7 @@ func (e *DockercfgController) serviceAccountUpdated(oldObj interface{}, newObj i
 	newServiceAccount := newObj.(*api.ServiceAccount)
 
 	if err := e.createDockercfgSecretIfNeeded(newServiceAccount); err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 
@@ -173,7 +173,7 @@ func (e *DockercfgController) createDockercfgSecretIfNeeded(serviceAccount *api.
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
 		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
 		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 		}
 		return nil
 	}
@@ -260,7 +260,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 	// the token wasn't ever created, attempt deletion
 	glog.Warningf("Deleting unfilled token secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
 	if deleteErr := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (deleteErr != nil) && !kapierrors.IsNotFound(deleteErr) {
-		util.HandleError(deleteErr)
+		utilruntime.HandleError(deleteErr)
 	}
 	return nil, fmt.Errorf("token never generated for %s", tokenSecret.Name)
 }

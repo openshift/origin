@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -209,7 +209,7 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 	_, err := a.client.Routes(route.Namespace).UpdateStatus(route)
 	a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
 	if err != nil {
-		util.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
 	}
 }
 

@@ -82,6 +82,7 @@ func TestCheckpoint(t *testing.T) {
 	var stdout bytes.Buffer
 
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"cat"},
 		Env:    standardEnvironment,
 		Stdin:  stdinR,
@@ -128,8 +129,8 @@ func TestCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if state != libcontainer.Checkpointed {
-		t.Fatal("Unexpected state: ", state)
+	if state != libcontainer.Running {
+		t.Fatal("Unexpected state checkpoint: ", state)
 	}
 
 	stdinW.Close()
@@ -150,6 +151,7 @@ func TestCheckpoint(t *testing.T) {
 	}
 
 	restoreProcessConfig := &libcontainer.Process{
+		Cwd:    "/",
 		Stdin:  restoreStdinR,
 		Stdout: &stdout,
 	}
@@ -167,7 +169,7 @@ func TestCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 	if state != libcontainer.Running {
-		t.Fatal("Unexpected state: ", state)
+		t.Fatal("Unexpected restore state: ", state)
 	}
 
 	pid, err = restoreProcessConfig.Pid()

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/docker/docker/pkg/parsers"
 	docker "github.com/fsouza/go-dockerclient"
@@ -82,7 +82,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 			return err
 		}
 
-		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
+		utilruntime.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
 		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}
@@ -98,7 +98,7 @@ func buildImage(client DockerClient, dir string, dockerfilePath string, noCache 
 	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 	r, w := io.Pipe()
 	go func() {
-		defer util.HandleCrash()
+		defer utilruntime.HandleCrash()
 		defer w.Close()
 		if err := tar.CreateTarStream(dir, false, w); err != nil {
 			w.CloseWithError(err)

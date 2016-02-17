@@ -23,6 +23,7 @@ import (
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	utilnet "k8s.io/kubernetes/pkg/util/net"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -193,9 +194,12 @@ func (c *NodeConfig) RunSDN() {
 // RunProxy starts the proxy
 func (c *NodeConfig) RunProxy() {
 	protocol := utiliptables.ProtocolIpv4
-	if c.ProxyConfig.BindAddress.To4() == nil {
+	bindAddr := net.ParseIP(c.ProxyConfig.BindAddress)
+	if bindAddr.To4() == nil {
 		protocol = utiliptables.ProtocolIpv6
 	}
+
+	portRange := utilnet.ParsePortRangeOrDie(c.ProxyConfig.PortRange)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
@@ -208,10 +212,10 @@ func (c *NodeConfig) RunProxy() {
 	var proxier proxy.ProxyProvider
 	var endpointsHandler pconfig.EndpointsConfigHandler
 
-	switch c.ProxyConfig.ProxyMode {
+	switch c.ProxyConfig.Mode {
 	case "iptables":
 		glog.V(0).Info("Using iptables Proxier.")
-		proxierIptables, err := iptables.NewProxier(iptInterface, exec, c.ProxyConfig.IptablesSyncPeriod, c.ProxyConfig.MasqueradeAll)
+		proxierIptables, err := iptables.NewProxier(iptInterface, exec, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, *c.ProxyConfig.IPTablesMasqueradeBit)
 		if err != nil {
 			// This should be fatal, but that would break the integration tests
 			glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
@@ -226,7 +230,7 @@ func (c *NodeConfig) RunProxy() {
 		glog.V(0).Info("Using userspace Proxier.")
 		loadBalancer := userspace.NewLoadBalancerRR()
 		endpointsHandler = loadBalancer
-		proxierUserspace, err := userspace.NewProxier(loadBalancer, c.ProxyConfig.BindAddress, iptInterface, c.ProxyConfig.PortRange, c.ProxyConfig.IptablesSyncPeriod, c.ProxyConfig.UDPIdleTimeout)
+		proxierUserspace, err := userspace.NewProxier(loadBalancer, bindAddr, iptInterface, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration)
 		if err != nil {
 			// This should be fatal, but that would break the integration tests
 			glog.Warningf("WARNING: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
@@ -237,7 +241,7 @@ func (c *NodeConfig) RunProxy() {
 		glog.V(0).Info("Tearing down pure-iptables proxy rules. Errors here are acceptable.")
 		iptables.CleanupLeftovers(iptInterface)
 	default:
-		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.ProxyMode)
+		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.Mode)
 	}
 	iptInterface.AddReloadFunc(proxier.Sync)
 
@@ -262,7 +266,7 @@ func (c *NodeConfig) RunProxy() {
 		endpointsConfig.Channel("api"))
 
 	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
-	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress.String())
+	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress)
 }
 
 // TODO: more generic location

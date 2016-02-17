@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -112,22 +112,22 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 		// we do not scope endpoints by labels or fields because the route labels != endpoints labels
 	}, &kapi.Endpoints{}, endpointsEventQueue, factory.ResyncInterval).Run()
 
-	go util.Until(func() {
+	go utilwait.Until(func() {
 		for {
 			if _, _, err := routeEventQueue.Pop(); err != nil {
 				return
 			}
 			changed()
 		}
-	}, time.Second, util.NeverStop)
-	go util.Until(func() {
+	}, time.Second, utilwait.NeverStop)
+	go utilwait.Until(func() {
 		for {
 			if _, _, err := endpointsEventQueue.Pop(); err != nil {
 				return
 			}
 			changed()
 		}
-	}, time.Second, util.NeverStop)
+	}, time.Second, utilwait.NeverStop)
 
 	return &routesByHost{
 		routes:    routeStore,
