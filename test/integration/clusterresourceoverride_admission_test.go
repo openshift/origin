@@ -60,6 +60,9 @@ func TestClusterResourceOverridePlugin(t *testing.T) {
 	}
 	_, err = limitHandler.Create(limit)
 	checkErr(t, err)
+	// stall in the hopes the LimitRanger cache will also get the new object before our next pod runs through it
+	_, err = limitHandler.Get(limit.Name)
+	checkErr(t, err)
 	podCreated, err = podHandler.Create(testClusterResourceOverridePod("limit-with-default", "", "1"))
 	checkErr(t, err)
 	if memory := podCreated.Spec.Containers[0].Resources.Limits.Memory(); memory.Cmp(resource.MustParse("512Mi")) != 0 {
