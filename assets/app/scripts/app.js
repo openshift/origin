@@ -279,7 +279,7 @@ angular
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
   .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
   .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
-  .constant("LIMIT_REQUEST_OVERRIDES", _.get(window.OPENSHIFT_CONFIG, "limitRequestOverrides", {}))
+  .constant("LIMIT_REQUEST_OVERRIDES", _.get(window.OPENSHIFT_CONFIG, "limitRequestOverrides"))
   // Sometimes we need to know the css breakpoints, make sure to update this
   // if they ever change!
   .constant("BREAKPOINTS", {

@@ -247,7 +247,7 @@ func transformBuildError(err error, c *cobra.Command, fullName string, groups er
 				  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
 				  3. Git repository URLs or local paths that point to Git repositories
 
-				--allow-missing-images can be used to point to an image that is only on your system
+				--allow-missing-images can be used to force the use of an image that was not matched
 
 				See '%[1]s -h' for examples.`, c.CommandPath(),
 			),

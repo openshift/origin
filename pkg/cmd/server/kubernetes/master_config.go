@@ -40,10 +40,11 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
-var AdmissionPlugins = []string{"NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
+var AdmissionPlugins = []string{"NamespaceLifecycle", "OriginPodNodeEnvironment", overrideapi.PluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -98,8 +99,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
-	admissionPlugins := AdmissionPlugins
-	server.AdmissionControl = strings.Join(admissionPlugins, ",")
+	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
@@ -109,8 +109,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	if len(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride) > 0 {
-		admissionPlugins := options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride
-		server.AdmissionControl = strings.Join(admissionPlugins, ",")
+		server.AdmissionControl = strings.Join(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride, ",")
 	}
 
 	cmserver := cmapp.NewCMServer()
@@ -147,16 +146,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			plugins = append(plugins, saAdmitter)
 
 		default:
-			configFile := server.AdmissionControlConfigFile
-			pluginConfig := options.KubernetesMasterConfig.AdmissionConfig.PluginConfig
-
-			// Check whether a config is specified for this plugin. If not, default to the
-			// global plugin config file specifiedd in the server config.
-			if cfg, hasConfig := pluginConfig[pluginName]; hasConfig {
-				configFile, err = pluginconfig.GetPluginConfig(cfg)
-				if err != nil {
-					return nil, err
-				}
+			configFile, err := pluginconfig.GetPluginConfigFile(options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, pluginName, server.AdmissionControlConfigFile)
+			if err != nil {
+				return nil, err
 			}
 			plugin := admission.InitPlugin(pluginName, kubeClient, configFile)
 			if plugin != nil {

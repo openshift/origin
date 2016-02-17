@@ -151,6 +151,32 @@ func TestSearchWithPaging(t *testing.T) {
 	}
 
 	fmt.Printf("TestSearchWithPaging: %s -> num of entries = %d\n", searchRequest.Filter, len(sr.Entries))
+
+	searchRequest = ldap.NewSearchRequest(
+		baseDN,
+		ldap.ScopeWholeSubtree, ldap.DerefAlways, 0, 0, false,
+		filter[2],
+		attributes,
+		[]ldap.Control{ldap.NewControlPaging(5)})
+	sr, err = l.SearchWithPaging(searchRequest, 5)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	fmt.Printf("TestSearchWithPaging: %s -> num of entries = %d\n", searchRequest.Filter, len(sr.Entries))
+
+	searchRequest = ldap.NewSearchRequest(
+		baseDN,
+		ldap.ScopeWholeSubtree, ldap.DerefAlways, 0, 0, false,
+		filter[2],
+		attributes,
+		[]ldap.Control{ldap.NewControlPaging(500)})
+	sr, err = l.SearchWithPaging(searchRequest, 5)
+	if err == nil {
+		t.Errorf("expected an error when paging size in control in search request doesn't match size given in call, got none")
+		return
+	}
 }
 
 func searchGoroutine(t *testing.T, l *ldap.Conn, results chan *ldap.SearchResult, i int) {

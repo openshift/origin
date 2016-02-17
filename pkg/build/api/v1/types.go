@@ -11,7 +11,8 @@ import (
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is all the inputs used to execute the build.
 	Spec BuildSpec `json:"spec,omitempty" description:"specification of the desired behavior for a build"`
@@ -228,6 +229,8 @@ type SecretBuildSource struct {
 	DestinationDir string `json:"destinationDir,omitempty" description:"destination directory for the secret files"`
 }
 
+// BinaryBuildSource describes a binary file to be used for the Docker and Source build strategies,
+// where the file will be extracted and used as the build source.
 type BinaryBuildSource struct {
 	// AsFile indicates that the provided binary input should be considered a single file
 	// within the build input. For example, specifying "webapp.war" would place the provided
@@ -501,7 +504,8 @@ type BuildOutput struct {
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -587,6 +591,7 @@ const (
 // BuildList is a collection of Builds.
 type BuildList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of builds
@@ -596,6 +601,7 @@ type BuildList struct {
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of build configs
@@ -625,7 +631,8 @@ type BuildLog struct {
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty" description:"information from the source for a specific repo snapshot"`
@@ -648,10 +655,13 @@ type BuildRequest struct {
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 }
 
+// BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 type BinaryBuildRequestOptions struct {
 	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
+	// AsFile determines if the binary should be created as a file within the source rather than extracted as an archive
 	AsFile string `json:"asFile,omitempty" description:"If set, the binary should be created as a file within the source rather than extracted as an archive"`
 
 	// TODO: Improve map[string][]string conversion so we can handled nested objects
@@ -677,7 +687,7 @@ type BinaryBuildRequestOptions struct {
 
 // BuildLogOptions is the REST options for a build log
 type BuildLogOptions struct {
-	unversioned.TypeMeta
+	unversioned.TypeMeta `json:",inline"`
 
 	// The container for which to stream logs. Defaults to only container if there is one container in the pod.
 	Container string `json:"container,omitempty" description:"the container for which to stream logs; defaults to only container if there is one container in the pod"`

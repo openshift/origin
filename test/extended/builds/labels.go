@@ -16,7 +16,7 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")
-		stiBuildFixture    = exutil.FixturePath("fixtures", "test-sti-build.json")
+		stiBuildFixture    = exutil.FixturePath("fixtures", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("fixtures", "test-docker-build.json")
 		oc                 = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)

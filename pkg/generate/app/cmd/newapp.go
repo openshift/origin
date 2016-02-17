@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -166,7 +168,7 @@ func NewAppConfig() *AppConfig {
 	}
 }
 
-func (c *AppConfig) DockerImageSearcher() app.Searcher {
+func (c *AppConfig) DockerRegistrySearcher() app.Searcher {
 	return app.DockerRegistrySearcher{
 		Client:        dockerregistry.NewClient(30*time.Second, true),
 		AllowInsecure: c.InsecureRegistry,
@@ -175,22 +177,12 @@ func (c *AppConfig) DockerImageSearcher() app.Searcher {
 
 func (c *AppConfig) ensureDockerSearch() {
 	if c.DockerSearcher == nil {
-		c.DockerSearcher = c.DockerImageSearcher()
-	}
-}
-
-// SetDockerClient sets the passed Docker client in the application configuration
-func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
-	c.DockerSearcher = app.DockerClientSearcher{
-		Client:             dockerclient,
-		RegistrySearcher:   c.DockerImageSearcher(),
-		Insecure:           c.InsecureRegistry,
-		AllowMissingImages: c.AllowMissingImages,
+		c.DockerSearcher = c.DockerRegistrySearcher()
 	}
 }
 
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
-func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespace string) {
+func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespace string, dockerclient *docker.Client) {
 	c.OSClient = osclient
 	c.OriginNamespace = OriginNamespace
 	namespaces := []string{OriginNamespace}
@@ -214,10 +206,21 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		ClientMapper: c.ClientMapper,
 		Namespace:    OriginNamespace,
 	}
-	c.DockerSearcher = app.ImageImportSearcher{
-		Client:        osclient.ImageStreams(OriginNamespace),
-		AllowInsecure: c.InsecureRegistry,
-		Fallback:      c.DockerImageSearcher(),
+	// the hierarchy of docker searching is:
+	// 1) if we have an openshift client - query docker registries via openshift,
+	// if we're unable to query via openshift, query the docker registries directly(fallback),
+	// if we don't find a match there and a local docker daemon exists, look in the local registry.
+	// 2) if we don't have an openshift client - query the docker registries directly,
+	// if we don't find a match there and a local docker daemon exists, look in the local registry.
+	c.DockerSearcher = app.DockerClientSearcher{
+		Client:             dockerclient,
+		Insecure:           c.InsecureRegistry,
+		AllowMissingImages: c.AllowMissingImages,
+		RegistrySearcher: app.ImageImportSearcher{
+			Client:        osclient.ImageStreams(OriginNamespace),
+			AllowInsecure: c.InsecureRegistry,
+			Fallback:      c.DockerRegistrySearcher(),
+		},
 	}
 }
 
@@ -424,7 +427,9 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 				if c.DockerSearcher != nil {
 					resolver = append(resolver, app.WeightedResolver{Searcher: c.DockerSearcher, Weight: 1.0})
 				}
-				resolver = append(resolver, app.WeightedResolver{Searcher: &app.PassThroughDockerSearcher{}, Weight: 2.0})
+				if c.AllowMissingImages {
+					resolver = append(resolver, app.WeightedResolver{Searcher: &app.MissingImageSearcher{}, Weight: 100.0})
+				}
 				input.Resolver = resolver
 				input.Use(repo)
 				input.ExpectToBuild = true
@@ -678,19 +683,6 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			if c.NoOutput {
 				pipeline.Build.Output = nil
 			}
-			if err := pipeline.Validate(); err != nil {
-				switch err.(type) {
-				case app.CircularOutputReferenceError:
-					if len(c.To) == 0 {
-						// Output reference was generated, return error.
-						return nil, err
-					}
-					// Output reference was explicitly provided, print warning.
-					fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
-				default:
-					return nil, err
-				}
-			}
 			common = append(common, pipeline)
 			if err := common.Reduce(); err != nil {
 				return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
@@ -850,7 +842,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 // RunQuery executes the provided config and returns the result of the resolution.
 func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	c.ensureDockerSearch()
-	repositories, err := c.individualSourceRepositories()
+	_, err := c.individualSourceRepositories()
 	if err != nil {
 		return nil, err
 	}
@@ -1063,9 +1055,6 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		if err == app.ErrNameRequired {
 			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 		}
-		if err, ok := err.(app.CircularOutputReferenceError); ok {
-			return nil, fmt.Errorf("%v, please specify a different output reference with --to", err)
-		}
 		return nil, err
 	}
 
@@ -1105,12 +1094,46 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
+	err = c.checkCircularReferences(objects)
+	if err != nil {
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			if len(c.To) == 0 {
+				// Output reference was generated, return error.
+				return nil, fmt.Errorf("%v, set a different tag with --to", err)
+			}
+			// Output reference was explicitly provided, print warning.
+			fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+		} else {
+			return nil, err
+		}
+	}
+
 	return &AppResult{
 		List:      &kapi.List{Items: objects},
 		Name:      name,
 		HasSource: len(repositories) != 0,
 		Namespace: c.OriginNamespace,
 	}, nil
+}
+
+// checkCircularReferences ensures there are no builds that can trigger themselves
+// due to an imagechangetrigger that matches the output destination of the image.
+// objects is a list of api objects produced by new-app.
+func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
+	for _, obj := range objects {
+		if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			input := buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+			if bc.Spec.Output.To != nil && input != nil &&
+				reflect.DeepEqual(input, bc.Spec.Output.To) {
+				ns := input.Namespace
+				if len(ns) == 0 {
+					ns = c.OriginNamespace
+				}
+				return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s/%s", ns, input.Name)}
+			}
+		}
+	}
+	return nil
 }
 
 func (c *AppConfig) Querying() bool {

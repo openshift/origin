@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +14,25 @@ func stubHandler(response string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(response))
 	})
+}
+
+func TestWebConsoleConfigTemplate(t *testing.T) {
+	handler, err := GeneratedConfigHandler(WebConsoleConfig{}, WebConsoleVersion{})
+	if err != nil {
+		t.Fatalf("expected a handler, got error %v", err)
+	}
+	writer := httptest.NewRecorder()
+	handler.ServeHTTP(writer, &http.Request{Method: "GET"})
+	if writer.Body == nil {
+		t.Fatal("expected a body")
+	}
+	response := writer.Body.String()
+	if !strings.Contains(response, "OPENSHIFT_CONFIG") {
+		t.Errorf("body does not have OPENSHIFT_CONFIG:\n%s", response)
+	}
+	if strings.Contains(response, "limitRequestOverrides") {
+		t.Errorf("LimitRequestOverrides should be omitted from the body:\n%s", response)
+	}
 }
 
 func TestWithoutGzip(t *testing.T) {

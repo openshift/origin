@@ -8,59 +8,57 @@
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
-            <div ng-if="buildConfig">
-              <h1>
-                {{buildConfig.metadata.name}}
-                <div class="pull-right dropdown">
-                  <!-- Primary Actions -->
-                  <button
-                      class="btn btn-default hidden-xs"
-                      ng-click="startBuild()"
-                      ng-disabled="!canBuild()">
-                    Start Build
-                  </button>
+            <h1>
+              {{buildConfigName}}
+              <div class="pull-right dropdown" ng-if="buildConfig">
+                <!-- Primary Actions -->
+                <button
+                    class="btn btn-default hidden-xs"
+                    ng-click="startBuild()"
+                    ng-disabled="!canBuild()">
+                  Start Build
+                </button>
 
-                  <!-- Secondary Actions -->
-                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
-                  <ul class="dropdown-menu actions action-button">
-                    <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
-                      <a href=""
-                        role="button"
-                        ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
-                        ng-class="{ 'disabled-link': !canBuild() }"
-                        ng-click="startBuild()"
-                      ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
-                    </li>
-                    <li>
-                      <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit</a>
-                    </li>
-                    <li>
-                      <edit-link
-                        resource="buildConfig"
-                        kind="buildconfigs"
-                        alerts="alerts">
-                      </edit-link>
-                    </li>
-                    <li>
-                      <delete-link
-                        resource-type="buildconfig"
-                        resource-name="{{buildConfig.metadata.name}}"
-                        project-name="{{buildConfig.metadata.namespace}}"
-                        alerts="alerts">
-                      </delete-link>
-                    </li>
-                  </ul>
-                </div>
-                <small class="meta">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
-              </h1>
-              <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
-            </div>
+                <!-- Secondary Actions -->
+                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <ul class="dropdown-menu actions action-button">
+                  <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
+                    <a href=""
+                      role="button"
+                      ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
+                      ng-class="{ 'disabled-link': !canBuild() }"
+                      ng-click="startBuild()"
+                    ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
+                  </li>
+                  <li>
+                    <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit</a>
+                  </li>
+                  <li>
+                    <edit-link
+                      resource="buildConfig"
+                      kind="buildconfigs"
+                      alerts="alerts">
+                    </edit-link>
+                  </li>
+                  <li>
+                    <delete-link
+                      resource-type="buildconfig"
+                      resource-name="{{buildConfig.metadata.name}}"
+                      project-name="{{buildConfig.metadata.namespace}}"
+                      alerts="alerts">
+                    </delete-link>
+                  </li>
+                </ul>
+              </div>
+              <small class="meta" ng-if="buildConfig">created <relative-timestamp timestamp="buildConfig.metadata.creationTimestamp"></relative-timestamp></small>
+            </h1>
+            <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
           </div>
         </div><!-- /middle-header-->
         <div class="middle-content">
           <div class="container-fluid">
-            <div class="row" ng-if="buildConfig">
-              <div class="col-md-12">
+            <div class="row" ng-if="loaded">
+              <div class="col-md-12" ng-class="{ 'hide-tabs' : !buildConfig }">
                 <uib-tabset>
                   <uib-tab>
                     <uib-tab-heading>Summary</uib-tab-heading>
@@ -180,7 +178,7 @@
                       </table>
                     </div>
                   </uib-tab>
-                  <uib-tab>
+                  <uib-tab ng-if="buildConfig">
                     <uib-tab-heading>Configuration</uib-tab-heading>
                       <div class="resource-details">
                         <div class="row">
@@ -312,7 +310,7 @@
                       <annotations annotations="buildConfig.metadata.annotations"></annotations>
                     </div>
                   </uib-tab>
-                  <uib-tab heading="Environment" active="selectedTab.environment">
+                  <uib-tab heading="Environment" active="selectedTab.environment" ng-if="buildConfig">
                     <uib-tab-heading>Environment</uib-tab-heading>
                     <environment env-vars="(buildConfig | buildStrategy).env"></environment>
                     <em ng-if="!(buildConfig | buildStrategy).env">The build strategy had no environment variables defined.</em>

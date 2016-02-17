@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // ErrNoMatch is the error returned by new-app when no match is found for a
@@ -74,9 +72,9 @@ var ErrNameRequired = fmt.Errorf("you must specify a name for your app")
 // CircularOutputReferenceError is the error returned by new-app when the input
 // and output image stream tags are identical.
 type CircularOutputReferenceError struct {
-	Reference imageapi.DockerImageReference
+	Reference string
 }
 
 func (e CircularOutputReferenceError) Error() string {
-	return fmt.Sprintf("the input and output image stream tags are identical (%q)", e.Reference.DockerClientDefaults())
+	return fmt.Sprintf("output image of %q must be different than input", e.Reference)
 }

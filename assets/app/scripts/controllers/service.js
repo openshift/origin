@@ -29,6 +29,7 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+        $scope.projectContext = context;
         DataService.get("services", $routeParams.service, context).then(
           // success
           function(service) {

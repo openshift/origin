@@ -12,9 +12,8 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/openshift/origin"
-      },
-      "contextDir":"test/extended/fixtures/test-build-app"
+        "uri":"https://github.com/openshift/ruby-hello-world"
+      }
     },
     "strategy":{
       "type":"Docker",

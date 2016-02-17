@@ -31,9 +31,8 @@
       box-shadow: none;
       border-top: 0;
       line-height: @line-height-base;
-      padding: 7px 45px 7px 20px;
+      padding: 7px 50px 7px 20px; // padding so truncated name with ellipsis doesn't extend into down icon
       transition: none;
-      width: 100%;
       &:hover, &:focus {
         background-color: @navbar-os-project-menu-active-bg;
         color: @navbar-os-project-menu-active-color;
@@ -53,9 +52,6 @@
         position: absolute;
         top: 0;
         width: 1px;
-      }
-      .filter-option {
-        .truncate();
       }
     }
     .dropdown-toggle .caret {
@@ -104,6 +100,19 @@
   }
 }
 
+.navbar-project-menu .btn {
+  width: 100%;
+  .filter-option {
+    // Chrome needs a max-width in order to truncate at mobile and
+    // 200px is the max-width that is available space for the project name at 320px,
+    // if it's longer it will be truncated in order to display the add to project '+' icon.
+    max-width: 200px;
+    // This forces the project title block to fill up the available space within it's container and truncate at mobile
+    min-width: 100%;
+    .truncate();
+  }
+}
+
 @media (max-width: @screen-xs-max) {
   // Project nav at mobile widths
   .navbar-project-menu {
@@ -131,6 +140,12 @@
   }
 }
 
+@media (min-width: @screen-xs-min) {
+  .navbar-project-menu .bootstrap-select.btn-group .btn .filter-option {
+    max-width: 310px;
+  }
+}
+
 @media (min-width: @screen-sm-min) {
   .navbar-project-menu {
     border-bottom:0;
@@ -138,10 +153,10 @@
     float: left;
     margin: 0;
     padding-top: 0;
-    max-width: 480px;
+    max-width: 450px; // Default project menu width
     .bootstrap-select.btn-group {
       .btn {
-        padding: 15px 40px 15px 30px;
+        padding: 15px 50px 15px 30px;
         &:before {
           color: @gray-light;
           content: 'Project';
@@ -150,6 +165,9 @@
           position: absolute;
           top: 8px;
         }
+        .filter-option {
+          max-width: 470px;
+        }
       }
       .dropdown-toggle .caret {
         right: 30px;
@@ -157,7 +175,22 @@
     }
     .bootstrap-select .dropdown-toggle {
       height: 60px;
+      max-width: 330px;
       min-width: 300px;
     }
+  }
+}
+
+@media (min-width: @screen-md-min) {
+  .navbar-project-menu .bootstrap-select .dropdown-toggle,
+  .navbar-project-menu {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: @screen-lg-min) {
+  .navbar-project-menu .bootstrap-select .dropdown-toggle,
+  .navbar-project-menu {
+    max-width: 600px;
   }
 }
