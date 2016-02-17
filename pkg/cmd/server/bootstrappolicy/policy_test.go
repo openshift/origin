@@ -1,8 +1,8 @@
 package bootstrappolicy_test
 
 import (
-	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -75,11 +75,19 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 	if string(yamlData) != string(expectedYAML) {
-		fmt.Println("Bootstrap policy data does not match the test fixture in " + filename)
-		fmt.Println("If the change is expected, update the fixture with this bootstrap policy data:")
-		fmt.Println("-----------------------------------")
-		fmt.Println(string(yamlData))
-		fmt.Println("-----------------------------------")
-		t.Errorf("Diff between bootstrap data and fixture data in %s:\n-------------\n%s", filename, util.StringDiff(string(yamlData), string(expectedYAML)))
+		t.Errorf("Bootstrap policy data does not match the test fixture in %s", filename)
+
+		const updateEnvVar = "UPDATE_BOOTSTRAP_POLICY_FIXTURE_DATA"
+		if os.Getenv(updateEnvVar) == "true" {
+			if err := ioutil.WriteFile(filename, []byte(yamlData), os.FileMode(0755)); err == nil {
+				t.Logf("Updated data in %s", filename)
+				t.Logf("Verify the diff, commit changes, and rerun the tests")
+			} else {
+				t.Logf("Could not update data in %s: %v", filename, err)
+			}
+		} else {
+			t.Logf("Diff between bootstrap data and fixture data in %s:\n-------------\n%s", filename, util.StringDiff(string(yamlData), string(expectedYAML)))
+			t.Logf("If the change is expected, re-run with %s=true to update the fixtures", updateEnvVar)
+		}
 	}
 }
