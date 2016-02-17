@@ -135,7 +135,12 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
 
 	if script != "" {
-		command = []string{"/bin/sh", "-c"}
+		// The `-i` flag is needed to support CentOS and RHEL images
+		// that use Software Collections (SCL), in order to have the
+		// appropriate collections enabled in the shell. E.g., in the
+		// Ruby image, this is necessary to make `ruby`, `bundle` and
+		// other binaries available in the PATH.
+		command = []string{"/bin/sh", "-ic"}
 		args = append([]string{script, command[0]}, args...)
 	}
 
