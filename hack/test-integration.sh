@@ -77,10 +77,10 @@ function exectest() {
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		ETCD_PORT=${ETCD_PORT} "${testexec}" -vmodule=*=5 -test.v -test.run="^$1$" "${@:2}" 2>&1
+		ETCD_PORT=${ETCD_PORT} "${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
-		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	fi
 
@@ -121,7 +121,7 @@ tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${pack
 ret=0
 for test in "${tests[@]}"; do
 	for((i=0;i<${loop};i+=1)); do
-		if ! (exectest "${test}" ${@:2}); then 
+		if ! (exectest "${test}" ${@:2}); then
 			ret=1
 		fi
 	done
