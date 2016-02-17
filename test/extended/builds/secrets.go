@@ -19,7 +19,7 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 		secondSecretsFixture = filepath.Join(buildSecretBaseDir, "test-secret-2.json")
 		isFixture            = filepath.Join(buildSecretBaseDir, "test-is.json")
 		dockerBuildFixture   = filepath.Join(buildSecretBaseDir, "test-docker-build.json")
-		sourceBuildFixture   = filepath.Join(buildSecretBaseDir, "test-sti-build.json")
+		sourceBuildFixture   = filepath.Join(buildSecretBaseDir, "test-s2i-build.json")
 		oc                   = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
 	)
 
