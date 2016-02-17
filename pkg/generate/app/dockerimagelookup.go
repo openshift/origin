@@ -48,6 +48,16 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 			errs = append(errs, fmt.Errorf("unable to find the specified docker image: %s", term))
 			continue
 		}
+		if term == "scratch" {
+			componentMatches = append(componentMatches, &ComponentMatch{
+				Value: term,
+				Score: 0.0,
+				// we don't want to create an imagestream for "scratch", so treat
+				// it as a local only image.
+				LocalOnly: true,
+			})
+			return componentMatches, errs
+		}
 
 		ref, err := imageapi.ParseDockerImageReference(term)
 		if err != nil {
@@ -153,7 +163,7 @@ func (r MissingImageSearcher) Search(precise bool, terms ...string) (ComponentMa
 			Score:     0.0,
 			LocalOnly: true,
 		})
-		glog.V(4).Infof("Added missing match for %v", term)
+		glog.V(4).Infof("Added missing image match for %v", term)
 	}
 	return componentMatches, nil
 }
@@ -182,7 +192,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	isi.Name = "newapp"
 	result, err := s.Client.Import(isi)
 	if err != nil {
-		if err == client.ErrImageStreamImportUnsupported {
+		if err == client.ErrImageStreamImportUnsupported && s.Fallback != nil {
 			return s.Fallback.Search(precise, terms...)
 		}
 		return nil, []error{fmt.Errorf("can't lookup images: %v", err)}
@@ -367,22 +377,4 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 		matches = append(matches, match)
 	}
 	return matches
-}
-
-// PassThroughDockerSearcher returns a match with the value that was passed in
-type PassThroughDockerSearcher struct{}
-
-// Search always returns a match for every term passed in
-func (r *PassThroughDockerSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
-	matches := ComponentMatches{}
-	for _, value := range terms {
-		matches = append(matches, &ComponentMatch{
-			Value:       value,
-			Name:        value,
-			Argument:    fmt.Sprintf("--docker-image=%q", value),
-			Description: fmt.Sprintf("Docker image %q", value),
-			Score:       1.0,
-		})
-	}
-	return matches, nil
 }

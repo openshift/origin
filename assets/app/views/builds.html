@@ -51,19 +51,16 @@
                   <!-- We only show the first build from a build config for now-->
                   <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1" ng-if="buildConfigs[buildConfigName] || !unfilteredBuildConfigs[buildConfigName]">
                     <td data-title="Name">
-                      <a ng-if="buildConfigs[buildConfigName]" href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
-                      <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
-                        {{buildConfigName}}
-                        <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>
-                      </span>
+                      <a ng-if="buildConfigName" href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
+                      <span ng-if="buildConfigs && buildConfigName && !buildConfigs[buildConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>
                       <span ng-if="buildConfigName == ''"><em>none</em></span>
                     </td>
                     <td data-title="Last Build">
                       <!-- Build number and link -->
-                      <span ng-if="(build | annotation : 'buildNumber') && buildConfigName != ''">
+                      <span ng-if="(build | annotation : 'buildNumber') && buildConfigName">
                         <a ng-href="{{build | navigateResourceURL}}">#{{build | annotation : 'buildNumber'}}</a>
                       </span>
-                      <span ng-if="!(build | annotation : 'buildNumber') && buildConfigName != ''">
+                      <span ng-if="!(build | annotation : 'buildNumber') && buildConfigName">
                         <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
                       </span>
                       <span ng-if="buildConfigName == ''">

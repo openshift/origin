@@ -92,13 +92,17 @@
                         follow-affix-bottom="90"
                         resource="builds/log"
                         name="build.metadata.name"
-                        context="logContext"
+                        context="projectContext"
                         options="logOptions"
                         status="build.status.phase"
                         start="build.status.startTimestamp | date : 'short'"
                         end="build.status.completionTimestamp | date : 'short'"
                         run="logCanRun">
                       </log-viewer>
+                    </uib-tab>
+                    <uib-tab active="selectedTab.events">
+                      <uib-tab-heading>Events</uib-tab-heading>
+                      <events resource-kind="Pod" resource-name="{{build | annotation : 'buildPod'}}" project-context="projectContext" ng-if="selectedTab.events"></events>
                     </uib-tab>
                   </uib-tabset>
 

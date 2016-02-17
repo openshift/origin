@@ -64,7 +64,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *Componen
 			return nil, fmt.Errorf("can't build %q: %v", from, err)
 		}
 		input = inputImage
-		if !input.AsImageStream {
+		if !input.AsImageStream && resolvedMatch.Value != "scratch" {
 			msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
 			glog.Warningf(msg, resolvedMatch.Value)
 		}
@@ -192,24 +192,6 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, as
 		Env:    env,
 		Labels: labels,
 		AsTest: asTest,
-	}
-	return nil
-}
-
-// Validate checks for logical errors in the pipeline.
-func (p *Pipeline) Validate() error {
-	if p == nil || p.Build == nil {
-		return nil
-	}
-	input, output := p.Build.Input, p.Build.Output
-	if input == nil || output == nil {
-		return nil
-	}
-	if input.AsImageStream && output.AsImageStream && input.Reference.Equal(output.Reference) {
-		// If the build input and output image stream tags are the same, given that
-		// build configs created by new-app/new-build have an image change trigger,
-		// this setup would cause an infinite build loop, most likely unintentionaly.
-		return CircularOutputReferenceError{Reference: output.Reference}
 	}
 	return nil
 }

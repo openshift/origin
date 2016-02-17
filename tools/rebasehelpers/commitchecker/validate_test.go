@@ -217,6 +217,7 @@ func TestValidateUpstreamCommitSummaries(t *testing.T) {
 		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <carry>: a change"},
 		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <drop>: a change"},
 		{valid: false, summary: "UPSTREAM: whoopsie daisy"},
+		{valid: true, summary: "UPSTREAM: gopkg.in/ldap.v2: 51: exposed better API for paged search"},
 	}
 	for _, test := range tests {
 		commit := util.Commit{Summary: test.summary, Sha: "abcd000"}

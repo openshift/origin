@@ -109,7 +109,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) error {
+func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -119,9 +119,11 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 	if alreadySetUp(c.multitenant, gwCIDR) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
-		return nil
+		return false, nil
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
+
+	mtuStr := fmt.Sprint(mtu)
 
 	itx := ipcmd.NewTransaction(LBR)
 	itx.SetLink("down")
@@ -134,15 +136,15 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	err = itx.EndTransaction()
 	if err != nil {
 		glog.Errorf("Failed to configure docker bridge: %v", err)
-		return err
+		return false, err
 	}
 	defer deleteLocalSubnetRoute(LBR, localSubnetCIDR)
 
-	glog.V(5).Infof("[SDN setup] docker setup %s mtu %d", LBR, mtu)
-	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, fmt.Sprint(mtu)).CombinedOutput()
+	glog.V(5).Infof("[SDN setup] docker setup %s mtu %s", LBR, mtuStr)
+	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, mtuStr).CombinedOutput()
 	if err != nil {
 		glog.Errorf("Failed to configure docker networking: %v\n%s", err, out)
-		return err
+		return false, err
 	} else {
 		glog.V(5).Infof("[SDN setup] docker setup success:\n%s", out)
 	}
@@ -150,18 +152,18 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
 	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	itx = ipcmd.NewTransaction(VLINUXBR)
 	itx.DeleteLink()
 	itx.IgnoreError()
-	itx.AddLink("type", "veth", "peer", "name", VOVSBR)
+	itx.AddLink("mtu", mtuStr, "type", "veth", "peer", "name", VOVSBR, "mtu", mtuStr)
 	itx.SetLink("up")
 	itx.SetLink("txqueuelen", "0")
 	err = itx.EndTransaction()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	itx = ipcmd.NewTransaction(VOVSBR)
@@ -169,14 +171,14 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	itx.SetLink("txqueuelen", "0")
 	err = itx.EndTransaction()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	itx = ipcmd.NewTransaction(LBR)
 	itx.AddSlave(VLINUXBR)
 	err = itx.EndTransaction()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	otx := ovs.NewTransaction(BR)
@@ -244,7 +246,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 
 	err = otx.EndTransaction()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	itx = ipcmd.NewTransaction(TUN)
@@ -255,7 +257,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	itx.AddRoute(servicesNetworkCIDR)
 	err = itx.EndTransaction()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Clean up docker0 since docker won't
@@ -280,14 +282,14 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// Enable IP forwarding for ipv4 packets
 	err = sysctl.SetSysctl("net/ipv4/ip_forward", 1)
 	if err != nil {
-		return fmt.Errorf("Could not enable IPv4 forwarding: %s", err)
+		return false, fmt.Errorf("Could not enable IPv4 forwarding: %s", err)
 	}
 	err = sysctl.SetSysctl(fmt.Sprintf("net/ipv4/conf/%s/forwarding", TUN), 1)
 	if err != nil {
-		return fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
+		return false, fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (c *FlowController) GetName() string {

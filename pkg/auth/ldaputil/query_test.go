@@ -176,6 +176,35 @@ func TestNewSearchRequest(t *testing.T) {
 			expectedRequest: nil,
 			expectedError:   true,
 		},
+		{
+			name: "attribute query no attributes with paging",
+			options: LDAPQueryOnAttribute{
+				LDAPQuery: LDAPQuery{
+					BaseDN:       DefaultBaseDN,
+					Scope:        DefaultScope,
+					DerefAliases: DefaultDerefAliases,
+					TimeLimit:    DefaultTimeLimit,
+					Filter:       DefaultFilter,
+					PageSize:     10,
+				},
+				QueryAttribute: DefaultQueryAttribute,
+			},
+
+			attributeValue: "bar",
+			attributes:     DefaultAttributes,
+			expectedRequest: &ldap.SearchRequest{
+				BaseDN:       DefaultBaseDN,
+				Scope:        int(DefaultScope),
+				DerefAliases: int(DefaultDerefAliases),
+				SizeLimit:    DefaultSizeLimit,
+				TimeLimit:    DefaultTimeLimit,
+				TypesOnly:    DefaultTypesOnly,
+				Filter:       fmt.Sprintf("(&(%s)(%s=%s))", DefaultFilter, DefaultQueryAttribute, "bar"),
+				Attributes:   DefaultAttributes,
+				Controls:     []ldap.Control{ldap.NewControlPaging(10)},
+			},
+			expectedError: false,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -256,5 +285,35 @@ func TestErrEntryNotFound(t *testing.T) {
 	// test that a non-unique search doesn't error
 	if _, err := QueryForEntries(testConfig, testSearchRequest); !reflect.DeepEqual(err, nil) {
 		t.Errorf("query for entries did not get correct error:\n\texpected:\n\t%v\n\tgot:\n\t%v", nil, err)
+	}
+}
+
+func TestQueryWithPaging(t *testing.T) {
+	expectedResult := &ldap.SearchResult{
+		Entries: []*ldap.Entry{ldap.NewEntry("cn=paging,ou=paging,dc=paging,dc=com", map[string][]string{"paging": {"true"}})},
+	}
+
+	testConfig := testclient.NewConfig(testclient.NewPagingOnlyClient(testclient.New(),
+		expectedResult,
+	))
+	testSearchRequest := &ldap.SearchRequest{
+		BaseDN:       "dc=example,dc=com",
+		Scope:        ldap.ScopeWholeSubtree,
+		DerefAliases: int(DefaultDerefAliases),
+		SizeLimit:    DefaultSizeLimit,
+		TimeLimit:    DefaultTimeLimit,
+		TypesOnly:    DefaultTypesOnly,
+		Filter:       "(objectClass=*)",
+		Attributes:   append(DefaultAttributes),
+		Controls:     []ldap.Control{ldap.NewControlPaging(5)},
+	}
+
+	// test that a search request with paging controls gets correctly routed to the SearchWithPaging call
+	response, err := QueryForEntries(testConfig, testSearchRequest)
+	if err != nil {
+		t.Errorf("query with paging control should not create error, but got %v", err)
+	}
+	if !reflect.DeepEqual(expectedResult.Entries, response) {
+		t.Errorf("query with paging did not return correct response: expected %v, got %v", expectedResult.Entries, response)
 	}
 }

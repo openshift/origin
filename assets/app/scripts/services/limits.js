@@ -34,30 +34,30 @@ angular.module("openshiftConsole")
     };
 
     var hideCPUComputeResources = function() {
-      return LIMIT_REQUEST_OVERRIDES.enabled &&
-             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryRatio &&
-             LIMIT_REQUEST_OVERRIDES.cpuRequestToLimitRatio;
+      return LIMIT_REQUEST_OVERRIDES &&
+             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent &&
+             LIMIT_REQUEST_OVERRIDES.cpuRequestToLimitPercent;
     };
 
     var isRequestCalculated = function(computeResource) {
-      if (!LIMIT_REQUEST_OVERRIDES.enabled) {
+      if (!LIMIT_REQUEST_OVERRIDES) {
         return false;
       }
 
       switch (computeResource) {
       case "cpu":
-        return LIMIT_REQUEST_OVERRIDES.cpuRequestToLimitRatio;
+        return LIMIT_REQUEST_OVERRIDES.cpuRequestToLimitPercent;
       case "memory":
-        return LIMIT_REQUEST_OVERRIDES.memoryRequestToLimitRatio;
+        return LIMIT_REQUEST_OVERRIDES.memoryRequestToLimitPercent;
       default:
         return false;
       }
     };
 
     var isLimitCalculated = function(computeResource) {
-      return LIMIT_REQUEST_OVERRIDES.enabled &&
+      return LIMIT_REQUEST_OVERRIDES &&
              computeResource === 'cpu' &&
-             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryRatio;
+             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent;
     };
 
     // Reconciles multiple limit range resources for a compute resource ('cpu'

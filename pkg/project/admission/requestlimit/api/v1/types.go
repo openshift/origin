@@ -8,7 +8,9 @@ import (
 // It contains an ordered list of limits based on user label selectors. Selectors will
 // be checked in order and the first one that applies will be used as the limit.
 type ProjectRequestLimitConfig struct {
-	unversioned.TypeMeta
+	unversioned.TypeMeta `json:",inline"`
+
+	// Limits are the project request limits
 	Limits []ProjectLimitBySelector `json:"limits",description:"project request limits"`
 }
 

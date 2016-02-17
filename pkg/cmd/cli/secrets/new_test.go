@@ -1,7 +1,9 @@
 package secrets
 
 import (
+	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -40,11 +42,16 @@ func TestValidate(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
+	os.Symlink(".", "./bsFixtures/dir/symbolic")
+	defer os.Remove("./bsFixtures/dir/symbolic")
+
 	tests := []struct {
 		testName string
 		args     []string
 		expErr   bool
 		quiet    bool
+
+		errStreamContent string
 	}{
 		{
 			testName: "validSources",
@@ -70,9 +77,9 @@ func TestCreateSecret(t *testing.T) {
 			quiet:    true,
 		},
 		{
-			testName: "testQuietFalse",
-			args:     []string{"testSecret", "./bsFixtures/dir"},
-			expErr:   true, // "Skipping resource <resource path>"
+			testName:         "testQuietFalse",
+			args:             []string{"testSecret", "./bsFixtures/dir"},
+			errStreamContent: "Skipping resource bsFixtures/dir/symbolic\n",
 		},
 		{
 			testName: "testNamedKeys",
@@ -116,7 +123,9 @@ func TestCreateSecret(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		errStream := &bytes.Buffer{}
 		options := NewCreateSecretOptions()
+		options.Stderr = errStream
 		options.Complete(test.args, nil)
 		options.Quiet = test.quiet
 
@@ -127,6 +136,12 @@ func TestCreateSecret(t *testing.T) {
 		_, err = options.BundleSecret()
 		if err != nil && !test.expErr {
 			t.Errorf("%s: unexpected error: %s", test.testName, err)
+		}
+		if err == nil && test.expErr {
+			t.Errorf("%s: missing expected error", test.testName)
+		}
+		if string(errStream.Bytes()) != test.errStreamContent {
+			t.Errorf("%s: expected %s, got %v", test.testName, test.errStreamContent, string(errStream.Bytes()))
 		}
 	}
 }

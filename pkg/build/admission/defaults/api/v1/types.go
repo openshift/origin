@@ -7,7 +7,7 @@ import (
 
 // BuildDefaultsConfig controls the default information for Builds
 type BuildDefaultsConfig struct {
-	unversioned.TypeMeta
+	unversioned.TypeMeta `json:",inline"`
 
 	// GitHTTPProxy is the location of the HTTPProxy for Git source
 	GitHTTPProxy string `json:"gitHTTPProxy,omitempty",description:"location of the git http proxy"`

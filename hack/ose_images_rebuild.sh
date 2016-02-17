@@ -22,7 +22,7 @@ DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 SCRATCH_OPTION=""
-BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-enabled.repo"
+BUILD_REPO="http://file.rdu.redhat.com/sdodson/aos-unsigned.repo"
 COMMIT_MESSAGE="Updating"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
 
@@ -69,9 +69,11 @@ usage() {
   echo "Usage `basename $0` [action] <options>" >&2
   echo >&2
   echo "Actions:" >&2
-  echo "  docker_update   :: Clone dist-git, bump version, release, or rhel" >&2
-  echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
   echo "  build_container :: Clone dist-git, build containers" >&2
+  echo "  bump_and_build  :: docker_update, build containers" >&2
+  echo "  docker_update   :: Clone dist-git, bump version, release, or rhel" >&2
+  echo "  docker_backfill :: Copy dist-git Dockerfile to git Dockerfile.product" >&2
+  echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
   echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
   echo "  list            :: Display full list of packages / images" >&2
   echo "  test            :: Display what packages would be worked on" >&2
@@ -87,6 +89,7 @@ usage() {
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
+  echo "  --bump_release      :: Change Dockerfile release by 1 e.g. 3->4" >&2
   echo "  --rhel [version]    :: Change Dockerfile RHEL version e.g. rhel7.2:7.2-35 or rhel7:latest" >&2
   echo "  --branch [version]  :: Use a certain dist-git branch  default[${DIST_GIT_BRANCH}]" >&2
   echo "  --repo [Repo URL]   :: Use a certain yum repo  default[${BUILD_REPO}]" >&2
@@ -283,7 +286,12 @@ update_dockerfile() {
       sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
-      sed -i -e "s/Release=\"[0-9]*\"/Release=\"${release_version}\"/" ${line}
+      sed -i -e "s/Release=\".*\"/Release=\"${release_version}\"/" ${line}
+    fi
+    if [ "${bump_release}" == "TRUE" ] ; then
+      old_release_version=$(grep Release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
+      let new_release_version=$old_release_version+1
+      sed -i -e "s/Release=\".*\"/Release=\"${new_release_version}\"/" ${line}
     fi
     if [ "${update_rhel}" == "TRUE" ] ; then
       sed -i -e "s/FROM rhel7.*/FROM ${rhel_version}/" ${line}
@@ -294,19 +302,53 @@ update_dockerfile() {
 
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
-  echo "  ---- Checking files added or removed ----"
-  diff --brief -r ${workingdir}/${container} ${workingdir}/${path} | grep -v -e Dockerfile -e git -e osbs
-  echo "  ---- Checking Non-Dockerfile changes ----"
-  find . -name ".git*" -prune -o -name ".osbs*" -prune -o -name "Dockerfile*" -prune -o -type f -print | while read line
-  do
-    diff -u ${line} ${workingdir}/${path}/${line}
-  done
+  echo "  ---- Checking files changed, added or removed ----"
+  extra_check=$(diff --brief -r ${workingdir}/${container} ${workingdir}/${path} | grep -v -e Dockerfile -e git -e osbs )
+  if ! [ "${extra_check}" == "" ] ; then
+    echo "${extra_check}"
+  fi
+  differ_check=$(echo "${extra_check}" | grep " differ")
+  new_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${path}")
+  old_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${container}")
+  if ! [ "${differ_check}" == "" ] ; then
+    echo "  ---- Non-Dockerfile changes ----"
+    echo "${differ_check}" | while read differ_line
+    do
+      myold_file=$(echo "${differ_line}" | awk '{print $2}')
+      mynew_file=$(echo "${differ_line}" | awk '{print $4}')
+      diff -u ${myold_file} ${mynew_file}
+      cp -vf ${mynew_file} ${myold_file}
+      git add ${myold_file}
+    done
+  fi
+  if ! [ "${old_file}" == "" ] ; then
+    echo "  ---- Removed Non-Dockerfiles ----"
+    echo "${old_file}" | while read old_file_line
+    do
+      myold_file=$(echo "${old_file_line}" | awk '{print $3}')
+      git rm ${myold_file}
+    done
+  fi
+  if ! [ "${new_file}" == "" ] ; then
+    echo "  ---- New Non-Dockerfiles ----"
+    echo " New files must be added by hand - sorry about that"
+    echo "${new_file}"
+    working_path="${workingdir}/${path}"
+    echo "${new_file}" | while read new_file_line
+    do
+      mynew_file=$(echo "${new_file_line}" | awk '{print $3}')
+      mynew_file_trim="${mynew_file#$working_path}"
+      cp -v ${mynew_file} ${workingdir}/${container}/${mynew_file_trim}
+      git add ${workingdir}/${container}/${mynew_file_trim}
+    done
+  fi
   echo "  ---- Checking Dockerfile changes ----"
   diff --label Dockerfile --label ${path}/Dockerfile -u Dockerfile ${workingdir}/${path}/Dockerfile >> .osbs-logs/Dockerfile.diff.new
   newdiff=`diff .osbs-logs/Dockerfile.diff .osbs-logs/Dockerfile.diff.new`
   if [ "${newdiff}" == "" ] ; then
     rm -f .osbs-logs/Dockerfile.diff.new
-  else
+  fi
+  if ! [ "${newdiff}" == "" ] || ! [ "${extra_check}" == "" ] ; then
     echo "${newdiff}"
     echo " "
     if [ "${FORCE}" == "TRUE" ] ; then
@@ -323,6 +365,36 @@ show_git_diffs() {
         #* ) echo "${choice} not and option.  Assuming continue" ;  mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff ; git add .osbs-logs/Dockerfile.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
       esac
     fi
+  fi
+  popd >/dev/null
+
+}
+
+backfill_dockerfile() {
+  pushd "${workingdir}/${container}" >/dev/null
+  echo "  ---- Dockerfile.product changes ----"
+  diff --label Dockerfile --label ${path}/Dockerfile.product -u Dockerfile ${workingdir}/${path}/Dockerfile.product
+  if [ "${FORCE}" == "TRUE" ] ; then
+    echo "  Force Option Selected - Assuming Continue"
+    cp -f Dockerfile ${workingdir}/${path}/Dockerfile.product
+    pushd ${workingdir}/${path} >/dev/null
+    git add Dockerfile.product
+    popd >/dev/null
+  else
+    echo "(c)ontinue [replace old Dockerfile.product], (i)gnore [leave old Dockerfile.product] : "
+    read choice < /dev/tty
+    case ${choice} in
+      c | C | continue )
+        cp -f Dockerfile ${workingdir}/${path}/Dockerfile.product
+        pushd ${workingdir}/${path} >/dev/null
+        git add Dockerfile.product
+        popd >/dev/null
+        ;;
+      i | I | ignore )
+        echo "  Ignoring" ;;
+      * )
+        echo "${choice} not and option.  Assuming ignore" ; echo "  Ignoring" ;;
+    esac
   fi
   popd >/dev/null
 
@@ -399,7 +471,7 @@ check_dependents() {
       fi
 
       for index in ${!packagekey[@]}; do
-        if [[ ${dependent_list} =~ ${index} ]] ; then
+        if [[ ${dependent_list} =~ "::${index}::" ]] ; then
           if [ "${VERBOSE}" == "TRUE" ] ; then
             echo "  Already have on list: ${index}"
           fi
@@ -409,12 +481,12 @@ check_dependents() {
             echo "  Not on list - checking: ${index}"
             echo "    Dependency is: ${checkdep}"
           fi
-          if [[ ${dependent_list} =~ ${checkdep} ]] ; then
-            export dependent_list+="${index} "
-            export dependent_list_new+="${index} "
+          if [[ ${dependent_list} =~ "::${checkdep}::" ]] ; then
+            export dependent_list+="::${index}:: "
+            export dependent_list_new+="::${index}:: "
             add_to_list ${index}
             if [ "${VERBOSE}" == "TRUE" ] ; then
-              echo "      Added to build list: ${checkdep}"
+              echo "      Added to build list: ${index}"
             fi
           fi
         fi
@@ -447,6 +519,14 @@ docker_update() {
   popd >/dev/null
 }
 
+docker_backfill() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  setup_git_repo
+  backfill_dockerfile
+  popd >/dev/null
+}
+
 build_yaml() {
   pushd "${workingdir}" >/dev/null
   setup_dist_git
@@ -467,7 +547,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | make_yaml | test)
+    git_compare | docker_update | build_container | make_yaml | bump_and_build | docker_backfill | test)
       export action="${key}"
       ;;
     list)
@@ -505,6 +585,9 @@ case $key in
       release_version="$2"
       export update_release="TRUE"
       shift
+      ;;
+    --bump_release)
+      export bump_release="TRUE"
       ;;
     --rhel)
       rhel_version="$2"
@@ -573,8 +656,8 @@ if [ "${DEPENDENTS}" == "TRUE" ] ; then
       echo "Container: ${container_name}"
     fi
     if ! [ "${container_name}" == "" ] ; then
-      export dependent_list+="${container_name} "
-      export dependent_list_new+="${container_name} "
+      export dependent_list+="::${container_name}:: "
+      export dependent_list_new+="::${container_name}:: "
     fi
   done
   check_dependents
@@ -603,6 +686,15 @@ do
       echo "=== ${container} ==="
       docker_update
       ;;
+    docker_backfill )
+      echo "=== ${container} ==="
+      docker_backfill
+      ;;
+    bump_and_build )
+      echo "=== ${container} ==="
+      docker_update
+      build_container
+      ;;
     make_yaml )
       build_yaml
       ;;
@@ -616,4 +708,29 @@ do
   esac
 done
 
-wait_for_all_builds
+case "$action" in
+  build_container | bump_and_build )
+    wait_for_all_builds
+    ;;
+  docker_backfill )
+    pushd ${workingdir}/ose >/dev/null
+    if [ "${FORCE}" == "TRUE" ] ; then
+      echo "  Force Option Selected - Assuming Continue"
+      git commit -m " Backporting dist-git Dockerfile to Dockerfile.product"
+      git push
+    else
+      git status
+      echo "(c)ontinue [replace old Dockerfile.product], (i)gnore [leave old Dockerfile.product] : "
+      read choice < /dev/tty
+      case ${choice} in
+        c | C | continue )
+          git commit -m " Backporting dist-git Dockerfile to Dockerfile.product"
+          git push
+          ;;
+        * )
+          echo "  Ignoring" ;;
+      esac
+    fi
+    popd >/dev/null
+  ;;
+esac

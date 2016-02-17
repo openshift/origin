@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var UpstreamSummaryPattern = regexp.MustCompile(`UPSTREAM: (revert: [a-f0-9]{7,}: )?(([\w\.-]+\/[\w-]+)?: )?(\d+:|<carry>:|<drop>:)`)
+var UpstreamSummaryPattern = regexp.MustCompile(`UPSTREAM: (revert: [a-f0-9]{7,}: )?(([\w\.-]+\/[\w-\.-]+)?: )?(\d+:|<carry>:|<drop>:)`)
 
 // supportedHosts maps source hosts to the number of path segments that
 // represent the account/repo for that host. This is necessary because we

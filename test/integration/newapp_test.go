@@ -934,7 +934,29 @@ func TestNewAppRunBuilds(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: the input and output image stream tags are identical (\"docker.io/library/centos:latest\")\n"
+				want := "--> WARNING: output image of \"default/centos:latest\" must be different than input\n"
+				if string(got) != want {
+					return fmt.Errorf("stderr: got %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful build from dockerfile with identical input and output image references with warning",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
+				To:         "ruby-22-centos7",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-22-centos7"},
+				"imageStream": {"ruby-22-centos7"},
+			},
+			checkOutput: func(stdout, stderr io.Reader) error {
+				got, err := ioutil.ReadAll(stderr)
+				if err != nil {
+					return err
+				}
+				want := "--> WARNING: output image of \"default/ruby-22-centos7:latest\" must be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1003,11 +1025,21 @@ func TestNewAppRunBuilds(t *testing.T) {
 			},
 			expectedErr: func(err error) bool {
 				e := app.CircularOutputReferenceError{
-					Reference: imageapi.DockerImageReference{
-						Name: "centos",
-					}.DockerClientDefaults(),
+					Reference: "default/centos:latest",
 				}
-				return err.Error() == fmt.Errorf("%v, please specify a different output reference with --to", e).Error()
+				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to identical input and output image references",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
+			},
+			expectedErr: func(err error) bool {
+				e := app.CircularOutputReferenceError{
+					Reference: "default/ruby-22-centos7:latest",
+				}
+				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
 			},
 		},
 		{

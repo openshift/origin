@@ -30,6 +30,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
+	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -430,8 +433,10 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// verify we can connect to etcd with the provided config
-	if err := etcd.TestEtcdClient(oc.EtcdClient); err != nil {
+	if etcdClient, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
 		return err
+	} else {
+		etcdClient.Close()
 	}
 
 	// Must start policy caching immediately
@@ -451,7 +456,22 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	var standaloneAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
-		config, err := origin.BuildAssetConfig(*oc.Options.AssetConfig)
+		var overrideConfig *overrideapi.ClusterResourceOverrideConfig = nil
+		if oc.Options.KubernetesMasterConfig != nil { // external kube gets you a nil pointer here
+			if overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(oc.Options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, overrideapi.PluginName, ""); err != nil {
+				return err
+			} else if overridePluginConfigFile != "" {
+				configFile, err := os.Open(overridePluginConfigFile)
+				if err != nil {
+					return err
+				}
+				if overrideConfig, err = override.ReadConfig(configFile); err != nil {
+					return err
+				}
+			}
+		}
+
+		config, err := origin.NewAssetConfig(*oc.Options.AssetConfig, overrideConfig)
 		if err != nil {
 			return err
 		}

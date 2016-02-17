@@ -143,3 +143,23 @@ func (c *DNMappingClient) Search(searchRequest *ldap.SearchRequest) (*ldap.Searc
 
 	return c.Client.Search(searchRequest)
 }
+
+// NewPagingOnlyClient returns a new PagingOnlyClient sitting on top of the parent client. This client returns the
+// provided search response for any calls to SearchWithPaging, or defers to the parent if the call is not to the
+// paged search function.
+func NewPagingOnlyClient(parent ldap.Client, response *ldap.SearchResult) ldap.Client {
+	return &PagingOnlyClient{
+		Client:   parent,
+		Response: response,
+	}
+}
+
+// PagingOnlyClient responds with a canned search result for any calls to SearchWithPaging
+type PagingOnlyClient struct {
+	ldap.Client
+	Response *ldap.SearchResult
+}
+
+func (c *PagingOnlyClient) SearchWithPaging(searchRequest *ldap.SearchRequest, pagingSize uint32) (*ldap.SearchResult, error) {
+	return c.Response, nil
+}

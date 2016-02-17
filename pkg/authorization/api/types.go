@@ -143,6 +143,7 @@ type IsPersonalSubjectAccessReview struct {
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// Rules holds all the PolicyRules for this Role
@@ -182,6 +183,7 @@ type Policy struct {
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
@@ -258,6 +260,7 @@ type LocalSubjectAccessReview struct {
 	Groups sets.String
 }
 
+// AuthorizationAttributes describes a request to be authorized
 type AuthorizationAttributes struct {
 	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
 	Namespace string
@@ -274,6 +277,7 @@ type AuthorizationAttributes struct {
 // PolicyList is a collection of Policies
 type PolicyList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of policies
@@ -283,6 +287,7 @@ type PolicyList struct {
 // PolicyBindingList is a collection of PolicyBindings
 type PolicyBindingList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of policyBindings
@@ -292,6 +297,7 @@ type PolicyBindingList struct {
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of roleBindings
@@ -301,6 +307,7 @@ type RoleBindingList struct {
 // RoleList is a collection of Roles
 type RoleList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of roles
@@ -310,6 +317,7 @@ type RoleList struct {
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// Rules holds all the PolicyRules for this ClusterRole
@@ -321,6 +329,7 @@ type ClusterRole struct {
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type ClusterRoleBinding struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// Subjects hold object references of to authorize with this rule
@@ -336,6 +345,7 @@ type ClusterRoleBinding struct {
 // one ClusterPolicy document per namespace.
 type ClusterPolicy struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
@@ -349,6 +359,7 @@ type ClusterPolicy struct {
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
 type ClusterPolicyBinding struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
@@ -363,6 +374,7 @@ type ClusterPolicyBinding struct {
 // ClusterPolicyList is a collection of ClusterPolicies
 type ClusterPolicyList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of ClusterPolicies
@@ -372,6 +384,7 @@ type ClusterPolicyList struct {
 // ClusterPolicyBindingList is a collection of ClusterPolicyBindings
 type ClusterPolicyBindingList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of ClusterPolicyBindings
@@ -381,6 +394,7 @@ type ClusterPolicyBindingList struct {
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of ClusterRoleBindings
@@ -390,6 +404,7 @@ type ClusterRoleBindingList struct {
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
 	unversioned.TypeMeta
+	// Standard object's metadata.
 	unversioned.ListMeta
 
 	// Items is a list of ClusterRoles

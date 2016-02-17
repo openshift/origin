@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d5b7062274cd032108829c59fd36552de4d3328b
+%global commit 9f4826d90514dc40be552c30999667ce08581537
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.901-138-gd5b7062 -X github.com/openshift/origin/pkg/version.commitFromGit d5b7062 -X k8s.io/kubernetes/pkg/version.gitCommit f0cd09a -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.902-54-g9f4826d -X github.com/openshift/origin/pkg/version.commitFromGit 9f4826d -X k8s.io/kubernetes/pkg/version.gitCommit f0cd09a -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.902
+Version:        3.1.1.903
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,46 @@ fi
 
 
 %changelog
+* Wed Feb 17 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.903
+- Change web console to display OpenShift Enterprise logo and urls
+  (tdawson@redhat.com)
+- remove testing symlink (deads@redhat.com)
+- Add pathseg polyfill to fix c3 bar chart runtime error (spadgett@redhat.com)
+- Size build chart correctly in Firefox (spadgett@redhat.com)
+- dump build logs when build test fails (bparees@redhat.com)
+- fix circular input/output detection (bparees@redhat.com)
+- do not tag for pushing if there is no output target (bparees@redhat.com)
+- admission: cluster req/limit override plugin (lmeyer@redhat.com)
+- ignore events from previous builds (bparees@redhat.com)
+- Changes and additions to enable text truncation of the project menu and
+  username at primary media query breakpoints (sgoodwin@redhat.com)
+- Addition of top-header variables for mobile and desktop to set height and
+  control offset of fixed header height.         This will ensure the proper
+  bottom offset so that the flex containers extend to the bottom correctly.
+  Switch margin-bottom to padding-bottom so that background color is maintained
+  (sgoodwin@redhat.com)
+- Set a timeout on integration tests of 4m (ccoleman@redhat.com)
+- added support for paged queries in ldap sync (skuznets@redhat.com)
+- bump(gopkg.in/ldap.v2): 07a7330929b9ee80495c88a4439657d89c7dbd87
+  (skuznets@redhat.com)
+- Resource specific events on browse pages (jhadvig@redhat.com)
+- added Godoc to api types where Godoc was missing (skuznets@redhat.com)
+- updated commitchecker regex to work for ldap package (skuznets@redhat.com)
+- Fix layout in osc-key-value directive (admin@benjaminapetersen.me)
+- bump(github.com/openshift/openshift-sdn):
+  5cf5cd2666604324c3bd42f5c12774cfaf1a3439 (danw@redhat.com)
+- Add docker-registry image store on glusterfs volume example
+  (jcope@redhat.com)
+- Bump travis to go1.5.3 (jliggitt@redhat.com)
+- Provide a way in console to access orphaned builds / deployments
+  (jforrest@redhat.com)
+- Revising sidebar to better align with PatternFly standard
+  (rhamilto@redhat.com)
+- refactor docker image searching (bparees@redhat.com)
+- Remove EtcdClient from MasterConfig (agladkov@redhat.com)
+- Move 'adm' function into 'oc' as 'oc adm' (ccoleman@redhat.com)
+- Break compile time dependency on etcd for clients (ccoleman@redhat.com)
+
 * Mon Feb 15 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.902
 -  Backporting dist-git Dockerfile to Dockerfile.product (tdawson@redhat.com)
 - added infra namespace to PV recycler (mturansk@redhat.com)

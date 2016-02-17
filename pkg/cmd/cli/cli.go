@@ -13,6 +13,7 @@ import (
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
+	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
@@ -120,6 +121,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
+				admin.NewCommandAdmin("adm", fullName+" "+"adm", out),
 				cmd.NewCmdCreate(fullName, f, out),
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdApply(fullName, f, out),
