@@ -25,7 +25,7 @@ os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'
 os::cmd::expect_success_and_text 'oc explain pods' 'Pod is a collection of containers that can run on a host'
 os::cmd::expect_success_and_text 'oc explain pods.spec' 'SecurityContext holds pod-level security attributes'
 os::cmd::expect_success_and_text 'oc explain deploymentconfig' 'a desired deployment state'
-os::cmd::expect_success_and_text 'oc explain deploymentconfig.spec' 'if true, this deployment config will always be scaled to 0'
+os::cmd::expect_success_and_text 'oc explain deploymentconfig.spec' 'ensures that this deployment config will have zero replicas'
 echo "explain: ok"
 
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
