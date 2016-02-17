@@ -124,10 +124,11 @@ func recordIngressConditionFailure(route *routeapi.Route, name string, condition
 		if existing.RouterName != name {
 			continue
 		}
+		existing.Host = route.Spec.Host
 		lastTouch := ingressConditionTouched(existing)
 		return existing, setIngressCondition(existing, condition), lastTouch
 	}
-	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name})
+	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name, Host: route.Spec.Host})
 	ingress := &route.Status.Ingress[len(route.Status.Ingress)-1]
 	setIngressCondition(ingress, condition)
 	return ingress, true, nil
