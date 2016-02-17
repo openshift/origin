@@ -68,6 +68,11 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				// The final value of OAuthConfig.MasterCA should never be nil
 				obj.OAuthConfig.MasterCA = &s
 			}
+
+			if obj.KubernetesMasterConfig != nil && obj.KubernetesMasterConfig.EtcdClientInfo == nil {
+				etcdClientInfo := obj.EtcdClientInfo
+				obj.KubernetesMasterConfig.EtcdClientInfo = &etcdClientInfo
+			}
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)

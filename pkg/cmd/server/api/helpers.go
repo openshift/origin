@@ -228,6 +228,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
+		if config.KubernetesMasterConfig.EtcdClientInfo != nil {
+			refs = append(refs, &config.KubernetesMasterConfig.EtcdClientInfo.ClientCert.CertFile)
+			refs = append(refs, &config.KubernetesMasterConfig.EtcdClientInfo.ClientCert.KeyFile)
+			refs = append(refs, &config.KubernetesMasterConfig.EtcdClientInfo.CA)
+		}
 	}
 
 	refs = append(refs, &config.ServiceAccountConfig.MasterCA)

@@ -486,6 +486,7 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath 
 
 	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments"))...)
 	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments, fldPath.Child("controllerArguments"))...)
+	validationResults.AddErrors(ValidateEtcdConnectionInfo(*config.EtcdClientInfo, nil, fldPath.Child("etcdClientInfo"))...)
 
 	return validationResults
 }

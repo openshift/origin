@@ -197,7 +197,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
+	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client
 	}
 }
 
-func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
+func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccount.ServiceAccountTokenGetter, error) {
 	var tokenGetter serviceaccount.ServiceAccountTokenGetter
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
@@ -276,6 +276,10 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
+		client, err := etcd.MakeNewEtcdClient(*options.KubernetesMasterConfig.EtcdClientInfo)
+		if err != nil {
+			return nil, err
+		}
 		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}

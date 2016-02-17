@@ -833,6 +833,9 @@ type KubernetesMasterConfig struct {
 	// the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid
 	// configurations.
 	ControllerArguments ExtendedArguments `json:"controllerArguments"`
+
+	// EtcdClientInfo, if present store kubernetes data in a different etcd instance
+	EtcdClientInfo *EtcdConnectionInfo `json:"etcdClientInfo"`
 }
 
 // CertInfo relates a certificate with a private key
