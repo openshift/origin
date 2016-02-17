@@ -424,7 +424,7 @@ type SourceBuildStrategy struct {
 // The above is a convenient form which is equivalent to:
 //
 // 	BuildPostCommitSpec{
-// 		Command: []string{"/bin/sh", "-c"},
+// 		Command: []string{"/bin/sh", "-ic"},
 // 		Args: []string{"rake test --verbose"},
 // 	}
 //
@@ -469,7 +469,7 @@ type SourceBuildStrategy struct {
 // the fields are specified, the hook is not executed.
 type BuildPostCommitSpec struct {
 	// Command is the command to run. It may not be specified with Script.
-	// This might be needed if the image doesn't have "/bin/sh", or if you
+	// This might be needed if the image doesn't have `/bin/sh`, or if you
 	// do not want to use a shell. In all other cases, using Script might be
 	// more convenient.
 	Command []string `json:"command,omitempty" description:"command to be executed in a container running the build output image replacing the image's entrypoint"`
@@ -477,11 +477,16 @@ type BuildPostCommitSpec struct {
 	// Script or the Docker image's default entrypoint. The arguments are
 	// placed immediately after the command to be run.
 	Args []string `json:"args,omitempty" description:"arguments to command, script or the default image entrypoint"`
-	// Script is a shell script to be run with `/bin/sh -c`. It may not be
+	// Script is a shell script to be run with `/bin/sh -ic`. It may not be
 	// specified with Command. Use Script when a shell script is appropriate
 	// to execute the post build hook, for example for running unit tests
-	// with "rake test". If you need control over the image entrypoint, or
-	// if the image does not have "/bin/sh", use Command and/or Args.
+	// with `rake test`. If you need control over the image entrypoint, or
+	// if the image does not have `/bin/sh`, use Command and/or Args.
+	// The `-i` flag is needed to support CentOS and RHEL images that use
+	// Software Collections (SCL), in order to have the appropriate
+	// collections enabled in the shell. E.g., in the Ruby image, this is
+	// necessary to make `ruby`, `bundle` and other binaries available in
+	// the PATH.
 	Script string `json:"script,omitempty" description:"shell script to be executed in a container running the build output image"`
 }
 
