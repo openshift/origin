@@ -43,6 +43,9 @@ func (routeStrategy) NamespaceScoped() bool {
 func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	route := obj.(*api.Route)
 	route.Status = api.RouteStatus{}
+	// Limit to kind/name
+	// TODO: convert to LocalObjectReference
+	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
 	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
@@ -63,6 +66,9 @@ func (routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	route := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	route.Status = oldRoute.Status
+	// Limit to kind/name
+	// TODO: convert to LocalObjectReference
+	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
 }
 
 func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
