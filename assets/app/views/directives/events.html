@@ -1,0 +1,37 @@
+<table class="table table-bordered table-condensed table-mobile table-hover events-table">
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th class="hidden-xs hidden-sm hidden-md sr-only">Severity</th>
+      <th>Reason</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody ng-if="(filteredEvents | hashSize) === 0">
+    <tr>
+      <td><em>{{emptyMessage}}</em></td>
+      <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
+      <td class="hidden-xs">&nbsp;</td>
+      <td class="hidden-xs">&nbsp;</td>
+    </tr>
+  </tbody>
+  <tbody ng-repeat="event in filteredEvents | orderBy:'-lastTimestamp'">
+    <tr>
+      <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
+      <td data-title="Severity" class="hidden-xs hidden-sm hidden-md text-center severity-icon-td">
+        <span class="sr-only">{{event.type}}</span>
+        <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span></td>
+      <td data-title="Reason" class="event-time">
+        {{event.reason}}&nbsp;
+        <span class="hidden-lg pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
+      </td>
+      <td data-title="Message" class="word-break">
+        {{event.message}}
+        <span class="text-muted small" ng-if="event.count > 1">
+          ({{event.count}} times in the last
+            {{event.firstTimestamp | duration:event.lastTimestamp:true}})
+        </span>
+      </td>
+    </tr>
+  </tbody>
+</table>
