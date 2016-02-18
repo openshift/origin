@@ -153,12 +153,15 @@
 }
 
 .empty-state-message {
-  margin: @grid-gutter-width auto;
+  margin: 60px auto @grid-gutter-width;
   max-width: 600px;
   padding: 0 (@grid-gutter-width / 2);
   .btn {
     margin: 10px 0 20px;
   }
+}
+
+.empty-state-message.empty-state-full-page {
   @media (min-height: 500px) {
     margin-top: 150px;
   }
