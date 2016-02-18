@@ -105,7 +105,7 @@ func TestStatusResetsHost(t *testing.T) {
 		t.Fatalf("unexpected action: %#v", action)
 	}
 	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
-	if len(obj.Status.Ingress) != 1 && obj.Status.Ingress[0].Host != "route1.test.local" {
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
@@ -151,7 +151,7 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 		t.Fatalf("unexpected action: %#v", action)
 	}
 	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
-	if len(obj.Status.Ingress) != 1 && obj.Status.Ingress[0].Host != "route1.test.local" {
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
@@ -168,6 +168,37 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 }
 
 func TestStatusRecordRejection(t *testing.T) {
+	now := unversioned.Now()
+	nowFn = func() unversioned.Time { return now }
+	p := &fakePlugin{}
+	c := testclient.NewSimpleFake(&routeapi.Route{})
+	admitter := NewStatusAdmitter(p, c, "test")
+	admitter.RecordRouteRejection(&routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
+		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
+	}, "Failed", "generic error")
+
+	if len(c.Actions()) != 1 {
+		t.Fatalf("unexpected actions: %#v", c.Actions())
+	}
+	action := c.Actions()[0]
+	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+		t.Fatalf("unexpected action: %#v", action)
+	}
+	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
+		t.Fatalf("expected route reset: %#v", obj)
+	}
+	condition := obj.Status.Ingress[0].Conditions[0]
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
+		t.Fatalf("unexpected condition: %#v", condition)
+	}
+	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, now.Time) {
+		t.Fatalf("expected empty time: %#v", v)
+	}
+}
+
+func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	now := unversioned.Now()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
@@ -202,7 +233,7 @@ func TestStatusRecordRejection(t *testing.T) {
 		t.Fatalf("unexpected action: %#v", action)
 	}
 	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
-	if len(obj.Status.Ingress) != 1 && obj.Status.Ingress[0].Host != "route1.test.local" {
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
@@ -249,7 +280,7 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 		t.Fatalf("unexpected action: %#v", action)
 	}
 	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
-	if len(obj.Status.Ingress) != 1 && obj.Status.Ingress[0].Host != "route1.test.local" {
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
