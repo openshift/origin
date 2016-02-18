@@ -92,7 +92,8 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 // false if no modification was made.
 func setIngressCondition(ingress *routeapi.RouteIngress, condition routeapi.RouteIngressCondition) bool {
 	for _, existing := range ingress.Conditions {
-		//existing.LastTransitionTime = nil
+		// ensures that the comparison is based on the actual value, not the time
+		existing.LastTransitionTime = condition.LastTransitionTime
 		if existing == condition {
 			return false
 		}

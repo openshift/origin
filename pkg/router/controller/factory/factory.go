@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -166,6 +167,21 @@ func (r *routesByHost) Endpoints(namespace, name string) *kapi.Endpoints {
 	return obj.(*kapi.Endpoints)
 }
 
+// routeAge sorts routes from oldest to newest and is stable for all routes.
+type routeAge []routeapi.Route
+
+func (r routeAge) Len() int      { return len(r) }
+func (r routeAge) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+func (r routeAge) Less(i, j int) bool {
+	if r[i].CreationTimestamp.Before(r[j].CreationTimestamp) {
+		return true
+	}
+	if r[i].Namespace < r[j].Namespace {
+		return true
+	}
+	return r[i].Name < r[j].Name
+}
+
 func oldestRoute(routes []interface{}) *routeapi.Route {
 	var oldest *routeapi.Route
 	for i := range routes {
@@ -202,7 +218,13 @@ func (lw *routeLW) List(options kapi.ListOptions) (runtime.Object, error) {
 		LabelSelector: lw.label,
 		FieldSelector: lw.field,
 	}
-	return lw.client.Routes(lw.namespace).List(opts)
+	routes, err := lw.client.Routes(lw.namespace).List(opts)
+	if err != nil {
+		return nil, err
+	}
+	// return routes in order of age to avoid rejections during resync
+	sort.Sort(routeAge(routes.Items))
+	return routes, nil
 }
 
 func (lw *routeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
