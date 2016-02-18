@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -47,8 +48,8 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 const (
@@ -448,9 +449,18 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewRegistry(osClient)
+
+	rcFactory := quotautil.NewInternalRegistryClientFactoryForServiceAccount(
+		kClient,
+		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		bootstrappolicy.InfraResourceQuotaControllerServiceAccountName,
+		c.Options.ServiceAccountConfig.MasterCA)
+
+	clientsetClient := internalclientset.FromUnversionedClient(kClient)
+
+	resourceQuotaRegistry := quota.NewRegistry(osClient, rcFactory)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:            kClient,
+		KubeClient:            clientsetClient,
 		ResyncPeriod:          controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:              resourceQuotaRegistry,
 		GroupKindsToReplenish: []unversioned.GroupKind{imageapi.Kind("ImageStream")},

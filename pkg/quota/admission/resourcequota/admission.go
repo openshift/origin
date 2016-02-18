@@ -17,6 +17,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/quota"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 const pluginName = "OriginResourceQuota"
@@ -34,10 +35,13 @@ type originQuotaAdmission struct {
 	*admission.Handler
 	kQuotaAdmission admission.Interface
 	// must be able to read/write ResourceQuota
-	kClient clientset.Interface
+	kClient   clientset.Interface
+	osClient  osclient.Interface
+	rcFactory quotautil.InternalRegistryClientFactory
 }
 
 var _ = oadmission.WantsOpenshiftClient(&originQuotaAdmission{})
+var _ = oadmission.WantsInternalRegistryClientFactory(&originQuotaAdmission{})
 var _ = oadmission.Validator(&originQuotaAdmission{})
 
 // NewOriginResourceQuota creates a new OriginResourceQuota admission plugin that takes care of admission of
@@ -55,17 +59,29 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 }
 
 func (a *originQuotaAdmission) SetOpenshiftClient(osClient osclient.Interface) {
-	registry := quota.NewRegistry(osClient)
-	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry)
-	if err != nil {
-		glog.Fatalf("failed to initialize %s plugin: %v", pluginName, err)
-	}
-	a.kQuotaAdmission = quotaAdmission
+	a.osClient = osClient
+	a.initializeRegistry()
+}
+
+func (a *originQuotaAdmission) SetInternalRegistryClientFactory(rcFactory quotautil.InternalRegistryClientFactory) {
+	a.rcFactory = rcFactory
+	a.initializeRegistry()
 }
 
 func (a *originQuotaAdmission) Validate() error {
 	if a.kQuotaAdmission == nil {
-		return errors.New(fmt.Sprintf("%s requires an openshift client", pluginName))
+		return errors.New(fmt.Sprintf("%s requires an openshift client and registry client factory", pluginName))
 	}
 	return nil
+}
+
+func (a *originQuotaAdmission) initializeRegistry() {
+	if a.osClient != nil && a.rcFactory != nil {
+		registry := quota.NewRegistry(a.osClient, a.rcFactory)
+		quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry)
+		if err != nil {
+			glog.Fatalf("failed to initialize %s plugin: %v", pluginName, err)
+		}
+		a.kQuotaAdmission = quotaAdmission
+	}
 }

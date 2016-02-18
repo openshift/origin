@@ -76,6 +76,10 @@ func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*docke
 	return nil, dockerregistry.NewImageNotFoundError(fmt.Sprintf("%s/%s", namespace, name), id, "")
 }
 
+func (f *fakeDockerRegistryClient) BlobExists(namespace, name, id string) (bool, int64, error) {
+	return false, 0, fmt.Errorf("not implemented")
+}
+
 func TestControllerStart(t *testing.T) {
 	two := int64(2)
 	testCases := []struct {

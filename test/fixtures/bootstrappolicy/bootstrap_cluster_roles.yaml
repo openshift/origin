@@ -1440,5 +1440,58 @@ items:
     - create
     - patch
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:resource-quota-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - resourcequotas/status
+    verbs:
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - serviceaccounts
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - get
 kind: List
 metadata: {}

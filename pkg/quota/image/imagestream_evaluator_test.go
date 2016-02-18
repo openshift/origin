@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -22,6 +23,12 @@ var (
 		imageapi.ResourceImageSize,
 	}
 )
+
+type fakeRegistryClientFactory struct{}
+
+func (f *fakeRegistryClientFactory) GetClient() (dockerregistry.Client, error) {
+	return nil, fmt.Errorf("no docker registry to connect to")
+}
 
 func TestImageStreamEvaluatorUsage(t *testing.T) {
 	for _, tc := range []struct {
@@ -167,7 +174,7 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 		})
 		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.is.Namespace, tc.is))
 
-		evaluator := NewImageStreamEvaluator(fakeClient)
+		evaluator := NewImageStreamEvaluator(fakeClient, &fakeRegistryClientFactory{})
 
 		is, err := evaluator.Get(tc.is.Namespace, tc.is.Name)
 		if err != nil {
@@ -387,7 +394,7 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 		})
 		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.namespace, tc.iss...))
 
-		evaluator := NewImageStreamEvaluator(fakeClient)
+		evaluator := NewImageStreamEvaluator(fakeClient, &fakeRegistryClientFactory{})
 
 		stats, err := evaluator.UsageStats(kquota.UsageStatsOptions{Namespace: tc.namespace})
 		if err != nil {

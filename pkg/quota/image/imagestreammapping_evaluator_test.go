@@ -199,7 +199,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 		})
 		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.destISNamespace, tc.iss...))
 
-		evaluator := NewImageStreamMappingEvaluator(fakeClient)
+		evaluator := NewImageStreamMappingEvaluator(fakeClient, &fakeRegistryClientFactory{})
 
 		ism := &imageapi.ImageStreamMapping{
 			ObjectMeta: kapi.ObjectMeta{

@@ -2,7 +2,9 @@ package dockerregistry
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -10,12 +12,14 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/client/transport"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -46,6 +50,10 @@ type Connection interface {
 	// (if not specified, "latest").
 	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByTag(namespace, name, tag string) (*Image, error)
+	// BlobExists returns true and blob size if the blob identified by given id
+	// exists in particular repository. False will be returned otherwise.
+	// Can be used only on V2 registries.
+	BlobExists(namespace, name, id string) (exists bool, size int64, err error)
 }
 
 // client implements the Client interface
@@ -54,6 +62,8 @@ type client struct {
 	connections map[string]*connection
 	allowV2     bool
 }
+
+var _ Client = &client{}
 
 // NewClient returns a client object which allows public access to
 // a Docker registry. enableV2 allows a client to prefer V1 registry
@@ -80,6 +90,94 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 		return conn, nil
 	}
 	conn := newConnection(*target, c.dialTimeout, allowInsecure, c.allowV2)
+	c.connections[prefix] = conn
+	return conn, nil
+}
+
+// internalRegistryClient implements Client interface and allows to connect to an internal Docker registry.
+type internalRegistryClient struct {
+	tlsConfig *tls.Config
+	// token of a serviceaccount authorized to access imagestreams/layers to use as a password
+	bearerToken string
+	connections map[string]*connection
+}
+
+var _ Client = &internalRegistryClient{}
+
+// NewInternalRegistryClient returns a client object which allows an access to an internal Docker registry.
+func NewInternalRegistryClient(bearerToken string, caBundles ...string) (Client, error) {
+	if len(bearerToken) == 0 {
+		return nil, errors.New("You must use a client config with a token")
+	}
+
+	tlsConfig := &tls.Config{}
+
+	for _, bundle := range caBundles {
+		if bundle == "" {
+			continue
+		}
+		data, err := ioutil.ReadFile(bundle)
+		if err != nil {
+			return nil, err
+		}
+
+		if tlsConfig.RootCAs == nil {
+			tlsConfig.RootCAs = x509.NewCertPool()
+		}
+
+		tlsConfig.RootCAs.AppendCertsFromPEM(data)
+	}
+
+	return &internalRegistryClient{
+		tlsConfig:   tlsConfig,
+		bearerToken: bearerToken,
+		connections: make(map[string]*connection),
+	}, nil
+}
+
+func (c *internalRegistryClient) Connect(name string, allowInsecure bool) (Connection, error) {
+	target, err := normalizeRegistryName(name)
+	if err != nil {
+		return nil, err
+	}
+	prefix := target.String()
+	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
+		return conn, nil
+	}
+
+	tlsConfig := *c.tlsConfig
+	if allowInsecure {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	transport := knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: &tlsConfig,
+	})
+
+	wrappedTransport, err := kclient.HTTPWrappersForConfig(
+		&kclient.Config{
+			Username: "unused",
+			Password: c.bearerToken,
+		},
+		transport)
+	if err != nil {
+		return nil, fmt.Errorf("failed get http wrappers: %v", err)
+	}
+
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar:       jar,
+		Transport: wrappedTransport,
+	}
+
+	conn := &connection{
+		url:    *target,
+		client: client,
+		cached: make(map[string]repository),
+
+		allowInsecure: allowInsecure,
+	}
+
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -248,6 +346,23 @@ func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
 	}
 
 	return repo.getTaggedImage(c, searchTag, tag)
+}
+
+// BlobExists returns true and blob size if the given blob exists in the repository.
+func (c *connection) BlobExists(namespace, name, id string) (bool, int64, error) {
+	if len(namespace) == 0 {
+		return false, 0, fmt.Errorf("image namespace must be specified")
+	}
+	if len(name) == 0 {
+		return false, 0, fmt.Errorf("image name must be specified")
+	}
+
+	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
+	if err != nil {
+		return false, 0, err
+	}
+
+	return repo.checkBlobExistence(c, id)
 }
 
 // getCachedRepository returns a repository interface matching the provided name and
@@ -448,6 +563,7 @@ type repository interface {
 	getTags(c *connection) (map[string]string, error)
 	getTaggedImage(c *connection, tag, userTag string) (*Image, error)
 	getImage(c *connection, image, userTag string) (*Image, error)
+	checkBlobExistence(c *connection, ref string) (bool, int64, error)
 }
 
 // v2repository exposes methods for accessing a named Docker V2 repository on a server.
@@ -576,6 +692,54 @@ func (repo *v2repository) getImage(c *connection, image, userTag string) (*Image
 	return repo.getTaggedImage(c, image, userTag)
 }
 
+func (repo *v2repository) checkBlobExistence(c *connection, ref string) (bool, int64, error) {
+	endpoint := repo.endpoint
+	endpoint.Path = path.Join(endpoint.Path, fmt.Sprintf("/v2/%s/blobs/%s", repo.name, ref))
+	req, err := http.NewRequest("HEAD", endpoint.String(), nil)
+	if err != nil {
+		return false, 0, fmt.Errorf("error creating request: %v", err)
+	}
+
+	if len(repo.token) > 0 {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", repo.token))
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return false, 0, convertConnectionError(c.url.String(), fmt.Errorf("error checking blob existence for %q in %s: %v", ref, repo.name, err))
+	}
+	defer resp.Body.Close()
+
+	switch code := resp.StatusCode; {
+	case code == http.StatusUnauthorized:
+		if len(repo.token) != 0 {
+			delete(c.cached, repo.name)
+			// docker will not return a NotFound on any repository URL
+			return false, 0, nil
+		}
+		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
+		if err != nil {
+			return false, 0, fmt.Errorf("error checking blob existence for %q in %s: %v", ref, repo.name, err)
+		}
+		repo.token = token
+		return repo.checkBlobExistence(c, ref)
+	case code == http.StatusNotFound:
+		return false, 0, nil
+	case code >= 300 || resp.StatusCode < 200:
+		// token might have expired - evict repo from cache so we can get a new one on retry
+		delete(c.cached, repo.name)
+
+		return false, 0, fmt.Errorf("error checking blob existence: server returned %d", resp.StatusCode)
+	}
+
+	sizeStr := resp.Header.Get("Content-Length")
+	size, err := strconv.ParseInt(sizeStr, 10, 64)
+	if err != nil {
+		return true, 0, fmt.Errorf("failed to parse blob length %s: %v", sizeStr, err)
+
+	}
+	return true, size, nil
+}
+
 // v1repository exposes methods for accessing a named Docker V1 repository on a server.
 type v1repository struct {
 	name     string
@@ -688,6 +852,10 @@ func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image
 		return nil, err
 	}
 	return &Image{Image: *dockerImage}, nil
+}
+
+func (repo *v1repository) checkBlobExistence(c *connection, ref string) (bool, int64, error) {
+	return false, 0, fmt.Errorf("registry v1 does not support blob existence check")
 }
 
 // errTagNotFound is an error indicating the requested tag does not exist on the server. May be returned on
