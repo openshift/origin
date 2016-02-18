@@ -33,7 +33,6 @@ func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsOverride: &secs,
-		Enabled: true,
 	}
 	kclient := setupRunOnceDurationTest(t, config, nil)
 	pod, err := kclient.Pods(testutil.Namespace()).Create(testRunOnceDurationPod())
@@ -49,7 +48,6 @@ func TestRunOnceDurationAdmissionPluginProjectOverride(t *testing.T) {
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsOverride: &secs,
-		Enabled: true,
 	}
 	nsAnnotations := map[string]string{
 		pluginapi.ActiveDeadlineSecondsOverrideAnnotation: "100",
