@@ -11,12 +11,13 @@
             <h1>
               Project Settings
               <div class="pull-right dropdown">
+                <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                  Actions
+                  <span class="caret" aria-hidden="true"></span>
+                </button>
                 <a href=""
-                  class="dropdown-toggle resource-actions-dropdown"
-                  data-toggle="dropdown">
-                  <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
-                  <span class="sr-only">Actions</span>
-                </a>
+                   class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
                     <a
@@ -24,9 +25,7 @@
                       role="button"
                       class="button-edit"
                       ng-click="setEditing(true)"
-                      ng-class="{ 'disabled-link': show.editing }">
-                      <i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit
-                    </a>
+                      ng-class="{ 'disabled-link': show.editing }">Edit</a>
                   </li>
                   <li>
                     <delete-link

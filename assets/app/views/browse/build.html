@@ -25,14 +25,19 @@
                           ng-disabled="!canBuild">Rebuild</button>
 
                   <!-- Secondary Actions -->
-                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                    Actions
+                    <span class="caret" aria-hidden="true"></span>
+                  </button>
+                  <a href=""
+                     class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)"
                         class="visible-xs-inline">
                       <a href=""
                          role="button"
-                         ng-click="cancelBuild()"
-                      ><i class="fa fa-ban fa-fw" aria-hidden="true"></i> Cancel</a>
+                         ng-click="cancelBuild()">Cancel</a>
                     </li>
                     <li class="visible-xs-inline"
                         ng-class="{ disabled: !canBuild }"
@@ -41,8 +46,7 @@
                          role="button"
                          ng-click="cloneBuild()"
                          ng-attr-aria-disabled="{{canBuild ? undefined : 'true'}}"
-                         ng-class="{ 'disabled-link': !canBuild }"
-                      ><i class="fa fa-refresh fa-fw"></i> Rebuild</a>
+                         ng-class="{ 'disabled-link': !canBuild }">Rebuild</a>
                     </li>
                     <li>
                       <edit-link

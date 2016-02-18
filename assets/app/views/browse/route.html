@@ -18,7 +18,13 @@
               </route-warnings>
               <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
               <div class="pull-right dropdown">
-                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                  Actions
+                  <span class="caret" aria-hidden="true"></span>
+                </button>
+                <a href=""
+                   class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
                     <edit-link
@@ -39,10 +45,10 @@
               </div>
             </h1>
             <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels> 
-          </div>         
+          </div>
         </div>
       </div><!-- /middle-header-->
-      <div class="middle-content">
+      <div class="middle-content gutter-top">
         <div class="container-fluid">
           <div class="row" ng-if="route">
             <div class="col-md-12">
