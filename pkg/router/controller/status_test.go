@@ -109,10 +109,10 @@ func TestStatusResetsHost(t *testing.T) {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionTrue || condition.Reason != "" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != touched || condition.Status != kapi.ConditionTrue || condition.Reason != "" {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
-	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, now.Time) {
+	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, touched.Time) {
 		t.Fatalf("did not record last modification time: %#v %#v", admitter.expected, v)
 	}
 }
@@ -194,6 +194,43 @@ func TestStatusRecordRejection(t *testing.T) {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, now.Time) {
+		t.Fatalf("expected empty time: %#v", v)
+	}
+}
+
+func TestStatusRecordRejectionNoChange(t *testing.T) {
+	now := unversioned.Now()
+	nowFn = func() unversioned.Time { return now }
+	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	p := &fakePlugin{}
+	c := testclient.NewSimpleFake(&routeapi.Route{})
+	admitter := NewStatusAdmitter(p, c, "test")
+	admitter.RecordRouteRejection(&routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
+		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
+		Status: routeapi.RouteStatus{
+			Ingress: []routeapi.RouteIngress{
+				{
+					Host:       "route1.test.local",
+					RouterName: "test",
+					Conditions: []routeapi.RouteIngressCondition{
+						{
+							Type:               routeapi.RouteAdmitted,
+							Status:             kapi.ConditionFalse,
+							Reason:             "Failed",
+							Message:            "generic error",
+							LastTransitionTime: &touched,
+						},
+					},
+				},
+			},
+		},
+	}, "Failed", "generic error")
+
+	if len(c.Actions()) != 0 {
+		t.Fatalf("unexpected actions: %#v", c.Actions())
+	}
+	if v, ok := admitter.expected.Peek(types.UID("uid1")); ok {
 		t.Fatalf("expected empty time: %#v", v)
 	}
 }
