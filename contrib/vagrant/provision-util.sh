@@ -19,6 +19,11 @@ os::provision::build-origin() {
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
     echo "Building openshift"
+    if os::provision::in-container; then
+      # Default to disabling use of a release build for dind to allow
+      # ci to validate a developer's dev cluster workflow.
+      export OS_RELEASE=${OS_RELEASE:-n}
+    fi
     ${origin_root}/hack/build-go.sh
   fi
 }
