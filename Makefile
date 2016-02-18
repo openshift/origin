@@ -31,6 +31,13 @@ all build:
 	hack/build-go.sh $(WHAT)
 .PHONY: all build
 
+# Build Code with E2E tests artifact.
+# Example:
+# make e2e
+e2e:
+	hack/build-go.sh test/e2e/e2e.test
+.PHONY: e2e
+
 # Run core verification and all self contained tests.
 #
 # Example:
@@ -38,7 +45,6 @@ all build:
 check: | build verify
 	$(MAKE) test-unit test-cmd -o build -o verify
 .PHONY: check
-
 
 # Verify code conventions are properly setup.
 #
