@@ -845,4 +845,56 @@ angular.module('openshiftConsole')
 
       return portDisplayValue(servicePort.port, servicePort.targetPort, servicePort.protocol);
     };
+  })
+  .filter('sentenceCase', function() {
+    // Converts a camel case string to sentence case
+    return function(str) {
+      if (!str) {
+        return str;
+      }
+
+      // Unfortunately, _.lowerCase() and _.upperFirst() aren't in our lodash version.
+      var lower = _.startCase(str).toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    };
+  })
+  .filter('podStatus', function() {
+    // Return results that match kubernetes/pkg/kubectl/resource_printer.go
+    return function(pod) {
+      if (!pod || (!pod.deletionTimestamp && !pod.status)) {
+        return '';
+      }
+
+      if (pod.deletionTimestamp) {
+        return 'Terminating';
+      }
+
+      var reason = pod.status.reason || pod.status.phase;
+
+      // Print detailed container reasons if available. Only the last will be
+      // displayed if multiple containers have this detail.
+      angular.forEach(pod.status.containerStatuses, function(containerStatus) {
+        var containerReason = _.get(containerStatus, 'state.waiting.reason') || _.get(containerStatus, 'state.terminated.reason'),
+            signal,
+            exitCode;
+
+        if (containerReason) {
+          reason = containerReason;
+          return;
+        }
+
+        signal = _.get(containerStatus, 'state.terminated.signal');
+        if (signal) {
+          reason = "Signal: " + signal;
+          return;
+        }
+
+        exitCode = _.get(containerStatus, 'state.terminated.exitCode');
+        if (exitCode) {
+          reason = "Exit Code: " + exitCode;
+        }
+      });
+
+      return reason;
+    };
   });
