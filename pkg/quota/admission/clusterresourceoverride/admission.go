@@ -70,10 +70,16 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 			memoryRequestToLimitRatio: inf.NewDec(parsed.MemoryRequestToLimitPercent, 2),
 		}
 	}
+
+	limitRanger, err := limitranger.NewLimitRanger(client, wrapLimit)
+	if err != nil {
+		return nil, err
+	}
+
 	return &clusterResourceOverridePlugin{
 		Handler:     admission.NewHandler(admission.Create),
 		config:      internal,
-		LimitRanger: limitranger.NewLimitRanger(client, wrapLimit),
+		LimitRanger: limitRanger,
 	}, nil
 }
 
