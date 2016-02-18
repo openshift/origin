@@ -567,6 +567,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
 
+		_, _, gcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGCControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for pod gc controller: %v", err)
+		}
+
 		namespaceControllerClientConfig, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
@@ -604,6 +609,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunPersistentVolumeClaimBinder(binderClient)
 		kc.RunPersistentVolumeProvisioner(provisionerClient)
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+		kc.RunGCController(gcClient)
 
 		glog.Infof("Started Kubernetes Controllers")
 	} else {
