@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 )
 
+// TODO: use dnsDomain instead of cluster.local
 const DefaultOpenshiftDockerURL = "docker-registry.default.svc.cluster.local:5000"
 
 // DockerRegistryServiceControllerOptions contains options for the DockerRegistryServiceController

@@ -74,6 +74,7 @@ func createdDockercfgSecret() *api.Secret {
 		},
 		Type: api.SecretTypeDockercfg,
 		Data: map[string][]byte{
+			// TODO: use dnsDomain instead of cluster.local
 			api.DockerConfigKey: []byte(`{"docker-registry.default.svc.cluster.local":{"Username":"serviceaccount","Password":"ABC","Email":"serviceaccount@example.org"}}`),
 		},
 	}

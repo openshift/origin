@@ -396,6 +396,8 @@ type MasterClients struct {
 
 // DNSConfig holds the necessary configuration options for DNS
 type DNSConfig struct {
+	// DNSDomain is the authoritative domain of the DNS server.
+	DNSDomain string `json:"dnsDomain"`
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string `json:"bindAddress"`
 	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",

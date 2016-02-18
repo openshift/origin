@@ -48,6 +48,7 @@ function wait_for_app() {
 
 # service dns entry is visible via master service
 # find the IP of the master service by asking the API_HOST to verify DNS is running there
+// TODO: use dnsDomain instead of cluster.local
 MASTER_SERVICE_IP="$(dig @${API_HOST} "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
 [ "$(dig +tcp @${MASTER_SERVICE_IP} "kubernetes.default.svc.cluster.local." +short A | head -n 1)" == "${MASTER_SERVICE_IP}" ]
@@ -86,6 +87,7 @@ wait_for_registry
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
+// TODO: use dnsDomain instead of cluster.local
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
 

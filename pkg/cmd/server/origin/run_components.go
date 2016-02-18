@@ -151,6 +151,8 @@ func (c *MasterConfig) RunDNSServer() {
 	case "tcp6":
 		config.BindNetwork = "ipv6"
 	}
+	config.Domain = c.Options.DNSConfig.DNSDomain
+	config.Local = "openshift.default.svc." + config.Domain
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
 	config.NoRec = !c.Options.DNSConfig.AllowRecursiveQueries
 

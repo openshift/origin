@@ -92,6 +92,7 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 	return
 }
 
+// TODO: use dnsDomain instead of cluster.local
 const registryHostname = "docker-registry.default.svc.cluster.local" // standard registry service DNS
 const registryPort = "5000"
 
@@ -159,6 +160,7 @@ func processRegistryRequest(client *http.Client, url string, token string, r typ
 		}
 		return nil
 	} else if strings.Contains(err.Error(), "net/http: request canceled") {
+		// TODO: use dnsDomain instead of cluster.local
 		// (*url.Error) Head https://docker-registry.default.svc.cluster.local:5000/v2/: net/http: request canceled while waiting for connection
 		r.Error("DP1014", err, "Request to integrated registry timed out; this typically indicates network or SDN problems.")
 		return nil
