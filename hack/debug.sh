@@ -501,7 +501,7 @@ esac
 
 logdir=$(mktemp --tmpdir -d openshift-sdn-debug-XXXXXXXXX)
 mkdir $logdir/meta
-cp $self $logdir/meta
+cp $self $logdir/meta/debug.sh
 mkdir $logdir/master
 mkdir $logdir/nodes
 do_master_and_nodes "$1" |& tee $logdir/log
