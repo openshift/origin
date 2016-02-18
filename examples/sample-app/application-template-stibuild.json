@@ -203,7 +203,6 @@
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": true,
               "containerNames": [
                 "ruby-helloworld"
               ],
@@ -212,9 +211,6 @@
                 "name": "origin-ruby-sample:latest"
               }
             }
-          },
-          {
-            "type": "ConfigChange"
           }
         ],
         "replicas": 2,

@@ -32,6 +32,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 	configChanged := false
 	errs := field.ErrorList{}
 	causes := []*deployapi.DeploymentCause{}
+	isAutomatic := false
 	for i, trigger := range config.Spec.Triggers {
 		params := trigger.ImageChangeParams
 
@@ -79,6 +80,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 				// Log the last triggered image ID
 				params.LastTriggeredImage = latestEvent.DockerImageReference
 				containerChanged = true
+				isAutomatic = params.Automatic
 			}
 		}
 
@@ -104,7 +106,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 
 	// Bump the version if we updated containers or if this is an initial
 	// deployment
-	if configChanged || config.Status.LatestVersion == 0 {
+	if configChanged && isAutomatic {
 		config.Status.Details = &deployapi.DeploymentDetails{
 			Causes: causes,
 		}
