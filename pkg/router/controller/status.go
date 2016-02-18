@@ -148,21 +148,26 @@ func (a *StatusAdmitter) hasIngressBeenTouched(route *routeapi.Route, lastTouch 
 	return true
 }
 
-// recordIngressTouch
-func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, err error) {
+// recordIngressTouch tracks whether the ingress record updated succeeded and returns true if the admitter can
+// continue. Conflict errors are treated as no error, but indicate the touch was not successful and the caller
+// should retry.
+func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, err error) (bool, error) {
 	switch {
 	case err == nil:
 		if touch != nil {
 			a.expected.Add(route.UID, touch.Time)
 		}
+		return true, nil
 	case errors.IsConflict(err):
 		a.expected.Add(route.UID, time.Time{})
+		return false, nil
 	}
+	return false, err
 }
 
 // admitRoute returns true if the route has already been accepted to this router, or
 // updates the route to contain an accepted condition. Returns an error if the route could
-// not be admitted.
+// not be admitted due to a failure, or false if the route can't be admitted at this time.
 func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name string) (bool, error) {
 	ingress, updated := findOrCreateIngress(route, name)
 	if !updated {
@@ -186,8 +191,7 @@ func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.
 	})
 	glog.V(4).Infof("admit: admitting route by updating status: %s (%t): %s", route.Name, updated, route.Spec.Host)
 	_, err := oc.Routes(route.Namespace).UpdateStatus(route)
-	a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
-	return err == nil, err
+	return a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
 }
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
