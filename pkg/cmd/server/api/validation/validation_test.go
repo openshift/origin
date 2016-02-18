@@ -58,6 +58,26 @@ func TestValidateServingInfo(t *testing.T) {
 				},
 			},
 		},
+		"namedCertificates valid wildcard spec": {
+			ServingInfo: api.ServingInfo{
+				BindAddress: "0.0.0.0:1234",
+				BindNetwork: "tcp",
+				ServerCert:  api.CertInfo{CertFile: certFileName, KeyFile: keyFileName},
+				NamedCertificates: []api.NamedCertificate{
+					{Names: []string{"*.wildcard.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
+				},
+			},
+		},
+		"namedCertificates specific host for wildcard cert": {
+			ServingInfo: api.ServingInfo{
+				BindAddress: "0.0.0.0:1234",
+				BindNetwork: "tcp",
+				ServerCert:  api.CertInfo{CertFile: certFileName, KeyFile: keyFileName},
+				NamedCertificates: []api.NamedCertificate{
+					{Names: []string{"www.wildcard.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
+				},
+			},
+		},
 
 		"namedCertificates without default cert": {
 			ServingInfo: api.ServingInfo{
@@ -184,25 +204,26 @@ func TestValidateServingInfo(t *testing.T) {
 // "127.0.0.1" and "[::1]", expiring at the last second of 2049 (the end
 // of ASN.1 time).
 // generated from src/crypto/tls:
-// go run generate_cert.go  --rsa-bits 512 --host 127.0.0.1,::1,example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
+// go run generate_cert.go  --rsa-bits 512 --host 127.0.0.1,::1,example.com,*.wildcard.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
 var localhostCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIBdzCCASOgAwIBAgIBADALBgkqhkiG9w0BAQUwEjEQMA4GA1UEChMHQWNtZSBD
-bzAeFw03MDAxMDEwMDAwMDBaFw00OTEyMzEyMzU5NTlaMBIxEDAOBgNVBAoTB0Fj
-bWUgQ28wWjALBgkqhkiG9w0BAQEDSwAwSAJBAN55NcYKZeInyTuhcCwFMhDHCmwa
-IUSdtXdcbItRB/yfXGBhiex00IaLXQnSU+QZPRZWYqeTEbFSgihqi1PUDy8CAwEA
-AaNoMGYwDgYDVR0PAQH/BAQDAgCkMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1Ud
-EwEB/wQFMAMBAf8wLgYDVR0RBCcwJYILZXhhbXBsZS5jb22HBH8AAAGHEAAAAAAA
-AAAAAAAAAAAAAAEwCwYJKoZIhvcNAQEFA0EAAoQn/ytgqpiLcZu9XKbCJsJcvkgk
-Se6AbGXgSlq+ZCEVo0qIwSgeBqmsJxUu7NCSOwVJLYNEBO2DtIxoYVk+MA==
+MIIBmjCCAUagAwIBAgIQNElZIQ+5sNqQ5FlhpXDzvzALBgkqhkiG9w0BAQswEjEQ
+MA4GA1UEChMHQWNtZSBDbzAgFw03MDAxMDEwMDAwMDBaGA8yMDg0MDEyOTE2MDAw
+MFowEjEQMA4GA1UEChMHQWNtZSBDbzBcMA0GCSqGSIb3DQEBAQUAA0sAMEgCQQDX
+oyZQ4OZGzWC+UqL+F671Gtv6wxyrQWbyu8z5KxrHCxObGTMG4fcSOTrJ5ApwIXuW
+O6KuXL/QwbdI+0V43pNhAgMBAAGjeDB2MA4GA1UdDwEB/wQEAwIApDATBgNVHSUE
+DDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MD4GA1UdEQQ3MDWCC2V4YW1w
+bGUuY29tgg4qLndpbGRjYXJkLmNvbYcEfwAAAYcQAAAAAAAAAAAAAAAAAAAAATAL
+BgkqhkiG9w0BAQsDQQDHWUY1n4YZNm2Cuutg5NGaRefzzK9qgksi7bIs9bH0tYPH
+/Vp4NKH+27aG54X5U+Vw1aXS9CKhqEky5CZMfHtn
 -----END CERTIFICATE-----`)
 
 // localhostKey is the private key for localhostCert.
 var localhostKey = []byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIBPAIBAAJBAN55NcYKZeInyTuhcCwFMhDHCmwaIUSdtXdcbItRB/yfXGBhiex0
-0IaLXQnSU+QZPRZWYqeTEbFSgihqi1PUDy8CAwEAAQJBAQdUx66rfh8sYsgfdcvV
-NoafYpnEcB5s4m/vSVe6SU7dCK6eYec9f9wpT353ljhDUHq3EbmE4foNzJngh35d
-AekCIQDhRQG5Li0Wj8TM4obOnnXUXf1jRv0UkzE9AHWLG5q3AwIhAPzSjpYUDjVW
-MCUXgckTpKCuGwbJk7424Nb8bLzf3kllAiA5mUBgjfr/WtFSJdWcPQ4Zt9KTMNKD
-EUO0ukpTwEIl6wIhAMbGqZK3zAAFdq8DD2jPx+UJXnh0rnOkZBzDtJ6/iN69AiEA
-1Aq8MJgTaYsDQWyU/hDq5YkDJc9e9DSCvUIzqxQWMQE=
+MIIBOwIBAAJBANejJlDg5kbNYL5Sov4XrvUa2/rDHKtBZvK7zPkrGscLE5sZMwbh
+9xI5OsnkCnAhe5Y7oq5cv9DBt0j7RXjek2ECAwEAAQJBAIMFMma5/7DNYRbDBx30
+Le3nX/nBS04S8wZRbX2H30FIL/PU4mezFiDoVlcIEHUBi1TAcwQux3FFg/8f+j6w
+rAECIQDzWRsqow24qQL5nPCvA9RSkNgmZSCpog5hKSK1vgNS8QIhAOLZOJlLVo8v
+IUaAt4uvQJVE/ClFi7sLq2hnduJjiGdxAiBCcldHqiQqAwRL8j2KHGqSbPiIa16i
+0xxIDXpr08mGkQIgfV1CVCU4buTC5O2Zgc6WSGfZWw2eDP6D+azEHJSY+2ECIQCU
++w6O+Pa96Fi0XvY8wVsg1h1eNUjAumxThaf9Sp64lw==
 -----END RSA PRIVATE KEY-----`)

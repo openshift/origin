@@ -146,6 +146,11 @@ func ValidateNamedCertificates(fldPath *field.Path, namedCertificates []api.Name
 						foundMatch = true
 						break
 					}
+					// if the cert has a wildcard dnsName, and we've configured a non-wildcard name, see if our specified name will match against the dnsName.
+					if strings.HasPrefix(dnsName, "*.") && !strings.HasPrefix(name, "*.") && cmdutil.HostnameMatches(name, dnsName) {
+						foundMatch = true
+						break
+					}
 				}
 				if !foundMatch {
 					validationResults.AddWarnings(field.Invalid(jdxPath, name, "the specified certificate does not have a CommonName or DNS subjectAltName that matches this name"))
