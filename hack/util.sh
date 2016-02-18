@@ -552,7 +552,7 @@ function cleanup_openshift {
 		if docker version >/dev/null 2>&1; then
 			echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
 			if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-				echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
+				echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm -v >/dev/null
 			fi
 		fi
 		
