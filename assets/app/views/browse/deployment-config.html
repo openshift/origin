@@ -39,6 +39,10 @@
                         ng-click="startLatestDeployment()">Deploy</a>
                     </li>
                     <li>
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}"
+                         role="button">Attach Storage</a>
+                    </li>
+                    <li>
                       <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
                         role="button">Set Resource Limits</a>
                     </li>
@@ -113,7 +117,8 @@
                                   detailed="true"></pod-template>
                           </dl>
                           <h4 style="margin-top: 20px;">Volumes</h4>
-                          <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
+                          <a ng-if="!deploymentConfig.spec.template.spec.volumes.length"
+                             ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
                         <div class="col-lg-6">

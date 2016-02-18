@@ -34,6 +34,10 @@
                      data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li>
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
+                         role="button">Attach Storage</a>
+                    </li>
+                    <li>
                       <edit-link
                         resource="deployment"
                         kind="replicationcontrollers"

@@ -22,6 +22,10 @@
                      class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
                      data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
+                    <li ng-if="pod | annotation:'deploymentConfig'">
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}"
+                         role="button">Attach Storage</a>
+                    </li>
                     <li>
                       <edit-link
                         resource="pod"
