@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -79,7 +80,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 			termMatches = append(termMatches, matches...)
 		}
 
-		if r.Client == nil {
+		if r.Client == nil || reflect.ValueOf(r.Client).IsNil() {
 			continue
 		}
 
