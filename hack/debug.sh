@@ -36,7 +36,7 @@ filter_env () {
 
 log_system () {
     logpath=$1
-    sevice_name=$2
+    service_name=$2
 
     echo_and_eval  journalctl --boot                                  &> $logpath/journal-full
     echo_and_eval  journalctl -u $service_name                        &> $logpath/journal-openshift
