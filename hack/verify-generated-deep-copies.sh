@@ -9,7 +9,7 @@ source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 
-echo "===== Verifying Generated Conversions ====="
+echo "===== Verifying Generated Deep Copies ====="
 echo "Building gendeepcopy binary..."
 if ! buildout=`"${OS_ROOT}/hack/build-go.sh" tools/gendeepcopy 2>&1`
 then
