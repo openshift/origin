@@ -176,6 +176,9 @@ type MasterConfig struct {
 	// AdmissionConfig contains admission control plugin configuration.
 	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
 
+	// ControllerConfig holds configuration values for controllers
+	ControllerConfig ControllerConfig `json:"controllerConfig"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
@@ -1170,4 +1173,19 @@ type AdmissionConfig struct {
 	// PluginOrderOverride is a list of admission control plugin names that will be installed
 	// on the master. Order is significant. If empty, a default list of plugins is used.
 	PluginOrderOverride []string `json:"pluginOrderOverride,omitempty"`
+}
+
+// ControllerConfig holds configuration values for controllers
+type ControllerConfig struct {
+	// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+	// pods fullfilling a service to serve with.
+	ServiceServingCert ServiceServingCert `json:"serviceServingCert"`
+}
+
+// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+// pods fullfilling a service to serve with.
+type ServiceServingCert struct {
+	// Signer holds the signing information used to automatically sign serving certificates.
+	// If this value is nil, then certs are not signed automatically.
+	Signer *CertInfo `json:"signer"`
 }

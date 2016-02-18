@@ -113,7 +113,7 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 	var ca *crypto.TLSCertificateConfig
 	written := true
 	if o.Overwrite {
-		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
+		ca, err = signerCert.MakeAndWriteServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
 	} else {
 		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
 	}

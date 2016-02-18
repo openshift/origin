@@ -105,6 +105,15 @@ func (CertInfo) SwaggerDoc() map[string]string {
 	return map_CertInfo
 }
 
+var map_ControllerConfig = map[string]string{
+	"":                   "ControllerConfig holds configuration values for controllers",
+	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fullfilling a service to serve with.",
+}
+
+func (ControllerConfig) SwaggerDoc() map[string]string {
+	return map_ControllerConfig
+}
+
 var map_DNSConfig = map[string]string{
 	"":                      "DNSConfig holds the necessary configuration options for DNS",
 	"bindAddress":           "BindAddress is the ip:port to serve DNS on",
@@ -404,6 +413,7 @@ var map_MasterConfig = map[string]string{
 	"pauseControllers":       "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them.",
 	"controllerLeaseTTL":     "ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1.",
 	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
+	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
 	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
 	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
 	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
@@ -692,6 +702,15 @@ var map_ServiceAccountConfig = map[string]string{
 
 func (ServiceAccountConfig) SwaggerDoc() map[string]string {
 	return map_ServiceAccountConfig
+}
+
+var map_ServiceServingCert = map[string]string{
+	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fullfilling a service to serve with.",
+	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+}
+
+func (ServiceServingCert) SwaggerDoc() map[string]string {
+	return map_ServiceServingCert
 }
 
 var map_ServingInfo = map[string]string{

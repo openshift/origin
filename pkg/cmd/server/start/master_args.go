@@ -180,6 +180,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
+	serviceServingCertSigner := admin.DefaultServiceSignerCAInfo(args.ConfigDir.Value())
+
 	dnsServingInfo := servingInfoForAddr(&dnsBindAddr)
 
 	config := &configapi.MasterConfig{
@@ -254,6 +256,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		VolumeConfig: configapi.MasterVolumeConfig{
 			DynamicProvisioningEnabled: true,
+		},
+
+		ControllerConfig: configapi.ControllerConfig{
+			ServiceServingCert: configapi.ServiceServingCert{
+				Signer: &serviceServingCertSigner,
+			},
 		},
 	}
 
