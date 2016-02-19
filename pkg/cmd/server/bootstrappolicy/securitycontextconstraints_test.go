@@ -14,6 +14,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		SecurityContextConstraintHostMountAndAnyUID,
 		SecurityContextConstraintHostNS,
 		SecurityContextConstraintsAnyUID,
+		SecurityContextConstraintsHostNetwork,
 	}
 	expectedGroups, expectedUsers := getExpectedAccess()
 
