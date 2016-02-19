@@ -52,8 +52,8 @@ type MasterArgs struct {
 	StartControllers bool
 	PauseControllers bool
 
-	// DNSDomain is the authoritative domain of the DNS server.
-	DNSDomain string
+	// ClusterDomain is the authoritative domain of the DNS server.
+	ClusterDomain string
 
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
@@ -86,7 +86,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
 	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
-	flags.StringVar(&args.DNSDomain, prefix+"dns-domain", "cluster.local.", "The authoritative domain of the DNS server.")
+	flags.StringVar(&args.ClusterDomain, prefix+"cluster-domain", "cluster.local", "The authoritative domain of the DNS server.")
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
 	nodes := []string{}
@@ -107,7 +107,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
-		DNSDomain:        "cluster.local.",
+		ClusterDomain:    "cluster.local",
 
 		ConfigDir: &util.StringFlag{},
 
@@ -141,7 +141,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	if err != nil {
 		return nil, err
 	}
-	dnsDomain, err := args.GetDNSDomain()
+	clusterDomain, err := args.GetClusterDomain()
 	if err != nil {
 		return nil, err
 	}
@@ -217,9 +217,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		DNSConfig: &configapi.DNSConfig{
-			DNSDomain:   dnsDomain,
-			BindAddress: dnsServingInfo.BindAddress,
-			BindNetwork: dnsServingInfo.BindNetwork,
+			ClusterDomain: clusterDomain,
+			BindAddress:   dnsServingInfo.BindAddress,
+			BindNetwork:   dnsServingInfo.BindNetwork,
 		},
 
 		MasterClients: configapi.MasterClients{
@@ -472,11 +472,11 @@ func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 
 	allHostnames := sets.NewString(
 		"localhost", "127.0.0.1",
-		"openshift.default.svc."+args.DNSDomain,
+		"openshift.default.svc."+args.ClusterDomain,
 		"openshift.default.svc",
 		"openshift.default",
 		"openshift",
-		"kubernetes.default.svc."+args.DNSDomain,
+		"kubernetes.default.svc."+args.ClusterDomain,
 		"kubernetes.default.svc",
 		"kubernetes.default",
 		"kubernetes",
@@ -541,16 +541,13 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 	return url.Parse(masterAddr)
 }
 
-func (args MasterArgs) GetDNSDomain() (string, error) {
-	if args.DNSDomain != "" {
-		dnsDomain := args.DNSDomain
-		if !strings.HasSuffix(dnsDomain, ".") {
-			dnsDomain += "."
-		}
-		return dnsDomain, nil
+func (args MasterArgs) GetClusterDomain() (string, error) {
+	if args.ClusterDomain != "" {
+		clusterDomain := strings.TrimSuffix(args.ClusterDomain, ".")
+		return clusterDomain, nil
 	}
-	dnsDomain := "cluster.local."
-	return dnsDomain, nil
+	clusterDomain := "cluster.local"
+	return clusterDomain, nil
 }
 
 func (args MasterArgs) GetDNSBindAddress() (flagtypes.Addr, error) {

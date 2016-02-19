@@ -33,7 +33,7 @@ const (
 	// Standard locations for the secrets mounted in pods
 	StandardMasterCaPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	StandardTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	// TODO: use dnsDomain instead of cluster.local
+	// TODO: use clusterDomain instead of cluster.local
 	StandardMasterUrl = "https://kubernetes.default.svc.cluster.local"
 )
 

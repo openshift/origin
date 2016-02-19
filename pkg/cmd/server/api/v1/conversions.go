@@ -29,7 +29,6 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}
 			if len(obj.RoutingConfig.Subdomain) == 0 {
-				// TODO: use dnsDomain instead of cluster.local
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
 
