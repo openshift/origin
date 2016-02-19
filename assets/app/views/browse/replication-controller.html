@@ -23,6 +23,10 @@
                    data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
+                    <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
+                       role="botton">Attach Storage</a>
+                  </li>
+                  <li>
                     <a href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
                        role="button">Set Resource Limits</a>
                   </li>
