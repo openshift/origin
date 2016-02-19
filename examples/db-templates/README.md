@@ -14,14 +14,14 @@ The examples can also be tweaked to create new templates.
 For each supported database, there are two template files.
 
 Files named `*-ephemeral-template.json` use
-"[emptyDir](https://docs.openshift.org/latest/dev_guide/volumes.html)" volumes
+"[emptyDir](https://docs.openshift.com/enterprise/latest/dev_guide/volumes.html)" volumes
 for data storage, which means that data is lost after a pod restart.
 This is tolerable for experimenting, but not suitable for production use.
 
 The other templates, named `*-persistent-template.json`, use [persistent volume
-claims](https://docs.openshift.org/latest/architecture/additional_concepts/storage.html#persistent-volume-claims)
+claims](https://docs.openshift.com/enterprise/latest/architecture/additional_concepts/storage.html#persistent-volume-claims)
 to request persistent storage provided by [persistent
-volumes](https://docs.openshift.org/latest/architecture/additional_concepts/storage.html#persistent-volumes),
+volumes](https://docs.openshift.com/enterprise/latest/architecture/additional_concepts/storage.html#persistent-volumes),
 that must have been created upfront.
 
 
@@ -95,6 +95,6 @@ new-app`.
 The usage of each supported database image is further documented in the links
 below:
 
-- [MySQL](https://docs.openshift.org/latest/using_images/db_images/mysql.html)
-- [PostgreSQL](https://docs.openshift.org/latest/using_images/db_images/postgresql.html)
-- [MongoDB](https://docs.openshift.org/latest/using_images/db_images/mongodb.html)
+- [MySQL](https://docs.openshift.com/enterprise/latest/using_images/db_images/mysql.html)
+- [PostgreSQL](https://docs.openshift.com/enterprise/latest/using_images/db_images/postgresql.html)
+- [MongoDB](https://docs.openshift.com/enterprise/latest/using_images/db_images/mongodb.html)

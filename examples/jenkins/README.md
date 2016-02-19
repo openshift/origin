@@ -57,7 +57,7 @@ Steps
 
         $ oc new-app jenkins-ephemeral-template.json
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.com/enterprise/latest/admin_guide/persistent_storage_nfs.html) setup.  
     
 5. Retrieve the ip and port of the jenkins service that was just created:
    

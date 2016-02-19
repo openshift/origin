@@ -1,9 +1,9 @@
 Deploying in OpenShift
 ======================
 
-This guide demonstrates different types of deployments in OpenShift. The scenarios described below cover the main ways that applications can be updated. See the [OpenShift docs](https://docs.openshift.org/latest/dev_guide/deployments.html) for more details on managing deployments in OpenShift.
+This guide demonstrates different types of deployments in OpenShift. The scenarios described below cover the main ways that applications can be updated. See the [OpenShift docs](https://docs.openshift.com/enterprise/latest/dev_guide/deployments.html) for more details on managing deployments in OpenShift.
 
-The examples below assume you have cloned the OpenShift Git repository, have installed the OpenShift client tools, an OpenShift server, the OpenShift router, and have created a project. See [the Getting Started guide](https://docs.openshift.org/latest/getting_started/administrators.html) for help installing OpenShift or [CONTRIBUTING.adoc](https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc) for a more general development guide.
+The examples below assume you have cloned the OpenShift Git repository, have installed the OpenShift client tools, an OpenShift server, the OpenShift router, and have created a project. See [the Getting Started guide](https://docs.openshift.com/enterprise/latest/getting_started/administrators.html) for help installing OpenShift or [CONTRIBUTING.adoc](https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc) for a more general development guide.
 
 OpenShift Deployments
 ---------------------

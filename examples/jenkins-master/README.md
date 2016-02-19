@@ -30,7 +30,7 @@ Steps
 $ oc new-project ci
 ```
 
-2. Give the Jenkins Pod [service account](https://docs.openshift.org/latest/admin_guide/service_accounts.html)
+2. Give the Jenkins Pod [service account](https://docs.openshift.com/enterprise/latest/admin_guide/service_accounts.html)
    rights to do API calls to OpenShift.  This allows us to do the Jenkins Slave
    image discovery automatically.
 ```
