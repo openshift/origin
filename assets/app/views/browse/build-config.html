@@ -129,7 +129,7 @@
 
                       <build-trends-chart builds="builds"></build-trends-chart>
                     </div>
-                    <div ng-if="loaded">
+                    <div ng-if="loaded && (unfilteredBuilds | hashSize) > 0">
                       <table class="table table-bordered table-hover table-mobile">
                         <thead>
                           <tr>
