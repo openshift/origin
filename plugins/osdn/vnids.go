@@ -218,7 +218,7 @@ func (oc *OvsController) VnidStartNode() error {
 
 func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint) error {
 	// Update OF rules for the existing/old pods in the namespace
-	pods, err := oc.Registry.GetRunningPods(oc.hostName, namespace)
+	pods, err := oc.GetLocalPods(namespace)
 	if err != nil {
 		return err
 	}
