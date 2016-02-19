@@ -79,16 +79,17 @@ type templateRouter struct {
 
 // templateRouterCfg holds all configuration items required to initialize the template router
 type templateRouterCfg struct {
-	dir                string
-	templates          map[string]*template.Template
-	reloadScriptPath   string
-	reloadInterval     time.Duration
-	defaultCertificate string
-	statsUser          string
-	statsPassword      string
-	statsPort          int
-	peerEndpointsKey   string
-	includeUDP         bool
+	dir                    string
+	templates              map[string]*template.Template
+	reloadScriptPath       string
+	reloadInterval         time.Duration
+	defaultCertificate     string
+	defaultCertificatePath string
+	statsUser              string
+	statsPassword          string
+	statsPort              int
+	peerEndpointsKey       string
+	includeUDP             bool
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -137,7 +138,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		state:                  make(map[string]ServiceUnit),
 		certManager:            certManager,
 		defaultCertificate:     cfg.defaultCertificate,
-		defaultCertificatePath: "",
+		defaultCertificatePath: cfg.defaultCertificatePath,
 		statsUser:              cfg.statsUser,
 		statsPassword:          cfg.statsPassword,
 		statsPort:              cfg.statsPort,

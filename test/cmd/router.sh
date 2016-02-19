@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
+os::log::install_errexit
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oadm policy remove-scc-from-user privileged -z router
+  oc delete sa/router -n default
+  exit 0
+) &>/dev/null
+
+defaultimage="openshift/origin-\${component}:latest"
+USE_IMAGES=${USE_IMAGES:-$defaultimage}
+
+# Test running a router
+os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
+os::cmd::expect_failure_and_text 'oadm router --dry-run -o yaml' 'service account "router" is not allowed to access the host network on nodes'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --service-account=other -o yaml' 'service account "other" is not allowed to access the host network on nodes'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml --credentials=${KUBECONFIG}' 'ServiceAccount'
+# set ports internally
+os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false -o yaml' 'containerPort: 80'
+os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --ports=80:8080 -o yaml' 'port: 8080'
+os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --ports=80,8443:443 -o yaml' 'targetPort: 8443'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'hostPort'
+# don't use localhost for liveness probe by default
+os::cmd::expect_success_and_not_text "oadm router --dry-run --host-network=false -o yaml" 'host: localhost'
+# client env vars are optional
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'OPENSHIFT_MASTER'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --secrets-as-env -o yaml' 'OPENSHIFT_MASTER'
+os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --secrets-as-env --credentials=${KUBECONFIG} -o yaml' 'OPENSHIFT_MASTER'
+# mount tls crt as secret
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'
+os::cmd::expect_failure_and_text "oadm router --dry-run --host-network=false --default-cert=${KUBECONFIG} -o yaml" 'the default cert must contain a private key'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'value: /etc/pki/tls/private/tls.crt'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.key:'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.crt: '
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'type: kubernetes.io/tls'
+# upgrade the router to have access to host networks
+os::cmd::expect_success "oadm policy add-scc-to-user privileged -z router"
+# uses localhost for probes
+os::cmd::expect_success_and_text "oadm router --dry-run -o yaml" 'host: localhost'
+os::cmd::expect_failure_and_text "oadm router --ports=80,8443:443" 'container port 8443 and host port 443 must be equal'
+
+os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG}" 'image:.*-haproxy-router:'
+os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
+os::cmd::expect_success_and_text 'oadm router' 'service exists'
+os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
+
+# only when using hostnetwork should we force the probes to use localhost
+os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECONFIG} --host-network=false" 'host: localhost'
+echo "router: ok"

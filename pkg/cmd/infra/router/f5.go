@@ -13,8 +13,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router/controller"
+	f5plugin "github.com/openshift/origin/pkg/router/f5"
 	"github.com/openshift/origin/pkg/version"
-	f5plugin "github.com/openshift/origin/plugins/router/f5"
 )
 
 const (

@@ -274,6 +274,8 @@ type PolicyConfig struct {
 // RoutingConfig holds the necessary configuration options for routing to subdomains
 type RoutingConfig struct {
 	// Subdomain is the suffix appended to $service.$namespace. to form the default route hostname
+	// DEPRECATED: This field is being replaced by routers setting their own defaults. This is the
+	// "default" route.
 	Subdomain string `json:"subdomain"`
 }
 

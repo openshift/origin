@@ -102,7 +102,7 @@ import (
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
+	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 )
 
 const (
