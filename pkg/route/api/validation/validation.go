@@ -19,35 +19,40 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 	//ensure meta is set properly
 	result := kval.ValidateObjectMeta(&route.ObjectMeta, true, oapi.GetNameValidationFunc(kval.ValidatePodName), field.NewPath("metadata"))
 
+	specPath := field.NewPath("spec")
+
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Spec.Host) > 0 {
 		if !kvalidation.IsDNS1123Subdomain(route.Spec.Host) {
-			result = append(result, field.Invalid(field.NewPath("host"), route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
+			result = append(result, field.Invalid(specPath.Child("host"), route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
 	}
 
 	if len(route.Spec.Path) > 0 && !strings.HasPrefix(route.Spec.Path, "/") {
-		result = append(result, field.Invalid(field.NewPath("path"), route.Spec.Path, "path must begin with /"))
+		result = append(result, field.Invalid(specPath.Child("path"), route.Spec.Path, "path must begin with /"))
 	}
 
 	if len(route.Spec.Path) > 0 && route.Spec.TLS != nil &&
 		route.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough {
-		result = append(result, field.Invalid(field.NewPath("path"), route.Spec.Path, "passthrough termination does not support paths"))
+		result = append(result, field.Invalid(specPath.Child("path"), route.Spec.Path, "passthrough termination does not support paths"))
 	}
 
 	if len(route.Spec.To.Name) == 0 {
-		result = append(result, field.Required(field.NewPath("serviceName"), ""))
+		result = append(result, field.Required(specPath.Child("to", "name"), ""))
+	}
+	if route.Spec.To.Kind != "Service" {
+		result = append(result, field.Invalid(specPath.Child("to", "kind"), route.Spec.To.Kind, "must reference a Service"))
 	}
 
 	if route.Spec.Port != nil {
 		switch target := route.Spec.Port.TargetPort; {
 		case target.Type == intstr.Int && target.IntVal == 0,
 			target.Type == intstr.String && len(target.StrVal) == 0:
-			result = append(result, field.Required(field.NewPath("targetPort"), ""))
+			result = append(result, field.Required(specPath.Child("port", "targetPort"), ""))
 		}
 	}
 
-	if errs := validateTLS(route, field.NewPath("tls")); len(errs) != 0 {
+	if errs := validateTLS(route, specPath.Child("tls")); len(errs) != 0 {
 		result = append(result, errs...)
 	}
 
@@ -117,7 +122,7 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 		result = append(result, field.NotSupported(fldPath.Child("termination"), tls.Termination, validValues))
 	}
 
-	if err := validateInsecureEdgeTerminationPolicy(tls); err != nil {
+	if err := validateInsecureEdgeTerminationPolicy(tls, fldPath.Child("insecureEdgeTerminationPolicy")); err != nil {
 		result = append(result, err)
 	}
 
@@ -147,7 +152,7 @@ func validateNoDoubleEscapes(tls *routeapi.TLSConfig) field.ErrorList {
 
 // validateInsecureEdgeTerminationPolicy tests fields for different types of
 // insecure options. Called by validateTLS.
-func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *field.Error {
+func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *field.Path) *field.Error {
 	// Check insecure option value if specified (empty is ok).
 	if len(tls.InsecureEdgeTerminationPolicy) == 0 {
 		return nil
@@ -156,7 +161,7 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *field.Error
 	// Ensure insecure is set only for edge terminated routes.
 	if routeapi.TLSTerminationEdge != tls.Termination {
 		// tls.InsecureEdgeTerminationPolicy option is not supported for a non edge-terminated routes.
-		return field.Invalid(field.NewPath("insecureEdgeTerminationPolicy"), tls.InsecureEdgeTerminationPolicy, "InsecureEdgeTerminationPolicy is only allowed for edge-terminated routes")
+		return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, "InsecureEdgeTerminationPolicy is only allowed for edge-terminated routes")
 	}
 
 	// It is an edge-terminated route, check insecure option value is
@@ -169,7 +174,7 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig) *field.Error
 
 	if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {
 		msg := fmt.Sprintf("invalid value for InsecureEdgeTerminationPolicy option, acceptable values are %s, %s, %s, or empty", routeapi.InsecureEdgeTerminationPolicyNone, routeapi.InsecureEdgeTerminationPolicyAllow, routeapi.InsecureEdgeTerminationPolicyRedirect)
-		return field.Invalid(field.NewPath("InsecureEdgeTerminationPolicy"), tls.InsecureEdgeTerminationPolicy, msg)
+		return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, msg)
 	}
 
 	return nil
