@@ -145,3 +145,6 @@ func (plugin *ovsPlugin) UpdatePod(namespace string, name string, id kubeletType
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 	return err
 }
+
+func (plugin *ovsPlugin) Event(name string, details map[string]interface{}) {
+}
