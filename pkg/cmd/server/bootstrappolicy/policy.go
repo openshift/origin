@@ -100,12 +100,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
 				},
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
@@ -130,12 +130,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
 				},
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString("daemonsets", "jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
