@@ -34,6 +34,7 @@ import (
 	clientcmdlatest "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/latest"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/homedir"
 )
 
 const (
@@ -44,8 +45,8 @@ const (
 	RecommendedSchemaName       = "schema"
 )
 
-var RecommendedHomeFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedFileName)
-var RecommendedSchemaFile = path.Join(HomeDir(), RecommendedHomeDir, RecommendedSchemaName)
+var RecommendedHomeFile = path.Join(homedir.HomeDir(), RecommendedHomeDir, RecommendedFileName)
+var RecommendedSchemaFile = path.Join(homedir.HomeDir(), RecommendedHomeDir, RecommendedSchemaName)
 
 // currentMigrationRules returns a map that holds the history of recommended home directories used in previous versions.
 // Any future changes to RecommendedHomeFile and related are expected to add a migration rule here, in order to make
@@ -465,17 +466,4 @@ func MakeRelative(path, base string) (string, error) {
 		return rel, nil
 	}
 	return path, nil
-}
-
-// HomeDir return the home directory for the current user
-func HomeDir() string {
-	if goruntime.GOOS == "windows" {
-		if homeDrive, homePath := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); len(homeDrive) > 0 && len(homePath) > 0 {
-			return homeDrive + homePath
-		}
-		if userProfile := os.Getenv("USERPROFILE"); len(userProfile) > 0 {
-			return userProfile
-		}
-	}
-	return os.Getenv("HOME")
 }
