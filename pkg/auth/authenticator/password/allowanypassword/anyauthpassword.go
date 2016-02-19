@@ -1,6 +1,8 @@
 package allowanypassword
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -21,6 +23,10 @@ func New(providerName string, identityMapper authapi.UserIdentityMapper) authent
 
 // AuthenticatePassword approves any login attempt with non-blank username and password
 func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+	// Since this IDP doesn't validate usernames or passwords, disallow usernames consisting entirely of spaces
+	// Normalize usernames by removing leading/trailing spaces
+	username = strings.TrimSpace(username)
+
 	if username == "" || password == "" {
 		return nil, false, nil
 	}
