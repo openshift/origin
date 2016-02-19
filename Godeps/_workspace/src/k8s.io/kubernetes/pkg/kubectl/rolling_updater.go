@@ -307,7 +307,7 @@ func (r *RollingUpdater) scaleDown(newRc, oldRc *api.ReplicationController, desi
 	// Get ready pods. We shouldn't block, otherwise in case both old and new
 	// pods are unavailable then the rolling update process blocks.
 	// Timeout-wise we are already covered by the progress check.
-	_, newAvailable, err := r.getReadyPods(oldRc, newRc)
+	oldAvailable, newAvailable, err := r.getReadyPods(oldRc, newRc)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +327,15 @@ func (r *RollingUpdater) scaleDown(newRc, oldRc *api.ReplicationController, desi
 	// violating the minimum. Do nothing and try again later when conditions may
 	// have changed.
 	if decrement <= 0 {
-		return oldRc, nil
+		// See if there are any unhealthy old pods; we can scale down those (at
+		// least one by one). Note that at this point minAvailable is already
+		// violated due to a rollout that successfully spinned up pods which
+		// later became unavailable.
+		allAvailable := oldAvailable + newAvailable
+		if oldRc.Spec.Replicas <= oldAvailable && allAvailable >= minAvailable {
+			return oldRc, nil
+		}
+		decrement = 1
 	}
 	// Reduce the replica count, and deal with fenceposts.
 	oldRc.Spec.Replicas -= decrement
