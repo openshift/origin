@@ -500,13 +500,22 @@ os::build::extract_tar() {
   local archive_file="$1"
   local change_dir="$2"
 
+  local tar_flags="--strip-components=1"
+
   # Unpack archive
   echo "++ Extracting $(basename ${archive_file})"
   if os::build::is_hardlink_supported "${change_dir}" ; then
-    tar mxzf "${archive_file}" --strip-components=1 -C "${change_dir}"
+    # Ensure that tar won't try to set an owner when extracting to an
+    # nfs mount. Setting ownership on an nfs mount is likely to fail
+    # even for root.
+    local mount_type=$(df -P -T "${change_dir}" | tail -n +2 | awk '{print $2}')
+    if [[ "${mount_type}" = "nfs" ]]; then
+      tar_flags="${tar_flags} --no-same-owner"
+    fi
+    tar mxzf "${archive_file}" ${tar_flags} -C "${change_dir}"
   else
     local temp_dir=$(mktemp -d --tmpdir=/dev/shm/)
-    tar mxzf "${archive_file}" --strip-components=1 -C "${temp_dir}"
+    tar mxzf "${archive_file}" ${tar_flags} -C "${temp_dir}"
     pushd "${temp_dir}" &> /dev/null
     tar cO --hard-dereference * | tar xf - -C "${change_dir}"
     popd &>/dev/null
