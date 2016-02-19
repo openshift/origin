@@ -427,6 +427,11 @@ correct version in your GOPATH and then run `godep save <pkgname>`.  This should
 version of `Godeps/Godeps.json`, and update `Godeps/_workspace/src`.  Create a commit that includes
 both of these changes with message `bump(<pkgname>): <pkgcommit>`.
 
+## Updating external examples
+
+`hack/update-external-example.sh` will pull down example files from external repositories and deposit them under the `examples` directory.
+Run this script if you need to refresh an example file, or add a new one.  See the script and `examples/quickstarts/README.md` for more details.
+
 ## Troubleshooting
 
 If you run into difficulties running OpenShift, start by reading through the
