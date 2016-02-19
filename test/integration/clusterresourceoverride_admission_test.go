@@ -18,7 +18,7 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
 )
 
-func TestClusterResourceOverridePlugin(t *testing.T) {
+func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
@@ -26,7 +26,6 @@ func TestClusterResourceOverridePlugin(t *testing.T) {
 	}
 	kubeClient := setupClusterResourceOverrideTest(t, config)
 	podHandler := kubeClient.Pods(testutil.Namespace())
-	limitHandler := kubeClient.LimitRanges(testutil.Namespace())
 
 	// test with no limits object present
 
@@ -41,6 +40,17 @@ func TestClusterResourceOverridePlugin(t *testing.T) {
 	if cpu := podCreated.Spec.Containers[0].Resources.Requests.Cpu(); cpu.Cmp(resource.MustParse("1")) != 0 {
 		t.Errorf("limitlesspod: CPU req did not match expected 1 core: %#v", cpu)
 	}
+}
+
+func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
+	config := &overrideapi.ClusterResourceOverrideConfig{
+		LimitCPUToMemoryPercent:     100,
+		CPURequestToLimitPercent:    50,
+		MemoryRequestToLimitPercent: 50,
+	}
+	kubeClient := setupClusterResourceOverrideTest(t, config)
+	podHandler := kubeClient.Pods(testutil.Namespace())
+	limitHandler := kubeClient.LimitRanges(testutil.Namespace())
 
 	// test with limits object with defaults;
 	// I wanted to test with a limits object without defaults to see limits forbid an empty resource spec,
@@ -58,9 +68,9 @@ func TestClusterResourceOverridePlugin(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "limit"},
 		Spec:       kapi.LimitRangeSpec{Limits: []kapi.LimitRangeItem{limitItem}},
 	}
-	_, err = limitHandler.Create(limit)
+	_, err := limitHandler.Create(limit)
 	checkErr(t, err)
-	podCreated, err = podHandler.Create(testClusterResourceOverridePod("limit-with-default", "", "1"))
+	podCreated, err := podHandler.Create(testClusterResourceOverridePod("limit-with-default", "", "1"))
 	checkErr(t, err)
 	if memory := podCreated.Spec.Containers[0].Resources.Limits.Memory(); memory.Cmp(resource.MustParse("512Mi")) != 0 {
 		t.Errorf("limit-with-default: Memory limit did not match default 512Mi: %v", memory)
