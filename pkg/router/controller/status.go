@@ -158,6 +158,13 @@ func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unvers
 			a.expected.Add(route.UID, touch.Time)
 		}
 		return true, nil
+	// if the router can't write status updates, allow the route to go through
+	case errors.IsForbidden(err):
+		glog.Errorf("Unable to write router status - please ensure you reconcile your system policy or grant this router access to update route status: %v", err)
+		if touch != nil {
+			a.expected.Add(route.UID, touch.Time)
+		}
+		return true, nil
 	case errors.IsConflict(err):
 		a.expected.Add(route.UID, time.Time{})
 		return false, nil
@@ -213,7 +220,7 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 	}
 
 	_, err := a.client.Routes(route.Namespace).UpdateStatus(route)
-	a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
+	_, err = a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
 	}
