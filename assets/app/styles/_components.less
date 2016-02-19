@@ -88,6 +88,8 @@
         .flex-direction(@direction: row);
       }
       .component {
+        // so that Safari for iOS properly truncates
+        width: 100%;
         @media (min-width: @screen-md-min) {
           // assign flex properties when >=992 for proper layout so that .component no longer stack; % on flex-basis value necessary for IE
           .flex(@columns: 2 0 0%);
