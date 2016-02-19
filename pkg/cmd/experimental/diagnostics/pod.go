@@ -33,8 +33,7 @@ const (
 	// Standard locations for the secrets mounted in pods
 	StandardMasterCaPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	StandardTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	// TODO: use clusterDomain instead of cluster.local
-	StandardMasterUrl = "https://kubernetes.default.svc.cluster.local"
+	StandardMasterUrl    = "https://kubernetes.default.svc"
 )
 
 const longPodDiagDescription = `
