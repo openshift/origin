@@ -47,7 +47,7 @@ func validateLabelSet(labelSet map[string][]string, data metrics.Metrics, invali
 							invalidLabel = false
 						}
 					}
-					if invalidLabel {
+					if invalidLabel && invalidLabels != nil {
 						if _, ok := invalidLabels[metric]; !ok {
 							invalidLabels[metric] = sets.NewString()
 						}
@@ -59,13 +59,21 @@ func validateLabelSet(labelSet map[string][]string, data metrics.Metrics, invali
 	}
 }
 
+func checkNecessaryMetrics(response metrics.Metrics, necessaryMetrics map[string][]string) {
+	missingLabels := make(map[string]sets.String)
+	validateLabelSet(metrics.CommonMetrics, response, nil, missingLabels)
+	validateLabelSet(necessaryMetrics, response, nil, missingLabels)
+
+	Expect(missingLabels).To(BeEmpty())
+}
+
 func checkMetrics(response metrics.Metrics, assumedMetrics map[string][]string) {
 	invalidLabels := make(map[string]sets.String)
-	unknownLabels := make(map[string]sets.String)
-	validateLabelSet(metrics.CommonMetrics, response, invalidLabels, unknownLabels)
-	validateLabelSet(assumedMetrics, response, invalidLabels, unknownLabels)
+	missingLabels := make(map[string]sets.String)
+	validateLabelSet(metrics.CommonMetrics, response, invalidLabels, missingLabels)
+	validateLabelSet(assumedMetrics, response, invalidLabels, missingLabels)
 
-	Expect(unknownLabels).To(BeEmpty())
+	Expect(missingLabels).To(BeEmpty())
 	Expect(invalidLabels).To(BeEmpty())
 }
 
@@ -94,20 +102,17 @@ var _ = Describe("MetricsGrabber", func() {
 	It("should grab all metrics from a Kubelet.", func() {
 		// We run this test only on GCE, as for some reason it flakes in GKE #19468
 		if providerIs("gce") {
-			By("Connecting proxying to Node through the API server")
+			By("Proxying to Node through the API server")
 			nodes := ListSchedulableNodesOrDie(c)
 			Expect(nodes.Items).NotTo(BeEmpty())
-			unknownMetrics := sets.NewString()
-			response, err := grabber.GrabFromKubelet(nodes.Items[0].Name, unknownMetrics)
+			response, err := grabber.GrabFromKubelet(nodes.Items[0].Name)
 			expectNoError(err)
-			Expect(unknownMetrics).To(BeEmpty())
-
-			checkMetrics(metrics.Metrics(response), metrics.KnownKubeletMetrics)
+			checkNecessaryMetrics(metrics.Metrics(response), metrics.NecessaryKubeletMetrics)
 		}
 	})
 
 	It("should grab all metrics from a Scheduler.", func() {
-		By("Connecting proxying to Pod through the API server")
+		By("Proxying to Pod through the API server")
 		// Check if master Node is registered
 		nodes, err := c.Nodes().List(api.ListOptions{})
 		expectNoError(err)
@@ -131,7 +136,7 @@ var _ = Describe("MetricsGrabber", func() {
 	})
 
 	It("should grab all metrics from a ControllerManager.", func() {
-		By("Connecting proxying to Pod through the API server")
+		By("Proxying to Pod through the API server")
 		// Check if master Node is registered
 		nodes, err := c.Nodes().List(api.ListOptions{})
 		expectNoError(err)

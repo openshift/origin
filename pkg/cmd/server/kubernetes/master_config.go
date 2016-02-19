@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -140,7 +141,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		switch pluginName {
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(kubeClient)
+			saAdmitter := saadmit.NewServiceAccount(internalclientset.FromUnversionedClient(kubeClient))
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			saAdmitter.Run()
 			plugins = append(plugins, saAdmitter)
@@ -150,7 +151,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			if err != nil {
 				return nil, err
 			}
-			plugin := admission.InitPlugin(pluginName, kubeClient, configFile)
+			plugin := admission.InitPlugin(pluginName, internalclientset.FromUnversionedClient(kubeClient), configFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}
@@ -312,5 +313,5 @@ func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]gene
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false), nil
 }

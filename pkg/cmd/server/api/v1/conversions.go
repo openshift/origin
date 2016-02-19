@@ -325,7 +325,7 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 	}
 
 	externalObject, err := internal.Scheme.ConvertToVersion(in, s.Meta().DestVersion)
-	if conversion.IsNotRegisteredError(err) {
+	if runtime.IsNotRegisteredError(err) {
 		switch cast := in.(type) {
 		case *runtime.Unknown:
 			out.RawJSON = cast.RawJSON

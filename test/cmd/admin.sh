@@ -201,21 +201,6 @@ os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser2
 os::cmd::expect_success_and_text "oc describe policybinding ':default' -n recreated-project" 'createuser2'
 echo "new-project: ok"
 
-# Test running a router
-os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
-encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
-os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
-os::cmd::expect_success "oadm policy add-scc-to-user privileged system:serviceaccount:default:router"
-os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*-haproxy-router:'
-os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
-os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'host: localhost'
-
-# only when using hostnetwork should we force the probes to use localhost
-os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default --host-network=false" 'host: localhost'
-echo "router: ok"
-
 # Test running a registry
 os::cmd::expect_failure_and_text 'oadm registry --dry-run' 'does not exist'
 os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*-docker-registry'

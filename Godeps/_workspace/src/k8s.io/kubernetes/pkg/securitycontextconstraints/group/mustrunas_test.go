@@ -17,14 +17,14 @@ limitations under the License.
 package group
 
 import (
-	"testing"
 	"k8s.io/kubernetes/pkg/api"
+	"testing"
 )
 
-func TestMustRunAsOptions(t *testing.T){
-	tests := map[string]struct{
+func TestMustRunAsOptions(t *testing.T) {
+	tests := map[string]struct {
 		ranges []api.IDRange
-		pass bool
+		pass   bool
 	}{
 		"empty": {
 			ranges: []api.IDRange{},
@@ -48,27 +48,27 @@ func TestMustRunAsOptions(t *testing.T){
 	}
 }
 
-func TestGenerate(t *testing.T){
-	tests := map[string]struct{
-		ranges []api.IDRange
+func TestGenerate(t *testing.T) {
+	tests := map[string]struct {
+		ranges   []api.IDRange
 		expected []int64
 	}{
 		"multi value": {
 			ranges: []api.IDRange{
-				{Min: 1, Max: 2,},
+				{Min: 1, Max: 2},
 			},
 			expected: []int64{1},
 		},
 		"single value": {
 			ranges: []api.IDRange{
-				{Min: 1, Max: 1,},
+				{Min: 1, Max: 1},
 			},
 			expected: []int64{1},
 		},
 		"multi range": {
 			ranges: []api.IDRange{
-				{Min: 1, Max: 1,},
-				{Min: 2, Max: 500,},
+				{Min: 1, Max: 1},
+				{Min: 2, Max: 500},
 			},
 			expected: []int64{1},
 		},
@@ -106,22 +106,20 @@ func TestGenerate(t *testing.T){
 	}
 }
 
-func TestValidate(t *testing.T){
+func TestValidate(t *testing.T) {
 	validPod := func() *api.Pod {
 		return &api.Pod{
 			Spec: api.PodSpec{
-				SecurityContext: &api.PodSecurityContext{
-
-				},
+				SecurityContext: &api.PodSecurityContext{},
 			},
 		}
 	}
 
-	tests := map[string]struct{
+	tests := map[string]struct {
 		ranges []api.IDRange
-		pod *api.Pod
+		pod    *api.Pod
 		groups []int64
-		pass bool
+		pass   bool
 	}{
 		"nil security context": {
 			pod: &api.Pod{},
@@ -136,7 +134,7 @@ func TestValidate(t *testing.T){
 			},
 		},
 		"not in range": {
-			pod: validPod(),
+			pod:    validPod(),
 			groups: []int64{5},
 			ranges: []api.IDRange{
 				{Min: 1, Max: 3},
@@ -144,7 +142,7 @@ func TestValidate(t *testing.T){
 			},
 		},
 		"in range 1": {
-			pod: validPod(),
+			pod:    validPod(),
 			groups: []int64{2},
 			ranges: []api.IDRange{
 				{Min: 1, Max: 3},
@@ -152,7 +150,7 @@ func TestValidate(t *testing.T){
 			pass: true,
 		},
 		"in range boundry min": {
-			pod: validPod(),
+			pod:    validPod(),
 			groups: []int64{1},
 			ranges: []api.IDRange{
 				{Min: 1, Max: 3},
@@ -160,7 +158,7 @@ func TestValidate(t *testing.T){
 			pass: true,
 		},
 		"in range boundry max": {
-			pod: validPod(),
+			pod:    validPod(),
 			groups: []int64{3},
 			ranges: []api.IDRange{
 				{Min: 1, Max: 3},
@@ -168,7 +166,7 @@ func TestValidate(t *testing.T){
 			pass: true,
 		},
 		"singular range": {
-			pod: validPod(),
+			pod:    validPod(),
 			groups: []int64{4},
 			ranges: []api.IDRange{
 				{Min: 4, Max: 4},

@@ -14,6 +14,13 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Build and run Ruby applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby,ruby",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "2.2"
@@ -63,6 +70,13 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Build and run NodeJS applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "0.10"
@@ -97,6 +111,13 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Build and run Perl applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "5.20"
@@ -147,6 +168,13 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Build and run PHP applications",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "5.6"
@@ -196,6 +224,13 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Build and run Python applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "3.4"
@@ -260,6 +295,11 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Provides a MySQL database",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "5.6"
@@ -267,6 +307,12 @@
           },
           {
             "name": "5.5",
+            "annotations": {
+              "description": "Provides a MySQL v5.5 database",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql",
+              "version": "5.5"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
@@ -274,6 +320,12 @@
           },
           {
             "name": "5.6",
+            "annotations": {
+              "description": "Provides a MySQL v5.6 database",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql",
+              "version": "5.6"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
@@ -293,6 +345,11 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Provides a PostgreSQL database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "9.4"
@@ -300,6 +357,12 @@
           },
           {
             "name": "9.2",
+            "annotations": {
+              "description": "Provides a PostgreSQL v9.2 database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql",
+              "version": "9.2"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
@@ -307,6 +370,12 @@
           },
           {
             "name": "9.4",
+            "annotations": {
+              "description": "Provides a PostgreSQL v9.4 database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql",
+              "version": "9.4"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
@@ -326,6 +395,11 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Provides a MongoDB database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "2.6"
@@ -333,6 +407,12 @@
           },
           {
             "name": "2.4",
+            "annotations": {
+              "description": "Provides a MongoDB v2.4 database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb",
+              "version": "2.4"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
@@ -340,6 +420,12 @@
           },
           {
             "name": "2.6",
+            "annotations": {
+              "description": "Provides a MongoDB v2.6 database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb",
+              "version": "2.6"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
@@ -359,6 +445,11 @@
         "tags": [
           {
             "name": "latest",
+            "annotations": {
+              "description": "Provides a Jenkins server",
+              "iconClass": "icon-jenkins",
+              "tags": "jenkins"
+            },
             "from": {
               "kind": "ImageStreamTag",
               "name": "1"
@@ -366,6 +457,12 @@
           },
           {
             "name": "1",
+            "annotations": {
+              "description": "Provides a Jenkins server",
+              "iconClass": "icon-jenkins",
+              "tags": "jenkins",
+              "version": "1.x"
+            },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"

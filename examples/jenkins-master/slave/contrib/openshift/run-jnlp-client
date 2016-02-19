@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# This script will launch the JNLP remoting client that Jenkins master server
+# will use for the auto-discovery of this slave.
+#
+
+# The directory that Jenkins will execute the builds and store cache files.
+# The directory has to be writeable for the user that the container is running
+# under.
+export JENKINS_HOME=/opt/app-root/jenkins
+
+# Setup nss_wrapper so the random user OpenShift will run this container
+# has an entry in /etc/passwd.
+# This is needed for 'git' and other tools to work properly.
+#
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
+envsubst < ${JENKINS_HOME}/passwd.template > ${JENKINS_HOME}/passwd
+export LD_PRELOAD=libnss_wrapper.so
+export NSS_WRAPPER_PASSWD=${JENKINS_HOME}/passwd
+export NSS_WRAPPER_GROUP=/etc/group
+
+# Make sure the Java clients have valid $HOME directory set
+export HOME=${JENKINS_HOME}
+
+set -e
+
+# if `docker run` has 2 or more arguments the user is passing jenkins launcher arguments
+if [[ $# -gt 1 ]]; then
+  # TODO: We can attempt to download this file from the Jenkins server
+  JAR="${JENKINS_HOME}/remoting.jar"
+  PARAMS=""
+
+
+  # if -url is not provided try env vars
+  if [[ "$@" != *"-url "* ]]; then
+    if [ ! -z "$JENKINS_URL" ]; then
+      PARAMS="$PARAMS -url $JENKINS_URL"
+    elif [ ! -z "$JENKINS_SERVICE_HOST" ] && [ ! -z "$JENKINS_SERVICE_PORT" ]; then
+      PARAMS="$PARAMS -url http://$JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT"
+    fi
+  fi
+
+  echo "Downloading ${JENKINS_URL}/jnlpJars/remoting.jar ..."
+  curl -s ${JENKINS_URL}/jnlpJars/remoting.jar -o ${JAR}
+
+  # if -tunnel is not provided try env vars
+  if [[ "$@" != *"-tunnel "* ]]; then
+    if [ ! -z "$JENKINS_TUNNEL" ]; then
+      PARAMS="$PARAMS -tunnel $JENKINS_TUNNEL"
+    elif [ ! -z "$JENKINS_SLAVE_SERVICE_HOST" ] && [ ! -z "$JENKINS_SLAVE_SERVICE_PORT" ]; then
+      PARAMS="$PARAMS -tunnel $JENKINS_SLAVE_SERVICE_HOST:$JENKINS_SLAVE_SERVICE_PORT"
+    fi
+  fi
+
+  echo Running java $JAVA_OPTS -cp $JAR hudson.remoting.jnlp.Main -headless $PARAMS "$@"
+  cd ${JENKINS_DIR} && exec java $JAVA_OPTS \
+    -cp $JAR hudson.remoting.jnlp.Main -headless $PARAMS "$@"
+fi
+
+exec "$@"

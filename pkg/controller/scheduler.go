@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 // Scheduler is a self-balancing, rate-limited, bucketed queue that can periodically invoke
@@ -44,7 +45,7 @@ func NewScheduler(bucketCount int, bucketLimiter kutil.RateLimiter, fn func(key,
 
 // RunUntil launches the scheduler until ch is closed.
 func (s *Scheduler) RunUntil(ch <-chan struct{}) {
-	go kutil.Until(s.RunOnce, 0, ch)
+	go utilwait.Until(s.RunOnce, 0, ch)
 }
 
 // RunOnce takes a single item out of the current bucket and processes it. If

@@ -11,10 +11,6 @@ import (
 type RunOnceDurationConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// Enabled if false disables the effect of this plugin. A global override will
-	// not be applied and projects will not be checked for an override annotation.
-	Enabled bool `json:"enabled",description:"set to true to enable the plugin"`
-
 	// ActiveDeadlineSecondsOverride is the value to set on containers of run-once pods
 	// Only a positive value is valid. Absence of a value means that the plugin
 	// won't make any changes to the pod

@@ -3,12 +3,10 @@ package requestlimit
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"reflect"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -21,7 +19,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("ProjectRequestLimit", func(client kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("ProjectRequestLimit", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
@@ -31,18 +29,16 @@ func init() {
 }
 
 func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return &requestlimitapi.ProjectRequestLimitConfig{}, nil
-	}
-
-	configBytes, err := ioutil.ReadAll(reader)
+	obj, err := configlatest.ReadYAML(reader)
 	if err != nil {
 		return nil, err
 	}
-	config := &requestlimitapi.ProjectRequestLimitConfig{}
-	err = configlatest.ReadYAML(configBytes, config)
-	if err != nil {
-		return nil, err
+	if obj == nil {
+		return nil, nil
+	}
+	config, ok := obj.(*requestlimitapi.ProjectRequestLimitConfig)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
 	errs := requestlimitapivalidation.ValidateProjectRequestLimitConfig(config)
 	if len(errs) > 0 {

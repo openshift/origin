@@ -33,5 +33,5 @@ func newBuildLogs(c *Client, namespace string) *buildLogs {
 
 // Get builds and returns a buildLog request
 func (c *buildLogs) Get(name string, opts api.BuildLogOptions) *kclient.Request {
-	return c.r.Get().Namespace(c.ns).Resource("builds").Name(name).SubResource("log").VersionedParams(&opts, kapi.Scheme)
+	return c.r.Get().Namespace(c.ns).Resource("builds").Name(name).SubResource("log").VersionedParams(&opts, kapi.ParameterCodec)
 }

@@ -73,8 +73,7 @@
             "updatePeriodSeconds": 1,
             "intervalSeconds": 1,
             "timeoutSeconds": 120
-          },
-          "resources": {}
+          }
         },
         "triggers": [
           {
@@ -116,7 +115,11 @@
                     "protocol": "TCP"
                   }
                 ],
-                "resources": {},
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_LIMIT}"
+		    }
+		},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "securityContext": {
@@ -253,8 +256,7 @@
             "updatePeriodSeconds": 1,
             "intervalSeconds": 1,
             "timeoutSeconds": 120
-          },
-          "resources": {}
+          }
         },
         "triggers": [
           {
@@ -296,7 +298,11 @@
                     "protocol": "TCP"
                   }
                 ],
-                "resources": {},
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_LIMIT}"
+		    }
+		},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "securityContext": {
@@ -315,14 +321,22 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the container can use",
+      "value": "128Mi"
+    },
+   {
       "name": "ADMIN_USERNAME",
-      "description": "administrator username",
+      "displayName": "Administrator username",
+      "description": "Username for the administrator of this application",
       "generate": "expression",
       "from": "admin[A-Z0-9]{3}"
     },
     {
       "name": "ADMIN_PASSWORD",
-      "description": "administrator password",
+      "displayName": "Administrator password",
+      "description": "Password for the administrator of this application",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     }

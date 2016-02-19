@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -85,7 +85,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 
 	csrf, err := c.csrf.Generate(w, req)
 	if err != nil {
-		util.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
 	}
 	form.Values.CSRF = csrf
 
@@ -131,7 +131,7 @@ func (r confirmTemplateRenderer) Render(form ConfirmForm, w http.ResponseWriter,
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := confirmTemplate.Execute(w, form); err != nil {
-		util.HandleError(fmt.Errorf("unable render confirm template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable render confirm template: %v", err))
 	}
 }
 

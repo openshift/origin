@@ -7,8 +7,9 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 // Leaser allows a caller to acquire a lease and be notified when it is lost.
@@ -65,7 +66,7 @@ func (e *Etcd) AcquireAndHold(notify chan struct{}) {
 	for {
 		ok, ttl, index, err := e.tryAcquire()
 		if err != nil {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 			time.Sleep(e.pauseInterval)
 			continue
 		}
@@ -80,7 +81,7 @@ func (e *Etcd) AcquireAndHold(notify chan struct{}) {
 
 		// hold the lease
 		if err := e.tryHold(ttl, index); err != nil {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 		}
 		break
 	}
@@ -142,7 +143,7 @@ func (e *Etcd) Release() {
 		if etcdutil.IsEtcdTestFailed(err) || etcdutil.IsEtcdNotFound(err) {
 			break
 		}
-		util.HandleError(fmt.Errorf("unable to release %s: %v", e.key, err))
+		utilruntime.HandleError(fmt.Errorf("unable to release %s: %v", e.key, err))
 	}
 }
 
@@ -156,11 +157,11 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 	stop := make(chan struct{})
 	lost := make(chan struct{})
 	watchIndex := index
-	go util.Until(func() {
+	go utilwait.Until(func() {
 		index, err := e.waitForExpiration(true, watchIndex, stop)
 		watchIndex = index
 		if err != nil {
-			util.HandleError(fmt.Errorf("error watching for lease expiration %s: %v", e.key, err))
+			utilruntime.HandleError(fmt.Errorf("error watching for lease expiration %s: %v", e.key, err))
 			return
 		}
 		glog.V(4).Infof("Lease %s lost due to deletion at %d", e.key, watchIndex)
@@ -192,7 +193,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 				case etcdutil.IsEtcdNotFound(err):
 					return false, fmt.Errorf("another client has revoked the lease %s", e.key)
 				default:
-					util.HandleError(fmt.Errorf("unexpected error renewing lease %s: %v", e.key, err))
+					utilruntime.HandleError(fmt.Errorf("unexpected error renewing lease %s: %v", e.key, err))
 					index = etcdIndexFor(err, index)
 					// try again
 					return false, nil

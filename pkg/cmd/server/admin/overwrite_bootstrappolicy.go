@@ -235,5 +235,5 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 
 // newStorage returns an EtcdHelper for the provided storage version.
 func newStorage(client newetcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix, false), nil
 }

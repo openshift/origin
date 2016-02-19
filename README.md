@@ -27,11 +27,11 @@ easy deployment and scaling, and long-term lifecycle maintenance for small and l
 
 **Learn More:**
 
-* **[Public Documentation](http://docs.openshift.org/latest/welcome/index.html)**
+* **[Public Documentation](http://docs.openshift.com/enterprise/latest/welcome/index.html)**
 * The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 * **[Technical Architecture Presentation](https://docs.google.com/presentation/d/1Isp5UeQZTo3gh6e59FMYmMs_V9QIQeBelmbyHIJ1H_g/pub?start=false&loop=false&delayms=3000)**
 * **[System Architecture](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)** design document
-* **[API Documentation](http://docs.openshift.org/latest/rest_api/openshift_v1.html)**
+* **[API Documentation](http://docs.openshift.com/enterprise/latest/rest_api/openshift_v1.html)**
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
 
@@ -43,8 +43,8 @@ Getting Started
 
 If you have downloaded the client tools, place the included binaries in your PATH.
 
-* For a quick install of Origin, see the [Getting Started Install guide](https://docs.openshift.org/latest/getting_started/administrators.html).
-* For an advanced installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.openshift.org/latest/install_config/install/advanced_install.html)
+* For a quick install of Origin, see the [Getting Started Install guide](https://docs.openshift.com/enterprise/latest/getting_started/administrators.html).
+* For an advanced installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.openshift.com/enterprise/latest/install_config/install/advanced_install.html)
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc)
 
 ### Concepts
@@ -53,7 +53,7 @@ We highly recommend trying out the [Origin walkthrough](https://github.com/opens
 
 ### Origin API
 
-The Origin API is located on each server at `https://<host>:8443/oapi/v1`. These APIs are described via [Swagger v1.2](https://www.swagger.io) at `https://<host>:8443/swaggerapi/oapi/v1`. For more, [see the API documentation](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
+The Origin API is located on each server at `https://<host>:8443/oapi/v1`. These APIs are described via [Swagger v1.2](https://www.swagger.io) at `https://<host>:8443/swaggerapi/oapi/v1`. For more, [see the API documentation](http://docs.openshift.com/enterprise/latest/rest_api/openshift_v1.html).
 
 ### Kubernetes
 
@@ -61,7 +61,7 @@ If you're looking for more information about using Kubernetes or the lower level
 
 * [Kubernetes Getting Started](https://github.com/kubernetes/kubernetes/blob/master/README.md)
 * [Kubernetes Documentation](https://github.com/kubernetes/kubernetes/blob/master/docs/README.md)
-* [Kubernetes API](http://docs.openshift.org/latest/rest_api/kubernetes_v1.html)
+* [Kubernetes API](http://docs.openshift.com/enterprise/latest/rest_api/kubernetes_v1.html)
 
 ### Troubleshooting
 
@@ -94,7 +94,7 @@ FAQ
 
 3. What can I run on Origin?
 
-    Origin is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of Origin can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/s2i_images/overview.html). Our available images are:
+    Origin is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of Origin can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.com/enterprise/latest/using_images/s2i_images/overview.html). Our available images are:
 
     * [Ruby](https://github.com/openshift/sti-ruby)
     * [Python](https://github.com/openshift/sti-python)
@@ -103,7 +103,7 @@ FAQ
     * [Perl](https://github.com/openshift/sti-perl)
     * [Wildfly](https://github.com/openshift/wildfly-8-centos)
 
-    Your application image can be easily extended with a database service with our [database images](http://docs.openshift.org/latest/using_images/db_images/overview.html). Our available database images are:
+    Your application image can be easily extended with a database service with our [database images](http://docs.openshift.com/enterprise/latest/using_images/db_images/overview.html). Our available database images are:
 
     * [MySQL](https://github.com/openshift/mysql)
     * [MongoDB](https://github.com/openshift/mongodb)
@@ -122,19 +122,19 @@ FAQ
       * By default, Docker builds can (and often do) run as root. You can control who can create Docker builds through the `builds/docker` and `builds/custom` policy resource.
     * Regular users and project admins cannot change their security quotas.
 
-    Many Docker containers expect to run as root (and therefore edit all the contents of the filesystem). The [Image Author's guide](https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines) gives recommendations on making your image more secure by default:
+    Many Docker containers expect to run as root (and therefore edit all the contents of the filesystem). The [Image Author's guide](https://docs.openshift.com/enterprise/latest/creating_images/guidelines.html#openshift-specific-guidelines) gives recommendations on making your image more secure by default:
 
     * Don't run as root
     * Make directories you want to write to group-writable and owned by group id 0
     * Set the net-bind capability on your executables if they need to bind to ports &lt;1024
 
-    Otherwise, you can see the [security documentation](https://docs.openshift.org/latest/admin_guide/manage_scc.html) for descriptions on how to relax these restrictions.
+    Otherwise, you can see the [security documentation](https://docs.openshift.com/enterprise/latest/admin_guide/manage_scc.html) for descriptions on how to relax these restrictions.
 
 5. How do I get networking working?
 
     The Origin and Kubernetes network model assigns each pod (group of containers) an IP that is expected to be reachable from all nodes in the cluster. The default setup is through a simple SDN plugin with OVS - this plugin expects the port 4679 to be open between nodes in the cluster. Also, the Origin master processes need to be able to reach pods via the network, so they may require the SDN plugin.
 
-    Other networking options are available such as Calico, Flannel, Nuage, and Weave. For a non-overlay networking solution, existing networks can be used by assigning a different subnet to each host, and ensuring routing rules deliver packets bound for that subnet to the host it belongs to. This is called [host subnet routing](https://docs.openshift.org/latest/admin_guide/native_container_routing.html).
+    Other networking options are available such as Calico, Flannel, Nuage, and Weave. For a non-overlay networking solution, existing networks can be used by assigning a different subnet to each host, and ensuring routing rules deliver packets bound for that subnet to the host it belongs to. This is called [host subnet routing](https://docs.openshift.com/enterprise/latest/admin_guide/native_container_routing.html).
 
 6. Why can't I run Origin in a Docker image on boot2docker or Ubuntu?
 

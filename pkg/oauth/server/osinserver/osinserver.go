@@ -7,7 +7,7 @@ import (
 
 	"github.com/RangelReale/osin"
 
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 const (
@@ -96,7 +96,7 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.IsError && resp.InternalError != nil {
-		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
+		utilruntime.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }
@@ -113,7 +113,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		s.server.FinishAccessRequest(resp, r, ar)
 	}
 	if resp.IsError && resp.InternalError != nil {
-		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
+		utilruntime.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }

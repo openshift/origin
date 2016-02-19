@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -76,7 +76,7 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorization
 				c.authorizeCache.Remove(key)
 			}
 		default:
-			util.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
+			utilruntime.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
 		}
 	}
 
@@ -108,7 +108,7 @@ func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes author
 				c.allowedSubjectsCache.Remove(key)
 			}
 		default:
-			util.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
+			utilruntime.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
 		}
 	}
 

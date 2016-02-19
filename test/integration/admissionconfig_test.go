@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
@@ -87,7 +88,7 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 func registerAdmissionPlugins(t *testing.T, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+		admission.RegisterPlugin(pluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 			plugin := &testAdmissionPlugin{
 				name: pluginName,
 			}

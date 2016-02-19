@@ -16,9 +16,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router/controller"
+	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/version"
-	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
 
 const (
@@ -45,19 +45,21 @@ type TemplateRouterOptions struct {
 }
 
 type TemplateRouter struct {
-	RouterName         string
-	WorkingDir         string
-	TemplateFile       string
-	ReloadScript       string
-	ReloadInterval     time.Duration
-	DefaultCertificate string
-	RouterService      *ktypes.NamespacedName
+	RouterName             string
+	WorkingDir             string
+	TemplateFile           string
+	ReloadScript           string
+	ReloadInterval         time.Duration
+	DefaultCertificate     string
+	DefaultCertificatePath string
+	RouterService          *ktypes.NamespacedName
 }
 
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.RouterName, "name", util.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/containers/router", "The working directory for the router plugin")
-	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
+	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format")
+	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 
@@ -157,16 +159,17 @@ func (o *TemplateRouterOptions) Validate() error {
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
 	pluginCfg := templateplugin.TemplatePluginConfig{
-		WorkingDir:         o.WorkingDir,
-		TemplatePath:       o.TemplateFile,
-		ReloadScriptPath:   o.ReloadScript,
-		ReloadInterval:     o.ReloadInterval,
-		DefaultCertificate: o.DefaultCertificate,
-		StatsPort:          o.StatsPort,
-		StatsUsername:      o.StatsUsername,
-		StatsPassword:      o.StatsPassword,
-		PeerService:        o.RouterService,
-		IncludeUDP:         o.RouterSelection.IncludeUDP,
+		WorkingDir:             o.WorkingDir,
+		TemplatePath:           o.TemplateFile,
+		ReloadScriptPath:       o.ReloadScript,
+		ReloadInterval:         o.ReloadInterval,
+		DefaultCertificate:     o.DefaultCertificate,
+		DefaultCertificatePath: o.DefaultCertificatePath,
+		StatsPort:              o.StatsPort,
+		StatsUsername:          o.StatsUsername,
+		StatsPassword:          o.StatsPassword,
+		PeerService:            o.RouterService,
+		IncludeUDP:             o.RouterSelection.IncludeUDP,
 	}
 
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)

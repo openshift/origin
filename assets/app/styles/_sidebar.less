@@ -111,6 +111,9 @@
         }
         .fa {
           color: @sidebar-os-icon-color;
+          &.fa-angle-right {
+            display: none;
+          }
         }
       }
       .dropdown-menu {
@@ -228,16 +231,6 @@
             .fa {
               display: inline;
               font-size: 20px;
-              &.fa-angle-right {
-                color: @sidebar-os-color;
-                display: none;
-                font-size: 18px;
-                height: 18px;
-                position: absolute;
-                right: 5px;
-                text-align: right;
-                top: 23px;
-              }
             }
             span {
               display: block;
@@ -308,7 +301,14 @@
           .fa {
             .primary-nav-icon-xl();
             &.fa-angle-right {
+              color: @sidebar-os-color;
               display: block;
+              font-size: 18px;
+              height: 18px;
+              position: absolute;
+              right: 5px;
+              text-align: right;
+              top: 23px;
             }
           }
         }

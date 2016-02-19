@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9f4826d90514dc40be552c30999667ce08581537
+%global commit 96436ddb3d514c397dcc4f72fcea1b839a424893
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.902-54-g9f4826d -X github.com/openshift/origin/pkg/version.commitFromGit 9f4826d -X k8s.io/kubernetes/pkg/version.gitCommit f0cd09a -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.903-101-g96436dd -X github.com/openshift/origin/pkg/version.commitFromGit 96436dd -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.903
+Version:        3.1.1.904
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,94 @@ fi
 
 
 %changelog
+* Fri Feb 19 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.904
+- Updated URLs fo OpenShift Enterprise (tdawson@redhat.com)
+- Fix extended build compile error (jliggitt@redhat.com)
+- refactored test-end-to-end/core to use os::cmd functions
+  (skuznets@redhat.com)
+- update completions (pweil@redhat.com)
+- UPSTREAM: <carry>: add scc describer (pweil@redhat.com)
+- Allow subdomain flag to create router (ccoleman@redhat.com)
+- add gutter class to annotations directive to provide margin
+  (admin@benjaminapetersen.me)
+- vendor quickstart templates into origin (bparees@redhat.com)
+- Add attach storage and create route to the actions dropdown
+  (spadgett@redhat.com)
+- properly check for nil docker client value (bparees@redhat.com)
+- Web console: show more detailed pod status (spadgett@redhat.com)
+- always pull the previous image for s2i builds (bparees@redhat.com)
+- Improve log error messages (admin@benjaminapetersen.me)
+- add DB icons and also add annotations to the 'latest' imagestream tags
+  (bparees@redhat.com)
+- Add Jenkins with kubernetes plugin example (mfojtik@redhat.com)
+- UPSTREAM: 21470: fix limitranger to handle latent caches without live lookups
+  every time (deads@redhat.com)
+- react to limitrange update (deads@redhat.com)
+- Handle multiple imageChange triggers in BC edit page (jhadvig@redhat.com)
+- Resolving a couple cosmetic issues with navbar at mobile resolutions
+  (rhamilto@redhat.com)
+- Refactoring .component to prevent weird wrapping issues (rhamilto@redhat.com)
+- UPSTREAM: 21335: make kubectl logs work for replication controllers
+  (deads@redhat.com)
+- make sure that logs for rc work correctly (deads@redhat.com)
+- Use in-cluster-config without setting POD_NAMESPACE (jliggitt@redhat.com)
+- UPSTREAM: 21095: Provide current namespace to InClusterConfig
+  (jliggitt@redhat.com)
+- Get rid of the plugins/ dir (ccoleman@redhat.com)
+- Route ordering is unstable, and writes must be ignored (ccoleman@redhat.com)
+- Replace kebab with actions button on browse pages (spadgett@redhat.com)
+- Fixes for unnecessary scrollbars in certain areas and situations
+  (sgoodwin@redhat.com)
+- Fix asset build so that it leaves the dev environment in place without having
+  to re-launch grunt serve (jforrest@redhat.com)
+- addition of memory limits with online beta in mind (gmontero@redhat.com)
+- make hello-openshift print to stdout when serving a request
+  (bparees@redhat.com)
+- Run-once pod duration: remove flag from plugin config (cewong@redhat.com)
+- Add deletecollection verb to admin/edit roles (jliggitt@redhat.com)
+- UPSTREAM: 21005: Use a different verb for delete collection
+  (jliggitt@redhat.com)
+- Validate wildcard certs against non-wildcard namedCertificate names
+  (jliggitt@redhat.com)
+- Image building resets the global script time (ccoleman@redhat.com)
+- remove volumes when removing containers (skuznets@redhat.com)
+- UPSTREAM: 21089: Default lockfile to empty string while alpha
+  (pweil@redhat.com)
+- UPSTREAM: 21340: Tolerate individual NotFound errors in DeleteCollection
+  (pweil@redhat.com)
+- UPSTREAM: 21318: kubectl: use the factory properly for recording commands
+  (pweil@redhat.com)
+- refactor api interface to allow returning an error (pweil@redhat.com)
+- fixing tests (pweil@redhat.com)
+- proxy config refactor (pweil@redhat.com)
+- boring refactors (pweil@redhat.com)
+- UPSTREAM: <carry>: update generated client code for SCC (pweil@redhat.com)
+- UPSTREAM: 21278: include discovery client in adaptor (pweil@redhat.com)
+- bump(k8s.io/kubernetes): bc4550d9e93d04e391b9e33fc85a679a0ca879e9
+  (pweil@redhat.com)
+- UPSTREAM: openshift/openshift-sdn: <drop>: openshift-sdn refactoring
+  (pweil@redhat.com)
+- bump(github.com/stretchr/testify): e3a8ff8ce36581f87a15341206f205b1da467059
+  (pweil@redhat.com)
+- bump(github.com/onsi/ginkgo): 07d85e6b10c4289c7d612f9b13f45ba36f66d55b
+  (pweil@redhat.com)
+- bump(github.com/fsouza/go-dockerclient):
+  0099401a7342ad77e71ca9f9a57c5e72fb80f6b2 (pweil@redhat.com)
+- UPSTREAM: coreos/etcd: 4503: expose error details for normal stringify
+  (deads@redhat.com)
+- bump(github.com/coreos/etcd): bc9ddf260115d2680191c46977ae72b837785472
+  (pweil@redhat.com)
+- godeps: fix broken hash before restore (pweil@redhat.com)
+- The Host value should be written to all rejected routes (ccoleman@redhat.com)
+- fix jenkins testjob xml; fix jenkins ext test deployment error handling
+  (gmontero@redhat.com)
+- Web console: honor cluster-resource-override-enabled (spadgett@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  41947800efb9fb7f5c3a13e977d26ac0815fa4fb (maszulik@redhat.com)
+- UPSTREAM: 21266: only load kubeconfig files one time (deads@redhat.com)
+- Fix admission attribute comparison (agladkov@redhat.com)
+- Suppress conflict error printout (ccoleman@redhat.com)
+
 * Wed Feb 17 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.903
 - Change web console to display OpenShift Enterprise logo and urls
   (tdawson@redhat.com)

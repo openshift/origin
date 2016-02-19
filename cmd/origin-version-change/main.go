@@ -16,7 +16,6 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/api"
-	_ "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"

@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -95,7 +95,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 	// remove the reference token secrets
 	for _, dockercfgSecret := range dockercfgSecrets {
 		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); (err != nil) && !apierrors.IsNotFound(err) {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 		}
 	}
 }

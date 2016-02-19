@@ -66,7 +66,10 @@ angular.module("openshiftConsole")
             resources: {}
           };
 
-          scope.hideCPU = LimitRangesService.hideCPUComputeResources();
+          // Check if requests or limits are calculated. Memory limit is never calculated.
+          scope.cpuRequestCalculated = LimitRangesService.isRequestCalculated('cpu', project);
+          scope.cpuLimitCalculated = LimitRangesService.isLimitCalculated('cpu', project);
+          scope.memoryRequestCalculated = LimitRangesService.isRequestCalculated('memory', project);
 
           scope.fillSampleRepo = function() {
             var annotations;
@@ -117,9 +120,9 @@ angular.module("openshiftConsole")
 
         var validatePodLimits = function() {
           if (!$scope.hideCPU) {
-            $scope.cpuProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'cpu', [$scope.container]);
+            $scope.cpuProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'cpu', [$scope.container], project);
           }
-          $scope.memoryProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'memory', [$scope.container]);
+          $scope.memoryProblems = LimitRangesService.validatePodLimits($scope.limitRanges, 'memory', [$scope.container], project);
         };
 
         DataService.list("limitranges", context, function(limitRanges) {

@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -167,8 +168,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 	// provide any config overrides
 	cfg.NodeName = options.NodeName
-	cfg.KubeClient = kubeClient
-	cfg.EventClient = eventClient
+	cfg.KubeClient = internalclientset.FromUnversionedClient(kubeClient)
+	cfg.EventClient = internalclientset.FromUnversionedClient(eventClient)
 	cfg.DockerExecHandler = dockerExecHandler
 
 	// docker-in-docker (dind) deployments are used for testing
@@ -299,14 +300,15 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	if ip == nil {
 		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", addr)
 	}
-	proxyconfig.BindAddress = ip
+	proxyconfig.BindAddress = ip.String()
 
 	// HealthzPort, HealthzBindAddress - disable
 	proxyconfig.HealthzPort = 0
-	proxyconfig.HealthzBindAddress = nil
+	proxyconfig.HealthzBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
-	proxyconfig.OOMScoreAdj = 0
+	oomScoreAdj := 0
+	proxyconfig.OOMScoreAdj = &oomScoreAdj
 	proxyconfig.ResourceContainer = ""
 
 	// use the same client as the node
@@ -317,14 +319,16 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	// HostnameOverride, use default
 
 	// ProxyMode, set to iptables
-	proxyconfig.ProxyMode = "iptables"
+	proxyconfig.Mode = "iptables"
 
 	// IptablesSyncPeriod, set to our config value
 	syncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	proxyconfig.IptablesSyncPeriod = syncPeriod
+	proxyconfig.IPTablesSyncPeriod = unversioned.Duration{
+		Duration: syncPeriod,
+	}
 
 	// ConfigSyncPeriod, use default
 

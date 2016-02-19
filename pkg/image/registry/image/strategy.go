@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -36,7 +36,7 @@ func (imageStrategy) PrepareForCreate(obj runtime.Object) {
 	newImage := obj.(*api.Image)
 	// ignore errors, change in place
 	if err := api.ImageWithMetadata(newImage); err != nil {
-		util.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
+		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 }
 
@@ -79,14 +79,14 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	if newManifest != oldImage.DockerImageManifest && len(newManifest) > 0 {
 		ok, err := api.ManifestMatchesImage(oldImage, []byte(newManifest))
 		if err != nil {
-			util.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
+			utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
 		} else if ok {
 			newImage.DockerImageManifest = newManifest
 		}
 	}
 
 	if err := api.ImageWithMetadata(newImage); err != nil {
-		util.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
+		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 }
 

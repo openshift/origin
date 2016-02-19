@@ -43,7 +43,7 @@ func (c *routes) List(opts kapi.ListOptions) (result *routeapi.RouteList, err er
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("routes").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -88,6 +88,6 @@ func (c *routes) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("routes").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
 }

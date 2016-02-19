@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/storage"
-	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -43,7 +43,7 @@ func (c *clusterResourceVersionObserver) ObserveResourceVersion(resourceVersion 
 	for i, watcher := range c.watchers {
 		wg.Add(1)
 		go func(i int, watcher rest.Watcher) {
-			defer kutil.HandleCrash()
+			defer utilruntime.HandleCrash()
 			defer wg.Done()
 			backendErrors[i] = watchForResourceVersion(c.versioner, watcher, resourceVersion, timeout)
 		}(i, watcher)

@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -152,7 +152,7 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// If this fails, log the error, but continue, because Update is no longer re-entrant
 	if oldUser != nil && removeIdentityFromUser(identity, oldUser) {
 		if _, err := s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
-			util.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
+			utilruntime.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
 		}
 	}
 
@@ -181,7 +181,7 @@ func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	// At this point, the mapping for the identity no longer exists
 	if unsetIdentityUser(identity) {
 		if _, err := s.identityRegistry.UpdateIdentity(ctx, identity); err != nil {
-			util.HandleError(fmt.Errorf("error removing user reference %s from identity %s: %v", user.Name, identity.Name, err))
+			utilruntime.HandleError(fmt.Errorf("error removing user reference %s from identity %s: %v", user.Name, identity.Name, err))
 		}
 	}
 

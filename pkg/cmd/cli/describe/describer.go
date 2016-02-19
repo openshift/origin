@@ -1084,7 +1084,7 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
 
 		buffer := new(bytes.Buffer)
-		printer := NewHumanReadablePrinter(true, false, false, false, false, []string{})
+		printer := NewHumanReadablePrinter(true, false, false, false, false, false, []string{})
 		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}

@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -259,7 +259,7 @@ func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *htt
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := grantTemplate.Execute(w, form); err != nil {
-		util.HandleError(fmt.Errorf("unable to render grant template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to render grant template: %v", err))
 	}
 }
 

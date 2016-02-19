@@ -62,6 +62,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		"PersistentVolumeClaim",
 		"Service",
 		"ServiceAccount",
+		"ConfigMap",
 	} {
 		err = api.Scheme.AddFieldLabelConversionFunc("v1", kind,
 			func(label, value string) (string, string, error) {

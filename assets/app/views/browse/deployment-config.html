@@ -23,20 +23,28 @@
                   </button>
 
                   <!-- Secondary Actions -->
-                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                    Actions
+                    <span class="caret" aria-hidden="true"></span>
+                  </button>
+                  <a href=""
+                     class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li class="visible-xs-inline" ng-class="{ disabled: !canDeploy() }">
                       <a href=""
                         role="button"
                         ng-attr-aria-disabled="{{canDeploy() ? undefined : 'true'}}"
                         ng-class="{ 'disabled-link': !canDeploy() }"
-                        ng-click="startLatestDeployment()"
-                        ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Deploy</a>
+                        ng-click="startLatestDeployment()">Deploy</a>
+                    </li>
+                    <li>
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}"
+                         role="button">Attach Storage</a>
                     </li>
                     <li>
                       <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
-                        role="button"
-                        ><i class="fa fa-area-chart fa-fw" aria-hidden="true"></i> Set Resource Limits</a>
+                        role="button">Set Resource Limits</a>
                     </li>
                     <li>
                       <edit-link
@@ -109,7 +117,8 @@
                                   detailed="true"></pod-template>
                           </dl>
                           <h4 style="margin-top: 20px;">Volumes</h4>
-                          <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
+                          <a ng-if="!deploymentConfig.spec.template.spec.volumes.length"
+                             ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
                         <div class="col-lg-6">

@@ -8,6 +8,7 @@ import (
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello OpenShift!")
+	fmt.Println("Servicing request.")
 }
 
 func listenAndServe(port string) {
@@ -20,7 +21,6 @@ func listenAndServe(port string) {
 
 func main() {
 	http.HandleFunc("/", helloHandler)
-
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "8080"

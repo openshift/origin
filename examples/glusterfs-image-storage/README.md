@@ -79,5 +79,5 @@ oc create -f gluster-pvc.yaml
 
 ##### Start the Docker Registry
 
-Refer to the latest [Origin Docs](https://docs.openshift.org/latest/install_config/install/docker_registry.html "Deploying A Docker Registry") for deployment instructions.  See the [Production Use](https://docs.openshift.org/latest/install_config/install/docker_registry.html#production-use "Production-Use") section to implement the registry using the persistent volume claim.
+Refer to the latest [Origin Docs](https://docs.openshift.com/enterprise/latest/install_config/install/docker_registry.html "Deploying A Docker Registry") for deployment instructions.  See the [Production Use](https://docs.openshift.com/enterprise/latest/install_config/install/docker_registry.html#production-use "Production-Use") section to implement the registry using the persistent volume claim.
 

@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
@@ -105,7 +106,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				if _, isFatal := err.(fatalError); isFatal {
-					kutil.HandleError(err)
+					utilruntime.HandleError(err)
 					return false
 				}
 				if retries.Count > 1 {

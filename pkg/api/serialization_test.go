@@ -14,7 +14,6 @@ import (
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -355,6 +354,11 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.ISCSIInterface = "default"
 			}
 		},
+		func(j *kapi.CephFSVolumeSource, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// this field does not exist on v1beta3
+			j.Path = ""
+		},
 		func(j *kapi.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if forVersion == v1beta3.SchemeGroupVersion {
@@ -426,7 +430,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := runtime.Encode(codec, item)
 	if err != nil {
-		if conversion.IsNotRegisteredError(err) {
+		if runtime.IsNotRegisteredError(err) {
 			t.Logf("%v is not registered", name)
 		}
 		t.Errorf("%v: %v (%#v)", name, err, item)

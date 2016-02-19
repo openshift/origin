@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("BuildByStrategy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("BuildByStrategy", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewBuildByStrategy(), nil
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 // RunnableController is a controller which implements a Run loop.
@@ -42,12 +43,12 @@ type Queue interface {
 
 // Run begins processing resources from Queue asynchronously.
 func (c *RetryController) Run() {
-	go kutil.Forever(func() { c.handleOne(c.Queue.Pop()) }, 0)
+	go utilwait.Forever(func() { c.handleOne(c.Queue.Pop()) }, 0)
 }
 
 // RunUntil begins processing resources from Queue asynchronously until stopCh is closed.
 func (c *RetryController) RunUntil(stopCh <-chan struct{}) {
-	go kutil.Until(func() { c.handleOne(c.Queue.Pop()) }, 0, stopCh)
+	go utilwait.Until(func() { c.handleOne(c.Queue.Pop()) }, 0, stopCh)
 }
 
 // handleOne processes resource with Handle. If Handle returns a retryable

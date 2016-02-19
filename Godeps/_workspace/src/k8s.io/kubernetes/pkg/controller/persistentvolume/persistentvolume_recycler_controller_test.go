@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/fake"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 )
@@ -44,7 +44,7 @@ func TestFailedRecycling(t *testing.T) {
 	plugMgr := volume.VolumePluginMgr{}
 
 	recycler := &PersistentVolumeRecycler{
-		kubeClient:      &testclient.Fake{},
+		kubeClient:      fake.NewSimpleClientset(),
 		client:          mockClient,
 		pluginMgr:       plugMgr,
 		releasedVolumes: make(map[string]releasedVolumeStatus),
@@ -89,7 +89,7 @@ func TestRecyclingRetry(t *testing.T) {
 	failedCallCount = 0
 
 	recycler := &PersistentVolumeRecycler{
-		kubeClient:      &testclient.Fake{},
+		kubeClient:      fake.NewSimpleClientset(),
 		client:          mockClient,
 		pluginMgr:       plugMgr,
 		syncPeriod:      mySyncPeriod,
@@ -131,7 +131,7 @@ func TestRecyclingRetryAlwaysFail(t *testing.T) {
 	failedCallCount = 0
 
 	recycler := &PersistentVolumeRecycler{
-		kubeClient:      &testclient.Fake{},
+		kubeClient:      fake.NewSimpleClientset(),
 		client:          mockClient,
 		pluginMgr:       plugMgr,
 		syncPeriod:      mySyncPeriod,

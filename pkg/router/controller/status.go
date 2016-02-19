@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -92,7 +92,8 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 // false if no modification was made.
 func setIngressCondition(ingress *routeapi.RouteIngress, condition routeapi.RouteIngressCondition) bool {
 	for _, existing := range ingress.Conditions {
-		//existing.LastTransitionTime = nil
+		// ensures that the comparison is based on the actual value, not the time
+		existing.LastTransitionTime = condition.LastTransitionTime
 		if existing == condition {
 			return false
 		}
@@ -124,10 +125,11 @@ func recordIngressConditionFailure(route *routeapi.Route, name string, condition
 		if existing.RouterName != name {
 			continue
 		}
+		existing.Host = route.Spec.Host
 		lastTouch := ingressConditionTouched(existing)
 		return existing, setIngressCondition(existing, condition), lastTouch
 	}
-	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name})
+	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name, Host: route.Spec.Host})
 	ingress := &route.Status.Ingress[len(route.Status.Ingress)-1]
 	setIngressCondition(ingress, condition)
 	return ingress, true, nil
@@ -146,21 +148,26 @@ func (a *StatusAdmitter) hasIngressBeenTouched(route *routeapi.Route, lastTouch 
 	return true
 }
 
-// recordIngressTouch
-func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, err error) {
+// recordIngressTouch tracks whether the ingress record updated succeeded and returns true if the admitter can
+// continue. Conflict errors are treated as no error, but indicate the touch was not successful and the caller
+// should retry.
+func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, err error) (bool, error) {
 	switch {
 	case err == nil:
 		if touch != nil {
 			a.expected.Add(route.UID, touch.Time)
 		}
+		return true, nil
 	case errors.IsConflict(err):
 		a.expected.Add(route.UID, time.Time{})
+		return false, nil
 	}
+	return false, err
 }
 
 // admitRoute returns true if the route has already been accepted to this router, or
 // updates the route to contain an accepted condition. Returns an error if the route could
-// not be admitted.
+// not be admitted due to a failure, or false if the route can't be admitted at this time.
 func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name string) (bool, error) {
 	ingress, updated := findOrCreateIngress(route, name)
 	if !updated {
@@ -184,8 +191,7 @@ func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.
 	})
 	glog.V(4).Infof("admit: admitting route by updating status: %s (%t): %s", route.Name, updated, route.Spec.Host)
 	_, err := oc.Routes(route.Namespace).UpdateStatus(route)
-	a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
-	return err == nil, err
+	return a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
 }
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
@@ -209,7 +215,7 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 	_, err := a.client.Routes(route.Namespace).UpdateStatus(route)
 	a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
 	if err != nil {
-		util.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
 	}
 }
 

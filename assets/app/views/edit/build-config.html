@@ -470,7 +470,7 @@
                           <div>
                             <div class="checkbox" ng-if="sources.git" >
                               <label>
-                                <input type="checkbox" ng-model="pickedTriggers['webhook']"/>
+                                <input type="checkbox" ng-model="triggers.present.webhook"/>
                                 Enable the webhook build trigger
                                 <span class="help action-inline">
                                   <a href>
@@ -480,23 +480,25 @@
                                 </span>
                               </label>
                             </div>
+
                             <div class="checkbox">
                               <label>
-                                <input type="checkbox" ng-model="pickedTriggers['imageChange']" ng-disabled="builderOptions.pickedType === 'None'"/>
-                                Automatically build a new image when the builder image changes
-                                <span class="help action-inline">
-                                  <a href>
-                                    <i class="pficon pficon-help" data-placement="left" aria-hidden="true"
-                                    data-toggle="tooltip" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
-                                  </i>
-                                  </a>
-                                </span>
+                                <input type="checkbox" ng-model="triggers.present.configChange"/>
+                                Automatically build a new image when the build configuration changes
                               </label>
                             </div>
+
                             <div class="checkbox">
                               <label>
-                                <input type="checkbox" ng-model="pickedTriggers['configChange']"/>
-                                Automatically build a new image when the build configuration changes
+                                <input type="checkbox" ng-model="triggers.present.imageChange" ng-disabled="builderOptions.pickedType === 'None'"/>
+                                  Automatically build a new image when the builder image changes
+                                  <span class="help action-inline">
+                                    <a href>
+                                      <i class="pficon pficon-help" data-placement="left" aria-hidden="true"
+                                      data-toggle="tooltip" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
+                                    </i>
+                                    </a>
+                                  </span>
                               </label>
                             </div>
                           </div>

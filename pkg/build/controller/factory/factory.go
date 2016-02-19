@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -46,7 +47,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
 		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
-		kutil.HandleError(err)
+		utilruntime.HandleError(err)
 		if err := buildupdater.Update(build.Namespace, build); err != nil {
 			// retry update, but only on error other than NotFound
 			return !kerrors.IsNotFound(err)
@@ -166,12 +167,12 @@ func retryFunc(kind string, isFatal func(err error) bool) controller.RetryFunc {
 		}
 		if isFatal != nil && isFatal(err) {
 			glog.V(3).Infof("Will not retry fatal error for %s %s: %v", kind, name, err)
-			kutil.HandleError(err)
+			utilruntime.HandleError(err)
 			return false
 		}
 		if retries.Count > maxRetries {
 			glog.V(3).Infof("Giving up retrying %s %s: %v", kind, name, err)
-			kutil.HandleError(err)
+			utilruntime.HandleError(err)
 			return false
 		}
 		glog.V(4).Infof("Retrying %s %s: %v", kind, name, err)

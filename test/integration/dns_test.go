@@ -13,7 +13,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util"
+	waitutil "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/miekg/dns"
 	testutil "github.com/openshift/origin/test/util"
@@ -39,7 +39,7 @@ func TestDNS(t *testing.T) {
 	var masterIP net.IP
 	// verify service DNS entry is visible
 	stop := make(chan struct{})
-	util.Until(func() {
+	waitutil.Until(func() {
 		m1 := &dns.Msg{
 			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
 			Question: []dns.Question{{"kubernetes.default.svc.cluster.local.", dns.TypeA, dns.ClassINET}},
@@ -241,7 +241,7 @@ func TestDNS(t *testing.T) {
 		ch := make(chan struct{})
 		count := 0
 		failedLatency := 0
-		util.Until(func() {
+		waitutil.Until(func() {
 			count++
 			if count > 100 {
 				t.Errorf("%d: failed after max iterations", i)

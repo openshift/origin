@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -43,7 +43,7 @@ type PersistentVolumeRecycler struct {
 	volumeController *framework.Controller
 	stopChannel      chan struct{}
 	client           recyclerClient
-	kubeClient       client.Interface
+	kubeClient       clientset.Interface
 	pluginMgr        volume.VolumePluginMgr
 	cloud            cloudprovider.Interface
 	maximumRetry     int
@@ -64,7 +64,7 @@ type releasedVolumeStatus struct {
 }
 
 // NewPersistentVolumeRecycler creates a new PersistentVolumeRecycler
-func NewPersistentVolumeRecycler(kubeClient client.Interface, syncPeriod time.Duration, maximumRetry int, plugins []volume.VolumePlugin, cloud cloudprovider.Interface) (*PersistentVolumeRecycler, error) {
+func NewPersistentVolumeRecycler(kubeClient clientset.Interface, syncPeriod time.Duration, maximumRetry int, plugins []volume.VolumePlugin, cloud cloudprovider.Interface) (*PersistentVolumeRecycler, error) {
 	recyclerClient := NewRecyclerClient(kubeClient)
 	recycler := &PersistentVolumeRecycler{
 		client:          recyclerClient,
@@ -82,10 +82,10 @@ func NewPersistentVolumeRecycler(kubeClient client.Interface, syncPeriod time.Du
 	_, volumeController := framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return kubeClient.PersistentVolumes().List(options)
+				return kubeClient.Core().PersistentVolumes().List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return kubeClient.PersistentVolumes().Watch(options)
+				return kubeClient.Core().PersistentVolumes().Watch(options)
 			},
 		},
 		&api.PersistentVolume{},
@@ -343,28 +343,28 @@ type recyclerClient interface {
 	UpdatePersistentVolumeStatus(volume *api.PersistentVolume) (*api.PersistentVolume, error)
 }
 
-func NewRecyclerClient(c client.Interface) recyclerClient {
+func NewRecyclerClient(c clientset.Interface) recyclerClient {
 	return &realRecyclerClient{c}
 }
 
 type realRecyclerClient struct {
-	client client.Interface
+	client clientset.Interface
 }
 
 func (c *realRecyclerClient) GetPersistentVolume(name string) (*api.PersistentVolume, error) {
-	return c.client.PersistentVolumes().Get(name)
+	return c.client.Core().PersistentVolumes().Get(name)
 }
 
 func (c *realRecyclerClient) UpdatePersistentVolume(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
-	return c.client.PersistentVolumes().Update(volume)
+	return c.client.Core().PersistentVolumes().Update(volume)
 }
 
 func (c *realRecyclerClient) DeletePersistentVolume(volume *api.PersistentVolume) error {
-	return c.client.PersistentVolumes().Delete(volume.Name)
+	return c.client.Core().PersistentVolumes().Delete(volume.Name, nil)
 }
 
 func (c *realRecyclerClient) UpdatePersistentVolumeStatus(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
-	return c.client.PersistentVolumes().UpdateStatus(volume)
+	return c.client.Core().PersistentVolumes().UpdateStatus(volume)
 }
 
 // PersistentVolumeRecycler is host to the volume plugins, but does not actually mount any volumes.
@@ -381,7 +381,7 @@ func (f *PersistentVolumeRecycler) GetPodPluginDir(podUID types.UID, pluginName 
 	return ""
 }
 
-func (f *PersistentVolumeRecycler) GetKubeClient() client.Interface {
+func (f *PersistentVolumeRecycler) GetKubeClient() clientset.Interface {
 	return f.kubeClient
 }
 

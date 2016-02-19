@@ -20,7 +20,7 @@ func ReadPluginConfig(reader io.Reader, config runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	err = configlatest.ReadYAML(configBytes, config)
+	err = configlatest.ReadYAMLInto(configBytes, config)
 	if err != nil {
 		return err
 	}

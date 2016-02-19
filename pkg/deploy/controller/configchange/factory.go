@@ -9,6 +9,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -67,7 +68,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				kutil.HandleError(err)
+				utilruntime.HandleError(err)
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}

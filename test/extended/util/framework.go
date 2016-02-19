@@ -24,6 +24,7 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/test/e2e"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -201,6 +202,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 		if err != nil {
 			return err
 		}
+
 		for i := range list.Items {
 			if isOK(&list.Items[i]) {
 				return nil
@@ -219,7 +221,20 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 		defer w.Stop()
 
 		for {
-			val, ok := <-w.ResultChan()
+			timeout := make(chan bool, 1)
+			go func() {
+				time.Sleep(10 * time.Second)
+				timeout <- true
+			}()
+
+			var val watch.Event
+			var ok bool
+
+			select {
+			case val, ok = <-w.ResultChan():
+			case <-timeout:
+			}
+
 			if !ok {
 				// reget and re-watch
 				break
@@ -234,8 +249,9 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 				}
 			}
 		}
+
 	}
-	return fmt.Errorf("the deploy did not finish within 3 minutes")
+	return fmt.Errorf("the deploy did of %s not finish within 15 minutes", name)
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed

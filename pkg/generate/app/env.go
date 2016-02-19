@@ -16,12 +16,17 @@ func NewEnvironment(envs ...map[string]string) Environment {
 		return envs[0]
 	}
 	out := make(Environment)
+	out.Add(envs...)
+	return out
+}
+
+// Add adds the environment variables to the current environment
+func (e Environment) Add(envs ...map[string]string) {
 	for _, env := range envs {
 		for k, v := range env {
-			out[k] = v
+			e[k] = v
 		}
 	}
-	return out
 }
 
 // List sorts and returns all the environment variables

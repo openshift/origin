@@ -139,7 +139,8 @@ func TestValidateEvent(t *testing.T) {
 					Namespace:  "foo",
 				},
 			},
-			true,
+			// this will be invalid based on there not being an "other" group registered
+			false,
 		}, {
 			&api.Event{
 				ObjectMeta: api.ObjectMeta{
@@ -160,7 +161,8 @@ func TestValidateEvent(t *testing.T) {
 					Namespace: "foo",
 				},
 				InvolvedObject: api.ObjectReference{
-					APIVersion: "extensions",
+					// must register in v1beta1 to be true
+					APIVersion: "extensions/v1beta1",
 					Kind:       "Job",
 					Namespace:  "foo",
 				},

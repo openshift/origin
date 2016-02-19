@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -112,7 +112,7 @@ func (e *DockerRegistryServiceController) serviceAdded(obj interface{}) {
 	}
 
 	if err := e.handleLocationChange(e.getServiceLocation(service)); err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 
@@ -129,7 +129,7 @@ func (e *DockerRegistryServiceController) serviceUpdated(oldObj interface{}, new
 	}
 
 	if err := e.handleLocationChange(e.getServiceLocation(newService)); err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 
@@ -144,7 +144,7 @@ func (e *DockerRegistryServiceController) serviceDeleted(obj interface{}) {
 	}
 
 	if err := e.handleLocationChange(e.defaultDockerURL); err != nil {
-		util.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 
@@ -160,14 +160,14 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 	for _, dockercfgSecret := range dockercfgSecrets {
 		dockercfg := &credentialprovider.DockerConfig{}
 		if err := json.Unmarshal(dockercfgSecret.Data[api.DockerConfigKey], dockercfg); err != nil {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 			continue
 		}
 
 		dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
 		keys := sets.StringKeySet(dockercfgMap)
 		if len(keys) != 1 {
-			util.HandleError(err)
+			utilruntime.HandleError(err)
 			continue
 		}
 		oldKey := keys.List()[0]
@@ -184,13 +184,13 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 
 		dockercfgContent, err2 := json.Marshal(dockercfg)
 		if err2 != nil {
-			util.HandleError(err2)
+			utilruntime.HandleError(err2)
 			continue
 		}
 		dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent
 
 		if _, updateErr := e.client.Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); updateErr != nil {
-			util.HandleError(updateErr)
+			utilruntime.HandleError(updateErr)
 			continue
 		}
 	}

@@ -48,8 +48,7 @@
       },
       "spec": {
         "strategy": {
-          "type": "Recreate",
-          "resources": {}
+          "type": "Recreate"
         },
         "triggers": [
           {
@@ -118,7 +117,11 @@
                     "value": "${MONGODB_ADMIN_PASSWORD}"
                   }
                 ],
-                "resources": {},
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_LIMIT}"
+		    }
+		},
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -152,13 +155,21 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the container can use",
+      "value": "384Mi"
+    },
+    {
       "name": "DATABASE_SERVICE_NAME",
-      "description": "Database service name",
+      "displayName": "Database service name",
+      "description": "The name of the OpenShift Service exposed for the database",
       "value": "mongodb",
       "required": true
     },
     {
       "name": "MONGODB_USER",
+      "displayName": "MongoDB user",
       "description": "Username for MongoDB user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -166,6 +177,7 @@
     },
     {
       "name": "MONGODB_PASSWORD",
+      "displayName": "MongoDB password",
       "description": "Password for the MongoDB user",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
@@ -173,12 +185,14 @@
     },
     {
       "name": "MONGODB_DATABASE",
-      "description": "Database name",
+      "displayName": "MongoDB database name",
+      "description": "Name of the MongoDB database accessed",
       "value": "sampledb",
       "required": true
     },
     {
       "name": "MONGODB_ADMIN_PASSWORD",
+      "displayName": "MongoDB admin password",
       "description": "Password for the database admin user",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",

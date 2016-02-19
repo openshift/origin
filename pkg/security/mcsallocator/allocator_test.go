@@ -12,7 +12,9 @@ import (
 
 func TestAllocate(t *testing.T) {
 	ranger, _ := mcs.NewRange("s0:", 5, 2)
-	r := New(ranger, allocator.NewContiguousAllocationInterface)
+	r := New(ranger, func(max int, rangeSpec string) allocator.Interface {
+		return allocator.NewContiguousAllocationMap(max, rangeSpec)
+	})
 	if f := r.Free(); f != 10 {
 		t.Errorf("unexpected free %d", f)
 	}

@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful/swagger"
@@ -86,12 +88,21 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 	if !kclientcmd.IsEmptyConfig(err) {
 		return "", false, err
 	}
-	// TODO: can we inject the namespace as a file in the secret?
-	namespace = os.Getenv("POD_NAMESPACE")
-	if len(namespace) == 0 {
-		return api.NamespaceDefault, false, nil
+
+	// This way assumes you've set the POD_NAMESPACE environment variable using the downward API.
+	// This check has to be done first for backwards compatibility with the way InClusterConfig was originally set up
+	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
+		return ns, true, nil
 	}
-	return namespace, true, nil
+
+	// Fall back to the namespace associated with the service account token, if available
+	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
+			return ns, true, nil
+		}
+	}
+
+	return api.NamespaceDefault, false, nil
 }
 
 // ClientConfig returns a complete client config
@@ -288,6 +299,18 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kPodSelectorForObjectFunc(object)
 		}
 	}
+
+	kMapBasedSelectorForObjectFunc := w.Factory.MapBasedSelectorForObject
+	w.MapBasedSelectorForObject = func(object runtime.Object) (string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return kubectl.MakeLabels(t.Spec.Selector), nil
+		default:
+			return kMapBasedSelectorForObjectFunc(object)
+		}
+
+	}
+
 	kPortsForObjectFunc := w.Factory.PortsForObject
 	w.PortsForObject = func(object runtime.Object) ([]string, error) {
 		switch t := object.(type) {
@@ -344,8 +367,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kLogsForObjectFunc(object, options)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, absoluteTimestamps, columnLabels), nil
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, showLabels, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, showLabels, absoluteTimestamps, columnLabels), nil
 	}
 	kCanBeExposed := w.Factory.CanBeExposed
 	w.CanBeExposed = func(kind unversioned.GroupKind) error {

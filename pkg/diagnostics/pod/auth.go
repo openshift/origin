@@ -112,7 +112,7 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 	}
 
 	// first try the secure connection in case they followed directions to secure the registry
-	// (https://docs.openshift.org/latest/install_config/install/docker_registry.html#securing-the-registry)
+	// (https://docs.openshift.com/enterprise/latest/install_config/install/docker_registry.html#securing-the-registry)
 	cacert, err := ioutil.ReadFile(d.MasterCaPath) // TODO: we assume same CA as master - better choice?
 	if err != nil {
 		r.Error("DP1008", err, fmt.Sprintf("Failed to read CA cert file %s:\n%v", d.MasterCaPath, err))

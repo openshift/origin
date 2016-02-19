@@ -174,13 +174,12 @@ angular.module('openshiftConsole')
         resources: '=',
         // 'cpu' or 'memory'
         type: '@',
-        limitRanges: '='
+        limitRanges: '=',
+        requestCalculated: '=',
+        limitCalculated: '=?'
       },
       templateUrl: 'views/_edit-request-limit.html',
       link: function(scope) {
-        scope.requestCalculated = LimitRangesService.isRequestCalculated(scope.type);
-        scope.limitCalculated = LimitRangesService.isLimitCalculated(scope.type);
-
         scope.$watch('limitRanges', function() {
           scope.limits = LimitRangesService.getEffectiveLimitRange(scope.limitRanges, scope.type, 'Container');
         }, true);

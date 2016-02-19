@@ -8,17 +8,19 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 type NamespaceControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
+	KubeClient *kclient.Client
 }
 
 // Create creates a NamespaceController.
@@ -36,7 +38,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 
 	namespaceController := &NamespaceController{
 		Client:     factory.Client,
-		KubeClient: factory.KubeClient,
+		KubeClient: internalclientset.FromUnversionedClient(factory.KubeClient),
 	}
 
 	return &controller.RetryController{
@@ -45,7 +47,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				kutil.HandleError(err)
+				utilruntime.HandleError(err)
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/third_party/golang/netutil"
 
 	"github.com/golang/glog"
@@ -59,7 +59,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) RoundTrip(req *http.Request) (*http
 	removeCORSHeaders(resp)
 	removeChallengeHeaders(resp)
 	if resp.StatusCode == http.StatusUnauthorized {
-		util.HandleError(fmt.Errorf("got unauthorized error from backend for: %s %s", req.Method, req.URL))
+		utilruntime.HandleError(fmt.Errorf("got unauthorized error from backend for: %s %s", req.Method, req.URL))
 		// Internal error, backend didn't recognize proxy identity
 		// Surface as a server error to the client
 		// TODO do we need to do more than this?
@@ -222,7 +222,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	go func() {
 		_, err := io.Copy(backendConn, requestHijackedConn)
 		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			util.HandleError(fmt.Errorf("error proxying data from client to backend: %v", err))
+			utilruntime.HandleError(fmt.Errorf("error proxying data from client to backend: %v", err))
 		}
 		done <- struct{}{}
 	}()
@@ -230,7 +230,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	go func() {
 		_, err := io.Copy(requestHijackedConn, backendConn)
 		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			util.HandleError(fmt.Errorf("error proxying data from backend to client: %v", err))
+			utilruntime.HandleError(fmt.Errorf("error proxying data from backend to client: %v", err))
 		}
 		done <- struct{}{}
 	}()

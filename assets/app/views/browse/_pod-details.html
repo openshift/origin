@@ -5,15 +5,14 @@
       <dl class="dl-horizontal left">
         <dt>Phase:</dt>
         <dd>
-          <span ng-switch="pod.status.phase">
-            <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
-            <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-            <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
-            <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-            <span ng-switch-when="Running" class="fa fa-refresh" aria-hidden="true"></span>
-          </span>
+          <status-icon status="pod.status.phase"></status-icon>
           {{pod.status.phase}}
+          <span ng-if="pod.status.reason">
+            ({{pod.status.reason}})
+          </span>
         </dd>
+        <dt ng-if-start="pod.status.message">Message:</dt>
+        <dd ng-if-end>{{pod.status.message}}</dd>
         <dt>IP:</dt>
         <dd>{{pod.status.podIP || 'unknown'}}</dd>
         <dt>Node:</dt>
@@ -49,7 +48,8 @@
       </pod-template>
       <div ng-if="pod.spec.volumes.length">
         <h4 style="margin-top: 20px;">Volumes</h4>
-        <a ng-if="pod | annotation:'deploymentConfig'" ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
+        <a ng-if="(pod | annotation:'deploymentConfig') && !pod.spec.volumes.length"
+           ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
         <volumes volumes="pod.spec.volumes" namespace="project.metadata.name"></volumes>
       </div>
     </div>

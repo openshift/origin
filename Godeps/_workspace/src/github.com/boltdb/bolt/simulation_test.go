@@ -10,7 +10,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-func TestSimulate_1op_1p(t *testing.T)     { testSimulate(t, 100, 1) }
+func TestSimulate_1op_1p(t *testing.T)     { testSimulate(t, 1, 1) }
 func TestSimulate_10op_1p(t *testing.T)    { testSimulate(t, 10, 1) }
 func TestSimulate_100op_1p(t *testing.T)   { testSimulate(t, 100, 1) }
 func TestSimulate_1000op_1p(t *testing.T)  { testSimulate(t, 1000, 1) }
@@ -42,8 +42,8 @@ func testSimulate(t *testing.T, threadCount, parallelism int) {
 	var versions = make(map[int]*QuickDB)
 	versions[1] = NewQuickDB()
 
-	db := NewTestDB()
-	defer db.Close()
+	db := MustOpenDB()
+	defer db.MustClose()
 
 	var mutex sync.Mutex
 
@@ -89,10 +89,12 @@ func testSimulate(t *testing.T, threadCount, parallelism int) {
 					versions[tx.ID()] = qdb
 					mutex.Unlock()
 
-					ok(t, tx.Commit())
+					if err := tx.Commit(); err != nil {
+						t.Fatal(err)
+					}
 				}()
 			} else {
-				defer tx.Rollback()
+				defer func() { _ = tx.Rollback() }()
 			}
 
 			// Ignore operation if we don't have data yet.

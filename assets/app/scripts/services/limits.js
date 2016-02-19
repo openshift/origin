@@ -33,14 +33,21 @@ angular.module("openshiftConsole")
       return usageValue(candidate) > usageValue(previous);
     };
 
-    var hideCPUComputeResources = function() {
-      return LIMIT_REQUEST_OVERRIDES &&
-             LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent &&
-             LIMIT_REQUEST_OVERRIDES.cpuRequestToLimitPercent;
+    // Check if compute resources overrides are enabled for this project.
+    var limitRequestOverridesEnabled = function(project) {
+      // If config is absent, overrides are disabled.
+      if (!LIMIT_REQUEST_OVERRIDES) {
+        return false;
+      }
+
+      // If the project resource override annotation is unset or is set to "true", overrides are enabled.
+      var projectOverrideAnnotation =
+        $filter('annotation')(project, 'quota.openshift.io/cluster-resource-override-enabled');
+      return !projectOverrideAnnotation || projectOverrideAnnotation === 'true';
     };
 
-    var isRequestCalculated = function(computeResource) {
-      if (!LIMIT_REQUEST_OVERRIDES) {
+    var isRequestCalculated = function(computeResource, project) {
+      if (!limitRequestOverridesEnabled(project)) {
         return false;
       }
 
@@ -54,15 +61,15 @@ angular.module("openshiftConsole")
       }
     };
 
-    var isLimitCalculated = function(computeResource) {
-      return LIMIT_REQUEST_OVERRIDES &&
+    var isLimitCalculated = function(computeResource, project) {
+      return limitRequestOverridesEnabled(project) &&
              computeResource === 'cpu' &&
              LIMIT_REQUEST_OVERRIDES.limitCPUToMemoryPercent;
     };
 
     // Reconciles multiple limit range resources for a compute resource ('cpu'
     // or 'memory') and resource type ('Container' or 'Pod'). Returns an object
-    // with the following properties for if defined:
+    // with the following properties if defined:
     //
     //   min, max, defaultLimit, defaultRequest, maxLimitRequestRatio
     //
@@ -121,7 +128,7 @@ angular.module("openshiftConsole")
     // Tests that the total request and total limit for all containers is
     // within the limit range minimum and maximum, respectively, for the pod.
     // Returns an array of error messages, or an empty array if no problems.
-    var validatePodLimits = function(limitRanges, computeResource, containers) {
+    var validatePodLimits = function(limitRanges, computeResource, containers, project) {
       if (!containers || !containers.length) {
         return [];
       }
@@ -154,7 +161,7 @@ angular.module("openshiftConsole")
       });
 
       // Only validate request if it's not calculated.
-      if (!isRequestCalculated(computeResource)) {
+      if (!isRequestCalculated(computeResource, project)) {
         if (min && requestTotal < min) {
           problems.push(computeResourceLabel + " request total for all containers is less than pod minimum (" + usageWithUnits(podLimits.min, computeResource) + ").");
         }
@@ -164,7 +171,7 @@ angular.module("openshiftConsole")
       }
 
       // Only validate limit if it's not calculated.
-      if (!isLimitCalculated(computeResource)) {
+      if (!isLimitCalculated(computeResource, project)) {
         if (min && limitTotal < min) {
           problems.push(computeResourceLabel + " limit total for all containers is less than pod minimum (" + usageWithUnits(podLimits.min, computeResource) + ").");
         }
@@ -178,7 +185,6 @@ angular.module("openshiftConsole")
 
     return {
       getEffectiveLimitRange: getEffectiveLimitRange,
-      hideCPUComputeResources: hideCPUComputeResources,
       isRequestCalculated: isRequestCalculated,
       isLimitCalculated: isLimitCalculated,
       validatePodLimits: validatePodLimits
