@@ -26,26 +26,26 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 // InstallAPI adds handlers for serving static assets into the provided mux,
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
-func (c *AssetConfig) InstallAPI(container *restful.Container) []string {
+func (c *AssetConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	publicURL, err := url.Parse(c.Options.PublicURL)
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	err = c.addHandlers(container.ServeMux)
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
-	return []string{fmt.Sprintf("Started Web Console %%s%s", publicURL.Path)}
+	return []string{fmt.Sprintf("Started Web Console %%s%s", publicURL.Path)}, nil
 }
 
 // Run starts an http server for the static assets listening on the configured
@@ -83,7 +83,7 @@ func (c *AssetConfig) Run() {
 
 	isTLS := configapi.UseTLS(c.Options.ServingInfo.ServingInfo)
 
-	go util.Forever(func() {
+	go utilwait.Forever(func() {
 		if isTLS {
 			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
 			if err != nil {
@@ -173,7 +173,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 			if strings.HasSuffix(kind, "List") {
 				continue
 			}
-			resource, _ := meta.KindToResource(version.WithKind(kind), false)
+			resource, _ := meta.KindToResource(version.WithKind(kind))
 			if latest.OriginKind(version.WithKind(kind)) {
 				if !deadOriginVersions.Has(version.String()) {
 					originResources.Insert(resource.Resource)

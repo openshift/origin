@@ -75,12 +75,12 @@ cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
-  STARTTIME=$(date +%s)
+  local STARTTIME=$(date +%s)
   echo "--- $1 ---"
   docker build -t $1:latest $2
   docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
   git clean -fdx $2
-  ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
+  local ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
   echo
   echo
 }

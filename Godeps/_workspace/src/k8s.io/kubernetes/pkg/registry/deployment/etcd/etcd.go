@@ -21,17 +21,18 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/deployment"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-
-	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 )
 
 // DeploymentStorage includes dummy storage for Deployments and for Scale subresource.
@@ -39,16 +40,18 @@ type DeploymentStorage struct {
 	Deployment *REST
 	Status     *StatusREST
 	Scale      *ScaleREST
+	Rollback   *RollbackREST
 }
 
 func NewStorage(s storage.Interface, storageDecorator generic.StorageDecorator) DeploymentStorage {
-	deploymentRest, deploymentStatusRest := NewREST(s, storageDecorator)
+	deploymentRest, deploymentStatusRest, deploymentRollbackRest := NewREST(s, storageDecorator)
 	deploymentRegistry := deployment.NewRegistry(deploymentRest)
 
 	return DeploymentStorage{
 		Deployment: deploymentRest,
 		Status:     deploymentStatusRest,
 		Scale:      &ScaleREST{registry: &deploymentRegistry},
+		Rollback:   deploymentRollbackRest,
 	}
 }
 
@@ -57,12 +60,12 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against deployments.
-func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*REST, *StatusREST) {
+func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*REST, *StatusREST, *RollbackREST) {
 	prefix := "/deployments"
 
 	newListFunc := func() runtime.Object { return &extensions.DeploymentList{} }
 	storageInterface := storageDecorator(
-		s, 100, &extensions.Deployment{}, prefix, deployment.Strategy, newListFunc)
+		s, cachesize.GetWatchCacheSizeByResource(cachesize.Deployments), &extensions.Deployment{}, prefix, deployment.Strategy, newListFunc)
 
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &extensions.Deployment{} },
@@ -98,7 +101,7 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) (*R
 	}
 	statusStore := *store
 	statusStore.UpdateStrategy = deployment.StatusStrategy
-	return &REST{store}, &StatusREST{store: &statusStore}
+	return &REST{store}, &StatusREST{store: &statusStore}, &RollbackREST{store: store}
 }
 
 // StatusREST implements the REST endpoint for changing the status of a deployment
@@ -115,47 +118,118 @@ func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object
 	return r.store.Update(ctx, obj)
 }
 
+// RollbackREST implements the REST endpoint for initiating the rollback of a deployment
+type RollbackREST struct {
+	store *etcdgeneric.Etcd
+}
+
+// New creates a rollback
+func (r *RollbackREST) New() runtime.Object {
+	return &extensions.DeploymentRollback{}
+}
+
+var _ = rest.Creater(&RollbackREST{})
+
+func (r *RollbackREST) Create(ctx api.Context, obj runtime.Object) (out runtime.Object, err error) {
+	rollback, ok := obj.(*extensions.DeploymentRollback)
+	if !ok {
+		return nil, fmt.Errorf("expected input object type to be DeploymentRollback, but %T", obj)
+	}
+
+	if errs := extvalidation.ValidateDeploymentRollback(rollback); len(errs) != 0 {
+		return nil, errors.NewInvalid(extensions.Kind("DeploymentRollback"), rollback.Name, errs)
+	}
+
+	// Update the Deployment with information in DeploymentRollback to trigger rollback
+	err = r.rollbackDeployment(ctx, rollback.Name, &rollback.RollbackTo, rollback.UpdatedAnnotations)
+	return
+}
+
+func (r *RollbackREST) rollbackDeployment(ctx api.Context, deploymentID string, config *extensions.RollbackConfig, annotations map[string]string) (err error) {
+	if _, err = r.setDeploymentRollback(ctx, deploymentID, config, annotations); err != nil {
+		err = etcderr.InterpretGetError(err, extensions.Resource("deployments"), deploymentID)
+		err = etcderr.InterpretUpdateError(err, extensions.Resource("deployments"), deploymentID)
+		if _, ok := err.(*errors.StatusError); !ok {
+			err = errors.NewConflict(extensions.Resource("deployments/rollback"), deploymentID, err)
+		}
+	}
+	return
+}
+
+func (r *RollbackREST) setDeploymentRollback(ctx api.Context, deploymentID string, config *extensions.RollbackConfig, annotations map[string]string) (finalDeployment *extensions.Deployment, err error) {
+	dKey, err := r.store.KeyFunc(ctx, deploymentID)
+	if err != nil {
+		return nil, err
+	}
+	err = r.store.Storage.GuaranteedUpdate(ctx, dKey, &extensions.Deployment{}, false, storage.SimpleUpdate(func(obj runtime.Object) (runtime.Object, error) {
+		d, ok := obj.(*extensions.Deployment)
+		if !ok {
+			return nil, fmt.Errorf("unexpected object: %#v", obj)
+		}
+		if d.Annotations == nil {
+			d.Annotations = make(map[string]string)
+		}
+		for k, v := range annotations {
+			d.Annotations[k] = v
+		}
+		d.Spec.RollbackTo = config
+		finalDeployment = d
+		return d, nil
+	}))
+	return finalDeployment, err
+}
+
 type ScaleREST struct {
 	registry *deployment.Registry
 }
 
-// ScaleREST implements Patcher
-var _ = rest.Patcher(&ScaleREST{})
+// TODO(madhusudancs): Fix this when Scale group issues are resolved (see issue #18528).
 
-// New creates a new Scale object
-func (r *ScaleREST) New() runtime.Object {
-	return &extensions.Scale{}
-}
+//  // ScaleREST implements Patcher
+// var _ = rest.Patcher(&ScaleREST{})
 
-func (r *ScaleREST) Get(ctx api.Context, name string) (runtime.Object, error) {
-	deployment, err := (*r.registry).GetDeployment(ctx, name)
-	if err != nil {
-		return nil, errors.NewNotFound(extensions.Resource("deployments/scale"), name)
-	}
-	return extensions.ScaleFromDeployment(deployment), nil
-}
+// // New creates a new Scale object
+// func (r *ScaleREST) New() runtime.Object {
+// 	return &extensions.Scale{}
+// }
 
-func (r *ScaleREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	if obj == nil {
-		return nil, false, errors.NewBadRequest(fmt.Sprintf("nil update passed to Scale"))
-	}
-	scale, ok := obj.(*extensions.Scale)
-	if !ok {
-		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
-	}
+// func (r *ScaleREST) Get(ctx api.Context, name string) (runtime.Object, error) {
+// 	deployment, err := (*r.registry).GetDeployment(ctx, name)
+// 	if err != nil {
+// 		return nil, errors.NewNotFound(extensions.Resource("deployments/scale"), name)
+// 	}
+// 	scale, err := extensions.ScaleFromDeployment(deployment)
+// 	if err != nil {
+// 		return nil, errors.NewBadRequest(fmt.Sprintf("%v", err))
+// 	}
+// 	return scale, nil
+// }
 
-	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
-		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
-	}
+// func (r *ScaleREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
+// 	if obj == nil {
+// 		return nil, false, errors.NewBadRequest(fmt.Sprintf("nil update passed to Scale"))
+// 	}
+// 	scale, ok := obj.(*extensions.Scale)
+// 	if !ok {
+// 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
+// 	}
 
-	deployment, err := (*r.registry).GetDeployment(ctx, scale.Name)
-	if err != nil {
-		return nil, false, errors.NewNotFound(extensions.Resource("deployments/scale"), scale.Name)
-	}
-	deployment.Spec.Replicas = scale.Spec.Replicas
-	deployment, err = (*r.registry).UpdateDeployment(ctx, deployment)
-	if err != nil {
-		return nil, false, errors.NewConflict(extensions.Resource("deployments/scale"), scale.Name, err)
-	}
-	return extensions.ScaleFromDeployment(deployment), false, nil
-}
+// 	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
+// 		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
+// 	}
+
+// 	deployment, err := (*r.registry).GetDeployment(ctx, scale.Name)
+// 	if err != nil {
+// 		return nil, false, errors.NewNotFound(extensions.Resource("deployments/scale"), scale.Name)
+// 	}
+// 	deployment.Spec.Replicas = scale.Spec.Replicas
+// 	deployment, err = (*r.registry).UpdateDeployment(ctx, deployment)
+// 	if err != nil {
+// 		return nil, false, errors.NewConflict(extensions.Resource("deployments/scale"), scale.Name, err)
+// 	}
+// 	newScale, err := extensions.ScaleFromDeployment(deployment)
+// 	if err != nil {
+// 		return nil, false, errors.NewBadRequest(fmt.Sprintf("%v", err))
+// 	}
+// 	return newScale, false, nil
+// }

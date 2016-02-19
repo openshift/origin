@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
@@ -252,7 +252,7 @@ func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) 
 		w.Header().Add("Cache-Control", "no-cache, no-store")
 		w.Header().Add("Content-Type", "application/javascript")
 		if _, err := w.Write(content); err != nil {
-			util.HandleError(fmt.Errorf("Error serving Web Console config and version: %v", err))
+			utilruntime.HandleError(fmt.Errorf("Error serving Web Console config and version: %v", err))
 		}
 	}), nil
 }

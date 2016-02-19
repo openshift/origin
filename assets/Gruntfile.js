@@ -516,7 +516,9 @@ module.exports = function (grunt) {
         'less:production',
         // remove imagemin from build, since it doesn't tend to behave well cross-platform
         // 'imagemin',
-        'svgmin'
+        'svgmin',
+        // Also do everything we do in concurrent server so that you can leave grunt server running while doing a build
+        'concurrent:server'       
       ]
     },
 

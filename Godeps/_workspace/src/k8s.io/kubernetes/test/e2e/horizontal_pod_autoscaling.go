@@ -31,24 +31,28 @@ const (
 	subresource    = "scale"
 )
 
-var _ = Describe("Horizontal pod autoscaling (scale resource: CPU) [Skipped]", func() {
+// These tests don't seem to be running properly in parallel: issue: #20338.
+//
+// These tests take ~20 minutes each.
+var _ = Describe("Horizontal pod autoscaling (scale resource: CPU) [Serial] [Slow]", func() {
 	var rc *ResourceConsumer
 	f := NewFramework("horizontal-pod-autoscaling")
 
 	titleUp := "Should scale from 1 pod to 3 pods and from 3 to 5"
 	titleDown := "Should scale from 5 pods to 3 pods and from 3 to 1"
 
-	Describe("Deployment", func() {
-		// CPU tests via deployments
-		It(titleUp, func() {
-			scaleUp("deployment", kindDeployment, rc, f)
-		})
-		It(titleDown, func() {
-			scaleDown("deployment", kindDeployment, rc, f)
-		})
-	})
+	// TODO(madhusudancs): Fix this when Scale group issues are resolved (see issue #18528).
+	// Describe("Deployment [Feature:Deployment]", func() {
+	// 	// CPU tests via deployments
+	// 	It(titleUp, func() {
+	// 		scaleUp("deployment", kindDeployment, rc, f)
+	// 	})
+	// 	It(titleDown, func() {
+	// 		scaleDown("deployment", kindDeployment, rc, f)
+	// 	})
+	// })
 
-	Describe("ReplicationController [Feature:Autoscaling]", func() {
+	Describe("ReplicationController", func() {
 		// CPU tests via replication controllers
 		It(titleUp, func() {
 			scaleUp("rc", kindRC, rc, f)

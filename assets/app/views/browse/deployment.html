@@ -25,8 +25,18 @@
                 <span ng-if="deploymentConfigMissing" class="sr-only">Warning: The deployment's deployment config is missing.</span>
                 <small class="meta">created <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></small>
                 <div class="pull-right dropdown">
-                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                    Actions
+                    <span class="caret"></span>
+                  </button>
+                  <a href=""
+                     class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
+                    <li>
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
+                         role="button">Attach Storage</a>
+                    </li>
                     <li>
                       <edit-link
                         resource="deployment"
@@ -82,7 +92,7 @@
                       context="projectContext"
                       options="logOptions"
                       status="deployment | deploymentStatus"
-                      start="deployment.metadata.creationTimestamp | date : 'short'"
+                      time-start="deployment.metadata.creationTimestamp | date : 'short'"
                       run="logCanRun">
                     </log-viewer>
                   </uib-tab>

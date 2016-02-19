@@ -7,8 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -36,7 +36,7 @@ func TestClusterPolicyGet(t *testing.T) {
 
 	name := "uniqueClusterPolicyName"
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicy, err = testCache.Get(name)
 
 		if (err == nil) &&
@@ -64,7 +64,7 @@ func TestClusterPolicyList(t *testing.T) {
 	var clusterPolicies *authorizationapi.ClusterPolicyList
 	var err error
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicies, err = testCache.List(nil)
 
 		if (err == nil) &&
@@ -104,7 +104,7 @@ func TestClusterPolicyListRespectingLabels(t *testing.T) {
 
 	label := labels.NewSelector().Add(*requirement)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicies, err = testCache.List(&kapi.ListOptions{LabelSelector: label})
 
 		if (err == nil) &&
@@ -139,7 +139,7 @@ func TestClusterPolicyListRespectingFields(t *testing.T) {
 	name := "uniqueClusterPolicyName"
 	field := fields.OneTermEqualSelector("metadata.name", name)
 
-	util.Until(func() {
+	utilwait.Until(func() {
 		clusterPolicies, err = testCache.List(&kapi.ListOptions{FieldSelector: field})
 
 		if (err == nil) &&

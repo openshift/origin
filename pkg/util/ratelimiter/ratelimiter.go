@@ -3,6 +3,8 @@ package ratelimiter
 import (
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	kutil "k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 // HandlerFunc defines function signature for a RateLimitedFunction.
@@ -37,7 +39,7 @@ func NewRateLimitedFunction(keyFunc kcache.KeyFunc, interval int, handlerFunc Ha
 // RunUntil begins processes the resources from queue asynchronously until
 // stopCh is closed.
 func (rlf *RateLimitedFunction) RunUntil(stopCh <-chan struct{}) {
-	go kutil.Until(func() { rlf.handleOne(rlf.queue.Pop()) }, 0, stopCh)
+	go utilwait.Until(func() { rlf.handleOne(rlf.queue.Pop()) }, 0, stopCh)
 }
 
 // handleOne processes a request in the queue invoking the rate limited
@@ -45,7 +47,7 @@ func (rlf *RateLimitedFunction) RunUntil(stopCh <-chan struct{}) {
 func (rlf *RateLimitedFunction) handleOne(resource interface{}) {
 	rlf.RateLimiter.Accept()
 	if err := rlf.Handler(); err != nil {
-		kutil.HandleError(err)
+		utilruntime.HandleError(err)
 	}
 }
 

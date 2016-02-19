@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/testing/fake"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 )
@@ -502,7 +503,7 @@ func TestPersistentVolumeDescriber(t *testing.T) {
 }
 
 func TestDescribeDeployment(t *testing.T) {
-	fake := testclient.NewSimpleFake(&extensions.Deployment{
+	fake := fake.NewSimpleClientset(&extensions.Deployment{
 		ObjectMeta: api.ObjectMeta{
 			Name:      "bar",
 			Namespace: "foo",
@@ -511,13 +512,29 @@ func TestDescribeDeployment(t *testing.T) {
 			Template: api.PodTemplateSpec{},
 		},
 	})
-	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
-	d := DeploymentDescriber{c}
+	d := DeploymentDescriber{fake}
 	out, err := d.Describe("foo", "bar")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(out, "bar") || !strings.Contains(out, "foo") {
+		t.Errorf("unexpected out: %s", out)
+	}
+}
+
+func TestDescribeSCC(t *testing.T) {
+	scc := &api.SecurityContextConstraints{
+		ObjectMeta: api.ObjectMeta{
+			Name: "bar",
+		},
+	}
+	fake := testclient.NewSimpleFake(scc)
+	d := SecurityContextConstraintsDescriber{fake}
+	out, err := d.Describe(scc.Namespace, scc.Name)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "bar") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }

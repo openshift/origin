@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
@@ -78,7 +78,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 func (a *Authenticator) getIdentity(username, password string) (authapi.UserIdentityInfo, bool, error) {
 	defer func() {
 		if e := recover(); e != nil {
-			util.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
+			utilruntime.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
 		}
 	}()
 

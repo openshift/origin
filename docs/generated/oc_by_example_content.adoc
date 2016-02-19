@@ -115,7 +115,7 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
   $ oc adm config view
   
   # Get the password for the e2e user
-  $ oc adm config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+  $ oc adm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
 ====
 
@@ -703,7 +703,7 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
   $ oc config view
   
   # Get the password for the e2e user
-  $ oc config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+  $ oc config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
 ====
 

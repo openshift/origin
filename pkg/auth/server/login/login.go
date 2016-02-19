@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -138,7 +138,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 
 	csrf, err := l.csrf.Generate(w, req)
 	if err != nil {
-		util.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
 	}
 	form.Values.CSRF = csrf
 
@@ -248,6 +248,6 @@ func (r loginTemplateRenderer) Render(form LoginForm, w http.ResponseWriter, req
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := r.loginTemplate.Execute(w, form); err != nil {
-		util.HandleError(fmt.Errorf("unable to render login template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to render login template: %v", err))
 	}
 }

@@ -18,6 +18,7 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
+// AddToScheme adds known types to the given scheme
 func AddToScheme(scheme *runtime.Scheme) {
 	addKnownTypes(scheme)
 }

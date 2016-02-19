@@ -14,8 +14,18 @@
                 {{pod.metadata.name}}
 
                 <div class="pull-right dropdown">
-                  <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                  <button type="button" class="dropdown-toggle actions-dropdown-btn btn btn-default hidden-xs" data-toggle="dropdown">
+                    Actions
+                    <span class="caret"></span>
+                  </button>
+                  <a href=""
+                     class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
+                    <li ng-if="pod | annotation:'deploymentConfig'">
+                      <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}"
+                         role="button">Attach Storage</a>
+                    </li>
                     <li>
                       <edit-link
                         resource="pod"
@@ -94,8 +104,7 @@
                         name="pod.metadata.name"
                         context="projectContext"
                         options="logOptions"
-                        status="pod.status.phase"
-                        start="pod.status.startTime | date : 'short'"
+                        time-start="pod.status.startTime | date : 'short'"
                         run="logCanRun">
                     </log-viewer>
                   </uib-tab>

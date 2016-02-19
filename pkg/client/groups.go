@@ -37,7 +37,7 @@ func (c *groups) List(opts kapi.ListOptions) (result *userapi.GroupList, err err
 	result = &userapi.GroupList{}
 	err = c.r.Get().
 		Resource("groups").
-		VersionedParams(&opts, kapi.Scheme).
+		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
 	return

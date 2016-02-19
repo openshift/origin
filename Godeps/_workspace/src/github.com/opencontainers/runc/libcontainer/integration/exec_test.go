@@ -208,6 +208,7 @@ func TestEnter(t *testing.T) {
 	var stdout, stdout2 bytes.Buffer
 
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"sh", "-c", "cat && readlink /proc/self/ns/pid"},
 		Env:    standardEnvironment,
 		Stdin:  stdinR,
@@ -224,6 +225,7 @@ func TestEnter(t *testing.T) {
 	stdinR2, stdinW2, err := os.Pipe()
 	ok(t, err)
 	pconfig2 := libcontainer.Process{
+		Cwd: "/",
 		Env: standardEnvironment,
 	}
 	pconfig2.Args = []string{"sh", "-c", "cat && readlink /proc/self/ns/pid"}
@@ -290,6 +292,7 @@ func TestProcessEnv(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:  "/",
 		Args: []string{"sh", "-c", "env"},
 		Env: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -341,6 +344,7 @@ func TestProcessCaps(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:          "/",
 		Args:         []string{"sh", "-c", "cat /proc/self/status"},
 		Env:          standardEnvironment,
 		Capabilities: processCaps,
@@ -411,6 +415,7 @@ func TestAdditionalGroups(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"sh", "-c", "id", "-Gn"},
 		Env:    standardEnvironment,
 		Stdin:  nil,
@@ -471,6 +476,7 @@ func testFreeze(t *testing.T, systemd bool) {
 	ok(t, err)
 
 	pconfig := &libcontainer.Process{
+		Cwd:   "/",
 		Args:  []string{"cat"},
 		Env:   standardEnvironment,
 		Stdin: stdinR,
@@ -515,14 +521,83 @@ func testCpuShares(t *testing.T, systemd bool) {
 
 	config := newTemplateConfig(rootfs)
 	if systemd {
-		config.Cgroups.Slice = "system.slice"
+		config.Cgroups.Parent = "system.slice"
 	}
-	config.Cgroups.CpuShares = 1
+	config.Cgroups.Resources.CpuShares = 1
 
 	_, _, err = runContainer(config, "", "ps")
 	if err == nil {
 		t.Fatalf("runContainer should failed with invalid CpuShares")
 	}
+}
+
+func TestPids(t *testing.T) {
+	testPids(t, false)
+}
+
+func TestPidsSystemd(t *testing.T) {
+	if !systemd.UseSystemd() {
+		t.Skip("Systemd is unsupported")
+	}
+	testPids(t, true)
+}
+
+func testPids(t *testing.T, systemd bool) {
+	if testing.Short() {
+		return
+	}
+
+	rootfs, err := newRootfs()
+	ok(t, err)
+	defer remove(rootfs)
+
+	config := newTemplateConfig(rootfs)
+	if systemd {
+		config.Cgroups.Parent = "system.slice"
+	}
+	config.Cgroups.Resources.PidsLimit = -1
+
+	// Running multiple processes.
+	_, ret, err := runContainer(config, "", "/bin/sh", "-c", "/bin/true | /bin/true | /bin/true | /bin/true")
+	if err != nil && strings.Contains(err.Error(), "no such directory for pids.max") {
+		t.Skip("PIDs cgroup is unsupported")
+	}
+	ok(t, err)
+
+	if ret != 0 {
+		t.Fatalf("expected fork() to succeed with no pids limit")
+	}
+
+	// Enforce a permissive limit (shell + 6 * true + 3).
+	config.Cgroups.Resources.PidsLimit = 10
+	_, ret, err = runContainer(config, "", "/bin/sh", "-c", "/bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true")
+	if err != nil && strings.Contains(err.Error(), "no such directory for pids.max") {
+		t.Skip("PIDs cgroup is unsupported")
+	}
+	ok(t, err)
+
+	if ret != 0 {
+		t.Fatalf("expected fork() to succeed with permissive pids limit")
+	}
+
+	// Enforce a restrictive limit (shell + 6 * true + 3).
+	config.Cgroups.Resources.PidsLimit = 10
+	out, ret, err := runContainer(config, "", "/bin/sh", "-c", "/bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true | /bin/true")
+	if err != nil && strings.Contains(err.Error(), "no such directory for pids.max") {
+		t.Skip("PIDs cgroup is unsupported")
+	}
+	if err != nil && !strings.Contains(out.String(), "sh: can't fork") {
+		ok(t, err)
+	}
+
+	if err == nil {
+		t.Fatalf("expected fork() to fail with restrictive pids limit")
+	}
+
+	// Minimal restrictions are not really supported, due to quirks in using Go
+	// due to the fact that it spawns random processes. While we do our best with
+	// late setting cgroup values, it's just too unreliable with very small pids.max.
+	// As such, we don't test that case. YMMV.
 }
 
 func TestRunWithKernelMemory(t *testing.T) {
@@ -546,9 +621,9 @@ func testRunWithKernelMemory(t *testing.T, systemd bool) {
 
 	config := newTemplateConfig(rootfs)
 	if systemd {
-		config.Cgroups.Slice = "system.slice"
+		config.Cgroups.Parent = "system.slice"
 	}
-	config.Cgroups.KernelMemory = 52428800
+	config.Cgroups.Resources.KernelMemory = 52428800
 
 	_, _, err = runContainer(config, "", "ps")
 	if err != nil {
@@ -598,6 +673,7 @@ func TestContainerState(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := &libcontainer.Process{
+		Cwd:   "/",
 		Args:  []string{"cat"},
 		Env:   standardEnvironment,
 		Stdin: stdinR,
@@ -648,6 +724,7 @@ func TestPassExtraFiles(t *testing.T) {
 	pipeout1, pipein1, err := os.Pipe()
 	pipeout2, pipein2, err := os.Pipe()
 	process := libcontainer.Process{
+		Cwd:        "/",
 		Args:       []string{"sh", "-c", "cd /proc/$$/fd; echo -n *; echo -n 1 >3; echo -n 2 >4"},
 		Env:        []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		ExtraFiles: []*os.File{pipein1, pipein2},
@@ -731,6 +808,7 @@ func TestMountCmds(t *testing.T) {
 	defer container.Destroy()
 
 	pconfig := libcontainer.Process{
+		Cwd:  "/",
 		Args: []string{"sh", "-c", "env"},
 		Env:  standardEnvironment,
 	}
@@ -777,6 +855,7 @@ func TestSysctl(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"sh", "-c", "cat /proc/sys/kernel/shmmni"},
 		Env:    standardEnvironment,
 		Stdin:  nil,
@@ -916,6 +995,7 @@ func TestOomScoreAdj(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"sh", "-c", "cat /proc/self/oom_score_adj"},
 		Env:    standardEnvironment,
 		Stdin:  nil,
@@ -968,6 +1048,7 @@ func TestHook(t *testing.T) {
 
 	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"sh", "-c", "ls /test"},
 		Env:    standardEnvironment,
 		Stdin:  nil,
@@ -1074,6 +1155,7 @@ func TestRootfsPropagationSlaveMount(t *testing.T) {
 	ok(t, err)
 
 	pconfig := &libcontainer.Process{
+		Cwd:   "/",
 		Args:  []string{"cat"},
 		Env:   standardEnvironment,
 		Stdin: stdinR,
@@ -1101,6 +1183,7 @@ func TestRootfsPropagationSlaveMount(t *testing.T) {
 	ok(t, err)
 
 	pconfig2 := &libcontainer.Process{
+		Cwd:    "/",
 		Args:   []string{"cat", "/proc/self/mountinfo"},
 		Env:    standardEnvironment,
 		Stdin:  stdinR2,
@@ -1190,6 +1273,7 @@ func TestRootfsPropagationSharedMount(t *testing.T) {
 	ok(t, err)
 
 	pconfig := &libcontainer.Process{
+		Cwd:   "/",
 		Args:  []string{"cat"},
 		Env:   standardEnvironment,
 		Stdin: stdinR,
@@ -1219,6 +1303,7 @@ func TestRootfsPropagationSharedMount(t *testing.T) {
 	processCaps := append(config.Capabilities, "CAP_SYS_ADMIN")
 
 	pconfig2 := &libcontainer.Process{
+		Cwd:          "/",
 		Args:         []string{"mount", "--bind", dir2cont, dir2cont},
 		Env:          standardEnvironment,
 		Stdin:        stdinR2,

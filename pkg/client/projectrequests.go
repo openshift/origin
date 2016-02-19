@@ -39,6 +39,6 @@ func (c *projectRequests) Create(p *projectapi.ProjectRequest) (result *projecta
 // List returns a status object indicating that a user can call the Create or an error indicating why not
 func (c *projectRequests) List(opts kapi.ListOptions) (result *unversioned.Status, err error) {
 	result = &unversioned.Status{}
-	err = c.r.Get().Resource("projectRequests").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Resource("projectRequests").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return result, err
 }

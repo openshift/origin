@@ -141,7 +141,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		} else {
 			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
 				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-				err := fmt.Errorf("another route holds %s and is older than %s", host, route.Name)
+				err := fmt.Errorf("a route in another namespace holds %s and is older than %s", host, route.Name)
 				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
 				return err
 			}

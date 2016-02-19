@@ -21,13 +21,17 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/hashicorp/golang-lru"
+
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/watch"
@@ -38,17 +42,28 @@ const (
 )
 
 func init() {
-	admission.RegisterPlugin("LimitRanger", func(client client.Interface, config io.Reader) (admission.Interface, error) {
-		return NewLimitRanger(client, Limit), nil
+	admission.RegisterPlugin("LimitRanger", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+		return NewLimitRanger(client, Limit)
 	})
 }
 
 // limitRanger enforces usage limits on a per resource basis in the namespace
 type limitRanger struct {
 	*admission.Handler
-	client    client.Interface
+	client    clientset.Interface
 	limitFunc LimitFunc
 	indexer   cache.Indexer
+
+	// liveLookups holds the last few live lookups we've done to help ammortize cost on repeated lookup failures.
+	// This let's us handle the case of latent caches, by looking up actual results for a namespace on cache miss/no results.
+	// We track the lookup result here so that for repeated requests, we don't look it up very often.
+	liveLookupCache *lru.Cache
+	liveTTL         time.Duration
+}
+
+type liveLookupEntry struct {
+	expiry time.Time
+	items  []*api.LimitRange
 }
 
 // Admit admits resources into cluster that do not violate any defined LimitRange in the namespace
@@ -78,8 +93,28 @@ func (l *limitRanger) Admit(a admission.Attributes) (err error) {
 	if err != nil {
 		return admission.NewForbidden(a, fmt.Errorf("Unable to %s %v at this time because there was an error enforcing limit ranges", a.GetOperation(), a.GetResource()))
 	}
+
+	// if there are no items held in our indexer, check our live-lookup LRU, if that misses, do the live lookup to prime it.
 	if len(items) == 0 {
-		return nil
+		lruItemObj, ok := l.liveLookupCache.Get(a.GetNamespace())
+		if !ok || lruItemObj.(liveLookupEntry).expiry.Before(time.Now()) {
+			liveList, err := l.client.Core().LimitRanges(a.GetNamespace()).List(api.ListOptions{})
+			if err != nil {
+				return admission.NewForbidden(a, err)
+			}
+			newEntry := liveLookupEntry{expiry: time.Now().Add(l.liveTTL)}
+			for i := range liveList.Items {
+				newEntry.items = append(newEntry.items, &liveList.Items[i])
+			}
+			l.liveLookupCache.Add(a.GetNamespace(), newEntry)
+			lruItemObj = newEntry
+		}
+		lruEntry := lruItemObj.(liveLookupEntry)
+
+		for i := range lruEntry.items {
+			items = append(items, lruEntry.items[i])
+		}
+
 	}
 
 	// ensure it meets each prescribed min/max
@@ -94,23 +129,30 @@ func (l *limitRanger) Admit(a admission.Attributes) (err error) {
 }
 
 // NewLimitRanger returns an object that enforces limits based on the supplied limit function
-func NewLimitRanger(client client.Interface, limitFunc LimitFunc) admission.Interface {
+func NewLimitRanger(client clientset.Interface, limitFunc LimitFunc) (admission.Interface, error) {
+	liveLookupCache, err := lru.New(10000)
+	if err != nil {
+		return nil, err
+	}
+
 	lw := &cache.ListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-			return client.LimitRanges(api.NamespaceAll).List(options)
+			return client.Core().LimitRanges(api.NamespaceAll).List(options)
 		},
 		WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-			return client.LimitRanges(api.NamespaceAll).Watch(options)
+			return client.Core().LimitRanges(api.NamespaceAll).Watch(options)
 		},
 	}
 	indexer, reflector := cache.NewNamespaceKeyedIndexerAndReflector(lw, &api.LimitRange{}, 0)
 	reflector.Run()
 	return &limitRanger{
-		Handler:   admission.NewHandler(admission.Create, admission.Update),
-		client:    client,
-		limitFunc: limitFunc,
-		indexer:   indexer,
-	}
+		Handler:         admission.NewHandler(admission.Create, admission.Update),
+		client:          client,
+		limitFunc:       limitFunc,
+		indexer:         indexer,
+		liveLookupCache: liveLookupCache,
+		liveTTL:         time.Duration(30 * time.Second),
+	}, nil
 }
 
 // Min returns the lesser of its 2 arguments

@@ -5,11 +5,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 func init() {
-	admission.RegisterPlugin("SCCExecRestrictions", func(client client.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		execAdmitter := NewSCCExecRestrictions(client)
 		execAdmitter.constraintAdmission.Run()
 		return execAdmitter, nil
@@ -21,7 +21,7 @@ func init() {
 type sccExecRestrictions struct {
 	*admission.Handler
 	constraintAdmission *constraint
-	client              client.Interface
+	client              clientset.Interface
 }
 
 func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
@@ -35,7 +35,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	pod, err := d.client.Pods(a.GetNamespace()).Get(a.GetName())
+	pod, err := d.client.Core().Pods(a.GetNamespace()).Get(a.GetName())
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -52,7 +52,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 }
 
 // NewSCCExecRestrictions creates a new admission controller that denies an exec operation on a privileged pod
-func NewSCCExecRestrictions(client client.Interface) *sccExecRestrictions {
+func NewSCCExecRestrictions(client clientset.Interface) *sccExecRestrictions {
 	return &sccExecRestrictions{
 		Handler:             admission.NewHandler(admission.Connect),
 		constraintAdmission: NewConstraint(client),

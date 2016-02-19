@@ -9,7 +9,7 @@ import (
 
 	"github.com/RangelReale/osincli"
 
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 )
@@ -79,7 +79,7 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 
 func renderToken(w io.Writer, data tokenData) {
 	if err := tokenTemplate.Execute(w, data); err != nil {
-		util.HandleError(fmt.Errorf("unable to render token template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
 

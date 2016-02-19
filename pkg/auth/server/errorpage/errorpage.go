@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -93,7 +93,7 @@ func (r *errorPageTemplateRenderer) Render(data ErrorData, w http.ResponseWriter
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := r.errorPageTemplate.Execute(w, data); err != nil {
-		util.HandleError(fmt.Errorf("unable to render error page template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to render error page template: %v", err))
 	}
 }
 

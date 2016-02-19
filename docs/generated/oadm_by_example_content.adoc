@@ -115,7 +115,7 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
   $ oadm config view
   
   # Get the password for the e2e user
-  $ oadm config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+  $ oadm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
 ====
 

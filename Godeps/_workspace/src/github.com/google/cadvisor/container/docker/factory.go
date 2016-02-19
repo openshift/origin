@@ -40,6 +40,7 @@ var ArgDockerEndpoint = flag.String("docker", "unix:///var/run/docker.sock", "do
 var DockerNamespace = "docker"
 
 // Basepath to all container specific information that libcontainer stores.
+// TODO: Deprecate this flag
 var dockerRootDir = flag.String("docker_root", "/var/lib/docker", "Absolute path to the Docker state root directory (default: /var/lib/docker)")
 var dockerRunDir = flag.String("docker_run", "/var/run/docker", "Absolute path to the Docker run directory (default: /var/run/docker)")
 
@@ -48,6 +49,8 @@ var dockerRunDir = flag.String("docker_run", "/var/run/docker", "Absolute path t
 var dockerCgroupRegexp = regexp.MustCompile(`.+-([a-z0-9]{64})\.scope$`)
 
 var noSystemd = flag.Bool("nosystemd", false, "Explicitly disable systemd support for Docker containers")
+
+var dockerEnvWhitelist = flag.String("docker_env_metadata_whitelist", "", "a comma-separated list of environment variable keys that needs to be collected for docker containers")
 
 // TODO(vmarmol): Export run dir too for newer Dockers.
 // Directory holding Docker container state information.
@@ -58,6 +61,10 @@ func DockerStateDir() string {
 // Whether the system is using Systemd.
 var useSystemd = false
 var check = sync.Once{}
+
+const (
+	dockerRootDirKey = "Root Dir"
+)
 
 func UseSystemd() bool {
 	check.Do(func() {
@@ -92,12 +99,14 @@ const (
 	devicemapperStorageDriver storageDriver = "devicemapper"
 	aufsStorageDriver         storageDriver = "aufs"
 	overlayStorageDriver      storageDriver = "overlay"
+	zfsStorageDriver          storageDriver = "zfs"
 )
 
 type dockerFactory struct {
 	machineInfoFactory info.MachineInfoFactory
 
 	storageDriver storageDriver
+	storageDir    string
 
 	client *docker.Client
 
@@ -106,6 +115,8 @@ type dockerFactory struct {
 
 	// Information about mounted filesystems.
 	fsInfo fs.FsInfo
+
+	dockerVersion []int
 }
 
 func (self *dockerFactory) String() string {
@@ -117,14 +128,20 @@ func (self *dockerFactory) NewContainerHandler(name string, inHostNamespace bool
 	if err != nil {
 		return
 	}
+
+	metadataEnvs := strings.Split(*dockerEnvWhitelist, ",")
+
 	handler, err = newDockerContainerHandler(
 		client,
 		name,
 		self.machineInfoFactory,
 		self.fsInfo,
 		self.storageDriver,
+		self.storageDir,
 		&self.cgroupSubsystems,
 		inHostNamespace,
+		metadataEnvs,
+		self.dockerVersion,
 	)
 	return
 }
@@ -207,36 +224,45 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
 	if err != nil {
 		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
 	}
+	var dockerVersion []int
 	if version, err := client.Version(); err != nil {
 		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
 	} else {
 		expected_version := []int{1, 0, 0}
 		version_string := version.Get("Version")
-		version, err := parseDockerVersion(version_string)
+		dockerVersion, err = parseDockerVersion(version_string)
 		if err != nil {
 			return fmt.Errorf("couldn't parse docker version: %v", err)
 		}
-		for index, number := range version {
+		for index, number := range dockerVersion {
 			if number > expected_version[index] {
 				break
 			} else if number < expected_version[index] {
-				return fmt.Errorf("cAdvisor requires docker version %v or above but we have found version %v reported as \"%v\"", expected_version, version, version_string)
+				return fmt.Errorf("cAdvisor requires docker version %v or above but we have found version %v reported as \"%v\"", expected_version, dockerVersion, version_string)
 			}
 		}
 	}
 
-	// Check that the libcontainer execdriver is used.
-	information, err := DockerInfo()
+	information, err := client.Info()
 	if err != nil {
 		return fmt.Errorf("failed to detect Docker info: %v", err)
 	}
-	execDriver, ok := information["ExecutionDriver"]
-	if !ok || !strings.HasPrefix(execDriver, "native") {
+
+	// Check that the libcontainer execdriver is used.
+	execDriver := information.Get("ExecutionDriver")
+	if !strings.HasPrefix(execDriver, "native") {
 		return fmt.Errorf("docker found, but not using native exec driver")
 	}
 
-	sd, _ := information["Driver"]
+	sd := information.Get("Driver")
+	if sd == "" {
+		return fmt.Errorf("failed to find docker storage driver")
+	}
 
+	storageDir := information.Get("DockerRootDir")
+	if storageDir == "" {
+		storageDir = *dockerRootDir
+	}
 	cgroupSubsystems, err := libcontainer.GetCgroupSubsystems()
 	if err != nil {
 		return fmt.Errorf("failed to get cgroup subsystems: %v", err)
@@ -244,11 +270,13 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
 
 	glog.Infof("Registering Docker factory")
 	f := &dockerFactory{
-		machineInfoFactory: factory,
-		client:             client,
-		storageDriver:      storageDriver(sd),
 		cgroupSubsystems:   cgroupSubsystems,
+		client:             client,
+		dockerVersion:      dockerVersion,
 		fsInfo:             fsInfo,
+		machineInfoFactory: factory,
+		storageDriver:      storageDriver(sd),
+		storageDir:         storageDir,
 	}
 	container.RegisterContainerHandlerFactory(f)
 	return nil

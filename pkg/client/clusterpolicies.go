@@ -33,7 +33,7 @@ func newClusterPolicies(c *Client) *clusterPolicies {
 // List returns a list of policies that match the label and field selectors.
 func (c *clusterPolicies) List(opts kapi.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
 	result = &authorizationapi.ClusterPolicyList{}
-	err = c.r.Get().Resource("clusterPolicies").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -52,5 +52,5 @@ func (c *clusterPolicies) Delete(name string) (err error) {
 
 // Watch returns a watch.Interface that watches the requested clusterPolicies
 func (c *clusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Resource("clusterPolicies").VersionedParams(&opts, kapi.Scheme).Watch()
+	return c.r.Get().Prefix("watch").Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

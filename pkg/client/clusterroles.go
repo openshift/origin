@@ -34,7 +34,7 @@ func newClusterRoles(c *Client) *clusterRoles {
 // List returns a list of clusterRoles that match the label and field selectors.
 func (c *clusterRoles) List(opts kapi.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
 	result = &authorizationapi.ClusterRoleList{}
-	err = c.r.Get().Resource("clusterRoles").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Resource("clusterRoles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

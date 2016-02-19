@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 type SelectProviderRenderer interface {
@@ -109,6 +109,6 @@ func (r selectProviderTemplateRenderer) Render(providers []handlers.ProviderInfo
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := r.selectProviderTemplate.Execute(w, ProviderData{Providers: providers}); err != nil {
-		util.HandleError(fmt.Errorf("unable to render select provider template: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to render select provider template: %v", err))
 	}
 }

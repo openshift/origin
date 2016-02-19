@@ -13,8 +13,18 @@
             <h1>
               {{service.metadata.name}}
               <div class="pull-right dropdown">
-                <a href="" class="dropdown-toggle resource-actions-dropdown" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
+                  Actions
+                  <span class="caret"></span>
+                </button>
+                <a href=""
+                   class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-link">
+                  <li>
+                    <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}"
+                       role="button">Create Route</a>
+                  </li>
                   <li>
                     <edit-link
                       resource="service"
@@ -98,7 +108,9 @@
                     <dl class="dl-horizontal left" style="margin-bottom: 0;">
                       <dt>Routes:</dt>
                       <dd>
-                        <span ng-if="!routesForService.length"><em>none</em></span>
+                        <span ng-if="!routesForService.length">
+                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create route</a>
+                        </span>
                         <span ng-repeat="route in routesForService">
                             <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
                             <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
@@ -106,7 +118,6 @@
                         </span>
                       </dd>
                     </dl>
-                    <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create route</a>
                     <annotations annotations="service.metadata.annotations"></annotations>
                   </div>
                 </uib-tab>

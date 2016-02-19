@@ -37,7 +37,7 @@ func newRoleBindings(c *Client, namespace string) *roleBindings {
 // List returns a list of roleBindings that match the label and field selectors.
 func (c *roleBindings) List(opts kapi.ListOptions) (result *authorizationapi.RoleBindingList, err error) {
 	result = &authorizationapi.RoleBindingList{}
-	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").VersionedParams(&opts, kapi.Scheme).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

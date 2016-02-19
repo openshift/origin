@@ -9,7 +9,7 @@ import (
 
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
@@ -56,7 +56,7 @@ func (c *CacheAuthenticator) AuthenticateToken(token string) (user.Info, bool, e
 				c.cache.Remove(token)
 			}
 		default:
-			util.HandleError(fmt.Errorf("invalid cache record type: %#v", record))
+			utilruntime.HandleError(fmt.Errorf("invalid cache record type: %#v", record))
 		}
 	}
 

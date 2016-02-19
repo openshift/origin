@@ -196,6 +196,7 @@ items:
     verbs:
     - create
     - delete
+    - deletecollection
     - get
     - list
     - patch
@@ -212,6 +213,7 @@ items:
     verbs:
     - create
     - delete
+    - deletecollection
     - get
     - list
     - patch
@@ -312,6 +314,7 @@ items:
     verbs:
     - create
     - delete
+    - deletecollection
     - get
     - list
     - patch
@@ -328,6 +331,7 @@ items:
     verbs:
     - create
     - delete
+    - deletecollection
     - get
     - list
     - patch

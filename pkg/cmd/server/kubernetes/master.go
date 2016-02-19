@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	extv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/cinder"
@@ -58,9 +60,12 @@ const (
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
-func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
+func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	c.Master.RestfulContainer = container
-	_ = master.New(c.Master)
+	_, err := master.New(c.Master)
+	if err != nil {
+		return nil, err
+	}
 
 	messages := []string{}
 	if configapi.HasKubernetesAPIVersion(c.Options, v1.SchemeGroupVersion) {
@@ -71,7 +76,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API Extensions at %%s%s", KubeAPIExtensionsPrefixV1beta1))
 	}
 
-	return messages
+	return messages, nil
 }
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
@@ -84,13 +89,13 @@ func (c *MasterConfig) RunNamespaceController() {
 		versions = append(versions, unversioned.GroupVersion{Group: configapi.APIGroupExtensions, Version: version}.String())
 	}
 	apiVersions := &unversioned.APIVersions{Versions: versions}
-	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, apiVersions, c.ControllerManager.NamespaceSyncPeriod)
-	namespaceController.Run()
+	namespaceController := namespacecontroller.NewNamespaceController(internalclientset.FromUnversionedClient(c.KubeClient), apiVersions, c.ControllerManager.NamespaceSyncPeriod)
+	go namespaceController.Run(c.ControllerManager.ConcurrentNamespaceSyncs, utilwait.NeverStop)
 }
 
 // RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
 func (c *MasterConfig) RunPersistentVolumeClaimBinder(client *client.Client) {
-	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(client, c.ControllerManager.PVClaimBinderSyncPeriod)
+	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(internalclientset.FromUnversionedClient(client), c.ControllerManager.PVClaimBinderSyncPeriod)
 	binder.Run()
 }
 
@@ -107,7 +112,7 @@ func (c *MasterConfig) RunPersistentVolumeProvisioner(client *client.Client) {
 		allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
 		allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
 		allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
-		controllerClient := volumeclaimbinder.NewControllerClient(client)
+		controllerClient := volumeclaimbinder.NewControllerClient(internalclientset.FromUnversionedClient(client))
 		provisionerController, err := volumeclaimbinder.NewPersistentVolumeProvisionerController(controllerClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins, provisioner, c.CloudProvider)
 		if err != nil {
 			glog.Fatalf("Could not start Persistent Volume Provisioner: %+v", err)
@@ -159,7 +164,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(client, c.ControllerManager.PVClaimBinderSyncPeriod, volumeConfig.PersistentVolumeRecyclerMaximumRetry, allPlugins, c.CloudProvider)
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(internalclientset.FromUnversionedClient(client), c.ControllerManager.PVClaimBinderSyncPeriod, volumeConfig.PersistentVolumeRecyclerMaximumRetry, allPlugins, c.CloudProvider)
 	if err != nil {
 		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}
@@ -187,32 +192,33 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(client, kctrlmgr.ResyncPeriod(c.ControllerManager), replicationcontroller.BurstReplicas)
-	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
+	controllerManager := replicationcontroller.NewReplicationManager(internalclientset.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager), replicationcontroller.BurstReplicas)
+	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, utilwait.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
 func (c *MasterConfig) RunJobController(client *client.Client) {
-	controller := jobcontroller.NewJobController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
-	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, util.NeverStop)
+	controller := jobcontroller.NewJobController(internalclientset.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager))
+	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, utilwait.NeverStop)
 }
 
 // RunHPAController starts the Kubernetes hpa controller sync loop
 func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, heapsterNamespace string) {
+	clientsetClient := internalclientset.FromUnversionedClient(kc)
 	delegScaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
-	podautoscaler := podautoscalercontroller.NewHorizontalController(kc, delegScaleNamespacer, kc, metrics.NewHeapsterMetricsClient(kc, heapsterNamespace, "https", "heapster", ""))
+	podautoscaler := podautoscalercontroller.NewHorizontalController(clientsetClient, delegScaleNamespacer, clientsetClient, metrics.NewHeapsterMetricsClient(clientsetClient, heapsterNamespace, "https", "heapster", ""))
 	podautoscaler.Run(c.ControllerManager.HorizontalPodAutoscalerSyncPeriod)
 }
 
 func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
-	controller := daemon.NewDaemonSetsController(client, kctrlmgr.ResyncPeriod(c.ControllerManager))
-	go controller.Run(c.ControllerManager.ConcurrentDSCSyncs, util.NeverStop)
+	controller := daemon.NewDaemonSetsController(internalclientset.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager))
+	go controller.Run(c.ControllerManager.ConcurrentDSCSyncs, utilwait.NeverStop)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, kctrlmgr.ResyncPeriod(c.ControllerManager))
-	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
+	endpoints := endpointcontroller.NewEndpointController(internalclientset.FromUnversionedClient(c.KubeClient), kctrlmgr.ResyncPeriod(c.ControllerManager))
+	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, utilwait.NeverStop)
 
 }
 
@@ -232,8 +238,8 @@ func (c *MasterConfig) RunScheduler() {
 
 // RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
-	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(c.KubeClient, controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod))
-	go resourceQuotaManager.Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, util.NeverStop)
+	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(internalclientset.FromUnversionedClient(c.KubeClient), controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod))
+	go resourceQuotaManager.Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, utilwait.NeverStop)
 }
 
 // RunNodeController starts the node controller
@@ -241,7 +247,7 @@ func (c *MasterConfig) RunNodeController() {
 	s := c.ControllerManager
 	controller := nodecontroller.NewNodeController(
 		c.CloudProvider,
-		c.KubeClient,
+		internalclientset.FromUnversionedClient(c.KubeClient),
 		s.PodEvictionTimeout,
 
 		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),

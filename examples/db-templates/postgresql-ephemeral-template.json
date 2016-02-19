@@ -48,8 +48,7 @@
       },
       "spec": {
         "strategy": {
-          "type": "Recreate",
-          "resources": {}
+          "type": "Recreate"
         },
         "triggers": [
           {
@@ -107,7 +106,11 @@
                     "value": "${POSTGRESQL_DATABASE}"
                   }
                 ],
-                "resources": {},
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_LIMIT}"
+		    }
+		},
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -141,13 +144,21 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the container can use",
+      "value": "128Mi"
+    },
+    {
       "name": "DATABASE_SERVICE_NAME",
-      "description": "Database service name",
+      "displayName": "Database service name",
+      "description": "The name of the OpenShift Service exposed for the database",
       "value": "postgresql",
       "required": true
     },
     {
       "name": "POSTGRESQL_USER",
+      "displayName": "PostgreSQL user",
       "description": "Username for PostgreSQL user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -155,6 +166,7 @@
     },
     {
       "name": "POSTGRESQL_PASSWORD",
+      "displayName": "PostgreSQL password",
       "description": "Password for the PostgreSQL user",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
@@ -162,7 +174,8 @@
     },
     {
       "name": "POSTGRESQL_DATABASE",
-      "description": "Database name",
+      "displayName": "PostgreSQL database name",
+      "description": "Name of the PostgreSQL database accessed",
       "value": "sampledb",
       "required": true
     }

@@ -34,12 +34,14 @@
                           resources="container.resources"
                           type="cpu"
                           limit-ranges="limitRanges"
-                          ng-if="!hideCPU">
+                          request-calculated="cpuRequestCalculated"
+                          limit-calculated="cpuLimitCalculated">
                       </edit-request-limit>
                       <edit-request-limit
                           resources="container.resources"
                           type="memory"
-                          limit-ranges="limitRanges">
+                          limit-ranges="limitRanges"
+                          request-calculated="memoryRequestCalculated">
                       </edit-request-limit>
                     </div>
                     <div ng-repeat="problem in cpuProblems" class="has-error">

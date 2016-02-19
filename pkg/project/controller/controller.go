@@ -3,10 +3,10 @@ package controller
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	projectutil "github.com/openshift/origin/pkg/project/util"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // NamespaceController is responsible for participating in Kubernetes Namespace termination
@@ -15,7 +15,7 @@ type NamespaceController struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
+	KubeClient internalclientset.Interface
 }
 
 // fatalError is an error which can't be retried.

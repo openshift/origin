@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
@@ -27,7 +27,7 @@ import (
 )
 
 func init() {
-	kadmission.RegisterPlugin("SecurityContextConstraint", func(client client.Interface, config io.Reader) (kadmission.Interface, error) {
+	kadmission.RegisterPlugin("SecurityContextConstraint", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
 		constraintAdmitter := NewConstraint(client)
 		constraintAdmitter.Run()
 		return constraintAdmitter, nil
@@ -36,7 +36,7 @@ func init() {
 
 type constraint struct {
 	*kadmission.Handler
-	client client.Interface
+	client clientset.Interface
 
 	reflector *cache.Reflector
 	stopChan  chan struct{}
@@ -46,15 +46,15 @@ type constraint struct {
 var _ kadmission.Interface = &constraint{}
 
 // NewConstraint creates a new SCC constraint admission plugin.
-func NewConstraint(kclient client.Interface) *constraint {
+func NewConstraint(kclient clientset.Interface) *constraint {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return kclient.SecurityContextConstraints().List(options)
+				return kclient.Core().SecurityContextConstraints().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return kclient.SecurityContextConstraints().Watch(options)
+				return kclient.Core().SecurityContextConstraints().Watch(options)
 			},
 		},
 		&kapi.SecurityContextConstraints{},
@@ -95,7 +95,7 @@ func (a *constraint) Stop() {
 //     with the validated SCC.  If we don't find any reject the pod and give all errors from the
 //     failed attempts.
 func (c *constraint) Admit(a kadmission.Attributes) error {
-	if a.GetResource().Resource != string(kapi.ResourcePods) {
+	if a.GetResource() != kapi.Resource("pods") {
 		return nil
 	}
 
@@ -301,7 +301,7 @@ func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namesp
 	if ns != nil && name == ns.Name {
 		return ns, nil
 	}
-	return c.client.Namespaces().Get(name)
+	return c.client.Core().Namespaces().Get(name)
 }
 
 // getMatchingSecurityContextConstraints returns constraints from the store that match the group,
