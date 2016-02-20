@@ -66,6 +66,11 @@ status:
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'
 os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'Sched'
 
+# check create-master-certs validation
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master='                                                'master must be provided'
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
+
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' '(unassigned|assigned)'
