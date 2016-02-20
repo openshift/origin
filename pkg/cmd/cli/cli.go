@@ -26,41 +26,57 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const cliLong = `
-Developer and Administrator Client
+const productName = `OpenShift`
 
-This client exposes commands for managing your applications, as well as lower level
-tools to interact with each component of your system.
+const cliLong = productName + ` Client
 
-To create a new application, you can use the example app source. Login to your server and then
-run new-app:
+This client helps you develop, build, deploy, and run your applications on any OpenShift or
+Kubernetes compatible platform. It also includes the administrative commands for managing a
+cluster under the 'adm' subcommand.
+`
 
-  $ %[1]s login
+const cliExplain = `
+To create a new application, login to your server and then run new-app:
+
+  $ %[1]s login https://mycluster.mycompany.com
   $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
+  $ %[1]s logs -f bc/ruby-hello-world
 
 This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds
-the source code at 'github.com/openshift/ruby-hello-world.git'. A build will start automatically and
-a deployment will start as soon as the build finishes.
+the source code from GitHub. A build will start automatically, push the resulting image to the
+registry, and a deployment will roll that change out in your project.
 
-Once your application is deployed, use the status, get, and describe commands to see more about
+Once your application is deployed, use the status, describe, and get commands to see more about
 the created components:
 
   $ %[1]s status
   $ %[1]s describe deploymentconfig ruby-hello-world
   $ %[1]s get pods
 
-You'll be able to view the deployed application on the IP and port of the service that new-app
-created for you.
+To make this application visible outside of the cluster, use the expose command on the service
+we just created to create a 'route' (which will connect your application over the HTTP port
+to a public domain name).
 
-You can easily switch between multiple projects using '%[1]s project <projectname>'.`
+  $ %[1]s expose svc/ruby-hello-world
+  $ %[1]s status
+
+You should now see the URL the application can be reached at.
+
+To see the full list of commands supported, run '%[1]s help'.
+`
 
 func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Command line tools for managing applications",
-		Long:  fmt.Sprintf(cliLong, fullName),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Long:  cliLong,
+		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(out)
+			cmdutil.RequireNoArguments(c, args)
+			fmt.Fprint(out, cliLong)
+			fmt.Fprintf(out, cliExplain, fullName)
+		},
 		BashCompletionFunction: bashCompletionFunc,
 	}
 
@@ -77,24 +93,23 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
+				cmd.NewCmdExplain(fullName, f, out),
 			},
 		},
 		{
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdStartBuild(fullName, f, in, out),
-				cmd.NewCmdBuildLogs(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(fullName, f, in, out),
+				cmd.NewCmdStartBuild(fullName, f, in, out),
 				cmd.NewCmdCancelBuild(fullName, f, out),
 				cmd.NewCmdImportImage(fullName, f, out),
-				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdTag(fullName, f, out),
 			},
 		},
 		{
-			Message: "Application Modification Commands:",
+			Message: "Application Management Commands:",
 			Commands: []*cobra.Command{
 				cmd.NewCmdGet(fullName, f, out),
 				cmd.NewCmdDescribe(fullName, f, out),
@@ -104,18 +119,22 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdAnnotate(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
 				cmd.NewCmdDelete(fullName, f, out),
+				cmd.NewCmdScale(fullName, f, out),
+				cmd.NewCmdAutoscale(fullName, f, out),
+				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
 			},
 		},
 		{
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdExplain(fullName, f, out),
 				cmd.NewCmdLogs(cmd.LogsRecommendedName, fullName, f, out),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdPortForward(fullName, f),
 				cmd.NewCmdProxy(fullName, f, out),
+				cmd.NewCmdAttach(fullName, f, in, out, errout),
+				cmd.NewCmdRun(fullName, f, in, out, errout),
 			},
 		},
 		{
@@ -128,12 +147,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, in, out),
-				cmd.NewCmdRun(fullName, f, in, out, errout),
-				cmd.NewCmdAttach(fullName, f, in, out, errout),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
-				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
 				cmd.NewCmdConvert(fullName, f, out),
-				cmd.NewCmdAutoscale(fullName, f, out),
 			},
 		},
 		{
@@ -152,6 +167,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		// These commands are deprecated and should not appear in help
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
+		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
 	}
 
 	changeSharedFlagDefaults(cmds)
