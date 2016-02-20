@@ -302,9 +302,35 @@ EOF
       exit 2
     fi
   fi
-
   export GOBIN="${OS_OUTPUT_BINPATH}"
-  export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+
+  # use the regular gopath for building
+  if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
+    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    return
+  fi
+
+  # create a local GOPATH in _output
+  GOPATH="${OS_OUTPUT}/go"
+  local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
+  local go_pkg_basedir=$(dirname "${go_pkg_dir}")
+
+  mkdir -p "${go_pkg_basedir}"
+  rm -f "${go_pkg_dir}"
+
+  # TODO: This symlink should be relative.
+  ln -s "${OS_ROOT}" "${go_pkg_dir}"
+
+  # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
+  if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
+    GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
+  fi
+  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
+  # is defined.
+  if [[ -z ${OS_NO_GODEPS:-} ]]; then
+    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
+  fi
+  export GOPATH
 }
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
