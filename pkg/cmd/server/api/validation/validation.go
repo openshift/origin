@@ -322,10 +322,10 @@ func ValidateExtendedArguments(config api.ExtendedArguments, flagFunc func(*pfla
 func ValidateDomain(domain string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if len(domain) > 0 {
-		if ok, _ := kvalidation.NameIsDNSSubdomain(domain, false); !ok {
-			allErrs = append(allErrs, field.Invalid(fldPath, domain, "must be a valid domain name"))
-		}
+	if len(domain) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath, ""))
+	} else if ok, _ := kvalidation.NameIsDNSSubdomain(domain, false); !ok {
+		allErrs = append(allErrs, field.Invalid(fldPath, domain, "must be a valid domain name"))
 	}
 
 	return allErrs
