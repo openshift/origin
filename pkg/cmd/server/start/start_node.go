@@ -14,14 +14,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sysctl"
 
-	osdn "github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -50,31 +49,7 @@ func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeO
 		Use:   "node",
 		Short: "Launch a node",
 		Long:  fmt.Sprintf(nodeLong, basename),
-		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
-			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
-
-			startProfiler()
-
-			if err := options.StartNode(); err != nil {
-				if kerrors.IsInvalid(err) {
-					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
-						for _, cause := range details.Causes {
-							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
-						}
-						os.Exit(255)
-					}
-				}
-				glog.Fatal(err)
-			}
-		},
+		Run:   options.Run,
 	}
 
 	flags := cmd.Flags()
@@ -83,7 +58,7 @@ func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeO
 
 	options.NodeArgs = NewDefaultNodeArgs()
 
-	BindNodeArgs(options.NodeArgs, flags, "")
+	BindNodeArgs(options.NodeArgs, flags, "", true)
 	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
@@ -92,6 +67,62 @@ func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeO
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 
 	return cmd, options
+}
+
+const networkLong = `
+Start node network components
+
+This command helps you launch node networking.  Running
+
+  $ %[1]s start network --config=<node-config>
+
+will start the network proxy and SDN plugins with given configuration file. The proxy will
+run in the foreground until you terminate the process.`
+
+// NewCommandStartNetwork provides a CLI handler for 'start network' command
+func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
+	options := &NodeOptions{Output: out}
+
+	cmd := &cobra.Command{
+		Use:   "network",
+		Short: "Launch node network",
+		Long:  fmt.Sprintf(nodeLong, basename),
+		Run:   options.Run,
+	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
+
+	options.NodeArgs = NewDefaultNodeArgs()
+	options.NodeArgs.Components = NewNetworkComponentFlag()
+	BindNodeNetworkArgs(options.NodeArgs, flags, "")
+	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
+	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
+
+	// autocompletion hints
+	cmd.MarkFlagFilename("config", "yaml", "yml")
+
+	return cmd, options
+}
+
+func (options *NodeOptions) Run(c *cobra.Command, args []string) {
+	kcmdutil.CheckErr(options.Complete())
+	kcmdutil.CheckErr(options.Validate(args))
+
+	startProfiler()
+
+	if err := options.StartNode(); err != nil {
+		if kerrors.IsInvalid(err) {
+			if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+				fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+				for _, cause := range details.Causes {
+					fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
+				}
+				os.Exit(255)
+			}
+		}
+		glog.Fatal(err)
+	}
 }
 
 func (o NodeOptions) Validate(args []string) error {
@@ -105,7 +136,7 @@ func (o NodeOptions) Validate(args []string) error {
 		}
 	}
 
-	// if we are not starting up using a config file, run the argument validation
+	// if we are starting up using a config file, run no validations here
 	if !o.IsRunFromConfig() {
 		if err := o.NodeArgs.Validate(); err != nil {
 			return err
@@ -173,13 +204,11 @@ func (o NodeOptions) RunNode() error {
 		return kerrors.NewInvalid(configapi.Kind("NodeConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
-	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
-	if err != nil {
+	if err := ValidateRuntime(nodeConfig, o.NodeArgs.Components); err != nil {
 		return err
 	}
-	glog.Infof("Starting a node connected to %s", kubeClientConfig.Host)
 
-	if err := StartNode(*nodeConfig); err != nil {
+	if err := StartNode(*nodeConfig, o.NodeArgs.Components); err != nil {
 		return err
 	}
 
@@ -249,30 +278,46 @@ func (o NodeOptions) IsRunFromConfig() bool {
 	return (len(o.ConfigFile) > 0)
 }
 
-func StartNode(nodeConfig configapi.NodeConfig) error {
+func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
 	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig)
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+
+	if components.Enabled(ComponentKubelet) {
+		glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+	} else {
+		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+	}
+
+	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Connecting to API server %s", kubeClientConfig.Host)
 
 	// preconditions
-	config.EnsureVolumeDir()
-	config.EnsureDocker(docker.NewHelper())
+	if components.Enabled(ComponentKubelet) {
+		config.EnsureKubeletAccess()
+		config.EnsureVolumeDir()
+		config.EnsureDocker(docker.NewHelper())
+	}
 
-	// async starts
-	config.RunKubelet()
-	config.RunSDN()
-	config.RunProxy()
-
-	// HACK: RunProxy resets bridge-nf-call-iptables from what openshift-sdn requires
-	if config.SDNPlugin != nil {
-		sdnPluginName := nodeConfig.NetworkConfig.NetworkPluginName
-		if sdnPluginName == osdn.SingleTenantPluginName() || sdnPluginName == osdn.MultiTenantPluginName() {
-			if err := sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0); err != nil {
-				glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
-			}
-		}
+	// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,
+	// and Kubelet also can't start the PodSync loop until the SDN plugin has loaded.
+	if components.Enabled(ComponentKubelet) {
+		config.RunKubelet()
+	}
+	// SDN plugins get the opportunity to filter service rules, so they start first
+	if components.Enabled(ComponentPlugins) {
+		config.RunPlugin()
+	}
+	if components.Enabled(ComponentProxy) {
+		config.RunProxy()
+	}
+	// if we are running plugins in this process, reset the bridge ip rule
+	if components.Enabled(ComponentPlugins) {
+		config.ResetSysctlFromProxy()
 	}
 
 	return nil
