@@ -1,6 +1,6 @@
 <dl class="dl-horizontal left">
-  <dt>Status:</dt>
-  <dd>
+  <dt ng-if-start="deployment | isDeployment">Status:</dt>
+  <dd ng-if-end>
     <status-icon status="deployment | deploymentStatus"></status-icon>
     {{deployment | deploymentStatus}}
     <span style="margin-left: 7px;">
