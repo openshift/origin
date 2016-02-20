@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -125,6 +126,18 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 	}
 	if len(o.APIServerURL) == 0 {
 		return errors.New("master must be provided")
+	} else if u, err := url.Parse(o.APIServerURL); err != nil {
+		return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
+	} else if len(u.Scheme) == 0 {
+		return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
+	}
+
+	if len(o.PublicAPIServerURL) == 0 {
+		// not required
+	} else if u, err := url.Parse(o.PublicAPIServerURL); err != nil {
+		return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
+	} else if len(u.Scheme) == 0 {
+		return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
 	}
 
 	return nil
