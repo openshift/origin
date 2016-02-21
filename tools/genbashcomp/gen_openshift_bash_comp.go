@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -45,6 +46,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to get output directory: %v\n", err)
 		os.Exit(1)
 	}
+
+	flag.CommandLine.VisitAll(func(f *flag.Flag) {
+		fmt.Fprintf(os.Stderr, "warning: ignoring flag %q which is in the global set\n", f.Name)
+	})
+	flag.CommandLine = flag.NewFlagSet("empty", flag.ContinueOnError)
+
 	outFile_openshift := outDir + "openshift"
 	openshift := openshift.NewCommandOpenShift("openshift")
 	openshift.GenBashCompletionFile(outFile_openshift)
