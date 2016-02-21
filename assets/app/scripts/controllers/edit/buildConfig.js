@@ -107,6 +107,10 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
+
         DataService.get("buildconfigs", $routeParams.buildconfig, context).then(
           // success
           function(buildConfig) {
