@@ -81,6 +81,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 		}
 
 		if r.Client == nil || reflect.ValueOf(r.Client).IsNil() {
+			componentMatches = append(componentMatches, termMatches...)
 			continue
 		}
 
