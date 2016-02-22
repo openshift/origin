@@ -48,13 +48,17 @@ type SourceInfo struct {
 type CloneOptions struct {
 	Recursive bool
 	Quiet     bool
+
+	// Shallow perform a shallow git clone that only fetches the latest master.
+	Shallow bool
 }
 
 // execGitFunc is a function that executes a Git command
 type execGitFunc func(w io.Writer, dir string, args ...string) (string, string, error)
 
 type repository struct {
-	git execGitFunc
+	git     execGitFunc
+	shallow bool
 }
 
 // NewRepository creates a new Repository
@@ -184,6 +188,10 @@ func (r *repository) CloneWithOptions(location string, url string, opts CloneOpt
 	if opts.Recursive {
 		args = append(args, "--recursive")
 	}
+	if opts.Shallow {
+		args = append(args, "--depth=1")
+		r.shallow = true
+	}
 	args = append(args, url)
 	args = append(args, location)
 	_, _, err := r.git(nil, "", args...)
@@ -229,6 +237,9 @@ func (r *repository) Archive(location, ref, format string, w io.Writer) error {
 
 // Checkout switches to the given ref for the git repository
 func (r *repository) Checkout(location string, ref string) error {
+	if r.shallow {
+		return fmt.Errorf("cannot checkout ref on shallow clone")
+	}
 	_, _, err := r.git(nil, location, "checkout", ref)
 	return err
 }
