@@ -55,6 +55,11 @@ angular.module('openshiftConsole')
 
     var watches = [];
 
+    var setLogVars = function(deployment) {
+      $scope.logOptions.container = $filter("annotation")(deployment, "pod");
+      $scope.logCanRun = !(_.includes(['New', 'Pending'], $filter('deploymentStatus')(deployment)));
+    };
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
@@ -78,9 +83,7 @@ angular.module('openshiftConsole')
               }
             });
             activeDeployment = DeploymentsService.getActiveDeployment(deploymentsForConfig);
-            $scope.logOptions.container = $filter("annotation")(activeDeployment, "pod");
             $scope.isActive = activeDeployment && activeDeployment.metadata.uid === $scope.deployment.metadata.uid;
-            $scope.logCanRun = !(_.includes(['New', 'Pending'], $filter('deploymentStatus')(activeDeployment)));
           }));
         };
 
@@ -89,12 +92,13 @@ angular.module('openshiftConsole')
           function(deployment) {
             $scope.loaded = true;
             $scope.deployment = deployment;
+            setLogVars(deployment);
             var deploymentVersion = $filter("annotation")(deployment, "deploymentVersion");
             if (deploymentVersion) {
               $scope.breadcrumbs[2].title = "#" + deploymentVersion;
               $scope.logOptions.version = deploymentVersion;
             }
-            $scope.deploymentConfigName = $filter("annotation") (deployment, "deploymentConfig");
+            $scope.deploymentConfigName = $filter("annotation")(deployment, "deploymentConfig");
             // If we found the item successfully, watch for changes on it
             watches.push(DataService.watchObject("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, context, function(deployment, action) {
               if (action === "DELETED") {
@@ -104,6 +108,7 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.deployment = deployment;
+              setLogVars(deployment);
             }));
 
             if ($scope.deploymentConfigName) {
