@@ -110,11 +110,11 @@ var concepts = []term{
 		"Deployment Configuration",
 		"dc",
 		D(`
-      Defines the template for a pod and manages deploying new images or 
-      configuration changes whenever those change. A single deployment 
-      configuration is usually analogous to a single micro-service. Can support 
-      many different deployment patterns, including full restart, customizable 
-      rolling updates, and fully custom behaviors, as well as pre- and post- 
+      Defines the template for a pod and manages deploying new images or
+      configuration changes whenever those change. A single deployment
+      configuration is usually analogous to a single micro-service. Can support
+      many different deployment patterns, including full restart, customizable
+      rolling updates, and fully custom behaviors, as well as pre- and post-
       hooks. Each deployment is represented as a replication controller.
     `),
 	},
@@ -131,6 +131,17 @@ var concepts = []term{
     `),
 	},
 	{
+		"Builds",
+		"build",
+		D(`
+      Builds create a new image from source code, other images, Dockerfiles, or
+      binary input. A build is run inside of a container and has the same
+      restrictions normal pods have. A build usually results in an image pushed
+      to a Docker registry, but you can also choose to run a post-build test that
+      does not push an image.
+    `),
+	},
+	{
 		"Image Streams and Image Stream Tags",
 		"is,istag",
 		D(`
@@ -139,8 +150,21 @@ var concepts = []term{
       more tags (the default tag is called "latest") and those tags may point
       at external Docker registries, at other tags in the same stream, or be
       controlled to directly point at known images. In addition, images can be
-      pushed to an image stream tag directly via the integrated Docker 
+      pushed to an image stream tag directly via the integrated Docker
       registry.
+    `),
+	},
+	{
+		"Secrets",
+		"secret",
+		D(`
+      The secret resource can hold text or binary secrets for delivery into
+      your pods. By default, every container is given a single secret which
+      contains a token for accessing the API (with limited privileges) at
+      /var/run/secrets/kubernetes.io/serviceaccount. You can create new
+      secrets and mount them in your own pods, as well as reference secrets
+      from builds (for connecting to remote servers) or use them to import
+      remote images into an image stream.
     `),
 	},
 	{
@@ -173,7 +197,7 @@ var (
 	typesLong = D(`
     Concepts and Types
 
-    Kubernetes and Origin help developers and operators build, test, and deploy
+    Kubernetes and OpenShift help developers and operators build, test, and deploy
     applications in a containerized cloud environment. Applications may be composed
     of all of the components below, although most developers will be concerned with
     Services, Deployments, and Builds for delivering changes.
