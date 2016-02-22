@@ -19,16 +19,37 @@
           <label for="timeRange">Time Range:</label>
           <select id="timeRange"
                   ng-model="options.timeRange"
-                  ng-options="range.label for range in options.rangeOptions">
+                  ng-options="range.label for range in options.rangeOptions"
+                  ng-disabled="metricsError">
           </select>
         </div>
       </div>
     </div>
 
     <div ng-if="!loaded">Loading...</div>
-    <div ng-if="loaded && (chartDataByMetric | hashSize) === 0">No metrics to display.</div>
+    <div ng-if="loaded && (chartDataByMetric | hashSize) === 0 && !metricsError">No metrics to display.</div>
 
-    <div ng-repeat="metric in metrics" ng-if="chartDataByMetric[metric.id]" class="metrics-chart">
+    <div ng-if="metricsError" class="empty-state-message text-center">
+      <h2>
+        <span class="pficon pficon-error-circle-o" aria-hidden="true"></span>
+        Metrics are not available.
+      </h2>
+
+      <p>An error occurred getting metrics for container {{options.selectedContainer.name}}<span ng-if="metricsURL">
+          from <a ng-href="{{metricsURL}}">{{metricsURL}}</a></span>.
+      </p>
+
+      <p ng-if="metricsError.status === 0 || metricsError.status === 404">
+        <div>If you have network connectivity, this could indicate a misconfiguration.</div>
+        <div>Please contact your system administrator.</div>
+      </p>
+
+      <p class="text-muted">
+        {{metricsError.details}}
+      </p>
+    </div>
+
+    <div ng-repeat="metric in metrics" ng-if="chartDataByMetric[metric.id] && !metricsError" class="metrics-chart">
       <h3>{{metric.label}}</h3>
       <!-- Show a utilization chart if there is a limit -->
       <div ng-if="chartDataByMetric[metric.id].total"
