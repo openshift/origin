@@ -13,8 +13,8 @@
             <h1>Routes</h1>
           </div>
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!renderOptions.showGetStarted" class="row data-toolbar">
-            <div class="col-sm-7">
+          <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
+            <div class="data-toolbar-filter">
               <project-filter></project-filter>
             </div>
           </div>
@@ -55,8 +55,8 @@
                       </span>
                       <span ng-if="!route.status.ingress" data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
                         <status-icon status="'Pending'" disable-animation></status-icon>
-                        <span class="sr-only">Pending</span>                        
-                      </span>                      
+                        <span class="sr-only">Pending</span>
+                      </span>
                     </td>
                     <td data-title="Routes To">
                       <span ng-if="route.spec.to.kind !== 'Service'">{{route.spec.to.kind}}: {{route.spec.to.name}}</span>
