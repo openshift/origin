@@ -11,8 +11,7 @@ source "${OS_ROOT}/hack/common.sh"
 
 platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
-  echo "WARNING: Completions cannot be updated on non-Linux systems (${platform}) due to static link dependencies"
-  exit 1
+  echo "WARNING: Generating completions on ${platform} may not be identical to running on linux/amd64 due to conditional compilation."
 fi
 
 "${OS_ROOT}/hack/build-go.sh" tools/genbashcomp

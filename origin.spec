@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 96436ddb3d514c397dcc4f72fcea1b839a424893
+%global commit 21fd31bf1d8cbb32ff3c5ebbfcae774abf32d95d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.903-101-g96436dd -X github.com/openshift/origin/pkg/version.commitFromGit 96436dd -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.904-78-g21fd31b -X github.com/openshift/origin/pkg/version.commitFromGit 21fd31b -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.904
+Version:        3.1.1.905
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,66 @@ fi
 
 
 %changelog
+* Mon Feb 22 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.905
+- Display better information when running 'oc' (ccoleman@redhat.com)
+- Update completions to be cross platform (ccoleman@redhat.com)
+- Add events tab to plain RCs in web console (spadgett@redhat.com)
+- new-app broken when docker not installed (ccoleman@redhat.com)
+- UPSTREAM: 21628: Reduce node controller debug logging (ccoleman@redhat.com)
+- Drop 1.4 and add 1.6 to travis Go matrix (ccoleman@redhat.com)
+- Add --since-time logs test (jliggitt@redhat.com)
+- UPSTREAM: 21398: Fix sinceTime pod log options (jliggitt@redhat.com)
+- Show project display name in breadcrumbs (spadgett@redhat.com)
+- Hide copy to clipboard button on iOS (spadgett@redhat.com)
+- Validate master/publicMaster args to create-master-certs
+  (jliggitt@redhat.com)
+- Update completions (ffranz@redhat.com)
+- UPSTREAM: 21593: split adding global and external flags (ffranz@redhat.com)
+- clean up wording of oc status build/deployment descriptions
+  (bparees@redhat.com)
+- iOS: prevent select from zooming page (spadgett@redhat.com)
+- Restoring fix for route names overflowing .componet in Safari for iOS
+  (rhamilto@redhat.com)
+- On node startup, perform more checks of known requirements
+  (ccoleman@redhat.com)
+- Bug 1309195 - Return ErrNotV2Registry when falling back to http backend
+  (maszulik@redhat.com)
+- Set OS_OUTPUT_GOPATH=1 to build in a local GOPATH (ccoleman@redhat.com)
+- Add back the filter bar to the bc and dc pages (jforrest@redhat.com)
+- Router should tolerate not having permission to write status
+  (ccoleman@redhat.com)
+- Env vars with leading slashes cause major js errors in console create from
+  image flow (jforrest@redhat.com)
+- Refactor WaitForADeployment (rhcarvalho@gmail.com)
+- bump(github.com/elazarl/goproxy): 07b16b6e30fcac0ad8c0435548e743bcf2ca7e92
+  (ffranz@redhat.com)
+- UPSTREAM: 21409: SPDY roundtripper support to proxy with Basic auth
+  (ffranz@redhat.com)
+- UPSTREAM: 21185: SPDY roundtripper must respect InsecureSkipVerify
+  (ffranz@redhat.com)
+- Use route ingress status in console (jforrest@redhat.com)
+- correct cluster resource override tests (deads@redhat.com)
+- UPSTREAM: 21341: Add a liveness and readiness describer to pods
+  (mkargaki@redhat.com)
+- oc: enhance deploymentconfig description (mkargaki@redhat.com)
+- Fix commit checker to find commits with upstream changes
+  (jliggitt@redhat.com)
+- Verify extended tests build (jliggitt@redhat.com)
+- Normalize usernames for AllowAllPasswordIdentityProvider
+  (jliggitt@redhat.com)
+- Add auth logging to login page, basic auth, and OAuth paths
+  (jliggitt@redhat.com)
+- Use "install" to install SDN script to make sure they get exec permission
+  (danw@redhat.com)
+- tar extract cannot hard link on vboxfs filesystem (horatiu@vlad.eu)
+- Use pkg/util/homedir from upstream to detect home directory
+  (ffranz@redhat.com)
+- UPSTREAM: 17590: use correct home directory on Windows (ffranz@redhat.com)
+- Web console: add "Completed" to status-icon directive (spadgett@redhat.com)
+- Adjust empty state margin for pages with tabs (spadgett@redhat.com)
+- Limit route.spec.to to kind/name (jliggitt@redhat.com)
+- Add cross project promotion example (mfojtik@redhat.com)
+
 * Fri Feb 19 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.904
 - Updated URLs fo OpenShift Enterprise (tdawson@redhat.com)
 - Fix extended build compile error (jliggitt@redhat.com)

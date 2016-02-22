@@ -25,7 +25,8 @@ angular.module('openshiftConsole')
                         ObjectDescriber,
                         $parse,
                         $filter,
-                        $interval) {
+                        $interval,
+                        RoutesService) {
     $scope.projectName = $routeParams.project;
     $scope.pods = {};
     $scope.services = {};
@@ -73,6 +74,7 @@ angular.module('openshiftConsole')
     $scope.renderOptions.showSidebarRight = false;
     $scope.renderOptions.showGetStarted = false;
     $scope.overviewMode = 'tiles';
+    $scope.routeWarningsByService = {};
 
     // Make sure only one deployment per deployment config is scalable on the overview page.
     // This is the most recent deployment in progress or complete.
@@ -131,6 +133,14 @@ angular.module('openshiftConsole')
           // Must be called after deploymentConfigsByService() and podRelationships()
           updateShowGetStarted();
 
+          angular.forEach(services, function(service, serviceName) {
+            $scope.routeWarningsByService[serviceName] = {};
+
+            angular.forEach($scope.routesByService[serviceName], function(route, routeName) {
+              $scope.routeWarningsByService[serviceName][routeName] = RoutesService.getRouteWarnings(route, service);
+            });
+          });
+
           $scope.emptyMessage = "No services to show";
           updateFilterWarning();
           updateTopologyLater();
@@ -150,10 +160,18 @@ angular.module('openshiftConsole')
             routeMap[serviceName] = routeMap[serviceName] || {};
             routeMap[serviceName][routeName] = route;
 
-            // Find the best route to display for a service. Prefer the first custom host we find.
-            if (!displayRouteMap[serviceName] ||
-                (!isGeneratedHost(route) && isGeneratedHost(displayRouteMap[serviceName]))) {
+            if ($scope.unfilteredServices[serviceName]) {
+              // if the service doesn't exist or hasn't yet loaded, the route won't show up anyway
+              // checking for existence will prevent flickering of the missing service warning
+              $scope.routeWarningsByService[serviceName] = $scope.routeWarningsByService[serviceName] || {};
+              $scope.routeWarningsByService[serviceName][routeName] = RoutesService.getRouteWarnings(route, $scope.unfilteredServices[serviceName]);
+            }
+
+            if (!displayRouteMap[serviceName]) {
               displayRouteMap[serviceName] = route;
+            }
+            else {
+              displayRouteMap[serviceName] = RoutesService.getPreferredDisplayRoute(displayRouteMap[serviceName], route);
             }
           });
 
@@ -431,10 +449,6 @@ angular.module('openshiftConsole')
           else {
             delete $scope.alerts["services"];
           }
-        }
-
-        function isGeneratedHost(route) {
-          return annotationFilter(route, "openshift.io/host.generated") === "true";
         }
 
         LabelFilter.onActiveFiltersChanged(function(labelSelector) {

@@ -20,14 +20,17 @@ import (
 // ErrExit is a marker interface for cli commands indicating that the response has been processed
 var ErrExit = fmt.Errorf("exit directly")
 
+// RequireNoArguments exits with a usage error if extra arguments are provided.
+func RequireNoArguments(c *cobra.Command, args []string) {
+	if len(args) > 0 {
+		kcmdutil.CheckErr(kcmdutil.UsageError(c, fmt.Sprintf(`unknown command "%s"`, strings.Join(args, " "))))
+	}
+}
+
 func DefaultSubCommandRun(out io.Writer) func(c *cobra.Command, args []string) {
 	return func(c *cobra.Command, args []string) {
 		c.SetOutput(out)
-
-		if len(args) > 0 {
-			kcmdutil.CheckErr(kcmdutil.UsageError(c, fmt.Sprintf(`unknown command "%s"`, strings.Join(args, " "))))
-		}
-
+		RequireNoArguments(c, args)
 		c.Help()
 	}
 }

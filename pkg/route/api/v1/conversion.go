@@ -10,7 +10,9 @@ import (
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
 		func(obj *RouteSpec) {
-			obj.To.Kind = "Service"
+			if len(obj.To.Kind) == 0 {
+				obj.To.Kind = "Service"
+			}
 		},
 		func(obj *TLSConfig) {
 			if len(obj.Termination) == 0 && len(obj.DestinationCACertificate) == 0 {

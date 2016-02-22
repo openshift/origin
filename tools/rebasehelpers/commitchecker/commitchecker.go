@@ -25,8 +25,7 @@ func main() {
 	// them correctly.
 	nonbumpCommits := []util.Commit{}
 	for _, commit := range commits {
-		if commit.DeclaresUpstreamChange() &&
-			!strings.HasPrefix(commit.Summary, "bump(") {
+		if !strings.HasPrefix(commit.Summary, "bump(") {
 			nonbumpCommits = append(nonbumpCommits, commit)
 		}
 	}

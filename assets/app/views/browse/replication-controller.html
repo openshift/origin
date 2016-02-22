@@ -57,10 +57,19 @@
       <div class="middle-content">
         <div class="container-fluid">
           <div class="row" ng-if="deployment" >
-            <div class="col-md-12 gutter-top">
-              <div class="resource-details">
-                <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
-              </div>
+            <div class="col-md-12">
+              <uib-tabset>
+                <uib-tab active="selectedTab.details">
+                  <uib-tab-heading>Details</uib-tab-heading>
+                  <div class="resource-details">
+                    <ng-include src=" 'views/browse/_deployment-details.html' "></ng-include>
+                  </div>
+                </uib-tab>
+                <uib-tab active="selectedTab.events">
+                  <uib-tab-heading>Events</uib-tab-heading>
+                  <events resource-kind="ReplicationController" resource-name="{{deployment.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
+                </uib-tab>
+              </uib-tabset>
             </div><!-- /col-* -->
           </div>
         </div>

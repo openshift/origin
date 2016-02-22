@@ -117,6 +117,55 @@ func TestStatusResetsHost(t *testing.T) {
 	}
 }
 
+func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
+	now := unversioned.Now()
+	nowFn = func() unversioned.Time { return now }
+	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	p := &fakePlugin{}
+	c := testclient.NewSimpleFake(&(errors.NewForbidden(kapi.Resource("Route"), "route1", nil).(*errors.StatusError).ErrStatus))
+	admitter := NewStatusAdmitter(p, c, "test")
+	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
+		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
+		Status: routeapi.RouteStatus{
+			Ingress: []routeapi.RouteIngress{
+				{
+					Host:       "route2.test.local",
+					RouterName: "test",
+					Conditions: []routeapi.RouteIngressCondition{
+						{
+							Type:               routeapi.RouteAdmitted,
+							Status:             kapi.ConditionTrue,
+							LastTransitionTime: &touched,
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(c.Actions()) != 1 {
+		t.Fatalf("unexpected actions: %#v", c.Actions())
+	}
+	action := c.Actions()[0]
+	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+		t.Fatalf("unexpected action: %#v", action)
+	}
+	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
+		t.Fatalf("expected route reset: %#v", obj)
+	}
+	condition := obj.Status.Ingress[0].Conditions[0]
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != touched || condition.Status != kapi.ConditionTrue || condition.Reason != "" {
+		t.Fatalf("unexpected condition: %#v", condition)
+	}
+	if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, touched.Time) {
+		t.Fatalf("did not record last modification time: %#v %#v", admitter.expected, v)
+	}
+}
+
 func TestStatusBackoffOnConflict(t *testing.T) {
 	now := unversioned.Now()
 	nowFn = func() unversioned.Time { return now }

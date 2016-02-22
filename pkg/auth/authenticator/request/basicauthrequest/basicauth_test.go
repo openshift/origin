@@ -30,7 +30,7 @@ func (mock *mockPasswordAuthenticator) AuthenticatePassword(username, password s
 
 func TestAuthenticateRequestValid(t *testing.T) {
 	passwordAuthenticator := &mockPasswordAuthenticator{}
-	authRequestHandler := NewBasicAuthAuthentication(passwordAuthenticator, true)
+	authRequestHandler := NewBasicAuthAuthentication("example", passwordAuthenticator, true)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.SetBasicAuth(Username, Password)
 
@@ -48,7 +48,7 @@ func TestAuthenticateRequestInvalid(t *testing.T) {
 		ExpectedError = "No valid base64 data in basic auth scheme found"
 	)
 	passwordAuthenticator := &mockPasswordAuthenticator{isAuthenticated: true}
-	authRequestHandler := NewBasicAuthAuthentication(passwordAuthenticator, true)
+	authRequestHandler := NewBasicAuthAuthentication("example", passwordAuthenticator, true)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic invalid:string")
 

@@ -18,8 +18,8 @@ cd "${OS_ROOT}"
 os::build::detect_local_release_tars $(os::build::host_platform_friendly)
 
 mkdir -p "${OS_OUTPUT_BINPATH}/linux/amd64"
-tar mxzf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
-tar mxzf "${OS_CLIENT_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
-tar mxzf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/linux/amd64"
+os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/linux/amd64"
+os::build::extract_tar "${OS_CLIENT_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/linux/amd64"
+os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/linux/amd64"
 
 os::build::make_openshift_binary_symlinks

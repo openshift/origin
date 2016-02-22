@@ -67,14 +67,8 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 		Short: "Launch all-in-one server",
 		Long:  fmt.Sprintf(allInOneLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
-			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
-				return
-			}
+			kcmdutil.CheckErr(options.Complete())
+			kcmdutil.CheckErr(options.Validate(args))
 
 			startProfiler()
 
@@ -105,19 +99,19 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterOptions.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
-	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precedence
-	options.NodeArgs.AllowDisabledDocker = true
 
 	BindMasterArgs(masterArgs, flags, "")
-	BindNodeArgs(nodeArgs, flags, "")
+	BindNodeArgs(nodeArgs, flags, "", false)
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
 	startMaster, _ := NewCommandStartMaster(basename, out)
 	startNode, _ := NewCommandStartNode(basename, out)
+	startNodeNetwork, _ := NewCommandStartNetwork(basename, out)
 	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
+	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
 
 	startKube := kubernetes.NewCommand("kubernetes", basename, out)

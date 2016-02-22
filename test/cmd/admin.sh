@@ -32,6 +32,16 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
 # This test validates admin level commands including system policy
 
+# Check failure modes of various system commands
+os::cmd::expect_failure_and_text 'openshift start network' 'kubeconfig must be set'
+os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --enable=kubelet' 'the following components are not recognized: kubelet'
+os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --enable=kubelet,other' 'the following components are not recognized: kubelet, other'
+os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
+os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --disable=proxy,plugins' 'at least one node component must be enabled \(plugins, proxy\)'
+os::cmd::expect_failure_and_text 'openshift start node' 'kubeconfig must be set'
+os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
+os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=kubelet,proxy,plugins' 'at least one node component must be enabled \(kubelet, plugins, proxy\)'
+
 # Test admin manage-node operations
 os::cmd::expect_success_and_text 'openshift admin manage-node --help' 'Manage nodes'
 
@@ -55,6 +65,11 @@ status:
 
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'
 os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'Sched'
+
+# check create-master-certs validation
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master='                                                'master must be provided'
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
+os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
 
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'

@@ -29,11 +29,13 @@ func NewAuthorizeAuthenticator(request authenticator.Request, handler Authentica
 func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 	info, ok, err := h.request.AuthenticateRequest(ar.HttpRequest)
 	if err != nil {
+		glog.V(4).Infof("OAuth authentication error: %v", err)
 		return h.errorHandler.AuthenticationError(err, w, ar.HttpRequest)
 	}
 	if !ok {
 		return h.handler.AuthenticationNeeded(ar.Client, w, ar.HttpRequest)
 	}
+	glog.V(4).Infof("OAuth authentication succeeded: %#v", info)
 	ar.UserData = info
 	ar.Authorized = true
 	return false, nil

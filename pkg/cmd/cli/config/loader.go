@@ -12,6 +12,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/homedir"
 )
 
 const (
@@ -22,13 +23,13 @@ const (
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
 )
 
-var RecommendedHomeFile = path.Join(kclientcmd.HomeDir(), OpenShiftConfigHomeDirFileName)
+var RecommendedHomeFile = path.Join(homedir.HomeDir(), OpenShiftConfigHomeDirFileName)
 
 // currentMigrationRules returns a map that holds the history of recommended home directories used in previous versions.
 // Any future changes to RecommendedHomeFile and related are expected to add a migration rule here, in order to make
 // sure existing config files are migrated to their new locations properly.
 func currentMigrationRules() map[string]string {
-	oldRecommendedHomeFile := path.Join(kclientcmd.HomeDir(), ".kube/.config")
+	oldRecommendedHomeFile := path.Join(homedir.HomeDir(), ".kube/.config")
 	oldRecommendedWindowsHomeFile := path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
 
 	migrationRules := map[string]string{}
