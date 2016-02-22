@@ -74,7 +74,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	}
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
-	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/bash", "Path to shell command")
+	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/sh", "Path to the shell command")
 	cmd.Flags().StringVarP(&options.ContainerName, "container", "c", "", "Container name; defaults to first container")
 	cmd.Flags().SetInterspersed(false)
 	return cmd
