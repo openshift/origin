@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -51,7 +52,7 @@ func newBuilderConfigFromEnvironment() (*builderConfig, error) {
 
 	masterVersion := os.Getenv(api.OriginVersion)
 	thisVersion := version.Get().String()
-	if len(masterVersion) != 0 && masterVersion != thisVersion {
+	if len(masterVersion) != 0 && strings.HasPrefix(masterVersion, thisVersion) {
 		glog.Warningf("Master version %q does not match Builder image version %q", masterVersion, thisVersion)
 	} else {
 		glog.V(2).Infof("Master version %q, Builder versions %q", masterVersion, thisVersion)
