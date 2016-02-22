@@ -25,7 +25,7 @@
 </div>
 
 
-<div class="row" ng-if="!chromeless">
+<div class="row" ng-if="(!chromeless)">
   <div class="col-md-6 col-sm-12">
     <span ng-if="status">
       <span>Status:&nbsp;&nbsp;</span>
@@ -40,6 +40,11 @@
       Open full view of log<i class="fa fa-external-link"></i>
     </a>
   </div>
+</div>
+
+<!-- show this spinner until the log viewer starts. important for pending state, etc -->
+<div row main-axis="center" ng-if="(!state)">
+  <ellipsis-loader ng-show="loading"></ellipsis-loader>
 </div>
 
 
@@ -87,6 +92,7 @@
       <table>
         <tbody id="logContent"></tbody>
       </table>
+      <!-- show this spinner indicating logs are still streaming -->
       <div row main-axis="center">
         <ellipsis-loader ng-show="loading"></ellipsis-loader>
       </div>
