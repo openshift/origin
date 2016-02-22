@@ -25,7 +25,7 @@
                   <!-- Primary Actions -->
                   <button class="btn btn-default hidden-xs"
                           ng-click="cancelBuild()"
-                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel</button>
+                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel Build</button>
                   <button class="btn btn-default hidden-xs"
                           ng-click="cloneBuild()"
                           ng-hide="build.metadata.deletionTimestamp || (build | isIncompleteBuild)"
@@ -44,7 +44,7 @@
                         class="visible-xs-inline">
                       <a href=""
                          role="button"
-                         ng-click="cancelBuild()">Cancel</a>
+                         ng-click="cancelBuild()">Cancel Build</a>
                     </li>
                     <li class="visible-xs-inline"
                         ng-class="{ disabled: !canBuild }"
