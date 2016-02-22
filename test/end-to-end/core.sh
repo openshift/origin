@@ -106,7 +106,7 @@ os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
 os::cmd::expect_success 'oc login -u e2e-user -p pass'
 os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
- 
+
 # make sure viewers can see oc status
 os::cmd::expect_success 'oc status -n default'
 
@@ -378,6 +378,7 @@ if [[ "$TEST_ASSETS" == "true" ]]; then
   echo `date`
   pushd ${OS_ROOT}/assets > /dev/null
     grunt test-integration
+  tput sgr0
   echo "UI  e2e done at time "
   echo `date`
 
