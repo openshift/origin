@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -227,7 +228,7 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 
 	// TODO: add dry-run
-	_, err = imageStreamClient.Import(isi)
+	result, err := imageStreamClient.Import(isi)
 	switch {
 	case err == client.ErrImageStreamImportUnsupported:
 	case err != nil:
@@ -243,6 +244,10 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		}
 
 		fmt.Fprintln(out, info)
+
+		if r := result.Status.Repository; r != nil && len(r.AdditionalTags) > 0 {
+			fmt.Fprintf(out, "\ninfo: The remote repository contained %d additional tags which were not imported: %s\n", len(r.AdditionalTags), strings.Join(r.AdditionalTags, ", "))
+		}
 		return nil
 	}
 
