@@ -642,7 +642,7 @@ func describeBuildPhase(build *buildapi.Build, t *unversioned.Time, parentName s
 		suffix := build.Name[len(prefix):]
 
 		if buildNumber, err := strconv.Atoi(suffix); err == nil {
-			buildIdentification = fmt.Sprintf("#%d build", buildNumber)
+			buildIdentification = fmt.Sprintf("build #%d", buildNumber)
 		}
 	}
 
@@ -732,9 +732,9 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 	if activeDeployment == nil {
 		on, auto := describeDeploymentConfigTriggers(dcNode.DeploymentConfig)
 		if dcNode.DeploymentConfig.Status.LatestVersion == 0 {
-			out = append(out, fmt.Sprintf("#1 deployment waiting %s", on))
+			out = append(out, fmt.Sprintf("deployment #1 waiting %s", on))
 		} else if auto {
-			out = append(out, fmt.Sprintf("#%d deployment pending %s", dcNode.DeploymentConfig.Status.LatestVersion, on))
+			out = append(out, fmt.Sprintf("deployment #%d pending %s", dcNode.DeploymentConfig.Status.LatestVersion, on))
 		}
 		// TODO: detect new image available?
 	} else {
@@ -769,21 +769,21 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bo
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
-			return fmt.Sprintf("#%d test deployed %s ago", version, timeAt)
+			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
-		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
 	case deployapi.DeploymentStatusRunning:
-		format := "#%d deployment running for %s%s"
+		format := "deployment #%d running for %s%s"
 		if test {
-			format = "#%d test deployment running for %s%s"
+			format = "test deployment #%d running for %s%s"
 		}
 		return fmt.Sprintf(format, version, timeAt, describePodSummaryInline(deploy, false))
 	default:
-		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("deployment #%d %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
 	}
 }
 

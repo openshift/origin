@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
@@ -219,10 +220,11 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	return nil
 }
 
-func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
+func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *utilflags.ComponentFlag, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
 	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false, false)
 	startOptions.NodeArgs.AllowDisabledDocker = true
+	startOptions.NodeArgs.Components.Disable("plugins", "proxy")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
 	startOptions.Complete()
 	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
@@ -230,36 +232,36 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
 
 	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if err := CreateBootstrapPolicy(startOptions.MasterOptions.MasterArgs); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	masterOptions, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	nodeOptions, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return masterOptions, nodeOptions, nil
+	return masterOptions, nodeOptions, startOptions.NodeArgs.Components, nil
 }
 
-func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig) (string, error) {
+func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) (string, error) {
 	adminKubeConfigFile, err := StartConfiguredMaster(masterConfig)
 	if err != nil {
 		return "", err
 	}
 
-	if err := StartConfiguredNode(nodeConfig); err != nil {
+	if err := StartConfiguredNode(nodeConfig, components); err != nil {
 		return "", err
 	}
 
@@ -267,12 +269,12 @@ func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *c
 }
 
 func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string, error) {
-	master, node, err := DefaultAllInOneOptions()
+	master, node, components, err := DefaultAllInOneOptions()
 	if err != nil {
 		return nil, nil, "", err
 	}
 
-	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node)
+	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node, components)
 	return master, node, adminKubeConfigFile, err
 }
 
@@ -285,7 +287,7 @@ func DefaultTestOptions() TestOptions {
 	return TestOptions{true, true}
 }
 
-func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
+func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
 	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
 	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
@@ -295,7 +297,7 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
 	}
 	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
-	if err := start.StartNode(*nodeConfig); err != nil {
+	if err := start.StartNode(*nodeConfig, components); err != nil {
 		return err
 	}
 

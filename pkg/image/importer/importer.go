@@ -696,7 +696,7 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 			registry.Scheme = "http"
 			_, nErr := r.ping(registry, true, transport)
 			if nErr != nil {
-				return nil, err
+				return nil, nErr
 			}
 			return &registry, nil
 		}

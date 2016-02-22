@@ -47,12 +47,16 @@
                       </route-warnings>
                     </td>
                     <td data-title="Hostname">
-                      <div ng-if="(route | isWebRoute)" class="word-break">
+                      <span ng-if="(route | isWebRoute)" class="word-break">
                         <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
-                      </div>
-                      <div ng-if="!(route | isWebRoute)" class="word-break">
+                      </span>
+                      <span ng-if="!(route | isWebRoute)" class="word-break">
                         {{route | routeLabel}}
-                      </div>
+                      </span>
+                      <span ng-if="!route.status.ingress" data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
+                        <status-icon status="'Pending'" disable-animation></status-icon>
+                        <span class="sr-only">Pending</span>                        
+                      </span>                      
                     </td>
                     <td data-title="Routes To">
                       <span ng-if="route.spec.to.kind !== 'Service'">{{route.spec.to.kind}}: {{route.spec.to.name}}</span>

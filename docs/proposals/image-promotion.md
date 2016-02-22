@@ -161,6 +161,66 @@ it can automatically roll out a new production deployment. In case you don't wan
 the *frontend-production* automatically, you can avoid specifying the ImageChangeTrigger and
 roll out the new deployment by hand.
 
+#### Example of manual image promotion between two projects
+
+As a user I create two projects: 'stage' and 'prod'. Then I create following
+resources inside these projects:
+
+* `stage`:
+  * BuildConfig 'sample-app-build'
+  * ImageStream 'sample-app'
+  * DeploymentConfig 'sample-app'
+
+* `prod`:
+  * ImageStream 'sample-app'
+  * DeploymentConfig 'sample-app'
+
+Now I start the 'sample-app-build' using:
+
+```console
+$ oc start-build sample-app-build -n stage
+```
+
+This build will produce the 'sample-app:latest' image. This build can be
+automated by GitHub or generic triggers to build after every commit.
+
+The "sample-app" DeploymentConfig that I created in the "stage" project is
+configured to trigger a new deployment when the "sample-app:stable" ImageStreamTag
+is updated. The reason why I use "sample-app:stable" over "sample-app:latest" is
+that I don't want every commit cause automatic redeployment of the "stage".
+
+To tag the "latest" image, we can run the following command, which will result
+in the current "sample-app:latest" being automatically deployed in "stage":
+
+```console
+$ oc tag stage/sample-app:latest stage/sample-app:stable
+Tag sample-app:stable set to stage/sample-app@sha256:<sha>
+```
+
+Now we have our application deployed in the "stage" project and we can perform
+verification of this deployment, or notify the testers to do it.
+Once we are happy with this image, we want to promote it for production:
+
+First, we have to allow the the "prod" service account to pull the image from
+the "stage" repository in Docker registry:
+
+```console
+$ oc policy add-role-to-user edit system:serviceaccount:stage:default -n prod
+```
+
+Then we can tag the image to the "prod" project:
+
+```console
+$ oc tag stage/sample-app:stable prod/sample-app:v0.0.1
+$ oc tag prod/sample-app:v0.0.1 prod/sample-app:latest
+```
+
+Since the DeploymentConfig "sample-app" in "prod" is configured to redeploy when
+the ImageStreamTag "sample-app:latest" is updated, this will cause the image to be
+deployed in the "prod" project. Also we are making sure that the image we deploy in
+"prod" is the same image as we tested in "stage".
+
+
 ### Manual promotion using external Docker registry
 
 As a developer of a Rails application, when I update the source code and OpenShift

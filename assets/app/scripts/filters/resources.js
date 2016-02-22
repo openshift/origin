@@ -294,19 +294,19 @@ angular.module('openshiftConsole')
        return true;
     };
   })
-  .filter('routeWebURL', function(){
-    return function(route){
+  .filter('routeWebURL', function(routeHostFilter){
+    return function(route, host){
         var scheme = (route.spec.tls && route.spec.tls.tlsTerminationType !== "") ? "https" : "http";
-        var url = scheme + "://" + route.spec.host;
+        var url = scheme + "://" + (host || routeHostFilter(route));
         if (route.spec.path) {
             url += route.spec.path;
         }
         return url;
     };
   })
-  .filter('routeLabel', function() {
-    return function(route) {
-      var label = route.spec.host;
+  .filter('routeLabel', function(routeHostFilter) {
+    return function(route, host) {
+      var label = (host || routeHostFilter(route));
       if (route.spec.path) {
         label += route.spec.path;
       }
@@ -896,5 +896,41 @@ angular.module('openshiftConsole')
       });
 
       return reason;
+    };      
+  })
+  .filter('routeIngressCondition', function() {
+    return function(ingress, type) {
+      if (!ingress) {
+        return null;
+      }
+      return _.find(ingress.conditions, {type: type}); 
+    };
+  })
+  .filter('routeStatus', function(routeIngressConditionFilter) {
+    return function(route) {
+      if (!route.status.ingress) {
+        return "Pending";
+      }
+      var admittedCondition = routeIngressConditionFilter(route, 'Admitted');
+      if (!admittedCondition) {
+        return "Unknown";
+      }
+      return admittedCondition.status === "True" ? "Admitted" : "Rejected";
+    };
+  })
+  .filter('routeHost', function() {
+    return function (route) {
+      if (!route.status.ingress) {
+        return route.spec.host;
+      }
+      var oldestAdmittedIngress = null;
+      angular.forEach(route.status.ingress, function(ingress) {
+        if (_.some(ingress.conditions, { type: "Admitted", status: "True" }) &&
+            (!oldestAdmittedIngress || oldestAdmittedIngress.lastTransitionTime > ingress.lastTransitionTime)) {
+          oldestAdmittedIngress = ingress;
+        }
+      });
+
+      return oldestAdmittedIngress ? oldestAdmittedIngress.host : route.spec.host;
     };
   });

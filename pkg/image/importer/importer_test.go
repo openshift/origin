@@ -352,3 +352,21 @@ func TestDockerV1Fallback(t *testing.T) {
 		t.Errorf("unexpected images: %#v", images)
 	}
 }
+
+func TestPing(t *testing.T) {
+	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials).(*repositoryRetriever)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	uri, _ := url.Parse(server.URL)
+
+	_, err := retriever.ping(*uri, true, retriever.context.InsecureTransport)
+	if !strings.Contains(err.Error(), "does not support v2 API") {
+		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	}
+
+	uri.Scheme = "https"
+	_, err = retriever.ping(*uri, true, retriever.context.InsecureTransport)
+	if !strings.Contains(err.Error(), "does not support v2 API") {
+		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	}
+}

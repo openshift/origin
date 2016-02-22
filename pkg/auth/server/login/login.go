@@ -152,22 +152,24 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	then := req.FormValue("then")
-	user, password := req.FormValue("username"), req.FormValue("password")
-	if user == "" {
+	username, password := req.FormValue("username"), req.FormValue("password")
+	if username == "" {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
-	context, ok, err := l.auth.AuthenticatePassword(user, password)
+	user, ok, err := l.auth.AuthenticatePassword(username, password)
 	if err != nil {
-		glog.Errorf("Unable to authenticate password: %v", err)
+		glog.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err)
 		failed(errorpage.AuthenticationErrorCode(err), w, req)
 		return
 	}
 	if !ok {
+		glog.V(4).Infof(`Login with provider %q failed for %q`, l.provider, username)
 		failed(errorCodeAccessDenied, w, req)
 		return
 	}
-	l.auth.AuthenticationSucceeded(context, then, w, req)
+	glog.V(4).Infof(`Login with provider %q succeeded for %q: %#v`, l.provider, username, user)
+	l.auth.AuthenticationSucceeded(user, then, w, req)
 }
 
 // NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to

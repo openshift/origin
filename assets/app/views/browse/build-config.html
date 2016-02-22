@@ -91,11 +91,6 @@
                       </button>
                     </div>
 
-                    <!-- A filter is hiding all builds (and a message is already displayed above saying that).
-                         Show a simple "No builds." message rather than the full empty state message. -->
-                    <div ng-if="(unfilteredBuilds | hashSize) > 0 && (builds | hashSize) === 0">
-                      No builds.
-                    </div>
                     <!-- Show the latest build and a chart of the recent build duration and status. -->
                     <div ng-if="builds && (builds | hashSize) > 0" class="build-config-summary">
                       <!-- Show the latest build status first. -->
@@ -129,7 +124,10 @@
 
                       <build-trends-chart builds="builds"></build-trends-chart>
                     </div>
-                    <div ng-if="loaded">
+                    <div ng-if="loaded && (unfilteredBuilds | hashSize) > 0">
+                      <div class="table-filter-wrapper">
+                        <project-filter></project-filter>
+                      </div>
                       <table class="table table-bordered table-hover table-mobile">
                         <thead>
                           <tr>

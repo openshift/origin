@@ -607,7 +607,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 			if err != nil {
 				return nil, err
 			}
-			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true))
+			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(identityProvider.Name, passwordAuthenticator, true))
 
 		} else {
 			switch provider := identityProvider.Provider.(type) {

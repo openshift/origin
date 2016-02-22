@@ -54,14 +54,33 @@
             <div class="col-md-12">
               <div class="resource-details">
                 <dl class="dl-horizontal left">
-                  <dt>Hostname:</dt>
+                  <dt>Hostname<span ng-if="route.status.ingress.length > 1">s</span>:</dt>
                   <dd>
-                    <span ng-if="(route | isWebRoute)">
-                      <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
-                    </span>
-                    <span ng-if="!(route | isWebRoute)">
+                    <span ng-if="!route.status.ingress">
                       {{route | routeLabel}}
-                    </span>
+                      <span data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
+                        <status-icon status="'Pending'" disable-animation></status-icon>
+                        <span class="sr-only">Pending</span>                        
+                      </span>
+                    </span>  
+                    <div ng-repeat="ingress in route.status.ingress">
+                      <span ng-if="(route | isWebRoute)">
+                        <a href="{{route | routeWebURL : ingress.host}}" target="_blank">{{route | routeLabel : ingress.host}}</a>
+                      </span>
+                      <span ng-if="!(route | isWebRoute)">
+                        {{route | routeLabel : ingress.host}}
+                      </span>                    
+                      &ndash;
+                      <span ng-init="admittedCondition = (ingress | routeIngressCondition : 'Admitted')">
+                        <span ng-if="!admittedCondition">admission status unknown for router '{{ingress.routerName}}'</span>
+                        <span ng-if="admittedCondition.status === 'True'">
+                          exposed on router '{{ingress.routerName}}' <relative-timestamp timestamp="admittedCondition.lastTransitionTime"></relative-timestamp>
+                        </span>
+                        <span ng-if="admittedCondition.status === 'False'">
+                          rejected by router '{{ingress.routerName}}' <relative-timestamp timestamp="admittedCondition.lastTransitionTime"></relative-timestamp>
+                        </span>                        
+                      </span>
+                    </div>
                   </dd>
                   <dt>Path:</dt>
                   <dd>

@@ -221,7 +221,7 @@ os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --t
 os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
 # logs in with a valid certificate authority
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
-os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1" 
+os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
 os::cmd::expect_success 'oc logout'
 # logs in skipping certificate check
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
@@ -273,6 +273,7 @@ mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
 
 # from this point every command will use config from the KUBECONFIG env var
+export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 

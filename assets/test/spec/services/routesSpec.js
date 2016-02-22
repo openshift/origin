@@ -1,6 +1,6 @@
 "use strict";
 
-describe("ApplicationGenerator", function(){
+describe("RoutesService", function(){
   var RoutesService;
 
   beforeEach(function(){
@@ -28,6 +28,9 @@ describe("ApplicationGenerator", function(){
           name: "frontend"
         },
         host: "www.example.com"
+      },
+      status: {
+        ingress: null
       }
     };
 
@@ -112,6 +115,24 @@ describe("ApplicationGenerator", function(){
       var warnings = RoutesService.getRouteWarnings(route, serviceTemplate);
       expect(warnings).toEqual(['Route path "/test" will be ignored since the route uses passthrough termination.']);
     });
+
+    it("should warn if route has an ingress that has not been admitted", function() {
+      var route = angular.copy(routeTemplate);
+      route.spec.path = '/test';
+      route.status.ingress = [{
+        host: 'www.example.com',
+        routerName: 'foo',
+        conditions: [{
+          type: "Admitted",
+          status: "False",
+          lastTransitionTime: "2016-02-17T17:18:51Z",
+          reason: "HostAlreadyClaimed",
+          message: "route bar already exposes www.example.com and is older"
+        }]
+      }];
+      var warnings = RoutesService.getRouteWarnings(route, serviceTemplate);
+      expect(warnings).toEqual(["Requested host www.example.com was rejected by the router. Reason: route bar already exposes www.example.com and is older."]);
+    });    
 
     it("should not warn if there are no problems", function() {
       var route = angular.copy(routeTemplate);

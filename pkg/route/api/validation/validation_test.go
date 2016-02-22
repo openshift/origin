@@ -27,6 +27,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "host",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 				},
 			},
@@ -42,6 +43,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "host",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 				},
 			},
@@ -57,6 +59,7 @@ func TestValidateRoute(t *testing.T) {
 				Spec: api.RouteSpec{
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 				},
 			},
@@ -73,6 +76,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "**",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 				},
 			},
@@ -87,6 +91,25 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
+					To: kapi.ObjectReference{
+						Kind: "Service",
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "No service kind",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "host",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
 				},
 			},
 			expectedErrors: 1,
@@ -102,6 +125,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 					Port: &api.RoutePort{
 						TargetPort: intstr.FromInt(0),
@@ -121,6 +145,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 					Port: &api.RoutePort{
 						TargetPort: intstr.FromString(""),
@@ -140,6 +165,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 				},
 			},
@@ -156,6 +182,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 					Path: "/test",
 				},
@@ -173,6 +200,7 @@ func TestValidateRoute(t *testing.T) {
 					Host: "www.example.com",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 					Path: "test",
 				},
@@ -191,6 +219,7 @@ func TestValidateRoute(t *testing.T) {
 					Path: "/test",
 					To: kapi.ObjectReference{
 						Name: "serviceName",
+						Kind: "Service",
 					},
 					TLS: &api.TLSConfig{
 						Termination: api.TLSTerminationPassthrough,

@@ -51,22 +51,33 @@ else
   imagedir="${OS_OUTPUT}/images"
   rm -rf ${imagedir}
   mkdir -p ${imagedir}
-  tar xzpf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
-  tar xzpf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${imagedir}"
+  os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${imagedir}"
+  os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
 fi
 
-# Copy primary binaries to the appropriate locations.
-ln -f "${imagedir}/openshift" images/origin/bin
-ln -f "${imagedir}/openshift" images/router/haproxy/bin
-ln -f "${imagedir}/openshift" images/ipfailover/keepalived/bin
+# Create link to file if the FS supports hardlinks, otherwise copy the file
+function ln_or_cp {
+  local src_file=$1
+  local dst_dir=$2
+  if os::build::is_hardlink_supported "${dst_dir}" ; then
+    ln -f "${src_file}" "${dst_dir}"
+  else
+    cp -pf "${src_file}" "${dst_dir}"
+  fi
+}
 
-# Copy image binaries to the appropriate locations.
-ln -f "${imagedir}/pod"             images/pod/bin
-ln -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
-ln -f "${imagedir}/deployment"      examples/deployment/bin
-ln -f "${imagedir}/gitserver"       examples/gitserver/bin
-ln -f "${imagedir}/dockerregistry"  images/dockerregistry/bin
-ln -f "${imagedir}/recycle"         images/recycler/bin
+# Link or copy primary binaries to the appropriate locations.
+ln_or_cp "${imagedir}/openshift" images/origin/bin
+ln_or_cp "${imagedir}/openshift" images/router/haproxy/bin
+ln_or_cp "${imagedir}/openshift" images/ipfailover/keepalived/bin
+
+# Link or copy image binaries to the appropriate locations.
+ln_or_cp "${imagedir}/pod"             images/pod/bin
+ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
+ln_or_cp "${imagedir}/deployment"      examples/deployment/bin
+ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
+ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
+ln_or_cp "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"

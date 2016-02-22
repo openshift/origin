@@ -302,9 +302,35 @@ EOF
       exit 2
     fi
   fi
-
   export GOBIN="${OS_OUTPUT_BINPATH}"
-  export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+
+  # use the regular gopath for building
+  if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
+    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    return
+  fi
+
+  # create a local GOPATH in _output
+  GOPATH="${OS_OUTPUT}/go"
+  local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
+  local go_pkg_basedir=$(dirname "${go_pkg_dir}")
+
+  mkdir -p "${go_pkg_basedir}"
+  rm -f "${go_pkg_dir}"
+
+  # TODO: This symlink should be relative.
+  ln -s "${OS_ROOT}" "${go_pkg_dir}"
+
+  # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
+  if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
+    GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
+  fi
+  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
+  # is defined.
+  if [[ -z ${OS_NO_GODEPS:-} ]]; then
+    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
+  fi
+  export GOPATH
 }
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
@@ -444,6 +470,48 @@ os::build::archive_tar() {
   pushd "${release_binpath}" &> /dev/null
   tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
   popd &>/dev/null
+}
+
+# Checks if the filesystem on a partition that the provided path points to is
+# supporting hard links.
+#
+# Input:
+#  $1 - the path where the hardlinks support test will be done.
+# Returns:
+#  0 - if hardlinks are supported
+#  non-zero - if hardlinks aren't supported
+os::build::is_hardlink_supported() {
+  local path="$1"
+  # Determine if FS supports hard links
+  local temp_file=$(mktemp --tmpdir="${path}")
+  ln "${temp_file}" "${temp_file}.link" &> /dev/null && unlink "${temp_file}.link" || local supported=$?
+  rm -f "${temp_file}"
+  return ${supported:-0}
+}
+
+# Extract a tar.gz compressed archive in a given directory. If the
+# archive contains hardlinks and the underlying filesystem is not
+# supporting hardlinks then the a hard dereference will be done.
+#
+# Input:
+#   $1 - path to archive file
+#   $2 - directory where the archive will be extracted
+os::build::extract_tar() {
+  local archive_file="$1"
+  local change_dir="$2"
+
+  # Unpack archive
+  echo "++ Extracting $(basename ${archive_file})"
+  if os::build::is_hardlink_supported "${change_dir}" ; then
+    tar mxzf "${archive_file}" --strip-components=1 -C "${change_dir}"
+  else
+    local temp_dir=$(mktemp -d --tmpdir=/dev/shm/)
+    tar mxzf "${archive_file}" --strip-components=1 -C "${temp_dir}"
+    pushd "${temp_dir}" &> /dev/null
+    tar cO --hard-dereference * | tar xf - -C "${change_dir}"
+    popd &>/dev/null
+    rm -rf "${temp_dir}"
+  fi
 }
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift

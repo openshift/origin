@@ -24,7 +24,6 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/test/e2e"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -186,72 +185,92 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
 }
 
-// WaitForADeployment waits for a Deployment to fulfill the isOK function
-func WaitForADeployment(client kclient.ReplicationControllerInterface,
-	name string,
-	isOK, isFailed func(*kapi.ReplicationController) bool) error {
-	startTime := time.Now()
-	endTime := startTime.Add(15 * time.Minute)
-	for time.Now().Before(endTime) {
+// WaitForADeployment waits for a deployment to fulfill either isOK or isFailed.
+// When isOK returns true, WaitForADeployment returns nil, when isFailed returns
+// true, WaitForADeployment returns an error including the deployment status.
+// WaitForADeployment waits for at most a certain timeout (non-configurable).
+func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool) error {
+	timeout := 15 * time.Minute
+
+	// closing done signals that any pending operation should be aborted.
+	done := make(chan struct{})
+	defer close(done)
+
+	// okOrFailed returns whether a replication controller matches either of
+	// the predicates isOK or isFailed, and the associated error in case of
+	// failure.
+	okOrFailed := func(rc *kapi.ReplicationController) (err error, matched bool) {
+		if isOK(rc) {
+			return nil, true
+		}
+		if isFailed(rc) {
+			return fmt.Errorf("The deployment %q status is %q", name, rc.Annotations[deployapi.DeploymentStatusAnnotation]), true
+		}
+		return nil, false
+	}
+
+	// waitForDeployment waits until okOrFailed returns true or the done
+	// channel is closed.
+	waitForDeployment := func() (err error, retry bool) {
 		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
 		if err != nil {
-			return fmt.Errorf("unexpected error generating label selector: %v", err)
+			return fmt.Errorf("unexpected error generating label selector: %v", err), false
 		}
-
 		list, err := client.List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
 		if err != nil {
-			return err
+			return err, false
 		}
-
-		for i := range list.Items {
-			if isOK(&list.Items[i]) {
-				return nil
-			}
-			if isFailed(&list.Items[i]) {
-				return fmt.Errorf("The deployment %q status is %q",
-					name, list.Items[i].Annotations[deployapi.DeploymentStatusAnnotation])
+		for _, rc := range list.Items {
+			err, matched := okOrFailed(&rc)
+			if matched {
+				return err, false
 			}
 		}
-
-		rv := list.ResourceVersion
-		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: rv})
+		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: list.ResourceVersion})
 		if err != nil {
-			return err
+			return err, false
 		}
 		defer w.Stop()
-
 		for {
-			timeout := make(chan bool, 1)
-			go func() {
-				time.Sleep(10 * time.Second)
-				timeout <- true
-			}()
-
-			var val watch.Event
-			var ok bool
-
 			select {
-			case val, ok = <-w.ResultChan():
-			case <-timeout:
-			}
-
-			if !ok {
-				// reget and re-watch
-				break
-			}
-			if e, ok := val.Object.(*kapi.ReplicationController); ok {
-				if isOK(e) {
-					return nil
+			case val, ok := <-w.ResultChan():
+				if !ok {
+					// watcher error, re-get and re-watch
+					return nil, true
 				}
-				if isFailed(e) {
-					return fmt.Errorf("The deployment %q status is %q",
-						name, e.Annotations[deployapi.DeploymentStatusAnnotation])
+				if rc, ok := val.Object.(*kapi.ReplicationController); ok {
+					err, matched := okOrFailed(rc)
+					if matched {
+						return err, false
+					}
 				}
+			case <-done:
+				// no more time left, stop what we were doing,
+				// do no retry.
+				return nil, false
 			}
 		}
-
 	}
-	return fmt.Errorf("the deploy did of %s not finish within 15 minutes", name)
+
+	// errCh is buffered so the goroutine below never blocks on sending,
+	// preventing a goroutine leak if we reach the timeout.
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(errCh)
+		err, retry := waitForDeployment()
+		for retry {
+			err, retry = waitForDeployment()
+		}
+		errCh <- err
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-time.After(timeout):
+		return fmt.Errorf("timed out waiting for deployment %q after %v", name, timeout)
+	}
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed

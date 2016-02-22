@@ -8,16 +8,18 @@ import (
 
 	"k8s.io/kubernetes/pkg/auth/user"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 type basicAuthRequestHandler struct {
+	provider              string
 	passwordAuthenticator authenticator.Password
 	removeHeader          bool
 }
 
-func NewBasicAuthAuthentication(passwordAuthenticator authenticator.Password, removeHeader bool) authenticator.Request {
-	return &basicAuthRequestHandler{passwordAuthenticator, removeHeader}
+func NewBasicAuthAuthentication(provider string, passwordAuthenticator authenticator.Password, removeHeader bool) authenticator.Request {
+	return &basicAuthRequestHandler{provider, passwordAuthenticator, removeHeader}
 }
 
 func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -32,6 +34,15 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 	user, ok, err := authHandler.passwordAuthenticator.AuthenticatePassword(username, password)
 	if ok && authHandler.removeHeader {
 		req.Header.Del("Authorization")
+	}
+
+	switch {
+	case err != nil:
+		glog.Errorf(`Error authenticating login %q with provider %q: %v`, username, authHandler.provider, err)
+	case !ok:
+		glog.V(4).Infof(`Login with provider %q failed for login %q`, authHandler.provider, username)
+	case ok:
+		glog.V(4).Infof(`Login with provider %q succeeded for login %q: %#v`, authHandler.provider, username, user)
 	}
 	return user, ok, err
 }

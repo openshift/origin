@@ -45,6 +45,9 @@ angular.module('openshiftConsole')
       .then(_.spread(function(project, context) {
         $scope.project = project;
 
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
+
         var orderByDisplayName = $filter('orderByDisplayName');
         var getErrorDetails = $filter('getErrorDetails');
         var navigateResourceURL = $filter('navigateResourceURL');

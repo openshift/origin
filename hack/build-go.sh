@@ -18,9 +18,9 @@ if [[ -z "$@" ]]; then
     platform=$(os::build::host_platform)
     echo "++ Using release artifacts from ${OS_RELEASE_COMMIT} for ${platform} instead of building"
     mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
-    tar mxzf "${OS_PRIMARY_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/${platform}"
-    tar mxzf "${OS_CLIENT_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/${platform}"
-    tar mxzf "${OS_IMAGE_RELEASE_TAR}" --strip-components=1 -C "${OS_OUTPUT_BINPATH}/${platform}"
+    os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/${platform}"
+    os::build::extract_tar "${OS_CLIENT_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/${platform}"
+    os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/${platform}"
 
     os::build::make_openshift_binary_symlinks
 
