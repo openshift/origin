@@ -61,6 +61,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			from           *kapi.ObjectReference
 			shouldBuild    = false
 			triggeredImage = ""
+			nextImage      = ""
 		)
 		// For every ImageChange trigger find the latest tagged image from the image repository and
 		// invoke a build using that image id. A new build is triggered only if the latest tagged image id or pull spec
@@ -108,6 +109,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			// (must be different) to trigger a build
 			last := trigger.ImageChange.LastTriggeredImageID
 			next := latest.DockerImageReference
+			nextImage = latest.DockerImageReference
 
 			if len(last) == 0 || (len(next) > 0 && next != last) {
 				triggeredImage = next
@@ -119,6 +121,11 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 		}
 
 		if shouldBuild {
+			newBuildReason := buildapi.BuildTriggerReason{
+				TriggerType:    "imageChangeTrigger",
+				TriggerImageID: nextImage,
+			}
+
 			glog.V(4).Infof("Running build for BuildConfig %s/%s", config.Namespace, config.Name)
 			// instantiate new build
 			request := &buildapi.BuildRequest{
@@ -130,7 +137,8 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 					Kind: "DockerImage",
 					Name: triggeredImage,
 				},
-				From: from,
+				From:               from,
+				BuildTriggerReason: newBuildReason,
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
 				if kerrors.IsConflict(err) {

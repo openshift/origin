@@ -216,7 +216,7 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("This is the build request: %+v\n", request)
 	if buildutil.IsPaused(bc) {
 		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
 	}

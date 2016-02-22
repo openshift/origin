@@ -55,7 +55,7 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 	}
 
 	glog.V(4).Infof("Running build for BuildConfig %s/%s", bc.Namespace, bc.Name)
-	// instantiate new build
+
 	lastVersion := 0
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{
@@ -63,7 +63,11 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 			Namespace: bc.Namespace,
 		},
 		LastVersion: &lastVersion,
+		BuildTriggerReason: buildapi.BuildTriggerReason{
+			TriggerType: "ConfigChange",
+		},
 	}
+
 	if _, err := c.BuildConfigInstantiator.Instantiate(bc.Namespace, request); err != nil {
 		var instantiateErr error
 		if kerrors.IsConflict(err) {

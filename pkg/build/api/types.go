@@ -70,6 +70,20 @@ type BuildSpec struct {
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer
 	CompletionDeadlineSeconds *int64
+	// Optional field that holds information about a builds' trigger.
+	BuildTriggerInfo BuildTriggerInfo
+}
+
+// BuildTriggerInfo is an optional field that stores information abou a
+// triggered build.
+type BuildTriggerInfo struct {
+	User                    string
+	BuildTriggerType        string
+	BuildTriggerInformation string
+	// GenericWebHookBuildTriggerInfo string
+	// GitHubWebHookBuildTriggerInfo  string
+	// ImageChangeBuildTriggerInfo    string
+	// ConfigChangeBuildTriggerInfo   string
 }
 
 // BuildStatus contains the status of a build
@@ -696,6 +710,15 @@ type BuildRequest struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
+
+	// BuildTriggerReason
+	BuildTriggerReason BuildTriggerReason
+}
+
+type BuildTriggerReason struct {
+	User           string
+	TriggerType    string
+	TriggerImageID string
 }
 
 type BinaryBuildRequestOptions struct {

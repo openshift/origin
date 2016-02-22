@@ -80,9 +80,14 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
+
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: buildCfg.Name},
 		Revision:   revision,
+		BuildTriggerReason: buildapi.BuildTriggerReason{
+			User:        "webhook",
+			TriggerType: "webHookTrigger",
+		},
 	}
 	if _, err := c.buildConfigInstantiator.Instantiate(uv.namespace, request); err != nil {
 		glog.V(2).Infof("Failed to generate new Build from BuildConfig %s/%s: %v", buildCfg.Namespace, buildCfg.Name, err)

@@ -184,6 +184,10 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
+		BuildTriggerReason: buildapi.BuildTriggerReason{
+			User:        "manual",
+			TriggerType: "manualTrigger",
+		},
 	}
 	if len(env) > 0 {
 		request.Env = env

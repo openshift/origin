@@ -51,6 +51,20 @@ type BuildSpec struct {
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty" description:"optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"`
+
+	BuildTriggerInfo BuildTriggerInfo `json:"BuildTriggerInfo,omitempty" description:"optional field that stores information about why a build was triggered"`
+}
+
+// BuildTriggerInfo is an optional field that stores information about a
+// a build that was triggered.
+type BuildTriggerInfo struct {
+	User                    string `json:"User,omitempty" description:"Details about the user that triggered the build"`
+	BuildTriggerType        string `json:"BuildTriggerType" description:"The type of trigger that triggered the last build e.g.: Github/Generic Webhook, Image/Config change trigger"`
+	BuildTriggerInformation string
+	// GenericWebHookBuildTriggerInfo string
+	// GitHubWebHookBuildTriggerInfo  string
+	// ImageChangeBuildTriggerInfo    string
+	// ConfigChangeBuildTriggerInfo   string
 }
 
 // BuildStatus contains the status of a build
@@ -627,6 +641,14 @@ type BuildRequest struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+	// BuildTriggerReason
+	BuildTriggerReason BuildTriggerReason `json:"env,omitempty" description:"a reason why a build was triggered"`
+}
+
+type BuildTriggerReason struct {
+	User           string `json:"env,omitempty" description:"user"`
+	TriggerType    string `json:"env,omitempty" description:"triggertype"`
+	TriggerImageID string `json:"env,omitempty" description:"triggerimage"`
 }
 
 type BinaryBuildRequestOptions struct {
