@@ -14,8 +14,8 @@ import (
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/cmd/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -56,7 +56,9 @@ const (
 	StandardNodeConfigPath   string = "/etc/origin/node/node-config.yaml"
 )
 
-const longDescription = `
+const (
+	DiagnosticsRecommendedName = "diagnostics"
+	longDescription            = `
 This utility helps troubleshoot and diagnose known problems. It runs
 diagnostics using a client and/or the state of a running master /
 node host.
@@ -80,13 +82,11 @@ you will receive an error if they are not found. For example:
 Diagnostics may be individually run by passing diagnostic name as arguments.
 The available diagnostic names are:
 %[2]s
-
-NOTE: This is a beta version of diagnostics and may still evolve in a
-different direction.
 `
+)
 
-// NewCommandDiagnostics is the base command for running any diagnostics.
-func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
+// NewCmdDiagnostics is the base command for running any diagnostics.
+func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics: []string{},
 		LogOptions:           &log.LoggerOptions{Out: out},
@@ -95,7 +95,7 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "This utility helps you troubleshoot and diagnose.",
+		Short: "Diagnose common cluster problems",
 		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), " ")),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(args))

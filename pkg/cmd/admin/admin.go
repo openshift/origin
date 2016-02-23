@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/cmd/admin/network"
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
+	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -63,6 +64,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 			Message: "Maintenance Commands:",
 			Commands: []*cobra.Command{
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out),
+				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
 			},
