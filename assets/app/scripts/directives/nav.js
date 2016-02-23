@@ -91,6 +91,12 @@ angular.module('openshiftConsole')
               $location.url(newURL);
             });
           });
+
+        $scope.$on('project.settings.update', function(event, data) {
+          projects[data.metadata.name] = data;
+          updateOptions();
+        });
+
       }
     };
   })
