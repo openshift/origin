@@ -838,6 +838,12 @@ func DescribeContainers(containers []api.Container, containerStatuses []api.Cont
 		fmt.Fprintf(out, "    Container ID:\t%s\n", status.ContainerID)
 		fmt.Fprintf(out, "    Image:\t%s\n", container.Image)
 		fmt.Fprintf(out, "    Image ID:\t%s\n", status.ImageID)
+		portString := describeContainerPorts(container.Ports)
+		if strings.Contains(portString, ",") {
+			fmt.Fprintf(out, "    Ports:\t%s\n", portString)
+		} else {
+			fmt.Fprintf(out, "    Port:\t%s\n", portString)
+		}
 
 		if len(container.Command) > 0 {
 			fmt.Fprintf(out, "    Command:\n")
@@ -902,6 +908,14 @@ func DescribeContainers(containers []api.Container, containerStatuses []api.Cont
 			}
 		}
 	}
+}
+
+func describeContainerPorts(cPorts []api.ContainerPort) string {
+	ports := []string{}
+	for _, cPort := range cPorts {
+		ports = append(ports, fmt.Sprintf("%d/%s", cPort.ContainerPort, cPort.Protocol))
+	}
+	return strings.Join(ports, ", ")
 }
 
 // DescribeProbe is exported for consumers in other API groups that have probes
