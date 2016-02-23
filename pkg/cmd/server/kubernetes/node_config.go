@@ -200,7 +200,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, err
 	}
-	authn, err := newAuthenticator(clientCAs, clientcmd.AnonymousClientConfig(*osClientConfig), authnTTL, options.AuthConfig.AuthenticationCacheSize)
+	authn, err := newAuthenticator(clientCAs, clientcmd.AnonymousClientConfig(osClientConfig), authnTTL, options.AuthConfig.AuthenticationCacheSize)
 	if err != nil {
 		return nil, err
 	}

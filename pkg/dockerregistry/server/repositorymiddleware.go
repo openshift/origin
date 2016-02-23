@@ -43,7 +43,18 @@ func init() {
 		panic(err)
 	}
 	cachedLayers = cache
-	repomw.Register("openshift", repomw.InitFunc(newRepository))
+
+	// load the client when the middleware is initialized, which allows test code to change
+	// DefaultRegistryClient before starting a registry.
+	repomw.Register("openshift",
+		func(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+			registryClient, quotaClient, err := DefaultRegistryClient.Clients()
+			if err != nil {
+				return nil, err
+			}
+			return newRepositoryWithClient(registryClient, quotaClient, ctx, repo, options)
+		},
+	)
 
 	secureTransport = http.DefaultTransport
 	insecureTransport, err = kclient.TransportFor(&kclient.Config{Insecure: true})
@@ -57,12 +68,12 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	ctx                context.Context
-	registryKubeClient kclient.Interface
-	registryOSClient   client.Interface
-	registryAddr       string
-	namespace          string
-	name               string
+	ctx            context.Context
+	quotaClient    kclient.ResourceQuotasNamespacer
+	registryClient client.Interface
+	registryAddr   string
+	namespace      string
+	name           string
 
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
@@ -75,8 +86,8 @@ type repository struct {
 
 var _ distribution.ManifestService = &repository{}
 
-// newRepository returns a new repository middleware.
-func newRepository(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+// newRepositoryWithClient returns a new repository middleware.
+func newRepositoryWithClient(registryClient client.Interface, quotaClient kclient.ResourceQuotasNamespacer, ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
 	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
 	if len(registryAddr) == 0 {
 		return nil, errors.New("DOCKER_REGISTRY_URL is required")
@@ -89,11 +100,6 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 		}
 	}
 
-	kClient, osClient, err := NewRegistryOpenShiftClients()
-	if err != nil {
-		return nil, err
-	}
-
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
 	if len(nameParts) != 2 {
 		return nil, fmt.Errorf("invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
@@ -102,14 +108,14 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 	return &repository{
 		Repository: repo,
 
-		ctx:                ctx,
-		registryKubeClient: kClient,
-		registryOSClient:   osClient,
-		registryAddr:       registryAddr,
-		namespace:          nameParts[0],
-		name:               nameParts[1],
-		pullthrough:        pullthrough,
-		cachedLayers:       cachedLayers,
+		ctx:            ctx,
+		quotaClient:    quotaClient,
+		registryClient: registryClient,
+		registryAddr:   registryAddr,
+		namespace:      nameParts[0],
+		name:           nameParts[1],
+		pullthrough:    pullthrough,
+		cachedLayers:   cachedLayers,
 	}, nil
 }
 
@@ -346,7 +352,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		return err
 	}
 
-	if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
@@ -383,7 +389,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		}
 
 		// try to create the ISM again
-		if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}
@@ -453,7 +459,7 @@ func (r *repository) Delete(dgst digest.Digest) error {
 // importContext loads secrets for this image stream and returns a context for getting distribution
 // clients to remote repositories.
 func (r *repository) importContext() importer.RepositoryRetriever {
-	secrets, err := r.registryOSClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
+	secrets, err := r.registryClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("Error getting secrets for repository %q: %v", r.Name(), err)
 		secrets = &kapi.SecretList{}
@@ -464,24 +470,24 @@ func (r *repository) importContext() importer.RepositoryRetriever {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
-	return r.registryOSClient.ImageStreams(r.namespace).Get(r.name)
+	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
-	return r.registryOSClient.Images().Get(dgst.String())
+	return r.registryClient.Images().Get(dgst.String())
 }
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(tag string) (*imageapi.ImageStreamTag, error) {
-	return r.registryOSClient.ImageStreamTags(r.namespace).Get(r.name, tag)
+	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the image belongs to the image stream.
 func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // rememberLayers caches the provided layers

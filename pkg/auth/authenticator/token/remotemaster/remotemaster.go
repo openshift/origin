@@ -15,7 +15,7 @@ type Authenticator struct {
 // NewAuthenticator authenticates by fetching users/~ using the provided token as a bearer token
 func NewAuthenticator(anonymousConfig kclient.Config) (*Authenticator, error) {
 	// Ensure credentials are removed from the anonymous config
-	anonymousConfig = clientcmd.AnonymousClientConfig(anonymousConfig)
+	anonymousConfig = clientcmd.AnonymousClientConfig(&anonymousConfig)
 
 	return &Authenticator{
 		anonymousConfig: anonymousConfig,
