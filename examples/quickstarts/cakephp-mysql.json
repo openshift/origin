@@ -5,7 +5,7 @@
     "name": "cakephp-mysql-example",
     "annotations": {
       "description": "An example CakePHP application with a MySQL database",
-      "tags": "instant-app,php,cakephp,mysql",
+      "tags": "quickstart,php,cakephp,mysql",
       "iconClass": "icon-php"
     }
   },
@@ -209,7 +209,12 @@
                     "name": "OPCACHE_REVALIDATE_FREQ",
                     "value": "${OPCACHE_REVALIDATE_FREQ}"
                   }
-                ]
+                ],
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_LIMIT}"
+		    }
+                }
               }
             ]
           }
@@ -304,7 +309,12 @@
                     "name": "MYSQL_DATABASE",
                     "value": "${DATABASE_NAME}"
                   }
-                ]
+                ],
+                "resources": {
+		    "limits": {
+			"memory": "${MEMORY_MYSQL_LIMIT}"
+		    }
+                }
               }
             ]
           }
@@ -314,76 +324,102 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the CakePHP container can use",
+      "value": "128Mi"
+    },
+    {
+      "name": "MEMORY_MYSQL_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the MySQL container can use",
+      "value": "512Mi"
+    },
+    {
       "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Source repository URL",
       "description": "The URL of the repository with your application source code",
       "value": "https://github.com/openshift/cakephp-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Source repository reference",
       "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
     },
     {
       "name": "CONTEXT_DIR",
+      "displayName": "Context directory",
       "description": "Set this to the relative path to your project if it is not in the root of your repository"
     },
     {
       "name": "APPLICATION_DOMAIN",
+      "displayName": "Application domain",
       "description": "The exposed hostname that will route to the CakePHP service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub webhook secret",
       "description": "A secret string used to configure the GitHub webhook",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database service name",
       "description": "Database service name",
       "value": "mysql"
     },
     {
       "name": "DATABASE_ENGINE",
+      "displayName": "Database engine",
       "description": "Database engine: postgresql, mysql or sqlite (default)",
       "value": "mysql"
     },
     {
       "name": "DATABASE_NAME",
+      "displayName": "Database name",
       "description": "Database name",
       "value": "default"
     },
     {
       "name": "DATABASE_USER",
+      "displayName": "Database user",
       "description": "Database user name",
       "value": "cakephp"
     },
     {
       "name": "DATABASE_PASSWORD",
+      "displayName": "Database password",
       "description": "Database user password",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"
     },
     {
       "name": "CAKEPHP_SECRET_TOKEN",
+      "displayName": "CakePHP secret token",
       "description": "Set this to a long random string",
       "generate": "expression",
       "from": "[\\w]{50}"
     },
     {
       "name": "CAKEPHP_SECURITY_SALT",
+      "displayName": "CakePHP security salt",
       "description": "Security salt for session hash",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "CAKEPHP_SECURITY_CIPHER_SEED",
+      "displayName": "CakePHP security cipher seed",
       "description": "Security cipher seed for session hash",
       "generate": "expression",
       "from": "[0-9]{30}"
     },
     {
       "name": "OPCACHE_REVALIDATE_FREQ",
-      "description": "The How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
+      "displayName": "OPcache revalidation frequency",
+      "description": "How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
       "value": "2"
     }
   ]
