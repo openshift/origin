@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -54,6 +53,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
 	cmd.Flag("protocol").Changed = false
+	cmd.Flag("port").Usage = "The port that the resource should serve on."
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
@@ -105,35 +105,18 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			if len(kcmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
-			return validateFlags(cmd, generator)
 		case "":
 			// Default exposing services as a route
 			generator = "route/v1"
 			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "route/v1":
-			// We need to validate services exposed as routes
-			if err := validateFlags(cmd, generator); err != nil {
-				return err
-			}
-			svc, err := kc.Services(info.Namespace).Get(info.Name)
+			route, err := unsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"))
 			if err != nil {
 				return err
 			}
-
-			supportsTCP := false
-			for _, port := range svc.Spec.Ports {
-				if port.Protocol == kapi.ProtocolTCP {
-					if len(port.Name) > 0 {
-						// Pass service port name as the route target port, if it is named
-						cmd.Flags().Set("target-port", port.Name)
-					}
-					supportsTCP = true
-					break
-				}
-			}
-			if !supportsTCP {
-				return fmt.Errorf("service %q doesn't support TCP", info.Name)
+			if route.Spec.Port != nil {
+				cmd.Flags().Set("port", route.Spec.Port.TargetPort.String())
 			}
 		}
 
@@ -151,71 +134,8 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			if len(kcmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
-			return validateFlags(cmd, generator)
 		}
 	}
 
 	return nil
-}
-
-// validateFlags filters out flags that are not supposed to be used
-// when exposing a resource; depends on the provided generator
-func validateFlags(cmd *cobra.Command, generator string) error {
-	invalidFlags := []string{}
-
-	switch generator {
-	case "service/v1", "service/v2":
-		if len(kcmdutil.GetFlagString(cmd, "hostname")) != 0 {
-			invalidFlags = append(invalidFlags, "--hostname")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "path")) != 0 {
-			invalidFlags = append(invalidFlags, "--path")
-		}
-	case "route/v1":
-		if len(kcmdutil.GetFlagString(cmd, "protocol")) != 0 {
-			invalidFlags = append(invalidFlags, "--protocol")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "type")) != 0 {
-			invalidFlags = append(invalidFlags, "--type")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "selector")) != 0 {
-			invalidFlags = append(invalidFlags, "--selector")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "container-port")) != 0 {
-			invalidFlags = append(invalidFlags, "--container-port")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "target-port")) != 0 {
-			invalidFlags = append(invalidFlags, "--target-port")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "external-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--external-ip")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "port")) != 0 {
-			invalidFlags = append(invalidFlags, "--port")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "load-balancer-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--load-balancer-ip")
-		}
-		if len(kcmdutil.GetFlagString(cmd, "session-affinity")) != 0 {
-			invalidFlags = append(invalidFlags, "--session-affinity")
-		}
-		if kcmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
-			invalidFlags = append(invalidFlags, "--create-external-load-balancer")
-		}
-	}
-
-	msg := ""
-	switch len(invalidFlags) {
-	case 0:
-		return nil
-
-	case 1:
-		msg = invalidFlags[0]
-
-	default:
-		commaSeparated, last := invalidFlags[:len(invalidFlags)-1], invalidFlags[len(invalidFlags)-1]
-		msg = fmt.Sprintf("%s or %s", strings.Join(commaSeparated, ", "), last)
-	}
-
-	return fmt.Errorf("cannot use %s when generating a %s", msg, strings.Split(generator, "/")[0])
 }
