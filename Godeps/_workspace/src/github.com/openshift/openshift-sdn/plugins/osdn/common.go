@@ -226,6 +226,10 @@ func (oc *OvsController) StartNode(mtu uint) error {
 	return nil
 }
 
+func (oc *OvsController) GetLocalPods(namespace string) ([]api.Pod, error) {
+	return oc.Registry.GetRunningPods(oc.hostName, namespace)
+}
+
 func (oc *OvsController) markPodNetworkReady() {
 	close(oc.podNetworkReady)
 }

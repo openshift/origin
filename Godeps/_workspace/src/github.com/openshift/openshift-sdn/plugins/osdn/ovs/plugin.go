@@ -9,8 +9,9 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
-	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
@@ -58,13 +59,27 @@ func (plugin *ovsPlugin) PluginStartMaster(clusterNetworkCIDR string, clusterBit
 }
 
 func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
-	if err := plugin.SubnetStartNode(mtu); err != nil {
+	networkChanged, err := plugin.SubnetStartNode(mtu)
+	if err != nil {
 		return err
 	}
 
 	if plugin.multitenant {
 		if err := plugin.VnidStartNode(); err != nil {
 			return err
+		}
+	}
+
+	if networkChanged {
+		pods, err := plugin.GetLocalPods(kapi.NamespaceAll)
+		if err != nil {
+			return err
+		}
+		for _, p := range pods {
+			err = plugin.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(p.ContainerID))
+			if err != nil {
+				glog.Warningf("Could not update pod %q (%s): %s", p.Name, p.ContainerID, err)
+			}
 		}
 	}
 
