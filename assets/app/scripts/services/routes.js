@@ -112,6 +112,10 @@ angular.module("openshiftConsole")
       getRouteWarnings: function(route, service) {
         var warnings = [];
 
+        if (!route) {
+          return warnings;
+        }
+
         if (route.spec.to.kind === 'Service') {
           addRouteTargetWarnings(route, service, warnings);
         }
