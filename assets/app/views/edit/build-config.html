@@ -16,7 +16,7 @@
               Edit Build Config {{buildConfig.metadata.name}} - <small>{{strategyType}} Build Strategy</small>
             </h1>
             <fieldset ng-disabled="disableInputs">
-              <form class="edit-form" name="form" novalidate>
+              <form class="edit-form" name="form" novalidate ng-submit="save()">
                 <div class="resource-details">
                   <div class="row">
                     <div class="col-lg-6">
@@ -506,18 +506,19 @@
                       </div>
                     </div>
                   </div>
-                    <div class="buttons gutter-top-bottom">
-                      <button class="btn btn-primary btn-lg"
-                          ng-click="save()"
-                          ng-disabled="form.$invalid || form.$pristine || disableInputs">
-                          Save
-                      </button>
-                      <a class="btn btn-default btn-lg"
-                        href="{{buildConfig.metadata.name | navigateResourceURL : 'BuildConfig' : projectName}}">
-                        Cancel
-                      </a>
-                    </div>
+                  <div class="buttons gutter-top-bottom">
+                    <button
+                      type="submit"
+                      class="btn btn-primary btn-lg"
+                        ng-disabled="form.$invalid || form.$pristine || disableInputs">
+                        Save
+                    </button>
+                    <a class="btn btn-default btn-lg"
+                      href="{{buildConfig.metadata.name | navigateResourceURL : 'BuildConfig' : projectName}}">
+                      Cancel
+                    </a>
                   </div>
+                </div>
               </form>
             </fieldset>
           </div>

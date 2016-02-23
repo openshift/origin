@@ -25,7 +25,7 @@
                       <fieldset ng-disabled="disableInputs">
                         <osc-image-summary resource="image" name="imageName"></osc-image-summary>
                         <div class="clearfix visible-xs-block"></div>
-                        <form class="" ng-show="imageStream" novalidate name="form">
+                        <form class="" ng-show="imageStream" novalidate name="form" ng-submit="createApp()">
                           <div style="margin-bottom: 15px;">
                             <div class="form-group">
                              <label for="appname" class="required">Name</label>
@@ -309,8 +309,8 @@
                           </div>
                           <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
                             <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
-                            <button class="btn btn-primary btn-lg"
-                                ng-click="createApp()"
+                            <button type="submit"
+                                class="btn btn-primary btn-lg"
                                 ng-disabled="form.$invalid || nameTaken || cpuProblems.length || memoryProblems.length || disableInputs"
                                 >Create</button>
                             <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
