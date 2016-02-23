@@ -301,10 +301,11 @@ os::cmd::expect_success "oc exec -n default -tip ${router_pod} ls"
 
 
 echo "[INFO] Validating routed app response..."
-# use the docker bridge ip address until there is a good way to get the auto-selected address from master
-# this address is considered stable
-# used as a resolve IP to test routing
-CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
+# 172.17.42.1 is no longer the default ip of the docker bridge as of
+# docker 1.9.  Since the router is using hostNetwork=true, the router
+# will be reachable via the ip of its pod.
+router_ip=$(oc get pod "${router_pod}" --template='{{.status.podIP}}')
+CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-${router_ip}}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 # Validate that oc create route edge will create an edge terminated route.
 oc delete route/route-edge -n test
