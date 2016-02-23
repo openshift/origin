@@ -54,7 +54,7 @@ func newBuilderConfigFromEnvironment() (*builderConfig, error) {
 	if len(masterVersion) != 0 && masterVersion != thisVersion {
 		glog.Warningf("Master version %q does not match Builder image version %q", masterVersion, thisVersion)
 	} else {
-		glog.V(2).Infof("Master version %q, Builder versions %q", masterVersion, thisVersion)
+		glog.V(2).Infof("Master version %q, Builder version %q", masterVersion, thisVersion)
 	}
 
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
