@@ -11,13 +11,19 @@ import (
 )
 
 type Config struct {
-	// UserNameHeaders lists the headers to check (in order, case-insensitively) for a username. The first header with a value wins.
-	UserNameHeaders []string
+	// IDHeaders lists the headers to check (in order, case-insensitively) for an identity. The first header with a value wins.
+	IDHeaders []string
+	// NameHeaders lists the headers to check (in order, case-insensitively) for a display name. The first header with a value wins.
+	NameHeaders []string
+	// PreferredUsernameHeaders lists the headers to check (in order, case-insensitively) for a preferred username. The first header with a value wins. If empty, the ID is used
+	PreferredUsernameHeaders []string
+	// EmailHeaders lists the headers to check (in order, case-insensitively) for an email address. The first header with a value wins.
+	EmailHeaders []string
 }
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		UserNameHeaders: []string{"X-Remote-User"},
+		IDHeaders: []string{"X-Remote-User", "Remote-User"},
 	}
 }
 
@@ -32,22 +38,23 @@ func NewAuthenticator(providerName string, config *Config, mapper authapi.UserId
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	username := ""
-	for _, header := range a.config.UserNameHeaders {
-		header = strings.TrimSpace(header)
-		if len(header) == 0 {
-			continue
-		}
-		username = req.Header.Get(header)
-		if len(username) != 0 {
-			break
-		}
-	}
-	if len(username) == 0 {
+	id := headerValue(req.Header, a.config.IDHeaders)
+	if len(id) == 0 {
 		return nil, false, nil
 	}
 
-	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, id)
+
+	if email := headerValue(req.Header, a.config.EmailHeaders); len(email) > 0 {
+		identity.Extra[authapi.IdentityEmailKey] = email
+	}
+	if name := headerValue(req.Header, a.config.NameHeaders); len(name) > 0 {
+		identity.Extra[authapi.IdentityDisplayNameKey] = name
+	}
+	if preferredUsername := headerValue(req.Header, a.config.PreferredUsernameHeaders); len(preferredUsername) > 0 {
+		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
+	}
+
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
 		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
@@ -56,4 +63,18 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	return user, true, nil
+}
+
+func headerValue(h http.Header, headerNames []string) string {
+	for _, headerName := range headerNames {
+		headerName = strings.TrimSpace(headerName)
+		if len(headerName) == 0 {
+			continue
+		}
+		headerValue := h.Get(headerName)
+		if len(headerValue) > 0 {
+			return headerValue
+		}
+	}
+	return ""
 }

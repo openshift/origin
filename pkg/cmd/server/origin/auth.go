@@ -615,7 +615,10 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 				var authRequestHandler authenticator.Request
 
 				authRequestConfig := &headerrequest.Config{
-					UserNameHeaders: provider.Headers,
+					IDHeaders:                provider.Headers,
+					NameHeaders:              provider.NameHeaders,
+					EmailHeaders:             provider.EmailHeaders,
+					PreferredUsernameHeaders: provider.PreferredUsernameHeaders,
 				}
 				authRequestHandler = headerrequest.NewAuthenticator(identityProvider.Name, authRequestConfig, identityMapper)
 

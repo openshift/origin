@@ -675,6 +675,12 @@ type RequestHeaderIdentityProvider struct {
 	ClientCA string
 	// Headers is the set of headers to check for identity information
 	Headers []string
+	// PreferredUsernameHeaders is the set of headers to check for the preferred username
+	PreferredUsernameHeaders []string
+	// NameHeaders is the set of headers to check for the display name
+	NameHeaders []string
+	// EmailHeaders is the set of headers to check for the email address
+	EmailHeaders []string
 }
 
 type GitHubIdentityProvider struct {
