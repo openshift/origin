@@ -5,6 +5,8 @@ import (
 
 	"github.com/gonum/graph"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -24,6 +26,9 @@ const (
 	// PathBasedPassthroughErr is returned when a path based route is passthrough
 	// terminated.
 	PathBasedPassthroughErr = "PathBasedPassthrough"
+	// MissingTLSTerminationTypeErr is returned when a route with a tls config doesn't
+	// specify a tls termination type.
+	RouteNotAdmittedTypeErr = "RouteNotAdmitted"
 )
 
 // FindMissingPortMapping checks all routes and reports those that don't specify a port while
@@ -85,6 +90,31 @@ func FindMissingTLSTerminationType(g osgraph.Graph, f osgraph.Namer) []osgraph.M
 				Key:        MissingTLSTerminationTypeErr,
 				Message:    fmt.Sprintf("%s has a TLS configuration but no termination type specified.", f.ResourceName(routeNode)),
 				Suggestion: osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"tls\":{\"termination\":\"<type>\"}}}' (replace <type> with a valid termination type: edge, passthrough, reencrypt)", f.ResourceName(routeNode)))})
+		}
+	}
+
+	return markers
+}
+
+// FindRouteAdmissionFailures creates markers for any routes that were rejected by their routers
+func FindRouteAdmissionFailures(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
+		routeNode := uncastRouteNode.(*routegraph.RouteNode)
+	Route:
+		for _, ingress := range routeNode.Status.Ingress {
+			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+			case kapi.ConditionFalse:
+				markers = append(markers, osgraph.Marker{
+					Node: routeNode,
+
+					Severity: osgraph.ErrorSeverity,
+					Key:      RouteNotAdmittedTypeErr,
+					Message:  fmt.Sprintf("%s was not accepted by router %q: %s (%s)", f.ResourceName(routeNode), ingress.RouterName, condition.Message, condition.Reason),
+				})
+				break Route
+			}
 		}
 	}
 

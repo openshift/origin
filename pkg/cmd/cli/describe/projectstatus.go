@@ -164,8 +164,14 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			}
 			local := namespacedFormatter{currentNamespace: service.Service.Namespace}
 
+			var exposes []string
+			for _, routeNode := range service.ExposingRoutes {
+				exposes = append(exposes, describeRouteInServiceGroup(local, routeNode)...)
+			}
+			sort.Sort(exposedRoutes(exposes))
+
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeServiceInServiceGroup(f, service)...)
+			printLines(out, "", 0, describeServiceInServiceGroup(f, service, exposes...)...)
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
 				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline)...)
@@ -190,10 +196,6 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 					}
 				}
 				printLines(out, indent, 1, describePodInServiceGroup(local, podNode)...)
-			}
-
-			for _, routeNode := range service.ExposingRoutes {
-				printLines(out, indent, 1, describeRouteInServiceGroup(local, routeNode)...)
 			}
 		}
 
@@ -335,6 +337,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat string) []os
 		routeanalysis.FindMissingPortMapping,
 		routeanalysis.FindMissingTLSTerminationType,
 		routeanalysis.FindPathBasedPassthroughRoutes,
+		routeanalysis.FindRouteAdmissionFailures,
 		// We disable this feature by default and we don't have a capability detection for this sort of thing.  Disable this check for now.
 		// kubeanalysis.FindUnmountableSecrets,
 	}
@@ -489,11 +492,133 @@ func describePodInServiceGroup(f formatter, podNode *kubegraph.PodNode) []string
 	return lines
 }
 
-func describeRouteInServiceGroup(f formatter, routeNode *routegraph.RouteNode) []string {
-	if routeNode.Spec.Port != nil && len(routeNode.Spec.Port.TargetPort.String()) > 0 {
-		return []string{fmt.Sprintf("exposed by %s on pod port %s", f.ResourceName(routeNode), routeNode.Spec.Port.TargetPort.String())}
+// exposedRoutes orders strings by their leading prefix (https:// -> http:// other prefixes), then by
+// the shortest distance up to the first space (indicating a break), then alphabetically:
+//
+//   https://test.com
+//   https://www.test.com
+//   http://t.com
+//   other string
+//
+type exposedRoutes []string
+
+func (e exposedRoutes) Len() int      { return len(e) }
+func (e exposedRoutes) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
+func (e exposedRoutes) Less(i, j int) bool {
+	a, b := e[i], e[j]
+	prefixA, prefixB := strings.HasPrefix(a, "https://"), strings.HasPrefix(b, "https://")
+	switch {
+	case prefixA && !prefixB:
+		return true
+	case !prefixA && prefixB:
+		return false
+	case !prefixA && !prefixB:
+		prefixA, prefixB = strings.HasPrefix(a, "http://"), strings.HasPrefix(b, "http://")
+		switch {
+		case prefixA && !prefixB:
+			return true
+		case !prefixA && prefixB:
+			return false
+		case !prefixA && !prefixB:
+			return a < b
+		default:
+			a, b = a[7:], b[7:]
+		}
+	default:
+		a, b = a[8:], b[8:]
 	}
-	return []string{fmt.Sprintf("exposed by %s", f.ResourceName(routeNode))}
+	lA, lB := strings.Index(a, " "), strings.Index(b, " ")
+	if lA == -1 {
+		lA = len(a)
+	}
+	if lB == -1 {
+		lB = len(b)
+	}
+	switch {
+	case lA < lB:
+		return true
+	case lA > lB:
+		return false
+	default:
+		return a < b
+	}
+}
+
+func extractRouteInfo(route *routeapi.Route) (requested bool, other []string, errors []string) {
+	reasons := sets.NewString()
+	for _, ingress := range route.Status.Ingress {
+		exact := route.Spec.Host == ingress.Host
+		switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		case kapi.ConditionFalse:
+			reasons.Insert(condition.Reason)
+		default:
+			if exact {
+				requested = true
+			} else {
+				other = append(other, ingress.Host)
+			}
+		}
+	}
+	return requested, other, reasons.List()
+}
+
+func describeRouteExposed(host string, route *routeapi.Route, errors bool) string {
+	var trailer string
+	if errors {
+		trailer = " (!)"
+	}
+	var prefix string
+	switch {
+	case route.Spec.TLS == nil:
+		prefix = fmt.Sprintf("http://%s", host)
+	case route.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough:
+		prefix = fmt.Sprintf("https://%s (passthrough)", host)
+	case route.Spec.TLS.Termination == routeapi.TLSTerminationReencrypt:
+		prefix = fmt.Sprintf("https://%s (reencrypt)", host)
+	case route.Spec.TLS.Termination != routeapi.TLSTerminationEdge:
+		// future proof against other types of TLS termination being added
+		prefix = fmt.Sprintf("https://%s", host)
+	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyRedirect:
+		prefix = fmt.Sprintf("https://%s (redirects)", host)
+	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow:
+		prefix = fmt.Sprintf("https://%s (and http)", host)
+	default:
+		prefix = fmt.Sprintf("https://%s", host)
+	}
+
+	if route.Spec.Port != nil && len(route.Spec.Port.TargetPort.String()) > 0 {
+		return fmt.Sprintf("%s to pod port %s%s", prefix, route.Spec.Port.TargetPort.String(), trailer)
+	}
+	return fmt.Sprintf("%s%s", prefix, trailer)
+}
+
+func describeRouteInServiceGroup(f formatter, routeNode *routegraph.RouteNode) []string {
+	// markers should cover printing information about admission failure
+	requested, other, errors := extractRouteInfo(routeNode.Route)
+	var lines []string
+	if requested {
+		lines = append(lines, describeRouteExposed(routeNode.Spec.Host, routeNode.Route, len(errors) > 0))
+	}
+	for _, s := range other {
+		lines = append(lines, describeRouteExposed(s, routeNode.Route, len(errors) > 0))
+	}
+	if len(lines) == 0 {
+		switch {
+		case len(errors) >= 1:
+			// router rejected the output
+			lines = append(lines, fmt.Sprintf("%s not accepted: %s", f.ResourceName(routeNode), errors[0]))
+		case len(routeNode.Spec.Host) == 0:
+			// no errors or output, likely no router running and no default domain
+			lines = append(lines, fmt.Sprintf("%s has no host set", f.ResourceName(routeNode)))
+		case len(routeNode.Status.Ingress) == 0:
+			// host set, but no ingress, an older legacy router
+			lines = append(lines, describeRouteExposed(routeNode.Spec.Host, routeNode.Route, false))
+		default:
+			// multiple conditions but no host exposed, use the generic legacy output
+			lines = append(lines, fmt.Sprintf("exposed as %s by %s", routeNode.Spec.Host, f.ResourceName(routeNode)))
+		}
+	}
+	return lines
 }
 
 func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
@@ -848,11 +973,17 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 	}
 }
 
-func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup) []string {
+func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, exposed ...string) []string {
 	spec := svc.Service.Spec
 	ip := spec.ClusterIP
 	port := describeServicePorts(spec)
 	switch {
+	case len(exposed) > 1:
+		return append([]string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}, exposed[1:]...)
+	case len(exposed) == 1:
+		return []string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}
+	case spec.Type == kapi.ServiceTypeNodePort:
+		return []string{fmt.Sprintf("%s (all nodes)%s", f.ResourceName(svc.Service), port)}
 	case ip == "None":
 		return []string{fmt.Sprintf("%s (headless)%s", f.ResourceName(svc.Service), port)}
 	case len(ip) == 0:
@@ -862,28 +993,41 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup) []st
 	}
 }
 
+func portOrNodePort(spec kapi.ServiceSpec, port kapi.ServicePort) string {
+	switch {
+	case spec.Type != kapi.ServiceTypeNodePort:
+		return strconv.Itoa(port.Port)
+	case port.NodePort == 0:
+		return "<initializing>"
+	default:
+		return strconv.Itoa(port.NodePort)
+	}
+}
+
 func describeServicePorts(spec kapi.ServiceSpec) string {
 	switch len(spec.Ports) {
 	case 0:
 		return " no ports"
 
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == int(spec.Ports[0].TargetPort.IntVal) {
-			return fmt.Sprintf(":%d", spec.Ports[0].Port)
+		port := portOrNodePort(spec, spec.Ports[0])
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || port == spec.Ports[0].TargetPort.String() {
+			return fmt.Sprintf(":%s", port)
 		}
-		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
+		return fmt.Sprintf(":%s -> %s", port, spec.Ports[0].TargetPort.String())
 
 	default:
 		pairs := []string{}
 		for _, port := range spec.Ports {
+			externalPort := portOrNodePort(spec, port)
 			if port.TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone {
-				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
+				pairs = append(pairs, externalPort)
 				continue
 			}
 			if port.Port == int(port.TargetPort.IntVal) {
 				pairs = append(pairs, port.TargetPort.String())
 			} else {
-				pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
+				pairs = append(pairs, fmt.Sprintf("%s->%s", externalPort, port.TargetPort.String()))
 			}
 		}
 		return " ports " + strings.Join(pairs, ", ")
