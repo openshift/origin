@@ -257,6 +257,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.cpus        = vagrant_openshift_config['cpus'].to_i
       # run on libvirt somewhere other than default:
       libvirt.uri         = ENV["VAGRANT_LIBVIRT_URI"] if ENV["VAGRANT_LIBVIRT_URI"]
+      libvirt.storage :file, :type => 'qcow2', :size => '5G'
     end if vagrant_openshift_config['libvirt']
 
     # ###################################

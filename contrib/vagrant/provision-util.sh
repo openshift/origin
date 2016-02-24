@@ -163,6 +163,18 @@ os::provision::set-bash-env() {
   fi
 }
 
+os::provision::libvirt-vg-setup() {
+  # Work around docker storage volume missing after vagrant-openshift switch
+  # to LVM storage https://github.com/openshift/vagrant-openshift/issues/403
+  if dmidecode | grep -qi "Manufacturer: QEMU" &> /dev/null; then
+    pvcreate /dev/vda
+    vgcreate docker-vg /dev/vda
+    lvcreate docker-vg -L 4.2G -T -n docker-data
+    lvcreate docker-vg -L 780M -T -n docker-metadata
+    rm -rf /var/lib/docker
+  fi
+}
+
 os::provision::get-network-plugin() {
   local plugin=$1
   local dind_management_script=${2:-false}
@@ -193,6 +205,8 @@ os::provision::base-provision() {
 
   os::provision::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES \
     NODE_IPS
+
+  os::provision::libvirt-vg-setup
 
   os::provision::install-pkgs
 
