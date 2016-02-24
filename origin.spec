@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 21fd31bf1d8cbb32ff3c5ebbfcae774abf32d95d
+%global commit 183a9db5791dc9de3b52ebaa7c24950d1df8fe38
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.904-78-g21fd31b -X github.com/openshift/origin/pkg/version.commitFromGit 21fd31b -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.905-81-g183a9db -X github.com/openshift/origin/pkg/version.commitFromGit 183a9db -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.905
+Version:        3.1.1.906
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,63 @@ fi
 
 
 %changelog
+* Wed Feb 24 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.906
+- Fix cli download link (#1311396) (tdawson@redhat.com)
+- Fix bindata diff (spadgett@redhat.com)
+- Add `oc debug` to make it easy to launch a test pod (ccoleman@redhat.com)
+- Hide hidden flags in help output (ccoleman@redhat.com)
+- React to changes in upstream term (ccoleman@redhat.com)
+- UPSTREAM: 21624: improve terminal reuse and attach (ccoleman@redhat.com)
+- Add 'oc set probe' for setting readiness and liveness (ccoleman@redhat.com)
+- Remove npm shrinkwrap by bumping html-min deps (jforrest@redhat.com)
+- Fix router e2e validation for docker 1.9 (marun@redhat.com)
+- Cache projects outside of projectHeader link fn (admin@benjaminapetersen.me)
+- Use $scope.$emit to notify projectHeader when project settings change
+  (admin@benjaminapetersen.me)
+- fix builder version typo (bparees@redhat.com)
+- Update swagger description (jliggitt@redhat.com)
+- add hostnetwork scc (pweil@redhat.com)
+- UPSTREAM: 21680: Restore service port validation compatibility with 1.0/1.1
+  (jliggitt@redhat.com)
+- Read extended user attributes from auth proxy (jliggitt@redhat.com)
+- bump(github.com/openshift/openshift-sdn):
+  08a79d5adc8af21b14adcc0b9650df2d5fccf2f0 (danw@redhat.com)
+- Display better route info in status (ccoleman@redhat.com)
+- Ensure log run vars are set in GET and WATCH on build, pod & deployment
+  (admin@benjaminapetersen.me)
+- Contextualize errors from GetCGroupLimits (rhcarvalho@gmail.com)
+- Fix extended tests and up default pod limit. (ccoleman@redhat.com)
+- configchange: abort update once an image change is detected
+  (mkargaki@redhat.com)
+- UPSTREAM: 21671: kubectl: add container ports in pod description
+  (mkargaki@redhat.com)
+- Js error on overview for route warnings (jforrest@redhat.com)
+- UPSTREAM: 21706: Ensure created service account tokens are available to the
+  token controller (jliggitt@redhat.com)
+- use imageid from trigger for imagesource inputs, instead of resolving them
+  (bparees@redhat.com)
+- increase binary build timeout to 5 minutes (bparees@redhat.com)
+- Add status icon for ContainerCreating reason (spadgett@redhat.com)
+- integration test for newapp dockerimagelookup (bparees@redhat.com)
+- pod diagnostics: fix panic in bz 1302649, prettify (lmeyer@redhat.com)
+- Fix log follow link on initial page load, add loading ellipsis while
+  logViewer is pending (admin@benjaminapetersen.me)
+- Don't show "Deployed" for plain RCs in web console (spadgett@redhat.com)
+- Run post build hook with `/bin/sh -ic` (rhcarvalho@gmail.com)
+- origin-pod rpm does not require the base rpm (sdodson@redhat.com)
+- Mobile table headers missing on browse image page (jforrest@redhat.com)
+- Suppress escape sequences at end of hack/test-assets.sh (ccoleman@redhat.com)
+- Replace /bin/bash in oc rsh with /bin/sh (mfojtik@redhat.com)
+- UPSTREAM: 19868: Fixed persistent volume claim controllers processing an old
+  claim (jsafrane@redhat.com)
+- Display additional tags after import (ccoleman@redhat.com)
+- UPSTREAM: 21268: Delete provisioned volumes without claim.
+  (jsafrane@redhat.com)
+- UPSTREAM: 21273: kubectl: scale down based on ready during rolling updates
+  (mkargaki@redhat.com)
+- UPSTREAM: 20213: Fixed persistent volume claim controllers processing an old
+  volume (jsafrane@redhat.com)
+
 * Mon Feb 22 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.905
 - Display better information when running 'oc' (ccoleman@redhat.com)
 - Update completions to be cross platform (ccoleman@redhat.com)
