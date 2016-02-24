@@ -429,6 +429,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		return nil
 	}
 
+	// TODO: replace with a strategic merge patch
 	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion.String(), kapi.Codecs.LegacyCodec(v.OutputVersion))
 	if err != nil {
 		return err

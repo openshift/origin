@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -429,10 +430,27 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		if sourceImage.PullSecret == nil {
 			sourceImage.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &sourceImage.From, bc.Namespace)
 		}
-		sourceImageSpec, err := g.resolveImageStreamReference(ctx, sourceImage.From, bc.Namespace)
-		if err != nil {
-			return nil, err
+
+		var sourceImageSpec string
+		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
+		// use the imageid from the trigger rather than resolving it.
+		if strategyFrom := buildutil.GetImageStreamForStrategy(bc.Spec.Strategy); reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
+			strategyImageChangeTrigger != nil {
+			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
+		} else {
+			refImageChangeTrigger := getImageChangeTriggerForRef(bc, &sourceImage.From)
+			// if there is no trigger associated with this imagesource, resolve the imagesource reference now.
+			// otherwise use the imageid from the imagesource trigger.
+			if refImageChangeTrigger == nil {
+				sourceImageSpec, err = g.resolveImageStreamReference(ctx, sourceImage.From, bc.Namespace)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				sourceImageSpec = refImageChangeTrigger.LastTriggeredImageID
+			}
 		}
+
 		sourceImage.From.Kind = "DockerImage"
 		sourceImage.From.Name = sourceImageSpec
 		sourceImage.From.Namespace = ""
@@ -697,6 +715,21 @@ func getNextBuildNameFromBuild(build *buildapi.Build, buildConfig *buildapi.Buil
 func getStrategyImageChangeTrigger(bc *buildapi.BuildConfig) *buildapi.ImageChangeTrigger {
 	for _, trigger := range bc.Spec.Triggers {
 		if trigger.Type == buildapi.ImageChangeBuildTriggerType && trigger.ImageChange.From == nil {
+			return trigger.ImageChange
+		}
+	}
+	return nil
+}
+
+// getImageChangeTriggerForRef returns the ImageChangeTrigger that is triggered by a change to
+// the provided object reference, if any
+func getImageChangeTriggerForRef(bc *buildapi.BuildConfig, ref *kapi.ObjectReference) *buildapi.ImageChangeTrigger {
+	if ref == nil || ref.Kind != "ImageStreamTag" {
+		return nil
+	}
+	for _, trigger := range bc.Spec.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType && trigger.ImageChange.From != nil &&
+			trigger.ImageChange.From.Name == ref.Name && trigger.ImageChange.From.Namespace == ref.Namespace {
 			return trigger.ImageChange
 		}
 	}

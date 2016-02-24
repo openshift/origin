@@ -426,16 +426,6 @@ func printProjectList(projects *projectapi.ProjectList, w io.Writer, opts kctl.P
 	return nil
 }
 
-func ingressConditionStatus(ingress *routeapi.RouteIngress, t routeapi.RouteIngressConditionType) (kapi.ConditionStatus, routeapi.RouteIngressCondition) {
-	for _, condition := range ingress.Conditions {
-		if t != condition.Type {
-			continue
-		}
-		return condition.Status, condition
-	}
-	return kapi.ConditionUnknown, routeapi.RouteIngressCondition{}
-}
-
 func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) error {
 	tlsTerm := ""
 	insecurePolicy := ""
@@ -456,7 +446,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 		admitted, errors = 0, 0
 	)
 	for _, ingress := range route.Status.Ingress {
-		switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 		case kapi.ConditionTrue:
 			admitted++
 			if !matchedHost {

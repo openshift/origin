@@ -8,8 +8,8 @@ import (
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/term"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -74,7 +74,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	}
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
-	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/bash", "Path to shell command")
+	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/sh", "Path to the shell command")
 	cmd.Flags().StringVarP(&options.ContainerName, "container", "c", "", "Container name; defaults to first container")
 	cmd.Flags().SetInterspersed(false)
 	return cmd
@@ -90,7 +90,7 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	case o.DisableTTY:
 		o.TTY = false
 	default:
-		o.TTY = cmdutil.IsTerminal(o.In)
+		o.TTY = term.IsTerminal(o.In)
 	}
 
 	if len(args) < 1 {

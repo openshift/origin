@@ -42,6 +42,11 @@ angular.module('openshiftConsole')
 
     var watches = [];
 
+    var setLogVars = function(build) {
+      $scope.logOptions.container = $filter("annotation")(build, "buildPod");
+      $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
+    };
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
@@ -57,7 +62,7 @@ angular.module('openshiftConsole')
 
             $scope.loaded = true;
             $scope.build = build;
-            $scope.logOptions.container = $filter("annotation")(build, "buildPod");
+            setLogVars(build);
             var buildNumber = $filter("annotation")(build, "buildNumber");
             if (buildNumber) {
               $scope.breadcrumbs[2].title = "#" + buildNumber;
@@ -72,9 +77,7 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.build = build;
-              // TODO: if build.status.phase === 'Error' then we should not
-              // fetch the log, BUT ALSO indicate this somehow in UI
-              $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
+              setLogVars(build);
             }));
           },
           // failure

@@ -245,9 +245,12 @@ oauthConfig:
       apiVersion: v1
       challengeURL: ""
       clientCA: ""
+      emailHeaders: null
       headers: null
       kind: RequestHeaderIdentityProvider
       loginURL: ""
+      nameHeaders: null
+      preferredUsernameHeaders: null
   - challenge: false
     login: false
     mappingMethod: ""

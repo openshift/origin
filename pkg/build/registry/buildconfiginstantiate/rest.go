@@ -56,7 +56,7 @@ func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher,
 		Watcher:        watcher,
 		PodGetter:      &podGetter{podClient},
 		ConnectionInfo: info,
-		Timeout:        time.Minute,
+		Timeout:        5 * time.Minute,
 	}
 }
 

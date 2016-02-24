@@ -103,10 +103,15 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 	msg := new(dns.Msg)
 	msg.SetQuestion(registryHostname+".", dns.TypeA)
 	msg.RecursionDesired = false
-	if result, completed := dnsQueryWithTimeout(msg, resolvConf.Servers[0], 2); !completed {
+	result, completed := dnsQueryWithTimeout(msg, resolvConf.Servers[0], 2)
+	switch {
+	case !completed:
 		r.Error("DP1006", nil, fmt.Sprintf("DNS resolution for registry address %s timed out; this could indicate problems with DNS resolution or networking", registryHostname))
 		return
-	} else if len(result.in.Answer) == 0 {
+	case result.err != nil:
+		r.Error("DP1016", nil, fmt.Sprintf("DNS resolution for registry address %s returned an error; container DNS is likely incorrect. The error was: %v", registryHostname, result.err))
+		return
+	case result.in == nil, len(result.in.Answer) == 0:
 		r.Warn("DP1007", nil, fmt.Sprintf("DNS resolution for registry address %s returned no results; either the integrated registry is not deployed, or container DNS configuration is incorrect.", registryHostname))
 		return
 	}

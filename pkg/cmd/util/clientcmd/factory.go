@@ -418,9 +418,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				}
 			}
 			var oldestPod *api.Pod
-			for _, pod := range pods.Items {
+			for i := range pods.Items {
+				pod := &pods.Items[i]
 				if oldestPod == nil || pod.CreationTimestamp.Before(oldestPod.CreationTimestamp) {
-					oldestPod = &pod
+					oldestPod = pod
 				}
 			}
 			return oldestPod, nil
@@ -481,6 +482,55 @@ func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpe
 		return true, fn(&template.Spec)
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
+	}
+}
+
+// ApproximatePodTemplateForObject returns a pod template object for the provided source.
+// It may return both an error and a object. It attempt to return the best possible template
+// avaliable at the current time.
+func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error) {
+	switch t := object.(type) {
+	case *deployapi.DeploymentConfig:
+		fallback := t.Spec.Template
+
+		_, kc, err := w.Clients()
+		if err != nil {
+			return fallback, err
+		}
+
+		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+		deployment, err := kc.ReplicationControllers(t.Namespace).Get(latestDeploymentName)
+		if err != nil {
+			return fallback, err
+		}
+
+		fallback = deployment.Spec.Template
+
+		pods, err := kc.Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
+		if err != nil {
+			return fallback, err
+		}
+
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			if fallback == nil || pod.CreationTimestamp.Before(fallback.CreationTimestamp) {
+				fallback = &api.PodTemplateSpec{
+					ObjectMeta: pod.ObjectMeta,
+					Spec:       pod.Spec,
+				}
+			}
+		}
+		return fallback, nil
+
+	default:
+		pod, err := w.AttachablePodForObject(object)
+		if pod != nil {
+			return &api.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+				Spec:       pod.Spec,
+			}, err
+		}
+		return nil, err
 	}
 }
 

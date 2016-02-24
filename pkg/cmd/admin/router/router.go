@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -767,5 +768,6 @@ func validateServiceAccount(client *kclient.Client, ns string, serviceAccount st
 		}
 	}
 
-	return fmt.Errorf("service account %q is not allowed to access the host network on nodes, needs access via a security context constraint", serviceAccount)
+	errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 }

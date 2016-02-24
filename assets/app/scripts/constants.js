@@ -19,7 +19,7 @@ window.OPENSHIFT_CONSTANTS = {
   },
   // Maps links names to URL's where the CLI tools can be downloaded, may point directly to files or to external pages in a CDN, for example.
   CLI: {
-    "Latest Release":          "https://github.com/openshift/origin/releases/latest"
+    "Latest Release":          "https://access.redhat.com/downloads/content/290"
   }
 };
 

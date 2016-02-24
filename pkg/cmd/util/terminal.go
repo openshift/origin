@@ -9,6 +9,8 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
+
+	kterm "k8s.io/kubernetes/pkg/util/term"
 )
 
 // PromptForString takes an io.Reader and prompts for user input if it's a terminal, returning the result.
@@ -89,7 +91,7 @@ func PromptForStringWithDefault(r io.Reader, w io.Writer, def string, format str
 }
 
 func readInput(r io.Reader) string {
-	if IsTerminal(r) {
+	if kterm.IsTerminal(r) {
 		return readInputFromTerminal(r)
 	}
 	return readInputFromReader(r)
@@ -105,12 +107,6 @@ func readInputFromReader(r io.Reader) string {
 	var result string
 	fmt.Fscan(r, &result)
 	return result
-}
-
-// IsTerminal returns whether the passed io.Reader is a terminal or not
-func IsTerminal(r io.Reader) bool {
-	file, ok := r.(*os.File)
-	return ok && term.IsTerminal(file.Fd())
 }
 
 // IsTerminalWriter returns whether the passed io.Writer is a terminal or not

@@ -205,6 +205,9 @@ func flagsUsages(f *flag.FlagSet) string {
 	x := new(bytes.Buffer)
 
 	f.VisitAll(func(flag *flag.Flag) {
+		if flag.Hidden {
+			return
+		}
 		format := "--%s=%s: %s\n"
 
 		if flag.Value.Type() == "string" {

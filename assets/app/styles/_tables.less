@@ -53,6 +53,14 @@
   border-top: none; 
 }
 
+.table .pull-spec {
+  max-width: 700px;
+
+  @media (max-width: @screen-md-max) {
+    max-width: 315px;
+  }
+}
+
 @media (max-width: @screen-xs-max) {
   .table-mobile {
     border-top: 2px solid @table-border-color;

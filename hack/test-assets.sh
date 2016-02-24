@@ -16,6 +16,9 @@ pushd "${OS_ROOT}/assets" > /dev/null
   grunt build
 popd > /dev/null
 
+# Reset input
+tput sgr0
+
 pushd "${OS_ROOT}" > /dev/null
 
   # Put each component in its own go package for compilation performance
@@ -40,7 +43,7 @@ pushd "${OS_ROOT}" > /dev/null
         npm list
       fi
 
-    popd > /dev/null  
+    popd > /dev/null
 
     exit 1
   fi
