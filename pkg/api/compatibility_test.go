@@ -219,8 +219,8 @@ func testCompatibility(
 	}
 	for k, expectedValue := range serialized {
 		keys := strings.Split(k, ".")
-		if actualValue, ok, err := getJSONValue(generic, keys...); err != nil || !ok {
-			t.Errorf("Unexpected error for %s: %v", k, err)
+		if actualValue, ok, getErr := getJSONValue(generic, keys...); getErr != nil || !ok {
+			t.Errorf("Unexpected error for %s: %v", k, getErr)
 		} else if !reflect.DeepEqual(expectedValue, actualValue) {
 			t.Errorf("Expected %v, got %v", expectedValue, actualValue)
 		}
@@ -273,8 +273,8 @@ func getJSONValue(data map[string]interface{}, keys ...string) (interface{}, boo
 
 	// Get the indexed value if an index is specified
 	if index >= 0 {
-		valueSlice, ok := value.([]interface{})
-		if !ok {
+		valueSlice, valueOK := value.([]interface{})
+		if !valueOK {
 			return nil, false, fmt.Errorf("Key %s did not hold a slice", key)
 		}
 		if index >= len(valueSlice) {
@@ -287,8 +287,8 @@ func getJSONValue(data map[string]interface{}, keys ...string) (interface{}, boo
 		return value, true, nil
 	}
 
-	childData, ok := value.(map[string]interface{})
-	if !ok {
+	childData, childOK := value.(map[string]interface{})
+	if !childOK {
 		return nil, false, fmt.Errorf("Key %s did not hold a map", keys[0])
 	}
 	return getJSONValue(childData, keys[1:]...)

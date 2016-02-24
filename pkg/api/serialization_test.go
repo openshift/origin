@@ -514,8 +514,8 @@ func TestTypes(t *testing.T) {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
 			}
-			if _, err := meta.TypeAccessor(item); err != nil {
-				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
+			if _, typeError := meta.TypeAccessor(item); typeError != nil {
+				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, typeError)
 			}
 			seed := rand.Int63()
 
