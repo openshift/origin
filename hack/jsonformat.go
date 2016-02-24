@@ -13,8 +13,8 @@ func main() {
 		log.Fatal("Usage: jsonformat.go <filename>")
 	}
 
-	byt, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
+	byt, readErr := ioutil.ReadFile(os.Args[1])
+	if readErr != nil {
 		log.Fatalf("ERROR: Unable to read file: %v\n", os.Args[1])
 	}
 

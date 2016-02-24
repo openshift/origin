@@ -35,7 +35,7 @@ done
 # all top-level directories except for 'pkg', and all second-level subdirectories of 'pkg'.
 ALL_DIRS=$(find_files | grep -Eo "\./([^/]+|pkg/[^/]+)" | sort -u)
 
-DIR_BLACKLIST='./hack
+DIR_BLACKLIST='
 ./pkg/api
 ./pkg/authorization
 ./pkg/build
@@ -56,7 +56,8 @@ DIR_BLACKLIST='./hack
 ./pkg/user
 ./pkg/util
 ./test
-./tools'
+./tools
+'
 
 for test_dir in $ALL_DIRS
 do
