@@ -841,6 +841,19 @@ Create a secret from a local file, directory or literal value.
 ====
 
 
+== oc create serviceaccount
+Create a service account with the specified name.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new service account named my-service-account
+  $ kubectl create serviceaccount my-service-account
+----
+====
+
+
 == oc debug
 Launch a new instance of a pod for debugging
 
@@ -1621,6 +1634,38 @@ Create a new secret for SSH authentication
 
   // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
   $ oc secrets new SECRET path/to/.gitconfig
+----
+====
+
+
+== oc serviceaccounts get-token
+Get a token assigned to a service account.
+
+====
+
+[options="nowrap"]
+----
+  # Get the service account token from service account 'default'
+  $ oc serviceaccounts get-token 'default'
+
+----
+====
+
+
+== oc serviceaccounts new-token
+Generate a new token for a service account.
+
+====
+
+[options="nowrap"]
+----
+  # Generate a new token for service account 'default'
+  $ oc serviceaccounts new-token 'default'
+
+  # Generate a new token for service account 'default' and apply 
+  # labels 'foo' and 'bar' to the new token for identification
+  # oc serviceaccounts new-token 'default' --labels foo=foo-value,bar=bar-value
+
 ----
 ====
 
