@@ -35,43 +35,26 @@ done
 # all top-level directories except for 'pkg', and all second-level subdirectories of 'pkg'.
 ALL_DIRS=$(find_files | grep -Eo "\./([^/]+|pkg/[^/]+)" | sort -u)
 
-DIR_BLACKLIST='./assets
-./cmd
-./doc.go
-./examples
-./hack
-./images
+DIR_BLACKLIST='./hack
 ./pkg/api
-./pkg/assets
-./pkg/auth
 ./pkg/authorization
 ./pkg/build
 ./pkg/client
 ./pkg/cmd
-./pkg/config
-./pkg/controller
 ./pkg/deploy
 ./pkg/diagnostics
-./pkg/dns
-./pkg/doc.go
 ./pkg/dockerregistry
 ./pkg/generate
 ./pkg/gitserver
 ./pkg/image
-./pkg/ipfailover
 ./pkg/oauth
 ./pkg/project
-./pkg/route
 ./pkg/router
-./pkg/sdn
 ./pkg/security
-./pkg/service
 ./pkg/serviceaccounts
 ./pkg/template
 ./pkg/user
 ./pkg/util
-./pkg/version
-./plugins
 ./test
 ./tools'
 
