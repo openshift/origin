@@ -14,19 +14,22 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
 	envLong = `
-Update environment variables on a pod template
+Update environment variables on a pod template or a build configuration
 
-List environment variable definitions in one or more pods or pod templates.
+List environment variable definitions in one or more pods or pod templates or
+build configurations.
 Add, update, or remove container environment variable definitions in one or
-more pod templates (within replication controllers or deployment configurations).
+more pod templates (within replication controllers or deployment configurations) or
+build configurations.
 View or modify the environment variable definitions on all containers in the
-specified pods or pod templates, or just those that match a wildcard.
+specified pods or pod templates or build configurations, or just those that match a wildcard.
 
 If "--env -" is passed, environment variables can be read from STDIN using the standard env
 syntax.`
@@ -34,14 +37,14 @@ syntax.`
 	envExample = `  # Update deployment 'registry' with a new environment variable
   $ %[1]s env dc/registry STORAGE_DIR=/local
 
-  # List the environment variables defined on a deployment config 'registry'
-  $ %[1]s env dc/registry --list
+  # List the environment variables defined on a build config 'sample-build'
+  $ %[1]s env bc/sample-build --list
 
   # List the environment variables defined on all pods
   $ %[1]s env pods --all --list
 
-  # Output modified deployment config in YAML, and does not alter the object on the server
-  $ %[1]s env dc/registry STORAGE_DIR=/data -o yaml
+  # Output modified build config in YAML, and does not alter the object on the server
+  $ %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   $ %[1]s env rc --all ENV=prod
@@ -176,28 +179,54 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 	skipped := 0
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
-			containers, _ := selectContainers(spec.Containers, containerMatch)
-			if len(containers) == 0 {
-				fmt.Fprintf(cmd.Out(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
-				return nil
-			}
-			for _, c := range containers {
-				c.Env = updateEnv(c.Env, env, remove)
-
+		ok, err := f.MutateEnvForObject(info.Object, func(obj interface{}) error {
+			switch t := obj.(type) {
+			case *buildapi.SourceBuildStrategy:
+				t.Env = updateEnv(t.Env, env, remove)
 				if list {
-					fmt.Fprintf(out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
-					for _, env := range c.Env {
-						// if env.ValueFrom != nil && env.ValueFrom.FieldRef != nil {
-						// 	fmt.Fprintf(cmd.Out(), "%s= # calculated from pod %s %s\n", env.Name, env.ValueFrom.FieldRef.FieldPath, env.ValueFrom.FieldRef.APIVersion)
-						// 	continue
-						// }
+					fmt.Fprintf(out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					for _, env := range t.Env {
 						fmt.Fprintf(out, "%s=%s\n", env.Name, env.Value)
-
 					}
 				}
+				return nil
+			case *buildapi.CustomBuildStrategy:
+				t.Env = updateEnv(t.Env, env, remove)
+				if list {
+					fmt.Fprintf(out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					for _, env := range t.Env {
+						fmt.Fprintf(out, "%s=%s\n", env.Name, env.Value)
+					}
+				}
+				return nil
+			case *buildapi.DockerBuildStrategy:
+				t.Env = updateEnv(t.Env, env, remove)
+				if list {
+					fmt.Fprintf(out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					for _, env := range t.Env {
+						fmt.Fprintf(out, "%s=%s\n", env.Name, env.Value)
+					}
+				}
+				return nil
+			case *kapi.PodSpec:
+				containers, _ := selectContainers(t.Containers, containerMatch)
+				if len(containers) == 0 {
+					fmt.Fprintf(cmd.Out(), "warning: %s/%s does not have any containers matching %q\n",
+						info.Mapping.Resource, info.Name, containerMatch)
+					return nil
+				}
+				for _, c := range containers {
+					c.Env = updateEnv(c.Env, env, remove)
+					if list {
+						fmt.Fprintf(out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
+						for _, env := range c.Env {
+							fmt.Fprintf(out, "%s=%s\n", env.Name, env.Value)
+						}
+					}
+				}
+				return nil
 			}
-			return nil
+			return fmt.Errorf("the object does not contain pod specification or build strategy")
 		})
 		if !ok {
 			skipped++
