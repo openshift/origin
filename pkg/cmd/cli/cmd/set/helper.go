@@ -7,7 +7,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
 func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Container, []*kapi.Container) {
@@ -114,4 +117,52 @@ func findEnv(env []kapi.EnvVar, name string) (kapi.EnvVar, bool) {
 		}
 	}
 	return kapi.EnvVar{}, false
+}
+
+// Patch represents the result of a mutation to an object.
+type Patch struct {
+	Info *resource.Info
+	Err  error
+
+	Before []byte
+	After  []byte
+	Patch  []byte
+}
+
+// CalculatePatches calls the mutation function on each provided info object, and generates a strategic merge patch for
+// the changes in the object. Encoder must be able to encode the info into the appropriate destination type. If mutateFn
+// returns false, the object is not included in the final list of patches.
+func CalculatePatches(infos []*resource.Info, encoder runtime.Encoder, mutateFn func(*resource.Info) (bool, error)) []*Patch {
+	var patches []*Patch
+	for _, info := range infos {
+		patch := &Patch{Info: info}
+		patch.Before, patch.Err = runtime.Encode(encoder, info.Object)
+
+		ok, err := mutateFn(info)
+		if !ok {
+			continue
+		}
+		if err != nil {
+			patch.Err = err
+		}
+		patches = append(patches, patch)
+		if patch.Err != nil {
+			continue
+		}
+
+		patch.After, patch.Err = runtime.Encode(encoder, info.Object)
+		if patch.Err != nil {
+			continue
+		}
+
+		// TODO: should be via New
+		versioned, err := info.Mapping.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion().String())
+		if err != nil {
+			patch.Err = err
+			continue
+		}
+
+		patch.Patch, patch.Err = strategicpatch.CreateTwoWayMergePatch(patch.Before, patch.After, versioned)
+	}
+	return patches
 }

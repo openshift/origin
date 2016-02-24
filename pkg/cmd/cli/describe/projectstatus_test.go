@@ -259,6 +259,7 @@ func TestProjectStatus(t *testing.T) {
 				"* bc/ruby-sample-build is pushing to istag/origin-ruby-sample:latest that is using is/origin-ruby-sample, but that image stream does not exist.",
 				"* The image trigger for dc/frontend will have no effect because is/origin-ruby-sample does not exist",
 				"* route/frontend was not accepted by router \"other\":  (HostAlreadyClaimed)",
+				"* dc/database has no readiness probe to verify pods are ready to accept traffic or ensure deployment is successful.",
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
