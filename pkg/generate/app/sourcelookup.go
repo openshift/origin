@@ -302,7 +302,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 // AddBuildSecrets adds the defined secrets into a build. The input format for
 // the secrets is "<secretName>:<destinationDir>". The destinationDir is
 // optional and when not specified the default is the current working directory.
-func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
+func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool) error {
 	injections := s2iapi.InjectionList{}
 	r.secrets = []buildapi.SecretBuildSource{}
 	for _, in := range secrets {
@@ -319,6 +319,9 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
 		return false
 	}
 	for _, in := range injections {
+		if isDockerBuild && filepath.IsAbs(in.DestinationDir) {
+			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.DestinationDir)
+		}
 		if ok, _ := validation.ValidateSecretName(in.SourcePath, false); !ok {
 			return fmt.Errorf("the %q must be valid secret name", in.SourcePath)
 		}
