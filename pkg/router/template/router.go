@@ -153,7 +153,10 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return "templaterouter", nil
 	}
 
-	numSeconds := int(cfg.reloadInterval.Seconds())
+	numSeconds := int(router.reloadInterval.Seconds())
+	if numSeconds < 0 {
+		glog.Fatalf("Invalid router --interval < 0.")
+	}
 	router.rateLimitedCommitFunction = ratelimiter.NewRateLimitedFunction(keyFunc, numSeconds, router.commitAndReload)
 	router.rateLimitedCommitFunction.RunUntil(router.rateLimitedCommitStopChannel)
 	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", numSeconds)
