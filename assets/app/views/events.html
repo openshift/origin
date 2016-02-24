@@ -58,10 +58,10 @@
                         <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
                       </div>
                       {{event.message}}
-                      <span class="text-muted small" ng-if="event.count > 1">
-                        ({{event.count}} times in the last
-                          {{event.firstTimestamp | duration:event.lastTimestamp:true}})
-                      </span>
+                      <div ng-if="event.count > 1" class="text-muted small">
+                        {{event.count}} times in the last
+                        <duration-until-now timestamp="event.firstTimestamp" omit-single="true" precision="1"></duration-until-now>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
