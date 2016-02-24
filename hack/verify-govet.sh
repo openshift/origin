@@ -41,7 +41,6 @@ DIR_BLACKLIST='./assets
 ./examples
 ./hack
 ./images
-./pkg/api
 ./pkg/assets
 ./pkg/auth
 ./pkg/authorization

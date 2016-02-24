@@ -43,8 +43,8 @@ func GetNameValidationFunc(nameFunc validation.ValidateNameFunc) validation.Vali
 // * otherwise, returns an error
 func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabels map[string]string) func(label, value string) (string, string, error) {
 	return func(label, value string) (string, string, error) {
-		if label, overridden := overrideLabels[label]; overridden {
-			return label, value, nil
+		if overriddenLabel, overridden := overrideLabels[label]; overridden {
+			return overriddenLabel, value, nil
 		}
 		if _, supported := supportedLabels[label]; supported {
 			return label, value, nil
