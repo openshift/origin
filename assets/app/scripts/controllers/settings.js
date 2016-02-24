@@ -69,6 +69,7 @@ angular.module('openshiftConsole')
               .then(function(updated) {
                 project = $scope.project = updated;
                 $scope.editableFields = editableFields(updated);
+                $scope.$emit('project.settings.update', updated);
               }, function(result) {
                 $scope.editableFields = editableFields(project);
                 $scope.alerts["update"] = {
