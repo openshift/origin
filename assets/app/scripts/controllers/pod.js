@@ -42,6 +42,11 @@ angular.module('openshiftConsole')
       $scope.metricsAvailable = available;
     });
 
+    var setLogVars = function(pod) {
+      $scope.logOptions.container = $routeParams.container || pod.spec.containers[0].name;
+      $scope.logCanRun = !(_.includes(['New', 'Pending', 'Unknown'], pod.status.phase));
+    };
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
@@ -55,8 +60,7 @@ angular.module('openshiftConsole')
           function(pod) {
             $scope.loaded = true;
             $scope.pod = pod;
-            $scope.logOptions.container = $routeParams.container || pod.spec.containers[0].name;
-            $scope.logCanRun = !(_.includes(['New', 'Pending', 'Unknown'], pod.status.phase));
+            setLogVars(pod);
             var pods = {};
             pods[pod.metadata.name] = pod;
             ImageStreamResolver.fetchReferencedImageStreamImages(pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
@@ -70,6 +74,7 @@ angular.module('openshiftConsole')
                 };
               }
               $scope.pod = pod;
+              setLogVars(pod);
             }));
           },
           // failure

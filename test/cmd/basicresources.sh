@@ -12,7 +12,8 @@ os::log::install_errexit
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates --all
+  oc delete all,templates,secrets,pods,jobs --all
+  oc delete image v1-image
   exit 0
 ) &>/dev/null
 
@@ -40,7 +41,7 @@ echo "resource-builder: ok"
 os::cmd::expect_success 'oc get pods --match-server-version'
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json' 'pod "hello-openshift" created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
-os::cmd::expect_success 'oc delete pods hello-openshift'
+os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0'
 echo "pods: ok"
 
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
@@ -48,7 +49,7 @@ os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can ra
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
 os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
-os::cmd::expect_success 'oc delete pods -l acustom=label'
+os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
 echo "label: ok"
 
@@ -90,6 +91,55 @@ os::cmd::expect_failure 'oc create route edge new-route'
 os::cmd::expect_success 'oc delete services frontend'
 echo "routes: ok"
 
+# Validate the probe command
+arg="-f examples/hello-openshift/hello-pod.json"
+os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
+os::cmd::expect_failure_and_text "oc set probe $arg" "error: you must specify one of --readiness or --liveness"
+os::cmd::expect_success_and_text "oc set probe $arg --liveness -o yaml" 'livenessProbe: \{\}'
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --initial-delay-seconds=10 -o yaml" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --initial-delay-seconds=10 -o yaml" "initialDelaySeconds: 10"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --readiness -- echo test" "readinessProbe:"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "exec:"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "\- echo"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "\- test"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=3306" "tcpSocket:"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=3306" "port: 3306"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=port" "port: port"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:8080/path" "port: 8080"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1/path" 'port: ""'
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "path: /path"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "scheme: HTTPS"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
+os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set probe dc/test-deployment-config --liveness" "Required value: must specify a handler type"
+os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --open-tcp=8080" "updated"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --open-tcp=8080" "was not changed"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --initial-delay-seconds=10" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 10"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --initial-delay-seconds=20" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --failure-threshold=2" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "failureThreshold: 2"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --readiness --success-threshold=4 -- echo test" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "successThreshold: 4"
+os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --period-seconds=5" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "periodSeconds: 5"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --timeout-seconds=6" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "timeoutSeconds: 6"
+os::cmd::expect_success_and_text "oc set probe dc --all --liveness --timeout-seconds=7" "updated"
+os::cmd::expect_success_and_text "oc get dc -o yaml" "timeoutSeconds: 7"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "livenessProbe"
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+echo "set probe: ok"
+
 # Expose service as a route
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
@@ -114,6 +164,9 @@ echo "expose: ok"
 os::cmd::expect_success 'oc delete all --all'
 
 # switch to test user to be sure that default project admin policy works properly
+new="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new"
+export KUBECONFIG=$new
 project=$(oc project -q)
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
@@ -156,3 +209,4 @@ os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
 os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
 echo "patch: ok"
+

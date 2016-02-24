@@ -21,13 +21,16 @@ angular.module('openshiftConsole')
     };
   })
   .directive('projectHeader', function($timeout, $location, $filter, DataService, projectOverviewURLFilter) {
+
+    // cache these to eliminate flicker
+    var projects = {};
+    var sortedProjects = [];
+
     return {
       restrict: 'EA',
       templateUrl: 'views/directives/header/project-header.html',
       link: function($scope, $elem) {
         var select = $elem.find('.selectpicker');
-        var projects = {};
-        var sortedProjects = [];
         var options = [];
 
         var updateOptions = function() {
@@ -91,6 +94,12 @@ angular.module('openshiftConsole')
               $location.url(newURL);
             });
           });
+
+        $scope.$on('project.settings.update', function(event, data) {
+          projects[data.metadata.name] = data;
+          updateOptions();
+        });
+
       }
     };
   })

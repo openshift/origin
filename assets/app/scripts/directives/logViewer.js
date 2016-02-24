@@ -246,7 +246,13 @@ angular.module('openshiftConsole')
               };
 
               streamer.onMessage(function(msg, raw, cumulativeBytes) {
-                $scope.state = 'logs';
+                // ensures the digest loop will catch the state change.
+                if($scope.state !== 'logs') {
+                  $scope.$evalAsync(function() {
+                    $scope.state = 'logs';
+                  });
+                }
+
                 if (options.limitBytes && cumulativeBytes >= options.limitBytes) {
                   $scope.$evalAsync(function() {
                     $scope.limitReached = true;

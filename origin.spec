@@ -140,7 +140,6 @@ Requires:       %{name} = %{version}-%{release}
 
 %package pod
 Summary:        %{product_name} Pod
-Requires:       %{name} = %{version}-%{release}
 
 %description pod
 %{summary}

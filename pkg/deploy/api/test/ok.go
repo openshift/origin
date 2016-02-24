@@ -26,6 +26,24 @@ func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
 	}
 }
 
+func OkImageChangeDetails() *deployapi.DeploymentDetails {
+	return &deployapi.DeploymentDetails{
+		Causes: []*deployapi.DeploymentCause{{
+			Type: deployapi.DeploymentTriggerOnImageChange,
+			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
+				From: kapi.ObjectReference{
+					Name: imageapi.JoinImageStreamTag("test", "tag"),
+					Kind: "ImageStreamTag",
+				}}}}}
+}
+
+func OkConfigChangeDetails() *deployapi.DeploymentDetails {
+	return &deployapi.DeploymentDetails{
+		Causes: []*deployapi.DeploymentCause{{
+			Type: deployapi.DeploymentTriggerOnConfigChange,
+		}}}
+}
+
 func OkStrategy() deployapi.DeploymentStrategy {
 	return deployapi.DeploymentStrategy{
 		Type: deployapi.DeploymentStrategyTypeRecreate,

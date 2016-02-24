@@ -421,7 +421,7 @@ items:
             name: 172.30.17.139:5000/test/origin-ruby-sample:latest
         type: ImageChange
     latestVersion: 3
-- apiVersion: v1beta3
+- apiVersion: v1
   kind: Service
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
@@ -439,6 +439,26 @@ items:
       name: database
     sessionAffinity: None
     type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database-external
+  spec:
+    portalIP: 172.30.17.241
+    ports:
+    - nodePort: 31000
+      port: 5434
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      name: database
+    sessionAffinity: None
+    type: NodePort
   status:
     loadBalancer: {}
 - apiVersion: v1beta3
@@ -461,7 +481,7 @@ items:
     type: ClusterIP
   status:
     loadBalancer: {}
-- apiVersion: v1beta3
+- apiVersion: v1
   kind: Route
   metadata:
     annotations:
@@ -478,6 +498,43 @@ items:
     to:
       kind: Service
       name: frontend
+  status:
+    ingress:
+    - routerName: default
+      host: frontend-example.router.default.svc.cluster.local
+    - routerName: other
+      host: www.test.com
+      conditions:
+      - type: Admitted
+        status: "False"
+        reason: HostAlreadyClaimed
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: other
+    resourceVersion: "393"
+  spec:
+    host: www.test.com
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: frontend
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      type: Edge
+  status:
+    ingress:
+    - routerName: other
+      host: www.test.com
+      conditions:
+      - type: Admitted
+        status: "True"
 kind: List
 metadata:
   resourceVersion: "592"

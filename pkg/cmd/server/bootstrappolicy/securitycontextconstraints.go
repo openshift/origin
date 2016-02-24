@@ -32,6 +32,12 @@ const (
 	SecurityContextConstraintsAnyUID     = "anyuid"
 	SecurityContextConstraintsAnyUIDDesc = "anyuid provides all features of the restricted SCC but allows users to run with any UID and any GID.  This is the default SCC for authenticated users."
 
+	// SecurityContextConstraintsHostNetwork is used as the name for the system default scc that
+	// grants access to run with host networking and host ports but still allocates uid/gids/selinux from the
+	// namespace.
+	SecurityContextConstraintsHostNetwork     = "hostnetwork"
+	SecurityContextConstraintsHostNetworkDesc = "hostnetwork allows using host networking and host ports but still requires pods to be run with a UID and SELinux context that are allocated to the namespace."
+
 	// DescriptionAnnotation is the annotation used for attaching descriptions.
 	DescriptionAnnotation = "kubernetes.io/description"
 )
@@ -227,6 +233,38 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			Priority: &securityContextConstraintsAnyUIDPriority,
 			// drops unsafe caps
 			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT"},
+		},
+		// SecurityContextConstraintsHostNetwork allows host network and host ports
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SecurityContextConstraintsHostNetwork,
+				Annotations: map[string]string{
+					DescriptionAnnotation: SecurityContextConstraintsHostNetworkDesc,
+				},
+			},
+			AllowHostNetwork:          true,
+			AllowHostPorts:            true,
+			AllowEmptyDirVolumePlugin: true,
+			SELinuxContext: kapi.SELinuxContextStrategyOptions{
+				// This strategy requires that annotations on the namespace which will be populated
+				// by the admission controller.  If namespaces are not annotated creating the strategy
+				// will fail.
+				Type: kapi.SELinuxStrategyMustRunAs,
+			},
+			RunAsUser: kapi.RunAsUserStrategyOptions{
+				// This strategy requires that annotations on the namespace which will be populated
+				// by the admission controller.  If namespaces are not annotated creating the strategy
+				// will fail.
+				Type: kapi.RunAsUserStrategyMustRunAsRange,
+			},
+			FSGroup: kapi.FSGroupStrategyOptions{
+				Type: kapi.FSGroupStrategyMustRunAs,
+			},
+			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+				Type: kapi.SupplementalGroupsStrategyMustRunAs,
+			},
+			// drops unsafe caps
+			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT", "SETUID", "SETGID"},
 		},
 	}
 

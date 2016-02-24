@@ -230,6 +230,21 @@ func (r *ImageRef) SuggestName() (string, bool) {
 	return "", false
 }
 
+// Command returns the command the image invokes by default, or false if no such command has been defined.
+func (r *ImageRef) Command() (cmd []string, ok bool) {
+	if r == nil || r.Info == nil || r.Info.Config == nil {
+		return nil, false
+	}
+	config := r.Info.Config
+	switch {
+	case len(config.Entrypoint) > 0:
+		cmd = append(config.Entrypoint, config.Cmd...)
+	case len(config.Cmd) > 0:
+		cmd = config.Cmd
+	}
+	return cmd, len(cmd) > 0
+}
+
 // BuildOutput returns the BuildOutput of an image reference
 func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if r == nil {

@@ -601,7 +601,7 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 				if route.Spec.Host != ingress.Host {
 					continue
 				}
-				switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 				case kapi.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s %s ago\n", ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case kapi.ConditionFalse:
@@ -618,7 +618,7 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 			if route.Spec.Host == ingress.Host {
 				continue
 			}
-			switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s ago\n", ingress.Host, ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case kapi.ConditionFalse:

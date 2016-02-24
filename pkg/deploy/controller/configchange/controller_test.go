@@ -170,3 +170,45 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 		}
 	}
 }
+
+func TestHandle_raceWithTheImageController(t *testing.T) {
+	var updated *deployapi.DeploymentConfig
+
+	controller := &DeploymentConfigChangeController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generated := deployapitest.OkDeploymentConfig(1)
+				generated.Status.Details = deployapitest.OkImageChangeDetails()
+				updated = generated
+				return generated, nil
+			},
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				t.Errorf("an update should never run in the presence of races")
+				updated.Status.Details = deployapitest.OkConfigChangeDetails()
+				return updated, nil
+			},
+		},
+	}
+
+	config := deployapitest.OkDeploymentConfig(0)
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger(), deployapitest.OkImageChangeTrigger()}
+
+	if err := controller.Handle(config); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if e, a := 1, updated.Status.LatestVersion; e != a {
+		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
+	}
+
+	if updated.Status.Details == nil {
+		t.Fatalf("expected config change details to be set")
+	} else if updated.Status.Details.Causes == nil {
+		t.Fatalf("expected config change causes to be set")
+	} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnImageChange {
+		t.Fatalf("expected config change cause to be set to image change trigger, got %s", updated.Status.Details.Causes[0].Type)
+	}
+}

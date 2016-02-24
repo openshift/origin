@@ -136,6 +136,9 @@
             "name": "origin-ruby-sample:latest"
           }
         },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
         "resources": {}
       },
       "status": {

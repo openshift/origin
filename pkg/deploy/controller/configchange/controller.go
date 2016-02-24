@@ -39,7 +39,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	if config.Status.LatestVersion == 0 {
-		_, _, err := c.generateDeployment(config)
+		_, _, abort, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
 				return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
@@ -47,7 +47,9 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 			glog.V(4).Infof("Couldn't create initial deployment for deploymentConfig %q: %v", deployutil.LabelForDeploymentConfig(config), err)
 			return nil
 		}
-		glog.V(4).Infof("Created initial deployment for deploymentConfig %q", deployutil.LabelForDeploymentConfig(config))
+		if !abort {
+			glog.V(4).Infof("Created initial deployment for deploymentConfig %q", deployutil.LabelForDeploymentConfig(config))
+		}
 		return nil
 	}
 
@@ -76,21 +78,31 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	// There was a template diff, so generate a new config version.
-	fromVersion, toVersion, err := c.generateDeployment(config)
+	fromVersion, toVersion, abort, err := c.generateDeployment(config)
 	if err != nil {
 		if kerrors.IsConflict(err) {
 			return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 		}
 		return fmt.Errorf("couldn't generate deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	glog.V(4).Infof("Updated DeploymentConfig %s from version %d to %d for existing deployment %s", deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
+	if !abort {
+		glog.V(4).Infof("Updated DeploymentConfig %s from version %d to %d for existing deployment %s", deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
+	}
 	return nil
 }
 
-func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig) (int, int, error) {
+func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig) (int, int, bool, error) {
 	newConfig, err := c.changeStrategy.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		return config.Status.LatestVersion, 0, err
+		return -1, -1, false, err
+	}
+
+	// The generator returns a cause only when there is an image change. If the configchange
+	// controller detects an image change, it should just quit, otherwise it is racing with
+	// the imagechange controller.
+	if newConfig.Status.LatestVersion != config.Status.LatestVersion &&
+		newConfig.Status.Details != nil && len(newConfig.Status.Details.Causes) > 0 {
+		return -1, -1, true, nil
 	}
 
 	if newConfig.Status.LatestVersion == config.Status.LatestVersion {
@@ -112,10 +124,10 @@ func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.
 	// current config will be captured in future events.
 	updatedConfig, err := c.changeStrategy.updateDeploymentConfig(config.Namespace, newConfig)
 	if err != nil {
-		return config.Status.LatestVersion, newConfig.Status.LatestVersion, err
+		return config.Status.LatestVersion, newConfig.Status.LatestVersion, false, err
 	}
 
-	return config.Status.LatestVersion, updatedConfig.Status.LatestVersion, nil
+	return config.Status.LatestVersion, updatedConfig.Status.LatestVersion, false, nil
 }
 
 // changeStrategy knows how to generate and update DeploymentConfigs.
