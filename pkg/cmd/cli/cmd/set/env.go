@@ -102,21 +102,9 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
-	resources, envArgs := []string{}, []string{}
-	first := true
-	for _, s := range args {
-		isEnv := strings.Contains(s, "=") || strings.HasSuffix(s, "-")
-		switch {
-		case first && isEnv:
-			first = false
-			fallthrough
-		case !first && isEnv:
-			envArgs = append(envArgs, s)
-		case first && !isEnv:
-			resources = append(resources, s)
-		case !first && !isEnv:
-			return kcmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", s)
-		}
+	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
+	if !ok {
+		return kcmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
 	if len(filenames) == 0 && len(resources) < 1 {
 		return kcmdutil.UsageError(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")

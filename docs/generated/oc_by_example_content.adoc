@@ -841,6 +841,26 @@ Create a secret from a local file, directory or literal value.
 ====
 
 
+== oc debug
+Launch a new instance of a pod for debugging
+
+====
+
+[options="nowrap"]
+----
+
+  # Debug a currently running deployment
+  $ oc debug dc/test
+
+  # Debug a specific failing container by running the env command in the 'second' container
+  $ oc debug dc/test -c second -- /bin/env
+
+  # See the pod that would be created to debug
+  $ oc debug dc/test -o yaml
+----
+====
+
+
 == oc delete
 Delete one or more resources
 

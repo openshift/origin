@@ -12,10 +12,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -163,7 +163,7 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 		return errors.New("--server and passing the server URL as an argument are mutually exclusive")
 	}
 
-	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
+	if (len(o.Server) == 0) && !term.IsTerminal(o.Reader) {
 		return errors.New("A server URL must be specified")
 	}
 

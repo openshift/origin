@@ -47,6 +47,26 @@ func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
 }
 
+func SplitEnvironmentFromResources(args []string) (resources, envArgs []string, ok bool) {
+	first := true
+	for _, s := range args {
+		// this method also has to understand env removal syntax, i.e. KEY-
+		isEnv := IsEnvironmentArgument(s) || strings.HasSuffix(s, "-")
+		switch {
+		case first && isEnv:
+			first = false
+			fallthrough
+		case !first && isEnv:
+			envArgs = append(envArgs, s)
+		case first && !isEnv:
+			resources = append(resources, s)
+		case !first && !isEnv:
+			return nil, nil, false
+		}
+	}
+	return resources, envArgs, true
+}
+
 func ParseEnvironmentArguments(s []string) (Environment, []string, []error) {
 	errs := []error{}
 	duplicates := []string{}
