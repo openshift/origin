@@ -5,7 +5,7 @@
     "name": "dancer-mysql-example",
     "annotations": {
       "description": "An example Dancer application with a MySQL database",
-      "tags": "instant-app,perl,dancer,mysql",
+      "tags": "quickstart,perl,dancer,mysql",
       "iconClass": "icon-perl"
     }
   },

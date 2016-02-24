@@ -5,7 +5,7 @@
     "name": "rails-postgresql-example",
     "annotations": {
       "description": "An example Rails application with a PostgreSQL database",
-      "tags": "instant-app,ruby,rails,postgresql",
+      "tags": "quickstart,ruby,rails,postgresql",
       "iconClass": "icon-ruby"
     }
   },
@@ -106,7 +106,10 @@
               "secret": "${GITHUB_WEBHOOK_SECRET}"
             }
           }
-        ]
+        ],
+        "postCommit": {
+          "script": "bundle exec rake test"
+        }
       }
     },
     {
@@ -200,10 +203,6 @@
                   {
                     "name": "POSTGRESQL_SHARED_BUFFERS",
                     "value": "${POSTGRESQL_SHARED_BUFFERS}"
-                  },
-                  {
-                    "name": "SECRET_KEY_BASE",
-                    "value": "${SECRET_KEY_BASE}"
                   },
                   {
                     "name": "APPLICATION_DOMAIN",

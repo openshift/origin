@@ -5,7 +5,7 @@
     "name": "django-psql-example",
     "annotations": {
       "description": "An example Django application with a PostgreSQL database",
-      "tags": "instant-app,python,django,postgresql",
+      "tags": "quickstart,python,django,postgresql",
       "iconClass": "icon-python"
     }
   },
@@ -106,7 +106,10 @@
               "secret": "${GITHUB_WEBHOOK_SECRET}"
             }
           }
-        ]
+        ],
+        "postCommit": {
+           "script": "./manage.py test"
+        }
       }
     },
     {
