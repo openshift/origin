@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -57,6 +58,7 @@ import (
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -64,7 +66,6 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/util/leaderlease"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 const (
@@ -171,15 +172,23 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
+	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy", "OriginResourceQuota"}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
+	rcFactory := quotautil.NewInternalRegistryClientFactoryForServiceAccount(
+		privilegedLoopbackKubeClient,
+		options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		bootstrappolicy.InfraResourceQuotaControllerServiceAccountName,
+		options.ServiceAccountConfig.MasterCA)
+
 	pluginInitializer := oadmission.PluginInitializer{
-		OpenshiftClient: privilegedLoopbackOpenShiftClient,
-		ProjectCache:    projectCache,
+		InternalRegistryClientFactory: rcFactory,
+		OpenshiftClient:               privilegedLoopbackOpenShiftClient,
+		ProjectCache:                  projectCache,
 	}
+
 	plugins := []admission.Interface{}
 	clientsetClient := internalclientset.FromUnversionedClient(privilegedLoopbackKubeClient)
 	for _, pluginName := range admissionControlPluginNames {
@@ -532,6 +541,16 @@ func (c *MasterConfig) ImageStreamSecretClient() *kclient.Client {
 // ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
 func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+// ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
+// evaluation
+func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *kclient.Client) {
+	osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraResourceQuotaControllerServiceAccountName)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, kClient
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.

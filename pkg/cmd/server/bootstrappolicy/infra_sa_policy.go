@@ -36,6 +36,9 @@ const (
 
 	InfraPersistentVolumeProvisionerControllerServiceAccountName = "pv-provisioner-controller"
 	PersistentVolumeProvisionerControllerRoleName                = "system:pv-provisioner-controller"
+
+	InfraResourceQuotaControllerServiceAccountName = "resource-quota-controller"
+	ResourceQuotaControllerRoleName                = "system:resource-quota-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -485,6 +488,56 @@ func init() {
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraResourceQuotaControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ResourceQuotaControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// ResourceQuotaController.registry.imageStreamEvaluator.UsageStats
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreamimages"),
+				},
+				// ResourceQuotaController.replenishmentControllers.Run
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("imagestreams"),
+				},
+				// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+				// ResourceQuotaController.nodeStore.ListWatch
+				// ResourceQuotaController.syncResourceQuota
+				{
+					Verbs:     sets.NewString("get", "list", "update", "watch"),
+					Resources: sets.NewString("resourcequotas"),
+				},
+				// ResourceQuotaController.syncResourceQuota
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("resourcequotas/status"),
+				},
+				// ResourceQuotaController.registry.imageStreamEvaluator.usageComputerFactory.rcFactory.GetClient
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("serviceaccounts"),
+				},
+				// ResourceQuotaController.registry.imageStreamEvaluator.usageComputerFactory..rcFactory.GetClient
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("secrets"),
 				},
 			},
 		},

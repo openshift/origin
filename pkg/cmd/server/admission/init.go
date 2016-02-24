@@ -5,17 +5,22 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/cache"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 type PluginInitializer struct {
-	OpenshiftClient client.Interface
-	ProjectCache    *cache.ProjectCache
+	InternalRegistryClientFactory quotautil.InternalRegistryClientFactory
+	OpenshiftClient               client.Interface
+	ProjectCache                  *cache.ProjectCache
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
 // and provide the appropriate initialization data
 func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 	for _, plugin := range plugins {
+		if wantsInternalRegistryClientFactory, ok := plugin.(WantsInternalRegistryClientFactory); ok {
+			wantsInternalRegistryClientFactory.SetInternalRegistryClientFactory(i.InternalRegistryClientFactory)
+		}
 		if wantsOpenshiftClient, ok := plugin.(WantsOpenshiftClient); ok {
 			wantsOpenshiftClient.SetOpenshiftClient(i.OpenshiftClient)
 		}

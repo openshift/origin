@@ -20,6 +20,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -271,6 +272,80 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 	case <-time.After(timeout):
 		return fmt.Errorf("timed out waiting for deployment %q after %v", name, timeout)
 	}
+}
+
+func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
+	resourceNames := quota.ResourceNames(expected)
+	masked := quota.Mask(received, resourceNames)
+	if len(masked) != len(expected) {
+		return false
+	}
+	if expectedIsUpperLimit {
+		if le, _ := quota.LessThanOrEqual(expected, masked); !le {
+			return false
+		}
+	} else {
+		if le, _ := quota.LessThanOrEqual(masked, expected); !le {
+			return false
+		}
+	}
+	return true
+}
+
+// WaitForResourceQuotaSync watches given resource quota until its usage is updated to desired level or a
+// timeout occurs. If successful, used quota values will be returned for expected resources. Otherwise an
+// ErrWaitTimeout will be returned. If expectedIsUpperLimit is true, given expected usage must compare greater
+// or equal to quota's usage, which is useful for expected usage increment. Otherwise expected usage must
+// compare lower or equal to quota's usage, which is useful for expected usage decrement.
+func WaitForResourceQuotaSync(
+	client kclient.ResourceQuotaInterface,
+	name string,
+	expectedUsage kapi.ResourceList,
+	expectedIsUpperLimit bool,
+	timeout time.Duration) (kapi.ResourceList, error) {
+
+	startTime := time.Now()
+	endTime := startTime.Add(timeout)
+
+	expectedResourceNames := quota.ResourceNames(expectedUsage)
+
+	list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range list.Items {
+		used := quota.Mask(list.Items[i].Status.Used, expectedResourceNames)
+		if isUsageSynced(used, expectedUsage, expectedIsUpperLimit) {
+			return used, nil
+		}
+	}
+
+	rv := list.ResourceVersion
+	w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
+	if err != nil {
+		return nil, err
+	}
+	defer w.Stop()
+
+	for time.Now().Before(endTime) {
+		select {
+		case val, ok := <-w.ResultChan():
+			if !ok {
+				// reget and re-watch
+				continue
+			}
+			if rq, ok := val.Object.(*kapi.ResourceQuota); ok {
+				used := quota.Mask(rq.Status.Used, expectedResourceNames)
+				if isUsageSynced(used, expectedUsage, expectedIsUpperLimit) {
+					return used, nil
+				}
+			}
+		case <-time.After(endTime.Sub(time.Now())):
+			return nil, wait.ErrWaitTimeout
+		}
+	}
+	return nil, wait.ErrWaitTimeout
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed
