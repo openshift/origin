@@ -10,12 +10,19 @@
             <div ng-if="!loaded">Loading...</div>
             <h1>
               {{buildConfigName}}
+              <span class="pficon pficon-warning-triangle-o"
+                    ng-if="paused"
+                    aria-hidden="true"
+                    data-toggle="tooltip"
+                    data-placement="bottom"
+                    data-original-title="Building from build configuration {{buildConfig.metadata.name}} has been paused.">
+              </span>
               <div class="pull-right dropdown" ng-if="buildConfig">
                 <!-- Primary Actions -->
                 <button
                     class="btn btn-default hidden-xs"
                     ng-click="startBuild()"
-                    ng-disabled="!canBuild()">
+                    ng-disabled="!canBuild">
                   Start Build
                 </button>
 
@@ -28,11 +35,11 @@
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
                    data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
-                  <li class="visible-xs-inline" ng-class="{ disabled: !canBuild() }">
+                  <li class="visible-xs-inline" ng-class="{ disabled: !canBuild }">
                     <a href=""
                       role="button"
-                      ng-attr-aria-disabled="{{canBuild() ? undefined : 'true'}}"
-                      ng-class="{ 'disabled-link': !canBuild() }"
+                      ng-attr-aria-disabled="{{canBuild ? undefined : 'true'}}"
+                      ng-class="{ 'disabled-link': !canBuild }"
                       ng-click="startBuild()">Start Build</a>
                   </li>
                   <li>

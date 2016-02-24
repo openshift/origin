@@ -10,6 +10,7 @@ angular.module('openshiftConsole')
   .controller('BuildController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter) {
     $scope.projectName = $routeParams.project;
     $scope.build = null;
+    $scope.buildConfig = null;
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
@@ -79,6 +80,16 @@ angular.module('openshiftConsole')
               $scope.build = build;
               setLogVars(build);
             }));
+            watches.push(DataService.watchObject("buildconfigs", $routeParams.buildconfig, context, function(buildConfig, action) {
+              if (action === "DELETED") {
+                $scope.alerts["deleted"] = {
+                  type: "warning",
+                  message: "Build configuration " + $scope.buildConfigName + " has been deleted."
+                };
+              }
+              $scope.buildConfig = buildConfig;
+              $scope.paused = BuildsService.isPaused($scope.buildConfig);
+            }));
           },
           // failure
           function(e) {
@@ -91,7 +102,6 @@ angular.module('openshiftConsole')
           }
         );
 
-        var hashSize = $filter('hashSize');
         watches.push(DataService.watch("builds", context, function(builds, action, build) {
           $scope.builds = {};
           // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
@@ -123,8 +133,7 @@ angular.module('openshiftConsole')
               delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
             }
           }
-
-          $scope.canBuild = !hashSize($scope.buildConfigBuildsInProgress[buildConfigName]);
+          $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
         }));
 
         $scope.cancelBuild = function() {
