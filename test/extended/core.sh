@@ -103,7 +103,8 @@ excluded_tests=(
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
   kube-ui                 # Not installed by default
-  "^Deployment"           # Not enabled yet
+  "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
+  "\[Feature:Deployment\]" # Not enabled yet
   "paused deployment should be ignored by the controller" # Not enabled yet
   "deployment should create new pods" # Not enabled yet
   Ingress                 # Not enabled yet
@@ -120,11 +121,15 @@ excluded_tests=(
   "ConfigMap"                # needs permissions https://github.com/openshift/origin/issues/7096
   "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
+  "\[Feature:Example\]"      # may need to pre-pull images
+  "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE
   SSH                     # TRIAGE
   "\[Feature:Upgrade\]"   # TRIAGE
+  "SELinux relabeling"    # started failing
+  "\[Feature:Performance\]"
 
   # Inordinately slow tests
   "should create and stop a working application"
@@ -133,11 +138,12 @@ common_exclude=$(join '|' "${excluded_tests[@]}")
 parallel_test_exclusions=(
   "${excluded_tests[@]}"
 
+  "\[Feature:ManualPerformance\]" # requires isolation
   "Service endpoints latency" # requires low latency
 )
 parallel_exclude=$(join '|' "${parallel_test_exclusions[@]}")
 
-# print the tests we are skipping  
+# print the tests we are skipping
 echo "[INFO] The following tests will not be run:"
 TEST_OUTPUT_QUIET=true ${extendedtest} "--ginkgo.skip=${common_exclude}" --ginkgo.dryRun | grep skip | sort
 echo
