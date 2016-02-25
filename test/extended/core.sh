@@ -130,6 +130,9 @@ excluded_tests=(
   "\[Feature:Upgrade\]"   # TRIAGE
   "SELinux relabeling"    # started failing
   "\[Feature:Performance\]"
+  "Ceph RBD should be mountable"      # probably blocked by serial pulling
+  "GlusterFS RBD should be mountable" # probably blocked by serial pulling
+  "schedule jobs on pod slaves use of jenkins with kubernetes plugin by creating slave from existing builder and adding it to Jenkins master" # https://github.com/openshift/origin/issues/7619
 
   # Inordinately slow tests
   "should create and stop a working application"
