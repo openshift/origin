@@ -122,9 +122,10 @@
                       ng-repeat="container in containers | orderBy:'name' track by container.name"
                       ng-if="container.state.running">
                       <h3 ng-if="containers.length > 1">{{container.name}}</h3>
-                      <kubernetes-container-terminal pod="pod" container="container.name"
-                        prevent="!terminalTabWasSelected">
-                      </kubernetes-container-terminal>
+                      <osc-container-terminal
+                        pod="pod"
+                        container="container.name"
+                        prevent="!terminalTabWasSelected"></osc-container-terminal>
                     </div>
     	            </uib-tab>
 
