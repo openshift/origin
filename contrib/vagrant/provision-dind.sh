@@ -1,8 +1,13 @@
 #!/bin/bash
 set -euo
 
+ORIGIN_ROOT=$(
+  unset CDPATH
+  origin_root=$(dirname "${BASH_SOURCE}")/../..
+  cd "${origin_root}"
+  pwd
+)
 USERNAME=vagrant
-ORIGIN_ROOT=${1:-/vagrant}
 
 yum install -y deltarpm
 yum update -y
@@ -21,6 +26,9 @@ systemctl start docker
 
 # Docker-in-docker is not compatible with SELinux enforcement
 setenforce 0 || true
+
+# Add a convenience symlink to the gopath repo
+ln -sf "${ORIGIN_ROOT}" /
 
 function set_env {
   USER_DIR="${1}"

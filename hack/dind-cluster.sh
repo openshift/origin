@@ -93,7 +93,7 @@ DEPLOY_SSH=${OPENSHIFT_DEPLOY_SSH:-true}
 
 DEPLOYED_CONFIG_ROOT="/config"
 
-DEPLOYED_ROOT="/data"
+DEPLOYED_ROOT="/data/src/github.com/openshift/origin"
 
 SCRIPT_ROOT="${DEPLOYED_ROOT}/contrib/vagrant"
 
