@@ -957,14 +957,14 @@ DEPRECATED: set env
   # Update deployment 'registry' with a new environment variable
   $ oc env dc/registry STORAGE_DIR=/local
 
-  # List the environment variables defined on a deployment config 'registry'
-  $ oc env dc/registry --list
+  # List the environment variables defined on a build config 'sample-build'
+  $ oc env bc/sample-build --list
 
   # List the environment variables defined on all pods
   $ oc env pods --all --list
 
-  # Output modified deployment config in YAML, and does not alter the object on the server
-  $ oc env dc/registry STORAGE_DIR=/data -o yaml
+  # Output modified build config in YAML, and does not alter the object on the server
+  $ oc env bc/sample-build STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   $ oc env rc --all ENV=prod
@@ -1635,14 +1635,14 @@ Update environment variables on a pod template
   # Update deployment 'registry' with a new environment variable
   $ oc set env dc/registry STORAGE_DIR=/local
 
-  # List the environment variables defined on a deployment config 'registry'
-  $ oc set env dc/registry --list
+  # List the environment variables defined on a build config 'sample-build'
+  $ oc set env bc/sample-build --list
 
   # List the environment variables defined on all pods
   $ oc set env pods --all --list
 
-  # Output modified deployment config in YAML, and does not alter the object on the server
-  $ oc set env dc/registry STORAGE_DIR=/data -o yaml
+  # Output modified build config in YAML, and does not alter the object on the server
+  $ oc set env bc/sample-build STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   $ oc set env rc --all ENV=prod
