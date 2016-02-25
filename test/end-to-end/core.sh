@@ -203,8 +203,9 @@ os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc-mid' 'test m
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test mid hook executed'
 
 echo "[INFO] Run pod diagnostics"
-# Requires a node to run the pod; uses origin-deployer pod, expects registry deployed
-openshift ex diagnostics DiagnosticPod --images="${USE_IMAGES}"
+# Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
+os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
+
 
 echo "[INFO] Applying STI application config"
 os::cmd::expect_success "oc create -f ${STI_CONFIG_FILE}"

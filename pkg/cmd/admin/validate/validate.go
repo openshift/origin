@@ -16,8 +16,8 @@ const (
 The commands here allow administrators to validate the integrity of configuration files.
 `
 
-	validateDeprecationMessage = `The commands here are deprecated and will be removed. Use 'openshift ex diagnostics' to run configuration validations instead.
-See sub-command help text for specific instructions with 'openshift ex diagnostics'.`
+	validateDeprecationMessage = `and will be removed. Use "oadm diagnostics" to run configuration validations instead.
+See sub-command help text for specific instructions with "oadm diagnostics".`
 )
 
 func NewCommandValidate(name, fullName string, out io.Writer) *cobra.Command {
