@@ -32,4 +32,6 @@ OS_RELEASE_ARCHIVE="openshift-origin-image"
 OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
 
+os::build::release_sha
+
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

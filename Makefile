@@ -158,6 +158,14 @@ release-binaries: clean
 	hack/extract-release.sh
 .PHONY: release-binaries
 
+# Build the cross compiled release binaries
+#
+# Example:
+#   make build-cross
+build-cross: clean
+	hack/build-cross.sh
+.PHONY: build-cross
+
 # Install travis dependencies
 #
 install-travis:
