@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -172,6 +172,7 @@ func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesap
 }
 
 func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, *kclient.Client) {
+	testutil.RequireEtcd(t)
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("%v", err)

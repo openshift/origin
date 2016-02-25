@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -19,10 +19,6 @@ const (
 	streamName = "test-image-trigger-repo"
 	tag        = "latest"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 	projectAdminClient := setup(t)
@@ -180,6 +176,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 }
 
 func setup(t *testing.T) *client.Client {
+	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -9,12 +9,12 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/util/leaderlease"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestLeaderLeaseAcquire(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	defer testutil.RequireEtcd(t).Terminate(t)
+	client := testutil.NewEtcdClient()
 
 	key := "/random/key"
 	held := make(chan struct{})
@@ -47,8 +47,8 @@ func TestLeaderLeaseAcquire(t *testing.T) {
 }
 
 func TestLeaderLeaseWait(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	defer testutil.RequireEtcd(t).Terminate(t)
+	client := testutil.NewEtcdClient()
 	key := "/random/key"
 
 	if _, err := client.Create(key, "other", 1); err != nil {
@@ -85,8 +85,8 @@ func TestLeaderLeaseWait(t *testing.T) {
 }
 
 func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	defer testutil.RequireEtcd(t).Terminate(t)
+	client := testutil.NewEtcdClient()
 	key := "/random/key"
 
 	if _, err := client.Create(key, "holder", 10); err != nil {
@@ -113,8 +113,8 @@ func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
 }
 
 func TestLeaderLeaseReacquire(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	client := util.NewEtcdClient()
+	defer testutil.RequireEtcd(t).Terminate(t)
+	client := testutil.NewEtcdClient()
 	key := "/random/key"
 
 	if _, err := client.Create(key, "holder", 1); err != nil {
