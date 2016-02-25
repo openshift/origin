@@ -22,7 +22,7 @@ func init() {
 			return nil, err
 		}
 
-		glog.V(4).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
+		glog.V(5).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
 		return NewBuildDefaults(defaultsConfig), nil
 	})
 }
