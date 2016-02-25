@@ -240,8 +240,6 @@ use cases.
 To run a dind cluster in a VM, follow steps 1-3 of the Vagrant
 instructions and then execute the following:
 
-        # Extra memory is required to build the extended tests
-        $ export OPENSHIFT_MEMORY=3072
         $ export OPENSHIFT_DIND_DEV_CLUSTER=true
         $ vagrant up
 
