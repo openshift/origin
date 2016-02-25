@@ -11,10 +11,11 @@ angular.module('openshiftConsole')
     };
   })
   .filter('duration', function() {
-    return function(timestampLhs, timestampRhs, omitSingle) {
+    return function(timestampLhs, timestampRhs, omitSingle, precision) {
       if (!timestampLhs) {
         return timestampLhs;
       }
+      precision = precision || 2;
       timestampRhs = timestampRhs || new Date(); // moment expects either an ISO format string or a Date object
 
       var ms = moment(timestampRhs).diff(timestampLhs);
@@ -30,13 +31,21 @@ angular.module('openshiftConsole')
       var seconds = duration.seconds();
 
       function add(count, singularText, pluralText) {
-        if (count > 0) {
-          if (omitSingle && count === 1) {
+        if (count === 0) {
+          return;
+        }
+
+        if (count === 1) {
+          if (omitSingle) {
             humanizedDuration.push(singularText);
           } else {
-            humanizedDuration.push(count + ' ' + (count === 1 ? singularText : pluralText));
+            humanizedDuration.push("one " + singularText);
           }
+
+          return;
         }
+
+        humanizedDuration.push(count + ' ' + pluralText);
       }
 
       add(years, "year", "years");
@@ -46,12 +55,23 @@ angular.module('openshiftConsole')
       add(minutes, "minute", "minutes");
       add(seconds, "second", "seconds");
 
+      // If precision is 1, we're showing rough values. Don't show values less
+      // than a minute.
+      // TODO: Is there ever a time we want precision = 1 and to show seconds?
+      if (humanizedDuration.length === 1 && seconds && precision === 1) {
+        if (omitSingle) {
+          return "minute";
+        }
+
+        return "one minute";
+      }
+
       if (humanizedDuration.length === 0) {
         humanizedDuration.push("0 seconds");
       }
 
-      if (humanizedDuration.length > 2) {
-        humanizedDuration.length = 2;
+      if (humanizedDuration.length > precision) {
+        humanizedDuration.length = precision;
       }
 
       return humanizedDuration.join(", ");
