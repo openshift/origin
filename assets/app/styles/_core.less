@@ -318,13 +318,16 @@ label.checkbox {
 // Make sure icons are the same size so headings align.
 .add-to-project {
   .catalog-legend {
-    dd {
-      margin-bottom: 5px;
+    dt, dd {
+      display: inline;
     }
-    .fa, .pficon {
-      width: 12px;
-      margin-right: 5px;
-      text-align: center;
+    dt:before {
+      content: "";
+      display: block;
+    }
+    dd:before {
+      // dash and space
+      content: '\2014\00a0';
     }
   }
 
