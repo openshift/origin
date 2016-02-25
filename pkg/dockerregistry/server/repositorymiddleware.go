@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -341,6 +342,10 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		},
 	}
 
+	if err := r.fillImageWithMetadata(manifest, &ism.Image); err != nil {
+		return err
+	}
+
 	if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
@@ -396,6 +401,40 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// fillImageWithMetadata fills a given image with metadata. Also correct layer sizes with blob sizes. Newer
+// Docker client versions don't set layer sizes in the manifest at all. Origin master needs correct layer
+// sizes for proper image quota support. That's why we need to fill the metadata in the registry.
+func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, image *imageapi.Image) error {
+	if err := imageapi.ImageWithMetadata(image); err != nil {
+		return err
+	}
+
+	layerSet := sets.NewString()
+	size := int64(0)
+
+	blobs := r.Blobs(r.ctx)
+	for i := range image.DockerImageLayers {
+		layer := &image.DockerImageLayers[i]
+		// DockerImageLayers represents manifest.Manifest.FSLayers in reversed order
+		desc, err := blobs.Stat(r.ctx, manifest.Manifest.FSLayers[len(image.DockerImageLayers)-i-1].BlobSum)
+		if err != nil {
+			context.GetLogger(r.ctx).Errorf("Failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
+			return err
+		}
+		layer.Size = desc.Size
+		// count empty layer just once (empty layer may actually have non-zero size)
+		if !layerSet.Has(layer.Name) {
+			size += desc.Size
+			layerSet.Insert(layer.Name)
+		}
+	}
+
+	image.DockerImageMetadata.Size = size
+	context.GetLogger(r.ctx).Infof("Total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, size)
 
 	return nil
 }
