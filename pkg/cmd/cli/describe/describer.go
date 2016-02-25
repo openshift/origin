@@ -254,6 +254,8 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		formatString(out, "Output to", fmt.Sprintf("%s %s", p.Output.To.Kind, nameAndNamespace(p.Output.To.Namespace, p.Output.To.Name)))
 	}
 
+	describePostCommitHook(p.PostCommit, out)
+
 	if p.Output.PushSecret != nil {
 		formatString(out, "Push Secret", p.Output.PushSecret.Name)
 	}
@@ -272,6 +274,32 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	if p.CompletionDeadlineSeconds != nil {
 		formatString(out, "Fail Build After", time.Duration(*p.CompletionDeadlineSeconds)*time.Second)
 	}
+}
+
+func describePostCommitHook(hook buildapi.BuildPostCommitSpec, out *tabwriter.Writer) {
+	command := hook.Command
+	args := hook.Args
+	script := hook.Script
+	if len(command) == 0 && len(args) == 0 && len(script) == 0 {
+		// Post commit hook is not set, nothing to do.
+		return
+	}
+	if len(script) != 0 {
+		command = []string{"/bin/sh", "-ic"}
+		if len(args) > 0 {
+			args = append([]string{script, command[0]}, args...)
+		} else {
+			args = []string{script}
+		}
+	}
+	if len(command) == 0 {
+		command = []string{"<image-entrypoint>"}
+	}
+	all := append(command, args...)
+	for i, v := range all {
+		all[i] = fmt.Sprintf("%q", v)
+	}
+	formatString(out, "Post Commit Hook", fmt.Sprintf("[%s]", strings.Join(all, ", ")))
 }
 
 func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
