@@ -105,6 +105,9 @@ echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
+# display any existing OpenShift processes
+check_for_running_openshift
+
 openshift admin ca create-master-certs \
   --overwrite=false \
   --cert-dir="${MASTER_CONFIG_DIR}" \
