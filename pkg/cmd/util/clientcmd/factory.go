@@ -460,6 +460,27 @@ func getPorts(spec api.PodSpec) []string {
 	return result
 }
 
+// MutateEnvForObject mutates the input object environment variables using the
+// provided function. The input object might be build configuration or pod or an
+// object that contains pod template.
+// The mutation function will receive the pod spec or the build strategy.
+func (f *Factory) MutateEnvForObject(obj runtime.Object, mutate func(interface{}) error) (bool, error) {
+	switch t := obj.(type) {
+	case *buildapi.BuildConfig:
+		if t.Spec.Strategy.CustomStrategy != nil {
+			return true, mutate(t.Spec.Strategy.CustomStrategy)
+		}
+		if t.Spec.Strategy.SourceStrategy != nil {
+			return true, mutate(t.Spec.Strategy.SourceStrategy)
+		}
+		if t.Spec.Strategy.DockerStrategy != nil {
+			return true, mutate(t.Spec.Strategy.DockerStrategy)
+		}
+		return false, fmt.Errorf("no valid strategy found in the build config")
+	}
+	return f.UpdatePodSpecForObject(obj, func(spec *api.PodSpec) error { return mutate(spec) })
+}
+
 // UpdatePodSpecForObject update the pod specification for the provided object
 // TODO: move to upstream
 func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
