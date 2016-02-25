@@ -103,6 +103,7 @@ corsAllowedOrigins: null
 disabledFeatures: null
 dnsConfig:
   allowRecursiveQueries: false
+  clusterDomain: ""
   bindAddress: ""
   bindNetwork: ""
 etcdClientInfo:

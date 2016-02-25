@@ -420,6 +420,8 @@ type MasterClients struct {
 }
 
 type DNSConfig struct {
+	// ClusterDomain is the authoritative domain of the DNS server.
+	ClusterDomain string
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string
 	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",

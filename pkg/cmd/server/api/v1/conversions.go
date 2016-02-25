@@ -127,6 +127,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 		},
 		func(obj *DNSConfig) {
+			if len(obj.ClusterDomain) == 0 {
+				obj.ClusterDomain = "cluster.local"
+			}
 			if len(obj.BindNetwork) == 0 {
 				obj.BindNetwork = "tcp4"
 			}

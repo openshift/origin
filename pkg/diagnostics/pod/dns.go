@@ -57,6 +57,7 @@ func connectAndResolve(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 	for serverIndex, server := range resolvConf.Servers {
 		// put together a DNS query to configured nameservers for kubernetes.default
 		msg := new(dns.Msg)
+		// TODO: use clusterDomain instead of cluster.local
 		msg.SetQuestion("kubernetes.default.svc.cluster.local.", dns.TypeA)
 		msg.RecursionDesired = false
 		if result, completed := dnsQueryWithTimeout(msg, server, 2); !completed {
@@ -69,10 +70,13 @@ func connectAndResolve(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 			in, err := result.in, result.err
 			if serverIndex == 0 { // in a pod, master (SkyDNS) IP is injected as first nameserver
 				if err != nil {
+					// TODO: use clusterDomain instead of cluster.local
 					r.Error("DP2003", err, fmt.Sprintf("The first /etc/resolv.conf nameserver %s\ncould not resolve kubernetes.default.svc.cluster.local.\nError: %v\nThis nameserver points to the master's SkyDNS which is critical for\nresolving cluster names, e.g. for Services.", server, err))
 				} else if len(in.Answer) == 0 {
+					// TODO: use clusterDomain instead of cluster.local
 					r.Error("DP2006", err, fmt.Sprintf("The first /etc/resolv.conf nameserver %s\ncould not resolve kubernetes.default.svc.cluster.local.\nReturn code: %v\nThis nameserver points to the master's SkyDNS which is critical for\nresolving cluster names, e.g. for Services.", server, dns.RcodeToString[in.MsgHdr.Rcode]))
 				} else {
+					// TODO: use clusterDomain instead of cluster.local
 					r.Debug("DP2007", fmt.Sprintf("The first /etc/resolv.conf nameserver %s\nresolved kubernetes.default.svc.cluster.local. to:\n  %s", server, in.Answer[0]))
 				}
 			} else if err != nil {
@@ -104,6 +108,7 @@ func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 	seenDP2014 := sets.String{}
 	seenDP2015 := sets.String{}
 	for _, domain := range resolvConf.Search {
+		// TODO: use clusterDomain instead of cluster.local
 		if domain == "svc.cluster.local" {
 			foundDomain = true // this will make kubernetes.default work
 		}
@@ -132,6 +137,7 @@ func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 		}
 	}
 	if !foundDomain {
+		// TODO: use clusterDomain instead of cluster.local
 		r.Error("DP2019", nil, "Did not find svc.cluster.local among the configured search domains in /etc/resolv.conf.\nThis is likely to cause problems with certain components that expect to use partial cluster addresses.")
 	}
 }

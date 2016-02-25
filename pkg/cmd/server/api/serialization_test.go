@@ -46,6 +46,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}
 			if len(obj.RoutingConfig.Subdomain) == 0 {
+				// TODO: use clusterDomain instead of cluster.local
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
 

@@ -98,6 +98,7 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	if config.DNSConfig != nil {
 		dnsConfigPath := fldPath.Child("dnsConfig")
+		validationResults.AddErrors(ValidateDomain(config.DNSConfig.ClusterDomain, dnsConfigPath.Child("clusterDomain"))...)
 		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, dnsConfigPath.Child("bindAddress"))...)
 		switch config.DNSConfig.BindNetwork {
 		case "tcp", "tcp4", "tcp6":

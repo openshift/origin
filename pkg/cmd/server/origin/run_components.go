@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -153,6 +154,12 @@ func (c *MasterConfig) RunDNSServer() {
 	case "tcp6":
 		config.BindNetwork = "ipv6"
 	}
+	if strings.HasSuffix(c.Options.DNSConfig.ClusterDomain, ".") {
+		config.Domain = c.Options.DNSConfig.ClusterDomain
+	} else {
+		config.Domain = c.Options.DNSConfig.ClusterDomain + "."
+	}
+	config.Local = "openshift.default.svc." + config.Domain
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
 	config.NoRec = !c.Options.DNSConfig.AllowRecursiveQueries
 
