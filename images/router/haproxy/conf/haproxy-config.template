@@ -17,8 +17,7 @@ global
   stats timeout 2m
 
   # Prevent vulnerability to POODLE attacks
-  # TODO: use when 1.5.14 is available
-  # ssl-default-bind-options no-sslv3
+  ssl-default-bind-options no-sslv3
 
   # Modern cipher suite (no legacy browser support) from https://wiki.mozilla.org/Security/Server_Side_TLS
   # tune.ssl.default-dh-param 2048
