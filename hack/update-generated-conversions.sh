@@ -35,7 +35,7 @@ EOF
 
 DESTINATION_FILE_REL=${1:-""}
 DESTINATION_FILE_ROOT="${OS_ROOT}/${DESTINATION_FILE_REL}/pkg/api"
-VERSIONS="v1beta3 v1"
+VERSIONS="v1"
 for ver in $VERSIONS; do
 	mkdir -p "${DESTINATION_FILE_ROOT}/${ver}" || echo $? > /dev/null
 	DESTINATION_FILE="${DESTINATION_FILE_ROOT}/${ver}/conversion_generated.go"

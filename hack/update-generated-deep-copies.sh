@@ -47,7 +47,7 @@ EOF
 
 OUTPUT_DIR_ROOT_REL=${1:-""}
 OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_DIR_ROOT_REL}/pkg/api"
-VERSIONS="api v1beta3 v1"
+VERSIONS="api v1"
 # To avoid compile errors, remove the currently existing files.
 for ver in $VERSIONS; do
 	rm -f `result_file_name ${ver}`
