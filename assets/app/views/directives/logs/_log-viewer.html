@@ -26,7 +26,7 @@
 
 
 <div class="row" ng-if="(!chromeless)">
-  <div class="col-md-6 col-sm-12">
+  <div class="col-xs-12 col-sm-6">
     <span ng-if="status">
       <span>Status:&nbsp;&nbsp;</span>
       <status-icon status="status"></status-icon>
@@ -34,7 +34,7 @@
     </span>
   </div>
   <div
-    class="log-link-external col-md-6 col-sm-12 text-right"
+    class="log-link-external col-xs-12 col-sm-6 text-xs-left text-right"
     ng-if="state=='logs'">
     <a href=""  ng-click="goChromeless(options)">
       Open full view of log<i class="fa fa-external-link"></i>
