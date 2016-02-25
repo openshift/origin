@@ -50,10 +50,12 @@ func (r *Selector) Visit(fn VisitorFunc) error {
 	list, err := NewHelper(r.Client, r.Mapping).List(r.Namespace, r.ResourceMapping().GroupVersionKind.GroupVersion().String(), r.Selector, r.Export)
 	if err != nil {
 		if errors.IsBadRequest(err) || errors.IsNotFound(err) {
-			if r.Selector.Empty() {
-				return fmt.Errorf("Unable to list %q: %v", r.Mapping.Resource, err)
-			} else {
-				return fmt.Errorf("Unable to find %q that match the selector %q: %v", r.Mapping.Resource, r.Selector, err)
+			if statusError, ok := err.(*errors.StatusError); ok {
+				if r.Selector.Empty() {
+					statusError.ErrStatus.Message = fmt.Sprintf("Unable to list %q: %v", r.Mapping.Resource, err)
+				} else {
+					statusError.ErrStatus.Message = fmt.Sprintf("Unable to find %q that match the selector %q: %v", r.Mapping.Resource, r.Selector, err)
+				}
 			}
 		}
 		return err

@@ -72,6 +72,9 @@ type Builder struct {
 	export bool
 
 	schema validation.Schema
+
+	complacentErrorInGroupingAliases utilerrors.Matcher
+	replacedAliases                  map[string][]string
 }
 
 type resourceTuple struct {
@@ -82,8 +85,9 @@ type resourceTuple struct {
 // NewBuilder creates a builder that operates on generic objects.
 func NewBuilder(mapper meta.RESTMapper, typer runtime.ObjectTyper, clientMapper ClientMapper, decoder runtime.Decoder) *Builder {
 	return &Builder{
-		mapper:        &Mapper{typer, mapper, clientMapper, decoder},
-		requireObject: true,
+		mapper:          &Mapper{typer, mapper, clientMapper, decoder},
+		requireObject:   true,
+		replacedAliases: make(map[string][]string),
 	}
 }
 
@@ -308,6 +312,7 @@ func (b *Builder) ResourceTypeOrNameArgs(allowEmptySelector bool, args ...string
 		}
 		return b
 	}
+
 	if len(args) > 0 {
 		// Try replacing aliases only in types
 		args[0] = b.replaceAliases(args[0])
@@ -337,6 +342,7 @@ func (b *Builder) replaceAliases(input string) string {
 	replaced := []string{}
 	for _, arg := range strings.Split(input, ",") {
 		if aliases, ok := b.mapper.AliasesForResource(arg); ok {
+			b.replacedAliases[arg] = append(b.replacedAliases[arg], aliases...)
 			arg = strings.Join(aliases, ",")
 		}
 		replaced = append(replaced, arg)
@@ -359,6 +365,15 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 	default:
 		return false, nil
 	}
+}
+
+func (b *Builder) onlyGroupingAliases() bool {
+	for _, aliases := range b.replacedAliases {
+		if len(aliases) <= 1 {
+			return false
+		}
+	}
+	return len(b.replacedAliases) != 0
 }
 
 // Normalize args convert multiple resources to resource tuples, a,b,c d
@@ -424,6 +439,14 @@ func (b *Builder) RequireObject(require bool) *Builder {
 // the first error is returned from a VisitorFunc.
 func (b *Builder) ContinueOnError() *Builder {
 	b.continueOnError = true
+	return b
+}
+
+// ComplacentErrorInGroupingAliases will attempt to load and visit as many objects as possible, and
+// in case of visits based on selectors that use grouping aliases (like "all"), will ignore (log and
+// not return) errors that match the given error Matcher.
+func (b *Builder) ComplacentErrorInGroupingAliases(errorMatcher utilerrors.Matcher) *Builder {
+	b.complacentErrorInGroupingAliases = errorMatcher
 	return b
 }
 
@@ -550,7 +573,11 @@ func (b *Builder) visitorResult() *Result {
 			visitors = append(visitors, NewSelector(client, mapping, selectorNamespace, b.selector, b.export))
 		}
 		if b.continueOnError {
-			return &Result{visitor: EagerVisitorList(visitors), sources: visitors}
+			eagerVisitorList := EagerVisitorList(visitors)
+			if b.complacentErrorInGroupingAliases != nil && b.onlyGroupingAliases() {
+				return &Result{visitor: ComplacentVisitorList{eagerVisitorList, b.complacentErrorInGroupingAliases}, sources: visitors}
+			}
+			return &Result{visitor: eagerVisitorList, sources: visitors}
 		}
 		return &Result{visitor: VisitorList(visitors), sources: visitors}
 	}

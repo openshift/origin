@@ -21,6 +21,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -199,6 +200,7 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		ExportParam(export).
 		ResourceTypeOrNameArgs(true, args...).
 		ContinueOnError().
+		ComplacentErrorInGroupingAliases(errors.IsNotFound).
 		Latest()
 	printer, generic, err := cmdutil.PrinterForCommand(cmd)
 	if err != nil {
