@@ -156,6 +156,10 @@ html,body {
       .flex-wrap(@wrap: nowrap);
       .align-items(@align: flex-start);
       .justify-content(@justify: flex-start);
+      // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+      -ms-flex-align: start;
+      -ms-flex-pack: start;
+
       height: 100%;
       position: absolute;
       overflow: hidden; //make scrollable
@@ -195,6 +199,10 @@ html,body {
       .flex-wrap(@wrap: nowrap);
       .align-items(@align: flex-start);
       .justify-content(@justify: flex-start);
+      // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+      -ms-flex-align: start;
+      -ms-flex-pack: start;
+      
       height: 100%;
       position: absolute;
       overflow: hidden;
