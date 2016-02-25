@@ -1,9 +1,12 @@
 package describe
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
+	"text/tabwriter"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -367,5 +370,73 @@ func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 				},
 			},
 		},
+	}
+}
+
+func TestDescribePostCommitHook(t *testing.T) {
+	tests := []struct {
+		hook buildapi.BuildPostCommitSpec
+		want string
+	}{
+		{
+			hook: buildapi.BuildPostCommitSpec{},
+			want: "",
+		},
+		{
+			hook: buildapi.BuildPostCommitSpec{
+				Script: "go test",
+			},
+			want: `"/bin/sh", "-ic", "go test"`,
+		},
+		{
+			hook: buildapi.BuildPostCommitSpec{
+				Command: []string{"go", "test"},
+			},
+			want: `"go", "test"`,
+		},
+		{
+			hook: buildapi.BuildPostCommitSpec{
+				Args: []string{"go", "test"},
+			},
+			want: `"<image-entrypoint>", "go", "test"`,
+		},
+		{
+			hook: buildapi.BuildPostCommitSpec{
+				Script: `go test "$@"`,
+				Args:   []string{"-v", "-timeout", "2s"},
+			},
+			want: `"/bin/sh", "-ic", "go test \"$@\"", "/bin/sh", "-v", "-timeout", "2s"`,
+		},
+		{
+			hook: buildapi.BuildPostCommitSpec{
+				Command: []string{"go", "test"},
+				Args:    []string{"-v", "-timeout", "2s"},
+			},
+			want: `"go", "test", "-v", "-timeout", "2s"`,
+		},
+		{
+			// Invalid hook: Script and Command are not allowed
+			// together. For printing, Script takes precedence.
+			hook: buildapi.BuildPostCommitSpec{
+				Script:  "go test -v",
+				Command: []string{"go", "test"},
+			},
+			want: `"/bin/sh", "-ic", "go test -v"`,
+		},
+	}
+	for _, tt := range tests {
+		var b bytes.Buffer
+		out := tabwriter.NewWriter(&b, 0, 8, 0, '\t', 0)
+		describePostCommitHook(tt.hook, out)
+		if err := out.Flush(); err != nil {
+			t.Fatalf("%+v: flush error: %v", tt.hook, err)
+		}
+		var want string
+		if tt.want != "" {
+			want = fmt.Sprintf("Post Commit Hook:\t[%s]\n", tt.want)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("describePostCommitHook(%+v, out) = %q, want %q", tt.hook, got, want)
+		}
 	}
 }
