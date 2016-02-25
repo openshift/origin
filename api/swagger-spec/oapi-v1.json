@@ -885,7 +885,7 @@
         "type": "string",
         "paramType": "query",
         "name": "asFile",
-        "description": "",
+        "description": "AsFile determines if the binary should be created as a file within the source rather than extracted as an archive",
         "required": false,
         "allowMultiple": false
        },
@@ -893,7 +893,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.commit",
-        "description": "",
+        "description": "Commit is the value identifying a specific commit",
         "required": false,
         "allowMultiple": false
        },
@@ -901,7 +901,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.message",
-        "description": "",
+        "description": "Message is the description of a specific commit",
         "required": false,
         "allowMultiple": false
        },
@@ -909,7 +909,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.authorName",
-        "description": "",
+        "description": "AuthorName of the source control user",
         "required": false,
         "allowMultiple": false
        },
@@ -917,7 +917,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.authorEmail",
-        "description": "",
+        "description": "AuthorEmail of the source control user",
         "required": false,
         "allowMultiple": false
        },
@@ -925,7 +925,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.committerName",
-        "description": "",
+        "description": "CommitterName of the source control user",
         "required": false,
         "allowMultiple": false
        },
@@ -933,7 +933,7 @@
         "type": "string",
         "paramType": "query",
         "name": "revision.committerEmail",
-        "description": "",
+        "description": "CommitterEmail of the source control user",
         "required": false,
         "allowMultiple": false
        },
@@ -2004,7 +2004,7 @@
         "type": "string",
         "paramType": "query",
         "name": "container",
-        "description": "",
+        "description": "The container for which to stream logs. Defaults to only container if there is one container in the pod.",
         "required": false,
         "allowMultiple": false
        },
@@ -2012,7 +2012,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "follow",
-        "description": "",
+        "description": "Follow if true indicates that the build log should be streamed until the build terminates.",
         "required": false,
         "allowMultiple": false
        },
@@ -2020,7 +2020,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "previous",
-        "description": "",
+        "description": "Return previous build logs. Defaults to false.",
         "required": false,
         "allowMultiple": false
        },
@@ -2028,7 +2028,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "sinceSeconds",
-        "description": "",
+        "description": "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -2036,7 +2036,7 @@
         "type": "string",
         "paramType": "query",
         "name": "sinceTime",
-        "description": "",
+        "description": "An RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -2044,7 +2044,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "timestamps",
-        "description": "",
+        "description": "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
         "required": false,
         "allowMultiple": false
        },
@@ -2052,7 +2052,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "tailLines",
-        "description": "",
+        "description": "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
         "required": false,
         "allowMultiple": false
        },
@@ -2060,7 +2060,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "limitBytes",
-        "description": "",
+        "description": "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
         "required": false,
         "allowMultiple": false
        },
@@ -2068,7 +2068,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "nowait",
-        "description": "",
+        "description": "NoWait if true causes the call to return immediately even if the build is not available yet. Otherwise the server will wait until the build has started.",
         "required": false,
         "allowMultiple": false
        },
@@ -2076,7 +2076,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "version",
-        "description": "",
+        "description": "Version of the build for which to view logs.",
         "required": false,
         "allowMultiple": false
        },
@@ -5257,7 +5257,7 @@
         "type": "string",
         "paramType": "query",
         "name": "container",
-        "description": "",
+        "description": "The container for which to stream logs. Defaults to only container if there is one container in the pod.",
         "required": false,
         "allowMultiple": false
        },
@@ -5265,7 +5265,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "follow",
-        "description": "",
+        "description": "Follow if true indicates that the build log should be streamed until the build terminates.",
         "required": false,
         "allowMultiple": false
        },
@@ -5273,7 +5273,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "previous",
-        "description": "",
+        "description": "Return previous deployment logs. Defaults to false.",
         "required": false,
         "allowMultiple": false
        },
@@ -5281,7 +5281,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "sinceSeconds",
-        "description": "",
+        "description": "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -5289,7 +5289,7 @@
         "type": "string",
         "paramType": "query",
         "name": "sinceTime",
-        "description": "",
+        "description": "An RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -5297,7 +5297,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "timestamps",
-        "description": "",
+        "description": "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
         "required": false,
         "allowMultiple": false
        },
@@ -5305,7 +5305,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "tailLines",
-        "description": "",
+        "description": "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
         "required": false,
         "allowMultiple": false
        },
@@ -5313,7 +5313,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "limitBytes",
-        "description": "",
+        "description": "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
         "required": false,
         "allowMultiple": false
        },
@@ -5321,7 +5321,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "nowait",
-        "description": "",
+        "description": "NoWait if true causes the call to return immediately even if the deployment is not available yet. Otherwise the server will wait until the deployment has started.",
         "required": false,
         "allowMultiple": false
        },
@@ -5329,7 +5329,7 @@
         "type": "integer",
         "paramType": "query",
         "name": "version",
-        "description": "",
+        "description": "Version of the deployment for which to view logs.",
         "required": false,
         "allowMultiple": false
        },
@@ -17213,6 +17213,7 @@
   "models": {
    "v1.BuildConfigList": {
     "id": "v1.BuildConfigList",
+    "description": "BuildConfigList is a collection of BuildConfigs.",
     "required": [
      "items"
     ],
@@ -17226,14 +17227,15 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.BuildConfig"
       },
-      "description": "list of build configs"
+      "description": "Items is a list of build configs"
      }
     }
    },
@@ -17253,6 +17255,7 @@
    },
    "v1.BuildConfig": {
     "id": "v1.BuildConfig",
+    "description": "BuildConfig is a template which can be used to create new builds.",
     "required": [
      "spec",
      "status"
@@ -17267,15 +17270,16 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.BuildConfigSpec",
-      "description": "holds all the input necessary to produce a new build, and the conditions when to trigger them"
+      "description": "Spec holds all the input necessary to produce a new build, and the conditions when to trigger them."
      },
      "status": {
       "$ref": "v1.BuildConfigStatus",
-      "description": "holds any relevant information about a build config derived by the system"
+      "description": "Status holds any relevant information about a build config"
      }
     }
    },
@@ -17337,6 +17341,7 @@
    },
    "v1.BuildConfigSpec": {
     "id": "v1.BuildConfigSpec",
+    "description": "BuildConfigSpec describes when and how builds are created",
     "required": [
      "triggers",
      "strategy"
@@ -17347,86 +17352,89 @@
       "items": {
        "$ref": "v1.BuildTriggerPolicy"
       },
-      "description": "determines how new builds can be launched from a build config.  if no triggers are defined, a new build can only occur as a result of an explicit client build creation."
+      "description": "Triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation."
      },
      "serviceAccount": {
       "type": "string",
-      "description": "the name of the service account to use to run pods created by the build, pod will be allowed to use secrets referenced by the service account"
+      "description": "ServiceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount"
      },
      "source": {
       "$ref": "v1.BuildSource",
-      "description": "describes the source control management system in use"
+      "description": "Source describes the SCM in use."
      },
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "specific revision in the source repository"
+      "description": "Revision is the information from the source for a specific repo snapshot. This is optional."
      },
      "strategy": {
       "$ref": "v1.BuildStrategy",
-      "description": "defines how to perform a build"
+      "description": "Strategy defines how to perform a build."
      },
      "output": {
       "$ref": "v1.BuildOutput",
-      "description": "describes the output of a build that a strategy should produce"
+      "description": "Output describes the Docker image the Strategy should produce."
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "the desired compute resources the build should have"
+      "description": "Compute resource requirements to execute the build"
      },
      "postCommit": {
       "$ref": "v1.BuildPostCommitSpec",
-      "description": "an action executed after the build output image is committed"
+      "description": "PostCommit is a build hook executed after the build output image is committed, before it is pushed to a registry."
      },
      "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"
+      "description": "Optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
      }
     }
    },
    "v1.BuildTriggerPolicy": {
     "id": "v1.BuildTriggerPolicy",
+    "description": "BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.",
     "required": [
      "type"
     ],
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of build trigger"
+      "description": "Type is the type of build trigger"
      },
      "github": {
       "$ref": "v1.WebHookTrigger",
-      "description": "parameters for a GitHub webhook type of trigger"
+      "description": "GitHubWebHook contains the parameters for a GitHub webhook type of trigger"
      },
      "generic": {
       "$ref": "v1.WebHookTrigger",
-      "description": "parameters for a Generic webhook type of trigger"
+      "description": "GenericWebHook contains the parameters for a Generic webhook type of trigger"
      },
      "imageChange": {
       "$ref": "v1.ImageChangeTrigger",
-      "description": "parameters for an ImageChange type of trigger"
+      "description": "ImageChange contains parameters for an ImageChange type of trigger"
      }
     }
    },
    "v1.WebHookTrigger": {
     "id": "v1.WebHookTrigger",
+    "description": "WebHookTrigger is a trigger that gets invoked using a webhook type of post",
     "properties": {
      "secret": {
       "type": "string",
-      "description": "secret used to validate requests"
+      "description": "Secret used to validate requests."
      }
     }
    },
    "v1.ImageChangeTrigger": {
     "id": "v1.ImageChangeTrigger",
+    "description": "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
     "properties": {
      "lastTriggeredImageID": {
       "type": "string",
-      "description": "used internally to save last used image ID for build"
+      "description": "LastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build"
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to an ImageStreamTag that will trigger the build"
+      "description": "From is a reference to an ImageStreamTag that will trigger a build when updated It is optional. If no From is specified, the From image from the build strategy will be used. Only one ImageChangeTrigger with an empty From reference is allowed in a build configuration."
      }
     }
    },
@@ -17466,6 +17474,7 @@
    },
    "v1.BuildSource": {
     "id": "v1.BuildSource",
+    "description": "BuildSource is the SCM used for the build.",
     "required": [
      "type",
      "secrets"
@@ -17473,79 +17482,82 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of build input to accept"
+      "description": "Type of build input to accept"
      },
      "binary": {
       "$ref": "v1.BinaryBuildSource",
-      "description": "the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"
+      "description": "Binary builds accept a binary as their input. The binary is generally assumed to be a tar, gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build context and an optional Dockerfile may be specified to override any Dockerfile in the build context. For Source builds, this is assumed to be an archive as described above. For Source and Docker builds, if binary.asFile is set the build will receive a directory with a single file. contextDir may be used when an archive is provided. Custom builds will receive this binary as input on STDIN."
      },
      "dockerfile": {
       "type": "string",
-      "description": "the contents of a Dockerfile to build; FROM may be overridden by your strategy source, and additional ENV from your strategy will be placed before the rest of the Dockerfile stanzas"
+      "description": "Dockerfile is the raw contents of a Dockerfile which should be built. When this option is specified, the FROM may be modified based on your strategy base image and additional ENV stanzas from your strategy environment will be added after the FROM, but before the rest of your Dockerfile stanzas. The Dockerfile source type may be used with other options like git - in those cases the Git repo will have any innate Dockerfile replaced in the context dir."
      },
      "git": {
       "$ref": "v1.GitBuildSource",
-      "description": "optional information about git build source"
+      "description": "Git contains optional information about git build source"
      },
      "images": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageSource"
       },
-      "description": "optional images for build source."
+      "description": "Images describes a set of images to be used to provide source for the build"
      },
      "contextDir": {
       "type": "string",
-      "description": "specifies sub-directory where the source code for the application exists, allows for sources to be built from a directory other than the root of a repository"
+      "description": "ContextDir specifies the sub-directory where the source code for the application exists. This allows to have buildable sources in directory other than root of repository."
      },
      "sourceSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "supported auth methods are: ssh-privatekey"
+      "description": "SourceSecret is the name of a Secret that would be used for setting up the authentication for cloning private repository. The secret contains valid credentials for remote repository, where the data's key represent the authentication method to be used and value is the base64 encoded credentials. Supported auth methods are: ssh-privatekey."
      },
      "secrets": {
       "type": "array",
       "items": {
        "$ref": "v1.SecretBuildSource"
       },
-      "description": "list of build secrets and destination directories"
+      "description": "Secrets represents a list of secrets and their destinations that will be used only for the build."
      }
     }
    },
    "v1.BinaryBuildSource": {
     "id": "v1.BinaryBuildSource",
+    "description": "BinaryBuildSource describes a binary file to be used for the Docker and Source build strategies, where the file will be extracted and used as the build source.",
     "properties": {
      "asFile": {
       "type": "string",
-      "description": "indicate the provided binary should be considered a single file placed within the root of the input; must be a valid filename with no path segments"
+      "description": "AsFile indicates that the provided binary input should be considered a single file within the build input. For example, specifying \"webapp.war\" would place the provided binary as `/webapp.war` for the builder. If left empty, the Docker and Source build strategies assume this file is a zip, tar, or tar.gz file and extract it as the source. The custom strategy receives this binary as standard input. This filename may not contain slashes or be '..' or '.'."
      }
     }
    },
    "v1.GitBuildSource": {
     "id": "v1.GitBuildSource",
+    "description": "GitBuildSource defines the parameters of a Git SCM",
     "required": [
      "uri"
     ],
     "properties": {
      "uri": {
       "type": "string",
-      "description": "points to the source that will be built, structure of the source will depend on the type of build to run"
+      "description": "URI points to the source that will be built. The structure of the source will depend on the type of build to run"
      },
      "ref": {
       "type": "string",
-      "description": "identifies the branch/tag/ref to build"
+      "description": "Ref is the branch/tag/ref to build."
      },
      "httpProxy": {
       "type": "string",
-      "description": "specifies a http proxy to be used during git clone operations"
+      "description": "HTTPProxy is a proxy used to reach the git repository over http"
      },
      "httpsProxy": {
       "type": "string",
-      "description": "specifies a https proxy to be used during git clone operations"
+      "description": "HTTPSProxy is a proxy used to reach the git repository over https"
      }
     }
    },
    "v1.ImageSource": {
     "id": "v1.ImageSource",
+    "description": "ImageSource describes an image that is used as source for the build",
     "required": [
      "from",
      "paths"
@@ -17553,23 +17565,24 @@
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to ImageStreamTag, ImageStreamImage, or DockerImage"
+      "description": "From is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to copy source from."
      },
      "paths": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageSourcePath"
       },
-      "description": "paths to copy from image"
+      "description": "Paths is a list of source and destination paths to copy from the image."
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "overrides the default pull secret for the source image"
+      "description": "PullSecret is a reference to a secret to be used to pull the image from a registry If the image is pulled from the OpenShift registry, this field does not need to be set."
      }
     }
    },
    "v1.ImageSourcePath": {
     "id": "v1.ImageSourcePath",
+    "description": "ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.",
     "required": [
      "sourcePath",
      "destinationDir"
@@ -17577,11 +17590,11 @@
     "properties": {
      "sourcePath": {
       "type": "string",
-      "description": "source path (directory or file) inside image"
+      "description": "SourcePath is the absolute path of the file or directory inside the image to copy to the build directory."
      },
      "destinationDir": {
       "type": "string",
-      "description": "relative destination directory in build home"
+      "description": "DestinationDir is the relative directory within the build directory where files copied from the image are placed."
      }
     }
    },
@@ -17597,123 +17610,129 @@
    },
    "v1.SecretBuildSource": {
     "id": "v1.SecretBuildSource",
+    "description": "SecretBuildSource describes a secret and its destination directory that will be used only at the build time. The content of the secret referenced here will be copied into the destination directory instead of mounting.",
     "required": [
      "secret"
     ],
     "properties": {
      "secret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "name of a secret to be used as a source"
+      "description": "Secret is a reference to an existing secret that you want to use in your build."
      },
      "destinationDir": {
       "type": "string",
-      "description": "destination directory for the secret files"
+      "description": "DestinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build."
      }
     }
    },
    "v1.SourceRevision": {
     "id": "v1.SourceRevision",
+    "description": "SourceRevision is the revision or commit information from the source for the build",
     "required": [
      "type"
     ],
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of the build source"
+      "description": "Type of the build source"
      },
      "git": {
       "$ref": "v1.GitSourceRevision",
-      "description": "information about git-based build source"
+      "description": "Git contains information about git-based build source"
      }
     }
    },
    "v1.GitSourceRevision": {
     "id": "v1.GitSourceRevision",
+    "description": "GitSourceRevision is the commit information from a git source for a build",
     "properties": {
      "commit": {
       "type": "string",
-      "description": "hash identifying a specific commit"
+      "description": "Commit is the commit hash identifying a specific commit"
      },
      "author": {
       "$ref": "v1.SourceControlUser",
-      "description": "author of a specific commit"
+      "description": "Author is the author of a specific commit"
      },
      "committer": {
       "$ref": "v1.SourceControlUser",
-      "description": "committer of a specific commit"
+      "description": "Committer is the committer of a specific commit"
      },
      "message": {
       "type": "string",
-      "description": "description of a specific commit"
+      "description": "Message is the description of a specific commit"
      }
     }
    },
    "v1.SourceControlUser": {
     "id": "v1.SourceControlUser",
+    "description": "SourceControlUser defines the identity of a user of source control",
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the source control user"
+      "description": "Name of the source control user"
      },
      "email": {
       "type": "string",
-      "description": "e-mail of the source control user"
+      "description": "Email of the source control user"
      }
     }
    },
    "v1.BuildStrategy": {
     "id": "v1.BuildStrategy",
+    "description": "BuildStrategy contains the details of how to perform a build.",
     "required": [
      "type"
     ],
     "properties": {
      "type": {
       "type": "string",
-      "description": "identifies the type of build strategy"
+      "description": "Type is the kind of build strategy."
      },
      "dockerStrategy": {
       "$ref": "v1.DockerBuildStrategy",
-      "description": "holds parameters for the Docker build strategy"
+      "description": "DockerStrategy holds the parameters to the Docker build strategy."
      },
      "sourceStrategy": {
       "$ref": "v1.SourceBuildStrategy",
-      "description": "holds parameters to the Source build strategy"
+      "description": "SourceStrategy holds the parameters to the Source build strategy."
      },
      "customStrategy": {
       "$ref": "v1.CustomBuildStrategy",
-      "description": "holds parameters to the Custom build strategy"
+      "description": "CustomStrategy holds the parameters to the Custom build strategy"
      }
     }
    },
    "v1.DockerBuildStrategy": {
     "id": "v1.DockerBuildStrategy",
+    "description": "DockerBuildStrategy defines input parameters specific to Docker build.",
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to image stream, image stream tag, or image stream image from which docker image should be pulled, resulting image will be used in the FROM line for the Dockerfile for this build"
+      "description": "From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build."
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "supported type: dockercfg"
+      "description": "PullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
      },
      "noCache": {
       "type": "boolean",
-      "description": "if true, indicates that the Docker build must be executed with the --no-cache=true flag"
+      "description": "NoCache if set to true indicates that the docker build must be executed with the --no-cache=true flag"
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "additional environment variables you want to pass into a builder container"
+      "description": "Env contains additional environment variables you want to pass into a builder container"
      },
      "forcePull": {
       "type": "boolean",
-      "description": "forces the source build to pull the image if true"
+      "description": "ForcePull describes if the builder should pull the images from registry prior to building."
      },
      "dockerfilePath": {
       "type": "string",
-      "description": "path of the Dockerfile to use for building the Docker image, relative to the contextDir, if set"
+      "description": "DockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir)."
      }
     }
    },
@@ -17809,83 +17828,86 @@
    },
    "v1.SourceBuildStrategy": {
     "id": "v1.SourceBuildStrategy",
+    "description": "SourceBuildStrategy defines input parameters specific to an Source build.",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"
+      "description": "From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled"
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "supported type: dockercfg"
+      "description": "PullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "additional environment variables you want to pass into a builder container"
+      "description": "Env contains additional environment variables you want to pass into a builder container"
      },
      "scripts": {
       "type": "string",
-      "description": "location of the source scripts"
+      "description": "Scripts is the location of Source scripts"
      },
      "incremental": {
       "type": "boolean",
-      "description": "forces the source build to do incremental builds if true"
+      "description": "Incremental flag forces the Source build to do incremental builds if true."
      },
      "forcePull": {
       "type": "boolean",
-      "description": "forces the source build to pull the image if true"
+      "description": "ForcePull describes if the builder should pull the images from registry prior to building."
      }
     }
    },
    "v1.CustomBuildStrategy": {
     "id": "v1.CustomBuildStrategy",
+    "description": "CustomBuildStrategy defines input parameters specific to Custom build.",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"
+      "description": "From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled"
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "supported type: dockercfg"
+      "description": "PullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "additional environment variables you want to pass into a builder container"
+      "description": "Env contains additional environment variables you want to pass into a builder container"
      },
      "exposeDockerSocket": {
       "type": "boolean",
-      "description": "allow running Docker commands (and build Docker images) from inside the container"
+      "description": "ExposeDockerSocket will allow running Docker commands (and build Docker images) from inside the Docker container."
      },
      "forcePull": {
       "type": "boolean",
-      "description": "forces pulling of builder image from remote registry if true"
+      "description": "ForcePull describes if the controller should configure the build pod to always pull the images for the builder or only pull if it is not present locally"
      },
      "secrets": {
       "type": "array",
       "items": {
        "$ref": "v1.SecretSpec"
       },
-      "description": "a list of secrets to include in the build pod in addition to pull, push and source secrets"
+      "description": "Secrets is a list of additional secrets that will be included in the build pod"
      },
      "buildAPIVersion": {
       "type": "string",
-      "description": "requested API version for the Build object serialized and passed to the custom builder"
+      "description": "BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder"
      }
     }
    },
    "v1.SecretSpec": {
     "id": "v1.SecretSpec",
+    "description": "SecretSpec specifies a secret to be included in a build pod and its corresponding mount point",
     "required": [
      "secretSource",
      "mountPath"
@@ -17893,24 +17915,25 @@
     "properties": {
      "secretSource": {
       "$ref": "v1.LocalObjectReference",
-      "description": "a reference to a secret"
+      "description": "SecretSource is a reference to the secret"
      },
      "mountPath": {
       "type": "string",
-      "description": "path within the container at which the secret should be mounted"
+      "description": "MountPath is the path at which to mount the secret"
      }
     }
    },
    "v1.BuildOutput": {
     "id": "v1.BuildOutput",
+    "description": "BuildOutput is input to a build strategy and describes the Docker image that the strategy should produce.",
     "properties": {
      "to": {
       "$ref": "v1.ObjectReference",
-      "description": "The optional image stream to push the output of this build.  The namespace may be empty, in which case, the image stream will be looked up based on the namespace of the build."
+      "description": "To defines an optional location to push the output of this build to. Kind must be one of 'ImageStreamTag' or 'DockerImage'. This value will be used to look up a Docker image repository to push to. In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of the build unless Namespace is specified."
      },
      "pushSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "supported type: dockercfg"
+      "description": "PushSecret is the name of a Secret that would be used for setting up the authentication for executing the Docker push to authentication enabled Docker Registry (or Docker Hub)."
      }
     }
    },
@@ -17930,29 +17953,31 @@
    },
    "v1.BuildPostCommitSpec": {
     "id": "v1.BuildPostCommitSpec",
+    "description": "A BuildPostCommitSpec holds a build post commit hook specification. The hook executes a command in a temporary container running the build output image, immediately after the last layer of the image is committed and before the image is pushed to a registry. The command is executed with the current working directory ($PWD) set to the image's WORKDIR.\n\nThe build will be marked as failed if the hook execution fails. It will fail if the script or command return a non-zero exit code, or if there is any other error related to starting the temporary container.\n\nThere are five different ways to configure the hook. As an example, all forms below are equivalent and will execute `rake test --verbose`.\n\n1. Shell script:\n\n\tBuildPostCommitSpec{\n\t\tScript: \"rake test --verbose\",\n\t}\n\nThe above is a convenient form which is equivalent to:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"/bin/sh\", \"-ic\"},\n\t\tArgs: []string{\"rake test --verbose\"},\n\t}\n\n2. Command as the image entrypoint:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"rake\", \"test\", \"--verbose\"},\n\t}\n\nCommand overrides the image entrypoint in the exec form, as documented in Docker: https://docs.docker.com/engine/reference/builder/#entrypoint.\n\n3. Pass arguments to the default entrypoint:\n\n\tBuildPostCommitSpec{\n\t\tArgs: []string{\"rake\", \"test\", \"--verbose\"},\n\t}\n\nThis form is only useful if the image entrypoint can handle arguments.\n\n4. Shell script with arguments:\n\n\tBuildPostCommitSpec{\n\t\tScript: \"rake test $1\",\n\t\tArgs: []string{\"--verbose\"},\n\t}\n\nThis form is useful if you need to pass arguments that would otherwise be hard to quote properly in the shell script. In the script, $0 will be \"/bin/sh\" and $1, $2, etc, are the positional arguments from Args.\n\n5. Command with arguments:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"rake\", \"test\"},\n\t\tArgs: []string{\"--verbose\"},\n\t}\n\nThis form is equivalent to appending the arguments to the Command slice.\n\nIt is invalid to provide both Script and Command simultaneously. If none of the fields are specified, the hook is not executed.",
     "properties": {
      "command": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "command to be executed in a container running the build output image replacing the image's entrypoint"
+      "description": "Command is the command to run. It may not be specified with Script. This might be needed if the image doesn't have `/bin/sh`, or if you do not want to use a shell. In all other cases, using Script might be more convenient."
      },
      "args": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "arguments to command, script or the default image entrypoint"
+      "description": "Args is a list of arguments that are provided to either Command, Script or the Docker image's default entrypoint. The arguments are placed immediately after the command to be run."
      },
      "script": {
       "type": "string",
-      "description": "shell script to be executed in a container running the build output image"
+      "description": "Script is a shell script to be run with `/bin/sh -ic`. It may not be specified with Command. Use Script when a shell script is appropriate to execute the post build hook, for example for running unit tests with `rake test`. If you need control over the image entrypoint, or if the image does not have `/bin/sh`, use Command and/or Args. The `-i` flag is needed to support CentOS and RHEL images that use Software Collections (SCL), in order to have the appropriate collections enabled in the shell. E.g., in the Ruby image, this is necessary to make `ruby`, `bundle` and other binaries available in the PATH."
      }
     }
    },
    "v1.BuildConfigStatus": {
     "id": "v1.BuildConfigStatus",
+    "description": "BuildConfigStatus contains current state of the build config object.",
     "required": [
      "lastVersion"
     ],
@@ -17960,7 +17985,7 @@
      "lastVersion": {
       "type": "integer",
       "format": "int32",
-      "description": "used to inform about number of last triggered build"
+      "description": "LastVersion is used to inform about number of last triggered build."
      }
     }
    },
@@ -18093,6 +18118,7 @@
    },
    "v1.BuildRequest": {
     "id": "v1.BuildRequest",
+    "description": "BuildRequest is the resource used to pass parameters to build generator",
     "properties": {
      "kind": {
       "type": "string",
@@ -18103,40 +18129,42 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "information from the source for a specific repo snapshot"
+      "description": "Revision is the information from the source for a specific repo snapshot."
      },
      "triggeredByImage": {
       "$ref": "v1.ObjectReference",
-      "description": "image that triggered this build"
+      "description": "TriggeredByImage is the Image that triggered this build."
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "ImageStreamTag that triggered this build"
+      "description": "From is the reference to the ImageStreamTag that triggered the build."
      },
      "binary": {
       "$ref": "v1.BinaryBuildSource",
-      "description": "the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"
+      "description": "Binary indicates a request to build from a binary provided to the builder"
      },
      "lastVersion": {
       "type": "integer",
       "format": "int32",
-      "description": "LastVersion of the BuildConfig that triggered this build"
+      "description": "LastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated."
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "additional environment variables you want to pass into a builder container"
+      "description": "Env contains additional environment variables you want to pass into a builder container"
      }
     }
    },
    "v1.BuildList": {
     "id": "v1.BuildList",
+    "description": "BuildList is a collection of Builds.",
     "required": [
      "items"
     ],
@@ -18150,19 +18178,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Build"
       },
-      "description": "list of builds"
+      "description": "Items is a list of builds"
      }
     }
    },
    "v1.Build": {
     "id": "v1.Build",
+    "description": "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
     "properties": {
      "kind": {
       "type": "string",
@@ -18173,106 +18203,109 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.BuildSpec",
-      "description": "specification of the desired behavior for a build"
+      "description": "Spec is all the inputs used to execute the build."
      },
      "status": {
       "$ref": "v1.BuildStatus",
-      "description": "most recently observed status of a build as populated by the system"
+      "description": "Status is the current status of the build."
      }
     }
    },
    "v1.BuildSpec": {
     "id": "v1.BuildSpec",
+    "description": "BuildSpec encapsulates all the inputs necessary to represent a build.",
     "required": [
      "strategy"
     ],
     "properties": {
      "serviceAccount": {
       "type": "string",
-      "description": "the name of the service account to use to run pods created by the build, pod will be allowed to use secrets referenced by the service account"
+      "description": "ServiceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount"
      },
      "source": {
       "$ref": "v1.BuildSource",
-      "description": "describes the source control management system in use"
+      "description": "Source describes the SCM in use."
      },
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "specific revision in the source repository"
+      "description": "Revision is the information from the source for a specific repo snapshot. This is optional."
      },
      "strategy": {
       "$ref": "v1.BuildStrategy",
-      "description": "defines how to perform a build"
+      "description": "Strategy defines how to perform a build."
      },
      "output": {
       "$ref": "v1.BuildOutput",
-      "description": "describes the output of a build that a strategy should produce"
+      "description": "Output describes the Docker image the Strategy should produce."
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "the desired compute resources the build should have"
+      "description": "Compute resource requirements to execute the build"
      },
      "postCommit": {
       "$ref": "v1.BuildPostCommitSpec",
-      "description": "an action executed after the build output image is committed"
+      "description": "PostCommit is a build hook executed after the build output image is committed, before it is pushed to a registry."
      },
      "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"
+      "description": "Optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
      }
     }
    },
    "v1.BuildStatus": {
     "id": "v1.BuildStatus",
+    "description": "BuildStatus contains the status of a build",
     "required": [
      "phase"
     ],
     "properties": {
      "phase": {
       "type": "string",
-      "description": "observed point in the build lifecycle"
+      "description": "Phase is the point in the build lifecycle."
      },
      "cancelled": {
       "type": "boolean",
-      "description": "describes if a cancel event was triggered for the build"
+      "description": "Cancelled describes if a cancel event was triggered for the build."
      },
      "reason": {
       "type": "string",
-      "description": "brief CamelCase string describing a failure, meant for machine parsing and tidy display in the CLI"
+      "description": "Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI."
      },
      "message": {
       "type": "string",
-      "description": "human-readable message indicating details about why the build has this status"
+      "description": "Message is a human-readable message indicating details about why the build has this status."
      },
      "startTimestamp": {
       "type": "string",
-      "description": "server time when this build started running in a pod"
+      "description": "StartTimestamp is a timestamp representing the server time when this Build started running in a Pod. It is represented in RFC3339 form and is in UTC."
      },
      "completionTimestamp": {
       "type": "string",
-      "description": "server time when the pod running this build stopped running"
+      "description": "CompletionTimestamp is a timestamp representing the server time when this Build was finished, whether that build failed or succeeded.  It reflects the time at which the Pod running the Build terminated. It is represented in RFC3339 form and is in UTC."
      },
      "duration": {
       "$ref": "time.Duration",
-      "description": "amount of time the build has been running"
+      "description": "Duration contains time.Duration object describing build time."
      },
      "outputDockerImageReference": {
       "type": "string",
-      "description": "reference to the Docker image built by this build, computed from build.spec.output.to, and can be used to push and pull the image"
+      "description": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. It's value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
      },
      "config": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to build config from which this build was derived"
+      "description": "Config is an ObjectReference to the BuildConfig this Build is based on."
      }
     }
    },
    "v1.BuildLog": {
     "id": "v1.BuildLog",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "BuildLog is the (unused) resource associated with the build log redirector",
     "properties": {
      "kind": {
       "type": "string",
@@ -18286,6 +18319,7 @@
    },
    "v1.ClusterNetworkList": {
     "id": "v1.ClusterNetworkList",
+    "description": "ClusterNetworkList is a collection of ClusterNetworks",
     "required": [
      "items"
     ],
@@ -18299,19 +18333,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ClusterNetwork"
       },
-      "description": "list of cluster networks"
+      "description": "Items is the list of cluster networks"
      }
     }
    },
    "v1.ClusterNetwork": {
     "id": "v1.ClusterNetwork",
+    "description": "ClusterNetwork describes a cluster network",
     "required": [
      "network",
      "hostsubnetlength",
@@ -18327,25 +18363,27 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "network": {
       "type": "string",
-      "description": "CIDR string to specify the global overlay network's L3 space"
+      "description": "Network is a CIDR string to specify the global overlay network's L3 space"
      },
      "hostsubnetlength": {
       "type": "integer",
       "format": "int32",
-      "description": "number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"
+      "description": "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"
      },
      "serviceNetwork": {
       "type": "string",
-      "description": "CIDR string to specify the service network"
+      "description": "ServiceNetwork is the CIDR string to specify the service network"
      }
     }
    },
    "v1.ClusterPolicyList": {
     "id": "v1.ClusterPolicyList",
+    "description": "ClusterPolicyList is a collection of ClusterPolicies",
     "required": [
      "items"
     ],
@@ -18359,19 +18397,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ClusterPolicy"
       },
-      "description": "list of cluster policies"
+      "description": "Items is a list of ClusterPolicies"
      }
     }
    },
    "v1.ClusterPolicy": {
     "id": "v1.ClusterPolicy",
+    "description": "ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most one ClusterPolicy document per namespace.",
     "required": [
      "lastModified",
      "roles"
@@ -18386,23 +18426,25 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "lastModified": {
       "type": "string",
-      "description": "last time any part of the object was created, updated, or deleted"
+      "description": "LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted"
      },
      "roles": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedClusterRole"
       },
-      "description": "all the roles held by this policy, mapped by role name"
+      "description": "Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name"
      }
     }
    },
    "v1.NamedClusterRole": {
     "id": "v1.NamedClusterRole",
+    "description": "NamedClusterRole relates a name with a cluster role",
     "required": [
      "name",
      "role"
@@ -18410,16 +18452,17 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the cluster role"
+      "description": "Name is the name of the cluster role"
      },
      "role": {
       "$ref": "v1.ClusterRole",
-      "description": "the cluster role"
+      "description": "Role is the cluster role being named"
      }
     }
    },
    "v1.ClusterRole": {
     "id": "v1.ClusterRole",
+    "description": "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
     "required": [
      "rules"
     ],
@@ -18433,19 +18476,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "rules": {
       "type": "array",
       "items": {
        "$ref": "v1.PolicyRule"
       },
-      "description": "list of policy rules"
+      "description": "Rules holds all the PolicyRules for this ClusterRole"
      }
     }
    },
    "v1.PolicyRule": {
     "id": "v1.PolicyRule",
+    "description": "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.",
     "required": [
      "verbs",
      "apiGroups",
@@ -18457,44 +18502,45 @@
       "items": {
        "type": "string"
       },
-      "description": "list of verbs that apply to ALL the resourceKinds and attributeRestrictions contained in this rule.  The verb * represents all kinds."
+      "description": "Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds."
      },
      "attributeRestrictions": {
       "type": "string",
-      "description": "vary depending on what the authorizer supports.  If the authorizer does not recognize how to handle the specified value, it should report an error."
+      "description": "AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports. If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error."
      },
      "apiGroups": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of API groups this rule applies to.  * represents all API groups."
+      "description": "APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed. That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request will be allowed"
      },
      "resources": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of resources this rule applies to.  * represents all resources."
+      "description": "Resources is a list of resources this rule applies to.  ResourceAll represents all resources."
      },
      "resourceNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "optional white list of names that the rule applies to.  An empty set means that everything is allowed."
+      "description": "ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed."
      },
      "nonResourceURLs": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "set of partial urls that a user should have access to. *s are allowed, but only as the full, final step in the path."
+      "description": "NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different."
      }
     }
    },
    "v1.ClusterPolicyBindingList": {
     "id": "v1.ClusterPolicyBindingList",
+    "description": "ClusterPolicyBindingList is a collection of ClusterPolicyBindings",
     "required": [
      "items"
     ],
@@ -18508,19 +18554,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ClusterPolicyBinding"
       },
-      "description": "list of cluster policy bindings"
+      "description": "Items is a list of ClusterPolicyBindings"
      }
     }
    },
    "v1.ClusterPolicyBinding": {
     "id": "v1.ClusterPolicyBinding",
+    "description": "ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is one ClusterPolicyBinding document per referenced ClusterPolicy namespace",
     "required": [
      "lastModified",
      "policyRef",
@@ -18536,27 +18584,29 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "lastModified": {
       "type": "string",
-      "description": "last time any part of the object was created, updated, or deleted"
+      "description": "LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted"
      },
      "policyRef": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to the cluster policy that this cluster policy binding's role bindings may reference"
+      "description": "PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference"
      },
      "roleBindings": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedClusterRoleBinding"
       },
-      "description": "all the role bindings held by this policy, mapped by role name"
+      "description": "RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name"
      }
     }
    },
    "v1.NamedClusterRoleBinding": {
     "id": "v1.NamedClusterRoleBinding",
+    "description": "NamedClusterRoleBinding relates a name with a cluster role binding",
     "required": [
      "name",
      "roleBinding"
@@ -18564,16 +18614,17 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the cluster role binding"
+      "description": "Name is the name of the cluster role binding"
      },
      "roleBinding": {
       "$ref": "v1.ClusterRoleBinding",
-      "description": "the cluster role binding"
+      "description": "RoleBinding is the cluster role binding being named"
      }
     }
    },
    "v1.ClusterRoleBinding": {
     "id": "v1.ClusterRoleBinding",
+    "description": "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -18590,37 +18641,39 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "userNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "all user names directly bound to the role"
+      "description": "UserNames holds all the usernames directly bound to the role"
      },
      "groupNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "all the groups directly bound to the role"
+      "description": "GroupNames holds all the groups directly bound to the role"
      },
      "subjects": {
       "type": "array",
       "items": {
        "$ref": "v1.ObjectReference"
       },
-      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
+      "description": "Subjects hold object references to authorize with this rule"
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to the policy role"
+      "description": "RoleRef can only reference the current namespace and the global namespace If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role"
      }
     }
    },
    "v1.ClusterRoleBindingList": {
     "id": "v1.ClusterRoleBindingList",
+    "description": "ClusterRoleBindingList is a collection of ClusterRoleBindings",
     "required": [
      "items"
     ],
@@ -18634,19 +18687,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ClusterRoleBinding"
       },
-      "description": "list of cluster role bindings"
+      "description": "Items is a list of ClusterRoleBindings"
      }
     }
    },
    "v1.ClusterRoleList": {
     "id": "v1.ClusterRoleList",
+    "description": "ClusterRoleList is a collection of ClusterRoles",
     "required": [
      "items"
     ],
@@ -18660,20 +18715,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ClusterRole"
       },
-      "description": "list of cluster roles"
+      "description": "Items is a list of ClusterRoles"
      }
     }
    },
    "v1.DeploymentConfigRollback": {
     "id": "v1.DeploymentConfigRollback",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "DeploymentConfigRollback provides the input to rollback generation.",
     "required": [
      "spec"
     ],
@@ -18688,12 +18744,13 @@
      },
      "spec": {
       "$ref": "v1.DeploymentConfigRollbackSpec",
-      "description": "options for rollback generation"
+      "description": "Spec defines the options to rollback generation."
      }
     }
    },
    "v1.DeploymentConfigRollbackSpec": {
     "id": "v1.DeploymentConfigRollbackSpec",
+    "description": "DeploymentConfigRollbackSpec represents the options for rollback generation.",
     "required": [
      "from",
      "includeTriggers",
@@ -18704,28 +18761,29 @@
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to a deployment, which is a ReplicationController"
+      "description": "From points to a ReplicationController which is a deployment."
      },
      "includeTriggers": {
       "type": "boolean",
-      "description": "whether to include old config triggers in the rollback"
+      "description": "IncludeTriggers specifies whether to include config Triggers."
      },
      "includeTemplate": {
       "type": "boolean",
-      "description": "whether to include the old pod template spec in the rollback"
+      "description": "IncludeTemplate specifies whether to include the PodTemplateSpec."
      },
      "includeReplicationMeta": {
       "type": "boolean",
-      "description": "whether to include the replica count and replica selector in the rollback"
+      "description": "IncludeReplicationMeta specifies whether to include the replica count and selector."
      },
      "includeStrategy": {
       "type": "boolean",
-      "description": "whether to include the deployment strategy in the rollback"
+      "description": "IncludeStrategy specifies whether to include the deployment Strategy."
      }
     }
    },
    "v1.DeploymentConfigList": {
     "id": "v1.DeploymentConfigList",
+    "description": "DeploymentConfigList is a collection of deployment configs.",
     "required": [
      "items"
     ],
@@ -18739,19 +18797,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.DeploymentConfig"
       },
-      "description": "a list of deployment configs"
+      "description": "Items is a list of deployment configs"
      }
     }
    },
    "v1.DeploymentConfig": {
     "id": "v1.DeploymentConfig",
+    "description": "DeploymentConfig represents a configuration for a single deployment (represented as a ReplicationController). It also contains details about changes which resulted in the current state of the DeploymentConfig. Each change to the DeploymentConfig which should result in a new deployment results in an increment of LatestVersion.",
     "required": [
      "spec",
      "status"
@@ -18766,20 +18826,22 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.DeploymentConfigSpec",
-      "description": "a desired deployment state and how to deploy it"
+      "description": "Spec represents a desired deployment state and how to deploy to it."
      },
      "status": {
       "$ref": "v1.DeploymentConfigStatus",
-      "description": "the current state of the latest deployment"
+      "description": "Status represents the current deployment state."
      }
     }
    },
    "v1.DeploymentConfigSpec": {
     "id": "v1.DeploymentConfigSpec",
+    "description": "DeploymentConfigSpec represents the desired state of the deployment.",
     "required": [
      "strategy",
      "triggers",
@@ -18789,137 +18851,142 @@
     "properties": {
      "strategy": {
       "$ref": "v1.DeploymentStrategy",
-      "description": "how a deployment is executed"
+      "description": "Strategy describes how a deployment is executed."
      },
      "triggers": {
       "type": "array",
       "items": {
        "$ref": "v1.DeploymentTriggerPolicy"
       },
-      "description": "how new deployments are triggered"
+      "description": "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion."
      },
      "replicas": {
       "type": "integer",
       "format": "int32",
-      "description": "the desired number of replicas"
+      "description": "Replicas is the number of desired replicas."
      },
      "test": {
       "type": "boolean",
-      "description": "if true, this deployment config will always be scaled to 0 except while a deployment is running"
+      "description": "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action."
      },
      "selector": {
       "type": "any",
-      "description": "a label query over pods that should match the replicas count; if omitted, it will default to the podTemplate labels"
+      "description": "Selector is a label query over pods that should match the Replicas count."
      },
      "template": {
       "$ref": "v1.PodTemplateSpec",
-      "description": "describes the pod that will be created if insufficient replicas are detected"
+      "description": "Template is the object that describes the pod that will be created if insufficient replicas are detected."
      }
     }
    },
    "v1.DeploymentStrategy": {
     "id": "v1.DeploymentStrategy",
+    "description": "DeploymentStrategy describes how to perform a deployment.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "the name of a deployment strategy"
+      "description": "Type is the name of a deployment strategy."
      },
      "customParams": {
       "$ref": "v1.CustomDeploymentStrategyParams",
-      "description": "input to the Custom deployment strategy"
+      "description": "CustomParams are the input to the Custom deployment strategy."
      },
      "recreateParams": {
       "$ref": "v1.RecreateDeploymentStrategyParams",
-      "description": "input to the Recreate deployment strategy"
+      "description": "RecreateParams are the input to the Recreate deployment strategy."
      },
      "rollingParams": {
       "$ref": "v1.RollingDeploymentStrategyParams",
-      "description": "input to the Rolling deployment strategy"
+      "description": "RollingParams are the input to the Rolling deployment strategy."
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "resource requirements to execute the deployment"
+      "description": "Resources contains resource requirements to execute the deployment and any hooks"
      },
      "labels": {
       "type": "any",
-      "description": "labels for deployer and hook pods"
+      "description": "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods."
      },
      "annotations": {
       "type": "any",
-      "description": "annotations for deployer and hook pods"
+      "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods."
      }
     }
    },
    "v1.CustomDeploymentStrategyParams": {
     "id": "v1.CustomDeploymentStrategyParams",
+    "description": "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
     "properties": {
      "image": {
       "type": "string",
-      "description": "a Docker image which can carry out a deployment"
+      "description": "Image specifies a Docker image which can carry out a deployment."
      },
      "environment": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "environment variables provided to the deployment process container"
+      "description": "Environment holds the environment which will be given to the container for Image."
      },
      "command": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "optionally overrides the container command (default is specified by the image)"
+      "description": "Command is optional and overrides CMD in the container Image."
      }
     }
    },
    "v1.RecreateDeploymentStrategyParams": {
     "id": "v1.RecreateDeploymentStrategyParams",
+    "description": "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
     "properties": {
      "timeoutSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "the time to wait for updates before giving up"
+      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used."
      },
      "pre": {
       "$ref": "v1.LifecycleHook",
-      "description": "a hook executed before the strategy starts the deployment"
+      "description": "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported."
      },
      "mid": {
       "$ref": "v1.LifecycleHook",
-      "description": "a hook executed after the strategy scales down the deployment and before it scales up"
+      "description": "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported."
      },
      "post": {
       "$ref": "v1.LifecycleHook",
-      "description": "a hook executed after the strategy finishes the deployment"
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported."
      }
     }
    },
    "v1.LifecycleHook": {
     "id": "v1.LifecycleHook",
+    "description": "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
     "required": [
      "failurePolicy"
     ],
     "properties": {
      "failurePolicy": {
       "type": "string",
-      "description": "what action to take if the hook fails"
+      "description": "FailurePolicy specifies what action to take if the hook fails."
      },
      "execNewPod": {
       "$ref": "v1.ExecNewPodHook",
-      "description": "options for an ExecNewPodHook"
+      "description": "ExecNewPod specifies the options for a lifecycle hook backed by a pod."
      },
      "tagImages": {
       "type": "array",
       "items": {
        "$ref": "v1.TagImageHook"
       },
-      "description": "a list of image stream tags that should be updated to the latest value on this deployment if the deployment succeeds"
+      "description": "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag."
      }
     }
    },
    "v1.ExecNewPodHook": {
     "id": "v1.ExecNewPodHook",
+    "description": "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
     "required": [
      "command",
      "containerName"
@@ -18930,30 +18997,31 @@
       "items": {
        "type": "string"
       },
-      "description": "the hook command and its arguments"
+      "description": "Command is the action command and its arguments."
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "environment variables provided to the hook container"
+      "description": "Env is a set of environment variables to supply to the hook pod's container."
      },
      "containerName": {
       "type": "string",
-      "description": "the name of a container from the pod template whose image will be used for the hook container"
+      "description": "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container."
      },
      "volumes": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"
+      "description": "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied."
      }
     }
    },
    "v1.TagImageHook": {
     "id": "v1.TagImageHook",
+    "description": "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
     "required": [
      "containerName",
      "to"
@@ -18961,92 +19029,95 @@
     "properties": {
      "containerName": {
       "type": "string",
-      "description": "the name of a container in this deployment config whose image will be used as the tag destination; if only one container is defined it will default to that value"
+      "description": "ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single container this value will be defaulted to the name of that container."
      },
      "to": {
       "$ref": "v1.ObjectReference",
-      "description": "the name of an ImageStreamTag in the current namespace that will be updated with the image value"
+      "description": "To is the target ImageStreamTag to set the container's image onto."
      }
     }
    },
    "v1.RollingDeploymentStrategyParams": {
     "id": "v1.RollingDeploymentStrategyParams",
+    "description": "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
     "properties": {
      "updatePeriodSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "the time to wait between individual pod updates"
+      "description": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used."
      },
      "intervalSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "the time to wait between polling deployment status after update"
+      "description": "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used."
      },
      "timeoutSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "the time to wait for updates before giving up"
+      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used."
      },
      "maxUnavailable": {
       "type": "string",
-      "description": "max number of pods that can be unavailable during the update; value can be an absolute number or a percentage of total pods at start of update"
+      "description": "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update."
      },
      "maxSurge": {
       "type": "string",
-      "description": "max number of pods that can be scheduled above the original number of pods; value can be an absolute number or a percentage of total pods at start of update"
+      "description": "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods."
      },
      "updatePercent": {
       "type": "integer",
       "format": "int32",
-      "description": "the percentage of replicas to scale up or down each interval (negative value switches scale order to down/up instead of up/down)"
+      "description": "UpdatePercent is the percentage of replicas to scale up or down each interval. If nil, one replica will be scaled up and down each interval. If negative, the scale order will be down/up instead of up/down. DEPRECATED: Use MaxUnavailable/MaxSurge instead."
      },
      "pre": {
       "$ref": "v1.LifecycleHook",
-      "description": "a hook executed before the strategy starts the deployment"
+      "description": "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported."
      },
      "post": {
       "$ref": "v1.LifecycleHook",
-      "description": "a hook executed after the strategy finishes the deployment"
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. The LifecycleHookFailurePolicyAbort policy is NOT supported."
      }
     }
    },
    "v1.DeploymentTriggerPolicy": {
     "id": "v1.DeploymentTriggerPolicy",
+    "description": "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
     "properties": {
      "type": {
       "type": "string",
-      "description": "the type of the trigger"
+      "description": "Type of the trigger"
      },
      "imageChangeParams": {
       "$ref": "v1.DeploymentTriggerImageChangeParams",
-      "description": "input to the ImageChange trigger"
+      "description": "ImageChangeParams represents the parameters for the ImageChange trigger."
      }
     }
    },
    "v1.DeploymentTriggerImageChangeParams": {
     "id": "v1.DeploymentTriggerImageChangeParams",
+    "description": "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
     "required": [
      "from"
     ],
     "properties": {
      "automatic": {
       "type": "boolean",
-      "description": "whether detection of a new tag value should trigger a deployment"
+      "description": "Automatic means that the detection of a new tag value should result in a new deployment."
      },
      "containerNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "restricts tag updates to a set of container names in the pod"
+      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod."
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to an ImageStreamTag to watch for changes"
+      "description": "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used."
      },
      "lastTriggeredImage": {
       "type": "string",
-      "description": "the last image to be triggered"
+      "description": "LastTriggeredImage is the last image to be triggered."
      }
     }
    },
@@ -20112,65 +20183,69 @@
    },
    "v1.DeploymentConfigStatus": {
     "id": "v1.DeploymentConfigStatus",
+    "description": "DeploymentConfigStatus represents the current deployment state.",
     "properties": {
      "latestVersion": {
       "type": "integer",
       "format": "int32",
-      "description": "used to determine whether the current deployment is out of sync"
+      "description": "LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig is out of sync."
      },
      "details": {
       "$ref": "v1.DeploymentDetails",
-      "description": "reasons for the last update to the config"
+      "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger"
      }
     }
    },
    "v1.DeploymentDetails": {
     "id": "v1.DeploymentDetails",
+    "description": "DeploymentDetails captures information about the causes of a deployment.",
     "properties": {
      "message": {
       "type": "string",
-      "description": "a user specified change message"
+      "description": "Message is the user specified change message, if this deployment was triggered manually by the user"
      },
      "causes": {
       "type": "array",
       "items": {
        "$ref": "v1.DeploymentCause"
       },
-      "description": "extended data associated with all the causes for creating a new deployment"
+      "description": "Causes are extended data associated with all the causes for creating a new deployment"
      }
     }
    },
    "v1.DeploymentCause": {
     "id": "v1.DeploymentCause",
+    "description": "DeploymentCause captures information about a particular cause of a deployment.",
     "required": [
      "type"
     ],
     "properties": {
      "type": {
       "type": "string",
-      "description": "the type of trigger that resulted in a new deployment"
+      "description": "Type of the trigger that resulted in the creation of a new deployment"
      },
      "imageTrigger": {
       "$ref": "v1.DeploymentCauseImageTrigger",
-      "description": "image trigger details (if applicable)"
+      "description": "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change"
      }
     }
    },
    "v1.DeploymentCauseImageTrigger": {
     "id": "v1.DeploymentCauseImageTrigger",
+    "description": "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference the changed object which triggered a deployment"
+      "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage."
      }
     }
    },
    "v1.DeploymentLog": {
     "id": "v1.DeploymentLog",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "DeploymentLog represents the logs for a deployment",
     "properties": {
      "kind": {
       "type": "string",
@@ -20239,6 +20314,7 @@
    },
    "v1.GroupList": {
     "id": "v1.GroupList",
+    "description": "GroupList is a collection of Groups",
     "required": [
      "items"
     ],
@@ -20252,19 +20328,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Group"
       },
-      "description": "list of groups"
+      "description": "Items is the list of groups"
      }
     }
    },
    "v1.Group": {
     "id": "v1.Group",
+    "description": "Group represents a referenceable set of Users",
     "required": [
      "users"
     ],
@@ -20278,19 +20356,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "users": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of users in this group"
+      "description": "Users is the list of users in this group."
      }
     }
    },
    "v1.HostSubnetList": {
     "id": "v1.HostSubnetList",
+    "description": "HostSubnetList is a collection of HostSubnets",
     "required": [
      "items"
     ],
@@ -20304,19 +20384,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.HostSubnet"
       },
-      "description": "list of host subnets"
+      "description": "Items is the list of host subnets"
      }
     }
    },
    "v1.HostSubnet": {
     "id": "v1.HostSubnet",
+    "description": "HostSubnet encapsulates the inputs needed to define the container subnet network on a node",
     "required": [
      "host",
      "hostIP",
@@ -20332,24 +20414,26 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "host": {
       "type": "string",
-      "description": "Name of the host that is registered at the master. A lease will be sought after this name."
+      "description": "Host is the name of the host that is registered at the master. May just be an IP address, resolvable hostname or a complete DNS. A lease will be sought after this name."
      },
      "hostIP": {
       "type": "string",
-      "description": "IP address to be used as vtep by other hosts in the overlay network"
+      "description": "HostIP is the IP address to be used as vtep by other hosts in the overlay network"
      },
      "subnet": {
       "type": "string",
-      "description": "Actual subnet CIDR lease assigned to the host"
+      "description": "Subnet is the actual subnet CIDR lease assigned to the host"
      }
     }
    },
    "v1.IdentityList": {
     "id": "v1.IdentityList",
+    "description": "IdentityList is a collection of Identities",
     "required": [
      "items"
     ],
@@ -20363,19 +20447,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Identity"
       },
-      "description": "list of identities"
+      "description": "Items is the list of identities"
      }
     }
    },
    "v1.Identity": {
     "id": "v1.Identity",
+    "description": "Identity records a successful authentication of a user with an identity provider",
     "required": [
      "providerName",
      "providerUserName",
@@ -20391,28 +20477,30 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "providerName": {
       "type": "string",
-      "description": "source of identity information"
+      "description": "ProviderName is the source of identity information"
      },
      "providerUserName": {
       "type": "string",
-      "description": "uniquely represents this identity in the scope of the provider"
+      "description": "ProviderUserName uniquely represents this identity in the scope of the provider"
      },
      "user": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to the user this identity is associated with.  both name and uid must be set"
+      "description": "User is a reference to the user this identity is associated with Both Name and UID must be set"
      },
      "extra": {
       "type": "any",
-      "description": "extra information for this identity"
+      "description": "Extra holds extra information about this identity"
      }
     }
    },
    "v1.ImageList": {
     "id": "v1.ImageList",
+    "description": "ImageList is a list of Image objects.",
     "required": [
      "items"
     ],
@@ -20426,19 +20514,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Image"
       },
-      "description": "list of image objects"
+      "description": "Items is a list of images"
      }
     }
    },
    "v1.Image": {
     "id": "v1.Image",
+    "description": "Image is an immutable representation of a Docker image and metadata at a point in time.",
     "required": [
      "dockerImageLayers"
     ],
@@ -20452,35 +20542,37 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "dockerImageReference": {
       "type": "string",
-      "description": "string that can be used to pull this image"
+      "description": "DockerImageReference is the string that can be used to pull this image."
      },
      "dockerImageMetadata": {
       "type": "string",
-      "description": "metadata about this image"
+      "description": "DockerImageMetadata contains metadata about this image"
      },
      "dockerImageMetadataVersion": {
       "type": "string",
-      "description": "conveys version of the object, if empty defaults to '1.0'"
+      "description": "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\""
      },
      "dockerImageManifest": {
       "type": "string",
-      "description": "raw JSON of the manifest"
+      "description": "DockerImageManifest is the raw JSON of the manifest"
      },
      "dockerImageLayers": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageLayer"
       },
-      "description": "a list of the image layers from lowest to highest"
+      "description": "DockerImageLayers represents the layers in the image. May not be set if the image does not define that data."
      }
     }
    },
    "v1.ImageLayer": {
     "id": "v1.ImageLayer",
+    "description": "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
     "required": [
      "name",
      "size"
@@ -20488,17 +20580,18 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "the name of the layer (blob, in Docker parlance)"
+      "description": "Name of the layer as defined by the underlying store."
      },
      "size": {
       "type": "integer",
       "format": "int64",
-      "description": "size of the layer in bytes"
+      "description": "Size of the layer as defined by the underlying store."
      }
     }
    },
    "v1.ImageStreamImage": {
     "id": "v1.ImageStreamImage",
+    "description": "ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.",
     "required": [
      "image"
     ],
@@ -20512,16 +20605,18 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "image": {
       "$ref": "v1.Image",
-      "description": "the image associated with the ImageStream and image name"
+      "description": "Image associated with the ImageStream and image name."
      }
     }
    },
    "v1.ImageStreamImport": {
     "id": "v1.ImageStreamImport",
+    "description": "ImageStreamImport imports an image from remote repositories into OpenShift.",
     "required": [
      "spec",
      "status"
@@ -20537,120 +20632,126 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
-      "description": "metadata about the image stream, name is required"
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.ImageStreamImportSpec",
-      "description": "description of the images that the user wishes to import"
+      "description": "Spec is a description of the images that the user wishes to import"
      },
      "status": {
       "$ref": "v1.ImageStreamImportStatus",
-      "description": "the result of importing the image"
+      "description": "Status is the the result of importing the image"
      }
     }
    },
    "v1.ImageStreamImportSpec": {
     "id": "v1.ImageStreamImportSpec",
+    "description": "ImageStreamImportSpec defines what images should be imported.",
     "required": [
      "import"
     ],
     "properties": {
      "import": {
       "type": "boolean",
-      "description": "if true, the images will be imported to the server and the resulting image stream will be returned in status.import"
+      "description": "Import indicates whether to perform an import - if so, the specified tags are set on the spec and status of the image stream defined by the type meta."
      },
      "repository": {
       "$ref": "v1.RepositoryImportSpec",
-      "description": "if specified, import a single Docker repository's tags to this image stream"
+      "description": "Repository is an optional import of an entire Docker image repository. A maximum limit on the number of tags imported this way is imposed by the server."
      },
      "images": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageImportSpec"
       },
-      "description": "a list of images to import into this image stream"
+      "description": "Images are a list of individual images to import."
      }
     }
    },
    "v1.RepositoryImportSpec": {
     "id": "v1.RepositoryImportSpec",
+    "description": "RepositoryImportSpec describes a request to import images from a Docker image repository.",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed"
+      "description": "From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed"
      },
      "importPolicy": {
       "$ref": "v1.TagImportPolicy",
-      "description": "policy controlling how the image is imported"
+      "description": "ImportPolicy is the policy controlling how the image is imported"
      },
      "includeManifest": {
       "type": "boolean",
-      "description": "if true, return the manifest for each image in the response"
+      "description": "IncludeManifest determines if the manifest for each image is returned in the response"
      }
     }
    },
    "v1.TagImportPolicy": {
     "id": "v1.TagImportPolicy",
+    "description": "TagImportPolicy describes the tag import policy",
     "properties": {
      "insecure": {
       "type": "boolean",
-      "description": "if true, the server may bypass certificate verification or connect directly over HTTP during image import"
+      "description": "Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import."
      },
      "scheduled": {
       "type": "boolean",
-      "description": "if true, the server will periodically check to ensure this tag is up to date"
+      "description": "Scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported"
      }
     }
    },
    "v1.ImageImportSpec": {
     "id": "v1.ImageImportSpec",
+    "description": "ImageImportSpec describes a request to import a specific image.",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "the source of an image to import; only kind DockerImage is allowed"
+      "description": "From is the source of an image to import; only kind DockerImage is allowed"
      },
      "to": {
       "$ref": "v1.LocalObjectReference",
-      "description": "a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used"
+      "description": "To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used"
      },
      "importPolicy": {
       "$ref": "v1.TagImportPolicy",
-      "description": "policy controlling how the image is imported"
+      "description": "ImportPolicy is the policy controlling how the image is imported"
      },
      "includeManifest": {
       "type": "boolean",
-      "description": "if true, return the manifest for this image in the response"
+      "description": "IncludeManifest determines if the manifest for each image is returned in the response"
      }
     }
    },
    "v1.ImageStreamImportStatus": {
     "id": "v1.ImageStreamImportStatus",
+    "description": "ImageStreamImportStatus contains information about the status of an image stream import.",
     "properties": {
      "import": {
       "$ref": "v1.ImageStream",
-      "description": "if the user requested any images be imported, this field will be set with the successful image stream create or update"
+      "description": "Import is the image stream that was successfully updated or created when 'to' was set."
      },
      "repository": {
       "$ref": "v1.RepositoryImportStatus",
-      "description": "status of the attempt to import a repository"
+      "description": "Repository is set if spec.repository was set to the outcome of the import"
      },
      "images": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageImportStatus"
       },
-      "description": "status of the attempt to import images"
+      "description": "Images is set with the result of importing spec.images"
      }
     }
    },
    "v1.ImageStream": {
     "id": "v1.ImageStream",
+    "description": "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a Docker image repository on a registry.",
     "required": [
      "spec"
     ],
@@ -20664,36 +20765,39 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.ImageStreamSpec",
-      "description": "desired state of the stream"
+      "description": "Spec describes the desired state of this stream"
      },
      "status": {
       "$ref": "v1.ImageStreamStatus",
-      "description": "current state of the stream as observed by the system"
+      "description": "Status describes the current state of this stream"
      }
     }
    },
    "v1.ImageStreamSpec": {
     "id": "v1.ImageStreamSpec",
+    "description": "ImageStreamSpec represents options for ImageStreams.",
     "properties": {
      "dockerImageRepository": {
       "type": "string",
-      "description": "optional field if specified this stream is backed by a Docker repository on this server"
+      "description": "DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server"
      },
      "tags": {
       "type": "array",
       "items": {
        "$ref": "v1.TagReference"
       },
-      "description": "map arbitrary string values to specific image locators"
+      "description": "Tags map arbitrary string values to specific image locators"
      }
     }
    },
    "v1.TagReference": {
     "id": "v1.TagReference",
+    "description": "TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.",
     "required": [
      "name",
      "annotations",
@@ -20702,52 +20806,54 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of tag"
+      "description": "Name of the tag"
      },
      "annotations": {
       "type": "any",
-      "description": "annotations associated with images using this tag"
+      "description": "Annotations associated with images using this tag"
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to an image stream tag or image stream this tag should track"
+      "description": "From is a reference to an image stream tag or image stream this tag should track"
      },
      "reference": {
       "type": "boolean",
-      "description": "if true consider this tag a reference only and do not attempt to import metadata about the image"
+      "description": "Reference states if the tag will be imported. Default value is false, which means the tag will be imported."
      },
      "generation": {
       "type": "integer",
       "format": "int64",
-      "description": "the generation of the image stream this was updated to"
+      "description": "Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated. Legacy clients will send this as nil, which means the client doesn't know or care."
      },
      "importPolicy": {
       "$ref": "v1.TagImportPolicy",
-      "description": "attributes controlling how this reference is imported"
+      "description": "Import is information that controls how images may be imported by the server."
      }
     }
    },
    "v1.ImageStreamStatus": {
     "id": "v1.ImageStreamStatus",
+    "description": "ImageStreamStatus contains information about the state of this image stream.",
     "required": [
      "dockerImageRepository"
     ],
     "properties": {
      "dockerImageRepository": {
       "type": "string",
-      "description": "represents the effective location this stream may be accessed at, may be empty until the server determines where the repository is located"
+      "description": "DockerImageRepository represents the effective location this stream may be accessed at. May be empty until the server determines where the repository is located"
      },
      "tags": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedTagEventList"
       },
-      "description": "historical record of images associated with each tag, the first entry is the currently tagged image"
+      "description": "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image."
      }
     }
    },
    "v1.NamedTagEventList": {
     "id": "v1.NamedTagEventList",
+    "description": "NamedTagEventList relates a tag to its image history.",
     "required": [
      "tag",
      "items"
@@ -20755,26 +20861,27 @@
     "properties": {
      "tag": {
       "type": "string",
-      "description": "the tag"
+      "description": "Tag is the tag for which the history is recorded"
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.TagEvent"
       },
-      "description": "list of tag events related to the tag"
+      "description": "Standard object's metadata."
      },
      "conditions": {
       "type": "array",
       "items": {
        "$ref": "v1.TagEventCondition"
       },
-      "description": "the set of conditions that apply to this tag"
+      "description": "Conditions is an array of conditions that apply to the tag event list."
      }
     }
    },
    "v1.TagEvent": {
     "id": "v1.TagEvent",
+    "description": "TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.",
     "required": [
      "created",
      "dockerImageReference",
@@ -20784,25 +20891,26 @@
     "properties": {
      "created": {
       "type": "string",
-      "description": "when the event was created"
+      "description": "Created holds the time the TagEvent was created"
      },
      "dockerImageReference": {
       "type": "string",
-      "description": "the string that can be used to pull this image"
+      "description": "DockerImageReference is the string that can be used to pull this image"
      },
      "image": {
       "type": "string",
-      "description": "the image"
+      "description": "Image is the image"
      },
      "generation": {
       "type": "integer",
       "format": "int64",
-      "description": "the generation of the image stream spec tag this tag event represents"
+      "description": "Generation is the spec tag generation that resulted in this tag being updated"
      }
     }
    },
    "v1.TagEventCondition": {
     "id": "v1.TagEventCondition",
+    "description": "TagEventCondition contains condition information for a tag event.",
     "required": [
      "type",
      "status",
@@ -20811,76 +20919,79 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of tag event condition, currently only ImportSuccess"
+      "description": "Type of tag event condition, currently only ImportSuccess"
      },
      "status": {
       "type": "string",
-      "description": "status of the condition, one of True, False, Unknown"
+      "description": "Status of the condition, one of True, False, Unknown."
      },
      "lastTransitionTime": {
       "type": "string",
-      "description": "last time the condition transitioned from one status to another"
+      "description": "LastTransitionTIme is the time the condition transitioned from one status to another."
      },
      "reason": {
       "type": "string",
-      "description": "machine-readable reason for the last condition transition"
+      "description": "Reason is a brief machine readable explanation for the condition's last transition."
      },
      "message": {
       "type": "string",
-      "description": "human-readable message indicating details of the last transition"
+      "description": "Message is a human readable description of the details about last transition, complementing reason."
      },
      "generation": {
       "type": "integer",
       "format": "int64",
-      "description": "the generation of the image stream spec tag this condition represents"
+      "description": "Generation is the spec tag generation that this status corresponds to"
      }
     }
    },
    "v1.RepositoryImportStatus": {
     "id": "v1.RepositoryImportStatus",
+    "description": "RepositoryImportStatus describes the result of an image repository import",
     "properties": {
      "status": {
       "$ref": "unversioned.Status",
-      "description": "the result of the import attempt, will include a reason and message if the repository could not be imported"
+      "description": "Status reflects whether any failure occurred during import"
      },
      "images": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageImportStatus"
       },
-      "description": "a list of the images retrieved by the import of the repository"
+      "description": "Images is a list of images successfully retrieved by the import of the repository."
      },
      "additionalTags": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "a list of additional tags on the repository that were not retrieved"
+      "description": "AdditionalTags are tags that exist in the repository but were not imported because a maximum limit of automatic imports was applied."
      }
     }
    },
    "v1.ImageImportStatus": {
     "id": "v1.ImageImportStatus",
+    "description": "ImageImportStatus describes the result of an image import.",
     "required": [
      "status"
     ],
     "properties": {
      "status": {
       "$ref": "unversioned.Status",
-      "description": "the status of the image import, including errors encountered while retrieving the image"
+      "description": "Status is the status of the image import, including errors encountered while retrieving the image"
      },
      "image": {
       "$ref": "v1.Image",
-      "description": "if the image was located, the metadata of that image"
+      "description": "Image is the metadata of that image, if the image was located"
      },
      "tag": {
       "type": "string",
-      "description": "the tag this image was located under, if any"
+      "description": "Tag is the tag this image was located under, if any"
      }
     }
    },
    "v1.ImageStreamMapping": {
     "id": "v1.ImageStreamMapping",
+    "description": "ImageStreamMapping represents a mapping from a single tag to a Docker image as well as the reference to the Docker image stream the image came from.",
     "required": [
      "image",
      "tag"
@@ -20895,20 +21006,22 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "image": {
       "$ref": "v1.Image",
-      "description": "a Docker image"
+      "description": "Image is a Docker image."
      },
      "tag": {
       "type": "string",
-      "description": "string value this image can be located with inside the stream"
+      "description": "Tag is a string value this image can be located with inside the stream."
      }
     }
    },
    "v1.ImageStreamList": {
     "id": "v1.ImageStreamList",
+    "description": "ImageStreamList is a list of ImageStream objects.",
     "required": [
      "items"
     ],
@@ -20922,14 +21035,15 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageStream"
       },
-      "description": "list of image stream objects"
+      "description": "Items is a list of imageStreams"
      }
     }
    },
@@ -20989,6 +21103,7 @@
    },
    "v1.ImageStreamTagList": {
     "id": "v1.ImageStreamTagList",
+    "description": "ImageStreamTagList is a list of ImageStreamTag objects.",
     "required": [
      "items"
     ],
@@ -21002,19 +21117,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.ImageStreamTag"
       },
-      "description": "list of image stream tag objects"
+      "description": "Items is the list of image stream tags"
      }
     }
    },
    "v1.ImageStreamTag": {
     "id": "v1.ImageStreamTag",
+    "description": "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
     "required": [
      "tag",
      "generation",
@@ -21030,33 +21147,34 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "tag": {
       "$ref": "v1.TagReference",
-      "description": "the spec tag (optional) that is associated with this ImageStream"
+      "description": "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occured to this image stream."
      },
      "generation": {
       "type": "integer",
       "format": "int64",
-      "description": "the generation of the tagged image, if not equal to the tag generation or the latest condition generation, there is an image import pending"
+      "description": "Generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or Conditions will be filled out indicating any error."
      },
      "conditions": {
       "type": "array",
       "items": {
        "$ref": "v1.TagEventCondition"
       },
-      "description": "the set of conditions that apply to this tag"
+      "description": "Conditions is an array of conditions that apply to the image stream tag."
      },
      "image": {
       "$ref": "v1.Image",
-      "description": "the image associated with the ImageStream and tag"
+      "description": "Image associated with the ImageStream and tag."
      }
     }
    },
    "v1.LocalResourceAccessReview": {
     "id": "v1.LocalResourceAccessReview",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace",
     "required": [
      "namespace",
      "verb",
@@ -21074,29 +21192,29 @@
      },
      "namespace": {
       "type": "string",
-      "description": "namespace of the action being requested"
+      "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces"
      },
      "verb": {
       "type": "string",
-      "description": "one of get, list, watch, create, update, delete"
+      "description": "Verb is one of: get, list, watch, create, update, delete"
      },
      "resource": {
       "type": "string",
-      "description": "one of the existing resource types"
+      "description": "Resource is one of the existing resource types"
      },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete"
+      "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
      },
      "content": {
       "type": "string",
-      "description": "actual content of the request for create and update"
+      "description": "Content is the actual content of the request for create and update"
      }
     }
    },
    "v1.LocalSubjectAccessReview": {
     "id": "v1.LocalSubjectAccessReview",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace",
     "required": [
      "namespace",
      "verb",
@@ -21116,39 +21234,40 @@
      },
      "namespace": {
       "type": "string",
-      "description": "namespace of the action being requested"
+      "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces"
      },
      "verb": {
       "type": "string",
-      "description": "one of get, list, watch, create, update, delete"
+      "description": "Verb is one of: get, list, watch, create, update, delete"
      },
      "resource": {
       "type": "string",
-      "description": "one of the existing resource types"
+      "description": "Resource is one of the existing resource types"
      },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete"
+      "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
      },
      "content": {
       "type": "string",
-      "description": "actual content of the request for create and update"
+      "description": "Content is the actual content of the request for create and update"
      },
      "user": {
       "type": "string",
-      "description": "optional, if both user and groups are empty, the current authenticated user is used"
+      "description": "User is optional.  If both User and Groups are empty, the current authenticated user is used."
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "optional, list of groups to which the user belongs"
+      "description": "Groups is optional.  Groups is the list of groups to which the User belongs."
      }
     }
    },
    "v1.NetNamespaceList": {
     "id": "v1.NetNamespaceList",
+    "description": "NetNamespaceList is a collection of NetNamespaces",
     "required": [
      "items"
     ],
@@ -21162,19 +21281,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.NetNamespace"
       },
-      "description": "list of net namespaces"
+      "description": "Items is the list of net namespaces"
      }
     }
    },
    "v1.NetNamespace": {
     "id": "v1.NetNamespace",
+    "description": "NetNamespace encapsulates the inputs needed to define a unique network namespace on the cluster",
     "required": [
      "netname",
      "netid"
@@ -21189,21 +21310,23 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "netname": {
       "type": "string",
-      "description": "Name of the network namespace."
+      "description": "NetName is the name of the network namespace"
      },
      "netid": {
       "type": "integer",
       "format": "integer",
-      "description": "NetID of the network namespace assigned to each overlay network packet."
+      "description": "NetID is the network identifier of the network namespace assigned to each overlay network packet"
      }
     }
    },
    "v1.OAuthAccessTokenList": {
     "id": "v1.OAuthAccessTokenList",
+    "description": "OAuthAccessTokenList is a collection of OAuth access tokens",
     "required": [
      "items"
     ],
@@ -21217,19 +21340,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.OAuthAccessToken"
       },
-      "description": "list of oauth access tokens"
+      "description": "Items is the list of OAuth access tokens"
      }
     }
    },
    "v1.OAuthAccessToken": {
     "id": "v1.OAuthAccessToken",
+    "description": "OAuthAccessToken describes an OAuth access token",
     "properties": {
      "kind": {
       "type": "string",
@@ -21240,48 +21365,50 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "clientName": {
       "type": "string",
-      "description": "references the client that created this token"
+      "description": "ClientName references the client that created this token."
      },
      "expiresIn": {
       "type": "integer",
       "format": "int64",
-      "description": "is the seconds from creation time before this token expires"
+      "description": "ExpiresIn is the seconds from CreationTime before this token expires."
      },
      "scopes": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of requested scopes"
+      "description": "Scopes is an array of the requested scopes."
      },
      "redirectURI": {
       "type": "string",
-      "description": "redirection URI associated with the token"
+      "description": "RedirectURI is the redirection associated with the token."
      },
      "userName": {
       "type": "string",
-      "description": "user name associated with this token"
+      "description": "UserName is the user name associated with this token"
      },
      "userUID": {
       "type": "string",
-      "description": "unique UID associated with this token"
+      "description": "UserUID is the unique UID associated with this token"
      },
      "authorizeToken": {
       "type": "string",
-      "description": "contains the token that authorized this token"
+      "description": "AuthorizeToken contains the token that authorized this token"
      },
      "refreshToken": {
       "type": "string",
-      "description": "optional value by which this token can be renewed"
+      "description": "RefreshToken is the value by which this token can be renewed. Can be blank."
      }
     }
    },
    "v1.OAuthAuthorizeTokenList": {
     "id": "v1.OAuthAuthorizeTokenList",
+    "description": "OAuthAuthorizeTokenList is a collection of OAuth authorization tokens",
     "required": [
      "items"
     ],
@@ -21295,19 +21422,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.OAuthAuthorizeToken"
       },
-      "description": "list of oauth authorization tokens"
+      "description": "Items is the list of OAuth authorization tokens"
      }
     }
    },
    "v1.OAuthAuthorizeToken": {
     "id": "v1.OAuthAuthorizeToken",
+    "description": "OAuthAuthorizeToken describes an OAuth authorization token",
     "properties": {
      "kind": {
       "type": "string",
@@ -21318,44 +21447,46 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "clientName": {
       "type": "string",
-      "description": "references the client that created this token"
+      "description": "ClientName references the client that created this token."
      },
      "expiresIn": {
       "type": "integer",
       "format": "int64",
-      "description": "seconds from creation time before this token expires"
+      "description": "ExpiresIn is the seconds from CreationTime before this token expires."
      },
      "scopes": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of requested scopes"
+      "description": "Scopes is an array of the requested scopes."
      },
      "redirectURI": {
       "type": "string",
-      "description": "redirection URI associated with the token"
+      "description": "RedirectURI is the redirection associated with the token."
      },
      "state": {
       "type": "string",
-      "description": "state data from request"
+      "description": "State data from request"
      },
      "userName": {
       "type": "string",
-      "description": "user name associated with this token"
+      "description": "UserName is the user name associated with this token"
      },
      "userUID": {
       "type": "string",
-      "description": "unique UID associated with this token.  userUID and userName must both match for this token to be valid"
+      "description": "UserUID is the unique UID associated with this token. UserUID and UserName must both match for this token to be valid."
      }
     }
    },
    "v1.OAuthClientAuthorizationList": {
     "id": "v1.OAuthClientAuthorizationList",
+    "description": "OAuthClientAuthorizationList is a collection of OAuth client authorizations",
     "required": [
      "items"
     ],
@@ -21369,19 +21500,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.OAuthClientAuthorization"
       },
-      "description": "list of oauth client authorizations"
+      "description": "Items is the list of OAuth client authorizations"
      }
     }
    },
    "v1.OAuthClientAuthorization": {
     "id": "v1.OAuthClientAuthorization",
+    "description": "OAuthClientAuthorization describes an authorization created by an OAuth client",
     "properties": {
      "kind": {
       "type": "string",
@@ -21392,31 +21525,33 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "clientName": {
       "type": "string",
-      "description": "references the client that created this authorization"
+      "description": "ClientName references the client that created this authorization"
      },
      "userName": {
       "type": "string",
-      "description": "user name that authorized this client"
+      "description": "UserName is the user name that authorized this client"
      },
      "userUID": {
       "type": "string",
-      "description": "unique UID associated with this authorization. userUID and userName must both match for this authorization to be valid"
+      "description": "UserUID is the unique UID associated with this authorization. UserUID and UserName must both match for this authorization to be valid."
      },
      "scopes": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of granted scopes"
+      "description": "Scopes is an array of the granted scopes."
      }
     }
    },
    "v1.OAuthClientList": {
     "id": "v1.OAuthClientList",
+    "description": "OAuthClientList is a collection of OAuth clients",
     "required": [
      "items"
     ],
@@ -21430,19 +21565,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.OAuthClient"
       },
-      "description": "list of oauth clients"
+      "description": "Items is the list of OAuth clients"
      }
     }
    },
    "v1.OAuthClient": {
     "id": "v1.OAuthClient",
+    "description": "OAuthClient describes an OAuth client",
     "properties": {
      "kind": {
       "type": "string",
@@ -21453,27 +21590,29 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "secret": {
       "type": "string",
-      "description": "unique secret associated with a client"
+      "description": "Secret is the unique secret associated with a client"
      },
      "respondWithChallenges": {
       "type": "boolean",
-      "description": "indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects"
+      "description": "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects"
      },
      "redirectURIs": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "valid redirection URIs associated with a client"
+      "description": "RedirectURIs is the valid redirection URIs associated with a client"
      }
     }
    },
    "v1.PolicyList": {
     "id": "v1.PolicyList",
+    "description": "PolicyList is a collection of Policies",
     "required": [
      "items"
     ],
@@ -21487,19 +21626,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Policy"
       },
-      "description": "list of policies"
+      "description": "Items is a list of Policies"
      }
     }
    },
    "v1.Policy": {
     "id": "v1.Policy",
+    "description": "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
     "required": [
      "lastModified",
      "roles"
@@ -21514,23 +21655,25 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "lastModified": {
       "type": "string",
-      "description": "last time that any part of the policy was created, updated, or deleted"
+      "description": "LastModified is the last time that any part of the Policy was created, updated, or deleted"
      },
      "roles": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedRole"
       },
-      "description": "roles held by this policy"
+      "description": "Roles holds all the Roles held by this Policy, mapped by Role.Name"
      }
     }
    },
    "v1.NamedRole": {
     "id": "v1.NamedRole",
+    "description": "NamedRole relates a Role with a name",
     "required": [
      "name",
      "role"
@@ -21538,16 +21681,17 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the role"
+      "description": "Name is the name of the role"
      },
      "role": {
       "$ref": "v1.Role",
-      "description": "the role"
+      "description": "Role is the role being named"
      }
     }
    },
    "v1.Role": {
     "id": "v1.Role",
+    "description": "Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.",
     "required": [
      "rules"
     ],
@@ -21561,19 +21705,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "rules": {
       "type": "array",
       "items": {
        "$ref": "v1.PolicyRule"
       },
-      "description": "all the rules for this role"
+      "description": "Rules holds all the PolicyRules for this Role"
      }
     }
    },
    "v1.PolicyBindingList": {
     "id": "v1.PolicyBindingList",
+    "description": "PolicyBindingList is a collection of PolicyBindings",
     "required": [
      "items"
     ],
@@ -21587,19 +21733,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.PolicyBinding"
       },
-      "description": "list of policy bindings"
+      "description": "Items is a list of PolicyBindings"
      }
     }
    },
    "v1.PolicyBinding": {
     "id": "v1.PolicyBinding",
+    "description": "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
     "required": [
      "lastModified",
      "policyRef",
@@ -21615,27 +21763,29 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "lastModified": {
       "type": "string",
-      "description": "last time that any part of the object was created, updated, or deleted"
+      "description": "LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted"
      },
      "policyRef": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to the policy that contains all the Roles that this object's roleBindings may reference"
+      "description": "PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference"
      },
      "roleBindings": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedRoleBinding"
       },
-      "description": "all roleBindings held by this policyBinding"
+      "description": "RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name"
      }
     }
    },
    "v1.NamedRoleBinding": {
     "id": "v1.NamedRoleBinding",
+    "description": "NamedRoleBinding relates a role binding with a name",
     "required": [
      "name",
      "roleBinding"
@@ -21643,16 +21793,17 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the roleBinding"
+      "description": "Name is the name of the role binding"
      },
      "roleBinding": {
       "$ref": "v1.RoleBinding",
-      "description": "the roleBinding"
+      "description": "RoleBinding is the role binding being named"
      }
     }
    },
    "v1.RoleBinding": {
     "id": "v1.RoleBinding",
+    "description": "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -21669,37 +21820,39 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "userNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "all the usernames directly bound to the role"
+      "description": "UserNames holds all the usernames directly bound to the role"
      },
      "groupNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "all the groups directly bound to the role"
+      "description": "GroupNames holds all the groups directly bound to the role"
      },
      "subjects": {
       "type": "array",
       "items": {
        "$ref": "v1.ObjectReference"
       },
-      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
+      "description": "Subjects hold object references to authorize with this rule"
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",
-      "description": "a reference to a role"
+      "description": "RoleRef can only reference the current namespace and the global namespace If the RoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role"
      }
     }
    },
    "v1.Template": {
     "id": "v1.Template",
+    "description": "Template contains the inputs needed to produce a Config.",
     "required": [
      "objects"
     ],
@@ -21713,25 +21866,26 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "objects": {
       "type": "array",
       "items": {
        "$ref": "runtime.RawExtension"
       },
-      "description": "list of objects to include in the template"
+      "description": "Objects is an array of objects to include in this template. Required."
      },
      "parameters": {
       "type": "array",
       "items": {
        "$ref": "v1.Parameter"
       },
-      "description": "optional: list of parameters used during template to config transformation"
+      "description": "Optional: Parameters is an array of Parameters used during the Template to Config transformation."
      },
      "labels": {
       "type": "any",
-      "description": "optional: list of lables that are applied to every object during the template to config transformation"
+      "description": "Labels is a set of labels that are applied to every object during the Template to Config transformation. Optional"
      }
     }
    },
@@ -21742,42 +21896,44 @@
    },
    "v1.Parameter": {
     "id": "v1.Parameter",
+    "description": "Parameter defines a name/value variable that is to be processed during the Template to Config transformation.",
     "required": [
      "name"
     ],
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the parameter"
+      "description": "Name must be set and it can be referenced in Template Items using ${PARAMETER_NAME}. Required."
      },
      "displayName": {
       "type": "string",
-      "description": "optional: provides human readable name for the parameter"
+      "description": "Optional: The name that will show in UI instead of parameter 'Name'"
      },
      "description": {
       "type": "string",
-      "description": "optional: describes the parameter"
+      "description": "Description of a parameter. Optional."
      },
      "value": {
       "type": "string",
-      "description": "optional: holds the parameter data.  if specified, the generator is ignored.  the value replaces all occurrences of the parameter ${Name} expression during template to config transformation"
+      "description": "Value holds the Parameter data. If specified, the generator will be ignored. The value replaces all occurrences of the Parameter ${Name} expression during the Template to Config transformation. Optional."
      },
      "generate": {
       "type": "string",
-      "description": "optional: generate specifies the generator to be used to generate random string from an input value specified by the from field.  the result string is stored in the value field. if not specified, the value field is untouched"
+      "description": "Generate specifies the generator to be used to generate random string from an input value specified by From field. The result string is stored into Value field. If empty, no generator is being used, leaving the result Value untouched. Optional."
      },
      "from": {
       "type": "string",
-      "description": "input value for the generator"
+      "description": "From is an input value for the generator. Optional."
      },
      "required": {
       "type": "boolean",
-      "description": "indicates the parameter must have a non-empty value or be generated"
+      "description": "Optional: Indicates the parameter must have a value.  Defaults to false."
      }
     }
    },
    "v1.ProjectRequest": {
     "id": "v1.ProjectRequest",
+    "description": "ProjecRequest is the set of options necessary to fully qualify a project request",
     "properties": {
      "kind": {
       "type": "string",
@@ -21788,20 +21944,22 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "displayName": {
       "type": "string",
-      "description": "display name to apply to a project"
+      "description": "DisplayName is the display name to apply to a project"
      },
      "description": {
       "type": "string",
-      "description": "description to apply to a project"
+      "description": "Description is the description to apply to a project"
      }
     }
    },
    "v1.ProjectList": {
     "id": "v1.ProjectList",
+    "description": "ProjectList is a list of Project objects.",
     "required": [
      "items"
     ],
@@ -21815,19 +21973,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Project"
       },
-      "description": "list of projects"
+      "description": "Items is the list of projects"
      }
     }
    },
    "v1.Project": {
     "id": "v1.Project",
+    "description": "Project is a logical top-level container for a set of origin resources",
     "properties": {
      "kind": {
       "type": "string",
@@ -21838,27 +21998,29 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.ProjectSpec",
-      "description": "spec defines the behavior of the Project"
+      "description": "Spec defines the behavior of the Namespace."
      },
      "status": {
       "$ref": "v1.ProjectStatus",
-      "description": "status describes the current status of a Project; read-only"
+      "description": "Status describes the current status of a Namespace"
      }
     }
    },
    "v1.ProjectSpec": {
     "id": "v1.ProjectSpec",
+    "description": "ProjectSpec describes the attributes on a Project",
     "properties": {
      "finalizers": {
       "type": "array",
       "items": {
        "$ref": "v1.FinalizerName"
       },
-      "description": "an opaque list of values that must be empty to permanently remove object from storage"
+      "description": "Finalizers is an opaque list of values that must be empty to permanently remove object from storage"
      }
     }
    },
@@ -21868,16 +22030,17 @@
    },
    "v1.ProjectStatus": {
     "id": "v1.ProjectStatus",
+    "description": "ProjectStatus is information about the current status of a Project",
     "properties": {
      "phase": {
       "type": "string",
-      "description": "phase is the current lifecycle phase of the project"
+      "description": "Phase is the current lifecycle phase of the project"
      }
     }
    },
    "v1.ResourceAccessReview": {
     "id": "v1.ResourceAccessReview",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec",
     "required": [
      "namespace",
      "verb",
@@ -21895,28 +22058,29 @@
      },
      "namespace": {
       "type": "string",
-      "description": "namespace of the action being requested"
+      "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces"
      },
      "verb": {
       "type": "string",
-      "description": "one of get, list, watch, create, update, delete"
+      "description": "Verb is one of: get, list, watch, create, update, delete"
      },
      "resource": {
       "type": "string",
-      "description": "one of the existing resource types"
+      "description": "Resource is one of the existing resource types"
      },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete"
+      "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
      },
      "content": {
       "type": "string",
-      "description": "actual content of the request for create and update"
+      "description": "Content is the actual content of the request for create and update"
      }
     }
    },
    "v1.RoleBindingList": {
     "id": "v1.RoleBindingList",
+    "description": "RoleBindingList is a collection of RoleBindings",
     "required": [
      "items"
     ],
@@ -21930,19 +22094,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.RoleBinding"
       },
-      "description": "list of role bindings"
+      "description": "Items is a list of RoleBindings"
      }
     }
    },
    "v1.RoleList": {
     "id": "v1.RoleList",
+    "description": "RoleList is a collection of Roles",
     "required": [
      "items"
     ],
@@ -21956,19 +22122,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Role"
       },
-      "description": "list of roles"
+      "description": "Items is a list of Roles"
      }
     }
    },
    "v1.RouteList": {
     "id": "v1.RouteList",
+    "description": "RouteList is a collection of Routes.",
     "required": [
      "items"
     ],
@@ -21982,19 +22150,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Route"
       },
-      "description": "list of routes"
+      "description": "Items is a list of routes"
      }
     }
    },
    "v1.Route": {
     "id": "v1.Route",
+    "description": "Route encapsulates the inputs needed to connect an alias to endpoints.",
     "required": [
      "spec",
      "status"
@@ -22009,20 +22179,22 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "spec": {
       "$ref": "v1.RouteSpec",
-      "description": "desired state of the route"
+      "description": "Spec is the desired state of the route"
      },
      "status": {
       "$ref": "v1.RouteStatus",
-      "description": "current state of the route"
+      "description": "Status is the current state of the route"
      }
     }
    },
    "v1.RouteSpec": {
     "id": "v1.RouteSpec",
+    "description": "RouteSpec describes the route the user wishes to exist.",
     "required": [
      "host",
      "to"
@@ -22030,72 +22202,75 @@
     "properties": {
      "host": {
       "type": "string",
-      "description": "optional: alias/dns that points to the service, must follow DNS 952 subdomain conventions"
+      "description": "Host is an alias/DNS that points to the service. Optional Must follow DNS952 subdomain conventions."
      },
      "path": {
       "type": "string",
-      "description": "optional: path that the router watches to route traffic to the service"
+      "description": "Path that the router watches for, to route traffic for to the service. Optional"
      },
      "to": {
       "$ref": "v1.ObjectReference",
-      "description": "an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."
+      "description": "To is an object the route points to. Only the Service kind is allowed, and it will be defaulted to Service."
      },
      "port": {
       "$ref": "v1.RoutePort",
-      "description": "port that should be used by the router; this is a hint to control which pod endpoint port is used; if empty routers may use all endpoints and ports"
+      "description": "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use."
      },
      "tls": {
       "$ref": "v1.TLSConfig",
-      "description": "provides the ability to configure certificates and termination for the route"
+      "description": "TLS provides the ability to configure certificates and termination for the route"
      }
     }
    },
    "v1.RoutePort": {
     "id": "v1.RoutePort",
+    "description": "RoutePort defines a port mapping from a router to an endpoint in the service endpoints.",
     "required": [
      "targetPort"
     ],
     "properties": {
      "targetPort": {
       "type": "string",
-      "description": "the target port on the endpoints for the service; if this is a string must match the named port, if an integer, must match the port number"
+      "description": "The target port on pods selected by the service this route points to. If this is a string, it will be looked up as a named port in the target endpoints port list. Required"
      }
     }
    },
    "v1.TLSConfig": {
     "id": "v1.TLSConfig",
+    "description": "TLSConfig defines config used to secure a route and provide termination",
     "required": [
      "termination"
     ],
     "properties": {
      "termination": {
       "type": "string",
-      "description": "indicates termination type"
+      "description": "Termination indicates termination type."
      },
      "certificate": {
       "type": "string",
-      "description": "provides certificate contents"
+      "description": "Certificate provides certificate contents"
      },
      "key": {
       "type": "string",
-      "description": "provides key file contents"
+      "description": "Key provides key file contents"
      },
      "caCertificate": {
       "type": "string",
-      "description": "provides the cert authority certificate contents"
+      "description": "CACertificate provides the cert authority certificate contents"
      },
      "destinationCACertificate": {
       "type": "string",
-      "description": "provides the contents of the ca certificate of the final destination.  When using re-encrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
+      "description": "DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
      },
      "insecureEdgeTerminationPolicy": {
       "type": "string",
-      "description": "indicates desired behavior for insecure connections to an edge-terminated route.  If not set, insecure connections will not be allowed"
+      "description": "InsecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to an edge-terminated route:\n  disable, allow or redirect"
      }
     }
    },
    "v1.RouteStatus": {
     "id": "v1.RouteStatus",
+    "description": "RouteStatus provides relevant info about the status of a route, including which routers acknowledge it.",
     "required": [
      "ingress"
     ],
@@ -22105,32 +22280,34 @@
       "items": {
        "$ref": "v1.RouteIngress"
       },
-      "description": "traffic reaches this route via these ingress paths"
+      "description": "Ingress describes the places where the route may be exposed. The list of ingress points may contain duplicate Host or RouterName values. Routes are considered live once they are `Ready`"
      }
     }
    },
    "v1.RouteIngress": {
     "id": "v1.RouteIngress",
+    "description": "RouteIngress holds information about the places where a route is exposed",
     "properties": {
      "host": {
       "type": "string",
-      "description": "the host name this route is exposed to by the specified router"
+      "description": "Host is the host string under which the route is exposed; this value is required"
      },
      "routerName": {
       "type": "string",
-      "description": "the name of the router exposing this route"
+      "description": "Name is a name chosen by the router to identify itself; this value is required"
      },
      "conditions": {
       "type": "array",
       "items": {
        "$ref": "v1.RouteIngressCondition"
       },
-      "description": "the conditions that apply to this router"
+      "description": "Conditions is the state of the route, may be empty."
      }
     }
    },
    "v1.RouteIngressCondition": {
     "id": "v1.RouteIngressCondition",
+    "description": "RouteIngressCondition contains details for the current condition of this pod.",
     "required": [
      "type",
      "status"
@@ -22138,29 +22315,29 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "the type of the condition"
+      "description": "Type is the type of the condition. Currently only Ready."
      },
      "status": {
       "type": "string",
-      "description": "status is the status of the condition; True, False, or Unknown"
+      "description": "Status is the status of the condition. Can be True, False, Unknown."
      },
      "reason": {
       "type": "string",
-      "description": "brief reason for the condition's last transition, machine readable constant"
+      "description": "(brief) reason for the condition's last transition, and is usually a machine and human readable constant"
      },
      "message": {
       "type": "string",
-      "description": "human readable message indicating details about this condition"
+      "description": "Human readable message indicating details about last transition."
      },
      "lastTransitionTime": {
       "type": "string",
-      "description": "the last time at which this condition transitioned to the current status"
+      "description": "RFC 3339 date and time when this condition last transitioned"
      }
     }
    },
    "v1.SubjectAccessReview": {
     "id": "v1.SubjectAccessReview",
-    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "description": "SubjectAccessReview is an object for requesting information about whether a user or group can perform an action",
     "required": [
      "namespace",
      "verb",
@@ -22180,39 +22357,40 @@
      },
      "namespace": {
       "type": "string",
-      "description": "namespace of the action being requested"
+      "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces"
      },
      "verb": {
       "type": "string",
-      "description": "one of get, list, watch, create, update, delete"
+      "description": "Verb is one of: get, list, watch, create, update, delete"
      },
      "resource": {
       "type": "string",
-      "description": "one of the existing resource types"
+      "description": "Resource is one of the existing resource types"
      },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete"
+      "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
      },
      "content": {
       "type": "string",
-      "description": "actual content of the request for create and update"
+      "description": "Content is the actual content of the request for create and update"
      },
      "user": {
       "type": "string",
-      "description": "optional, if both user and groups are empty, the current authenticated user is used"
+      "description": "User is optional. If both User and Groups are empty, the current authenticated user is used."
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "optional, list of groups to which the user belongs"
+      "description": "GroupsSlice is optional. Groups is the list of groups to which the User belongs."
      }
     }
    },
    "v1.TemplateList": {
     "id": "v1.TemplateList",
+    "description": "TemplateList is a list of Template objects.",
     "required": [
      "items"
     ],
@@ -22226,19 +22404,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Template"
       },
-      "description": "list of templates"
+      "description": "Items is a list of templates"
      }
     }
    },
    "v1.UserIdentityMapping": {
     "id": "v1.UserIdentityMapping",
+    "description": "UserIdentityMapping maps a user to an identity",
     "properties": {
      "kind": {
       "type": "string",
@@ -22249,20 +22429,22 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "identity": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to an identity"
+      "description": "Identity is a reference to an identity"
      },
      "user": {
       "$ref": "v1.ObjectReference",
-      "description": "reference to a user"
+      "description": "User is a reference to a user"
      }
     }
    },
    "v1.UserList": {
     "id": "v1.UserList",
+    "description": "UserList is a collection of Users",
     "required": [
      "items"
     ],
@@ -22276,19 +22458,21 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.User"
       },
-      "description": "list of users"
+      "description": "Items is the list of users"
      }
     }
    },
    "v1.User": {
     "id": "v1.User",
+    "description": "User describes someone that makes requests to the API",
     "required": [
      "identities",
      "groups"
@@ -22303,25 +22487,26 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
      },
      "fullName": {
       "type": "string",
-      "description": "full name of user"
+      "description": "FullName is the full name of user"
      },
      "identities": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of identities"
+      "description": "Identities are the identities associated with this user"
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "list of groups"
+      "description": "Groups are the groups that this user is a member of"
      }
     }
    },
