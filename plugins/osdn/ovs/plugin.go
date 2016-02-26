@@ -2,6 +2,7 @@ package ovs
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -44,8 +45,8 @@ func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, se
 	}
 }
 
-func (plugin *ovsPlugin) PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
-	if err := plugin.SubnetStartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR); err != nil {
+func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+	if err := plugin.SubnetStartMaster(clusterNetwork, hostSubnetLength); err != nil {
 		return err
 	}
 

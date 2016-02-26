@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
-func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
@@ -22,7 +22,7 @@ func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBit
 		subrange = append(subrange, sub.SubnetCIDR)
 	}
 
-	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetworkCIDR, clusterBitsPerSubnet, subrange)
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetwork.String(), hostSubnetLength, subrange)
 	if err != nil {
 		return err
 	}

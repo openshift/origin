@@ -20,7 +20,7 @@ import (
 )
 
 type PluginHooks interface {
-	PluginStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+	PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error
 	PluginStartNode(mtu uint) error
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
@@ -161,7 +161,7 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 		return err
 	}
 
-	if err := oc.pluginHooks.PluginStartMaster(clusterNetwork.String(), clusterBitsPerSubnet, serviceNetwork.String()); err != nil {
+	if err := oc.pluginHooks.PluginStartMaster(clusterNetwork, clusterBitsPerSubnet); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 
