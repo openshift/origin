@@ -48,10 +48,19 @@ angular.module('openshiftConsole')
       $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
     };
 
+    var updateCanBuild = function() {
+      if (!$scope.buildConfig || !$scope.buildConfigBuildsInProgress) {
+        $scope.canBuild = false;
+      } else {
+        $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
+      }
+    };
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+
         // FIXME: DataService.createStream() requires a scope with a
         // projectPromise rather than just a namespace, so we have to pass the
         // context into the log-viewer directive.
@@ -89,6 +98,7 @@ angular.module('openshiftConsole')
               }
               $scope.buildConfig = buildConfig;
               $scope.paused = BuildsService.isPaused($scope.buildConfig);
+              updateCanBuild();
             }));
           },
           // failure
@@ -133,7 +143,8 @@ angular.module('openshiftConsole')
               delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
             }
           }
-          $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
+
+          updateCanBuild();
         }));
 
         $scope.cancelBuild = function() {

@@ -36,18 +36,28 @@ angular.module('openshiftConsole')
       editor.$blockScrolling = Infinity;
     };
 
+    var updateCanBuild = function() {
+      if (!$scope.buildConfig || !$scope.buildConfigBuildsInProgress) {
+        $scope.canBuild = false;
+      } else {
+        $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
+      }
+    };
+
     var watches = [];
 
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+
         DataService.get("buildconfigs", $routeParams.buildconfig, context).then(
           // success
           function(buildConfig) {
             $scope.loaded = true;
             $scope.buildConfig = buildConfig;
             $scope.paused = BuildsService.isPaused($scope.buildConfig);
+            updateCanBuild();
 
             if ($scope.buildConfig.spec.source.images) {
               $scope.imageSources = $scope.buildConfig.spec.source.images;
@@ -56,7 +66,7 @@ angular.module('openshiftConsole')
                 $scope.imageSourcesPaths.push($filter('destinationSourcePair')(imageSource.paths));
               });
             }
-            
+
             // If we found the item successfully, watch for changes on it
             watches.push(DataService.watchObject("buildconfigs", $routeParams.buildconfig, context, function(buildConfig, action) {
               if (action === "DELETED") {
@@ -67,6 +77,7 @@ angular.module('openshiftConsole')
               }
               $scope.buildConfig = buildConfig;
               $scope.paused = BuildsService.isPaused($scope.buildConfig);
+              updateCanBuild();
             }));
           },
           // failure
@@ -120,8 +131,8 @@ angular.module('openshiftConsole')
             }
           }
 
-          $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
           $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
+          updateCanBuild();
           updateFilterWarning();
           LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
           LabelFilter.setLabelSuggestions($scope.labelSuggestions);
