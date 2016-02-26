@@ -23,7 +23,7 @@ import (
 )
 
 func TestLogin(t *testing.T) {
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()

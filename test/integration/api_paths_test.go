@@ -27,7 +27,7 @@ func TestRootAPIPaths(t *testing.T) {
 		"/logs/": http.StatusNotFound,
 	}
 
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	masterConfig, adminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error starting test master: %v", err)
