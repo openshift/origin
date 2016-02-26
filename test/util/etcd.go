@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/coreos/pkg/capnslog"
+
 	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/coreos/go-etcd/etcd"
 
@@ -22,6 +24,8 @@ func init() {
 		AllowPrivileged: true,
 	})
 	flag.Set("v", "5")
+	capnslog.SetGlobalLogLevel(capnslog.DEBUG)
+	capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
 }
 
 // url is the url for the launched etcd server
