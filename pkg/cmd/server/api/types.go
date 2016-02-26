@@ -870,6 +870,13 @@ type AssetExtensionsConfig struct {
 	HTML5Mode bool
 }
 
+const (
+	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
+	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
+	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
+	StringSourceKeyBlockType = "ENCRYPTING KEY"
+)
+
 type LDAPSyncConfig struct {
 	unversioned.TypeMeta
 
