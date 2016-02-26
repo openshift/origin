@@ -16,6 +16,7 @@
     <label ng-attr-for="{{paramID}}" ng-attr-title="{{parameter.name}}" ng-class="{required: parameter.required}">{{parameter.displayName || parameter.name}}</label>
     <span ng-class="{'has-error': (paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared), 'has-warning': isOnlyWhitespace(parameter.value)}">
       <input
+          ng-if="!parameter.multiline"
           ng-attr-id="{{paramID}}"
           ng-attr-name="{{paramID}}"
           class="form-control"
@@ -29,6 +30,18 @@
           autocapitalize="off"
           spellcheck="false"
           ng-attr-aria-describedby="{{parameter.description ? (paramID + '-description') : undefined}}">
+      <textarea
+          ng-if="parameter.multiline"
+          ng-attr-id="{{paramID}}"
+          ng-attr-name="{{paramID}}"
+          class="form-control"
+          rows="4"
+          placeholder="{{ parameter | parameterPlaceholder }}"
+          ng-model="parameter.value"
+          ng-required="parameter.required && !parameter.generate"
+          ng-blur="cleared = false"
+          ng-trim="false"
+          ng-attr-aria-describedby="{{parameter.description ? (paramID + '-description') : undefined}}"></textarea>        
     </span>
     <div class="help-block" ng-if="parameter.description" ng-attr-id="{{paramID}}-description">{{parameter.description}}</div>
     <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared" class="has-error">
