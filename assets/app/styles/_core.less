@@ -773,8 +773,8 @@ a.disabled-link {
   }
 }
 
-// Disable numeric highlighting in YAML because of bugs
-.editor.yaml-mode .ace_constant.ace_numeric {
+// Disable numeric highlighting in YAML and Dockerfile modes because of bugs
+.editor.yaml-mode .ace_constant.ace_numeric, .ace_editor.dockerfile-mode .ace_constant.ace_numeric {
   color: inherit;
 }
 
