@@ -45,7 +45,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 			kcmdutil.CheckErr(opts.Run())
 		},
 	}
-	cmd.Flags().StringVar(&opts.From, "from", "", "A Docker image repository or tag to import images from")
+	cmd.Flags().StringVar(&opts.From, "from", "", "A Docker image repository to import images from")
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, allow the image stream import location to be set or changed")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, import all tags from the provided source on creation or if --from is specified")
 	cmd.Flags().BoolVar(&opts.Insecure, "insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP")
@@ -288,8 +288,13 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 
 		if o.All {
 			// importing a whole repository
+			// TODO soltysh: write tests to cover all the possible usecases!!!
 			if len(from) == 0 {
-				from = o.Target
+				if len(stream.Spec.DockerImageRepository) == 0 {
+					// FIXME soltysh:
+					return nil, nil, fmt.Errorf("flag --all is applicable only to images with spec.dockerImageRepository defined")
+				}
+				from = stream.Spec.DockerImageRepository
 			}
 			if from != stream.Spec.DockerImageRepository {
 				if !o.Confirm {
@@ -337,7 +342,7 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 			} else {
 				// create a new tag
 				if len(from) == 0 {
-					from = o.Target
+					from = stream.Spec.DockerImageRepository
 				}
 				existing = &imageapi.TagReference{
 					From: &kapi.ObjectReference{
