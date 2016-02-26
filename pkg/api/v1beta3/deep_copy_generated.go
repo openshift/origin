@@ -2734,6 +2734,7 @@ func deepCopy_v1beta3_Parameter(in templateapiv1beta3.Parameter, out *templateap
 	out.Generate = in.Generate
 	out.From = in.From
 	out.Required = in.Required
+	out.PresentationHint = in.PresentationHint
 	return nil
 }
 

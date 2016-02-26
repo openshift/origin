@@ -59,4 +59,8 @@ type Parameter struct {
 
 	// Optional: Indicates the parameter must have a value.  Defaults to false.
 	Required bool
+
+	// Optional: Defines the presentation style a UI should use when prompting a user for a value for this parameter,
+	// eg "multiline" or "fileUpload"
+	PresentationHint string
 }

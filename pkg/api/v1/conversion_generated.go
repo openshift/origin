@@ -5875,6 +5875,7 @@ func autoConvert_api_Parameter_To_v1_Parameter(in *templateapi.Parameter, out *t
 	out.Generate = in.Generate
 	out.From = in.From
 	out.Required = in.Required
+	out.PresentationHint = in.PresentationHint
 	return nil
 }
 
@@ -5948,6 +5949,7 @@ func autoConvert_v1_Parameter_To_api_Parameter(in *templateapiv1.Parameter, out 
 	out.Generate = in.Generate
 	out.From = in.From
 	out.Required = in.Required
+	out.PresentationHint = in.PresentationHint
 	return nil
 }
 

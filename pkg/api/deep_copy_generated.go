@@ -3029,6 +3029,7 @@ func deepCopy_api_Parameter(in templateapi.Parameter, out *templateapi.Parameter
 	out.Generate = in.Generate
 	out.From = in.From
 	out.Required = in.Required
+	out.PresentationHint = in.PresentationHint
 	return nil
 }
 
