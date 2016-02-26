@@ -18,7 +18,7 @@ import (
 func TestExtensionsAPIDisabled(t *testing.T) {
 	const projName = "ext-disabled-proj"
 
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

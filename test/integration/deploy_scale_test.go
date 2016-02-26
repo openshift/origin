@@ -16,7 +16,7 @@ import (
 func TestDeployScale(t *testing.T) {
 	const namespace = "test-deploy-scale"
 
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	checkErr(t, err)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
