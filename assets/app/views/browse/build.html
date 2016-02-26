@@ -12,13 +12,20 @@
             <div ng-if="build">
               <h1>
                 {{build.metadata.name}}
-                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span class="pficon pficon-warning-triangle-o"
+                      ng-if="paused"
+                      aria-hidden="true"
+                      data-toggle="tooltip"
+                      data-placement="bottom"
+                      data-original-title="Building from build configuration {{buildConfig.metadata.name}} has been paused.">
+                </span>
                 <small class="meta">created <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></small>
                 <div class="pull-right dropdown">
                   <!-- Primary Actions -->
                   <button class="btn btn-default hidden-xs"
                           ng-click="cancelBuild()"
-                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel</button>
+                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel Build</button>
                   <button class="btn btn-default hidden-xs"
                           ng-click="cloneBuild()"
                           ng-hide="build.metadata.deletionTimestamp || (build | isIncompleteBuild)"
@@ -37,7 +44,7 @@
                         class="visible-xs-inline">
                       <a href=""
                          role="button"
-                         ng-click="cancelBuild()">Cancel</a>
+                         ng-click="cancelBuild()">Cancel Build</a>
                     </li>
                     <li class="visible-xs-inline"
                         ng-class="{ disabled: !canBuild }"

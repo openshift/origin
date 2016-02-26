@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -16,6 +16,7 @@ import (
 )
 
 func TestBasicUserBasedGroupManipulation(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -103,6 +104,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 }
 
 func TestBasicGroupManipulation(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -172,6 +174,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 }
 
 func TestGroupCommands(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

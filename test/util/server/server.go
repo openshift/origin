@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"testing"
 	"time"
 
 	"github.com/golang/glog"
@@ -37,8 +38,8 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
-func RequireServer() {
-	util.RequireEtcd()
+func RequireServer(t *testing.T) {
+	util.RequireEtcd(t)
 	util.RequireDocker()
 	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
@@ -279,12 +280,11 @@ func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string
 }
 
 type TestOptions struct {
-	DeleteAllEtcdKeys bool
 	EnableControllers bool
 }
 
 func DefaultTestOptions() TestOptions {
-	return TestOptions{true, true}
+	return TestOptions{EnableControllers: true}
 }
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
@@ -320,10 +320,6 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 }
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
-	if testOptions.DeleteAllEtcdKeys {
-		util.DeleteAllEtcdKeys()
-	}
-
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}

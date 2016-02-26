@@ -5,7 +5,7 @@
     "name": "dancer-mysql-example",
     "annotations": {
       "description": "An example Dancer application with a MySQL database",
-      "tags": "instant-app,perl,dancer,mysql",
+      "tags": "quickstart,perl,dancer,mysql",
       "iconClass": "icon-perl"
     }
   },
@@ -183,7 +183,12 @@
                     "name": "PERL_APACHE2_RELOAD",
                     "value": "${PERL_APACHE2_RELOAD}"
                   }
-                ]
+                ],
+                "resources": {
+		      "limits": {
+			  "memory": "${MEMORY_LIMIT}"
+		      }
+                }
               }
             ]
           }
@@ -278,7 +283,12 @@
                     "name": "MYSQL_DATABASE",
                     "value": "${DATABASE_NAME}"
                   }
-                ]
+                ],
+                "resources": {
+		      "limits": {
+			  "memory": "${MEMORY_MYSQL_LIMIT}"
+		      }
+                }
               }
             ]
           }
@@ -288,31 +298,49 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the Perl Dancer container can use",
+      "value": "128Mi"
+    },
+    {
+      "name": "MEMORY_MYSQL_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the MySQL container can use",
+      "value": "512Mi"
+    },
+    {
       "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Source repository URL",
       "description": "The URL of the repository with your application source code",
       "value": "https://github.com/openshift/dancer-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Source repository reference",
       "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
     },
     {
       "name": "CONTEXT_DIR",
+      "displayName": "Context directory",
       "description": "Set this to the relative path to your project if it is not in the root of your repository"
     },
     {
       "name": "APPLICATION_DOMAIN",
+      "displayName": "Application domain",
       "description": "The exposed hostname that will route to the Dancer service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub webhook secret",
       "description": "A secret string used to configure the GitHub webhook",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "ADMIN_USERNAME",
+      "displayName": "Administrator username",
       "description": "administrator username",
       "generate": "expression",
       "from": "admin[A-Z0-9]{3}"

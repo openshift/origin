@@ -170,9 +170,9 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 		if namespaceRequired {
-			objectMeta, err := kapi.ObjectMetaFor(obj)
-			if err != nil {
-				t.Errorf("Expected no error, Got %v", err)
+			objectMeta, objectMetaErr := kapi.ObjectMetaFor(obj)
+			if objectMetaErr != nil {
+				t.Errorf("Expected no error, Got %v", objectMetaErr)
 				return
 			}
 

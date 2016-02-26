@@ -84,7 +84,6 @@
   }
 }
 .filter .navbar-filter-widget {
-  white-space: nowrap; // prevent button wrap in Safari
   .label-filter-add.btn {
     margin-right: 0;
   }
@@ -94,6 +93,20 @@
     }
   }
 }
+
+@media (max-width: @screen-xs-max) {
+  project-filter {
+    width: 100%; // Extends flex container full width of flex parent
+  }
+  .filter .navbar-filter-widget .label-filter {
+    min-width: initial;
+    width: 80%; // Width of the input field that allows for the 'add' button to be appended down to 320px
+  }
+  .filter .navbar-filter-widget .selectize-input {
+    width: auto !important;
+  }
+}
+
 .navbar-filter-widget-collapse .form-group {
   margin-bottom: 0;
 }
@@ -487,6 +500,9 @@ label.checkbox {
     .flex-direction(@direction: row);
     .flex-wrap(@wrap: wrap);
     .justify-content(@justify: flex-start);
+    // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+    -ms-flex-pack: start;
+
     .tile-template, .tile-image {
       .flex(@columns: 1 0 auto);
       width: 100%;

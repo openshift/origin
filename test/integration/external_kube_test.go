@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -21,6 +21,7 @@ import (
 )
 
 func TestExternalKube(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	// Start one OpenShift master as "cluster1" to play the external kube server
 	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -66,7 +67,7 @@ func TestExternalKube(t *testing.T) {
 	cluster2MasterConfig.DNSConfig = nil
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
-	cluster2Options := testserver.TestOptions{DeleteAllEtcdKeys: false, EnableControllers: true}
+	cluster2Options := testserver.TestOptions{EnableControllers: true}
 	cluster2AdminConfigFile, err := testserver.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

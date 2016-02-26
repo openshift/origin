@@ -9,12 +9,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
+	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/admin/validate"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
-	diagnostics "github.com/openshift/origin/pkg/cmd/experimental/diagnostics"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -29,13 +29,15 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshiftLong = `
+const (
+	openshiftLong = `
 %[2]s
 
 The %[3]s helps you build, deploy, and manage your applications on top of
 Docker containers. To start an all-in-one server with the default configuration, run:
 
   $ %[1]s start &`
+)
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
@@ -156,7 +158,9 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
-	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
+	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
+	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
+	experimental.AddCommand(deprecatedDiag)
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 
 	// these groups also live under `oadm groups {sync,prune}` and are here only for backwards compatibility

@@ -54,6 +54,7 @@ verify: build
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
+	VERIFY=true hack/update-generated-swagger-descriptions.sh
 .PHONY: verify
 
 # Run unit tests.
@@ -156,6 +157,14 @@ release-binaries: clean
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release-binaries
+
+# Build the cross compiled release binaries
+#
+# Example:
+#   make build-cross
+build-cross: clean
+	hack/build-cross.sh
+.PHONY: build-cross
 
 # Install travis dependencies
 #

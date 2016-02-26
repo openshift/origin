@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -38,10 +38,6 @@ var (
 	// a single watch event is expected, the test will fail after the timeout.
 	BuildControllersWatchTimeout = 10 * time.Second
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 type controllerCount struct {
 	BuildControllers,
@@ -328,6 +324,7 @@ func checkErr(t *testing.T, err error) {
 }
 
 func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclient.Client) {
+	testutil.RequireEtcd(t)
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	checkErr(t, err)
 

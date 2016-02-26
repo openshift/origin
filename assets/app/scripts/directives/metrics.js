@@ -5,8 +5,7 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        pod: '=',
-        alerts: '='
+        pod: '='
       },
       templateUrl: 'views/directives/_pod-metrics.html',
       link: function(scope) {
@@ -40,6 +39,11 @@ angular.module('openshiftConsole')
 
         // Set to true when any data has been loaded (or failed to load).
         scope.loaded = false;
+
+        // Get the URL to show in error messages.
+        MetricsService.getMetricsURL().then(function(url) {
+          scope.metricsURL = url;
+        });
 
         // Relative time options.
         scope.options = {
@@ -212,7 +216,7 @@ angular.module('openshiftConsole')
               container = scope.options.selectedContainer,
               start = Date.now() - scope.options.timeRange.value * 60 * 1000;
 
-          if (!pod || !container) {
+          if (!pod || !container || scope.metricsError) {
             return;
           }
 
@@ -232,20 +236,10 @@ angular.module('openshiftConsole')
               },
               // failure
               function(response) {
-                var alert = {
-                  type: "error",
-                  message: "Error fetching " + metric.id + " for container " + container.name + "."
+                scope.metricsError = {
+                  status: response.status,
+                  details: _.get(response, 'data.errorMsg') || response.statusText || "Status code " + response.status
                 };
-
-                if (response.data && response.data.errorMsg) {
-                  alert.details = response.data.errorMsg;
-                } else if (response.status === 0) {
-                  alert.details = "Could not connect to metrics service.";
-                } else {
-                  alert.details = response.statusText || "Status code " + response.status;
-                }
-
-                scope.alerts["metrics"] = alert;
               }
             ).finally(function() {
               // Even on errors mark metrics as loaded to replace the
@@ -256,7 +250,10 @@ angular.module('openshiftConsole')
         }
 
         // Updates immediately and then on options changes.
-        scope.$watch('options', update, true);
+        scope.$watch('options', function() {
+          delete scope.metricsError;
+          update();
+        }, true);
         // Also update every 30 seconds.
         intervalPromise = $interval(update, 30 * 1000, false);
 

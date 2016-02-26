@@ -272,6 +272,11 @@ module.exports = function (grunt) {
                   var generated = context.options.generated;
                   generated.options = {
                     keepBreaks: true,
+                    compatibility: {
+                      properties: {
+                        zeroUnits: false
+                      }
+                    }
                   };
                 }
               }],

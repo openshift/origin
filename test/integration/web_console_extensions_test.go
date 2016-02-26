@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -51,6 +52,7 @@ func TestWebConsoleExtensions(t *testing.T) {
 	}
 
 	// Build master config.
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("Failed creating master configuration: %v", err)

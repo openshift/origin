@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -22,11 +22,8 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestLogin(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()

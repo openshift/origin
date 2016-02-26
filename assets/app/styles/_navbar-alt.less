@@ -42,6 +42,10 @@
       .flex(@columns: 1 0 0%);
       .flex-display(@display: flex);
       .justify-content(@justify: center);
+      // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+      -ms-flex-align: center;
+      -ms-flex-pack: center;
+
       color: @sidebar-os-color;
       font-weight: 300;
       text-decoration: none;
@@ -203,6 +207,10 @@
     .align-items(@align: center);
     .flex(@columns: 1 0 0%);
     .justify-content(@justify: center);
+    // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+    -ms-flex-align: center;
+    -ms-flex-pack: center;
+
     width: 100%; // fix ie10 issue
     &:hover {
       background-color: @navbar-os-project-menu-active-bg;
@@ -334,6 +342,9 @@
       width: 208px;
       .navbar-home {
         .justify-content(@justify: flex-start);
+        // remove ie prefixes when PostCSS Autoprefixer is included for github issue #7559
+        -ms-flex-pack: start;
+
         font-size: @font-size-base + 1;
         margin-top: 0;
         padding-left: 20px;

@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -22,6 +22,7 @@ import (
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -90,6 +91,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 }
 func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	namespace := "foo"
 	templateName := "bar"
 
@@ -184,6 +186,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 }
 
 func TestUnprivilegedNewProjectDenied(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

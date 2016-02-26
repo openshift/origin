@@ -19,7 +19,7 @@ func init() {
 			return nil, err
 		}
 
-		glog.V(4).Infof("Initializing BuildOverrides plugin with config: %#v", overridesConfig)
+		glog.V(5).Infof("Initializing BuildOverrides plugin with config: %#v", overridesConfig)
 		return NewBuildOverrides(overridesConfig), nil
 	})
 }

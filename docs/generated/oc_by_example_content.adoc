@@ -1688,6 +1688,38 @@ Update a probe on a pod template
 ====
 
 
+== oc set triggers
+Update the triggers on a build or deployment config
+
+====
+
+[options="nowrap"]
+----
+  # Print the triggers on the registry
+  $ oc set triggers dc/registry
+
+  # Set all triggers to manual
+  $ oc set triggers dc/registry --manual
+
+  # Enable all automatic triggers
+  $ oc set triggers dc/registry --auto
+
+  # Reset the GitHub webhook on a build to a new, generated secret
+  $ oc set triggers bc/webapp --from-github=
+  $ oc set triggers bc/webapp --from-webhook=
+
+  # Remove all triggers
+  $ oc set triggers bc/webapp --remove-all
+
+  # Stop triggering on config change
+  $ oc set triggers dc/registry --from-config --remove
+
+  # Add an image trigger to a build config
+  $ oc set triggers bc/webapp --from-image=namespace1/image:latest
+----
+====
+
+
 == oc set volumes
 Update volumes on a pod template
 

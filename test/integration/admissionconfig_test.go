@@ -35,6 +35,7 @@ type TestPluginConfig struct {
 func (obj *TestPluginConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclient.Client, *client.Client) {
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

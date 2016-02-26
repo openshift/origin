@@ -15,8 +15,10 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        timestamp: '='
+        timestamp: '=',
+        omitSingle: '=?',
+        precision: '=?'
       },
-      template: '<span data-timestamp="{{timestamp}}" class="duration">{{timestamp | duration}}</span>'
+      template: '<span data-timestamp="{{timestamp}}" data-omit-single="{{omitSingle}}" data-precision="{{precision}}" class="duration">{{timestamp | duration : null : omitSingle : precision}}</span>'
     };
   });
