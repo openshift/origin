@@ -87,7 +87,7 @@ function save-artifacts() {
 # should increment TEST_FAILURE so the total count of failed test runs
 # can be returned as the exit code.
 TEST_FAILURES=0
-function test-osdn-plugin() {
+function test-network-plugin() {
   local name=$1
   local plugin=$2
 
@@ -264,10 +264,12 @@ else
   os::log::info "Ensuring that previous test cluster is shut down"
   ${CLUSTER_CMD} stop
 
-  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet"
+  test-network-plugin "subnet" "redhat/openshift-ovs-subnet"
 
   # Avoid unnecessary go builds for subsequent deployments
   export OPENSHIFT_SKIP_BUILD=true
 
-  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant"
+  test-network-plugin "multitenant" "redhat/openshift-ovs-multitenant"
+
+  test-network-plugin "flannel" "flannel"
 fi

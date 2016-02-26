@@ -32,6 +32,8 @@ os::provision::build-etcd() {
   local origin_root=$1
   local skip_build=$2
 
+  # TODO(marun) Only build etcd for dind deployments if the networking
+  # option requires etcdctl (e.g. flannel).
   if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
      [ "${skip_build}" = "true" ]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
@@ -177,7 +179,8 @@ os::provision::get-network-plugin() {
   local default_plugin="${subnet_plugin}"
 
   if [ "${plugin}" != "${subnet_plugin}" ] && \
-     [ "${plugin}" != "${multitenant_plugin}" ]; then
+     [ "${plugin}" != "${multitenant_plugin}" ] && \
+     [ "${plugin}" != "flannel" ]; then
     # Disable output when being called from the dind management script
     # since it may be doing something other than launching a cluster.
     if [ "${dind_management_script}" = "false" ]; then
@@ -189,6 +192,148 @@ os::provision::get-network-plugin() {
     plugin="${default_plugin}"
   fi
   echo "${plugin}"
+}
+
+os::provision::install-networking() {
+  local plugin=$1
+  local master_ip=$2
+  local origin_root=$3
+  local config_root=$4
+  local is_master=${5:-false}
+
+  echo "Configuring networking"
+
+  if [[ "${plugin}" =~ redhat/ ]]; then
+    os::provision::install-sdn "${origin_root}"
+  elif [[ "${plugin}" = "flannel" ]]; then
+    os::provision::install-flannel "${master_ip}" "${origin_root}" \
+        "${config_root}" "${is_master}"
+  else
+    >&2 echo "Unable to deploy network plugin ${plugin}"
+    exit 1
+  fi
+}
+
+os::provision::install-flannel() {
+  local master_ip=$1
+  local origin_root=$2
+  local config_root=$3
+  local is_master=$4
+
+  if os::provision::in-container; then
+    local if_name=eth0
+  else
+    yum install -y flannel
+
+    local conf_path=/etc/sysconfig/network-scripts/
+    local if_to_edit=$(find ${conf_path}ifcfg-* | xargs grep -l VAGRANT-BEGIN)
+    local if_name=`echo ${if_to_edit} | awk -F- '{ print $3 }'`
+  fi
+
+  local flannel_conf="/etc/systemd/system/flanneld.service.d/dind.conf"
+
+  mkdir -p $(dirname "${flannel_conf}")
+
+  cat <<EOF > "${flannel_conf}"
+[Service]
+# Running flanneld with '-listen' or '-remote' requires changing the
+# unit type to 'simple'.  The default is type 'notify', which would
+# result in waiting forever for a notification that wouldn't come.
+Type=simple
+
+# Changing the flanneld unit type prevents ExecStartPost from
+# triggering at the correct time.  The post start task
+# (mk-docker-opts.sh) must instead be run manually once flannel has
+# written its configuration.
+ExecStartPost=
+
+# Clear the default ExecStart
+ExecStart=
+EOF
+
+  if [ "${is_master}" = "true" ]; then
+    os::provision::flannel-configure-master "${master_ip}" "${origin_root}" \
+       "${config_root}" "${if_name}" "${flannel_conf}"
+  else
+    cat <<EOF >> "${flannel_conf}"
+ExecStart=/usr/bin/flanneld -iface=${if_name} -ip-masq=false -v=5\
+ -remote=${master_ip}:8080
+EOF
+  fi
+
+  systemctl enable flanneld
+  systemctl start flanneld
+
+  # Ensure that docker on the nodes is configured for flannel.
+  if [ "${is_master}" != "true" ]; then
+    os::provision::flannel-configure-docker
+  fi
+}
+
+os::provision::flannel-configure-master() {
+  local master_ip=$1
+  local origin_root=$2
+  local config_root=$3
+  local if_name=$4
+  local flannel_conf=$5
+
+  local cert_path="${config_root}/openshift.local.config/master"
+  local ca_file="${cert_path}/ca.crt"
+  local cert_file="${cert_path}/master.etcd-client.crt"
+  local key_file="${cert_path}/master.etcd-client.key"
+  local etcd_url="https://${master_ip}:4001"
+  local etcd_key="/atomic.io/network"
+
+  cat <<EOF >> "${flannel_conf}"
+ExecStart=/usr/bin/flanneld -iface=${if_name} -ip-masq=false -v=5\
+ -etcd-cafile=${ca_file} -etcd-certfile=${cert_file} -etcd-keyfile=${key_file}\
+ -etcd-prefix=${etcd_key} -etcd-endpoints=${etcd_url} -listen=${master_ip}:8080
+EOF
+
+  local etcdctl_cmd="${origin_root}/_tools/etcd/bin/etcdctl \
+-C ${etcd_url} --ca-file ${ca_file} --cert-file ${cert_file} --key-file \
+${key_file}"
+
+  local msg="etcd daemon to become available"
+  local condition="os::provision::check-etcd ${etcdctl_cmd}"
+  os::provision::wait-for-condition "${msg}" "${condition}"
+
+  cat <<EOF > /etc/flannel-config.json
+{
+"Network": "10.1.0.0/16",
+"SubnetLen": 24,
+"Backend": {
+    "Type": "udp",
+    "Port": 8285
+ }
+}
+EOF
+
+  # Import default configuration into etcd
+  ${etcdctl_cmd} set "${etcd_key}/config" < /etc/flannel-config.json \
+      > /dev/null
+}
+
+os::provision::check-etcd() {
+  $@ ls &> /dev/null
+}
+
+os::provision::flannel-configure-docker() {
+  local msg="flannel configuration to become available"
+  local condition="test -f /run/flannel/subnet.env"
+
+  # The master flannel instance may take a while to become available.
+  os::provision::wait-for-condition "${msg}" "${condition}" \
+      "${OS_WAIT_FOREVER}"
+
+  # Generate the docker configuration from the flannel configuration
+  /usr/libexec/flannel/mk-docker-opts.sh -d /run/flannel/docker \
+      -k DOCKER_NETWORK_OPTIONS
+
+  echo "Reloading docker"
+  systemctl stop docker
+  ip link del docker0
+  systemctl start docker
 }
 
 os::provision::base-provision() {
@@ -258,7 +403,7 @@ os::provision::start-os-service() {
   local unit_name=$1
   local description=$2
   local exec_start=$3
-  local work_dir=${4:-${CONFIG_ROOT}/}
+  local work_dir=$4
 
   local dind_env_var=
   if os::provision::in-container; then
@@ -287,19 +432,24 @@ EOF
   systemctl start "${unit_name}.service"
 }
 
-os::provision::start-node-service() {
+os::provision::copy-config() {
   local config_root=$1
-  local node_name=$2
 
   # Copy over the certificates directory so that each node has a copy.
   cp -r "${config_root}/openshift.local.config" /
   if [ -d /home/vagrant ]; then
     chown -R vagrant.vagrant /openshift.local.config
   fi
+}
+
+os::provision::start-node-service() {
+  local config_root=$1
+  local node_name=$2
 
   cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
 --config=$(os::provision::get-node-config ${config_root} ${node_name})"
-  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
+  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" \
+      "${config_root}"
 }
 
 OS_WAIT_FOREVER=-1
