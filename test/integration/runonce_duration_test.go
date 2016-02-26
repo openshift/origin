@@ -63,6 +63,7 @@ func TestRunOnceDurationAdmissionPluginProjectOverride(t *testing.T) {
 }
 
 func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) kclient.Interface {
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

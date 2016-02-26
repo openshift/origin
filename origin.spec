@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 183a9db5791dc9de3b52ebaa7c24950d1df8fe38
+%global commit 7432bafe2a2aa4d9647970f59e204dee57cea527
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.905-81-g183a9db -X github.com/openshift/origin/pkg/version.commitFromGit 183a9db -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.906-69-g7432baf -X github.com/openshift/origin/pkg/version.commitFromGit 7432baf -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.906
+Version:        3.1.1.907
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,51 @@ fi
 
 
 %changelog
+* Fri Feb 26 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.907
+- Fix OSE branding on web console (#1309205) (tdawson@redhat.com)
+- Add ability to push to image build script (tdawson@redhat.com)
+- Change button label from "Cancel" to "Cancel Build" (spadgett@redhat.com)
+- Filter and sort web console events table (spadgett@redhat.com)
+- Fix timing problem enabling start build button (spadgett@redhat.com)
+- Add Patternfly button styles to catalog browse button (spadgett@redhat.com)
+- Bump Vagrant machine RAM requirement (dcbw@redhat.com)
+- Remove json files added accidentally (rhcarvalho@gmail.com)
+- Submit forms on enter (jhadvig@redhat.com)
+- Set triggers via the CLI (ccoleman@redhat.com)
+- UPSTREAM: <drop>: utility for the rolling updater (mkargaki@redhat.com)
+- UPSTREAM: 21872: kubectl: preserve availability when maxUnavailability is not
+  100%% (mkargaki@redhat.com)
+- Including css declarations of flex specific prefixes for IE10 to position
+  correctly (sgoodwin@redhat.com)
+- Adjustments to the css controlling the filter widget so that it addresses
+  some overlapping issues. Also, subtle changes to the project nav menu
+  scrollbar so that it's more noticable. (sgoodwin@redhat.com)
+- Only show builds bar chart when at least 4 builds (spadgett@redhat.com)
+- Disable failing extended tests. (ccoleman@redhat.com)
+- Remove v(4) logging of build admission startup (cewong@redhat.com)
+- Include build hook in describer (rhcarvalho@gmail.com)
+- Update hack/update-external-examples.sh (rhcarvalho@gmail.com)
+- Update external examples (rhcarvalho@gmail.com)
+- Add shasums to release build output (ccoleman@redhat.com)
+- diagnostics: promote from openshift ex to oadm (lmeyer@redhat.com)
+- Integrate etcd into the test cases themselves (ccoleman@redhat.com)
+- Web console: improve repeated events message (spadgett@redhat.com)
+- Improve web console metrics error message (spadgett@redhat.com)
+- added generated swagger descriptions for v1 api (skuznets@redhat.com)
+- Fix css compilation issues that affect IE, particularly flexbox
+  (jforrest@redhat.com)
+- pruned govet whitelist (skuznets@redhat.com)
+- Use args flavor sample-app build hooks (rhcarvalho@gmail.com)
+- added automatic swagger doc generator (skuznets@redhat.com)
+- disabling start build/rebuild button when bc is deleted (jhadvig@redhat.com)
+- UPSTREAM: <carry>: change BeforeEach to JustBeforeEach to ensure SA is
+  granted to anyuid SCC (pweil@redhat.com)
+- Fix reuse of release build on nfs mount (marun@redhat.com)
+- Force dind deployment to build binaries by default (marun@redhat.com)
+- Symlink repo mount to /origin for convenience (marun@redhat.com)
+- Fix vagrant vm cluster and dind deployment (marun@redhat.com)
+- Fix dind go build (marun@redhat.com)
+
 * Wed Feb 24 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.906
 - Fix cli download link (#1311396) (tdawson@redhat.com)
 - Fix bindata diff (spadgett@redhat.com)

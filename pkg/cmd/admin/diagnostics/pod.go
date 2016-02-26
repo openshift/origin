@@ -12,7 +12,7 @@ import (
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
+	"github.com/openshift/origin/pkg/cmd/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	poddiag "github.com/openshift/origin/pkg/diagnostics/pod"
 	"github.com/openshift/origin/pkg/diagnostics/types"

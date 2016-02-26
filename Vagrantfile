@@ -54,7 +54,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2560,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 3072,
     "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
     "skip_build"        => ENV['OPENSHIFT_SKIP_BUILD'] || false,
     "sync_folders_type" => nil,
@@ -110,6 +110,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     }
   }
 
+  sync_from = vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.'
+  sync_to = vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
+
   dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
   single_vm_cluster = ! (dind_dev_cluster or dev_cluster)
@@ -117,11 +120,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-dind.sh"
-      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh config-host"
-      config.vm.provision "shell", privileged: false, inline: "/vagrant/hack/dind-cluster.sh restart"
+      config.vm.provision "shell", inline: "#{sync_to}/contrib/vagrant/provision-dind.sh"
+      config.vm.provision "shell", inline: "#{sync_to}/hack/dind-cluster.sh config-host"
+      config.vm.provision "shell", privileged: false, inline: "#{sync_to}/hack/dind-cluster.sh restart"
       config.vm.hostname = "openshift-dind-host"
-      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
     end
   elsif dev_cluster
     # Start an OpenShift cluster
@@ -161,10 +165,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{network_plugin} #{fixup_net_udev} #{skip_build}"
+      config.vm.provision "shell", inline: "/bin/bash -x #{sync_to}/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{network_plugin} #{fixup_net_udev} #{skip_build}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
-      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
     end
 
     # OpenShift minion
@@ -174,16 +179,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/bin/bash -x /vagrant/contrib/vagrant/provision-node.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -i #{minion_index} #{network_plugin} #{fixup_net_udev} #{skip_build}"
+        minion.vm.provision "shell", inline: "/bin/bash -x #{sync_to}/contrib/vagrant/provision-node.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} -i #{minion_index} #{network_plugin} #{fixup_net_udev} #{skip_build}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
-        config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
+        config.vm.synced_folder ".", "/vagrant", disabled: true
+        config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
       end
     end
   else # Single VM dev environment
-    sync_from = vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.'
-    sync_to = vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
-
     ##########################
     # define settings for the single VM being created.
     config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
@@ -250,7 +253,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
       if ! single_vm_cluster
         # Work around https://github.com/pradels/vagrant-libvirt/issues/419
-        override.vm.synced_folder ".", "/vagrant", type: 'nfs'
+        override.vm.synced_folder sync_from, sync_to, type: 'nfs'
       end
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i

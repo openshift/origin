@@ -90,6 +90,8 @@ angular.module("openshiftConsole")
         });
       },
 
+      getMetricsURL: getMetricsURL,
+
       // Get metrics data for a container.
       //
       // config keyword arguments

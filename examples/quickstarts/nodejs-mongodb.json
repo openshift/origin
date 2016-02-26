@@ -5,7 +5,7 @@
     "name": "nodejs-mongodb-example",
     "annotations": {
       "description": "An example Node.js application with a MongoDB database",
-      "tags": "instant-app,nodejs,mongodb",
+      "tags": "quickstart,nodejs,mongodb",
       "iconClass": "icon-nodejs"
     }
   },

@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -133,6 +133,7 @@ func buildStrategyTypes() []string {
 }
 
 func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+	testutil.RequireEtcd(t)
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
 	var err error

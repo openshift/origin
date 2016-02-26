@@ -21,6 +21,7 @@ angular
     'kubernetesUI',
     'ui.bootstrap',
     'patternfly.charts',
+    'patternfly.sort',
     'openshiftConsoleTemplates',
     'ui.ace'
   ])
@@ -323,13 +324,18 @@ angular
   .run(function(dateRelativeFilter, durationFilter) {
     // Use setInterval instead of $interval because we're directly manipulating the DOM and don't want scope.$apply overhead
     setInterval(function() {
+      // Set by relative-timestamp directive.
       $('.timestamp[data-timestamp]').text(function(i, existing) {
         return dateRelativeFilter($(this).attr("data-timestamp"), $(this).attr("data-drop-suffix")) || existing;
       });
     }, 30 * 1000);
     setInterval(function() {
+      // Set by duration-until-now directive.
       $('.duration[data-timestamp]').text(function(i, existing) {
-        return durationFilter($(this).attr("data-timestamp")) || existing;
+        var timestamp = $(this).data("timestamp");
+        var omitSingle = $(this).data("omit-single");
+        var precision = $(this).data("precision");
+        return durationFilter(timestamp, null, omitSingle, precision) || existing;
       });
     }, 1000);
   });

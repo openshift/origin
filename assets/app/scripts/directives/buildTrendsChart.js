@@ -12,6 +12,9 @@ angular.module('openshiftConsole')
         var buildByNumber;
         var completePhases = ['Complete', 'Failed', 'Cancelled', 'Error'];
 
+        // Minimum number of builds to show.
+        $scope.minBuilds = _.constant(4);
+
         // Simple humanize function that returns an abbreviated duration like "1h 4m" or "2m 4s"
         // suitable for use on the chart y-axis.
         var humanize = function(value) {
@@ -301,4 +304,3 @@ angular.module('openshiftConsole')
       }
     };
   });
-

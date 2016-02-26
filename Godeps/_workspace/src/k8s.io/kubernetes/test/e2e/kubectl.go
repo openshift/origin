@@ -169,7 +169,7 @@ var _ = Describe("Kubectl client", func() {
 	Describe("Simple pod", func() {
 		var podPath string
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			podPath = filepath.Join(testContext.RepoRoot, "docs/user-guide/pod.yaml")
 			By("creating the pod")
 			runKubectlOrDie("create", "-f", podPath, fmt.Sprintf("--namespace=%v", ns))
@@ -718,7 +718,7 @@ var _ = Describe("Kubectl client", func() {
 	Describe("Kubectl label", func() {
 		var podPath string
 		var nsFlag string
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			podPath = filepath.Join(testContext.RepoRoot, "docs/user-guide/pod.yaml")
 			By("creating the pod")
 			nsFlag = fmt.Sprintf("--namespace=%v", ns)
@@ -755,7 +755,7 @@ var _ = Describe("Kubectl client", func() {
 		var rcPath string
 		var nsFlag string
 		containerName := "redis-master"
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples/guestbook-go", file)
 			}

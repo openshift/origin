@@ -10,6 +10,7 @@ import (
 	newetcdclient "github.com/coreos/etcd/client"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
@@ -103,6 +104,23 @@ func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclie
 func TestEtcdClient(etcdClient *etcdclient.Client) error {
 	for i := 0; ; i++ {
 		_, err := etcdClient.Get("/", false, false)
+		if err == nil || etcdutil.IsEtcdNotFound(err) {
+			break
+		}
+		if i > 100 {
+			return fmt.Errorf("could not reach etcd: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return nil
+}
+
+// TestEtcdClient verifies a client is functional.  It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
+func TestNewEtcdClient(etcdClient newetcdclient.Client) error {
+	for i := 0; ; i++ {
+		_, err := newetcdclient.NewKeysAPI(etcdClient).Get(context.Background(), "/", nil)
 		if err == nil || etcdutil.IsEtcdNotFound(err) {
 			break
 		}

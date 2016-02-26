@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -13,6 +13,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util"
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -26,6 +27,7 @@ const (
 )
 
 func TestSNI(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	// Create tempfiles with certs and keys we're going to use
 	certNames := map[string]string{}
 	for certName, certContents := range sniCerts {

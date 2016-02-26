@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"testing"
 
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestRootRedirect(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterConfig, _, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

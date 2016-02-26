@@ -22,58 +22,62 @@ DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 SCRATCH_OPTION=""
-BUILD_REPO="http://file.rdu.redhat.com/sdodson/aos-unsigned.repo"
-COMMIT_MESSAGE="Updating"
+BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo"
+COMMIT_MESSAGE="Update dockerfile"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
+OSBS_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
+#OSBS_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
+PUSH_REGISTRY=registry.qe.openshift.com
 
 packagelist=""
 declare -A packagekey
 # format:
 # dist-git_name	image_dependency git_repo git_path
-packagekey['aos-f5-router-docker']="aos-f5-router-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/router/f5"
-packagekey['image-inspector-docker']="image-inspector-docker None None None"
-packagekey['logging-auth-proxy-docker']="logging-auth-proxy-docker None None None"
-packagekey['logging-deployment-docker']="logging-deployment-docker None None None"
-packagekey['logging-elasticsearch-docker']="logging-elasticsearch-docker None None None"
-packagekey['logging-fluentd-docker']="logging-fluentd-docker None None None"
-packagekey['logging-kibana-docker']="logging-kibana-docker None None None"
-packagekey['metrics-cassandra-docker']="metrics-cassandra-docker None https://github.com/openshift/origin-metrics.git origin-metrics/cassandra"
-packagekey['metrics-deployer-docker']="metrics-deployer-docker None https://github.com/openshift/origin-metrics.git origin-metrics/deployer"
-packagekey['metrics-hawkular-metrics-docker']="metrics-hawkular-metrics-docker None https://github.com/openshift/origin-metrics.git origin-metrics/hawkular-metrics"
-packagekey['metrics-heapster-docker']="metrics-heapster-docker None https://github.com/openshift/origin-metrics.git origin-metrics/heapster"
-packagekey['openshift-enterprise-base-docker']="openshift-enterprise-base-docker None ${BASE_GIT_REPO} ose/images/base"
-packagekey['openshift-enterprise-deployer-docker']="openshift-enterprise-deployer-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/deployer"
-packagekey['openshift-enterprise-docker']="openshift-enterprise-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/ose"
-packagekey['openshift-enterprise-docker-builder-docker']="openshift-enterprise-docker-builder-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/builder/docker/docker-builder"
-packagekey['openshift-enterprise-dockerregistry-docker']="openshift-enterprise-dockerregistry-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/dockerregistry"
-packagekey['openshift-enterprise-haproxy-router-base-docker']="openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/router/haproxy-base"
-packagekey['openshift-enterprise-haproxy-router-docker']="openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker ${BASE_GIT_REPO} ose/images/router/haproxy"
-packagekey['openshift-enterprise-keepalived-ipfailover-docker']="openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/ipfailover/keepalived"
-packagekey['openshift-enterprise-node-docker']="openshift-enterprise-node-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/node"
-packagekey['openshift-enterprise-openvswitch-docker']="openshift-enterprise-openvswitch-docker None ${BASE_GIT_REPO} ose/images/openvswitch"
-packagekey['openshift-enterprise-pod-docker']="openshift-enterprise-pod-docker None ${BASE_GIT_REPO} ose/images/pod"
-packagekey['openshift-enterprise-recycler-docker']="openshift-enterprise-recycler-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/recycler"
-packagekey['openshift-enterprise-sti-builder-docker']="openshift-enterprise-sti-builder-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/builder/docker/sti-builder"
-packagekey['openshift-jenkins-docker']="openshift-jenkins-docker None https://github.com/openshift/mongodb mongodb/2.4"
-packagekey['openshift-mongodb-docker']="openshift-mongodb-docker None https://github.com/openshift/mongodb mongodb/2.4"
-packagekey['openshift-mysql-docker']="openshift-mysql-docker None https://github.com/openshift/mysql mysql/5.5"
-packagekey['openshift-postgresql-docker']="openshift-postgresql-docker None https://github.com/openshift/postgresql postgresql/9.2"
-packagekey['openshift-sti-base-docker']="openshift-sti-base-docker None https://github.com/openshift/sti-base sti-base"
-packagekey['openshift-sti-nodejs-docker']="openshift-sti-nodejs-docker openshift-sti-base-docker https://github.com/openshift/sti-nodejs sti-nodejs/0.10"
-packagekey['openshift-sti-perl-docker']="openshift-sti-perl-docker openshift-sti-base-docker https://github.com/openshift/sti-perl sti-perl/5.16"
-packagekey['openshift-sti-php-docker']="openshift-sti-php-docker openshift-sti-base-docker https://github.com/openshift/sti-php sti-php/5.5"
-packagekey['openshift-sti-python-docker']="openshift-sti-python-docker openshift-sti-base-docker https://github.com/openshift/sti-python sti-python/3.3"
-packagekey['openshift-sti-ruby-docker']="openshift-sti-ruby-docker openshift-sti-base-docker https://github.com/openshift/sti-ruby sti-ruby/2.0"
+packagekey['aos-f5-router-docker']="aos-f5-router-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/router/f5 openshift3/ose-f5-router aep3_beta/aep-f5-router"
+packagekey['image-inspector-docker']="image-inspector-docker None None None openshift3/image-inspector aep3_beta/image-inspector"
+packagekey['logging-auth-proxy-docker']="logging-auth-proxy-docker None None None openshift3/logging-auth-proxy aep3_beta/logging-auth-proxy"
+packagekey['logging-deployment-docker']="logging-deployment-docker None None None openshift3/logging-deployment aep3_beta/logging-deployment"
+packagekey['logging-elasticsearch-docker']="logging-elasticsearch-docker None None None openshift3/logging-elasticsearch aep3_beta/logging-elasticsearch"
+packagekey['logging-fluentd-docker']="logging-fluentd-docker None None None openshift3/logging-fluentd aep3_beta/logging-fluentd"
+packagekey['logging-kibana-docker']="logging-kibana-docker None None None openshift3/logging-kibana aep3_beta/logging-kibana"
+packagekey['metrics-cassandra-docker']="metrics-cassandra-docker None https://github.com/openshift/origin-metrics.git origin-metrics/cassandra openshift3/metrics-cassandra aep3_beta/metrics-cassandra"
+packagekey['metrics-deployer-docker']="metrics-deployer-docker None https://github.com/openshift/origin-metrics.git origin-metrics/deployer openshift3/metrics-deployer aep3_beta/metrics-deployer"
+packagekey['metrics-hawkular-metrics-docker']="metrics-hawkular-metrics-docker None https://github.com/openshift/origin-metrics.git origin-metrics/hawkular-metrics openshift3/metrics-hawkular-metrics aep3_beta/metrics-hawkular-metrics"
+packagekey['metrics-heapster-docker']="metrics-heapster-docker None https://github.com/openshift/origin-metrics.git origin-metrics/heapster openshift3/metrics-heapster aep3_beta/metrics-heapster"
+packagekey['openshift-enterprise-base-docker']="openshift-enterprise-base-docker None ${BASE_GIT_REPO} ose/images/base none none"
+packagekey['openshift-enterprise-deployer-docker']="openshift-enterprise-deployer-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/deployer openshift3/ose-deployer aep3_beta/aep-deployer"
+packagekey['openshift-enterprise-docker']="openshift-enterprise-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/ose openshift3/ose aep3_beta/aep"
+packagekey['openshift-enterprise-docker-builder-docker']="openshift-enterprise-docker-builder-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/builder/docker/docker-builder openshift3/ose-docker-builder none"
+packagekey['openshift-enterprise-dockerregistry-docker']="openshift-enterprise-dockerregistry-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/dockerregistry openshift3/ose-docker-registry aep3_beta/aep-docker-registry"
+packagekey['openshift-enterprise-haproxy-router-base-docker']="openshift-enterprise-haproxy-router-base-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/router/haproxy-base none none"
+packagekey['openshift-enterprise-haproxy-router-docker']="openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker ${BASE_GIT_REPO} ose/images/router/haproxy openshift3/ose-haproxy-router aep3_beta/aep-haproxy-router"
+packagekey['openshift-enterprise-keepalived-ipfailover-docker']="openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/ipfailover/keepalived openshift3/ose-keepalived-ipfailover aep3_beta/aep-keepalived-ipfailover"
+packagekey['openshift-enterprise-node-docker']="openshift-enterprise-node-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/node openshift3/node aep3_beta/node"
+packagekey['openshift-enterprise-openvswitch-docker']="openshift-enterprise-openvswitch-docker None ${BASE_GIT_REPO} ose/images/openvswitch openshift3/openvswitch none"
+packagekey['openshift-enterprise-pod-docker']="openshift-enterprise-pod-docker None ${BASE_GIT_REPO} ose/images/pod openshift3/ose-pod aep3_beta/aep-pod"
+packagekey['openshift-enterprise-recycler-docker']="openshift-enterprise-recycler-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/recycler openshift3/ose-recycler aep3_beta/aep-recycler"
+packagekey['openshift-enterprise-sti-builder-docker']="openshift-enterprise-sti-builder-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/builder/docker/sti-builder openshift3/ose-sti-builder none"
+packagekey['openshift-jenkins-docker']="openshift-jenkins-docker None https://github.com/openshift/mongodb mongodb/2.4 openshift3/jenkins-1-rhel7 none"
+packagekey['openshift-mongodb-docker']="openshift-mongodb-docker None https://github.com/openshift/mongodb mongodb/2.4 openshift3/mongodb-24-rhel7 none"
+packagekey['openshift-mysql-docker']="openshift-mysql-docker None https://github.com/openshift/mysql mysql/5.5 openshift3/mysql-55-rhel7 none"
+packagekey['openshift-postgresql-docker']="openshift-postgresql-docker None https://github.com/openshift/postgresql postgresql/9.2 openshift3/postgresql-92-rhel7 none"
+packagekey['openshift-sti-base-docker']="openshift-sti-base-docker None https://github.com/openshift/sti-base sti-base none none"
+packagekey['openshift-sti-nodejs-docker']="openshift-sti-nodejs-docker openshift-sti-base-docker https://github.com/openshift/sti-nodejs sti-nodejs/0.10 openshift3/nodejs-010-rhel7 none"
+packagekey['openshift-sti-perl-docker']="openshift-sti-perl-docker openshift-sti-base-docker https://github.com/openshift/sti-perl sti-perl/5.16 openshift3/perl-516-rhel7 none"
+packagekey['openshift-sti-php-docker']="openshift-sti-php-docker openshift-sti-base-docker https://github.com/openshift/sti-php sti-php/5.5 openshift3/php-55-rhel7 none"
+packagekey['openshift-sti-python-docker']="openshift-sti-python-docker openshift-sti-base-docker https://github.com/openshift/sti-python sti-python/3.3 openshift3/python-33-rhel7 none"
+packagekey['openshift-sti-ruby-docker']="openshift-sti-ruby-docker openshift-sti-base-docker https://github.com/openshift/sti-ruby sti-ruby/2.0 openshift3/ruby-20-rhel7 none"
 
 usage() {
   echo "Usage `basename $0` [action] <options>" >&2
   echo >&2
   echo "Actions:" >&2
   echo "  build_container :: Clone dist-git, build containers" >&2
+  echo "  docker_update   :: Clone dist-git, update version, release, or rhel" >&2
   echo "  bump_and_build  :: docker_update, build containers" >&2
-  echo "  docker_update   :: Clone dist-git, bump version, release, or rhel" >&2
   echo "  docker_backfill :: Copy dist-git Dockerfile to git Dockerfile.product" >&2
   echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
+  echo "  push_images     :: Push images to qe-registry" >&2
   echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
   echo "  list            :: Display full list of packages / images" >&2
   echo "  test            :: Display what packages would be worked on" >&2
@@ -84,6 +88,7 @@ usage() {
   echo "  -f, --force         :: Force: always do dist-git commits " >&2
   echo "  -i, --ignore        :: Ignore: do not do dist-git commits " >&2
   echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
+  echo "  -n, --notlatest     :: Do not tag or push as latest" >&2
   echo "  --scratch           :: Do a scratch build" >&2
   echo "  --group [group]     :: Which group list to use (base sti metrics logging misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
@@ -231,11 +236,10 @@ check_build_dependencies() {
 
 build_image() {
     rhpkg container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-enabled.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-enabled-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --scratch --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     echo -n "  Waiting for createContainer taskid ."
     taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
     while [ "${taskid}" == "" ]
@@ -447,18 +451,73 @@ show_dockerfile_diffs() {
 }
 
 show_yaml() {
-  pushd "${workingdir}/${container}" >/dev/null
-  package_name=`grep Name= Dockerfile | cut -d'"' -f2`
-  package_version=`grep Version= Dockerfile | cut -d'"' -f2`
-  package_release=`grep Release= Dockerfile | cut -d'"' -f2`
-  echo "---"
-  echo "repository: ${package_name}"
-  echo "tags: ${package_version},${package_version}-${package_release},latest"
-  echo "build: ${container}-${package_version}-${package_release}"
-  popd >/dev/null
-
+  if ! [ "${brew_name}" == "none" ] ; then
+    pushd "${workingdir}/${container}" >/dev/null
+    package_name=`grep Name= Dockerfile | cut -d'"' -f2`
+    package_version=`grep Version= Dockerfile | cut -d'"' -f2`
+    package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+    echo "---"
+    echo "repository: ${brew_name}"
+    echo "tags: ${package_version},${package_version}-${package_release},latest"
+    echo "build: ${container}-${package_version}-${package_release}"
+    echo "repository_tag: ${brew_name}:${package_version}-${package_release}"
+    if ! [ "${alt_name}" == "none" ] ; then
+      echo "---"
+      echo "repository: ${alt_name}"
+      echo "tags: ${package_version},${package_version}-${package_release},latest"
+      echo "build: ${container}-${package_version}-${package_release}"
+      echo "repository_tag: ${alt_name}:${package_version}-${package_release}"
+    fi
+    popd >/dev/null
+  fi
 }
 
+function push_image {
+   docker push $1
+   if [ $? -ne 0 ]; then
+     echo "OH NO!!! There was a problem pushing the image, you may not be logged in or there was some other error.
+To login, visit https://api.qe.openshift.com/oauth/token/request then
+  docker login -e USERID@redhat.com -u USERID@redhat.com -p TOKEN https://registry.qe.redhat.com
+"
+     exit 1
+   fi
+}
+
+start_push_image() {
+  pushd "${workingdir}/${container}" >/dev/null
+  package_name=`grep Name= Dockerfile | cut -d'"' -f2`
+  if ! [ "${update_version}" == "TRUE" ] ; then
+    version_version=`grep Version= Dockerfile | cut -d'"' -f2`
+  fi
+  if ! [ "${update_release}" == "TRUE" ] ; then
+    release_version=`grep Release= Dockerfile | cut -d'"' -f2`
+  fi
+  echo "  ${container} ${package_name}:${version_version}"
+  echo
+  docker pull ${OSBS_REGISTRY}/${package_name}:${version_version}
+  docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version}
+  push_image ${PUSH_REGISTRY}/${package_name}:${version_version}
+  if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest
+    push_image ${PUSH_REGISTRY}/${package_name}:latest
+  fi
+  if ! [ "${alt_name}" == "none" ] ; then
+    trimmed_alt_name=$(echo "${alt_name}" | cut -d'/' -f2)
+    if [ "${VERBOSE}" == "TRUE" ] ; then
+      echo "----------"
+      echo "docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}"
+      echo "push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}"
+      echo "----------"
+    fi
+    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}
+    push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}
+    if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+      docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:latest
+      push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:latest
+    fi
+  fi
+  popd >/dev/null
+}
 
 check_dependents() {
   if ! [ "${dependent_list_new}" == "" ] ; then
@@ -534,6 +593,13 @@ build_yaml() {
   popd >/dev/null
 }
 
+push_images() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  start_push_image
+  popd >/dev/null
+}
+
 test_function() {
   echo "container: ${container} dependency: ${dependency} branch: ${branch}"
 }
@@ -547,7 +613,11 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | make_yaml | bump_and_build | docker_backfill | test)
+    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | test)
+      export action="${key}"
+      ;;
+    bump_and_build)
+      export bump_release="TRUE"
       export action="${key}"
       ;;
     list)
@@ -608,6 +678,9 @@ case $key in
       ;;
     -d|--dep|--deps|--dependents)
       export DEPENDENTS="TRUE"
+      ;;
+    -n|--notlatest)
+      export NOTLATEST="TRUE"
       ;;
     -v|--verbose)
       export VERBOSE="TRUE"
@@ -673,6 +746,8 @@ do
   export dependency=$(echo "$spec" | awk '{print $2}')
   export repo=$(echo "$spec" | awk '{print $3}')
   export path=$(echo "$spec" | awk '{print $4}')
+  export brew_name=$(echo "$spec" | awk '{print $5}')
+  export alt_name=$(echo "$spec" | awk '{print $6}')
   case "$action" in
     build_container )
       echo "=== ${container} ==="
@@ -697,6 +772,10 @@ do
       ;;
     make_yaml )
       build_yaml
+      ;;
+    push_images )
+      echo "=== ${container} ==="
+      push_images
       ;;
     test | list )
       test_function

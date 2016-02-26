@@ -285,6 +285,12 @@ EOF
     exit 2
   fi
 
+  if [[ -z "$(which sha256sum)" ]]; then
+    sha256sum() {
+      return 0
+    }
+  fi
+
   # Travis continuous build uses a head go release that doesn't report
   # a version number, so we skip this check on Travis.  It's unnecessary
   # there anyway.
@@ -457,6 +463,9 @@ os::build::archive_zip() {
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
   for file in "$@"; do
+    pushd "${release_binpath}" &> /dev/null
+      sha256sum "${file}"
+    popd &>/dev/null
     zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
   done
 }
@@ -468,6 +477,7 @@ os::build::archive_tar() {
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
   pushd "${release_binpath}" &> /dev/null
+  find . -type f -exec sha256sum {} \;
   tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
   popd &>/dev/null
 }
@@ -500,18 +510,35 @@ os::build::extract_tar() {
   local archive_file="$1"
   local change_dir="$2"
 
+  local tar_flags="--strip-components=1"
+
   # Unpack archive
   echo "++ Extracting $(basename ${archive_file})"
   if os::build::is_hardlink_supported "${change_dir}" ; then
-    tar mxzf "${archive_file}" --strip-components=1 -C "${change_dir}"
+    # Ensure that tar won't try to set an owner when extracting to an
+    # nfs mount. Setting ownership on an nfs mount is likely to fail
+    # even for root.
+    local mount_type=$(df -P -T "${change_dir}" | tail -n +2 | awk '{print $2}')
+    if [[ "${mount_type}" = "nfs" ]]; then
+      tar_flags="${tar_flags} --no-same-owner"
+    fi
+    tar mxzf "${archive_file}" ${tar_flags} -C "${change_dir}"
   else
     local temp_dir=$(mktemp -d --tmpdir=/dev/shm/)
-    tar mxzf "${archive_file}" --strip-components=1 -C "${temp_dir}"
+    tar mxzf "${archive_file}" ${tar_flags} -C "${temp_dir}"
     pushd "${temp_dir}" &> /dev/null
     tar cO --hard-dereference * | tar xf - -C "${change_dir}"
     popd &>/dev/null
     rm -rf "${temp_dir}"
   fi
+}
+
+# os::build::release_sha calculates a SHA256 checksum over the contents of the
+# built release directory.
+os::build::release_sha() {
+  pushd "${OS_LOCAL_RELEASEPATH}" &> /dev/null
+  sha256sum * > CHECKSUM
+  popd &> /dev/null
 }
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
@@ -544,19 +571,19 @@ os::build::detect_local_release_tars() {
     echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
     return 2
   fi
-  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}*)
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${primary}" | wc -l) -ne 1 || -z "${primary}" ]]; then
     echo "There should be exactly one ${platform} server tar in $OS_LOCAL_RELEASEPATH"
     return 2
   fi
 
-  local client=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}*)
+  local client=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${primary}" ]]; then
     echo "There should be exactly one ${platform} client tar in $OS_LOCAL_RELEASEPATH"
     return 2
   fi
 
-  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}*)
+  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
     return 2

@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -30,11 +30,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestImageStreamImport(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -163,6 +160,7 @@ func mockRegistryHandler(t *testing.T, count *int) http.Handler {
 }
 
 func TestImageStreamImportAuthenticated(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, &count))
@@ -329,6 +327,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 // test controller interval), updates the image stream only when there are changes, and if an
 // error occurs writes the error only once (instead of every interval)
 func TestImageStreamImportScheduled(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	written := make(chan struct{}, 1)
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

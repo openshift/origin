@@ -132,13 +132,13 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 		{
 			Type: buildapi.GitHubWebHookBuildTriggerType,
 			GitHubWebHook: &buildapi.WebHookTrigger{
-				Secret: generateSecret(20),
+				Secret: GenerateSecret(20),
 			},
 		},
 		{
 			Type: buildapi.GenericWebHookBuildTriggerType,
 			GenericWebHook: &buildapi.WebHookTrigger{
-				Secret: generateSecret(20),
+				Secret: GenerateSecret(20),
 			},
 		},
 	}
@@ -358,8 +358,8 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 	}, nil
 }
 
-// generateSecret generates a random secret string
-func generateSecret(n int) string {
+// GenerateSecret generates a random secret string
+func GenerateSecret(n int) string {
 	n = n * 3 / 4
 	b := make([]byte, n)
 	read, _ := rand.Read(b)

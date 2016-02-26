@@ -20,6 +20,7 @@ import (
 )
 
 func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclient.Interface, client.Interface, *kclient.Config) {
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

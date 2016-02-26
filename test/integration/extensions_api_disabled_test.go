@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -18,6 +18,7 @@ import (
 func TestExtensionsAPIDisabled(t *testing.T) {
 	const projName = "ext-disabled-proj"
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

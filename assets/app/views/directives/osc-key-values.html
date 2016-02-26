@@ -20,7 +20,8 @@
               autocapitalize="off"
               spellcheck="false"
               osc-input-validator="key"
-              osc-unique="entries">
+              osc-unique="entries"
+              on-enter="addEntry()">
           </div>
 
           <div
@@ -37,14 +38,19 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              osc-input-validator="value">
+              osc-input-validator="value"
+              on-enter="addEntry()">
           </div>
-          <button
-            class="btn btn-default"
-            ng-click="addEntry()"
-            ng-disabled="form.$invalid || !key || !value">Add</button>
+          <!-- We need to replace button tag with a link tag cause we are embedding this directive into different forms (BC edit
+          form, from image form) and in order to be able to submit the top level form with hitting Enter key we needed to replace buttons with links.
+          Based on: https://docs.angularjs.org/api/ng/directive/form#submitting-a-form-and-preventing-the-default-action -->
+          <a class="btn btn-default"
+            href=""
+            role="button"
+            ng-disabled="form.$invalid || !key || !value">
+            Add
+          </a>
         </div>
-
 
         <div row class="has-error" ng-show="form.key.$error.oscUnique">
           <span class="help-block">

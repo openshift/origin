@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -19,6 +19,7 @@ import (
 func TestExtensionsAPIDeletion(t *testing.T) {
 	const projName = "ext-deletion-proj"
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -1,6 +1,5 @@
 <project-header class="top-header"></project-header>
-  <project-page>
-
+<project-page>
   <!-- Middle section -->
   <div class="middle-section">
     <div id="scrollable-content" class="middle-container has-scroll">
@@ -15,61 +14,12 @@
       <div class="middle-content">
         <div class="container-fluid">
           <div class="row">
-            <div class="col-md-12 gutter-top">
-              <table class="table table-bordered table-condensed table-mobile table-hover events-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Kind and </span>Name</th>
-                    <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Kind</span></th>
-                    <th class="hidden-xs hidden-sm hidden-md sr-only">Severity</th>
-                    <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Reason</span></th>
-                    <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Reason and </span>Message</th>
-                  </tr>
-                </thead>
-                <tbody ng-if="(events | hashSize) === 0">
-                  <tr>
-                    <td><em>{{emptyMessage}}</em></td>
-                    <td class="hidden-xs">&nbsp;</td>
-                    <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
-                    <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
-                    <td class="hidden-xs hidden-sm hidden-md">&nbsp;</td>
-                    <td class="hidden-xs">&nbsp;</td>
-                  </tr>
-                </tbody>
-                <tbody ng-repeat="event in events | toArray | orderBy:'-lastTimestamp'">
-                  <tr>
-                    <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
-                    <td data-title="Name" class="event-time">
-                      <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
-                      {{event.involvedObject.kind}}</div>
-                      {{event.involvedObject.name}}</td>
-                    <td class="hidden-sm hidden-md" data-title="Kind">
-                      {{event.involvedObject.kind}}</td>
-                    <td data-title="Severity" class="hidden-xs hidden-sm hidden-md text-center severity-icon-td">
-                      <span class="sr-only">{{event.type}}</span>
-                      <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span></td>
-                    <td class="hidden-sm hidden-md" data-title="Reason">
-                      {{event.reason}}&nbsp;<span class="visible-xs-inline pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
-                    </td>
-                    <td data-title="Message" class="word-break">
-                      <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
-                        {{event.reason}}&nbsp;
-                        <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
-                      </div>
-                      {{event.message}}
-                      <span class="text-muted small" ng-if="event.count > 1">
-                        ({{event.count}} times in the last
-                          {{event.firstTimestamp | duration:event.lastTimestamp:true}})
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div><!-- /col-* -->
+            <div class="col-md-12 gutter-top" ng-if="projectContext">
+              <events project-context="projectContext" ng-if="projectContext"></events>
+            </div>
           </div>
         </div>
       </div><!-- /middle-content -->
     </div><!-- /middle-container -->
   </div><!-- /middle-section -->
-  </project-page>
+</project-page>

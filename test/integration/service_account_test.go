@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -26,6 +26,7 @@ import (
 )
 
 func TestServiceAccountAuthorization(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 	saUsername := serviceaccount.MakeUsername(saNamespace, saName)
@@ -131,7 +132,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	cluster2MasterConfig.DNSConfig = nil
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
-	cluster2Options := testserver.TestOptions{DeleteAllEtcdKeys: false, EnableControllers: true}
+	cluster2Options := testserver.TestOptions{EnableControllers: true}
 	cluster2AdminConfigFile, err := testserver.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -245,6 +246,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	_, clusterAdminConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -301,6 +303,7 @@ func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (strin
 }
 
 func TestEnforcingServiceAccount(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
 	if err != nil {

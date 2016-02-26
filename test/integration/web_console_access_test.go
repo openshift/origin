@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -41,6 +42,7 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 }
 
 func TestAccessOriginWebConsole(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -67,6 +69,7 @@ func TestAccessOriginWebConsole(t *testing.T) {
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

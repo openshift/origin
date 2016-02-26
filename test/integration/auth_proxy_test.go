@@ -1,4 +1,4 @@
-// +build integration,etcd
+// +build integration
 
 package integration
 
@@ -34,6 +34,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	idp.Provider = &configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}
 	idp.MappingMethod = "claim"
 
+	defer testutil.RequireEtcd(t).Terminate(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	checkErr(t, err)
 	masterConfig.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{idp}

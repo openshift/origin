@@ -2,7 +2,7 @@
 
 source $(dirname $0)/provision-config.sh
 
-os::provision::base-provision true
+os::provision::base-provision "${ORIGIN_ROOT}" true
 
 os::provision::build-origin "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"

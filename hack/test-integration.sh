@@ -20,8 +20,6 @@ os::build::setup_env
 
 export API_SCHEME="http"
 export API_BIND_HOST="127.0.0.1"
-export ETCD_PORT=${ETCD_PORT:-44001}
-export ETCD_PEER_PORT=${ETCD_PEER_PORT:-47001}
 os::util::environment::setup_all_server_vars "test-integration/"
 reset_tmp_dir
 
@@ -29,7 +27,6 @@ function cleanup() {
 	out=$?
 	set +e
 
-	cleanup_openshift
 	echo "Complete"
 	exit $out
 }
@@ -39,10 +36,10 @@ trap cleanup EXIT SIGINT
 package="${OS_TEST_PACKAGE:-test/integration}"
 
 if docker version >/dev/null 2>&1; then
-	tags="${OS_TEST_TAGS:-integration docker etcd}"
+	tags="${OS_TEST_TAGS:-integration docker}"
 else
 	echo "++ Docker not available, running only integration tests without the 'docker' tag"
-	tags="${OS_TEST_TAGS:-integration !docker etcd}"
+	tags="${OS_TEST_TAGS:-integration !docker}"
 fi
 
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
@@ -65,22 +62,15 @@ popd &>/dev/null
 
 os::log::start_system_logger
 
-configure_os_server
-openshift start etcd --config=${MASTER_CONFIG_DIR}/master-config.yaml &> ${LOG_DIR}/etcd.log &
-
-wait_for_url "http://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 160
-curl -X PUT	"http://${API_HOST}:${ETCD_PORT}/v2/keys/_test"
-echo
-
 function exectest() {
 	echo "Running $1..."
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		ETCD_PORT=${ETCD_PORT} "${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
+		"${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
-		out=$(ETCD_PORT=${ETCD_PORT} "${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
+		out=$("${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	fi
 
@@ -92,11 +82,6 @@ function exectest() {
 	else
 		os::text::print_red "failed  $1"
 		echo "${out}"
-
-		# dump etcd for failing test
-		echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/$1-etcd_dump.json"
-		curl -L -s "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/$1-etcd_dump.json"
-		echo
 
 		exit 1
 	fi
