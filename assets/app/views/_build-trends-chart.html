@@ -1,6 +1,8 @@
 <!-- aria-hidden since we have the build table below with the same details -->
 <!-- Wrap the content in a scrollable div for mobile -->
-<div class="build-trends-responsive" aria-hidden="true">
+<div class="build-trends-responsive"
+     aria-hidden="true"
+     ng-show="completeBuilds.length >= minBuilds()">
   <div class="build-trends-container">
     <!-- Build trends chart -->
     <div ng-attr-id="{{chartID}}" class="build-trends-chart"></div>
@@ -18,6 +20,9 @@
     </div>
   </div>
 </div>
+
+<!-- Add some space when the chart is missing. -->
+<div ng-if="completeBuilds.length < minBuilds()" class="gutter-bottom"></div>
 
 <div ng-if="averageDurationText" class="sr-only">
   Average build duration {{averageDurationText}}
