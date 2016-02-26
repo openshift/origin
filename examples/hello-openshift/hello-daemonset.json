@@ -1,0 +1,64 @@
+{
+    "kind": "DaemonSet",
+    "apiVersion": "extensions/v1beta1",
+    "metadata": {
+        "name": "hello-openshift",
+        "creationTimestamp": null,
+        "labels": {
+            "name": "hello-openshift"
+        }
+    },
+    "spec": {
+        "selector": {
+            "matchLabels": {
+                "name": "hello-openshift"
+            }
+        },
+        "template": {
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "hello-openshift"
+                }
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "tmp",
+                        "emptyDir": {}
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "hello-openshift",
+                        "image": "openshift/hello-openshift",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "100m"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "tmp",
+                                "mountPath": "/tmp"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "imagePullPolicy": "Always"
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "securityContext": {}
+            }
+        },
+        "uniqueLabelKey": "daemonset.kubernetes.io/podTemplateHash"
+    }
+}
