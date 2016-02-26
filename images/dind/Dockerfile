@@ -4,7 +4,7 @@
 # The standard name for this image is openshift/dind
 #
 
-FROM fedora:21
+FROM fedora:23
 
 ## Configure systemd to run in a container
 ENV container=docker
@@ -20,11 +20,11 @@ RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/; \
 VOLUME ["/run", "/tmp"]
 
 ## Install packages
-RUN yum -y update && yum -y install git golang hg tar make \
+RUN dnf -y update && dnf -y install git golang hg tar make \
   hostname bind-utils iproute iputils which procps-ng openssh-server \
   # Node-specific packages
   docker openvswitch bridge-utils ethtool iptables-services \
-  && yum clean all
+  && dnf clean all
 
 # sshd should be enabled as needed
 RUN systemctl disable sshd.service
