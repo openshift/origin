@@ -1,235 +1,8 @@
 package login
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
 	"html/template"
-	"net/http"
-	"strings"
-
-	"github.com/golang/glog"
-
-	"k8s.io/kubernetes/pkg/util"
-
-	"github.com/openshift/origin/pkg/auth/authenticator"
-	"github.com/openshift/origin/pkg/auth/oauth/handlers"
-	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
-
-const (
-	thenParam     = "then"
-	csrfParam     = "csrf"
-	usernameParam = "username"
-	passwordParam = "password"
-)
-
-type PasswordAuthenticator interface {
-	authenticator.Password
-	handlers.AuthenticationSuccessHandler
-}
-
-type LoginFormRenderer interface {
-	Render(form LoginForm, w http.ResponseWriter, req *http.Request)
-}
-
-type LoginForm struct {
-	Action string
-	Error  string
-	Names  LoginFormFields
-	Values LoginFormFields
-}
-
-type LoginFormFields struct {
-	Then     string
-	CSRF     string
-	Username string
-	Password string
-}
-
-type Login struct {
-	csrf   csrf.CSRF
-	auth   PasswordAuthenticator
-	render LoginFormRenderer
-}
-
-func NewLogin(csrf csrf.CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *Login {
-	return &Login{
-		csrf:   csrf,
-		auth:   auth,
-		render: render,
-	}
-}
-
-// Install registers the login handler into a mux. It is expected that the
-// provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Login) Install(mux Mux, paths ...string) {
-	for _, path := range paths {
-		path = strings.TrimRight(path, "/")
-		mux.HandleFunc(path, l.ServeHTTP)
-	}
-}
-
-func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case "GET":
-		l.handleLoginForm(w, req)
-	case "POST":
-		l.handleLogin(w, req)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
-	uri, err := getBaseURL(req)
-	if err != nil {
-		glog.Errorf("Unable to generate base URL: %v", err)
-		http.Error(w, "Unable to determine URL", http.StatusInternalServerError)
-		return
-	}
-
-	form := LoginForm{
-		Action: uri.String(),
-		Names: LoginFormFields{
-			Then:     thenParam,
-			CSRF:     csrfParam,
-			Username: usernameParam,
-			Password: passwordParam,
-		},
-	}
-	if then := req.URL.Query().Get("then"); then != "" {
-		// TODO: sanitize 'then'
-		form.Values.Then = then
-	}
-	switch req.URL.Query().Get("reason") {
-	case "":
-		break
-	case "user required":
-		form.Error = "Login is required. Please try again."
-	case "token expired":
-		form.Error = "Could not check CSRF token. Please try again."
-	case "access denied":
-		form.Error = "Invalid login or password. Please try again."
-	default:
-		form.Error = "An unknown error has occurred. Please try again."
-	}
-
-	csrf, err := l.csrf.Generate(w, req)
-	if err != nil {
-		util.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
-	}
-	form.Values.CSRF = csrf
-
-	l.render.Render(form, w, req)
-}
-
-func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
-		glog.Errorf("Unable to check CSRF token: %v", err)
-		failed("token expired", w, req)
-		return
-	}
-	then := req.FormValue("then")
-	user, password := req.FormValue("username"), req.FormValue("password")
-	if user == "" {
-		failed("user required", w, req)
-		return
-	}
-	context, ok, err := l.auth.AuthenticatePassword(user, password)
-	if err != nil {
-		glog.Errorf("Unable to authenticate password: %v", err)
-		failed("unknown error", w, req)
-		return
-	}
-	if !ok {
-		failed("access denied", w, req)
-		return
-	}
-	l.auth.AuthenticationSucceeded(context, then, w, req)
-}
-
-// NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to
-// allow branding of the login page. Uses the default if customLoginTemplateFile is not set.
-func NewLoginFormRenderer(customLoginTemplateFile string) (*loginTemplateRenderer, error) {
-	r := &loginTemplateRenderer{}
-	if len(customLoginTemplateFile) > 0 {
-		customTemplate, err := template.ParseFiles(customLoginTemplateFile)
-		if err != nil {
-			return nil, err
-		}
-		r.loginTemplate = customTemplate
-	} else {
-		r.loginTemplate = defaultLoginTemplate
-	}
-
-	return r, nil
-}
-
-func ValidateLoginTemplate(templateContent []byte) []error {
-	var allErrs []error
-
-	template, err := template.New("loginTemplateTest").Parse(string(templateContent))
-	if err != nil {
-		return append(allErrs, err)
-	}
-
-	// Execute the template with dummy values and check if they're there.
-	form := LoginForm{
-		Action: "MyAction",
-		Error:  "MyError",
-		Names: LoginFormFields{
-			Then:     "MyThenName",
-			CSRF:     "MyCSRFName",
-			Username: "MyUsernameName",
-			Password: "MyPasswordName",
-		},
-		Values: LoginFormFields{
-			Then:     "MyThenValue",
-			CSRF:     "MyCSRFValue",
-			Username: "MyUsernameValue",
-		},
-	}
-
-	var buffer bytes.Buffer
-	err = template.Execute(&buffer, form)
-	if err != nil {
-		return append(allErrs, err)
-	}
-	output := buffer.Bytes()
-
-	var testFields = map[string]string{
-		"Action":          form.Action,
-		"Error":           form.Error,
-		"Names.Then":      form.Names.Then,
-		"Names.CSRF":      form.Values.CSRF,
-		"Names.Username":  form.Names.Username,
-		"Names.Password":  form.Names.Password,
-		"Values.Then":     form.Values.Then,
-		"Values.CSRF":     form.Values.CSRF,
-		"Values.Username": form.Values.Username,
-	}
-
-	for field, value := range testFields {
-		if !bytes.Contains(output, []byte(value)) {
-			allErrs = append(allErrs, errors.New(fmt.Sprintf("template is missing parameter {{ .%s }}", field)))
-		}
-	}
-
-	return allErrs
-}
-
-type loginTemplateRenderer struct {
-	loginTemplate *template.Template
-}
-
-func (r loginTemplateRenderer) Render(form LoginForm, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	if err := r.loginTemplate.Execute(w, form); err != nil {
-		util.HandleError(fmt.Errorf("unable to render login template: %v", err))
-	}
-}
 
 // LoginTemplateExample is a basic template for customizing the login page.
 const LoginTemplateExample = `<!DOCTYPE html>
@@ -269,8 +42,10 @@ oauthConfig:
 
     {{ if .Error }}
       <div class="error">{{ .Error }}</div>
+      <!-- Error code: {{ .ErrorCode }} -->
     {{ end }}
 
+    <!-- Identity provider name: {{ .ProviderName }} -->
     <form action="{{ .Action }}" method="POST">
       <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
       <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
@@ -2582,6 +2357,14 @@ hr {
     padding-right: 120px;
   }
 }
+@media (max-width: 767px) {
+  .login-pf #badge {
+    margin-bottom: 20px;
+  }
+  .login-pf #brand {
+    display: none;
+  }
+}
 @media (min-width: 768px) {
   .login-pf {
     background-image: url(data:image/png;base64,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);
@@ -2646,8 +2429,8 @@ hr {
           </form>
         </div><!--/.col-*-->
         <div class="col-sm-5 col-md-6 col-lg-7 details">
-          </p>
           <p><strong>Welcome to Red Hat&reg; OpenShift Enterprise.</strong>
+          </p>
         </div><!--/.col-*-->
       </div><!--/.row-->
     </div><!--/.container-->
