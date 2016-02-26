@@ -779,8 +779,23 @@ angular.module('openshiftConsole')
       }
     };
   })
+  .filter('humanizeKind', function () {
+    return function(kind) {
+      if (!kind) {
+        return kind;
+      }
+
+      // ReplicationController -> Replication Controller
+      // https://lodash.com/docs#startCase
+      return _.startCase(kind);
+    };
+  })
   .filter('humanizeResourceType', function() {
     return function(resourceType) {
+      if (!resourceType) {
+        return resourceType;
+      }
+
       var nameFormatMap = {
         'build': 'Build',
         'buildconfig': 'Build Config',

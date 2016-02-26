@@ -21,6 +21,7 @@ angular
     'kubernetesUI',
     'ui.bootstrap',
     'patternfly.charts',
+    'patternfly.sort',
     'openshiftConsoleTemplates',
     'ui.ace'
   ])
