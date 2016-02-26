@@ -103,17 +103,17 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 
 	// Assume we are working with IPv4
-	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
+	clusterNetwork, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return false, err
 	}
-	servicesNetworkCIDR, err := oc.Registry.GetServicesNetworkCIDR()
+	servicesNetwork, err := oc.Registry.GetServicesNetwork()
 	if err != nil {
 		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return false, err
 	}
-	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
+	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}

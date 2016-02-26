@@ -169,7 +169,7 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	// Any mismatch in cluster/service network is handled by WriteNetworkConfig
 	// For any new cluster/service network, ensure existing node subnets belong
 	// to the given cluster network and service IPs belong to the given service network
-	if _, err := oc.Registry.GetClusterNetworkCIDR(); err != nil {
+	if _, err := oc.Registry.GetClusterNetwork(); err != nil {
 		subrange := make([]string, 0)
 		subnets, _, err := oc.Registry.GetSubnets()
 		if err != nil {
@@ -178,6 +178,11 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 		}
 		for _, sub := range subnets {
 			subrange = append(subrange, sub.SubnetCIDR)
+		}
+
+		_, _, _, err = ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR)
+		if err != nil {
+			return err
 		}
 
 		err = oc.validateNetworkConfig(clusterNetworkCIDR, serviceNetworkCIDR, subrange)
@@ -199,19 +204,19 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 
 func (oc *OvsController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
-	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
+	clusterNetwork, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return err
 	}
 
 	ipt := iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4)
-	if err := SetupIptables(ipt, clusterNetworkCIDR); err != nil {
+	if err := SetupIptables(ipt, clusterNetwork.String()); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
 
 	ipt.AddReloadFunc(func() {
-		err := SetupIptables(ipt, clusterNetworkCIDR)
+		err := SetupIptables(ipt, clusterNetwork.String())
 		if err != nil {
 			log.Errorf("Error reloading iptables: %v\n", err)
 		}
