@@ -45,7 +45,7 @@ check: | build verify
 # Example:
 #   make verify
 verify: build
-	hack/build-go.sh test/extended/extended.test test/extended/networking/extended.test
+	hack/build-go.sh test/extended/extended.test test/extended/networking/extended.test test/integration/integration.test -tags=integration
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
