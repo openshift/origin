@@ -483,6 +483,9 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
 		return kcmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
 	}
+	if len(config.Strategy) != 0 && config.Strategy != "docker" && config.Strategy != "source" {
+		return kcmdutil.UsageError(c, "--strategy must be docker or source when defined explicitely.")
+	}
 	return nil
 }
 
