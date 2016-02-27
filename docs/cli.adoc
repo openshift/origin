@@ -1,0 +1,1057 @@
+[[openshift-command-line-interface]]
+OpenShift Command-Line Interface
+--------------------------------
+
+The `oc` command line tool is used to interact with the
+http://openshift.github.io[OpenShift] and
+http://kubernetes.io/[Kubernetes] HTTP API(s). `oc` is an alias for
+`openshift cli`.
+
+`oc` is __verb focused__. The base verbs are __link:#oc-get[get]__,
+__link:#oc-create[create]__, __link:#oc-delete[delete]__,
+__link:#oc-replace[replace]__, and __link:#oc-describe[describe]__.
+These verbs can be used to manage both Kubernetes and OpenShift
+resources. Overall, there are six command groups:
+link:#basic-commands[basic], link:#build-and-deploy-commands[build and
+deploy], link:#application-modification-commands[application
+modification],
+link:#troubleshooting-and-debugging-commands[troubleshooting and
+debugging], link:#advanced-commands[advanced], and
+link:#settings-commands[settings].
+
+Some verbs support the `-f` flag, which accepts regular file path, URL
+or `-` for the standard input. For most actions, both JSON and YAML file
+formats are supported.
+
+Use `oc --help` for a full list of the verbs and subcommands available.
+A detailed list of examples for the most common verbs and subcommands is
+documented in the link:./generated/oc_by_example_content.adoc[oc by
+example] and link:./generated/oc_by_example_content.adoc[oadm by
+example] documents.
+
+[[common-flags]]
+Common Flags
+~~~~~~~~~~~~
+
+CLI commands support both local (specific to the given command) and
+global (works for every command available) flags. Some of the most
+common global flags are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+| Name
+| Description
+
+|`--namespace` (`-n`) _ns_
+|Use _ns_ as the namespace scope for the CLI request (default `default`).
+
+|`--ns-path` _filename_
+|Look in _filename_ for the default namespace.
+
+|`--match-server-version`
+|Require server version to match client version.
+
+|`--loglevel` _n_
+|Set the log verbosity level to _n_ (between 0-5, default 0).
+
+|`--server` (`s`) _host_
+|Connect to _host_ for API service.
+
+|`--client-certificate` _filename_
+|Look in _filename_ for the TLS client certificate.
+
+|`--client-key` _filename_
+|Look in _filename_ for the TLS client key.
+
+|`--certificate-authority` _filename_ 
+|Look in _filename_ for the CA certificate.
+
+|`--auth-path` _filename_
+|Look in _filename_ for the auth info (for HTTPS).
+
+|`--api-version` _version_
+|Specify API version _version_ to use against the server.
+
+|`--insecure-skip-tls-verify`
+|Skip SSL certificate validation (makes HTTPS insecure).
+
+|`--help` (`-h`)
+|Display help for the specified command.
+|=======================================================================
+
+Use `oc options` for a full list of all global flags available.
+
+[[basic-commands]]
+Basic Commands
+~~~~~~~~~~~~~~
+
+[[oc]]
+oc
+^^
+
+This displays the list of available commands.
+
+[[oc-login]]
+oc login
+^^^^^^^^
+
+This retrieves a session token that allows you to act as a user. Invoked
+without arguments, `oc login` prompts for a username and a password. For
+example, these two invocations are identical:
+
+--------------------------
+$ oc login
+Username: test
+Password: test
+
+$ oc login -u test -p test
+--------------------------
+
+See also link:#oc-logout[`oc logout`] and link:#oc-whoami[`oc whoami`].
+
+[[oc-new-project]]
+oc new-project
+^^^^^^^^^^^^^^
+
+This creates a new project, with the currently logged-in user as the
+project admin. Option `--display-name` specifies the user-facing name of
+the project. Option `--description` specifies its description.
+
+For example:
+
+-------------------------------------------------------
+$ oc new-project web-team-dev \
+  --display-name="Web Team Development" \
+  --description="Development project for the web team."
+-------------------------------------------------------
+
+Note that we use double-quotes around the option arguments.
+
+[[oc-new-app]]
+oc new-app
+^^^^^^^^^^
+
+This creates a new application in OpenShift with the specified source
+code, templates, and images. It builds up the components of an
+application using images, templates, or code that has a public
+repository. It looks up images on the local Docker installation (if
+available), a Docker registry, or an OpenShift image stream. If you
+specify a source code URL, it sets up a build that takes the source code
+and converts it into an image that can run in a pod. Local source must
+be in a git repository that has a remote repository that the OpenShift
+instance can see. The images will be deployed via a deployment
+configuration, and a service will be connected to the first public port
+of the app. You may either specify components using the various existing
+flags or let new-app autodetect what kind of components you have
+provided.
+
+If you provide source code, you may need to run a build with
+`oc start-build` after the application is created.
+
+The general form is:
+
+----------------------------------
+$ oc new-app <component> [options]
+----------------------------------
+
+where _component_ is the same as for link:#oc-new-build[`oc new-build`].
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option
+|Description
+
+|`--code` _dir_
+|Use source code in _dir_
+
+|`--context-dir` _dir_
+|Use _dir_ as context dir in the build
+
+|`--docker-image` _image_
+|Include Docker image _image_ in the app
+
+|`--env` (`-e`) _k1=v1,..._
+|Set env vars _k1..._ to values _v1..._
+
+|`--file` _filename_
+|Use template in _filename_
+
+|`--group` _comp1_ `+` _comp2_
+|Group together components _comp1_ and _comp2_
+
+|`--image-stream` (`-i`) _is_
+|Use imagestream _is_ in the app
+
+|`--insecure-registry`
+|Bypass cert checks for referenced Docker images
+
+|`--labels` (`-l`) _k1=v1,..._
+|Label all resources with _k1=v1,..._
+
+|`--name` _name_
+|Give _name_ to all generated app artifacts
+
+|`--no-headers`
+|For default output, don't print headers
+
+|`--output-template` _s_
+|Template string (`-o template`) or path (`-o templatefile`)
+
+|`--output-version` _version_
+|Output with _version_ (default api-version)
+
+|`--output` (`-o`) _format_
+|_format_ is one of: `json`, `yaml`, `template`, `templatefile`
+
+|`--param` (`-p`) _k1=v1,..._
+|Set/override parameters _k1..._ with _v1..._
+
+|`--strategy` _s_
+|Use build strategy __s__, one of: `docker`, `source`
+
+|`--template` _t_
+|Use OpenShift stored template _t_ in the app
+|=======================================================================
+
+The template format is
+http://golang.org/pkg/text/template/#pkg-overview[golang templates]. The
+following example uses a MySQL image in a private registry to create an
+app and override application artifacts' names.
+
+-------------------------------------------------
+$ oc new-app \
+  --docker-image=myregistry.com/mycompany/mysql \
+  --name=private
+-------------------------------------------------
+
+See also link:#oc-start-build[`oc start-build`].
+
+[[oc-status]]
+oc status
+^^^^^^^^^
+
+This shows a high level overview of the current project.
+
+See also link:#oc-describe[`oc describe`] and link:#oc-get[`oc get`].
+
+[[oc-project]]
+oc project
+^^^^^^^^^^
+
+This displays the current project, or switches to another one.
+
+For example:
+
+--------------------------------------
+# Switch to the myapp project
+$ oc project myapp
+
+# Display the project currently in use
+$ oc project
+--------------------------------------
+
+[[build-and-deploy-commands]]
+Build and Deploy Commands
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[[oc-start-build]]
+oc start-build
+^^^^^^^^^^^^^^
+
+This manually starts a build, using either the specified buildConfig or
+a build name with the `--from-build` option.
+
+Other options:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Name
+|Description
+
+|`--env`, _(-e)_ FOO=bar
+|Explicitly set or override environment variables for the current build.
+Does not change the BuildConfig.
+
+|`--build-loglevel`
+|Set or override the build log level output [0-5] during the build.
+
+|`--commit`
+|Specify the source code commit identifier the build should use;
+requires a build based on a Git repository.
+
+|`--follow`
+|Start a build and watch its logs until it completes or fails.
+
+|`--wait`
+|Wait for a build to complete and exit with a non-zero return code if
+the build fails.
+
+|`--from-build`
+|Specify the name of a build which should be re-run.
+
+|`--from-dir`
+|A directory to archive and use as the binary input for a build.
+
+|`--from-file`
+|A file use as the binary input for the build; example a pom.xml or
+Dockerfile. Will be the only file in the build source.
+
+|`--from-repo`
+|The path to a local source code repository to use as the binary input
+for a build.
+
+|`--from-webhook`
+|Specify a webhook URL for an existing build config to trigger.
+
+|`--git-post-receive`
+|The contents of the post-receive hook to trigger a build.
+
+|`--git-repository`
+|The path to the git repository for post-receive; defaults to the
+current directory.
+
+|`--list-webhooks`
+|List the webhooks for the specified build config or build; accepts
+`all`, `generic`, or `github`.
+|=======================================================================
+
+Stream the logs of the build if the `--follow` flag is specified.
+
+----------------------------------------------------------
+$ oc start-build ruby-sample-build
+$ oc start-build --from-build=ruby-sample-build-1
+$ oc start-build --from-build=ruby-sample-build-1 --follow
+----------------------------------------------------------
+
+See also link:#oc-new-build[`oc new-build`] and
+link:#oc-new-app[`oc new-app`].
+
+[[oc-build-logs]]
+oc build-logs
+^^^^^^^^^^^^^
+
+This retrieves the logs from a Build container. It allows you to debug
+broken Build. If the build is still running, this streams the logs from
+the container to console. Use `oc get builds` to obtain a list of
+builds.
+
+-----------------------------
+$ oc build-logs rubyapp-build
+-----------------------------
+
+[[oc-deploy]]
+oc deploy
+^^^^^^^^^
+
+This views, starts, cancels or retries deployments. The general form is:
+
+-----------------------------------------
+$ oc deploy <deployment-config> [options]
+-----------------------------------------
+
+If invoked without options, `oc deploy` displays the latest deployment
+for the specified __deployment-config__. For example:
+
+--------------------
+$ oc deploy database
+--------------------
+
+[cols="<,<",options="header",]
+|==============================================
+|Option |Description
+|`--latest` |Start a deployment.
+|`--retry` |Retry the latest failed deployment.
+|`--cancel` |Cancel the in-progress deployment.
+|==============================================
+
+The following example shows how to cancel the `database` deployment:
+
+-----------------------------
+$ oc deploy database --cancel
+-----------------------------
+
+[[oc-rollback]]
+oc rollback
+^^^^^^^^^^^
+
+This reverts the pod and container configuration back to a previous
+deployment. Scaling and trigger settings are normally left as-is. The
+general form is:
+
+------------------------------------
+$ oc rollback <deployment> [options]
+------------------------------------
+
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option |Description
+|`--dry-run` |Display what the rollback _would do_ but do not perform
+the rollback
+
+|`--change-triggers` |Include the previous deployment's triggers in the
+rollback
+
+|`--change-strategy` |Include the previous deployment's strategies in
+the rollback
+
+|`--change-scaling-settings` |Include the previous deployment's
+replication controller replica count and selector in the rollback
+
+|`--output` _format_ |Do not roll back; instead, display updated
+deployment configuration in the specified __format__, one of: `json`,
+`yaml`, `template`, `templatefile`
+
+|`-t` _template-string_ |Use _template-string_ (with
+`--output template`)
+
+|`-t` _filename_ |Write to _filename_ (with `--output templatefile`)
+|=======================================================================
+
+The _template-string_ is in http://golang.org/pkg/text/template[golang
+template] format. Here are two examples:
+
+------------------------------------------------------------------------
+# Perform a rollback.
+$ oc rollback deployment-1
+
+# Perform the rollback "manually" by piping back to "oc replace".
+$ oc rollback deployment-1 --output=json | oc replace dc deployment -f -
+------------------------------------------------------------------------
+
+See also link:#oc-replace[`oc replace`].
+
+[[oc-new-build]]
+oc new-build
+^^^^^^^^^^^^
+
+This creates a new build with the specified source code. It creates a
+build configuration for your application using images and code that has
+a public repository. It looks up the images on the local Docker
+installation (if available), a Docker registry, or an OpenShift image
+stream. If you specify a source code URL, it sets up a build that takes
+the source code and converts it into an image that can run inside a pod.
+Local source must be in a git repository that has a remote repository
+that the OpenShift instance can see.
+
+Once the build configuration is created you may need to run a build with
+`oc start-build`.
+
+The general form is:
+
+------------------------------------
+$ oc new-build <component> [options]
+------------------------------------
+
+where _component_ has one of the forms:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Form |Description
+|_image_ |Use _image_ directly
+
+|_imagestream_ |Use the latest image in __imagestream__
+
+|_path_ |Use source code found at __path__
+
+|_url_ |Use source code found at __url__
+
+|__image__~_url_ |Note the tilde `~` between _image_ and __url__. In
+this case the component is actually made of two sub-components, the
+_image_ and the source code found at __url__. Use the image as the base
+and arrange to build the source code on it.
+|=======================================================================
+
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option |Description
+|`--code` |
+
+|`--image` (`-i`) _repository_ |Find the specified image in
+__repository__
+
+|`--labels` (`-l`) _k1=v1,k2=v2,..._ |Add labels _k1=v1,k2=v2,..._ to
+all created objects
+
+|`--strategy` _s_ |Use strategy _s_ (one of: `docker`, `source`)
+
+|`--to-docker` |Force the build output to be `DockerImage`
+
+|`--name` _name_ |Give generated build artifacts the name __name__
+|=======================================================================
+
+The following example creates a NodeJS buildConfig based on the provided
+image / source code combination:
+
+---------------------------------------------------------------------------------
+$ oc new-build openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
+---------------------------------------------------------------------------------
+
+See also link:#oc-start-build[`oc start-build`] and
+link:#oc-new-app[`oc new-app`].
+
+[[oc-cancel-build]]
+oc cancel-build
+^^^^^^^^^^^^^^^
+
+This cancels a pending or running build. The general form is:
+
+-----------------------------------
+$ oc cancel-build <build> [options]
+-----------------------------------
+
+The options are:
+
+[cols="<,<",options="header",]
+|=====================================================================
+|Option |Description
+|`--dump-logs` |Display the build logs for the cancelled build
+|`--restart` |Create a new build after the current build is cancelled
+|=====================================================================
+
+The following example cancels the build named `1da32cvq` and restarts
+it.
+
+------------------------------------
+$ oc cancel-build 1da32cvq --restart
+------------------------------------
+
+See also link:#oc-new-build[`oc new-build`].
+
+[[oc-import-image]]
+oc import-image
+^^^^^^^^^^^^^^^
+
+This imports tag and image information from an external Docker image
+registry. For example, the following command imports from the `mystream`
+registry.
+
+--------------------------
+$ oc import-image mystream
+--------------------------
+
+[[oc-scale]]
+oc scale
+^^^^^^^^
+
+This sets a new size for a Replication Controller either directly or via
+its Deployment Configuration.
+
+----------------------------------------------------------------
+# n is the highest deployment number for the dc ruby-hello-world
+$ oc scale rc ruby-hello-world-n  --replicas=3
+$ oc scale dc ruby-hello-world --current-replicas=3 --replicas=5
+----------------------------------------------------------------
+
+[[oc-tag]]
+oc tag
+^^^^^^
+
+This tags existing images into one or more image streams. The option
+`--source` is a hint for the source type; its value is one of:
+`imagestreamtag`, `istag`, `imagestreamimage`, `isimage`, and `docker`.
+The general form is:
+
+-------------------------------------------------------------
+$ oc tag [--source=<sourcetype>] <source> <dest> [<dest> ...]
+-------------------------------------------------------------
+
+For example:
+
+-------------------------------------------------------------------
+$ oc tag --source=docker openshift/origin:latest myproject/ruby:tip
+-------------------------------------------------------------------
+
+[[application-modification-commands]]
+Application Modification Commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[[oc-get]]
+oc get
+^^^^^^
+
+This displays one or many resources. Possible resources are all
+OpenShift resources (builds, buildConfigs, deployments,
+deploymentConfigs, images, imageRepositories, routes, projects, and
+others) and all Kubernetes resources (pods, replicationControllers,
+services, minions, events).
+
+---------------------------------------------------------
+$ oc get pods
+$ oc get replicationController 1234-56-7890-234234-456456
+$ oc get service database
+$ oc get -f json pods
+---------------------------------------------------------
+
+[[output-formatting]]
+Output formatting
++++++++++++++++++
+
+You can control the output format by using the `-o format` flag. By
+default, `oc` uses human-friendly printer format for console. You can
+also control what API version will be used to print the resource by
+using the `--output-version` flag. By default, it uses the latest API
+version.
+
+Available formats include:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Value |Description
+|json |Pretty formated JSON format
+
+|yaml |http://www.yaml.org/[YAML] format
+
+|template |User defined http://golang.org/pkg/text/template[Go template]
+(combined with the `-t` flag)
+
+|templatefile |Same as above, but use the template file instead of `-t`
+|=======================================================================
+
+An example of using `-o template` to retrieve the _name_ of the first
+build:
+
+-----------------------------------------------------------------------------------------
+$ oc get builds -o template --template="{{with index .items 0}}{{.metadata.name}}{{end}}"
+-----------------------------------------------------------------------------------------
+
+[[selectors]]
+Selectors
++++++++++
+
+`oc get` provides also _selectors_ that you can use to filter the output
+by applying key-value pairs that will be matched with the resource
+labels:
+
+------------------------------------ 
+$ oc get pods -s template=production
+------------------------------------
+
+This command will return only pods whose `labels` include
+`"template": "production"`.
+
+See also link:#oc-describe[`oc describe`].
+
+[[oc-describe]]
+oc describe
+^^^^^^^^^^^
+
+This functions similar to link:#oc-get[`oc get`], but also includes
+other information related to the specified resource.
+
+------------------------------ 
+$ oc describe service frontend
+------------------------------
+
+[[oc-edit]]
+oc edit
+^^^^^^^
+
+This starts an editor opened to the YAML representation of the specified
+object. When the editor exits, the object is updated. You can specify
+the editor through environment variables `OC_EDITOR`, `GIT_EDITOR`, or
+`EDITOR`. If none of those are set, `oc edit` uses the `vi` program. The
+general form is:
+
+------------------------------------------ 
+$ oc edit <resource-type>/<name> [options]
+------------------------------------------
+
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option |Description
+|`--output` (`-o`) _format_ |Edit object as __format__, one of: `json`,
+`yaml`.
+
+|`--output-version` _version_ |Use API version __version__.
+|=======================================================================
+
+For example, to edit the service `docker-registry` in JSON using the
+`v1` API format:
+
+---------------------------------------------------------
+$ oc edit svc/docker-registry --output-version=v1 -o json
+---------------------------------------------------------
+
+[[oc-env]]
+oc env
+^^^^^^
+
+This updates the environment on a resource with a pod template. The
+general form is:
+
+--------------------------------------------------- 
+$ oc env <resource-type>/<name> <k1>=<v1> <k2>=<v2>
+---------------------------------------------------
+
+For example:
+
+----------------------------------------- 
+$ oc env dc/app DB_USER=user DB_PASS=pass
+-----------------------------------------
+
+[[oc-volume]]
+oc volume
+^^^^^^^^^
+
+This controls the storage associated with various resources. The general
+form is:
+
+-------------------------------------------------------
+$ oc volume <resource-type>/<name> --<action> <options>
+-------------------------------------------------------
+
+where _action_ is one of `add`, `remove`, `list` and _options_ depends
+on __action__. For example, to arrange for the deployment configuration
+`registry` to access the host __/opt__ directory, use:
+
+----------------------------------------------- 
+$ oc volume dc/registry --add --mount-path=/opt
+-----------------------------------------------
+
+[[oc-label]]
+oc label
+^^^^^^^^
+
+This adds labels to a provided resource. It can also overwrite the
+existing labels by using the `--overwrite` flag.
+
+----------------------------------- 
+$ oc label service frontend foo=bar
+-----------------------------------
+
+[[oc-expose]]
+oc expose
+^^^^^^^^^
+
+This exposes containers internally as services or externally via routes.
+There is also the ability to expose a deployment config, replication
+controller, service, or pod as a new service on a specified port. If no
+labels are specified, the new object will re-use the labels from the
+object it exposes.
+
+-----------------------------------------------------------------------------------
+# Expose a service as a route
+$ oc expose service frontend
+# Expose a deployment config as a service and use the specified port and name
+$ oc expose dc ruby-hello-world --port=8080 --name=myservice --generator=service/v1
+-----------------------------------------------------------------------------------
+
+[[oc-delete]]
+oc delete
+^^^^^^^^^
+
+This deletes a specified resource.
+
+------------------------------------------ 
+$ oc delete -f pod.json
+$ oc delete pod 1234-56-7890-234234-456456
+------------------------------------------
+
+[[troubleshooting-and-debugging-commands]]
+Troubleshooting and Debugging Commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[[oc-logs]]
+oc logs
+^^^^^^^
+
+This dumps the logs from a given Pod container. Use
+`oc get pod <pod-id>` to list the containers from a Pod.
+
+----------------------------------------- 
+$ oc logs frontend-pod -c mysql-container
+-----------------------------------------
+
+[[oc-exec]]
+oc exec
+^^^^^^^
+
+This executes a command in a container. The general form is one of:
+
+--------------------------------------------------------------------
+
+$ oc exec -p <pod> [-c <container>] <command>
+$ oc exec -p <pod> [-c <container>] [-i] [-t] -- <command> [args...]
+--------------------------------------------------------------------
+
+If `-c <container>` is omitted, OpenShift chooses the first container in
+the pod. The `-i` (or `--stdin`) flag passes local stdin to the
+container. The `-t` (or `--tty`) flag arranges for stdin to be a TTY.
+
+Some examples are:
+
+--------------------------------------------------------------------------
+# Get output from running 'date' in 'ruby-container' from pod 123456-7890.
+$ oc exec -p 123456-7890 -c ruby-container date
+
+# Switch to raw terminal mode, attach stdin to 'bash' in 'ruby-container'
+# from pod 123456-780, and stdout/stderr from 'bash' back to the client.
+$ oc exec -p 123456-7890 -c ruby-container -i -t -- bash -il
+--------------------------------------------------------------------------
+
+[[oc-port-forward]]
+oc port-forward
+^^^^^^^^^^^^^^^
+
+This forwards one or more local ports to a pod. The general form is:
+
+-------------------------------------------------- 
+$ oc port-forward -p <pod> <forwarding-spec> [...]
+--------------------------------------------------
+
+where _forwarding-spec_ is either a single port (integer), or a pair of
+ports separated by a colon `<outside>:<inside>`. If _outside_ is omitted
+or zero, OpenShift chooses a random port as the effective listening
+port.
+
+Some examples are:
+
+-----------------------------------------------------------------
+# Listen on ports 5000 and 6000 locally, forwarding data
+# to/from ports 5000 and 6000 in the pod.
+$ oc port-forward -p mypod 5000 6000
+
+# Listen on 8888 locally, forwarding to 5000 in the pod.
+$ oc port-forward -p mypod 8888:5000
+
+# Listen on a random port locally, forwarding to 5000 in the pod.
+# (These invocations are equivalent.)
+$ oc port-forward -p mypod :5000
+$ oc port-forward -p mypod 0:5000
+-----------------------------------------------------------------
+
+[[oc-proxy]]
+oc proxy
+^^^^^^^^
+
+This runs a proxy to the Kubernetes API server. By default, the proxy
+listens on port 8001. API endpoints are served under directory `/api/`
+and any static files are served under directory `/static/`. The general
+form is:
+
+-------------------- 
+$ oc proxy [options]
+--------------------
+
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option |Description
+|`--port` (`-p`) _n_ |Listen on port __n__
+
+|`--api-prefix` _dir_ |Serve the proxied API under __dir__
+
+|`--www` (`-w`) |Enable serving static files
+
+|`--www-prefix` (`-P`) _dir_ |Serve static files under __dir__
+
+|`--disable-filter` |Disable request filtering
+
+|`--accept-hosts` _rx_ |Accept requests from hosts matching regular
+expression __rx__
+
+|`--accept-paths` _rx_ |Accept paths matching regular expression __rx__
+
+|`--reject-paths` _rx_ |Reject paths matching regular expression __rx__
+|=======================================================================
+
+**WARNING**: The `--disable-filter` flag is dangerous and can leave you
+vulnerable to XSRF attacks. Use with caution.
+
+The following example runs a proxy on port 8011 with API prefix
+`k8s-api`.
+
+--------------------------------------- 
+$ oc proxy -p 8011 --api-prefix k8s-api
+---------------------------------------
+
+This makes, for instance, the pods API (version 1) available at
+`localhost:8011/k8s-api/v1/pods/`.
+
+[[advanced-commands]]
+Advanced Commands
+~~~~~~~~~~~~~~~~~
+
+[[oc-create]]
+oc create
+^^^^^^^^^
+
+This creates resources. It does not require pointers about what resource
+it should create because it reads it from the provided JSON/YAML. After
+successful creation, the resource name will be printed to the console.
+
+------------------------------------- 
+$ oc create -f pod.json
+$ cat pod.json | oc create -f -
+$ oc create -f http://server/pod.json
+-------------------------------------
+
+[[oc-replace]]
+oc replace
+^^^^^^^^^^
+
+This replaces existing resources.
+
+-------------------------------------- 
+$ oc replace -f pod.json
+$ cat pod.json | oc replace -f -
+$ oc replace -f http://server/pod.json
+--------------------------------------
+
+[[oc-patch]]
+oc patch
+^^^^^^^^
+
+This updates one or more fields of a resource using strategic merge
+patch. The general form is:
+
+-------------------------------------------- 
+$ oc patch <resource-type> <name> -p <patch>
+--------------------------------------------
+
+where _patch_ is a JSON or YAML map expression that names one or more
+fields and their new values. The following example sets the
+`spec.unschedulable` field of the `app` node to the value `true`:
+
+--------------------------------------------------------
+$ oc patch node app -p '{"spec":{"unschedulable":true}}'
+--------------------------------------------------------
+
+The equivalent operation with YAML is:
+
+------------------------ 
+$ oc patch node app -p '
+spec:
+  unschedulable: true
+'
+------------------------
+
+In both cases, the top-level field is `spec` and its value is another
+map expression whose sole key is `unschedulable`.
+
+[[oc-process]]
+oc process
+^^^^^^^^^^
+
+This processes a Template into a valid Config resource. The processing
+will take care of generating values for parameters specified in the
+Template and substituting the values in the corresponding places. An
+example Template can be found in
+link:examples/sample-app/application-template-stibuild.json[examples/sample-app/application-template-stibuild.json].
+
+------------------------------------------------------------------------------------
+$ oc process -f examples/sample-app/application-template-stibuild.json > config.json
+$ oc process -f template.json | oc create -f -
+------------------------------------------------------------------------------------
+
+[[oc-export]]
+oc export
+^^^^^^^^^
+
+This displays to standard output the specified resource(s) in YAML
+format. The general form is:
+
+-------------------------------------------- 
+$ oc export <resource-type>/<name> [options]
+--------------------------------------------
+
+The options are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Option |Description
+|`-f` _filename_ |Write to _filename_ instead of standard output.
+
+|`--as-template` _name_ |Output in template format with name __name__.
+
+|`--all-namespace` |If present, list the requested object(s) across all
+namespaces. Namespace in current context is ignored even if specified
+with --namespace.
+
+|`--exact` |Preserve fields that may be cluster specific, such as
+service `portalIPs` or generated names.
+
+|`--raw` |Do not alter the resources in any way after they are loaded.
+|=======================================================================
+
+The following example exports all services to a template with name
+`test`.
+
+-------------------------------------- 
+$ oc export service --as-template=test
+--------------------------------------
+
+[[settings-commands]]
+Settings Commands
+~~~~~~~~~~~~~~~~~
+
+[[oc-logout]]
+oc logout
+^^^^^^^^^
+
+This destroys the session token, preventing further access until next
+login (with link:#oc-login[`oc login`]).
+
+[[oc-config]]
+oc config
+^^^^^^^^^
+
+This manages the OpenShift
+https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md[kubeconfig
+files]. The general form is:
+
+------------------------------------ 
+$ oc config <subcommand> [<arg> ...]
+------------------------------------
+
+The subcommands are:
+
+[cols="<,<",options="header",]
+|=======================================================================
+|Subcommand |Description
+|`set` |Set an individual value in a kubeconfig file
+
+|`set-cluster` |Set a cluster entry in kubeconfig
+
+|`set-context` |Set a context entry in kubeconfig
+
+|`set-credentials` |Sets a user entry in kubeconfig
+
+|`unset` |Unset an individual value in a kubeconfig file
+
+|`use-context` |Set the current-context in a kubeconfig file
+
+|`view` |Display merged kubeconfig settings or a specified kubeconfig
+file
+|=======================================================================
+
+The following example changes the config context to use:
+
+---------------------------------- 
+$ oc config use-context my-context
+----------------------------------
+
+[[oc-whoami]]
+oc whoami
+^^^^^^^^^
+
+This displays information about the current session. If invoked without
+arguments, `oc whoami` displays the currently authenticated username.
+Flag `-t` (or `--token`) means to instead display the session token.
+Flag `-c` (or `--context`) means to instead display the user context
+name.
+
+-------------- 
+$ oc whoami -t
+<token>
+--------------
+
+See also link:#oc-login[`oc login`].
