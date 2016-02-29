@@ -91,6 +91,10 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *S2IBuilder) Build() error {
+	if s.build.Spec.Strategy.SourceStrategy == nil {
+		return fmt.Errorf("the source to image builder must be used with the source strategy")
+	}
+
 	var push bool
 
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)

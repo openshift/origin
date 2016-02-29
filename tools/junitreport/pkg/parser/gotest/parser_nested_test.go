@@ -496,7 +496,7 @@ PASS`, // we include this line greedily even though it does not belong to the te
 	}
 
 	for _, testCase := range testCases {
-		parser := NewParser(nested.NewTestSuitesBuilder(testCase.rootSuiteNames))
+		parser := NewParser(nested.NewTestSuitesBuilder(testCase.rootSuiteNames), false)
 
 		testFile := "./../../../test/gotest/testdata/" + testCase.testFile
 

@@ -55,7 +55,7 @@ func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, e
 }
 
 func TestOAuthStorage(t *testing.T) {
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 
 	groupMeta := registered.GroupOrDie(api.GroupName)
 	etcdClient, err := testutil.MakeNewEtcdClient()

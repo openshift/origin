@@ -38,9 +38,9 @@ func ValidateEvent(event *api.Event) field.ErrorList {
 	// Suppose them are namespaced. Do check if we can get the piece of information.
 	// This should apply to all groups served by this apiserver.
 	namespacedKindFlag, err := isNamespacedKind(event.InvolvedObject.Kind, event.InvolvedObject.APIVersion)
-	if err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("involvedObject", "kind"), event.InvolvedObject.Kind, fmt.Sprintf("couldn't check whether namespace is allowed: %s", err)))
-	} else {
+
+	// if we don't know whether this type is namespace or not, don't fail the event.  We shouldn't assume that we know about every type in the universe
+	if err == nil {
 		if !namespacedKindFlag &&
 			event.Namespace != api.NamespaceDefault &&
 			event.Namespace != "" {

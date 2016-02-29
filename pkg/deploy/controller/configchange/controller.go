@@ -101,7 +101,9 @@ func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.
 	// controller detects an image change, it should just quit, otherwise it is racing with
 	// the imagechange controller.
 	if newConfig.Status.LatestVersion != config.Status.LatestVersion &&
-		newConfig.Status.Details != nil && len(newConfig.Status.Details.Causes) > 0 {
+		newConfig.Status.Details != nil && len(newConfig.Status.Details.Causes) > 0 &&
+		deployutil.HasImageChangeTrigger(config) &&
+		deployutil.GetImageChangeTrigger(config).ImageChangeParams.Automatic {
 		return -1, -1, true, nil
 	}
 

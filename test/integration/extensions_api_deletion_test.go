@@ -19,7 +19,7 @@ import (
 func TestExtensionsAPIDeletion(t *testing.T) {
 	const projName = "ext-deletion-proj"
 
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

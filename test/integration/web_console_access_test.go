@@ -42,7 +42,7 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 }
 
 func TestAccessOriginWebConsole(t *testing.T) {
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -69,7 +69,7 @@ func TestAccessOriginWebConsole(t *testing.T) {
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
