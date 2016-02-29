@@ -37,9 +37,17 @@ policy, and adminstrators may desire to use it instead of the one provided with 
 
 API services will be scoped to OpenShift projects. Projects will have one-to-one relationship to an APIMan namespace (formally organization). APIMan will utilize namespace
 to manage policy regarding the service.
+
+### Deployment Scenario #1 - APIMan Gateway Fronted by a Router
+
+The primary deployment scenario is to deploy the APIMan gateway in conjunction with a supported OpenShift router.  Network traffic to a managed endpoint is initially routed to the gateway and then further routed by the gateway to the targeted service.  This deployment can be seen in **Figure 1** where the APIMan gateway relies upon the service proxy to ultimately find a pod.
+
+![APIMan request flow with router](apiman_request_wi_router.png "Figure 1")
+
+### Deployment Scenario #2 - APIMan Gateway Acting Without a Router
  
 ### Service Annotations
-Services intended to be managed by APIMan and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>.  The annotations are repeated below for convenience:
+Services intended to be managed and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>.  The annotations are repeated below for convenience:
 
 ```
   apiVersion: "v1"
@@ -52,6 +60,11 @@ Services intended to be managed by APIMan and exposed as API Endpoints will be a
       api.service.kubernetes.io/description-path: cxfcdi/swagger.json
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
+Additionally, services that are intended to be managed by APIMan will be further annotated so the cluster infra structure can handle the service if needed.  The proposed annotation is:
+```
+  openshift.io/service-managed-by: apiman
+```
+
 Service providers will need to explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
 
 ### Origin Web Console UI extension
@@ -64,7 +77,7 @@ The extension will provide the following details to the APIMan gateway:
 * Service name
 * Service namespace
 * User's Oauth token
-* Back link to the service
+* Back link to the openshift web console
 
 Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will
 utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for
