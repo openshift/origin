@@ -14,7 +14,7 @@ import (
 )
 
 func TestCLIGetToken(t *testing.T) {
-	defer testutil.RequireEtcd(t).Terminate(t)
+	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	checkErr(t, err)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)

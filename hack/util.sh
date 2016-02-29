@@ -196,10 +196,10 @@ function start_os_master {
 
 	echo "[INFO] OpenShift server start at: "
 	date
-	
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-	
+
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 160
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 160
+
 	echo "[INFO] OpenShift server health checks done at: "
 	date
 }
@@ -435,10 +435,10 @@ function validate_response {
 
 
 # reset_tmp_dir will try to delete the testing directory.
-# If it fails will unmount all the mounts associated with 
+# If it fails will unmount all the mounts associated with
 # the test.
-# 
-# $1 expression for which the mounts should be checked 
+#
+# $1 expression for which the mounts should be checked
 reset_tmp_dir() {
 	local sudo="${USE_SUDO:+sudo}"
 
@@ -454,7 +454,7 @@ reset_tmp_dir() {
 	set -e
 }
 
-# kill_all_processes function will kill all 
+# kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes()
 {
@@ -503,7 +503,7 @@ function delete_empty_logs() {
 
 # truncate_large_logs truncates large logs so we only download the last 20MB
 function truncate_large_logs() {
-	# Clean up large log files so they don't end up on jenkins		
+	# Clean up large log files so they don't end up on jenkins
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +20M \))
 	for file in ${large_files}; do
 		cp "${file}" "${file}.tmp"
@@ -533,7 +533,7 @@ function cleanup_openshift {
 
 	set +e
 	dump_container_logs
-	
+
 	if [[ -e "${ADMIN_KUBECONFIG:-}" ]]; then
 		echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
 		oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
@@ -555,7 +555,7 @@ function cleanup_openshift {
 				echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm -v >/dev/null
 			fi
 		fi
-		
+
 		set -u
 	fi
 

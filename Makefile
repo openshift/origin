@@ -45,7 +45,7 @@ check: | build verify
 # Example:
 #   make verify
 verify: build
-	hack/build-go.sh test/extended/extended.test test/extended/networking/extended.test
+	hack/build-go.sh test/extended/extended.test test/extended/networking/extended.test test/integration/integration.test -tags=integration
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
@@ -70,7 +70,7 @@ verify: build
 #   make test-unit
 #   make test-unit WHAT=pkg/build GOFLAGS=-v
 test-unit:
-	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
+	TEST_KUBE=true GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS) 
 .PHONY: test-unit
 
 # Run integration tests. Compiles its own tests, cannot be run

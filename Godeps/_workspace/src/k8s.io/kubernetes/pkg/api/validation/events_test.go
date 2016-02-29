@@ -87,7 +87,7 @@ func TestValidateEvent(t *testing.T) {
 					Namespace:  api.NamespaceDefault,
 				},
 			},
-			false,
+			true,
 		}, {
 			&api.Event{
 				ObjectMeta: api.ObjectMeta{
@@ -126,7 +126,7 @@ func TestValidateEvent(t *testing.T) {
 					Namespace:  "foo",
 				},
 			},
-			false,
+			true,
 		}, {
 			&api.Event{
 				ObjectMeta: api.ObjectMeta{
@@ -139,8 +139,7 @@ func TestValidateEvent(t *testing.T) {
 					Namespace:  "foo",
 				},
 			},
-			// this will be invalid based on there not being an "other" group registered
-			false,
+			true,
 		}, {
 			&api.Event{
 				ObjectMeta: api.ObjectMeta{
@@ -153,7 +152,7 @@ func TestValidateEvent(t *testing.T) {
 					Namespace:  "foo",
 				},
 			},
-			false,
+			true,
 		}, {
 			&api.Event{
 				ObjectMeta: api.ObjectMeta{
