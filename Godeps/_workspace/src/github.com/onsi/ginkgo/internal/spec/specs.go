@@ -72,7 +72,7 @@ func (e *Specs) applyRegExpFocus(description string, focusString string, skipStr
 		matchesFocus := true
 		matchesSkip := false
 
-		toMatch := []byte(description + " " + spec.ConcatenatedString())
+		toMatch := []byte(description + " " + spec.ConcatenatedString() + " " +spec.subject.CodeLocation().FileName)
 
 		if focusString != "" {
 			focusFilter := regexp.MustCompile(focusString)
