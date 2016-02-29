@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7432bafe2a2aa4d9647970f59e204dee57cea527
+%global commit 979b64467e2ff3f6685f5309276f5e2022e639c2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.906-69-g7432baf -X github.com/openshift/origin/pkg/version.commitFromGit 7432baf -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.907-36-g979b644 -X github.com/openshift/origin/pkg/version.commitFromGit 979b644 -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.907
+Version:        3.1.1.908
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,31 @@ fi
 
 
 %changelog
+* Mon Feb 29 2016 Scott Dodson <sdodson@redhat.com> 3.1.1.908
+- enabled junitreport tool to stream output (skuznets@redhat.com)
+- BZ_1312819: Can not add Environment Variables on buildconfig edit page
+  (jhadvig@redhat.com)
+- rewrite hack/test-go.sh (skuznets@redhat.com)
+- UPSTREAM: <drop>: patch for 16146: Fix validate event for non-namespaced
+  kinds (deads@redhat.com)
+- added commands to manage serviceaccounts (skuznets@redhat.com)
+- configchange: proceed with deployment with non-automatic ICTs
+  (mkargaki@redhat.com)
+- Allow use S2I builder with non-s2i build strategies (mfojtik@redhat.com)
+- Verify the integration test build early (ccoleman@redhat.com)
+- Support building from dirs symlinked from GOPATH (pmorie@gmail.com)
+- remove openshift ex tokens (deads@redhat.com)
+- Improve Dockerfile keyword highlighting in web console (spadgett@redhat.com)
+- Don't shutdown etcd in integration tests (ccoleman@redhat.com)
+- Fix OSE branding on web console (#1309205) (tdawson@redhat.com)
+- hack/update-swagger-spec times out in integration (ccoleman@redhat.com)
+- Dump debug info from etcd during integration tests (ccoleman@redhat.com)
+- Upgrade dind image to fedora23 (marun@redhat.com)
+- Add header back to logging in page (spadgett@redhat.com)
+- UPSTREAM: 21265: added 'kubectl create sa' to create serviceaccounts
+  (skuznets@redhat.com)
+- Updated copy-kube-artifacts to current k8s (maszulik@redhat.com)
+
 * Fri Feb 26 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.907
 - Fix OSE branding on web console (#1309205) (tdawson@redhat.com)
 - Add ability to push to image build script (tdawson@redhat.com)
