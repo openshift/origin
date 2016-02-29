@@ -104,6 +104,27 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+// HasImageChangeTrigger returns whether the provided deployment config has
+// an image change trigger or not.
+func HasImageChangeTrigger(config *deployapi.DeploymentConfig) bool {
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			return true
+		}
+	}
+	return false
+}
+
+// GetImageChangeTrigger returns the image change trigger from a deployment config.
+func GetImageChangeTrigger(config *deployapi.DeploymentConfig) deployapi.DeploymentTriggerPolicy {
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			return trigger
+		}
+	}
+	return deployapi.DeploymentTriggerPolicy{}
+}
+
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
