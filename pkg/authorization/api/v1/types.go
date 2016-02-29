@@ -187,6 +187,12 @@ type AuthorizationAttributes struct {
 	Namespace string `json:"namespace" description:"namespace of the action being requested"`
 	// Verb is one of: get, list, watch, create, update, delete
 	Verb string `json:"verb" description:"one of get, list, watch, create, update, delete"`
+	// Group is the API group of the resource
+	// Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined
+	Group string `json:"resourceAPIGroup" description:"API group of the resource being requested"`
+	// Version is the API version of the resource
+	// Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined
+	Version string `json:"resourceAPIVersion" description:"API version of the resource being requested"`
 	// Resource is one of the existing resource types
 	Resource string `json:"resource" description:"one of the existing resource types"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
