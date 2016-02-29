@@ -11,6 +11,7 @@
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log
 /dind-*.rc
+/pkg/**/*.test
 *.swp
 .vimrc
 .vagrant-openshift.json*
