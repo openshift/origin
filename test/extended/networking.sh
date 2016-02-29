@@ -25,7 +25,10 @@ os::log::install_errexit
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
+#
+# The EmptyDir test is a canary; it will fail if mount propagation is
+# not properly configured on the host.
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
