@@ -22,12 +22,20 @@ var (
 
 	// testOutputFile is a flag that holds the path to the file containing test output
 	testOutputFile string
+
+	// outputFile is a flag that holds the path to the jUnit XML report to be written
+	outputFile string
+
+	// stream is a flag that determines if a streamed subset of the input stream should be printed as it is read
+	stream bool
 )
 
 const (
 	defaultParserType     = "gotest"
 	defaultBuilderType    = "flat"
 	defaultTestOutputFile = "/dev/stdin"
+	defaultOutputFile     = "/dev/stdout"
+	defaultFilter         = false
 )
 
 func init() {
@@ -35,6 +43,8 @@ func init() {
 	flag.StringVar(&builderType, "suites", defaultBuilderType, "which test suite structure to use")
 	flag.StringVar(&rootSuites, "roots", "", "comma-delimited list of root suite names")
 	flag.StringVar(&testOutputFile, "f", defaultTestOutputFile, "the path to the file containing test output to consume")
+	flag.StringVar(&outputFile, "output", defaultOutputFile, "the path to the jUnit XML output file to write")
+	flag.BoolVar(&stream, "stream", defaultFilter, "print a streamed subset of the input as it is read")
 }
 
 const (
@@ -55,8 +65,14 @@ parser is greedy, so all output not directly related to a test suite is consider
   # Consume 'go test' output to create a jUnit XML file
   $ go test -v -cover ./... | %[1]s > report.xml
 
+  # Consume 'go test' output to create a jUnit XML file, while also printing package output as it is generated
+  $ go test -v -cover ./... | %[1]s --stream > report.xml
+
   # Consume 'go test' output from a file to create a jUnit XML file
   $ %[1]s -f testoutput.txt > report.xml
+
+  # Consume 'go test' output to create a specific jUnit XML file
+  $ %[1]s --output report.xml
 
   # Consume 'go test' output to create a jUnit XML file with nested test suites
   $ go test -v -cover ./... | junitreport --suites=nested > report.xml
@@ -114,10 +130,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	var output io.Writer
+	if outputFile == defaultOutputFile {
+		output = os.Stdout
+	} else {
+		file, err := os.Create(outputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
+		}
+		defer file.Close()
+		output = file
+	}
+
 	// Otherwise, we get ready to parse and generate XML output.
 	options := cmd.JUnitReportOptions{
+		Stream: stream,
 		Input:  input,
-		Output: os.Stdout,
+		Output: output,
 	}
 
 	err := options.Complete(builderType, parserType, rootSuiteNames)

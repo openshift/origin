@@ -214,14 +214,26 @@ if [[ -n "${junit_report}" ]]; then
     test_output_file="${LOG_DIR}/test-go.log"
     junit_report_file="${ARTIFACT_DIR}/report.xml"
 
-    # we don't care if 'go test' fails, we want to summarize the output anyway.
-    return_code=0 # default to 0, overwrite only if the following line fails
-    go test ${gotest_flags} ${test_packages} > ${test_output_file} 2>&1 || return_code=$?
-    echo "[INFO] Output from \`go test\` redirected to ${test_output_file}"
+    echo "[INFO] Running \`go test\`..."
+    # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
+    set +o pipefail
 
-    cat "${test_output_file}" | "${junitreport}" --type gotest --suites nested --roots github.com/openshift/origin > "${junit_report_file}"
-    echo "[INFO] jUnit XML report placed at ${junit_report_file}"
+    go test ${gotest_flags} ${test_packages} 2>&1              \
+        | tee ${test_output_file}                              \
+        | "${junitreport}" --type gotest                       \
+                           --suites nested                     \
+                           --roots github.com/openshift/origin \
+                           --stream                            \
+                           --output "${junit_report_file}"
+
+    return_code="${PIPESTATUS[0]}"
+    set -o pipefail
+    
+    echo
     cat "${junit_report_file}" | "${junitreport}" summarize
+    echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
+    echo "[INFO] jUnit XML report placed at ${junit_report_file}"
+
     exit "${return_code}"
 
 elif [[ -n "${coverage_output_dir}" ]]; then

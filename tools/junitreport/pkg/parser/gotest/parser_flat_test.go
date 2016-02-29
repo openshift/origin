@@ -376,7 +376,7 @@ PASS`,
 	}
 
 	for _, testCase := range testCases {
-		parser := NewParser(flat.NewTestSuitesBuilder())
+		parser := NewParser(flat.NewTestSuitesBuilder(), false)
 
 		testFile := "./../../../test/gotest/testdata/" + testCase.testFile
 

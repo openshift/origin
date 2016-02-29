@@ -42,6 +42,9 @@ type JUnitReportOptions struct {
 	// ParserType is the parser type that will be used to parse test output
 	ParserType testParserType
 
+	// Stream determines if package result lines should be printed to the output as they are found
+	Stream bool
+
 	// Input is the reader for the test output to be parsed
 	Input io.Reader
 
@@ -83,7 +86,7 @@ func (o *JUnitReportOptions) Run() error {
 	var testParser parser.TestOutputParser
 	switch o.ParserType {
 	case goTestParserType:
-		testParser = gotest.NewParser(builder)
+		testParser = gotest.NewParser(builder, o.Stream)
 	}
 
 	testSuites, err := testParser.Parse(bufio.NewScanner(o.Input))
