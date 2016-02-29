@@ -64,6 +64,7 @@ func (r *reviewer) Review(name string) (Review, error) {
 	resourceAccessReview := &authorizationapi.LocalResourceAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "get",
+			Group:        kapi.GroupName,
 			Resource:     "namespaces",
 			ResourceName: name,
 		},
