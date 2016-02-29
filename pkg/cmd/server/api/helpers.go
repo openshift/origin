@@ -176,6 +176,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 			case (*LDAPPasswordIdentityProvider):
 				refs = append(refs, &provider.CA)
+				refs = append(refs, GetStringSourceFileReferences(&provider.BindPassword)...)
 
 			case (*BasicAuthPasswordIdentityProvider):
 				refs = append(refs, &provider.RemoteConnectionInfo.CA)
@@ -189,9 +190,17 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 			case (*GitLabIdentityProvider):
 				refs = append(refs, &provider.CA)
+				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 
 			case (*OpenIDIdentityProvider):
 				refs = append(refs, &provider.CA)
+				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
+
+			case (*GoogleIdentityProvider):
+				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
+
+			case (*GitHubIdentityProvider):
+				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 
 			}
 		}

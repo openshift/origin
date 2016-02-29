@@ -4,10 +4,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/spf13/pflag"
 
@@ -20,6 +23,43 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
+
+func ValidateStringSource(s api.StringSource, fieldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+	methods := 0
+	if len(s.Value) > 0 {
+		methods++
+	}
+	if len(s.File) > 0 {
+		methods++
+		fileErrors := ValidateFile(s.File, fieldPath.Child("file"))
+		validationResults.AddErrors(fileErrors...)
+
+		// If the file was otherwise ok, and its value will be used verbatim, warn about trailing whitespace
+		if len(fileErrors) == 0 && len(s.KeyFile) == 0 {
+			if data, err := ioutil.ReadFile(s.File); err != nil {
+				validationResults.AddErrors(field.Invalid(fieldPath.Child("file"), s.File, fmt.Sprintf("could not read file: %v", err)))
+			} else if len(data) > 0 {
+				r, _ := utf8.DecodeLastRune(data)
+				if unicode.IsSpace(r) {
+					validationResults.AddWarnings(field.Invalid(fieldPath.Child("file"), s.File, "contains trailing whitespace which will be included in the value"))
+				}
+			}
+		}
+	}
+	if len(s.Env) > 0 {
+		methods++
+	}
+	if methods > 1 {
+		validationResults.AddErrors(field.Invalid(fieldPath, "", "only one of value, file, and env can be specified"))
+	}
+
+	if len(s.KeyFile) > 0 {
+		validationResults.AddErrors(ValidateFile(s.KeyFile, fieldPath.Child("keyFile"))...)
+	}
+
+	return validationResults
+}
 
 func ValidateHostPort(value string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
