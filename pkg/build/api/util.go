@@ -20,6 +20,8 @@ func StrategyType(strategy BuildStrategy) string {
 		return "Custom"
 	case strategy.SourceStrategy != nil:
 		return "Source"
+	case strategy.ExternalStrategy != nil:
+		return "External"
 	}
 	return ""
 }

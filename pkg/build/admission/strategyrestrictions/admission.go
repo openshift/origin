@@ -83,6 +83,8 @@ func resourceForStrategyType(strategy buildapi.BuildStrategy) unversioned.GroupR
 		return buildapi.Resource(authorizationapi.CustomBuildResource)
 	case strategy.SourceStrategy != nil:
 		return buildapi.Resource(authorizationapi.SourceBuildResource)
+	case strategy.ExternalStrategy != nil:
+		return buildapi.Resource(authorizationapi.ExternalBuildResource)
 	}
 	return unversioned.GroupResource{}
 }

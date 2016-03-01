@@ -1124,6 +1124,14 @@ func deepCopy_api_BuildStrategy(in buildapi.BuildStrategy, out *buildapi.BuildSt
 	} else {
 		out.CustomStrategy = nil
 	}
+	if in.ExternalStrategy != nil {
+		out.ExternalStrategy = new(buildapi.ExternalBuildStrategy)
+		if err := deepCopy_api_ExternalBuildStrategy(*in.ExternalStrategy, out.ExternalStrategy, c); err != nil {
+			return err
+		}
+	} else {
+		out.ExternalStrategy = nil
+	}
 	return nil
 }
 
@@ -1233,6 +1241,10 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
+	return nil
+}
+
+func deepCopy_api_ExternalBuildStrategy(in buildapi.ExternalBuildStrategy, out *buildapi.ExternalBuildStrategy, c *conversion.Cloner) error {
 	return nil
 }
 
@@ -3327,6 +3339,7 @@ func init() {
 		deepCopy_api_BuildTriggerPolicy,
 		deepCopy_api_CustomBuildStrategy,
 		deepCopy_api_DockerBuildStrategy,
+		deepCopy_api_ExternalBuildStrategy,
 		deepCopy_api_GitBuildSource,
 		deepCopy_api_GitSourceRevision,
 		deepCopy_api_ImageChangeTrigger,

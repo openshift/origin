@@ -303,6 +303,9 @@ type BuildStrategy struct {
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
+
+	// ExternalStrategy holds the parameters to the External build strategy
+	ExternalStrategy *ExternalBuildStrategy `json:"externalStrategy,omitempty"`
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -319,6 +322,9 @@ const (
 
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
+
+	// ExternalBuildStrategyType indicates the build will run on external infrastructure.
+	ExternalBuildStrategyType BuildStrategyType = "External"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -400,6 +406,10 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty"`
+}
+
+// ExternalBuildStrategy defines input parameters specific to an External build.
+type ExternalBuildStrategy struct {
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook

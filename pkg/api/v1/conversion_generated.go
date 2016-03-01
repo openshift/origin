@@ -1439,6 +1439,14 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrateg
 	} else {
 		out.CustomStrategy = nil
 	}
+	// unable to generate simple pointer conversion for api.ExternalBuildStrategy -> v1.ExternalBuildStrategy
+	if in.ExternalStrategy != nil {
+		if err := s.Convert(&in.ExternalStrategy, &out.ExternalStrategy, 0); err != nil {
+			return err
+		}
+	} else {
+		out.ExternalStrategy = nil
+	}
 	return nil
 }
 
@@ -1554,6 +1562,13 @@ func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *buildapi.
 	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
+	return nil
+}
+
+func autoConvert_api_ExternalBuildStrategy_To_v1_ExternalBuildStrategy(in *buildapi.ExternalBuildStrategy, out *v1.ExternalBuildStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ExternalBuildStrategy))(in)
+	}
 	return nil
 }
 
@@ -2278,6 +2293,14 @@ func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *v1.BuildStrategy, out
 	} else {
 		out.CustomStrategy = nil
 	}
+	// unable to generate simple pointer conversion for v1.ExternalBuildStrategy -> api.ExternalBuildStrategy
+	if in.ExternalStrategy != nil {
+		if err := s.Convert(&in.ExternalStrategy, &out.ExternalStrategy, 0); err != nil {
+			return err
+		}
+	} else {
+		out.ExternalStrategy = nil
+	}
 	return nil
 }
 
@@ -2393,6 +2416,13 @@ func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *v1.Docker
 	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
+	return nil
+}
+
+func autoConvert_v1_ExternalBuildStrategy_To_api_ExternalBuildStrategy(in *v1.ExternalBuildStrategy, out *buildapi.ExternalBuildStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1.ExternalBuildStrategy))(in)
+	}
 	return nil
 }
 
@@ -8936,6 +8966,7 @@ func init() {
 		autoConvert_api_EnvVar_To_v1_EnvVar,
 		autoConvert_api_ExecAction_To_v1_ExecAction,
 		autoConvert_api_ExecNewPodHook_To_v1_ExecNewPodHook,
+		autoConvert_api_ExternalBuildStrategy_To_v1_ExternalBuildStrategy,
 		autoConvert_api_FCVolumeSource_To_v1_FCVolumeSource,
 		autoConvert_api_FlexVolumeSource_To_v1_FlexVolumeSource,
 		autoConvert_api_FlockerVolumeSource_To_v1_FlockerVolumeSource,
@@ -9115,6 +9146,7 @@ func init() {
 		autoConvert_v1_EnvVar_To_api_EnvVar,
 		autoConvert_v1_ExecAction_To_api_ExecAction,
 		autoConvert_v1_ExecNewPodHook_To_api_ExecNewPodHook,
+		autoConvert_v1_ExternalBuildStrategy_To_api_ExternalBuildStrategy,
 		autoConvert_v1_FCVolumeSource_To_api_FCVolumeSource,
 		autoConvert_v1_FlexVolumeSource_To_api_FlexVolumeSource,
 		autoConvert_v1_FlockerVolumeSource_To_api_FlockerVolumeSource,

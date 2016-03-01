@@ -1382,6 +1382,7 @@ func autoConvert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildSt
 	} else {
 		out.CustomStrategy = nil
 	}
+	// in.ExternalStrategy has no peer in out
 	return nil
 }
 

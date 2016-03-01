@@ -383,8 +383,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	if strategy.CustomStrategy != nil {
 		strategyCount++
 	}
+	if strategy.ExternalStrategy != nil {
+		strategyCount++
+	}
 	if strategyCount != 1 {
-		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, or dockerStrategy"))
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, dockerStrategy, or externalStrategy"))
 	}
 
 	if strategy.SourceStrategy != nil {
@@ -395,6 +398,9 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	}
 	if strategy.CustomStrategy != nil {
 		allErrs = append(allErrs, validateCustomStrategy(strategy.CustomStrategy, fldPath.Child("customStrategy"))...)
+	}
+	if strategy.ExternalStrategy != nil {
+		allErrs = append(allErrs, validateExternalStrategy(strategy.ExternalStrategy, fldPath.Child("externalStrategy"))...)
 	}
 
 	return allErrs
@@ -442,6 +448,11 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
+	return allErrs
+}
+
+func validateExternalStrategy(strategy *buildapi.ExternalBuildStrategy, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	return allErrs
 }
 

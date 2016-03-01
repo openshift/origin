@@ -333,6 +333,9 @@ type BuildStrategy struct {
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy
+
+	// ExternalStrategy holds the parameters to the External build strategy
+	ExternalStrategy *ExternalBuildStrategy
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -423,6 +426,10 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
+}
+
+// ExternalBuildStrategy defines input parameters specific to an External build.
+type ExternalBuildStrategy struct {
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook

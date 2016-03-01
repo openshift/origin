@@ -139,6 +139,26 @@ func TestBuildAdmission(t *testing.T) {
 			reviewResponse: reviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:   true,
 		},
+		{
+			name:             "allowed external build",
+			object:           testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.ExternalBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.ExternalBuildResource,
+			expectAccept:     true,
+		},
+		{
+			name:             "allowed external build clone",
+			object:           testBuildRequest("buildname"),
+			responseObject:   testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.ExternalBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			subResource:      "clone",
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.ExternalBuildResource,
+			expectAccept:     true,
+		},
 	}
 
 	ops := []admission.Operation{admission.Create, admission.Update}
