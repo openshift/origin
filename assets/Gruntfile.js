@@ -106,7 +106,7 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect().use(
                 '/java',
@@ -125,7 +125,7 @@ module.exports = function (grunt) {
         options: {
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect.static('test'),
               connect().use(
@@ -429,7 +429,7 @@ module.exports = function (grunt) {
             '*.{ico,png,txt}',
             '.htaccess',
             '*.html',
-            'images/{,*/}*.{png,jpg,jpeg,gif}',
+            'images/{,*/}*.{ico,png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',
             'styles/fonts/*'
