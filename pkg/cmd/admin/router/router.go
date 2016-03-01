@@ -579,6 +579,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		"ROUTER_SUBDOMAIN":                    cfg.Subdomain,
 		"ROUTER_SERVICE_NAME":                 name,
 		"ROUTER_SERVICE_NAMESPACE":            namespace,
+		"ROUTER_SERVICE_HTTP_PORT":            "80",
+		"ROUTER_SERVICE_HTTPS_PORT":           "443",
 		"ROUTER_EXTERNAL_HOST_HOSTNAME":       cfg.ExternalHost,
 		"ROUTER_EXTERNAL_HOST_USERNAME":       cfg.ExternalHostUsername,
 		"ROUTER_EXTERNAL_HOST_PASSWORD":       cfg.ExternalHostPassword,
