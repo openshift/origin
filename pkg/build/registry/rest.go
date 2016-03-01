@@ -26,7 +26,7 @@ type UnknownObjectError struct {
 }
 
 func (e *UnknownObjectError) Error() string {
-	return "received unknown object while watching for builds"
+	return fmt.Sprintf("received unknown object while watching for builds: %#v", e.Object)
 }
 
 // WaitForRunningBuild waits until the specified build is no longer New or Pending. Returns true if
