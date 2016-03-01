@@ -212,7 +212,22 @@ module.exports = function (grunt) {
           'bower_components/messenger/build/css/messenger-theme-block.css',
           'bower_components/messenger/build/css/messenger-theme-air.css',
           'bower_components/messenger/build/css/messenger-theme-ice.css',
-          'bower_components/messenger/build/js/messenger-theme-future.js'
+          'bower_components/messenger/build/js/messenger-theme-future.js',
+          'bower_components/fontawesome/css/font-awesome.css',
+          'bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.css',
+          'bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker3.css',
+          'bower_components/bootstrap-select/dist/css/bootstrap-select.css',
+          'bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css',
+          'bower_components/bootstrap-treeview/dist/bootstrap-treeview.min.css',
+          'bower_components/c3/c3.css',
+          'bower_components/datatables/media/css/jquery.dataTables.css',
+          'bower_components/datatables-colreorder/css/dataTables.colReorder.css',
+          'bower_components/datatables-colvis/css/dataTables.colVis.css',
+          'bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css',
+          'bower_components/font-awesome/css/font-awesome.css',
+          'bower_components/google-code-prettify/bin/prettify.min.css',
+          'bower_components/patternfly/dist/css/patternfly.css',
+          'bower_components/patternfly/dist/css/patternfly-additions.css'
         ]
       }
     },

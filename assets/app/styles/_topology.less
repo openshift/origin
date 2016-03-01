@@ -18,17 +18,13 @@ kubernetes-topology-graph {
   margin-bottom: -5px; // allow extra height to prevent inadvertent scrollbars with topology view
   g.DeploymentConfig text {
     font-family: FontAwesome;
+    font-size: 20px;
     fill: #9467bd;
-    font-size: 21px;
-  }
-
-  g.ReplicationController text {
-    font-size: 23px;
   }
 
   g.Route text {
     fill: #2ca02c;
-    font-size: 22px;
+    transform: translate(0,-1px);
   }
 
   // These links are rendered dotted, where relationship incidental

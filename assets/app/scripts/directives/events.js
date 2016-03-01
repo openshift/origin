@@ -107,7 +107,7 @@ angular.module('openshiftConsole')
           maxWait: 1000
         });
 
-        // Set up the sort configuration for `pf-simple-sort`.
+        // Set up the sort configuration for `pf-sort`.
         $scope.sortConfig = {
           fields: [{
             id: 'lastTimestamp',

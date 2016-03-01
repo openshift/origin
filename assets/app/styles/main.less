@@ -1,67 +1,84 @@
-@pf-path: "../../bower_components/patternfly/less";
-@pf-components-path: "../../bower_components/patternfly";
-@bower-path: "../../bower_components";
+@pf-less-path: "../../bower_components/patternfly/less";
 
 /* PatternFly */
 
 // /* Bootstrap 3 */
-@import "@{pf-components-path}/components/bootstrap/less/bootstrap.less";
+@import "@{pf-less-path}/lib/bootstrap/bootstrap.less";
 
 // /* Font Awesome */
-@import "@{bower-path}/font-awesome/less/font-awesome.less";
+@import "@{pf-less-path}/lib/font-awesome/font-awesome.less";
 
 // /* Bootstrap-Combobox */
-@import "@{pf-components-path}/components/bootstrap-combobox/less/combobox.less";
+@import "@{pf-less-path}/lib/bootstrap-combobox/combobox.less";
+
+// /* Bootstrap-Datepicker */
+@import "@{pf-less-path}/lib/bootstrap-datepicker/datepicker3.less";
+
+// /* Bootstrap-DateTimePicker */
+@import "@{pf-less-path}/lib/eonasdan-bootstrap-datetimepicker/bootstrap-datetimepicker-build.less";
 
 // /* Bootstrap-Select */
-@import (less) "@{pf-components-path}/components/bootstrap-select/dist/css/bootstrap-select.css";
+@import (less) "@{pf-less-path}/lib/bootstrap-select/bootstrap-select.less";
+
+// /* Bootstrap Switch */
+@import "@{pf-less-path}/lib/bootstrap-switch/bootstrap-switch.less";
+
+// /* Bootstrap Touchspin */
+@import (less) "@{pf-less-path}/lib/bootstrap-touchspin/jquery.bootstrap-touchspin.css";
+
+// /* C3 charts */
+@import (less) "@{pf-less-path}/lib/c3/c3.css";
 
 // /* PatternFly overrides and new stuff */
-@import "@{pf-path}/variables.less";
-@import "@{pf-path}/mixins.less";
-@import "@{pf-path}/alerts.less";
-@import "@{pf-path}/badges.less";
-@import "@{pf-path}/blank-slate.less";
-@import "@{pf-path}/bootstrap-combobox.less";
-@import "@{pf-path}/bootstrap-datepicker.less";
-@import "@{pf-path}/bootstrap-select.less";
-@import "@{pf-path}/bootstrap-treeview.less";
-@import "@{pf-path}/breadcrumbs.less";
-@import "@{pf-path}/buttons.less";
-@import "@{pf-path}/close.less";
-@import "@{pf-path}/cards.less";
-@import (less) "@{pf-components-path}/components/c3/c3.css";
-@import "@{pf-path}/charts.less";
-@import "@{pf-path}/close.less";
-@import "@{pf-path}/datatables.less";
-@import "@{pf-path}/dropdowns.less";
-@import "@{pf-path}/fonts.less";
-@import "@{pf-path}/footer.less";
-@import "@{pf-path}/forms.less";
-@import "@{pf-path}/icons.less";
-@import "@{pf-path}/infotip.less";
-@import "@{pf-path}/labels.less";
-@import "@{pf-path}/layouts.less";
-@import "@{pf-path}/list-group.less";
-@import "@{pf-path}/login.less";
-@import "@{pf-path}/modals.less";
-// @import "@{pf-path}/navbar-alt.less";
-@import "@{pf-path}/navbar.less";
-@import "@{pf-path}/pager.less";
-@import "@{pf-path}/pagination.less";
-@import "@{pf-path}/panels.less";
-@import "@{pf-path}/popovers.less";
-@import "@{pf-path}/progress-bars.less";
-@import "@{pf-path}/search.less";
-@import "@{pf-path}/sidebar.less";
-@import "@{pf-path}/spinner.less";
-@import "@{pf-path}/syntax-highlighting.less";
-@import "@{pf-path}/tables.less";
-@import "@{pf-path}/tabs.less";
-@import "@{pf-path}/toolbar.less";
-@import "@{pf-path}/tooltip.less";
-@import "@{pf-path}/type.less";
-
+@import "@{pf-less-path}/variables.less";
+@import "@{pf-less-path}/color-variables.less";
+@import "@{pf-less-path}/mixins.less";
+@import "@{pf-less-path}/alerts.less";
+@import "@{pf-less-path}/badges.less";
+@import "@{pf-less-path}/blank-slate.less";
+@import "@{pf-less-path}/bootstrap-combobox.less";
+@import "@{pf-less-path}/bootstrap-datepicker.less";
+@import "@{pf-less-path}/bootstrap-select.less";
+@import "@{pf-less-path}/bootstrap-switch.less";
+@import "@{pf-less-path}/bootstrap-touchspin.less";
+@import "@{pf-less-path}/bootstrap-treeview.less";
+@import "@{pf-less-path}/breadcrumbs.less";
+@import "@{pf-less-path}/buttons.less";
+@import "@{pf-less-path}/cards.less";
+@import "@{pf-less-path}/charts.less";
+@import "@{pf-less-path}/close.less";
+@import "@{pf-less-path}/datatables.less";
+@import "@{pf-less-path}/dropdowns.less";
+@import "@{pf-less-path}/fonts.less";
+@import "@{pf-less-path}/footer.less";
+@import "@{pf-less-path}/forms.less";
+@import "@{pf-less-path}/icons.less";
+@import "@{pf-less-path}/infotip.less";
+@import "@{pf-less-path}/labels.less";
+@import "@{pf-less-path}/layouts.less";
+@import "@{pf-less-path}/list-group.less";
+@import "@{pf-less-path}/login.less";
+@import "@{pf-less-path}/modals.less";
+@import "@{pf-less-path}/navbar.less";
+// @import "@{pf-less-path}/navbar-alt.less";
+@import "@{pf-less-path}/navbar-vertical.less";
+@import "@{pf-less-path}/nav-vertical-alt.less";
+@import "@{pf-less-path}/pager.less";
+@import "@{pf-less-path}/pagination.less";
+@import "@{pf-less-path}/panels.less";
+@import "@{pf-less-path}/popovers.less";
+@import "@{pf-less-path}/progress-bars.less";
+@import "@{pf-less-path}/search.less";
+@import "@{pf-less-path}/sidebar.less";
+@import "@{pf-less-path}/spinner.less";
+@import "@{pf-less-path}/syntax-highlighting.less";
+@import "@{pf-less-path}/tables.less";
+@import "@{pf-less-path}/tabs.less";
+@import "@{pf-less-path}/time-picker.less";
+@import "@{pf-less-path}/toolbar.less";
+@import "@{pf-less-path}/tooltip.less";
+@import "@{pf-less-path}/type.less";
+@import "@{pf-less-path}/vertical-nav.less";
 
 /* OpenShift V3
 ------------------------------------------------- */
