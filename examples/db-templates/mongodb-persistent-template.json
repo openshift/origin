@@ -182,7 +182,7 @@
       "name": "MEMORY_LIMIT",
       "displayName": "Memory limit",
       "description": "Maximum amount of memory the container can use",
-      "value": "128Mi"
+      "value": "512Mi"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
