@@ -194,7 +194,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
 	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=2, ip, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:5")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
 	// vovsbr
 	otx.AddFlow("table=0, priority=200, in_port=3, arp, nw_src=%s, actions=goto_table:5", localSubnetCIDR)
@@ -346,7 +346,7 @@ func generateCookie(ip string) string {
 }
 
 func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant || netID == 0 {
+	if !c.multitenant {
 		return nil
 	}
 
@@ -362,7 +362,7 @@ func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.S
 }
 
 func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant || netID == 0 {
+	if !c.multitenant {
 		return nil
 	}
 
@@ -383,7 +383,11 @@ func generateBaseServiceRule(IP string, protocol api.ServiceProtocol, port uint)
 
 func generateAddServiceRule(netID uint, IP string, protocol api.ServiceProtocol, port uint) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
-	return fmt.Sprintf("%s, priority=100, reg0=%d, actions=output:2", baseRule, netID)
+	if netID == 0 {
+		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)
+	} else {
+		return fmt.Sprintf("%s, priority=100, reg0=%d, actions=output:2", baseRule, netID)
+	}
 }
 
 func generateDelServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
