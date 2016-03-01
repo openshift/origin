@@ -75,7 +75,7 @@ type routerInterface interface {
 	Commit()
 }
 
-func getEnv(name, defaultValue string) string {
+func env(name, defaultValue string) string {
 	if envValue := os.Getenv(name); envValue != "" {
 		return envValue
 	}
@@ -88,7 +88,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	globalFuncs := template.FuncMap{
 		"endpointsForAlias": endpointsForAlias,
-		"getEnv":            getEnv,
+		"env":               env,
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
