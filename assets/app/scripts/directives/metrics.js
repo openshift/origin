@@ -200,13 +200,18 @@ angular.module('openshiftConsole')
 
           angular.forEach(data, function(point) {
             chartData.xData.push(point.timestamp);
-            switch (metric.id) {
-              case 'memory/usage':
-                chartData.yData.push(d3.round(bytesToMiB(point.value), 2));
-              break;
-              case 'cpu/usage':
-                chartData.yData.push(d3.round(point.value));
-              break;
+            if (point.value === undefined || point.value === null) {
+              // Don't attempt to round null values. These appear as gaps in the chart.
+              chartData.yData.push(point.value);
+            } else {
+              switch (metric.id) {
+                case 'memory/usage':
+                  chartData.yData.push(d3.round(bytesToMiB(point.value), 2));
+                break;
+                case 'cpu/usage':
+                  chartData.yData.push(d3.round(point.value));
+                break;
+              }
             }
           });
         }
