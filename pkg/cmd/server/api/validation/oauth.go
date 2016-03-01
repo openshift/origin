@@ -168,7 +168,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 	} else {
 		switch provider := identityProvider.Provider.(type) {
 		case (*api.RequestHeaderIdentityProvider):
-			validationResults.Append(ValidateRequestHeaderIdentityProvider(provider, identityProvider))
+			validationResults.Append(ValidateRequestHeaderIdentityProvider(provider, identityProvider, fldPath))
 
 		case (*api.BasicAuthPasswordIdentityProvider):
 			validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo, providerPath)...)
@@ -177,22 +177,22 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 			validationResults.AddErrors(ValidateFile(provider.File, providerPath.Child("file"))...)
 
 		case (*api.LDAPPasswordIdentityProvider):
-			validationResults.Append(ValidateLDAPIdentityProvider(provider))
+			validationResults.Append(ValidateLDAPIdentityProvider(provider, providerPath))
 
 		case (*api.KeystonePasswordIdentityProvider):
 			validationResults.Append(ValidateKeystoneIdentityProvider(provider, identityProvider, providerPath))
 
 		case (*api.GitHubIdentityProvider):
-			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fldPath)...)
 
 		case (*api.GitLabIdentityProvider):
-			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, identityProvider.UseAsChallenger)...)
+			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, identityProvider.UseAsChallenger, fldPath)...)
 
 		case (*api.GoogleIdentityProvider):
-			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fldPath)...)
 
 		case (*api.OpenIDIdentityProvider):
-			validationResults.AddErrors(ValidateOpenIDIdentityProvider(provider, identityProvider)...)
+			validationResults.AddErrors(ValidateOpenIDIdentityProvider(provider, identityProvider, fldPath)...)
 
 		}
 	}
@@ -200,13 +200,16 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 	return validationResults
 }
 
-func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
-	providerPath := field.NewPath("provider")
-	validationResults := ValidateLDAPClientConfig(provider.URL, provider.BindDN, provider.BindPassword, provider.CA, provider.Insecure, providerPath)
+func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	validationResults.Append(ValidateStringSource(provider.BindPassword, fldPath.Child("bindPassword")))
+	bindPassword, _ := api.ResolveStringValue(provider.BindPassword)
+	validationResults.Append(ValidateLDAPClientConfig(provider.URL, provider.BindDN, bindPassword, provider.CA, provider.Insecure, fldPath))
 
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {
-		validationResults.AddErrors(field.Invalid(providerPath.Child("attributes", "id"), "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("attributes", "id"), "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
 	}
 
 	return validationResults
@@ -230,28 +233,28 @@ func ValidateKeystoneIdentityProvider(provider *api.KeystonePasswordIdentityProv
 	return validationResults
 }
 
-func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider, fieldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(provider.ClientCA) > 0 {
-		validationResults.AddErrors(ValidateFile(provider.ClientCA, field.NewPath("provider", "clientCA"))...)
+		validationResults.AddErrors(ValidateFile(provider.ClientCA, fieldPath.Child("provider", "clientCA"))...)
 	}
 	if len(provider.Headers) == 0 {
-		validationResults.AddErrors(field.Required(field.NewPath("provider", "headers"), ""))
+		validationResults.AddErrors(field.Required(fieldPath.Child("provider", "headers"), ""))
 	}
 	if identityProvider.UseAsChallenger && len(provider.ChallengeURL) == 0 {
-		err := field.Required(field.NewPath("provider", "challengeURL"), "")
+		err := field.Required(fieldPath.Child("provider", "challengeURL"), "")
 		err.Detail = "challengeURL is required if challenge=true"
 		validationResults.AddErrors(err)
 	}
 	if identityProvider.UseAsLogin && len(provider.LoginURL) == 0 {
-		err := field.Required(field.NewPath("provider", "loginURL"), "")
+		err := field.Required(fieldPath.Child("provider", "loginURL"), "")
 		err.Detail = "loginURL is required if login=true"
 		validationResults.AddErrors(err)
 	}
 
 	if len(provider.ChallengeURL) > 0 {
-		url, urlErrs := ValidateURL(provider.ChallengeURL, field.NewPath("provider", "challengeURL"))
+		url, urlErrs := ValidateURL(provider.ChallengeURL, fieldPath.Child("provider", "challengeURL"))
 		validationResults.AddErrors(urlErrs...)
 		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
 			validationResults.AddWarnings(
@@ -264,12 +267,12 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 		}
 	}
 	if len(provider.LoginURL) > 0 {
-		url, urlErrs := ValidateURL(provider.LoginURL, field.NewPath("provider", "loginURL"))
+		url, urlErrs := ValidateURL(provider.LoginURL, fieldPath.Child("provider", "loginURL"))
 		validationResults.AddErrors(urlErrs...)
 		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
 			validationResults.AddWarnings(
 				field.Invalid(
-					field.NewPath("provider", "loginURL"),
+					fieldPath.Child("provider", "loginURL"),
 					provider.LoginURL,
 					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
 				),
@@ -279,52 +282,58 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 
 	// Warn if it looks like they expect direct requests to the OAuth endpoints, and have not secured the header checking with a client certificate check
 	if len(provider.ClientCA) == 0 && (len(provider.ChallengeURL) > 0 || len(provider.LoginURL) > 0) {
-		validationResults.AddWarnings(field.Invalid(field.NewPath("provider", "clientCA"), "", "if no clientCA is set, no request verification is done, and any request directly against the OAuth server can impersonate any identity from this provider"))
+		validationResults.AddWarnings(field.Invalid(fieldPath.Child("provider", "clientCA"), "", "if no clientCA is set, no request verification is done, and any request directly against the OAuth server can impersonate any identity from this provider"))
 	}
 
 	return validationResults
 }
 
-func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool) field.ErrorList {
+func ValidateOAuthIdentityProvider(clientID string, clientSecret api.StringSource, challenge bool, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(clientID) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientID"), ""))
+		allErrs = append(allErrs, field.Required(fieldPath.Child("provider", "clientID"), ""))
 	}
-	if len(clientSecret) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("provider", "clientSecret"), ""))
+	clientSecretResults := ValidateStringSource(clientSecret, fieldPath.Child("provider", "clientSecret"))
+	allErrs = append(allErrs, clientSecretResults.Errors...)
+	if len(clientSecretResults.Errors) == 0 {
+		clientSecret, err := api.ResolveStringValue(clientSecret)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fieldPath.Child("provider", "clientSecret"), "", err.Error()))
+		} else if len(clientSecret) == 0 {
+			allErrs = append(allErrs, field.Required(fieldPath.Child("provider", "clientSecret"), ""))
+		}
 	}
 	if challenge {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("challenge"), challenge, "oauth providers cannot be used for challenges"))
+		allErrs = append(allErrs, field.Invalid(fieldPath.Child("challenge"), challenge, "OAuth/OpenID providers cannot be used for challenges"))
 	}
 
 	return allErrs
 }
 
-func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, challenge bool) field.ErrorList {
+func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, challenge bool, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, challenge)...)
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, challenge, fieldPath)...)
 
-	providerPath := field.NewPath("provider")
-	_, urlErrs := ValidateSecureURL(provider.URL, providerPath.Child("url"))
+	_, urlErrs := ValidateSecureURL(provider.URL, fieldPath.Child("provider", "url"))
 	allErrs = append(allErrs, urlErrs...)
 
 	if len(provider.CA) != 0 {
-		allErrs = append(allErrs, ValidateFile(provider.CA, providerPath.Child("ca"))...)
+		allErrs = append(allErrs, ValidateFile(provider.CA, fieldPath.Child("provider", "ca"))...)
 	}
 
 	return allErrs
 }
 
-func ValidateOpenIDIdentityProvider(provider *api.OpenIDIdentityProvider, identityProvider api.IdentityProvider) field.ErrorList {
+func ValidateOpenIDIdentityProvider(provider *api.OpenIDIdentityProvider, identityProvider api.IdentityProvider, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fieldPath)...)
 
 	// Communication with the Authorization Endpoint MUST utilize TLS
 	// http://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-	providerPath := field.NewPath("provider")
+	providerPath := fieldPath.Child("provider")
 	urlsPath := providerPath.Child("urls")
 	_, urlErrs := ValidateSecureURL(provider.URLs.Authorize, urlsPath.Child("authorize"))
 	allErrs = append(allErrs, urlErrs...)
@@ -357,7 +366,7 @@ func validateGrantConfig(config api.GrantConfig, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 
 	if !api.ValidGrantHandlerTypes.Has(string(config.Method)) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("grantConfig", "method"), config.Method, fmt.Sprintf("must be one of: %v", api.ValidGrantHandlerTypes.List())))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("method"), config.Method, fmt.Sprintf("must be one of: %v", api.ValidGrantHandlerTypes.List())))
 	}
 
 	return allErrs
@@ -367,7 +376,7 @@ func validateSessionConfig(config *api.SessionConfig, fldPath *field.Path) field
 	allErrs := field.ErrorList{}
 
 	// Validate session secrets file, if specified
-	sessionSecretsFilePath := field.NewPath("sessionSecretsFile")
+	sessionSecretsFilePath := fldPath.Child("sessionSecretsFile")
 	if len(config.SessionSecretsFile) > 0 {
 		fileErrs := ValidateFile(config.SessionSecretsFile, sessionSecretsFilePath)
 		if len(fileErrs) != 0 {
@@ -387,7 +396,7 @@ func validateSessionConfig(config *api.SessionConfig, fldPath *field.Path) field
 	}
 
 	if len(config.SessionName) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("sessionName"), ""))
+		allErrs = append(allErrs, field.Required(fldPath.Child("sessionName"), ""))
 	}
 
 	return allErrs

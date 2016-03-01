@@ -243,6 +243,27 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      attributes:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      bindDN: ""
+      bindPassword:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      ca: ""
+      insecure: false
+      kind: LDAPPasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
       challengeURL: ""
       clientCA: ""
       emailHeaders: null
@@ -279,9 +300,38 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      kind: GitHubIdentityProvider
+      organizations: null
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
       ca: ""
       clientID: ""
       clientSecret: ""
+      kind: GitLabIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
       kind: GitLabIdentityProvider
       url: ""
   - challenge: false
@@ -300,6 +350,20 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      hostedDomain: ""
+      kind: GoogleIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
       ca: ""
       claims:
         email: null
@@ -308,6 +372,31 @@ oauthConfig:
         preferredUsername: null
       clientID: ""
       clientSecret: ""
+      extraAuthorizeParameters: null
+      extraScopes: null
+      kind: OpenIDIdentityProvider
+      urls:
+        authorize: ""
+        token: ""
+        userInfo: ""
+  - challenge: false
+    login: false
+    mappingMethod: ""
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      claims:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
       extraAuthorizeParameters: null
       extraScopes: null
       kind: OpenIDIdentityProvider
@@ -409,12 +498,17 @@ func TestMasterConfig(t *testing.T) {
 				{Provider: &internal.DenyAllPasswordIdentityProvider{}},
 				{Provider: &internal.HTPasswdPasswordIdentityProvider{}},
 				{Provider: &internal.LDAPPasswordIdentityProvider{}},
+				{Provider: &internal.LDAPPasswordIdentityProvider{BindPassword: internal.StringSource{StringSourceSpec: internal.StringSourceSpec{File: "filename"}}}},
 				{Provider: &internal.RequestHeaderIdentityProvider{}},
 				{Provider: &internal.KeystonePasswordIdentityProvider{}},
 				{Provider: &internal.GitHubIdentityProvider{}},
+				{Provider: &internal.GitHubIdentityProvider{ClientSecret: internal.StringSource{StringSourceSpec: internal.StringSourceSpec{File: "filename"}}}},
 				{Provider: &internal.GitLabIdentityProvider{}},
+				{Provider: &internal.GitLabIdentityProvider{ClientSecret: internal.StringSource{StringSourceSpec: internal.StringSourceSpec{File: "filename"}}}},
 				{Provider: &internal.GoogleIdentityProvider{}},
+				{Provider: &internal.GoogleIdentityProvider{ClientSecret: internal.StringSource{StringSourceSpec: internal.StringSourceSpec{File: "filename"}}}},
 				{Provider: &internal.OpenIDIdentityProvider{}},
+				{Provider: &internal.OpenIDIdentityProvider{ClientSecret: internal.StringSource{StringSourceSpec: internal.StringSourceSpec{File: "filename"}}}},
 			},
 			SessionConfig: &internal.SessionConfig{},
 			Templates:     &internal.OAuthTemplates{},

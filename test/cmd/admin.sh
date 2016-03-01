@@ -71,6 +71,29 @@ os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=exampl
 os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
 os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
 
+# check encrypt/decrypt of plain text
+os::cmd::expect_success          'echo -n "secret data 1" | oadm ca encrypt --genkey=secret.key --out=secret.encrypted'
+os::cmd::expect_success_and_text 'oadm ca decrypt --in=secret.encrypted --key=secret.key' '^secret data 1$'
+# create a file with trailing whitespace
+echo "data with newline" > secret.whitespace.data
+os::cmd::expect_success_and_text 'oadm ca encrypt --key=secret.key --in=secret.whitespace.data      --out=secret.whitespace.encrypted' 'Warning.*whitespace'
+os::cmd::expect_success          'oadm ca decrypt --key=secret.key --in=secret.whitespace.encrypted --out=secret.whitespace.decrypted'
+os::cmd::expect_success          'diff secret.whitespace.data secret.whitespace.decrypted'
+# create a binary file
+echo "hello" | gzip > secret.data
+# encrypt using file and pipe input/output
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key --in=secret.data --out=secret.file-in-file-out.encrypted'
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key --in=secret.data     > secret.file-in-pipe-out.encrypted'
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key    < secret.data     > secret.pipe-in-pipe-out.encrypted'
+# decrypt using all three methods
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key --in=secret.file-in-file-out.encrypted --out=secret.file-in-file-out.decrypted'
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key --in=secret.file-in-pipe-out.encrypted     > secret.file-in-pipe-out.decrypted'
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key    < secret.pipe-in-pipe-out.encrypted     > secret.pipe-in-pipe-out.decrypted'
+# verify lossless roundtrip
+os::cmd::expect_success 'diff secret.data secret.file-in-file-out.decrypted'
+os::cmd::expect_success 'diff secret.data secret.file-in-pipe-out.decrypted'
+os::cmd::expect_success 'diff secret.data secret.pipe-in-pipe-out.decrypted'
+
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' '(unassigned|assigned)'
