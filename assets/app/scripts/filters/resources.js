@@ -921,18 +921,6 @@ angular.module('openshiftConsole')
       return _.find(ingress.conditions, {type: type}); 
     };
   })
-  .filter('routeStatus', function(routeIngressConditionFilter) {
-    return function(route) {
-      if (!route.status.ingress) {
-        return "Pending";
-      }
-      var admittedCondition = routeIngressConditionFilter(route, 'Admitted');
-      if (!admittedCondition) {
-        return "Unknown";
-      }
-      return admittedCondition.status === "True" ? "Admitted" : "Rejected";
-    };
-  })
   .filter('routeHost', function() {
     return function (route) {
       if (!route.status.ingress) {
