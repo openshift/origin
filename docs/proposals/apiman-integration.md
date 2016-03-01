@@ -38,16 +38,24 @@ policy, and adminstrators may desire to use it instead of the one provided with 
 API services will be scoped to OpenShift projects. Projects will have one-to-one relationship to an APIMan namespace (formally organization). APIMan will utilize namespace
 to manage policy regarding the service.
 
-### Deployment Scenario #1 - APIMan Gateway Fronted by a Router
+### Deployment Scenario - APIMan Gateway Fronted by a Router
 
-The primary deployment scenario is to deploy the APIMan gateway in conjunction with a supported OpenShift router.  Network traffic to a managed endpoint is initially routed to the gateway and then further routed by the gateway to the targeted service.  This deployment can be seen in **Figure 1** where the APIMan gateway relies upon the service proxy to ultimately find a pod.
+The primary deployment scenario is to deploy APIMan components as shown in **Figure 1**.  APIMan will be deployed as a cluster level service for managing API service end points. APIMan will be deployed to reuse the existing ElasticSearch cluster for storage.  Communication between APIMan and ElasticSearch will make use of the CA certificate that was used for aggregated logging.  Modifications to the aggregated logging deployer will be made to save the CA as a secret.  This will allow the APIMan deployer to reuse the certificate to create client certificates.
 
-![APIMan request flow with router](apiman_request_wi_router.png "Figure 1")
 
-### Deployment Scenario #2 - APIMan Gateway Acting Without a Router
- 
+**Figure 1 - APIMan Deployment Diagram**
+
+![APIMan Deployment Diagram](apiman_deployment_diagram.png "Figure 1")
+
+The APIMan gateway is deployed in conjunction with a supported OpenShift router.  A typical request to a managed endpoint is initially routed to the gateway and then further routed by the gateway to the targeted service.  This flow can be seen in **Figure 2** where the APIMan gateway relies upon the service proxy to find pods.
+
+**Figure 2 - Managed Service Request Flow with APIMan Gateway and Router**
+
+![APIMan request flow with router](apiman_request_wi_router.png "Figure 2")
+
+
 ### Service Annotations
-Services intended to be managed and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>.  The annotations are repeated below for convenience:
+Services intended to be managed and exposed as API Endpoints will be annotated<sup>[5](#r5)</sup>.  An example of the annotations are repeated below for convenience and the actual values may vary:
 
 ```
   apiVersion: "v1"
@@ -60,7 +68,7 @@ Services intended to be managed and exposed as API Endpoints will be annotated<s
       api.service.kubernetes.io/description-path: cxfcdi/swagger.json
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
-Additionally, services that are intended to be managed by APIMan will be further annotated so the cluster infra structure can handle the service if needed.  The proposed annotation is:
+Additionally, services that should be managed by APIMan will be further annotated identifying who is managing the service.  The proposed annotation is:
 ```
   openshift.io/service-managed-by: apiman
 ```
@@ -87,22 +95,20 @@ security reasons to not add the token as a query parameter.
 The APIMan gateway will be deployed as a cluster-wide infrastructure component to handle services exposed as API endpoints.  Internal and external clients can use the gateway to access APIs.  Admins can configure the cluster to limit direct access to services and encourage consumers of API endpoints to utilize the gateway by deploying the multi-tenant SDN plugin.  This plugin controls service to service communication between projects and would force traffic throught the gateway.  A route will be created as a well known endpoint to the APIMan gateway through which all API services traffic will flow.
 
 #### Service Consumption & Authentication
-The details of service authentication and consumption depend upon the type of published service and the polices associated with it. Essentially, user's of public service need to simply fullfill the policies associated with the service.  User's of contracted services will provide an APIMan generated API token with their request.  These are fundamental features of APIMan and are described here to provide a simple understanding of consuming APIMan controlled services.  Additional information can be found in the [APIMan](http://www.apiman.io/) documentation.
+The details of service authentication and consumption depend upon the type of published service and the polices associated with it. Essentially, users of a public service need to simply fullfill the policies associated with the service.  Users of contracted services will provide an APIMan generated API token with their request.  These are fundamental features of APIMan and are described here to provide a simple understanding of consuming APIMan controlled services.  Additional information can be found in the [APIMan](http://www.apiman.io/) documentation.
 
 ### OpenShift CLI Modifications
 Modifications to the openshift client binary are a stretch goal for the initial integration.  It will be updated to allow a user to:
 * Expose an API endpoint.  
 Exposing the service will update the service annotation as described by the service annotation section.  Possible usage syntax:<p>
 ``` oc set api-service SERVICENAME --path PATH```<p>
-The output of the command should return a route to the service.
+
+  Exposing a service as an API endpoint will additionally create a named route for the service that has the same route host as that of API Gateway.  The output of the command should return a route to the service.
+
 
 * Hide an API endpoint.  
 Hiding an API endpoint will remove the annotations from a service.  The change will additionally cause APIMan to remove this service endpoint.  Possible usage syntax:<p>
 ```oc unset api-service SERVICENAME```
-
-### Deployment / Deployer pod
-* APIMan will be deployed as a cluster level service for managing API service end points.
-* APIMan will be deployed to reuse the existing ElasticSearch cluster.  Communication between APIMan and ElasticSearch will make use of CA certificate that was used for aggregated logging.  Modifications to the aggregated logging deployer will be made to save the CA as a secret.  This will allow the APIMan deployer to reuse the certificate to create client certificates.
 
 ## Concerns
 ### Scalability
@@ -111,15 +117,15 @@ There is a concern that reusing the aggregated logging ElasticSearch cluster cou
 ### Certificates
 This proposal would allow the CA to be saved as a secret and reused as needed to create additional client certificates.  Further understanding on how this affects the OpenShift cluster security should be undertaken.  Alternatively, the aggregated logging deployer could be modified to mint an APIMan client certificate during its deployment. 
 
-### Sticky Sessions
-We need to better  understand and document if there is any change to the 'sticky session' behavior of the router.  It needs to be confirmed if there are any changes to functionality introduced by the APIMan gateway proxying requests to the service IP.
+### APIMan Behind a Router
+We need to better understand and document how placing the APIMan gateway behind a router will affect the network characteristics of requests to a managed endpoint.  Further investigation is required to understand things such as session affinity, dynamic reloading, route scaling, etc.
 
 ## References
 * <span id="r1">[1]</span> APIMan - http://www.apiman.io/
 * <span id="r2">[2]</span> OpenShift ElasticSearch plugin - https://github.com/fabric8io/openshift-elasticsearch-plugin
 * <span id="r3">[3]</span> OpenShift Aggregated Logging Index Management - https://github.com/openshift/origin-aggregated-logging/pull/57
 * <span id="r4">[4]</span> Origin Aggregated Logging - https://github.com/openshift/origin-aggregated-logging
-* <span id="r5">[5]</span> Service Discover - https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/service-discovery.md
+* <span id="r5">[5]</span> Service Discovery - https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/service-discovery.md
 * <span id="r6">[6]</span> Web Console Extensions - https://docs.openshift.org/latest/install_config/web_console_customization.html
 * <span id="r7">[7]</span> Kibana API Discovery - https://github.com/openshift/origin/blob/master/assets/app/scripts/directives/logViewer.js#L337
 * <span id="r8">[8]</span> OpenShift Auth Proxy - https://github.com/fabric8io/openshift-auth-proxy
