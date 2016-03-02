@@ -109,6 +109,9 @@
     color: #ededed;
   }
 }
+.log-line-number:before {
+  content: attr(data-line-number);
+}
 .log-line-number {
   .unselectable();
   border-right: 1px lighten(@log-bg-color, 10%) solid;
