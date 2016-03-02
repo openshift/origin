@@ -30,6 +30,16 @@ const (
 
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
+
+	// ResourceProjectImagesSize stands for a sum of sizes of all images stored in an internal registry under
+	// a single namespace. Used as a resource quota key.
+	ResourceProjectImagesSize kapi.ResourceName = "openshift.io/projectimagessize"
+	// ResourceImageStreamSize stands for a sum of sizes of all images stored in an internal registry within
+	// a single image stream (aka. repository). Used as a resource quota key.
+	ResourceImageStreamSize kapi.ResourceName = "openshift.io/imagestreamsize"
+	// ResourceImageSize stands for a size of an image stored in an internal registry. Used as a resource
+	// quota key. If set, bigger images will be refused during a push.
+	ResourceImageSize kapi.ResourceName = "openshift.io/imagesize"
 )
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.

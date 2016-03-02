@@ -331,6 +331,12 @@ func ImageWithMetadata(image *Image) error {
 		return nil
 	}
 
+	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 {
+		glog.V(5).Infof("Image metadata already filled for %s", image.Name)
+		// don't update image already filled
+		return nil
+	}
+
 	manifestData := image.DockerImageManifest
 
 	manifest := DockerImageManifest{}
