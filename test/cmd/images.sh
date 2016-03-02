@@ -97,16 +97,28 @@ echo "imageStreams: ok"
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.6'
+# import existing tag (implicit latest)
 os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.6'
 # should prevent changing source
-os::cmd::expect_failure_and_text 'oc import-image mysql --from=mysql' "use the 'tag' command if you want to change the source"
+os::cmd::expect_failure_and_text 'oc import-image mysql --from=docker.io/mysql' "use the 'tag' command if you want to change the source"
 os::cmd::expect_success 'oc describe is/mysql'
+# import existing tag (explicit)
 os::cmd::expect_success_and_text 'oc import-image mysql:5.6' "sha256:"
 os::cmd::expect_success_and_text 'oc import-image mysql:latest' "sha256:"
+# import existing image stream creating new tag
+os::cmd::expect_success_and_text 'oc import-image mysql:external --from=docker.io/mysql' "sha256:"
+os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.name}}'" 'docker.io/mysql'
 os::cmd::expect_success 'oc delete is/mysql'
+# import creates new image stream with single tag
+os::cmd::expect_failure_and_text 'oc import-image mysql:latest --from=docker.io/mysql:latest' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql:latest --from=docker.io/mysql:latest --confirm' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(len .spec.tags)}}'" '1'
+os::cmd::expect_success 'oc delete is/mysql'
+# import creates new image stream with all tags
 os::cmd::expect_failure_and_text 'oc import-image mysql --from=mysql --all' '\-\-confirm'
 os::cmd::expect_success_and_text 'oc import-image mysql --from=mysql --all --confirm' 'sha256:'
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')

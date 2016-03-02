@@ -173,6 +173,13 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.MappingMethod = "claim"
 			}
 		},
+		func(s *configapi.StringSource, c fuzz.Continue) {
+			if c.RandBool() {
+				c.Fuzz(&s.Value)
+			} else {
+				c.Fuzz(&s.StringSourceSpec)
+			}
+		},
 	)
 
 	f.Fuzz(item)

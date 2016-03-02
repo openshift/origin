@@ -607,7 +607,8 @@ type LDAPPasswordIdentityProvider struct {
 	// BindDN is an optional DN to bind with during the search phase.
 	BindDN string `json:"bindDN"`
 	// BindPassword is an optional password to bind with during the search phase.
-	BindPassword string `json:"bindPassword"`
+	BindPassword StringSource `json:"bindPassword"`
+
 	// Insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
@@ -684,7 +685,7 @@ type GitHubIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
-	ClientSecret string `json:"clientSecret"`
+	ClientSecret StringSource `json:"clientSecret"`
 	// Organizations optionally restricts which organizations are allowed to log in
 	Organizations []string `json:"organizations"`
 }
@@ -701,7 +702,7 @@ type GitLabIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
-	ClientSecret string `json:"clientSecret"`
+	ClientSecret StringSource `json:"clientSecret"`
 }
 
 // GoogleIdentityProvider provides identities for users authenticating using Google credentials
@@ -711,7 +712,7 @@ type GoogleIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
-	ClientSecret string `json:"clientSecret"`
+	ClientSecret StringSource `json:"clientSecret"`
 
 	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
 	HostedDomain string `json:"hostedDomain"`
@@ -728,7 +729,7 @@ type OpenIDIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
-	ClientSecret string `json:"clientSecret"`
+	ClientSecret StringSource `json:"clientSecret"`
 
 	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
 	ExtraScopes []string `json:"extraScopes"`
@@ -876,6 +877,28 @@ type AssetExtensionsConfig struct {
 	HTML5Mode bool `json:"html5Mode"`
 }
 
+// StringSource allows specifying a string inline, or externally via env var or file.
+// When it contains only a string value, it marshals to a simple JSON string.
+type StringSource struct {
+	// StringSourceSpec specifies the string value, or external location
+	StringSourceSpec `json:",inline"`
+}
+
+// StringSourceSpec specifies a string value, or external location
+type StringSourceSpec struct {
+	// Value specifies the cleartext value, or an encrypted value if keyFile is specified.
+	Value string `json:"value"`
+
+	// Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.
+	Env string `json:"env"`
+
+	// File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.
+	File string `json:"file"`
+
+	// KeyFile references a file containing the key to use to decrypt the value.
+	KeyFile string `json:"keyFile"`
+}
+
 // LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync
 type LDAPSyncConfig struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -885,7 +908,8 @@ type LDAPSyncConfig struct {
 	// BindDN is an optional DN to bind to the LDAP server with
 	BindDN string `json:"bindDN"`
 	// BindPassword is an optional password to bind with during the search phase.
-	BindPassword string `json:"bindPassword"`
+	BindPassword StringSource `json:"bindPassword"`
+
 	// Insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830

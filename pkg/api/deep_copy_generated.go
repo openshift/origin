@@ -23,6 +23,8 @@ import (
 func deepCopy_api_AuthorizationAttributes(in api.AuthorizationAttributes, out *api.AuthorizationAttributes, c *conversion.Cloner) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
+	out.Group = in.Group
+	out.Version = in.Version
 	out.Resource = in.Resource
 	out.ResourceName = in.ResourceName
 	if newVal, err := c.DeepCopy(in.Content); err != nil {

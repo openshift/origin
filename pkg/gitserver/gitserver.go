@@ -18,6 +18,7 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/prometheus/client_golang/prometheus"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/healthz"
@@ -212,6 +213,7 @@ func NewEnviromentConfig() (*Config, error) {
 			req := &authapi.LocalSubjectAccessReview{
 				Action: authapi.AuthorizationAttributes{
 					Verb:     "get",
+					Group:    kapi.GroupName,
 					Resource: "pods",
 				},
 			}

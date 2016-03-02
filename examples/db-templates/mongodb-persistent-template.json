@@ -103,19 +103,26 @@
               {
                 "name": "mongodb",
                 "image": "mongodb",
-                "readinessProbe": {
-                    "tcpSocket":{
-                        "port": 27017
-                    },
-                    "initialDelaySeconds": 15,
-                    "timeoutSeconds": 1
-                },
                 "ports": [
                   {
                     "containerPort": 27017,
                     "protocol": "TCP"
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 3,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p ${MONGODB_ADMIN_PASSWORD} -n 1 --noheaders"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 27017
+                  }
+                },
                 "env": [
                   {
                     "name": "MONGODB_USER",
@@ -135,10 +142,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -175,7 +182,7 @@
       "name": "MEMORY_LIMIT",
       "displayName": "Memory limit",
       "description": "Maximum amount of memory the container can use",
-      "value": "128Mi"
+      "value": "512Mi"
     },
     {
       "name": "DATABASE_SERVICE_NAME",

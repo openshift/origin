@@ -377,7 +377,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
 
-	if len(c.Strategy) != 0 && len(repos) == 0 {
+	if len(c.Strategy) != 0 && len(repos) == 0 && !c.BinaryBuild {
 		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
 	}
 
@@ -595,7 +595,8 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 						continue
 					}
 					repo := app.NewBinarySourceRepository()
-					if c.Strategy == "docker" || len(c.Strategy) == 0 {
+					isBuilder := input.ResolvedMatch != nil && input.ResolvedMatch.Builder
+					if c.Strategy == "docker" || (len(c.Strategy) == 0 && !isBuilder) {
 						repo.BuildWithDocker()
 					}
 					input.Use(repo)

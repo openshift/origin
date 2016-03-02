@@ -14,6 +14,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
@@ -245,6 +246,7 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         verb,
+			Group:        imageapi.GroupName,
 			Resource:     "imagestreams/layers",
 			ResourceName: imageRepo,
 		},
@@ -271,6 +273,7 @@ func verifyPruneAccess(ctx context.Context, client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:     "delete",
+			Group:    imageapi.GroupName,
 			Resource: "images",
 		},
 	}

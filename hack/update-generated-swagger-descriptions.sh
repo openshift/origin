@@ -35,7 +35,7 @@ if [[ -z "${genswaggerdoc}" ]]; then
 	exit 1
 fi
 
-source_files="$( find_files | grep -E '*/v1/types.go' )"
+source_files="$( find_files | grep -E '/v1/types.go' )"
 
 if [[ -n "${dryrun}" ]]; then
 	echo "The following files would be read by $0:"

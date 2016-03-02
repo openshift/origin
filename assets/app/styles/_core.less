@@ -68,57 +68,60 @@
   }
 }
 
-// Data toolbar with label filter customizations
+/* Data toolbar
+   - Includes customizations for label filter input and active filter
+---------------------------------------------------------------------------- */
 .data-toolbar {
-  .flex-display(@display: flex);
-  .flex(@columns: 1 0 0%);
-  .flex-wrap(@wrap: wrap);
-  padding: 3px 0 1px;
-  .data-toolbar-filter {
-    .flex-display(@display: flex);
-    .flex(@columns: 1 0 0%);
-  }
-  .data-toolbar-views {
-    .flex(@columns: 0 0 55px);
-    text-align: right;
-  }
+ .flex-display(@display: flex);
+ .flex(@columns: 1 0 0%);
+ .flex-wrap(@wrap: wrap);
+ padding: 3px 0 1px;
+ .data-toolbar-filter {
+   .flex-display(@display: flex);
+   .flex(@columns: 1 0 0%);
+ }
+ .data-toolbar-views {
+   .flex(@columns: 0 0 55px);
+   text-align: right;
+ }
 }
 .filter .navbar-filter-widget {
-  .label-filter-add.btn {
-    margin-right: 0;
-  }
-  @media (min-width: @screen-md-min) {
-    .selectize-input.not-full {
-      width: 300px !important;
-    }
-  }
+ @media(min-width: @screen-sm-min) {
+   white-space: nowrap; // prevent button wrap in Safari when not at mobile resolutions 
+ }
+ .label-filter-add.btn {
+   margin-right: 0;
+ }
+ @media (min-width: @screen-md-min) {
+   .selectize-input.not-full {
+     width: 300px !important;
+   }
+ }
 }
-
 @media (max-width: @screen-xs-max) {
-  project-filter {
-    width: 100%; // Extends flex container full width of flex parent
-  }
-  .filter .navbar-filter-widget .label-filter {
-    min-width: initial;
-    width: 80%; // Width of the input field that allows for the 'add' button to be appended down to 320px
-  }
-  .filter .navbar-filter-widget .selectize-input {
-    width: auto !important;
-  }
+ project-filter {
+   width: 100%; // Extends flex container full width of flex parent
+ }
+ .filter .navbar-filter-widget .label-filter {
+   min-width: initial;
+   width: 80%; // Width of the input field that allows for the 'add' button to be appended down to 320px
+ }
+ .filter .navbar-filter-widget .selectize-input {
+   width: auto !important;
+ }
 }
-
 .navbar-filter-widget-collapse .form-group {
-  margin-bottom: 0;
+ margin-bottom: 0;
 }
 .active-filters {
-  line-height: 0;
-  .label-filter-active-filters {
-    padding-bottom: 3px;
-    .label {
-      max-width: none;
-      word-break: break-all;
-    }
-  }
+ line-height: 0;
+ .label-filter-active-filters {
+   padding-bottom: 3px;
+   .label {
+     max-width: none;
+     word-break: break-all;
+   }
+ }
 }
 
 .separator {

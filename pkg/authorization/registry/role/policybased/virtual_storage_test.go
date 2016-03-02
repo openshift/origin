@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -14,6 +15,7 @@ import (
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
@@ -44,12 +46,15 @@ func testNewLocalPolicies() []authorizationapi.Policy {
 
 func makeLocalTestStorage() roleregistry.Storage {
 	policyRegistry := test.NewPolicyRegistry(testNewLocalPolicies(), nil)
-	return NewVirtualStorage(policyRegistry)
+
+	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, &test.PolicyBindingRegistry{}, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}))
 }
 
 func makeClusterTestStorage() roleregistry.Storage {
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
-	return NewVirtualStorage(clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry))
+	policyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
+
+	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, &test.PolicyBindingRegistry{}, clusterPolicyRegistry, &test.ClusterPolicyBindingRegistry{}))
 }
 
 func TestCreateValidationError(t *testing.T) {
@@ -71,7 +76,7 @@ func TestCreateValid(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	obj, err := storage.Create(ctx, role)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -89,10 +94,14 @@ func TestCreateValid(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	realizedRoleObj, _ := storage.Create(ctx, &authorizationapi.Role{
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	realizedRole := realizedRoleObj.(*authorizationapi.Role)
 
 	role := &authorizationapi.Role{
@@ -139,7 +148,7 @@ func TestUpdateError(t *testing.T) {
 func TestDeleteError(t *testing.T) {
 	storage := makeLocalTestStorage()
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, err := storage.Delete(ctx, "foo", nil)
 
 	if err == nil {
@@ -152,7 +161,7 @@ func TestDeleteError(t *testing.T) {
 
 func TestDeleteValid(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	})

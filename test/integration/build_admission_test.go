@@ -175,7 +175,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, namespace, "create", authorizationapi.DockerBuildResource, true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, namespace, "create", buildapi.Resource(authorizationapi.DockerBuildResource), true); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -203,12 +203,12 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	// remove resources from role so that certain build strategies are forbidden
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", authorizationapi.DockerBuildResource, false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
 		t.Error(err)
 	}
 
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
-	if err := testutil.WaitForPolicyUpdate(projectAdminClient, testutil.Namespace(), "create", authorizationapi.DockerBuildResource, false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
 		t.Error(err)
 	}
 }

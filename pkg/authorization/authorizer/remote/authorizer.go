@@ -101,6 +101,8 @@ func getAction(namespace string, attributes authorizer.AuthorizationAttributes) 
 	return authzapi.AuthorizationAttributes{
 		Namespace:    namespace,
 		Verb:         attributes.GetVerb(),
+		Group:        attributes.GetAPIGroup(),
+		Version:      attributes.GetAPIVersion(),
 		Resource:     attributes.GetResource(),
 		ResourceName: attributes.GetResourceName(),
 
@@ -108,8 +110,6 @@ func getAction(namespace string, attributes authorizer.AuthorizationAttributes) 
 		// Content
 
 		// TODO: missing from authzapi.AuthorizationAttributes
-		// APIVersion
-		// APIGroup
 		// RequestAttributes (unserializable?)
 		// IsNonResourceURL
 		// URL (doesn't make sense for remote authz?)

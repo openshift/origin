@@ -12,7 +12,7 @@ import (
 const CertRecommendedName = "ca"
 
 // NewCmdCert implements the OpenShift cli ca command
-func NewCmdCert(name, fullName string, out io.Writer) *cobra.Command {
+func NewCmdCert(name, fullName string, out io.Writer, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -25,6 +25,9 @@ func NewCmdCert(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
+
+	cmds.AddCommand(admin.NewCommandEncrypt(admin.EncryptCommandName, fullName+" "+admin.EncryptCommandName, out, errout))
+	cmds.AddCommand(admin.NewCommandDecrypt(admin.DecryptCommandName, fullName+" "+admin.DecryptCommandName, fullName+" "+admin.EncryptCommandName, out))
 
 	return cmds
 }

@@ -690,6 +690,26 @@ func (SessionSecrets) SwaggerDoc() map[string]string {
 	return map_SessionSecrets
 }
 
+var map_StringSource = map[string]string{
+	"": "StringSource allows specifying a string inline, or externally via env var or file. When it contains only a string value, it marshals to a simple JSON string.",
+}
+
+func (StringSource) SwaggerDoc() map[string]string {
+	return map_StringSource
+}
+
+var map_StringSourceSpec = map[string]string{
+	"":        "StringSourceSpec specifies a string value, or external location",
+	"value":   "Value specifies the cleartext value, or an encrypted value if keyFile is specified.",
+	"env":     "Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.",
+	"file":    "File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.",
+	"keyFile": "KeyFile references a file containing the key to use to decrypt the value.",
+}
+
+func (StringSourceSpec) SwaggerDoc() map[string]string {
+	return map_StringSourceSpec
+}
+
 var map_TokenConfig = map[string]string{
 	"": "TokenConfig holds the necessary configuration options for authorization and access tokens",
 	"authorizeTokenMaxAgeSeconds": "AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens",

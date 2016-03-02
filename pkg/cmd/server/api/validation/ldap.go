@@ -12,7 +12,11 @@ import (
 )
 
 func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
-	validationResults := ValidateLDAPClientConfig(config.URL, config.BindDN, config.BindPassword, config.CA, config.Insecure, nil)
+	validationResults := ValidationResults{}
+
+	validationResults.Append(ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
+	bindPassword, _ := api.ResolveStringValue(config.BindPassword)
+	validationResults.Append(ValidateLDAPClientConfig(config.URL, config.BindDN, bindPassword, config.CA, config.Insecure, nil))
 
 	schemaConfigsFound := []string{}
 
@@ -65,7 +69,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 	if (len(bindDN) == 0) != (len(bindPassword) == 0) {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("bindDN"), bindDN,
 			"bindDN and bindPassword must both be specified, or both be empty"))
-		validationResults.AddErrors(field.Invalid(fldPath.Child("bindPassword"), "<masked>",
+		validationResults.AddErrors(field.Invalid(fldPath.Child("bindPassword"), "(masked)",
 			"bindDN and bindPassword must both be specified, or both be empty"))
 	}
 

@@ -12,8 +12,10 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 // TODO sort out resourceVersions.  Perhaps a hash of the object contents?
@@ -21,13 +23,14 @@ import (
 type VirtualStorage struct {
 	PolicyStorage policyregistry.Registry
 
+	RuleResolver   rulevalidation.AuthorizationRuleResolver
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(policyStorage policyregistry.Registry) roleregistry.Storage {
-	return &VirtualStorage{policyStorage, roleregistry.LocalStrategy, roleregistry.LocalStrategy}
+func NewVirtualStorage(policyStorage policyregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver) roleregistry.Storage {
+	return &VirtualStorage{policyStorage, ruleResolver, roleregistry.LocalStrategy, roleregistry.LocalStrategy}
 }
 
 func (m *VirtualStorage) New() runtime.Object {
@@ -99,11 +102,24 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 }
 
 func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	return m.createRole(ctx, obj, false)
+}
+
+func (m *VirtualStorage) CreateRoleWithEscalation(ctx kapi.Context, obj *authorizationapi.Role) (*authorizationapi.Role, error) {
+	return m.createRole(ctx, obj, true)
+}
+
+func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.Role, error) {
 	if err := rest.BeforeCreate(m.CreateStrategy, ctx, obj); err != nil {
 		return nil, err
 	}
 
 	role := obj.(*authorizationapi.Role)
+	if !allowEscalation {
+		if err := rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+			return nil, err
+		}
+	}
 
 	policy, err := m.EnsurePolicy(ctx)
 	if err != nil {
@@ -125,6 +141,13 @@ func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.O
 }
 
 func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return m.updateRole(ctx, obj, false)
+}
+func (m *VirtualStorage) UpdateRoleWithEscalation(ctx kapi.Context, obj *authorizationapi.Role) (*authorizationapi.Role, bool, error) {
+	return m.updateRole(ctx, obj, true)
+}
+
+func (m *VirtualStorage) updateRole(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.Role, bool, error) {
 	role, ok := obj.(*authorizationapi.Role)
 	if !ok {
 		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not a role: %#v", obj))
@@ -137,6 +160,12 @@ func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.O
 
 	if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, old); err != nil {
 		return nil, false, err
+	}
+
+	if !allowEscalation {
+		if err := rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+			return nil, false, err
+		}
 	}
 
 	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)

@@ -58,6 +58,14 @@ __custom_func() {
             __oc_get_resource
             return
             ;;
+
+        # first arg is a pod name
+        oc_rsh)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get pods
+            fi;
+            return
+            ;;
  
         # first arg is a pod name, second is a container name
         oc_logs | oc_attach)
