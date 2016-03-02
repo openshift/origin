@@ -33,7 +33,14 @@ angular.module("openshiftConsole")
     function millicoresUsed(point, lastValue) {
       // Is there a gap in the data?
       if (!lastValue || !point.value) {
-        return 0;
+        return null;
+      }
+
+      // When a container restarts, the cumulative CPU usage resets to 0. As a
+      // result, lastValue can be greater than the current value.  Throw out
+      // those data points since we can't calculate usage as millicores.
+      if (lastValue > point.value) {
+        return null;
       }
 
       var timeInMillis = point.end - point.start;
@@ -60,10 +67,10 @@ angular.module("openshiftConsole")
           point.timestamp = midtime(point);
         }
 
-        // Set point.value to the average or 0 if missing.
+        // Set point.value to the average or null if no average.
         if (!point.value || point.value === "NaN") {
           var avg = point.avg;
-          point.value = (avg && avg !== "NaN") ? avg : 0;
+          point.value = (avg && avg !== "NaN") ? avg : null;
         }
 
         if (metric === 'cpu/usage') {
@@ -137,9 +144,9 @@ angular.module("openshiftConsole")
             },
             params: params
           }).then(function(response) {
-            return angular.extend({
+            return _.assign(response, {
               data: normalize(response.data, config.metric)
-            }, response);
+            });
           });
         });
       }
