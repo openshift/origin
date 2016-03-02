@@ -13,32 +13,26 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
-	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 type VirtualStorage struct {
-	PolicyRegistry               policyregistry.Registry
-	BindingRegistry              policybindingregistry.Registry
-	ClusterPolicyRegistry        clusterpolicyregistry.Registry
-	ClusterPolicyBindingRegistry clusterpolicybindingregistry.Registry
+	BindingRegistry policybindingregistry.Registry
 
+	RuleResolver   rulevalidation.AuthorizationRuleResolver
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(policyRegistry policyregistry.Registry, bindingRegistry policybindingregistry.Registry, clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) rolebindingregistry.Storage {
+func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver) rolebindingregistry.Storage {
 	return &VirtualStorage{
-		PolicyRegistry:               policyRegistry,
-		BindingRegistry:              bindingRegistry,
-		ClusterPolicyRegistry:        clusterPolicyRegistry,
-		ClusterPolicyBindingRegistry: clusterPolicyBindingRegistry,
+		BindingRegistry: bindingRegistry,
 
+		RuleResolver:   ruleResolver,
 		CreateStrategy: rolebindingregistry.LocalStrategy,
 		UpdateStrategy: rolebindingregistry.LocalStrategy,
 	}
@@ -211,72 +205,20 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 }
 
 func (m *VirtualStorage) validateReferentialIntegrity(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	if _, err := m.getReferencedRole(roleBinding.RoleRef); err != nil {
+	if _, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding)); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (m *VirtualStorage) getReferencedRole(roleRef kapi.ObjectReference) (*authorizationapi.Role, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), roleRef.Namespace)
-
-	var policy *authorizationapi.Policy
-	var err error
-	switch {
-	case len(roleRef.Namespace) == 0:
-		var clusterPolicy *authorizationapi.ClusterPolicy
-		clusterPolicy, err = m.ClusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName)
-		policy = authorizationapi.ToPolicy(clusterPolicy)
-	default:
-		policy, err = m.PolicyRegistry.GetPolicy(ctx, authorizationapi.PolicyName)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	role, exists := policy.Roles[roleRef.Name]
-	if !exists {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("role"), roleRef.Name)
-	}
-
-	return role, nil
 }
 
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	modifyingRole, err := m.getReferencedRole(roleBinding.RoleRef)
+	modifyingRole, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
 	if err != nil {
 		return err
 	}
 
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		m.PolicyRegistry,
-		m.BindingRegistry,
-		m.ClusterPolicyRegistry,
-		m.ClusterPolicyBindingRegistry,
-	)
-	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
-	if err != nil {
-		return kapierrors.NewInternalError(err)
-	}
-	masterContext := kapi.WithNamespace(ctx, "")
-	ownerGlobalRules, err := ruleResolver.GetEffectivePolicyRules(masterContext)
-	if err != nil {
-		return kapierrors.NewInternalError(err)
-	}
-
-	ownerRules := make([]authorizationapi.PolicyRule, 0, len(ownerGlobalRules)+len(ownerLocalRules))
-	ownerRules = append(ownerRules, ownerLocalRules...)
-	ownerRules = append(ownerRules, ownerGlobalRules...)
-
-	ownerRightsCover, missingRights := rulevalidation.Covers(ownerRules, modifyingRole.Rules)
-	if !ownerRightsCover {
-		user, _ := kapi.UserFrom(ctx)
-		return kapierrors.NewUnauthorized(fmt.Sprintf("attempt to grant extra privileges: %v user=%v ownerrules=%v", missingRights, user, ownerRules))
-	}
-
-	return nil
+	return rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, modifyingRole)
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.

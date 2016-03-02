@@ -179,6 +179,7 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	accessReview := &authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:     "create",
+			Group:    projectapi.GroupName,
 			Resource: "projectrequests",
 		},
 		User:   userInfo.GetName(),

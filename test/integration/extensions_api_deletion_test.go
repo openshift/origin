@@ -48,8 +48,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	// TODO: switch to checking "list","horizontalpodautoscalers" once SAR supports API groups
-	if err := testutil.WaitForPolicyUpdate(projectAdminClient, projName, "get", "pods", true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminClient, projName, "get", expapi.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
 

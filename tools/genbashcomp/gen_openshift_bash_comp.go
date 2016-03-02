@@ -62,6 +62,6 @@ func main() {
 	oc.GenBashCompletionFile(outFile_osc)
 
 	outFile_osadm := outDir + "oadm"
-	oadm := admin.NewCommandAdmin("oadm", "openshift admin", ioutil.Discard)
+	oadm := admin.NewCommandAdmin("oadm", "openshift admin", ioutil.Discard, ioutil.Discard)
 	oadm.GenBashCompletionFile(outFile_osadm)
 }

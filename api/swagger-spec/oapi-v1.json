@@ -21178,6 +21178,8 @@
     "required": [
      "namespace",
      "verb",
+     "resourceAPIGroup",
+     "resourceAPIVersion",
      "resource",
      "resourceName"
     ],
@@ -21197,6 +21199,14 @@
      "verb": {
       "type": "string",
       "description": "Verb is one of: get, list, watch, create, update, delete"
+     },
+     "resourceAPIGroup": {
+      "type": "string",
+      "description": "Group is the API group of the resource Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined"
+     },
+     "resourceAPIVersion": {
+      "type": "string",
+      "description": "Version is the API version of the resource Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined"
      },
      "resource": {
       "type": "string",
@@ -21218,6 +21228,8 @@
     "required": [
      "namespace",
      "verb",
+     "resourceAPIGroup",
+     "resourceAPIVersion",
      "resource",
      "resourceName",
      "user",
@@ -21239,6 +21251,14 @@
      "verb": {
       "type": "string",
       "description": "Verb is one of: get, list, watch, create, update, delete"
+     },
+     "resourceAPIGroup": {
+      "type": "string",
+      "description": "Group is the API group of the resource Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined"
+     },
+     "resourceAPIVersion": {
+      "type": "string",
+      "description": "Version is the API version of the resource Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined"
      },
      "resource": {
       "type": "string",
@@ -22044,6 +22064,8 @@
     "required": [
      "namespace",
      "verb",
+     "resourceAPIGroup",
+     "resourceAPIVersion",
      "resource",
      "resourceName"
     ],
@@ -22063,6 +22085,14 @@
      "verb": {
       "type": "string",
       "description": "Verb is one of: get, list, watch, create, update, delete"
+     },
+     "resourceAPIGroup": {
+      "type": "string",
+      "description": "Group is the API group of the resource Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined"
+     },
+     "resourceAPIVersion": {
+      "type": "string",
+      "description": "Version is the API version of the resource Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined"
      },
      "resource": {
       "type": "string",
@@ -22341,6 +22371,8 @@
     "required": [
      "namespace",
      "verb",
+     "resourceAPIGroup",
+     "resourceAPIVersion",
      "resource",
      "resourceName",
      "user",
@@ -22362,6 +22394,14 @@
      "verb": {
       "type": "string",
       "description": "Verb is one of: get, list, watch, create, update, delete"
+     },
+     "resourceAPIGroup": {
+      "type": "string",
+      "description": "Group is the API group of the resource Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined"
+     },
+     "resourceAPIVersion": {
+      "type": "string",
+      "description": "Version is the API version of the resource Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined"
      },
      "resource": {
       "type": "string",

@@ -230,7 +230,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err := testutil.WaitForClusterPolicyUpdate(valerieOpenshiftClient, "create", "projectrequests", false); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(valerieOpenshiftClient, "create", projectapi.Resource("projectrequests"), false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

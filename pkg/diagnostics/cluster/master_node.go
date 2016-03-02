@@ -7,13 +7,13 @@ import (
 	"net/url"
 	"strings"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	osclient "github.com/openshift/origin/pkg/client"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	osclient "github.com/openshift/origin/pkg/client"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -80,6 +80,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 
 	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Verb:     "list",
+		Group:    kapi.GroupName,
 		Resource: "nodes",
 	})
 	if err != nil {
@@ -93,7 +94,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 func (d *MasterNode) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 
-	nodes, err := d.KubeClient.Nodes().List(api.ListOptions{LabelSelector: labels.Nothing()})
+	nodes, err := d.KubeClient.Nodes().List(kapi.ListOptions{LabelSelector: labels.Nothing()})
 	if err != nil {
 		r.Error("DClu3002", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r
@@ -153,7 +154,7 @@ func resolveServerIP(serverUrl string, fn dnsResolver) ([]string, error) {
 	return ips, nil
 }
 
-func searchNodesForIP(nodes []api.Node, ips []string) types.DiagnosticResult {
+func searchNodesForIP(nodes []kapi.Node, ips []string) types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 	r.Debug("DClu3005", fmt.Sprintf("Seaching for a node with master IP: %s", ips))
 

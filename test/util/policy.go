@@ -3,6 +3,7 @@ package util
 import (
 	"time"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -16,8 +17,8 @@ const (
 
 // WaitForPolicyUpdate checks if the given client can perform the named verb and action.
 // If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
-func WaitForPolicyUpdate(c *client.Client, namespace, verb, resource string, allowed bool) error {
-	review := &authorizationapi.LocalSubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Resource: resource}}
+func WaitForPolicyUpdate(c *client.Client, namespace, verb string, resource unversioned.GroupResource, allowed bool) error {
+	review := &authorizationapi.LocalSubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Group: resource.Group, Resource: resource.Resource}}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
 		response, err := c.LocalSubjectAccessReviews(namespace).Create(review)
 		if err != nil {
@@ -33,8 +34,8 @@ func WaitForPolicyUpdate(c *client.Client, namespace, verb, resource string, all
 
 // WaitForClusterPolicyUpdate checks if the given client can perform the named verb and action.
 // If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
-func WaitForClusterPolicyUpdate(c *client.Client, verb, resource string, allowed bool) error {
-	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Resource: resource}}
+func WaitForClusterPolicyUpdate(c *client.Client, verb string, resource unversioned.GroupResource, allowed bool) error {
+	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Group: resource.Group, Resource: resource.Resource}}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
 		response, err := c.SubjectAccessReviews().Create(review)
 		if err != nil {
