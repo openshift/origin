@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 979b64467e2ff3f6685f5309276f5e2022e639c2
+%global commit 059455f2791601661961c297d507a59146776e76
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.907-36-g979b644 -X github.com/openshift/origin/pkg/version.commitFromGit 979b644 -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.908-35-g059455f -X github.com/openshift/origin/pkg/version.commitFromGit 059455f -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.908
+Version:        3.1.1.909
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,34 @@ fi
 
 
 %changelog
+* Wed Mar 02 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.909
+- Added more cmd tests for import-image to cover main branches
+  (maszulik@redhat.com)
+- Support API group and version in SAR/RAR (jliggitt@redhat.com)
+- Pick correct strategy for binary builds (cewong@redhat.com)
+- Metrics: show missing data as gaps in the chart (spadgett@redhat.com)
+- Issue 7555 - fixed importimage which was picking wrong docker pull spec for
+  images that failed previous import. (maszulik@redhat.com)
+- Refactor import-image to Complete-Validate-Run scheme. Additionally split the
+  code so it's testable + added tests. (maszulik@redhat.com)
+- Adds completion for oc rsh command (akram@free.fr)
+- Fix swagger description generation (jliggitt@redhat.com)
+- Allow externalizing/encrypting config values (jliggitt@redhat.com)
+- Add encrypt/decrypt helper commands (jliggitt@redhat.com)
+- bump all template mem limits to 512 Mi (gmontero@redhat.com)
+- Fixes as per @smarterclayton's review comments. (smitram@gmail.com)
+- Use http[s] ports for environment values. Allows router ports to be overriden
+  + multiple instances to run with host networking. (smitram@gmail.com)
+- Switch from margin to padding and move it to the container-fluid div so gray
+  bg extends length of page and maintains bottom spacing across pages Include
+  fix to prevent filter appended button from wrapping in Safari
+  (sgoodwin@redhat.com)
+- check covers for role changes (deads@redhat.com)
+- favicon.ico not copied during asset build (jforrest@redhat.com)
+- Added liveness and readiness probes to database templates
+  (mfojtik@redhat.com)
+- Create policy for image registry users (agladkov@redhat.com)
+
 * Mon Feb 29 2016 Scott Dodson <sdodson@redhat.com> 3.1.1.908
 - enabled junitreport tool to stream output (skuznets@redhat.com)
 - BZ_1312819: Can not add Environment Variables on buildconfig edit page
