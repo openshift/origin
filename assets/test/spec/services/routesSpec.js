@@ -174,4 +174,78 @@ describe("RoutesService", function(){
       expect(warnings.length).toEqual(2);
     });
   });
+
+  describe("#getPreferredDisplayRoute", function() {
+    var routeTemplate = {
+      kind: "Route",
+      apiVersion: 'v1',
+      metadata: {
+        name: "ruby-hello-world",
+        labels : {
+          "app": "ruby-hello-world"
+        },
+        annotations: {
+          "openshift.io/generated-by": "OpenShiftWebConsole",
+          "openshift.io/host.generated": "true"
+        }
+      },
+      spec: {
+        to: {
+          kind: "Service",
+          name: "frontend"
+        },
+        host: "example.com"
+      },
+      status: {
+        ingress: null
+      }
+    };
+
+    it("should prefer an admitted route", function() {
+      var customHost = angular.copy(routeTemplate);
+      delete customHost.metadata.annotations["openshift.io/host.generated"];
+      customHost.spec.tls = {
+        termination: "edge"
+      };
+
+      var admitted = angular.copy(routeTemplate);
+      admitted.status.ingress = [{
+        host: "example.com",
+        routerName: "router",
+        conditions: [{
+          type: "Admitted",
+          status: "True",
+          lastTransitionTime: '2016-03-01T14:15:05Z'
+        }]
+      }];
+
+      var preferred = RoutesService.getPreferredDisplayRoute(customHost, admitted);
+      expect(preferred).toEqual(admitted);
+    });
+
+    it("should prefer a custom route", function() {
+      var customHost = angular.copy(routeTemplate);
+      delete customHost.metadata.annotations["openshift.io/host.generated"];
+
+      var secure = angular.copy(routeTemplate);
+      secure.spec.tls = {
+        termination: "edge"
+      };
+
+      var preferred = RoutesService.getPreferredDisplayRoute(customHost, secure);
+      expect(preferred).toEqual(customHost);
+    });
+
+    it("should prefer a secure route", function() {
+      var vanilla = angular.copy(routeTemplate);
+
+      var secure = angular.copy(routeTemplate);
+      secure.spec.tls = {
+        termination: "edge"
+      };
+
+      var preferred = RoutesService.getPreferredDisplayRoute(vanilla, secure);
+      expect(preferred).toEqual(secure);
+    });
+  });
 });
