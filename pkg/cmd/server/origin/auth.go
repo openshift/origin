@@ -388,17 +388,24 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
-				loginPath := openShiftLoginPrefix
+				var (
+					// loginPath is unescaped, the way the mux will see it once URL-decoding is done
+					loginPath = openShiftLoginPrefix
+					// redirectLoginPath is escaped, the way we would need to send a Location redirect to a client
+					redirectLoginPath = openShiftLoginPrefix
+				)
 
 				if multiplePasswordProviders {
 					// If there is more than one Identity Provider acting as a login
 					// provider, we need to give each of them their own login path,
 					// to avoid ambiguity.
 					loginPath = path.Join(openShiftLoginPrefix, identityProvider.Name)
+					// url-encode the provider name for redirecting
+					redirectLoginPath = path.Join(openShiftLoginPrefix, (&url.URL{Path: identityProvider.Name}).String())
 				}
 
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
-				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, loginPath+"?then=${url}"))
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, redirectLoginPath+"?then=${url}"))
 
 				var loginTemplateFile string
 				if c.Options.Templates != nil {
