@@ -67,6 +67,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 	}
 	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Verb:     "list",
+		Group:    kapi.GroupName,
 		Resource: "nodes",
 	})
 	if err != nil {

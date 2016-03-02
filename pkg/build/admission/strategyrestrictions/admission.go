@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -74,16 +75,16 @@ func (a *buildByStrategy) Validate() error {
 	return nil
 }
 
-func resourceForStrategyType(strategy buildapi.BuildStrategy) string {
+func resourceForStrategyType(strategy buildapi.BuildStrategy) unversioned.GroupResource {
 	switch {
 	case strategy.DockerStrategy != nil:
-		return authorizationapi.DockerBuildResource
+		return buildapi.Resource(authorizationapi.DockerBuildResource)
 	case strategy.CustomStrategy != nil:
-		return authorizationapi.CustomBuildResource
+		return buildapi.Resource(authorizationapi.CustomBuildResource)
 	case strategy.SourceStrategy != nil:
-		return authorizationapi.SourceBuildResource
+		return buildapi.Resource(authorizationapi.SourceBuildResource)
 	}
-	return ""
+	return unversioned.GroupResource{}
 }
 
 func resourceName(objectMeta kapi.ObjectMeta) string {
@@ -98,7 +99,8 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Resource:     resourceForStrategyType(strategy),
+			Group:        resourceForStrategyType(strategy).Group,
+			Resource:     resourceForStrategyType(strategy).Resource,
 			Content:      build,
 			ResourceName: resourceName(build.ObjectMeta),
 		},
@@ -113,7 +115,8 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Resource:     resourceForStrategyType(strategy),
+			Group:        resourceForStrategyType(strategy).Group,
+			Resource:     resourceForStrategyType(strategy).Resource,
 			Content:      buildConfig,
 			ResourceName: resourceName(buildConfig.ObjectMeta),
 		},

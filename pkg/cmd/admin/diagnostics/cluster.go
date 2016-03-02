@@ -115,6 +115,7 @@ func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, c
 		subjectAccessReview := authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{
 			// if you can do everything, you're the cluster admin.
 			Verb:     "*",
+			Group:    "*",
 			Resource: "*",
 		}}
 		if resp, err := osClient.SubjectAccessReviews().Create(&subjectAccessReview); err != nil {

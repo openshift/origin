@@ -26,6 +26,8 @@ type DefaultAuthorizationAttributes struct {
 func ToDefaultAuthorizationAttributes(in authorizationapi.AuthorizationAttributes) DefaultAuthorizationAttributes {
 	return DefaultAuthorizationAttributes{
 		Verb:         in.Verb,
+		APIGroup:     in.Group,
+		APIVersion:   in.Version,
 		Resource:     in.Resource,
 		ResourceName: in.ResourceName,
 	}
@@ -138,6 +140,9 @@ func splitPath(thePath string) []string {
 	}
 	return strings.Split(thePath, "/")
 }
+
+// DefaultAuthorizationAttributes satisfies the AuthorizationAttributes interface
+var _ AuthorizationAttributes = DefaultAuthorizationAttributes{}
 
 func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
 	return a.APIVersion

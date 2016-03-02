@@ -82,10 +82,10 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	// Wait for policy cache
-	if err := testutil.WaitForClusterPolicyUpdate(bobClient, "get", "nodes/metrics", true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(bobClient, "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", "nodes/metrics", true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

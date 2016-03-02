@@ -266,6 +266,10 @@ type AuthorizationAttributes struct {
 	Namespace string
 	// Verb is one of: get, list, watch, create, update, delete
 	Verb string
+	// Group is the API group of the resource
+	Group string
+	// Version is the API version of the resource
+	Version string
 	// Resource is one of the existing resource types
 	Resource string
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
