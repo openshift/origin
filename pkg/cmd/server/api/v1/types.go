@@ -269,7 +269,30 @@ type PolicyConfig struct {
 
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
+
+	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	LegacyClientPolicyConfig LegacyClientPolicyConfig `json:"legacyClientPolicyConfig"`
 }
+
+// LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API
+type LegacyClientPolicyConfig struct {
+	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// The default is AllowAll
+	LegacyClientPolicy LegacyClientPolicy `json:"legacyClientPolicy"`
+	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
+	RestrictedHTTPVerbs []string `json:"restrictedHTTPVerbs"`
+}
+
+type LegacyClientPolicy string
+
+var (
+	// AllowAll does not prevent any kinds of client version skew
+	AllowAll LegacyClientPolicy = "allow-all"
+	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
+	DenyOldClients LegacyClientPolicy = "deny-old-clients"
+	// DenySkewedClients prevents any non-matching client from issuing stomping requests
+	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
+)
 
 // RoutingConfig holds the necessary configuration options for routing to subdomains
 type RoutingConfig struct {

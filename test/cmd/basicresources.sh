@@ -5,6 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
@@ -17,8 +18,49 @@ os::log::install_errexit
   exit 0
 ) &>/dev/null
 
-
 # This test validates basic resource retrieval and command interaction
+
+# Test to make sure that we're reporting the correct version information from endpoints and the correct
+# User-Agent information from our clients regardless of which resources they're trying to access
+os::build::get_version_vars
+OS_GIT_VERSION_TO_MICRO=${OS_GIT_VERSION%%-*}
+KUBE_GIT_VERSION_TO_MICRO=${KUBE_GIT_VERSION%%-*}
+os::cmd::expect_success_and_text 'oc version' "oc ${OS_GIT_VERSION_TO_MICRO}"
+os::cmd::expect_success_and_text 'oc version' "kubernetes ${KUBE_GIT_VERSION}"
+os::cmd::expect_success_and_text 'openshift version' "openshift ${OS_GIT_VERSION_TO_MICRO}"
+os::cmd::expect_success_and_text 'openshift version' "kubernetes ${KUBE_GIT_VERSION}"
+os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${KUBE_GIT_VERSION}"
+os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${OS_GIT_VERSION_TO_MICRO}"
+# variants I know I have to worry about
+# 1. oc (kube and openshift resources)
+# 2. openshift kubectl (kube and openshift resources)
+# 3. oadm (kube and openshift resources)
+# 4  openshift cli (kube and openshift resources)
+
+# example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+# this is probably broken and should be `oc/<oc version>... openshift/...`
+os::cmd::expect_success_and_text 'oc get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "oc/${KUBE_GIT_VERSION_TO_MICRO} .* kubernetes/"
+# example User-Agent: oc/v1.1.3 (linux/amd64) openshift/b348c2f
+os::cmd::expect_success_and_text 'oc get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "oc/${OS_GIT_VERSION_TO_MICRO} .* openshift/"
+# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+# this is probably broken and should be `kubectl/<kube version> kubernetes/...`
+os::cmd::expect_success_and_text 'openshift kubectl get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${KUBE_GIT_VERSION_TO_MICRO} .* kubernetes/"
+# example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+# this is probably broken and should be `kubectl/<kube version> openshift/...`
+os::cmd::expect_success_and_text 'openshift kubectl get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${OS_GIT_VERSION_TO_MICRO} .* openshift/"
+# example User-Agent: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
+# this is probably broken and should be `oadm/<oc version>... openshift/...`
+os::cmd::expect_success_and_text 'oadm policy reconcile-sccs --loglevel=7  2>&1 | grep -A4 "securitycontextconstraints" | grep User-Agent' "oadm/${KUBE_GIT_VERSION_TO_MICRO} .* kubernetes/"
+# example User-Agent: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+os::cmd::expect_success_and_text 'oadm policy who-can get pods --loglevel=7  2>&1 | grep -A4 "localresourceaccessreviews" | grep User-Agent' "oadm/${OS_GIT_VERSION_TO_MICRO} .* openshift/"
+# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+# this is probably broken and should be `oc/<oc version>... openshift/...`
+os::cmd::expect_success_and_text 'openshift cli get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${KUBE_GIT_VERSION_TO_MICRO} .* kubernetes/"
+# example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${OS_GIT_VERSION_TO_MICRO} .* openshift/"
+
+echo "version reporting: ok"
+
 
 os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
 os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'

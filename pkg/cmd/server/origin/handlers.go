@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"sort"
+	"strings"
 
+	"github.com/coreos/go-semver/semver"
 	restful "github.com/emicklei/go-restful"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,9 +19,12 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/util/httprequest"
+	"github.com/openshift/origin/pkg/version"
 )
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
@@ -93,12 +99,16 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 // forbidden renders a simple forbidden error
 func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
 	kind := ""
+	resource := ""
+	group := ""
 	name := ""
 	// the attributes can be empty for two basic reasons:
 	// 1. malformed API request
 	// 2. not an API request at all
 	// In these cases, just assume default that will work better than nothing
 	if attributes != nil {
+		group = attributes.GetAPIGroup()
+		resource = attributes.GetResource()
 		kind = attributes.GetResource()
 		if len(attributes.GetAPIGroup()) > 0 {
 			kind = attributes.GetAPIGroup() + "." + kind
@@ -110,7 +120,7 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
 	// that makes sense when a human reads it.
-	forbiddenError, _ := kapierrors.NewForbidden(unversioned.GroupResource{Group: attributes.GetAPIGroup(), Resource: attributes.GetResource()}, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
+	forbiddenError, _ := kapierrors.NewForbidden(unversioned.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}
@@ -162,6 +172,91 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 				ctx = kapi.WithNamespace(ctx, namespace)
 				contextMapper.Update(req, ctx)
 			}
+		}
+
+		handler.ServeHTTP(w, req)
+	})
+}
+
+// variants I know I have to worry about
+// 1. oc kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+// 2. oc openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
+// 3. openshift kubectl kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+// 4. openshit kubectl openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+// 5. oadm kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
+// 6. oadm openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+// 7. openshift cli kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+// 8. openshift cli openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+var (
+	kubeStyleUserAgent      = regexp.MustCompile(`\w+/v([\w\.]+) \(.+/.+\) kubernetes/\w{7}`)
+	openshiftStyleUserAgent = regexp.MustCompile(`\w+/v([\w\.]+) \(.+/.+\) openshift/\w{7}`)
+)
+
+// versionSkewFilter adds a filter that may deny requests from skewed
+// oc clients, since we know that those clients will strip unknown fields which can lead to unexpected outcomes
+func (c *MasterConfig) versionSkewFilter(openshiftBinaryInfo version.Info, kubeBinaryInfo kversion.Info, handler http.Handler) http.Handler {
+	skewedClientPolicy := c.Options.PolicyConfig.LegacyClientPolicyConfig.LegacyClientPolicy
+	if skewedClientPolicy == configapi.AllowAll {
+		return handler
+	}
+	seg := strings.SplitN(openshiftBinaryInfo.GitVersion, "-", 2)
+	openshiftServerVersion := seg[0][1:]
+	seg = strings.SplitN(kubeBinaryInfo.GitVersion, "-", 2)
+	kubeServerVersion := seg[0][1:]
+
+	restrictedVerbs := sets.NewString(c.Options.PolicyConfig.LegacyClientPolicyConfig.RestrictedHTTPVerbs...)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if !restrictedVerbs.Has(req.Method) {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		userAgent := req.Header.Get("User-Agent")
+		if len(userAgent) == 0 {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		clientVersion := ""
+		serverVersion := ""
+		if submatches := kubeStyleUserAgent.FindStringSubmatch(userAgent); len(submatches) == 2 {
+			clientVersion = submatches[1]
+			serverVersion = kubeServerVersion
+		}
+		if submatches := openshiftStyleUserAgent.FindStringSubmatch(userAgent); len(submatches) == 2 {
+			clientVersion = submatches[1]
+			serverVersion = openshiftServerVersion
+		}
+		if len(clientVersion) == 0 {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		switch skewedClientPolicy {
+		case configapi.DenyOldClients:
+			serverSemVer, err := semver.NewVersion(serverVersion)
+			if err != nil {
+				handler.ServeHTTP(w, req)
+				return
+			}
+			clientSemVer, err := semver.NewVersion(clientVersion)
+			if err != nil {
+				handler.ServeHTTP(w, req)
+				return
+			}
+
+			if clientSemVer.LessThan(*serverSemVer) {
+				forbidden(fmt.Sprintf("userVersion %v is older than the server version %v; mutation is denied", clientVersion, serverVersion), nil, w, req)
+				return
+			}
+
+		case configapi.DenySkewedClients:
+			if clientVersion != serverVersion {
+				forbidden(fmt.Sprintf("userVersion %v is different than the server version %v; mutation is denied", clientVersion, serverVersion), nil, w, req)
+				return
+			}
+
 		}
 
 		handler.ServeHTTP(w, req)
