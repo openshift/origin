@@ -460,6 +460,23 @@ func getPorts(spec api.PodSpec) []string {
 	return result
 }
 
+// UpdateObjectEnvironment update the environment variables in object specification.
+func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error) {
+	switch t := obj.(type) {
+	case *buildapi.BuildConfig:
+		if t.Spec.Strategy.CustomStrategy != nil {
+			return true, fn(&t.Spec.Strategy.CustomStrategy.Env)
+		}
+		if t.Spec.Strategy.SourceStrategy != nil {
+			return true, fn(&t.Spec.Strategy.SourceStrategy.Env)
+		}
+		if t.Spec.Strategy.DockerStrategy != nil {
+			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
+		}
+	}
+	return false, fmt.Errorf("object does not contain any environment variables")
+}
+
 // UpdatePodSpecForObject update the pod specification for the provided object
 // TODO: move to upstream
 func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
