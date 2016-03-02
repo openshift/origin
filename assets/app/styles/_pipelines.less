@@ -1,0 +1,39 @@
+.pipelines {
+  padding-bottom: 20px;
+  .pipeline-stage,
+  .pipeline-stage-grouped {
+    .pipeline-stage-body {
+      background-color: white;
+      padding: 10px;
+      border: 2px solid #999;
+      &.completed {
+        border: 2px solid #3f9c35;
+      }
+      .pipeline-stage-header {
+        &:extend(.components .components-panel .component-label);
+        label {
+          display: block;
+          margin-bottom: 0;
+        }
+      }
+      .pipeline-stage-content {
+        padding-top: 20px;
+      }
+    }
+  }
+  .pipeline-stage-grouped {
+    padding-bottom: 5px;
+    .pipeline-stage-body {
+      .pipeline-stage-content {
+        padding-top: 0;
+      }
+    }
+  }
+  .connector {
+    position: absolute;
+    font-size: 160%;
+    right: -10px;
+    top: 30px;
+    color: #999;
+  }
+}

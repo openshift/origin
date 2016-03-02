@@ -17,11 +17,14 @@
             <div class="data-toolbar-filter">
               <project-filter></project-filter>
             </div>
-            <div class="data-toolbar-views">
+            <div class="data-toolbar-views" style="flex:0 0 95px;">
               <div class="actions">
                 <div class="btn-group">
                   <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'tiles'" title="Tile View">
                     <i class="fa fa-list"></i>
+                  </label>
+                  <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'pipelines'" title="Pipelines View">
+                    <i class="pficon pficon-topology"></i>
                   </label>
                   <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'topology'" title="Topology View">
                     <i class="pficon pficon-topology"></i>
@@ -247,6 +250,201 @@
                   <overview-monopod pod="pod"></overview-monopod>
                 </section>
               </div>
+
+
+              <!-- PIPELINES -->
+              <!-- PIPELINES -->
+              <!-- PIPELINES -->
+
+
+              <div ng-if="overviewMode == 'pipelines'">
+                <div id="pipelines" class="pipelines container-fluid" ng-repeat="(pipelineName, pipeline) in pipelines">
+                  <p>Pipeline {{pipelineName}}</p>
+
+                  <div ng-repeat="stage in pipeline.stages">
+                    stage: {{stage.id}}
+                  </div>
+                </div>
+
+        <!--         <pipelines-view
+                  image-streams="imageStreams"
+                  services="services"
+                  deployment-configs-by-service="deploymentConfigsByService"
+                  deployments-by-service-by-deployment-config="deploymentsByServiceByDeploymentConfig">
+                </pipelines-view>
+         -->
+
+                <div id="pipelines" class="pipelines container-fluid" ng-repeat="(serviceId, service) in services">
+                  <div class="row row-cards-pf">
+                    <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+                      <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" ng-if="isVisibleDeployment(deployment)">
+
+                        <div ng-repeat="container in deployment.spec.template.spec.containers">
+                          <div ng-if="imagesByDockerReference && container.image && (image = imagesByDockerReference[container.image])">
+                            <div ng-if="build = (image | buildForImage : builds)" ng-init="buildConfigName = (build | label : 'openshift.io/build-config.name')">
+                              <div class="pipeline-stage col-xs-3" ng-init="buildConfig = buildConfigs[buildConfigName]">
+                                <div class="row">
+                                  <div class="pipeline-stage-grouped col-xs-12">
+                                    <div class="pipeline-stage-body completed">
+                                      <div class="pipeline-stage-header">
+                                        <label>
+                                          <span class="pficon pficon-image" aria-hidden="true"></span>
+                                          Image
+                                        </label>
+                                        <a href="#">{{buildConfig.spec.strategy.sourceStrategy.from.name.split(':')[0]}}</a>
+                                      </div>
+                                      <div class="pipeline-stage-content">
+                                        <div style="font-size:80%;overflow:hidden;text-overflow:ellipsis;">
+                                          <i>{{buildConfig.spec.strategy.sourceStrategy.from.name.split(':')[1]}}</i>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="connector">&rarr;</div>
+                                  </div>
+                                </div>
+                                <div class="row">
+                                  <div class="pipeline-stage-grouped col-xs-12">
+                                    <div class="pipeline-stage-body completed">
+                                      <div class="pipeline-stage-header">
+                                        <label>
+                                          <span class="pficon pficon-image" aria-hidden="true"></span>
+                                          Source
+                                        </label>
+                                      </div>
+                                      <div class="pipeline-stage-content">
+                                        <div style="font-size:80%;overflow:hidden;text-overflow:ellipsis;">
+                                          <code>{{buildConfig.spec.source.git.uri}}</code>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="connector">&rarr;</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="pipeline-stage col-xs-3">
+                                <div class="pipeline-stage-body" ng-class="{completed: build.status.phase === 'Complete'}">
+                                  <div class="pipeline-stage-header">
+                                    <label>
+                                      <span class="fa fa-refresh" aria-hidden="true"></span>
+                                      Build
+                                    </label>
+                                    <a href="#">{{buildConfig.metadata.name}}</a>, <a href="#">#{{build | annotation : 'openshift.io/build.number'}}</a>
+                                  </div>
+                                  <div class="pipeline-stage-content">
+                                  </div>
+                                </div>
+                                <div class="connector">&rarr;</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]">
+                          <div ng-if="deploymentConfig.spec.strategy.type === 'Recreate'">
+                            <div class="pipeline-stage col-xs-3">
+                              <div class="pipeline-stage-body completed">
+                                <div class="pipeline-stage-header">
+                                  <label>
+                                    <span class="pficon pficon-image" aria-hidden="true"></span>
+                                    Image
+                                  </label>
+                                  <a href="#">{{deploymentConfig.spec.template.spec.containers[0].image.split('/').slice(-1).pop().split(':')[0].split('@')[0]}}</a>
+                                </div>
+                                <div class="pipeline-stage-content">
+                                  <div style="font-size:80%;overflow:hidden;text-overflow:ellipsis;">
+                                    <i>{{deploymentConfig.spec.template.spec.containers[0].image | imageName}}</i>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="connector">&rarr;</div>
+                            </div>
+                          </div>
+                          <div class="pipeline-stage col-xs-3">
+                            <div class="pipeline-stage-body" ng-class="{completed: (deployment | deploymentStatus) === 'Deployed'}">
+                              <div class="pipeline-stage-header">
+                                <label>
+                                  <span class="pficon pficon-deployment" aria-hidden="true"></span>
+                                  Deployment
+                                </label>
+                                <a href="#">{{deploymentConfig.metadata.name}}</a>, <a href="#">#{{deployment | annotation:'deploymentVersion'}}</a>
+                              </div>
+                              <div class="pipeline-stage-content">
+                                <div style="font-size:80%;overflow:hidden;text-overflow:ellipsis;">
+                                  <i>{{deploymentConfig.spec.triggers[0].imageChangeParams.from.name || deploymentConfig.spec.template.spec.containers[0].image}}</i>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="connector">&rarr;</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="pipeline-stage col-xs-3">
+                      <div class="pipeline-stage-body completed">
+                        <div class="pipeline-stage-header">
+                          <label>
+                            <span class="pficon pficon-service" aria-hidden="true"></span>
+                            Service
+                          </label>
+                          <a href="#">{{service.metadata.name}}</a>
+                        </div>
+                        <div class="pipeline-stage-content">
+                          <div style="font-size:80%;overflow:hidden;text-overflow:ellipsis;">
+                            <i>{{service.spec.portalIP}}:{{service.spec.ports[0].port}}&rarr;{{service.spec.ports[0].targetPort}}</i>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div><!-- /row -->
+                </div><!-- /container -->
+
+                <script src="bower_components/patternfly/components/matchHeight/jquery.matchHeight-min.js"></script>
+
+                {{matchElementsHeight()}}
+
+                <h2>Debug</h2>
+
+                <div ng-init="debug = {}" ng-repeat="(serviceId, service) in services">
+                  <h3 ng-click="debug[service.metadata.uid] = !debug[service.metadata.uid]">Service {{service.metadata.name}}</h3>
+                  <pre ng-show="debug[service.metadata.uid]">
+{{service | json}}</pre>
+                  <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]">
+                    <h4 ng-click="debug[deploymentConfig.metadata.uid] = !debug[deploymentConfig.metadata.uid]">Deployment config {{deploymentConfig.metadata.name}}</h4>
+                    <pre ng-show="debug[deploymentConfig.metadata.uid]">
+{{deploymentConfig | json}}</pre>
+                    <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+                      <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)">
+                        <h5 ng-click="debug[deployment.metadata.uid] = !debug[deployment.metadata.uid]">Deployment {{deployment.metadata.name}}</h5>
+                        <pre ng-show="debug[deployment.metadata.uid]">
+{{deployment | json}}</pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div ng-repeat="(buildConfigName, builds) in buildsByBuildConfig" ng-init="buildConfig = buildConfigs[buildConfigName]">
+                  <h3 ng-click="debug[buildConfig.metadata.uid] = !debug[buildConfig.metadata.uid]">Build config {{buildConfigName}}</h3>
+                  <pre ng-show="debug[buildConfig.metadata.uid]">
+{{buildConfig | json}}</pre>
+                  <div ng-repeat="(buildId, build) in builds | orderObjectsByDate : true track by (build | uid)">
+                    <h4 ng-click="debug[build.metadata.uid] = !debug[build.metadata.uid]">Build {{build.metadata.name}}</h4>
+
+                    <pre ng-show="debug[build.metadata.uid]">
+{{build | json}}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div ng-repeat="(imageStreamName, imageStream) in imageStreams">
+                <h3 ng-click="debug[imageStream.metadata.uid] = !debug[imageStream.metadata.uid]">Image stream {{imageStreamName}}</h3>
+                <pre ng-show="debug[imageStream.metadata.uid]">
+{{imageStream | json}}</pre>
+              </div>
+
+              <!-- /PIPELINES -->
+              <!-- /PIPELINES -->
+              <!-- /PIPELINES -->
 
             </div><!-- /col-* -->
           </div>
