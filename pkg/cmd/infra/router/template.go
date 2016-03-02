@@ -139,6 +139,10 @@ func (o *TemplateRouterOptions) Complete() error {
 		o.StatsPort = statsPort
 	}
 
+	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 0 {
+		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
+	}
+
 	return o.RouterSelection.Complete()
 }
 
