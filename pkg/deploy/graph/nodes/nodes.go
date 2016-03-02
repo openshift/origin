@@ -15,7 +15,7 @@ func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *depoyapi.Deplo
 		g,
 		dcName,
 		func(node osgraph.Node) graph.Node {
-			return &DeploymentConfigNode{Node: node, DeploymentConfig: dc}
+			return &DeploymentConfigNode{Node: node, DeploymentConfig: dc, IsFound: true}
 		},
 	).(*DeploymentConfigNode)
 
@@ -25,4 +25,14 @@ func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *depoyapi.Deplo
 	}
 
 	return dcNode
+}
+
+func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *depoyapi.DeploymentConfig) *DeploymentConfigNode {
+	return osgraph.EnsureUnique(
+		g,
+		DeploymentConfigNodeName(dc),
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentConfigNode{Node: node, DeploymentConfig: dc, IsFound: false}
+		},
+	).(*DeploymentConfigNode)
 }

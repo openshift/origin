@@ -1,14 +1,20 @@
 package kubegraph
 
 import (
+	"strings"
+
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 )
 
 const (
@@ -22,6 +28,8 @@ const (
 	MountableSecretEdgeKind = "MountableSecret"
 	// ReferencedServiceAccountEdgeKind goes from PodSpec to ServiceAccount indicating that Pod is or will be running as the SA.
 	ReferencedServiceAccountEdgeKind = "ReferencedServiceAccount"
+	// ScalingEdgeKind goes from HorizontalPodAutoscaler to scaled objects indicating that the HPA scales the object
+	ScalingEdgeKind = "Scaling"
 )
 
 // AddExposedPodTemplateSpecEdges ensures that a directed edge exists between a service and all the PodTemplateSpecs
@@ -195,5 +203,41 @@ func AddAllRequestedServiceAccountEdges(g osgraph.Graph) {
 		if podSpecNode, ok := node.(*kubegraph.PodSpecNode); ok {
 			AddRequestedServiceAccountEdges(g, podSpecNode)
 		}
+	}
+}
+
+func AddHPAScaleRefEdges(g osgraph.Graph) {
+	for _, node := range g.NodesByKind(kubegraph.HorizontalPodAutoscalerNodeKind) {
+		hpaNode := node.(*kubegraph.HorizontalPodAutoscalerNode)
+
+		syntheticMeta := kapi.ObjectMeta{
+			Name:      hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.Name,
+			Namespace: hpaNode.HorizontalPodAutoscaler.Namespace,
+		}
+
+		var groupVersionResource unversioned.GroupVersionResource
+		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.Kind)
+		if groupVersion, err := unversioned.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.APIVersion); err == nil {
+			groupVersionResource = groupVersion.WithResource(resource)
+		} else {
+			groupVersionResource = unversioned.GroupVersionResource{Resource: resource}
+		}
+
+		groupVersionResource, err := registered.RESTMapper().ResourceFor(groupVersionResource)
+		if err != nil {
+			continue
+		}
+
+		var syntheticNode graph.Node
+		switch groupVersionResource.GroupResource() {
+		case kapi.Resource("replicationcontrollers"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
+		case deployapi.Resource("deploymentconfigs"):
+			syntheticNode = deploygraph.FindOrCreateSyntheticDeploymentConfigNode(g, &deployapi.DeploymentConfig{ObjectMeta: syntheticMeta})
+		default:
+			continue
+		}
+
+		g.AddEdge(hpaNode, syntheticNode, ScalingEdgeKind)
 	}
 }

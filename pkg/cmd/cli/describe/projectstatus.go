@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -65,6 +66,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&secretLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
+		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Extensions()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.C},
@@ -107,6 +109,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	kubeedges.AddAllRequestedServiceAccountEdges(g)
 	kubeedges.AddAllMountableSecretEdges(g)
 	kubeedges.AddAllMountedSecretEdges(g)
+	kubeedges.AddHPAScaleRefEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
@@ -335,6 +338,9 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		},
 		kubeanalysis.FindDuelingReplicationControllers,
 		kubeanalysis.FindMissingSecrets,
+		kubeanalysis.FindHPASpecsMissingCPUTargets,
+		kubeanalysis.FindHPASpecsMissingScaleRefs,
+		kubeanalysis.FindOverlappingHPAs,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
@@ -403,6 +409,8 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 		return namespaceNameWithType("sa", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.ReplicationControllerNode:
 		return namespaceNameWithType("rc", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.HorizontalPodAutoscalerNode:
+		return namespaceNameWithType("hpa", t.HorizontalPodAutoscaler.Name, t.HorizontalPodAutoscaler.Namespace, f.currentNamespace, f.hideNamespace)
 
 	case *imagegraph.ImageStreamNode:
 		return namespaceNameWithType("is", t.ImageStream.Name, t.ImageStream.Namespace, f.currentNamespace, f.hideNamespace)
@@ -1128,6 +1136,30 @@ func (l *podLoader) Load() error {
 func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsurePodNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type horizontalPodAutoscalerLoader struct {
+	namespace string
+	lister    kclient.HorizontalPodAutoscalersNamespacer
+	items     []extensions.HorizontalPodAutoscaler
+}
+
+func (l *horizontalPodAutoscalerLoader) Load() error {
+	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *horizontalPodAutoscalerLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureHorizontalPodAutoscalerNode(g, &l.items[i])
 	}
 
 	return nil

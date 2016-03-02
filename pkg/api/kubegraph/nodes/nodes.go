@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )
@@ -94,7 +95,7 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.Repl
 	rcNode := osgraph.EnsureUnique(g,
 		rcNodeName,
 		func(node osgraph.Node) graph.Node {
-			return &ReplicationControllerNode{node, rc}
+			return &ReplicationControllerNode{node, rc, true}
 		},
 	).(*ReplicationControllerNode)
 
@@ -102,6 +103,15 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.Repl
 	g.AddEdge(rcNode, rcSpecNode, osgraph.ContainsEdgeKind)
 
 	return rcNode
+}
+
+func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
+	return osgraph.EnsureUnique(g,
+		ReplicationControllerNodeName(rc),
+		func(node osgraph.Node) graph.Node {
+			return &ReplicationControllerNode{node, rc, false}
+		},
+	).(*ReplicationControllerNode)
 }
 
 func EnsureReplicationControllerSpecNode(g osgraph.MutableUniqueGraph, rcSpec *kapi.ReplicationControllerSpec, namespace string, ownerName osgraph.UniqueName) *ReplicationControllerSpecNode {
@@ -134,4 +144,13 @@ func EnsurePodTemplateSpecNode(g osgraph.MutableUniqueGraph, ptSpec *kapi.PodTem
 	g.AddEdge(ptSpecNode, podSpecNode, osgraph.ContainsEdgeKind)
 
 	return ptSpecNode
+}
+
+func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *extensions.HorizontalPodAutoscaler) *HorizontalPodAutoscalerNode {
+	return osgraph.EnsureUnique(g,
+		HorizontalPodAutoscalerNodeName(hpa),
+		func(node osgraph.Node) graph.Node {
+			return &HorizontalPodAutoscalerNode{Node: node, HorizontalPodAutoscaler: hpa}
+		},
+	).(*HorizontalPodAutoscalerNode)
 }

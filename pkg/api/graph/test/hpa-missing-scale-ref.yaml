@@ -1,0 +1,9 @@
+apiVersion: extensions/v1beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: noscale 
+spec:
+  minReplicas: 1 
+  maxReplicas: 10 
+  cpuUtilization:
+    targetPercentage: 80 
