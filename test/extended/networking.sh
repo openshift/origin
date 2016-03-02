@@ -32,9 +32,7 @@ NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services|EmptyDir volume
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
-  # Skip tests that require secrets.  Secrets are not supported by
-  # dind without docker >= 1.10.
-  "Networking should function for intra-pod"
+  # TODO(marun) This should work with docker >= 1.10
   "openshift router"
 
   # DNS inside container fails in CI but works locally
