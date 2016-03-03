@@ -164,6 +164,22 @@
                     "containerPort": 8080
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  }
+                },
                 "env": [
                   {
                     "name": "DATABASE_SERVICE_NAME",
@@ -195,9 +211,9 @@
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -294,10 +310,24 @@
                     "value": "${DATABASE_NAME}"
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 5432
+                  }
+                },
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_POSTGRESQL_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+                  }
                 }
               }
             ]
@@ -311,13 +341,13 @@
       "name": "MEMORY_LIMIT",
       "displayName": "Memory limit",
       "description": "Maximum amount of memory the Django container can use",
-      "value": "128Mi"
+      "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
       "displayName": "Memory limit",
       "description": "Maximum amount of memory the PostgreSQL container can use",
-      "value": "128Mi"
+      "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",

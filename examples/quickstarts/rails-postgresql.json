@@ -175,6 +175,22 @@
                     "containerPort": 8080
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 5,
+                  "httpGet": {
+                    "path": "/articles",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 10,
+                  "httpGet": {
+                    "path": "/articles",
+                    "port": 8080
+                  }
+                },
                 "env": [
                   {
                     "name": "DATABASE_SERVICE_NAME",
@@ -220,7 +236,12 @@
                     "name": "RAILS_ENV",
                     "value": "${RAILS_ENV}"
                   }
-                ]
+                ],
+                "resources": {
+		      "limits": {
+			  "memory": "${MEMORY_LIMIT}"
+		      }
+                }
               }
             ]
           }
@@ -302,6 +323,20 @@
                     "containerPort": 5432
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 5432
+                  }
+                },
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
@@ -323,7 +358,12 @@
                     "name": "POSTGRESQL_SHARED_BUFFERS",
                     "value": "${POSTGRESQL_SHARED_BUFFERS}"
                   }
-                ]
+                ],
+                "resources": {
+		      "limits": {
+			  "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+		      }
+                }
               }
             ]
           }
@@ -333,79 +373,106 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the Rails container can use",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_POSTGRESQL_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the PostgreSQL container can use",
+      "value": "512Mi"
+    },
+    {
       "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Source repository URL",
       "description": "The URL of the repository with your application source code",
       "value": "https://github.com/openshift/rails-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Source repository reference",
       "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
     },
     {
       "name": "CONTEXT_DIR",
+      "displayName": "Context directory",
       "description": "Set this to the relative path to your project if it is not in the root of your repository"
     },
     {
       "name": "APPLICATION_DOMAIN",
+      "displayName": "Application hostname",
       "description": "The exposed hostname that will route to the Rails service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub webhook secret",
       "description": "A secret string used to configure the GitHub webhook",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "SECRET_KEY_BASE",
+      "displayName": "Secret key",
       "description": "Your secret key for verifying the integrity of signed cookies",
       "generate": "expression",
       "from": "[a-z0-9]{127}"
     },
     {
       "name": "APPLICATION_USER",
+      "displayName": "Application user name",
       "description": "The application user that is used within the sample application to authorize access on pages",
       "value": "openshift"
     },
     {
       "name": "APPLICATION_PASSWORD",
+      "displayName": "Application password",
       "description": "The application password that is used within the sample application to authorize access on pages",
       "value": "secret"
     },
     {
       "name": "RAILS_ENV",
+      "displayName": "Rails environment",
       "description": "Environment under which the sample application will run. Could be set to production, development or test",
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database service name",
       "description": "Database service name",
       "value": "postgresql"
     },
     {
       "name": "DATABASE_USER",
+      "displayName": "Database user name",
       "description": "database username",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
       "name": "DATABASE_PASSWORD",
+      "displayName": "Database password",
       "description": "database password",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DATABASE_NAME",
+      "displayName": "Database name",
       "description": "database name",
       "value": "root"
     },
     {
       "name": "POSTGRESQL_MAX_CONNECTIONS",
+      "displayName": "Maximum database connections",
       "description": "database max connections",
       "value": "100"
     },
     {
       "name": "POSTGRESQL_SHARED_BUFFERS",
+      "displayName": "Shared buffer amount",
       "description": "database shared buffers",
       "value": "12MB"
     }
