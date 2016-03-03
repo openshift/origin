@@ -63,13 +63,12 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintPrivilegedDesc,
 				},
 			},
-			AllowPrivilegedContainer:  true,
-			AllowHostDirVolumePlugin:  true,
-			AllowEmptyDirVolumePlugin: true,
-			AllowHostNetwork:          true,
-			AllowHostPorts:            true,
-			AllowHostPID:              true,
-			AllowHostIPC:              true,
+			AllowPrivilegedContainer: true,
+			AllowHostDirVolumePlugin: true,
+			AllowHostNetwork:         true,
+			AllowHostPorts:           true,
+			AllowHostPID:             true,
+			AllowHostIPC:             true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				Type: kapi.SELinuxStrategyRunAsAny,
 			},
@@ -92,7 +91,6 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintNonRootDesc,
 				},
 			},
-			AllowEmptyDirVolumePlugin: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -120,8 +118,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintHostMountAndAnyUIDDesc,
 				},
 			},
-			AllowHostDirVolumePlugin:  true,
-			AllowEmptyDirVolumePlugin: true,
+			AllowHostDirVolumePlugin: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -150,12 +147,11 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintHostNSDesc,
 				},
 			},
-			AllowHostDirVolumePlugin:  true,
-			AllowEmptyDirVolumePlugin: true,
-			AllowHostNetwork:          true,
-			AllowHostPorts:            true,
-			AllowHostPID:              true,
-			AllowHostIPC:              true,
+			AllowHostDirVolumePlugin: true,
+			AllowHostNetwork:         true,
+			AllowHostPorts:           true,
+			AllowHostPID:             true,
+			AllowHostIPC:             true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -183,7 +179,6 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintRestrictedDesc,
 				},
 			},
-			AllowEmptyDirVolumePlugin: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -213,7 +208,6 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintsAnyUIDDesc,
 				},
 			},
-			AllowEmptyDirVolumePlugin: true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -242,9 +236,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintsHostNetworkDesc,
 				},
 			},
-			AllowHostNetwork:          true,
-			AllowHostPorts:            true,
-			AllowEmptyDirVolumePlugin: true,
+			AllowHostNetwork: true,
+			AllowHostPorts:   true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy

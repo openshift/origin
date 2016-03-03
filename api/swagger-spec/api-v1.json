@@ -17739,7 +17739,6 @@
      "requiredDropCapabilities",
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
-     "allowEmptyDirVolumePlugin",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -17790,10 +17789,6 @@
      "allowHostDirVolumePlugin": {
       "type": "boolean",
       "description": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin"
-     },
-     "allowEmptyDirVolumePlugin": {
-      "type": "boolean",
-      "description": "AllowEmptyDirVolumePlugin determines if the policy allow containers to use the EmptyDir volume plugin"
      },
      "allowHostNetwork": {
       "type": "boolean",
