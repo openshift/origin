@@ -118,7 +118,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 		},
 
 		{
-			name: "add a new tag with with 2 image streams ",
+			name: "add a new tag with with 2 image streams",
 			iss: []imageapi.ImageStream{
 				{
 					ObjectMeta: kapi.ObjectMeta{
@@ -134,7 +134,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 										Image:                baseImageWith1LayerDigest,
 									},
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", miscImageDigest),
 										Image:                miscImageDigest,
 									},
 								},
