@@ -60,6 +60,7 @@ $ mkdir $HOME/go
 ----
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
+export OS_OUTPUT_GOPATH=1
 ----
 4. Open up a new terminal or source the changes in your current terminal.  Then clone this repo:
 
