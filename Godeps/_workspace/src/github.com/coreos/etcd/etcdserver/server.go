@@ -1037,15 +1037,18 @@ func (s *EtcdServer) parseProposeCtxErr(err error, start time.Time) error {
 		lead := types.ID(atomic.LoadUint64(&s.r.lead))
 		switch lead {
 		case types.ID(raft.None):
+			plog.Debugf("DeadlineExceeded and leader was None")
 			// TODO: return error to specify it happens because the cluster does not have leader now
 		case s.ID():
 			if !isConnectedToQuorumSince(s.r.transport, start, s.ID(), s.cluster.Members()) {
 				return ErrTimeoutDueToConnectionLost
 			}
+			plog.Debugf("DeadlineExceeded we are the leader")
 		default:
 			if !isConnectedSince(s.r.transport, start, lead) {
 				return ErrTimeoutDueToConnectionLost
 			}
+			plog.Debugf("DeadlineExceeded we are not the leader")
 		}
 
 		return ErrTimeout
