@@ -235,7 +235,7 @@ func untarLocal(tar tar.Tar, destinationDir string, r io.Reader, quiet bool, log
 }
 
 func untarRemote(exec executor, destinationDir string, quiet bool, in io.Reader, out, errOut io.Writer) error {
-	cmd := []string{"tar", "-C", destinationDir, "-x"}
+	cmd := []string{"tar", "-C", destinationDir, "-ox"}
 	if !quiet {
 		cmd = append(cmd, "-v")
 	}
