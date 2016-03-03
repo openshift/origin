@@ -31,14 +31,13 @@
                   <li>
                     <edit-link
                       resource="pvc"
-                      kind="persistentvolumeclaims"
+                      kind="PersistentVolumeClaim"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="persistentvolumeclaim"
-                      type-display-name="Persistent Volume Claim"
+                      kind="PersistentVolumeClaim"
                       resource-name="{{pvc.metadata.name}}"
                       project-name="{{pvc.metadata.namespace}}"
                       alerts="alerts">

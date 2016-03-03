@@ -40,13 +40,13 @@
                     <li>
                       <edit-link
                         resource="deployment"
-                        kind="replicationcontrollers"
+                        kind="ReplicationController"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li ng-class="{disabled: deployment.status.replicas}">
                       <delete-link
-                        resource-type="replicationcontroller"
+                        kind="ReplicationController"
                         type-display-name="Deployment"
                         resource-name="{{deployment.metadata.name}}"
                         project-name="{{deployment.metadata.namespace}}"

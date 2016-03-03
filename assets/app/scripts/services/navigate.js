@@ -112,28 +112,27 @@ angular.module("openshiftConsole")
       /**
        * Navigate to a list view for a resource type
        *
-       * @param {String} resourceType  the resource type
+       * @param {String} resource      the resource (e.g., builds or replicationcontrollers)
        * @param {String} projectName   the project name
-       * @param {String} parentName    the parent resource name (build config for builds or deployment config for deployments)
        * @returns {undefined}
        */
-      toResourceList: function(resourceType, projectName) {
+      toResourceList: function(resource, projectName) {
         var routeMap = {
-          'build': 'builds',
-          'buildconfig': 'builds',
-          'deployment': 'deployments',
-          'deploymentconfig': 'deployments',
-          'imagestream': 'images',
-          'pod': 'pods',
-          'replicationcontroller': 'deployments',
-          'route': 'routes',
-          'service': 'services',
-          'persistentvolumeclaim': 'storage'
+          'builds': 'builds',
+          'buildconfigs': 'builds',
+          'deployments': 'deployments',
+          'deploymentconfigs': 'deployments',
+          'imagestreams': 'images',
+          'pods': 'pods',
+          'replicationcontrollers': 'deployments',
+          'routes': 'routes',
+          'services': 'services',
+          'persistentvolumeclaims': 'storage'
         };
 
         var redirect = URI.expand("project/{projectName}/browse/{browsePath}", {
           projectName: projectName,
-          browsePath: routeMap[resourceType]
+          browsePath: routeMap[resource]
         });
 
         $location.url(redirect);

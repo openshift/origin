@@ -30,7 +30,7 @@
                   <li>
                     <delete-link
                       class="button-delete"
-                      resource-type="project"
+                      kind="Project"
                       resource-name="{{project.metadata.name}}"
                       project-name="{{project.metadata.name}}"
                       display-name="{{(project | displayName)}}"
@@ -112,7 +112,7 @@
                             <span ng-switch="resourceType" class="hide-ng-leave">
                               <span ng-switch-when="cpu">CPU</span>
                               <span ng-switch-when="memory">Memory</span>
-                              <span ng-switch-default>{{resourceType | humanizeResourceType}}</span>
+                              <span ng-switch-default>{{resourceType | humanizeQuotaResource}}</span>
                             </span>
                             <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" data-toggle="tooltip" data-placement="right" title="Quota limit reached" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;"></span>
                           </td>

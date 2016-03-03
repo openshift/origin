@@ -29,7 +29,7 @@
                   <div row flex main-axis="end" class="project-delete" ng-if="project.status.phase == 'Active'">
                     <delete-link
                       class="fa-lg"
-                      resource-type="project"
+                      kind="Project"
                       resource-name="{{project.metadata.name}}"
                       project-name="{{project.metadata.name}}"
                       display-name="{{(project | displayName)}}"

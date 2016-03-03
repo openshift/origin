@@ -1,12 +1,12 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .directive("deleteLink", function ($uibModal, $location, $filter, hashSizeFilter, DataService, AlertMessageService, Navigate, Logger) {
+  .directive("deleteLink", function ($uibModal, $location, $filter, hashSizeFilter, APIService, DataService, AlertMessageService, Navigate, Logger) {
     return {
       restrict: "E",
       scope: {
-        resourceType: "@",
-        // Optional display name for resourceType. If not specified, humanizeResourceTypeFilter is used.
+        kind: "@",
+        // Optional display name for kind.
         typeDisplayName: "@?",
         resourceName: "@",
         projectName: "@",
@@ -28,9 +28,8 @@ angular.module("openshiftConsole")
       replace: true,
       link: function(scope, element, attrs) {
 
-        if (attrs.resourceType === 'project') {
+        if (attrs.kind === 'Project') {
           scope.isProject = true;
-          // scope.biggerButton = true;
         }
 
         scope.openDeleteModal = function() {
@@ -48,16 +47,16 @@ angular.module("openshiftConsole")
 
           modalInstance.result.then(function() {
           // upon clicking delete button, delete resource and send alert
-            var resourceType = scope.resourceType;
+            var kind = scope.kind;
             var resourceName = scope.resourceName;
             var projectName = scope.projectName;
-            var typeDisplayName = scope.typeDisplayName || $filter('humanizeResourceType')(resourceType);
+            var typeDisplayName = scope.typeDisplayName || $filter('humanizeKind')(kind);
             var formattedResource = typeDisplayName + ' ' + "\'"  + (scope.displayName ? scope.displayName : resourceName) + "\'";
-            var context = (scope.resourceType === 'project') ? {} : {namespace: scope.projectName};
+            var context = (scope.kind === 'Project') ? {} : {namespace: scope.projectName};
 
-            DataService.delete(resourceType + 's', resourceName, context)
+            DataService.delete(APIService.kindToResource(kind), resourceName, context)
             .then(function() {
-              if (resourceType !== 'project') {
+              if (kind !== 'Project') {
                 AlertMessageService.addAlert({
                   name: resourceName,
                   data: {
@@ -65,7 +64,7 @@ angular.module("openshiftConsole")
                     message: formattedResource + " was marked for deletion."
                   }
                 });
-                Navigate.toResourceList(resourceType, projectName);
+                Navigate.toResourceList(APIService.kindToResource(kind), projectName);
               }
               else {
                 if ($location.path() === '/') {
