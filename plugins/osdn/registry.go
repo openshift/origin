@@ -1,6 +1,7 @@
 package osdn
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -32,11 +33,12 @@ type Registry struct {
 	oClient          osclient.Interface
 	kClient          kclient.Interface
 	namespaceOfPodIP map[string]string
+	serviceNetwork   *net.IPNet
+	clusterNetwork   *net.IPNet
+	hostSubnetLength int
 
 	// These are only set if SetBaseEndpointsHandler() has been called
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
-	serviceNetwork       *net.IPNet
-	clusterNetwork       *net.IPNet
 }
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
@@ -258,49 +260,91 @@ func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready c
 	}
 }
 
-func (registry *Registry) WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error {
+func (registry *Registry) WriteNetworkConfig(clusterNetwork *net.IPNet, subnetLength uint, serviceNetwork *net.IPNet) error {
+	var err error
+
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	if err == nil {
-		if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork {
+		if cn.Network == clusterNetwork.String() && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork.String() {
 			return nil
 		}
 
-		cn.Network = network
+		cn.Network = clusterNetwork.String()
 		cn.HostSubnetLength = int(subnetLength)
-		cn.ServiceNetwork = serviceNetwork
+		cn.ServiceNetwork = serviceNetwork.String()
 		_, err = registry.oClient.ClusterNetwork().Update(cn)
 		return err
 	}
 	cn = &originapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
-		Network:          network,
+		Network:          clusterNetwork.String(),
 		HostSubnetLength: int(subnetLength),
-		ServiceNetwork:   serviceNetwork,
+		ServiceNetwork:   serviceNetwork.String(),
 	}
 	_, err = registry.oClient.ClusterNetwork().Create(cn)
+	if err != nil {
+		return err
+	}
+
+	registry.clusterNetwork = clusterNetwork
+	registry.hostSubnetLength = int(subnetLength)
+	registry.serviceNetwork = serviceNetwork
+	return nil
+}
+
+func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*net.IPNet, int, *net.IPNet, error) {
+	_, cn, err := net.ParseCIDR(network)
+	if err != nil {
+		return nil, -1, nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
+	}
+
+	_, sn, err := net.ParseCIDR(serviceNetwork)
+	if err != nil {
+		return nil, -1, nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+	}
+
+	if hostSubnetLength <= 0 || hostSubnetLength > 32 {
+		return nil, -1, nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
+	}
+	return cn, hostSubnetLength, sn, nil
+}
+
+func (registry *Registry) cacheClusterNetwork() error {
+	// don't hit up the master if we have the values already
+	if registry.clusterNetwork != nil && registry.serviceNetwork != nil {
+		return nil
+	}
+
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	if err != nil {
+		return err
+	}
+
+	registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
+
 	return err
 }
 
-func (registry *Registry) GetClusterNetworkCIDR() (string, error) {
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
-	if err != nil {
-		return "", err
+func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
+	if err := registry.cacheClusterNetwork(); err != nil {
+		return nil, err
 	}
-	return cn.Network, nil
+	return registry.clusterNetwork, nil
 }
 
 func (registry *Registry) GetHostSubnetLength() (int, error) {
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
-	if err != nil {
+	if err := registry.cacheClusterNetwork(); err != nil {
 		return -1, err
 	}
-	return cn.HostSubnetLength, nil
+	return registry.hostSubnetLength, nil
 }
 
-func (registry *Registry) GetServicesNetworkCIDR() (string, error) {
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
-	return cn.ServiceNetwork, err
+func (registry *Registry) GetServicesNetwork() (*net.IPNet, error) {
+	if err := registry.cacheClusterNetwork(); err != nil {
+		return nil, err
+	}
+	return registry.serviceNetwork, nil
 }
 
 func (registry *Registry) GetNamespaces() ([]string, string, error) {
@@ -606,17 +650,20 @@ func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkConditio
 // FilteringEndpointsConfigHandler implementation
 func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
 	registry.baseEndpointsHandler = base
-
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
-	if err != nil {
-		// "can't happen"; StartNode() will already have ensured that there's no error
-		log.Fatalf("Failed to get ClusterNetwork: %v", err)
-	}
-	_, registry.clusterNetwork, _ = net.ParseCIDR(cn.Network)
-	_, registry.serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
 }
 
 func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+	clusterNetwork, err := registry.GetClusterNetwork()
+	if err != nil {
+		log.Warningf("Error fetching cluster network: %v", err)
+		return
+	}
+	serviceNetwork, err := registry.GetServicesNetwork()
+	if err != nil {
+		log.Warningf("Error fetching service network: %v", err)
+		return
+	}
+
 	filteredEndpoints := make([]kapi.Endpoints, 0, len(allEndpoints))
 EndpointLoop:
 	for _, ep := range allEndpoints {
@@ -624,11 +671,11 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if registry.serviceNetwork.Contains(IP) {
+				if serviceNetwork.Contains(IP) {
 					log.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 					continue EndpointLoop
 				}
-				if registry.clusterNetwork.Contains(IP) {
+				if clusterNetwork.Contains(IP) {
 					podNamespace, ok := registry.namespaceOfPodIP[addr.IP]
 					if !ok {
 						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)

@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
-func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
@@ -20,9 +20,13 @@ func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBit
 	}
 	for _, sub := range subnets {
 		subrange = append(subrange, sub.SubnetCIDR)
+		if err := oc.validateNode(sub.NodeIP); err != nil {
+			// Don't error out; just warn so the error can be corrected with 'oc'
+			log.Errorf("Failed to validate HostSubnet %s: %v", err)
+		}
 	}
 
-	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetworkCIDR, clusterBitsPerSubnet, subrange)
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetwork.String(), hostSubnetLength, subrange)
 	if err != nil {
 		return err
 	}
@@ -34,17 +38,16 @@ func (oc *OvsController) SubnetStartMaster(clusterNetworkCIDR string, clusterBit
 	if err != nil {
 		return err
 	}
+
+	// Make sure each node has a Subnet allocated
 	nodes := result.([]api.Node)
-	err = oc.serveExistingNodes(nodes)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (oc *OvsController) serveExistingNodes(nodes []api.Node) error {
 	for _, node := range nodes {
+		err = oc.validateNode(node.IP)
+		if err != nil {
+			// Don't error out; just warn so the error can be corrected by admin
+			log.Errorf("Failed to validate Node %s: %v", node.Name, err)
+			continue
+		}
 		_, err := oc.Registry.GetSubnet(node.Name)
 		if err == nil {
 			// subnet already exists, continue
@@ -103,17 +106,17 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 
 	// Assume we are working with IPv4
-	clusterNetworkCIDR, err := oc.Registry.GetClusterNetworkCIDR()
+	clusterNetwork, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return false, err
 	}
-	servicesNetworkCIDR, err := oc.Registry.GetServicesNetworkCIDR()
+	servicesNetwork, err := oc.Registry.GetServicesNetwork()
 	if err != nil {
 		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return false, err
 	}
-	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
+	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
@@ -153,10 +156,16 @@ func (oc *OvsController) initSelfSubnet() error {
 	if err != nil {
 		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.hostName, err)
 	}
+
+	if err := oc.validateNode(subnet.NodeIP); err != nil {
+		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
+	}
+
 	oc.localSubnet = subnet
 	return nil
 }
 
+// Only run on the master
 func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	nodeEvent := make(chan *api.NodeEvent)
@@ -166,10 +175,16 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 		case ev := <-nodeEvent:
 			switch ev.Type {
 			case api.Added:
+				nodeErr := oc.validateNode(ev.Node.IP)
+
 				sub, err := oc.Registry.GetSubnet(ev.Node.Name)
 				if err != nil {
-					// subnet does not exist already
-					oc.addNode(ev.Node.Name, ev.Node.IP)
+					if nodeErr == nil {
+						// subnet does not exist already
+						oc.addNode(ev.Node.Name, ev.Node.IP)
+					} else {
+						log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, ev.Node.IP, nodeErr)
+					}
 				} else {
 					// Current node IP is obtained from event, ev.NodeIP to
 					// avoid cached/stale IP lookup by net.LookupIP()
@@ -179,11 +194,15 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.NodeIP)
 							continue
 						}
-						sub.NodeIP = ev.Node.IP
-						err = oc.Registry.CreateSubnet(ev.Node.Name, sub)
-						if err != nil {
-							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.NodeIP)
-							continue
+						if nodeErr == nil {
+							sub.NodeIP = ev.Node.IP
+							err = oc.Registry.CreateSubnet(ev.Node.Name, sub)
+							if err != nil {
+								log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.NodeIP)
+								continue
+							}
+						} else {
+							log.Errorf("Deleting invalid node %s/%s subnet: %v", ev.Node.Name, ev.Node.IP, nodeErr)
 						}
 					}
 				}
@@ -198,6 +217,7 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 	}
 }
 
+// Only run on the nodes
 func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	clusterEvent := make(chan *api.SubnetEvent)
@@ -207,6 +227,10 @@ func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 		case ev := <-clusterEvent:
 			switch ev.Type {
 			case api.Added:
+				if err := oc.validateNode(ev.Subnet.NodeIP); err != nil {
+					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.Subnet.NodeIP, err)
+					continue
+				}
 				// add openflow rules
 				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetCIDR, oc.localIP)
 			case api.Deleted:
@@ -218,4 +242,24 @@ func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 			return
 		}
 	}
+}
+
+func (oc *OvsController) validateNode(nodeIP string) error {
+	clusterNet, err := oc.Registry.GetClusterNetwork()
+	if err != nil {
+		return fmt.Errorf("Failed to get Cluster Network address: %v", err)
+	}
+
+	// Ensure each node's NodeIP is not contained by the cluster network,
+	// which could cause a routing loop. (rhbz#1295486)
+	ipaddr := net.ParseIP(nodeIP)
+	if ipaddr == nil {
+		return fmt.Errorf("Failed to parse node IP %s", nodeIP)
+	}
+
+	if clusterNet.Contains(ipaddr) {
+		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, clusterNet.String())
+	}
+
+	return nil
 }
