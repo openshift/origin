@@ -2950,8 +2950,6 @@ type SecurityContextConstraints struct {
 	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
-	// AllowEmptyDirVolumePlugin determines if the policy allow containers to use the EmptyDir volume plugin
-	AllowEmptyDirVolumePlugin *bool `json:"allowEmptyDirVolumePlugin" description:"allow the use of the empty dir volume plugin; defaults to true"`
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
 	// AllowHostPorts determines if the policy allows host ports in the containers.

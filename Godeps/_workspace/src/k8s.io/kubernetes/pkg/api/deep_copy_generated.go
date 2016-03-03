@@ -2721,7 +2721,6 @@ func DeepCopy_api_SecurityContextConstraints(in SecurityContextConstraints, out 
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowEmptyDirVolumePlugin = in.AllowEmptyDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
