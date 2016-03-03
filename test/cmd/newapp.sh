@@ -156,7 +156,7 @@ os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/node
 os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex -o yaml'
 
 # check that binary build with a builder image results in a source type build
-os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby -o yaml' 'type: Source'
+os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
 
 # check that binary build with a specific strategy uses that strategy regardless of the image type
 os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=docker -o yaml' 'type: Docker'
