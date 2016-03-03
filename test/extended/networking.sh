@@ -238,7 +238,8 @@ else
   os::log::start_system_logger
 
   os::log::info "Building docker-in-docker images"
-  ${CLUSTER_CMD} build-images
+  OPENSHIFT_TEST_IMAGE_REGISTRY=${OPENSHIFT_TEST_IMAGE_REGISTRY:-} \
+      ${CLUSTER_CMD} build-images
 
   # Ensure cleanup on error
   ENABLE_SELINUX=0
