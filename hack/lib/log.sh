@@ -76,6 +76,9 @@ function os::log::clean_up_logger() {
         os::log::internal::plot "${log_subset_file}"
     done
 
+    # remove the `sar` log file for space constraints
+    rm -f "${SAR_LOGFILE}"
+
     return "${return_code}"
 }
 
