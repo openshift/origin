@@ -59,9 +59,9 @@ const (
 	BasicUserRoleName       = "basic-user"
 	StatusCheckerRoleName   = "cluster-status"
 
-	RegistryAdminRoleName  = "system:registry-admin"
-	RegistryViewerRoleName = "system:registry-viewer"
-	RegistryEditorRoleName = "system:registry-editor"
+	RegistryAdminRoleName  = "registry-admin"
+	RegistryViewerRoleName = "registry-viewer"
+	RegistryEditorRoleName = "registry-editor"
 
 	ImagePullerRoleName       = "system:image-puller"
 	ImagePusherRoleName       = "system:image-pusher"
