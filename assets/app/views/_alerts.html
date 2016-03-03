@@ -17,5 +17,9 @@
     }"></span>
     <span class="sr-only">{{alert.type}}</span>
     <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
+    <span ng-repeat="link in alert.links">
+      <a ng-href="{{link.href}}">{{link.label}}</a>
+      <span ng-if="!$last" class="action-divider">|</span>
+    </span>
   </div>
 </div>
