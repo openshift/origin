@@ -9,12 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded next-steps">
-            <ol class="breadcrumb"><!-- TODO use the breadcrumb directive -->
-              <li><a href="{{projectName | projectOverviewURL}}">{{projectDisplayName()}}</a></li>
-              <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-              <li ng-if="name"><a href="" ng-click="goBack()">{{name}}</a></li>
-              <li class="active"><strong ng-if="pendingTasks(tasks()).length">Creating</strong><strong ng-if="!pendingTasks(tasks()).length">Next Steps</strong></li>
-            </ol>
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div ng-controller="TasksController">
               <h1 ng-if="!tasks().length">Completed. <a href="project/{{projectName}}/overview">Go to overview</a>.</h1>
               <h1 ng-if="tasks().length && allTasksSuccessful(tasks())">Application created. <a href="project/{{projectName}}/overview">Continue to overview</a>.</h1>

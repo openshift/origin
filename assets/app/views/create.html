@@ -9,10 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded">
-            <ol class="breadcrumb">
-              <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-              <li class="active"><strong>Add to Project</strong></li>
-            </ol>
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div class="row">
               <div class="col-md-12">
                 <p ng-if="emptyCatalog && !loaded">Loading...</p>

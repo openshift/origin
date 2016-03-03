@@ -80,6 +80,16 @@ angular.module('openshiftConsole')
       tag: ''
     };
 
+    $scope.breadcrumbs = [
+      {
+        title: $scope.projectName,
+        link: "project/" + $scope.projectName
+      },
+      {
+        title: "Add to Project"
+      }
+    ];
+
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
     };
@@ -295,6 +305,8 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
         // List templates in the project namespace as well as the shared `openshift` namespace.
         DataService.list("templates", context, function(templates) {
           projectTemplates = templates.by("metadata.name");
