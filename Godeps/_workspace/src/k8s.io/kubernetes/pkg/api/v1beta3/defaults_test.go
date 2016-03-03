@@ -527,22 +527,15 @@ func areSecurityContextAndContainerEqual(c *versioned.Container) (bool, []string
 	return equal, issues
 }
 
-func newBool(b bool) *bool {
-	ptr := new(bool)
-	ptr = &b
-	return ptr
-}
-
 func TestDefaultSecurityContextConstraints(t *testing.T) {
 	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
 		return
 	}
 
 	tests := map[string]struct {
-		scc                   *versioned.SecurityContextConstraints
-		expectedFSGroup       versioned.FSGroupStrategyType
-		expectedSupGroup      versioned.SupplementalGroupsStrategyType
-		expectedAllowEmptyDir bool
+		scc              *versioned.SecurityContextConstraints
+		expectedFSGroup  versioned.FSGroupStrategyType
+		expectedSupGroup versioned.SupplementalGroupsStrategyType
 	}{
 		"shouldn't default": {
 			scc: &versioned.SecurityContextConstraints{
@@ -552,11 +545,9 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 				SupplementalGroups: versioned.SupplementalGroupsStrategyOptions{
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
-				AllowEmptyDirVolumePlugin: newBool(false),
 			},
-			expectedFSGroup:       versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyMustRunAs,
-			expectedAllowEmptyDir: false,
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
 		},
 		"default fsgroup runAsAny": {
 			scc: &versioned.SecurityContextConstraints{
@@ -567,9 +558,8 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:       versioned.FSGroupStrategyRunAsAny,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyMustRunAs,
-			expectedAllowEmptyDir: true,
+			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
 		},
 		"default sup group runAsAny": {
 			scc: &versioned.SecurityContextConstraints{
@@ -580,9 +570,8 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.FSGroupStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:       versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyRunAsAny,
-			expectedAllowEmptyDir: true,
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
 		},
 		"default fsgroup runAsAny with mustRunAs UID strat": {
 			scc: &versioned.SecurityContextConstraints{
@@ -593,9 +582,8 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:       versioned.FSGroupStrategyRunAsAny,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyMustRunAs,
-			expectedAllowEmptyDir: true,
+			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
 		},
 		"default sup group runAsAny with mustRunAs UID strat": {
 			scc: &versioned.SecurityContextConstraints{
@@ -606,23 +594,8 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 					Type: versioned.FSGroupStrategyMustRunAs,
 				},
 			},
-			expectedFSGroup:       versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyRunAsAny,
-			expectedAllowEmptyDir: true,
-		},
-		"preserve AllowEmptyDirVolumePlugin set to true": {
-			scc: &versioned.SecurityContextConstraints{
-				AllowEmptyDirVolumePlugin: newBool(true),
-				RunAsUser: versioned.RunAsUserStrategyOptions{
-					Type: versioned.RunAsUserStrategyMustRunAsRange,
-				},
-				FSGroup: versioned.FSGroupStrategyOptions{
-					Type: versioned.FSGroupStrategyMustRunAs,
-				},
-			},
-			expectedFSGroup:       versioned.FSGroupStrategyMustRunAs,
-			expectedSupGroup:      versioned.SupplementalGroupsStrategyRunAsAny,
-			expectedAllowEmptyDir: true,
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 	for k, v := range tests {
@@ -634,9 +607,6 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 		}
 		if scc.SupplementalGroups.Type != v.expectedSupGroup {
 			t.Errorf("%s has invalid supplemental group.  Expected: %v got: %v", k, v.expectedSupGroup, scc.SupplementalGroups.Type)
-		}
-		if *scc.AllowEmptyDirVolumePlugin != v.expectedAllowEmptyDir {
-			t.Errorf("%s has invalid AllowEmptyDirVolumePlugin.  Expected: %t got: %t", k, v.expectedAllowEmptyDir, *scc.AllowEmptyDirVolumePlugin)
 		}
 	}
 }
