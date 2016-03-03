@@ -56,12 +56,10 @@ ul.messenger.messenger-theme-flat {
       &.messenger-on-right {
         right: 20px;
         left: auto;
-        box-shadow: 2px 2px 6px rgba(0,0,0,.3);
       }
       &.messenger-on-left {
         left: 20px;
         margin-left: 0px;
-        box-shadow: 2px 2px 6px rgba(0,0,0,.3);
       }
     }
     &.messenger-on-right, &.messenger-on-left {
@@ -101,7 +99,6 @@ ul.messenger.messenger-theme-flat {
 
 ul.messenger-theme-flat {
   background-color: transparent;
-  border-radius: 4px;
   &.messenger-empty {
     display: none;
   }
@@ -110,10 +107,8 @@ ul.messenger-theme-flat {
 @insetBackgroundColor: darken(@gray-darker, 10%);
 
 ul.messenger-theme-flat .messenger-message {
-  -webkit-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-  -moz-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-  box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-  border-radius: 0px;
+  box-shadow: 0 0 6px rgba(0,0,0,.175), inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor !important;
+  border-radius: 0 !important;
   position: relative;
   border: 0px;
   margin-bottom: 0px;
@@ -144,17 +139,7 @@ ul.messenger-theme-flat .messenger-message {
     line-height: 30px;
   }
 }
-ul.messenger-theme-flat {
-  .messenger-message-slot.messenger-last .messenger-message,
-  .messenger-message-slot.messenger-first.messenger-last .messenger-message {
-    .box-shadow(inset 50px 0px 0px @insetBackgroundColor);
-  }
-  .messenger-message-slot.messenger-first .messenger-message {
-    -webkit-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-    -moz-box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-    box-shadow: inset 0px 1px rgba(255, 255, 255, 0.13), inset 50px 0px 0px @insetBackgroundColor;
-  }
-}
+
 ul.messenger-theme-flat .messenger-message .messenger-actions a {
   text-decoration: none;
   color: #aaaaaa;
