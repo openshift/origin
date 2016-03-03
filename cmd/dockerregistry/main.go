@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 
@@ -16,6 +18,18 @@ import (
 )
 
 func main() {
+	// Start the profiling server, if requested.
+	profilingAddr := os.Getenv("OPENSHIFT_PROFILE")
+	if len(profilingAddr) > 0 {
+		go func() {
+			log.Infof("Starting profiling server at %s", profilingAddr)
+			err := http.ListenAndServe(profilingAddr, nil)
+			if err != nil {
+				log.Errorf("Couldn't start profiling server: %v", err)
+			}
+		}()
+	}
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 
