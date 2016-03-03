@@ -1778,6 +1778,12 @@ func deepCopy_v1beta3_ExecNewPodHook(in deployapiv1beta3.ExecNewPodHook, out *de
 
 func deepCopy_v1beta3_LifecycleHook(in deployapiv1beta3.LifecycleHook, out *deployapiv1beta3.LifecycleHook, c *conversion.Cloner) error {
 	out.FailurePolicy = in.FailurePolicy
+	if in.ProgressDeadlineSeconds != nil {
+		out.ProgressDeadlineSeconds = new(int64)
+		*out.ProgressDeadlineSeconds = *in.ProgressDeadlineSeconds
+	} else {
+		out.ProgressDeadlineSeconds = nil
+	}
 	if in.ExecNewPod != nil {
 		out.ExecNewPod = new(deployapiv1beta3.ExecNewPodHook)
 		if err := deepCopy_v1beta3_ExecNewPodHook(*in.ExecNewPod, out.ExecNewPod, c); err != nil {

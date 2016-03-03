@@ -88,6 +88,11 @@ type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
 	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy"`
 
+	// ProgressDeadlineSeconds specifies the time to wait for the lifecycle hook
+	// to finish. If this deadline is exceeded, the pod created by the lifecycle
+	// hook is deleted and deployment is considered as failed.
+	ProgressDeadlineSeconds *int64 `json:"progressDeadlineSeconds"`
+
 	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
 	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty"`
 

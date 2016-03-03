@@ -188,10 +188,11 @@ func (ExecNewPodHook) SwaggerDoc() map[string]string {
 }
 
 var map_LifecycleHook = map[string]string{
-	"":              "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
-	"failurePolicy": "FailurePolicy specifies what action to take if the hook fails.",
-	"execNewPod":    "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
-	"tagImages":     "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
+	"":                        "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
+	"failurePolicy":           "FailurePolicy specifies what action to take if the hook fails.",
+	"progressDeadlineSeconds": "ProgressDeadlineSeconds specifies the time to wait for the lifecycle hook to finish. If this deadline is exceeded, the pod created by the lifecycle hook is deleted and deployment is considered as failed.",
+	"execNewPod":              "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
+	"tagImages":               "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
 }
 
 func (LifecycleHook) SwaggerDoc() map[string]string {

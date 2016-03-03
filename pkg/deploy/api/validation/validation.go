@@ -154,6 +154,18 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 		errs = append(errs, field.Required(fldPath.Child("failurePolicy"), ""))
 	}
 
+	if *hook.ProgressDeadlineSeconds > 0 && hook.FailurePolicy != deployapi.LifecycleHookFailurePolicyRetry {
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "progressDeadlineSeconds can be used only with the 'Retry' failurePolicy"))
+	}
+
+	if *hook.ProgressDeadlineSeconds < 0 {
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "progressDeadlineSeconds cannot be negative number"))
+	}
+
+	if *hook.ProgressDeadlineSeconds >= deployapi.MaxDeploymentDurationSeconds {
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "progressDeadlineSeconds must be lower than %ds", deployapi.MaxDeploymentDurationSeconds))
+	}
+
 	switch {
 	case hook.ExecNewPod != nil && len(hook.TagImages) > 0:
 		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' of 'tagImages' may be specified"))

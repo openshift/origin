@@ -1747,6 +1747,12 @@ func deepCopy_api_ExecNewPodHook(in deployapi.ExecNewPodHook, out *deployapi.Exe
 
 func deepCopy_api_LifecycleHook(in deployapi.LifecycleHook, out *deployapi.LifecycleHook, c *conversion.Cloner) error {
 	out.FailurePolicy = in.FailurePolicy
+	if in.ProgressDeadlineSeconds != nil {
+		out.ProgressDeadlineSeconds = new(int64)
+		*out.ProgressDeadlineSeconds = *in.ProgressDeadlineSeconds
+	} else {
+		out.ProgressDeadlineSeconds = nil
+	}
 	if in.ExecNewPod != nil {
 		out.ExecNewPod = new(deployapi.ExecNewPodHook)
 		if err := deepCopy_api_ExecNewPodHook(*in.ExecNewPod, out.ExecNewPod, c); err != nil {
