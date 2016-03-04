@@ -34,11 +34,11 @@ var originTypesLock sync.Once
 // UserResources are the resource names that apply to the primary, user facing resources used by
 // client tools. They are in deletion-first order - dependent resources should be last.
 var UserResources = []string{
-	"buildConfigs", "builds",
+	"buildConfigs",
 	"imageStreams",
-	"deploymentConfigs", "replicationControllers",
-	"routes", "services",
-	"pods",
+	"deploymentConfigs",
+	"routes",
+	"services",
 }
 
 // OriginKind returns true if OpenShift owns the GroupVersionKind.
