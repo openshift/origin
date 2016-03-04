@@ -130,6 +130,14 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
+	pod, err := plugin.Registry.GetPod(plugin.HostName, namespace, name)
+	if err != nil {
+		return err
+	}
+	if pod == nil {
+		return fmt.Errorf("Failed to retrieve pod %s/%s", namespace, name)
+	}
+
 	vnidstr, err := plugin.getVNID(namespace)
 	if err != nil {
 		return err

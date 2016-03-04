@@ -30,7 +30,7 @@ type OvsController struct {
 	Registry        *Registry
 	localIP         string
 	localSubnet     *api.Subnet
-	hostName        string
+	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
 	podNetworkReady chan struct{}
@@ -80,7 +80,7 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 	oc.Registry = registry
 	oc.flowController = flowController
 	oc.localIP = selfIP
-	oc.hostName = hostname
+	oc.HostName = hostname
 	oc.VNIDMap = make(map[string]uint)
 	oc.sig = make(chan struct{})
 	oc.podNetworkReady = make(chan struct{})
@@ -198,7 +198,7 @@ func (oc *OvsController) StartNode(mtu uint) error {
 }
 
 func (oc *OvsController) GetLocalPods(namespace string) ([]api.Pod, error) {
-	return oc.Registry.GetRunningPods(oc.hostName, namespace)
+	return oc.Registry.GetRunningPods(oc.HostName, namespace)
 }
 
 func (oc *OvsController) markPodNetworkReady() {

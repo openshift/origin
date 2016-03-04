@@ -118,6 +118,7 @@ func newSDNPod(kPod *kapi.Pod) osdnapi.Pod {
 		Name:        kPod.ObjectMeta.Name,
 		Namespace:   kPod.ObjectMeta.Namespace,
 		ContainerID: containerID,
+		Annotations: kPod.ObjectMeta.Annotations,
 	}
 }
 
@@ -176,6 +177,26 @@ func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]osdnapi.
 		}
 	}
 	return pods, nil
+}
+
+func (registry *Registry) GetPod(nodeName, namespace, podName string) (*osdnapi.Pod, error) {
+	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
+	opts := kapi.ListOptions{
+		LabelSelector: labels.Everything(),
+		FieldSelector: fieldSelector,
+	}
+	podList, err := registry.kClient.Pods(namespace).List(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.ObjectMeta.Name == podName {
+			pod := newSDNPod(&pod)
+			return &pod, nil
+		}
+	}
+	return nil, nil
 }
 
 func (registry *Registry) GetNodes() ([]osdnapi.Node, string, error) {

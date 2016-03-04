@@ -79,6 +79,7 @@ type Pod struct {
 	Name        string
 	Namespace   string
 	ContainerID string
+	Annotations map[string]string
 }
 
 type OsdnPlugin interface {
