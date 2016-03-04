@@ -10,6 +10,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -18,17 +20,9 @@ import (
 )
 
 func main() {
-	// Start the profiling server, if requested.
-	profilingAddr := os.Getenv("OPENSHIFT_PROFILE")
-	if len(profilingAddr) > 0 {
-		go func() {
-			log.Infof("Starting profiling server at %s", profilingAddr)
-			err := http.ListenAndServe(profilingAddr, nil)
-			if err != nil {
-				log.Errorf("Couldn't start profiling server: %v", err)
-			}
-		}()
-	}
+	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
+	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+	startProfiler()
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
@@ -55,4 +49,15 @@ func main() {
 	}
 
 	dockerregistry.Execute(configFile)
+}
+
+func startProfiler() {
+	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
+		go func() {
+			runtime.SetBlockProfileRate(1)
+			profile_port := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
+			log.Infof(fmt.Sprintf("Starting profiling endpoint at http://127.0.0.1:%s/debug/pprof/", profile_port))
+			log.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", profile_port), nil))
+		}()
+	}
 }
