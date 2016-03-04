@@ -169,7 +169,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				Type: kapi.FSGroupStrategyRunAsAny,
+				Type: kapi.FSGroupStrategyMustRunAs,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
@@ -197,7 +197,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
 			FSGroup: kapi.FSGroupStrategyOptions{
-				Type: kapi.FSGroupStrategyRunAsAny,
+				Type: kapi.FSGroupStrategyMustRunAs,
 			},
 			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
 				Type: kapi.SupplementalGroupsStrategyRunAsAny,
