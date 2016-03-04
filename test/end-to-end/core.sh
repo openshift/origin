@@ -124,6 +124,13 @@ os::cmd::expect_success "docker tag -f centos/ruby-22-centos7:latest ${DOCKER_RE
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 echo "[INFO] Pushed ruby-22-centos7"
 
+echo "[INFO] Removing ruby-22-centos7 images before next pull"
+os::cmd::expect_success "docker images | sed -n 's,.*/cache/ruby-22-centos7\s\+latest\s\+\(\S\+\).*,\1,p' | sort -u | xargs docker rmi -f"
+echo "[INFO] Tagging ruby-22-centos7 to cross repository and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
+echo "[INFO] Cross repository pull successful"
+
 # verify remote images can be pulled directly from the local registry
 oc import-image --confirm --from=mysql:latest mysql:pullthrough
 docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
