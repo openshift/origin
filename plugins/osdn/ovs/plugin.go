@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
@@ -19,6 +20,7 @@ import (
 type ovsPlugin struct {
 	osdn.OvsController
 
+	MTU         uint
 	multitenant bool
 }
 
@@ -60,6 +62,8 @@ func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnet
 }
 
 func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
+	plugin.MTU = mtu
+
 	networkChanged, err := plugin.SubnetStartNode(mtu)
 	if err != nil {
 		return err
@@ -124,6 +128,42 @@ func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
 	return "0", nil
 }
 
+var minRsrc = resource.MustParse("1k")
+var maxRsrc = resource.MustParse("1P")
+
+func parseAndValidateBandwidth(value string) (int64, error) {
+	rsrc, err := resource.ParseQuantity(value)
+	if err != nil {
+		return -1, err
+	}
+
+	if rsrc.Value() < minRsrc.Value() {
+		return -1, fmt.Errorf("resource value %d is unreasonably small (< %d)", rsrc.Value(), minRsrc.Value())
+	}
+	if rsrc.Value() > maxRsrc.Value() {
+		return -1, fmt.Errorf("resource value %d is unreasonably large (> %d)", rsrc.Value(), maxRsrc.Value())
+	}
+	return rsrc.Value(), nil
+}
+
+func extractBandwidthResources(pod *api.Pod, MTU uint) (ingress, egress int64, err error) {
+	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
+	if found {
+		ingress, err = parseAndValidateBandwidth(str)
+		if err != nil {
+			return -1, -1, err
+		}
+	}
+	str, found = pod.Annotations["kubernetes.io/egress-bandwidth"]
+	if found {
+		egress, err = parseAndValidateBandwidth(str)
+		if err != nil {
+			return -1, -1, err
+		}
+	}
+	return ingress, egress, nil
+}
+
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
@@ -135,7 +175,18 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 	if pod == nil {
-		return fmt.Errorf("Failed to retrieve pod %s/%s", namespace, name)
+		return fmt.Errorf("failed to retrieve pod %s/%s", namespace, name)
+	}
+	ingress, egress, err := extractBandwidthResources(pod, plugin.MTU)
+	if err != nil {
+		return fmt.Errorf("failed to parse pod %s/%s ingress/egress quantity: %v", namespace, name, err)
+	}
+	var ingressStr, egressStr string
+	if ingress > 0 {
+		ingressStr = fmt.Sprintf("%d", ingress)
+	}
+	if egress > 0 {
+		egressStr = fmt.Sprintf("%d", egress)
 	}
 
 	vnidstr, err := plugin.getVNID(namespace)
@@ -143,14 +194,14 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr).CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%d", plugin.MTU)).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 	return err
 }
 
 func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1").CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1", "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
 	return err
 }
