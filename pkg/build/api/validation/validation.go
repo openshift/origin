@@ -373,6 +373,9 @@ func validateOutput(output *buildapi.BuildOutput, fldPath *field.Path) field.Err
 func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	if strategy == nil {
+		return append(allErrs, field.Required(fldPath, "must provide a strategy definition"))
+	}
 	strategyCount := 0
 	if strategy.SourceStrategy != nil {
 		strategyCount++

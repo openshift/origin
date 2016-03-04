@@ -1021,6 +1021,11 @@ func TestValidateStrategy(t *testing.T) {
 				CustomStrategy: &buildapi.CustomBuildStrategy{},
 			},
 		},
+		{
+			t:        field.ErrorTypeRequired,
+			path:     "",
+			strategy: nil,
+		},
 	}
 	for i, tc := range errorCases {
 		errors := validateStrategy(tc.strategy, nil)
