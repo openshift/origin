@@ -50,9 +50,9 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 		}
 
 		descriptionTag := structField.Tag.Get("description")
-		if len(descriptionTag) == 0 {
+		if len(descriptionTag) > 0 {
 			t.Errorf("%v", structField.Tag)
-			t.Errorf("%v.%v does not have a description", objType, structField.Name)
+			t.Errorf("%v.%v should not have a description tag", objType, structField.Name)
 		}
 
 		switch structField.Type.Kind() {
