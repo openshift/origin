@@ -1,6 +1,7 @@
 package image
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -46,6 +47,17 @@ func GetImageStreamSize(osClient osclient.Interface, is *imageapi.ImageStream, i
 				continue
 			}
 
+			ref, err := imageapi.ParseDockerImageReference(img.DockerImageReference)
+			if err != nil {
+				glog.Errorf("Failed to parse DockerImageReference %q of image %q: %v", img.DockerImageReference, img.Name, err)
+				continue
+			}
+
+			if ref.Namespace != is.Namespace || ref.Name != is.Name {
+				glog.V(5).Infof("Skipping image with DockerImageReference %q pointing to another repository", img.DockerImageReference)
+				continue
+			}
+
 			if len(img.DockerImageLayers) == 0 || img.DockerImageMetadata.Size == 0 {
 				if err := imageapi.ImageWithMetadata(img); err != nil {
 					glog.Errorf("Failed to parse metadata of image %q with DockerImageReference %q: %v", img.Name, img.DockerImageReference, err)
@@ -81,7 +93,12 @@ func GetImageStreamSizeIncrement(osClient osclient.Interface, is *imageapi.Image
 		}
 	}
 	isSize = resource.NewQuantity(0, resource.BinarySI)
-	if value, ok := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; ok && value == "true" {
+
+	ref, err := imageapi.ParseDockerImageReference(image.DockerImageReference)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to parse DockerImageReference %q of image %q: %v", image.DockerImageReference, image.Name, err)
+	}
+	if value, ok := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; ok && value == "true" && ref.Namespace == is.Namespace && ref.Name == is.Name {
 		sizeIncrement = resource.NewQuantity(image.DockerImageMetadata.Size, resource.BinarySI)
 	} else {
 		sizeIncrement = resource.NewQuantity(0, resource.BinarySI)
@@ -114,6 +131,17 @@ func GetImageStreamSizeIncrement(osClient osclient.Interface, is *imageapi.Image
 
 			if value, ok := img.Annotations[imageapi.ManagedByOpenShiftAnnotation]; !ok || value != "true" {
 				glog.V(5).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", img.Name, img.DockerImageReference)
+				continue
+			}
+
+			ref, err = imageapi.ParseDockerImageReference(img.DockerImageReference)
+			if err != nil {
+				glog.Errorf("Failed to parse DockerImageReference %q of image %q: %v", img.DockerImageReference, img.Name, err)
+				continue
+			}
+
+			if ref.Namespace != is.Namespace || ref.Name != is.Name {
+				glog.V(5).Infof("Skipping image with DockerImageReference %q pointing to another repository", img.DockerImageReference)
 				continue
 			}
 

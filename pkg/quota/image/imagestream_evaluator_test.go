@@ -65,6 +65,29 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 		},
 
 		{
+			"image stream with one tag pointing to another repository",
+			imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
+						"latest": {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/otheris@%s", baseImageWith1LayerDigest),
+									Image:                baseImageWith1LayerDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+			0,
+		},
+
+		{
 			"image stream with two references with shared layer",
 			imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
@@ -237,7 +260,7 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/onetag@%s", baseImageWith1LayerDigest),
 										Image:                baseImageWith1LayerDigest,
 									},
 								},
@@ -444,6 +467,22 @@ func getFakeImageStreamImageGetHandler(t *testing.T, namespace string, iss ...im
 				}
 				name := strings.TrimPrefix(a.GetName(), is.Name+"@")
 
+				ref := ""
+			Loop:
+				for _, history := range is.Status.Tags {
+					for i := range history.Items {
+						if strings.HasSuffix(a.GetName(), "@"+history.Items[i].Image) {
+							ref = history.Items[i].DockerImageReference
+							break Loop
+						}
+					}
+				}
+				if ref == "" {
+					err := fmt.Errorf("image %q not found", name)
+					t.Error(err.Error())
+					return true, nil, err
+				}
+
 				res := &imageapi.ImageStreamImage{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: namespace,
@@ -454,7 +493,7 @@ func getFakeImageStreamImageGetHandler(t *testing.T, namespace string, iss ...im
 							Name:        name,
 							Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 						},
-						DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", namespace, a.GetName()),
+						DockerImageReference: ref,
 					},
 				}
 
