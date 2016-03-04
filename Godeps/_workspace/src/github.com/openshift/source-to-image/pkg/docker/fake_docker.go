@@ -147,7 +147,10 @@ func (f *FakeDocker) PullImage(imageName string) (*dockerclient.Image, error) {
 
 // CheckAndPullImage pulls a fake docker image
 func (f *FakeDocker) CheckAndPullImage(name string) (*dockerclient.Image, error) {
-	return nil, nil
+	if f.PullResult {
+		return &dockerclient.Image{}, nil
+	}
+	return nil, f.PullError
 }
 
 // BuildImage builds image
