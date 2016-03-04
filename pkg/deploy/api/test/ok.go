@@ -32,7 +32,7 @@ func OkImageChangeDetails() *deployapi.DeploymentDetails {
 			Type: deployapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
-					Name: imageapi.JoinImageStreamTag("test", "tag"),
+					Name: imageapi.JoinImageStreamTag("test-image-stream", imageapi.DefaultImageTag),
 					Kind: "ImageStreamTag",
 				}}}}}
 }

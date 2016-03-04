@@ -34,30 +34,56 @@ angular.module('openshiftConsole')
           sortedEvents = _.sortByOrder($scope.events, [sortID], [order]);
         };
 
-        var keywords = [];
+        var filterExpressions = [];
         var updateKeywords = function() {
           if (!$scope.filter.text) {
-            keywords = [];
+            filterExpressions = [];
             return;
           }
 
-          keywords = _.uniq($scope.filter.text.split(/\s+/));
+          var keywords = _.uniq($scope.filter.text.split(/\s+/));
           // Sort the longest keyword first.
           keywords.sort(function(a, b){
             return b.length - a.length;
           });
+
+          // Convert the keyword to a case-insensitive regular expression for the filter.
+          filterExpressions = _.map(keywords, function(keyword) {
+            return new RegExp(_.escapeRegExp(keyword), "i");
+          });
         };
 
-        var applyFilter = $filter('filter');
+        // Only filter by keyword on certain fields.
+        var filterFields = [
+          'reason',
+          'message',
+          'type'
+        ];
+        if (!$scope.resourceKind || !$scope.resourceName) {
+          filterFields.splice(0, 0, 'involvedObject.name', 'involvedObject.kind');
+        }
+
         var filterForKeyword = function() {
           $scope.filteredEvents = sortedEvents;
-          if (!keywords.length) {
+          if (!filterExpressions.length) {
             return;
           }
 
-          // Find events that match all keywords, removing duplicates.
-          angular.forEach(keywords, function(keyword) {
-            $scope.filteredEvents = applyFilter($scope.filteredEvents, keyword);
+          // Find events that match all keywords.
+          angular.forEach(filterExpressions, function(regex) {
+            var matchesKeyword = function(event) {
+              var i;
+              for (i = 0; i < filterFields.length; i++) {
+                var value = _.get(event, filterFields[i]);
+                if (value && regex.test(value)) {
+                  return true;
+                }
+              }
+
+              return false;
+            };
+
+            $scope.filteredEvents = _.filter($scope.filteredEvents, matchesKeyword);
           });
         };
 

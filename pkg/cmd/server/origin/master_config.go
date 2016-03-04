@@ -171,7 +171,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
+	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy", "OriginResourceQuota"}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
@@ -180,6 +180,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
 		ProjectCache:    projectCache,
 	}
+
 	plugins := []admission.Interface{}
 	clientsetClient := internalclientset.FromUnversionedClient(privilegedLoopbackKubeClient)
 	for _, pluginName := range admissionControlPluginNames {
@@ -532,6 +533,12 @@ func (c *MasterConfig) ImageStreamSecretClient() *kclient.Client {
 // ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
 func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+// ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
+// evaluation
+func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *internalclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, internalclientset.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.

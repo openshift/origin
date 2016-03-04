@@ -248,6 +248,13 @@ os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affi
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
 echo "registry: ok"
 
+workingdir=$(mktemp -d --suffix=registry)
+os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} -o yaml > ${workingdir}/oadm_registry.yaml"
+os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
+os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"
+os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' '6000'
+echo "apply: ok"
+
 # Test building a dependency tree
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still

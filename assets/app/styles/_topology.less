@@ -7,6 +7,12 @@
 kubernetes-topology-graph {
   height: 700px;
 }
+@media (max-width: @screen-xs-max) {
+  .kube-topology-block {
+    // adjust kubernetes-topology-graph to the left to prevent nodes from extending off the right side viewport on iOS
+    margin-left: -@grid-gutter-width/2;
+  }
+}
 
 .kube-topology {
   margin-bottom: -5px; // allow extra height to prevent inadvertent scrollbars with topology view

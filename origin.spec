@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 059455f2791601661961c297d507a59146776e76
+%global commit 1106d1e0605c5e43aa027d94c4493996a073d5dd
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.908-35-g059455f -X github.com/openshift/origin/pkg/version.commitFromGit 059455f -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.909-52-g1106d1e -X github.com/openshift/origin/pkg/version.commitFromGit 1106d1e -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.909
+Version:        3.1.1.910
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,48 @@ fi
 
 
 %changelog
+* Fri Mar 04 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.910
+- Resolving visual defect on Storage .page-header (rhamilto@redhat.com)
+- Cleaning up random drop shadow and rounded corners on messenger messages
+  (rhamilto@redhat.com)
+- Correcting colspan value to resolve cosmetic bug with missing right border on
+  <thead> (rhamilto@redhat.com)
+- ignore unrelated build+pod events during tests (bparees@redhat.com)
+- Adjust kube-topology so that it doesn't extend off of iOS viewport. Move
+  bottom spacing from container-fluid to tab-content. (sgoodwin@redhat.com)
+- Make mktmp call in common.sh compatible with OS X (cewong@redhat.com)
+- Update external examples to include readiness/liveness probes
+  (mfojtik@redhat.com)
+- Fix build link in alert message (spadgett@redhat.com)
+- Make "other routes" link go to browse routes page (spadgett@redhat.com)
+- Skip hostPath test for upstream conformance test. (jay@apache.org)
+- oc rsync: do not set owner when extracting with the tar strategy
+  (cewong@redhat.com)
+- removed SAR logfile from artifacts (skuznets@redhat.com)
+- integration: Retry import from external registries when not reachable
+  (miminar@redhat.com)
+- Prevent log line number selection in Chrome (spadgett@redhat.com)
+- Add create route button padding on mobile (jhadvig@redhat.com)
+- test-cmd: ensure oc apply works with lists (mkargaki@redhat.com)
+- UPSTREAM: 20948: Fix reference to versioned object in kubectl apply
+  (mkargaki@redhat.com)
+- Web console: fix problems with display route and route warnings
+  (spadgett@redhat.com)
+- Restrict events filter to certain fields in web console (spadgett@redhat.com)
+- configchange: correlate triggers with the generated cause
+  (mkargaki@redhat.com)
+- Bug fix for negative reload intervals - bugz 1311459. (smitram@gmail.com)
+- Fill image's metadata in the registry (miminar@redhat.com)
+- Added additional quota check for layer upload in a registry
+  (miminar@redhat.com)
+- Resource quota for images and image streams (miminar@redhat.com)
+- Add support for build config into oc set env (mfojtik@redhat.com)
+- UPSTREAM: docker/distribution: 1474: Defined ErrAccessDenied error
+  (miminar@redhat.com)
+- UPSTREAM: docker/distribution: 1473: Commit uploaded blob with size
+  (miminar@redhat.com)
+- UPSTREAM: 20446: New features in ResourceQuota (miminar@redhat.com)
+
 * Wed Mar 02 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.909
 - Added more cmd tests for import-image to cover main branches
   (maszulik@redhat.com)

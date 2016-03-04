@@ -499,7 +499,7 @@ os::build::archive_tar() {
 os::build::is_hardlink_supported() {
   local path="$1"
   # Determine if FS supports hard links
-  local temp_file=$(mktemp --tmpdir="${path}")
+  local temp_file=$(TMPDIR="${path}" mktemp)
   ln "${temp_file}" "${temp_file}.link" &> /dev/null && unlink "${temp_file}.link" || local supported=$?
   rm -f "${temp_file}"
   return ${supported:-0}
@@ -530,7 +530,7 @@ os::build::extract_tar() {
     fi
     tar mxzf "${archive_file}" ${tar_flags} -C "${change_dir}"
   else
-    local temp_dir=$(mktemp -d --tmpdir=/dev/shm/)
+    local temp_dir=$(TMPDIR=/dev/shm/ mktemp -d)
     tar mxzf "${archive_file}" ${tar_flags} -C "${temp_dir}"
     pushd "${temp_dir}" &> /dev/null
     tar cO --hard-dereference * | tar xf - -C "${change_dir}"
