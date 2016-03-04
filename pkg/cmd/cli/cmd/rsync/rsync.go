@@ -55,6 +55,11 @@ type forwarder interface {
 	ForwardPorts(ports []string, stopChan <-chan struct{}) error
 }
 
+// podChecker can check if pods are valid (exists, etc)
+type podChecker interface {
+	CheckPod() error
+}
+
 // RsyncOptions holds the options to execute the sync command
 type RsyncOptions struct {
 	Namespace     string
