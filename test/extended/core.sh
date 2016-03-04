@@ -110,6 +110,7 @@ excluded_tests=(
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
   "Cinder"                # requires an OpenStack cluster
+  "should support r/w" # hostPath: This test  expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
 
   # Need fixing
   "should provide Internet connection for containers" # Needs recursive DNS
