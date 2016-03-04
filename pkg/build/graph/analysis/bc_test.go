@@ -31,13 +31,13 @@ func TestUnpushableBuild(t *testing.T) {
 	}
 
 	actualBC := osgraph.GetTopLevelContainerNode(g, markers[0].Node)
-	expectedBC := g.Find(osgraph.UniqueName("BuildConfig|/ruby-hello-world"))
+	expectedBC := g.Find(osgraph.UniqueName("BuildConfig|example/ruby-hello-world"))
 	if e, a := expectedBC.ID(), actualBC.ID(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 
 	actualIST := markers[0].RelatedNodes[0]
-	expectedIST := g.Find(osgraph.UniqueName("ImageStreamTag|/ruby-hello-world:latest"))
+	expectedIST := g.Find(osgraph.UniqueName("ImageStreamTag|example/ruby-hello-world:latest"))
 	if e, a := expectedIST.ID(), actualIST.ID(); e != a {
 		t.Errorf("expected %v, got %v: \n%v", e, a, g)
 	}

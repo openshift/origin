@@ -279,6 +279,20 @@ func TestProjectStatus(t *testing.T) {
 				`policycommand example default`,             // verifies that we print the help command
 			},
 		},
+		"cross namespace reference": {
+			Path: "../../../api/graph/test/different-project-image-deployment.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				// If there was a warning we wouldn't get the following message. Since we ignore cross-namespace
+				// links by default, there should be no warning here.
+				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()

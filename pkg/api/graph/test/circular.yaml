@@ -5,6 +5,7 @@ items:
   metadata:
     creationTimestamp: null
     name: ruby-22-centos7
+    namespace: example
   spec:
     output:
       to:
@@ -37,6 +38,7 @@ items:
   metadata:
     creationTimestamp: null
     name: ruby-hello-world
+    namespace: example
   spec:
     output:
       to:
@@ -69,6 +71,7 @@ items:
   metadata:
     creationTimestamp: null
     name: ruby-something-else
+    namespace: example
   spec:
     output:
       to:

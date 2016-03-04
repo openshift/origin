@@ -223,6 +223,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
 
+		// TODO: Provide an option to chase these hidden markers.
+		allMarkers = allMarkers.FilterByNamespace(namespace)
+
 		fmt.Fprintln(out)
 
 		sort.Stable(osgraph.ByKey(allMarkers))
