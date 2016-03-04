@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -70,6 +71,7 @@ type ImportImageOptions struct {
 	// helpers
 	out      io.Writer
 	osClient client.Interface
+	kClient  kclient.Interface
 	isClient client.ImageStreamInterface
 }
 
@@ -86,11 +88,12 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, args []string, out i
 	}
 	o.Namespace = namespace
 
-	osClient, _, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
 	o.osClient = osClient
+	o.kClient = kClient
 	o.isClient = osClient.ImageStreams(namespace)
 	o.out = out
 
@@ -140,7 +143,7 @@ func (o *ImportImageOptions) Run() error {
 		fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
 		// optimization, use the image stream returned by the call
-		d := describe.ImageStreamDescriber{Interface: o.osClient}
+		d := describe.ImageStreamDescriber{OSClient: o.osClient, KubeClient: o.kClient}
 		info, err := d.Describe(o.Namespace, stream.Name)
 		if err != nil {
 			return err
@@ -185,7 +188,7 @@ func (o *ImportImageOptions) Run() error {
 
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
-	d := describe.ImageStreamDescriber{Interface: o.osClient}
+	d := describe.ImageStreamDescriber{OSClient: o.osClient, KubeClient: o.kClient}
 	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)
 	if err != nil {
 		return err
