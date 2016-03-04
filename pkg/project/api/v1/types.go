@@ -11,7 +11,7 @@ type ProjectList struct {
 	// Standard object's metadata.
 	unversioned.ListMeta `json:"metadata,omitempty"`
 	// Items is the list of projects
-	Items []Project `json:"items" description:"list of projects"`
+	Items []Project `json:"items"`
 }
 
 const (
@@ -22,13 +22,13 @@ const (
 // ProjectSpec describes the attributes on a Project
 type ProjectSpec struct {
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
-	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty" description:"an opaque list of values that must be empty to permanently remove object from storage"`
+	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty"`
 }
 
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
 	// Phase is the current lifecycle phase of the project
-	Phase kapi.NamespacePhase `json:"phase,omitempty" description:"phase is the current lifecycle phase of the project"`
+	Phase kapi.NamespacePhase `json:"phase,omitempty"`
 }
 
 // Project is a logical top-level container for a set of origin resources
@@ -38,10 +38,10 @@ type Project struct {
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec defines the behavior of the Namespace.
-	Spec ProjectSpec `json:"spec,omitempty" description:"spec defines the behavior of the Project"`
+	Spec ProjectSpec `json:"spec,omitempty"`
 
 	// Status describes the current status of a Namespace
-	Status ProjectStatus `json:"status,omitempty" description:"status describes the current status of a Project; read-only"`
+	Status ProjectStatus `json:"status,omitempty"`
 }
 
 // ProjecRequest is the set of options necessary to fully qualify a project request
@@ -50,7 +50,7 @@ type ProjectRequest struct {
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 	// DisplayName is the display name to apply to a project
-	DisplayName string `json:"displayName,omitempty" description:"display name to apply to a project"`
+	DisplayName string `json:"displayName,omitempty"`
 	// Description is the description to apply to a project
-	Description string `json:"description,omitempty" description:"description to apply to a project"`
+	Description string `json:"description,omitempty"`
 }
