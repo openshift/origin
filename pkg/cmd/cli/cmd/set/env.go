@@ -20,11 +20,13 @@ import (
 
 const (
 	envLong = `
-Update environment variables on a pod template
+Update environment variables on a pod template or a build config
 
-List environment variable definitions in one or more pods or pod templates.
+List environment variable definitions in one or more pods, pod templates or build
+configuration.
 Add, update, or remove container environment variable definitions in one or
-more pod templates (within replication controllers or deployment configurations).
+more pod templates (within replication controllers or deployment configurations) or
+build configurations.
 View or modify the environment variable definitions on all containers in the
 specified pods or pod templates, or just those that match a wildcard.
 
@@ -34,14 +36,14 @@ syntax.`
 	envExample = `  # Update deployment 'registry' with a new environment variable
   $ %[1]s env dc/registry STORAGE_DIR=/local
 
-  # List the environment variables defined on a deployment config 'registry'
-  $ %[1]s env dc/registry --list
+  # List the environment variables defined on a build config 'sample-build'
+  $ %[1]s env bc/sample-build --list
 
   # List the environment variables defined on all pods
   $ %[1]s env pods --all --list
 
-  # Output modified deployment config in YAML, and does not alter the object on the server
-  $ %[1]s env dc/registry STORAGE_DIR=/data -o yaml
+  # Output modified build config in YAML, and does not alter the object on the server
+  $ %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   $ %[1]s env rc --all ENV=prod
@@ -200,8 +202,24 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			return nil
 		})
 		if !ok {
-			skipped++
-			continue
+			// This is a fallback function for objects that don't have pod spec.
+			ok, err = f.UpdateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
+				if vars == nil {
+					return fmt.Errorf("no environment variables provided")
+				}
+				*vars = updateEnv(*vars, env, remove)
+				if list {
+					fmt.Fprintf(out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					for _, env := range *vars {
+						fmt.Fprintf(out, "%s=%s\n", env.Name, env.Value)
+					}
+				}
+				return nil
+			})
+			if !ok {
+				skipped++
+				continue
+			}
 		}
 		if err != nil {
 			fmt.Fprintf(cmd.Out(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)

@@ -75,29 +75,43 @@ angular.module("openshiftConsole")
       });
     };
 
+    var isAdmitted = function(route) {
+      // Consider the route admitted if any ingress has any condition matching
+      // { type: 'Admitted', status: 'True' }
+      return _.some(route.status.ingress, function(ingress) {
+        return _.some(ingress.conditions, {
+          type: 'Admitted',
+          status: 'True'
+        });
+      });
+    };
 
-    function isCustomHost(route) {
+    var isCustomHost = function(route) {
       return $filter('annotation')(route, "openshift.io/host.generated") !== "true";
-    }
+    };
+
+    // Gets a score for the route to decide which to show on the overview.
+    var scoreRoute = function(route) {
+      var score = 0;
+      if (isAdmitted(route)) {
+        score += 5;
+      }
+
+      if (isCustomHost(route)) {
+        score += 3;
+      }
+
+      if (route.spec.tls) {
+        score += 1;
+      }
+
+      return score;
+    };
 
     // Gets the preferred route to display between two routes
-    // Preference order: admitted custom host with TLS -> admitted custom host -> custom host -> any route 
     var getPreferredDisplayRoute = function(lhs, rhs) {
-      var isCustomHostLhs = isCustomHost(lhs);
-      var isCustomHostRhs = isCustomHost(rhs);
-      var isAdmittedLhs = $filter("routeStatus")(lhs) === "Admitted";
-      var isAdmittedRhs = $filter("routeStatus")(rhs) === "Admitted";
-      var isTLSLhs = lhs.spec.tls;
-      var isTLSRhs = rhs.spec.tls;
-      if (isTLSLhs && isAdmittedLhs && isCustomHostLhs) {
-        return lhs;
-      }
-      if (isAdmittedLhs && isCustomHostLhs) {
-        return (isTLSRhs && isAdmittedRhs && isCustomHostRhs) ? rhs : lhs;
-      }
-      if (isCustomHostLhs) {
-        return (isAdmittedRhs && isCustomHostRhs) ? rhs : lhs;
-      }
+      var leftScore = scoreRoute(lhs), rightScore = scoreRoute(rhs);
+      return (rightScore > leftScore) ? rhs : lhs;
     };
 
     return {

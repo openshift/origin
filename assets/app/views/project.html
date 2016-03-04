@@ -58,7 +58,7 @@
                 </div>
               </div>
 
-              <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
+              <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted" class="kube-topology-block">
                 <kubernetes-topology-graph bottom-of-window="1" items="topologyItems"
                   relations="topologyRelations" kinds="topologyKinds" selection="topologySelection">
                 </kubernetes-topology-graph>
@@ -111,7 +111,8 @@
                           </span>
                           <span class="small" ng-if="otherRoutes">
                             (and
-                            <a href="{{service | navigateResourceURL}}">{{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}</a>)
+                            <a href="project/{{projectName}}/browse/routes"><span ng-if="otherRoutes === 1">one other route</span
+                                ><span ng-if="otherRoutes > 1">{{otherRoutes}} other routes</span></a>)
                           </span>
                           <span ng-if="!otherRoutes">
                             <route-warnings warnings="routeWarningsByService[serviceId][displayRouteByService[serviceId].metadata.name]"></route-warnings>

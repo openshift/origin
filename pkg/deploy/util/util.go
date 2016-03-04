@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -104,25 +105,20 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
-// HasImageChangeTrigger returns whether the provided deployment config has
-// an image change trigger or not.
-func HasImageChangeTrigger(config *deployapi.DeploymentConfig) bool {
-	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
-			return true
+// CauseFromAutomaticImageChange inspects any existing deployment config cause and
+// validates if it comes from the image change controller.
+func CauseFromAutomaticImageChange(config *deployapi.DeploymentConfig) bool {
+	if config.Status.Details != nil && len(config.Status.Details.Causes) > 0 {
+		for _, trigger := range config.Spec.Triggers {
+			if trigger.Type == deployapi.DeploymentTriggerOnImageChange &&
+				trigger.ImageChangeParams.Automatic &&
+				config.Status.Details.Causes[0].Type == deployapi.DeploymentTriggerOnImageChange &&
+				reflect.DeepEqual(trigger.ImageChangeParams.From, config.Status.Details.Causes[0].ImageTrigger.From) {
+				return true
+			}
 		}
 	}
 	return false
-}
-
-// GetImageChangeTrigger returns the image change trigger from a deployment config.
-func GetImageChangeTrigger(config *deployapi.DeploymentConfig) deployapi.DeploymentTriggerPolicy {
-	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
-			return trigger
-		}
-	}
-	return deployapi.DeploymentTriggerPolicy{}
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

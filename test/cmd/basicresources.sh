@@ -140,6 +140,17 @@ os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" 
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 echo "set probe: ok"
 
+os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f test/integration/fixtures/test-buildcli.json"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "FOO=bar"
+os::cmd::expect_success_and_text "oc set env bc --all FOO=bar" "updated"
+os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
+os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
+echo "set env: ok"
+
 # Expose service as a route
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'

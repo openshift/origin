@@ -22,7 +22,11 @@ angular.module('openshiftConsole')
           '</tr>').get(0);
       var buildLogLineNode = function(lineNumber, text) {
         var line = logLineTemplate.cloneNode(true);
-        line.firstChild.appendChild(document.createTextNode(lineNumber));
+        // Set the line number as a data attribute and display it using the
+        // ::before pseudo-element in CSS so it isn't copied. Works around
+        // this webkit bug with user-select: none;
+        //   https://bugs.webkit.org/show_bug.cgi?id=80159
+        line.firstChild.setAttribute('data-line-number', lineNumber);
         line.lastChild.appendChild(document.createTextNode(text));
 
         return line;

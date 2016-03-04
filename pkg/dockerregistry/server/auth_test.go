@@ -64,7 +64,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		client, err := NewUserOpenShiftClient("magic bearer token")
+		_, client, err := NewUserOpenShiftClients("magic bearer token")
 		if err != nil {
 			t.Fatal(err)
 		}
