@@ -416,11 +416,12 @@ func (MasterConfig) SwaggerDoc() map[string]string {
 }
 
 var map_MasterNetworkConfig = map[string]string{
-	"":                   "MasterNetworkConfig to be passed to the compiled in network plugin",
-	"networkPluginName":  "NetworkPluginName is the name of the network plugin to use",
-	"clusterNetworkCIDR": "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
-	"hostSubnetLength":   "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
-	"serviceNetworkCIDR": "ServiceNetwork is the CIDR string to specify the service networks",
+	"":                       "MasterNetworkConfig to be passed to the compiled in network plugin",
+	"networkPluginName":      "NetworkPluginName is the name of the network plugin to use",
+	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
+	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
+	"serviceNetworkCIDR":     "ServiceNetwork is the CIDR string to specify the service networks",
+	"externalIPNetworkCIDRs": "ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
 }
 
 func (MasterNetworkConfig) SwaggerDoc() map[string]string {

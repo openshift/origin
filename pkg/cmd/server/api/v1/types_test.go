@@ -178,6 +178,7 @@ masterClients:
 masterPublicURL: ""
 networkConfig:
   clusterNetworkCIDR: ""
+  externalIPNetworkCIDRs: null
   hostSubnetLength: 0
   networkPluginName: ""
   serviceNetworkCIDR: ""

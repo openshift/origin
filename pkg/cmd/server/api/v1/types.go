@@ -312,6 +312,11 @@ type MasterNetworkConfig struct {
 	HostSubnetLength uint `json:"hostSubnetLength"`
 	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
 }
 
 // ImageConfig holds the necessary configuration options for building image names for system components

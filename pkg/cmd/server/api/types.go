@@ -347,6 +347,11 @@ type MasterNetworkConfig struct {
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
 	ServiceNetworkCIDR string
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
 }
 
 type ImageConfig struct {
