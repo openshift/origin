@@ -30,8 +30,8 @@ func BindNetworkArgs(args *NetworkArgs, flags *pflag.FlagSet, prefix string) {
 func NewDefaultNetworkArgs() *NetworkArgs {
 	config := &NetworkArgs{
 		NetworkPluginName:  "",
-		ClusterNetworkCIDR: "10.1.0.0/16",
-		HostSubnetLength:   8,
+		ClusterNetworkCIDR: "10.128.0.0/14",
+		HostSubnetLength:   9,
 		ServiceNetworkCIDR: "172.30.0.0/16",
 	}
 
