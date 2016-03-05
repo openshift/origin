@@ -44,9 +44,6 @@ angular.module('openshiftConsole')
           name: '=',
           context: '=',
           options: '=?',
-          status: '=?',
-          timeStart: '=?',
-          timeEnd: '=?',
           chromeless: '=?',
           run: '=?'         // boolean, logs will not run until this is truthy
         },
