@@ -277,7 +277,7 @@ os::provision::start-os-service() {
     dind_env_var="OPENSHIFT_DIND=true"
   fi
 
-  cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
+  cat <<EOF > "/etc/systemd/system/${unit_name}.service"
 [Unit]
 Description=${description}
 Requires=network.target
