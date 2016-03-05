@@ -58,7 +58,7 @@
                             <span class="caret" aria-hidden="true"></span>
                           </button>
                           <ul class="uib-dropdown-menu">
-                            <li ng-repeat="tag in categoryTags" role="menuitem">
+                            <li ng-repeat="tag in categoryTags" ng-if="tag" role="menuitem">
                               <a href="" ng-click="filter.tag = tag">{{tag}}</a>
                             </li>
                           </ul>
