@@ -20,7 +20,7 @@ func TestCLIGetToken(t *testing.T) {
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	checkErr(t, err)
 
-	anonymousConfig := clientcmd.AnonymousClientConfig(*clusterAdminClientConfig)
+	anonymousConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	reader := bytes.NewBufferString("user\npass")
 	accessToken, err := tokencmd.RequestToken(&anonymousConfig, reader, "", "")
 	if err != nil {
@@ -30,7 +30,7 @@ func TestCLIGetToken(t *testing.T) {
 		t.Error("Expected accessToken, but did not get one")
 	}
 
-	clientConfig := clientcmd.AnonymousClientConfig(*clusterAdminClientConfig)
+	clientConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	clientConfig.BearerToken = accessToken
 	osClient, err := client.New(&clientConfig)
 	checkErr(t, err)

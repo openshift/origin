@@ -51,9 +51,9 @@ func TestNodeAuth(t *testing.T) {
 	// Client configs for lesser users
 	masterKubeletClientConfig := configapi.GetKubeletClientConfig(*masterConfig)
 
-	anonymousConfig := clientcmd.AnonymousClientConfig(*adminConfig)
+	anonymousConfig := clientcmd.AnonymousClientConfig(adminConfig)
 
-	badTokenConfig := clientcmd.AnonymousClientConfig(*adminConfig)
+	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
 	bobClient, _, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
