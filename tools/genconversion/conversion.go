@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"runtime"
 	"sort"
@@ -34,6 +35,7 @@ var (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
+	log.SetOutput(os.Stderr)
 
 	var funcOut io.Writer
 	if *functionDest == "-" {
