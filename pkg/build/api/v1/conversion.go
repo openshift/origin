@@ -10,7 +10,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
+func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -36,14 +36,14 @@ func convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.Build
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_BuildConfig_To_v1_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
+func Convert_api_BuildConfig_To_v1_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
+func Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -56,14 +56,14 @@ func convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildSt
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
+func Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
+func Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -78,14 +78,14 @@ func convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildSt
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
+func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
+func Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -98,14 +98,14 @@ func convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildSt
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+func Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
+func Convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.Build
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_BuildOutput_To_v1_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
+func Convert_api_BuildOutput_To_v1_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -125,14 +125,14 @@ func convert_api_BuildOutput_To_v1_BuildOutput(in *newer.BuildOutput, out *Build
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
+func Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
+func Convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPol
 	return nil
 }
 
-func convert_api_SourceRevision_To_v1_SourceRevision(in *newer.SourceRevision, out *SourceRevision, s conversion.Scope) error {
+func Convert_api_SourceRevision_To_v1_SourceRevision(in *newer.SourceRevision, out *SourceRevision, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -155,14 +155,14 @@ func convert_api_SourceRevision_To_v1_SourceRevision(in *newer.SourceRevision, o
 	return nil
 }
 
-func convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *newer.SourceRevision, s conversion.Scope) error {
+func Convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *newer.SourceRevision, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *BuildSource, s conversion.Scope) error {
+func Convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *BuildSource, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -181,14 +181,14 @@ func convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *Build
 	return nil
 }
 
-func convert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *newer.BuildSource, s conversion.Scope) error {
+func Convert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *newer.BuildSource, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
+func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 	return nil
 }
 
-func convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer.BuildStrategy, s conversion.Scope) error {
+func Convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer.BuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -237,6 +237,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},
+		// TODO: this defaulter is never called, because triggers with ImageChange type but imagechange nil
+		// are dropped.
 		func(obj *BuildTriggerPolicy) {
 			if obj.Type == ImageChangeBuildTriggerType && obj.ImageChange == nil {
 				obj.ImageChange = &ImageChangeTrigger{}
@@ -248,24 +250,24 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	}
 
 	scheme.AddConversionFuncs(
-		convert_v1_BuildConfig_To_api_BuildConfig,
-		convert_api_BuildConfig_To_v1_BuildConfig,
-		convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy,
-		convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy,
-		convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
-		convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
-		convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy,
-		convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
-		convert_v1_BuildOutput_To_api_BuildOutput,
-		convert_api_BuildOutput_To_v1_BuildOutput,
-		convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
-		convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
-		convert_v1_SourceRevision_To_api_SourceRevision,
-		convert_api_SourceRevision_To_v1_SourceRevision,
-		convert_v1_BuildSource_To_api_BuildSource,
-		convert_api_BuildSource_To_v1_BuildSource,
-		convert_v1_BuildStrategy_To_api_BuildStrategy,
-		convert_api_BuildStrategy_To_v1_BuildStrategy,
+		Convert_v1_BuildConfig_To_api_BuildConfig,
+		Convert_api_BuildConfig_To_v1_BuildConfig,
+		Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy,
+		Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy,
+		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
+		Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
+		Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy,
+		Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
+		Convert_v1_BuildOutput_To_api_BuildOutput,
+		Convert_api_BuildOutput_To_v1_BuildOutput,
+		Convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
+		Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
+		Convert_v1_SourceRevision_To_api_SourceRevision,
+		Convert_api_SourceRevision_To_v1_SourceRevision,
+		Convert_v1_BuildSource_To_api_BuildSource,
+		Convert_api_BuildSource_To_v1_BuildSource,
+		Convert_v1_BuildStrategy_To_api_BuildStrategy,
+		Convert_api_BuildStrategy_To_v1_BuildStrategy,
 	)
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Build",

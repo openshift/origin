@@ -28,7 +28,7 @@ func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
 
 func OkImageChangeDetails() *deployapi.DeploymentDetails {
 	return &deployapi.DeploymentDetails{
-		Causes: []*deployapi.DeploymentCause{{
+		Causes: []deployapi.DeploymentCause{{
 			Type: deployapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
@@ -39,7 +39,7 @@ func OkImageChangeDetails() *deployapi.DeploymentDetails {
 
 func OkConfigChangeDetails() *deployapi.DeploymentDetails {
 	return &deployapi.DeploymentDetails{
-		Causes: []*deployapi.DeploymentCause{{
+		Causes: []deployapi.DeploymentCause{{
 			Type: deployapi.DeploymentTriggerOnConfigChange,
 		}}}
 }

@@ -60,3 +60,25 @@ func TestFieldSelectors(t *testing.T) {
 		"name", "spec.dockerImageRepository", "status.dockerImageRepository",
 	)
 }
+
+func TestImageImportSpecDefaulting(t *testing.T) {
+	i := &newer.ImageStreamImport{
+		Spec: newer.ImageStreamImportSpec{
+			Images: []newer.ImageImportSpec{
+				{From: kapi.ObjectReference{Name: "something:other"}},
+			},
+		},
+	}
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	isi := obj.(*newer.ImageStreamImport)
+	if isi.Spec.Images[0].To == nil || isi.Spec.Images[0].To.Name != "other" {
+		t.Errorf("unexpected round trip: %#v", isi)
+	}
+}

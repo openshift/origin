@@ -110,11 +110,11 @@ func (c *DeploymentConfigChangeController) generateDeployment(config *deployapi.
 	}
 
 	// set the trigger details for the new deployment config
-	causes := []*deployapi.DeploymentCause{}
-	causes = append(causes,
-		&deployapi.DeploymentCause{
+	causes := []deployapi.DeploymentCause{
+		{
 			Type: deployapi.DeploymentTriggerOnConfigChange,
-		})
+		},
+	}
 	newConfig.Status.Details = &deployapi.DeploymentDetails{
 		Causes: causes,
 	}
