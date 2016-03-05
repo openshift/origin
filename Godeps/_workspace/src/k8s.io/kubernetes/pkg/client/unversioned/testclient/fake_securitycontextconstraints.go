@@ -31,21 +31,33 @@ type FakeSecurityContextConstraints struct {
 
 func (c *FakeSecurityContextConstraints) List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error) {
 	obj, err := c.Fake.Invokes(NewListAction("securitycontextconstraints", c.Namespace, opts), &api.SecurityContextConstraintsList{})
+	if obj == nil {
+		return nil, err
+	}
 	return obj.(*api.SecurityContextConstraintsList), err
 }
 
 func (c *FakeSecurityContextConstraints) Get(name string) (*api.SecurityContextConstraints, error) {
 	obj, err := c.Fake.Invokes(NewGetAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
+	if obj == nil {
+		return nil, err
+	}
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
 	obj, err := c.Fake.Invokes(NewCreateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
+	if obj == nil {
+		return nil, err
+	}
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Update(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
 	obj, err := c.Fake.Invokes(NewUpdateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
+	if obj == nil {
+		return nil, err
+	}
 	return obj.(*api.SecurityContextConstraints), err
 }
 
