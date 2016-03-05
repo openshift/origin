@@ -41,6 +41,16 @@ os::provision::build-etcd() {
   fi
 }
 
+os::provision::base-install() {
+  local origin_root=$1
+  local config_root=$2
+
+  echo "Installing openshift"
+  os::provision::install-cmds "${origin_root}"
+  os::provision::install-sdn "${origin_root}"
+  os::provision::set-os-env "${origin_root}" "${config_root}"
+}
+
 os::provision::install-cmds() {
   local deployed_root=$1
 

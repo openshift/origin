@@ -7,9 +7,7 @@ os::provision::base-provision "${ORIGIN_ROOT}" true
 os::provision::build-origin "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 
-echo "Installing openshift"
-os::provision::install-cmds "${ORIGIN_ROOT}"
-os::provision::install-sdn "${ORIGIN_ROOT}"
+os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
 
 if [ "${SDN_NODE}" = "true" ]; then
   # Running an sdn node on the master when using an openshift sdn
@@ -41,5 +39,3 @@ if [ "${SDN_NODE}" = "true" ]; then
   # pod network connectivity on the master.
   os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
 fi
-
-os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"

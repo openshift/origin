@@ -13,12 +13,9 @@ if ! os::provision::in-container; then
   os::provision::wait-for-node-config "${CONFIG_ROOT}" "${NODE_NAME}"
 fi
 
-# openshift is assumed to have been built before node deployment
-os::provision::install-cmds "${ORIGIN_ROOT}"
-
-os::provision::install-sdn "${ORIGIN_ROOT}"
+# Binaries are expected to have been built by the time node
+# configuration is available.
+os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
 
 echo "Launching openshift daemon"
 os::provision::start-node-service "${CONFIG_ROOT}" "${NODE_NAME}"
-
-os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
