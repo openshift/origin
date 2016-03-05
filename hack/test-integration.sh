@@ -42,6 +42,13 @@ else
 	tags="${OS_TEST_TAGS:-integration !docker}"
 fi
 
+coverargs=""
+buildargs=""
+cover="${COVERAGE_OUTPUT_DIR:-}"
+if [[ -n "${cover}" ]]; then
+	buildargs="-cover -covermode=set -coverpkg=github.com/openshift/origin/pkg/..."
+	coverargs="-test.coverprofile ${cover}/last"
+fi
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
 
 echo
@@ -57,7 +64,7 @@ mkdir -p "${testdir}"
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" &>/dev/null
 echo "Building test executable..."
-CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
+CGO_ENABLED=0 go test ${buildargs} -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd &>/dev/null
 
 os::log::start_system_logger
@@ -67,11 +74,15 @@ function exectest() {
 
 	result=1
 	if [ -n "${VERBOSE-}" ]; then
-		"${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
+		"${testexec}" ${coverargs} -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
 		result=$?
 	else
-		out=$("${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
+		out=$("${testexec}" ${coverargs} -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
+	fi
+
+	if [[ -n "${cover}" ]]; then
+		go tool cover "-html=${cover}/last" -o "${cover}/coverage_$1.html"
 	fi
 
 	os::text::clear_last_line
