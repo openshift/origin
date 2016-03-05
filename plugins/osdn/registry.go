@@ -190,7 +190,6 @@ func (registry *Registry) GetNodes() ([]osdnapi.Node, string, error) {
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
-			var err error
 			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return nil, "", err
@@ -260,37 +259,28 @@ func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready c
 	}
 }
 
-func (registry *Registry) WriteNetworkConfig(clusterNetwork *net.IPNet, subnetLength uint, serviceNetwork *net.IPNet) error {
-	var err error
-
+func (registry *Registry) UpdateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
-	if err == nil {
-		if cn.Network == clusterNetwork.String() && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork.String() {
-			return nil
-		}
-
-		cn.Network = clusterNetwork.String()
-		cn.HostSubnetLength = int(subnetLength)
-		cn.ServiceNetwork = serviceNetwork.String()
-		_, err = registry.oClient.ClusterNetwork().Update(cn)
-		return err
-	}
-	cn = &originapi.ClusterNetwork{
-		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
-		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
-		Network:          clusterNetwork.String(),
-		HostSubnetLength: int(subnetLength),
-		ServiceNetwork:   serviceNetwork.String(),
-	}
-	_, err = registry.oClient.ClusterNetwork().Create(cn)
 	if err != nil {
 		return err
 	}
+	cn.Network = clusterNetwork.String()
+	cn.HostSubnetLength = subnetLength
+	cn.ServiceNetwork = serviceNetwork.String()
+	_, err = registry.oClient.ClusterNetwork().Update(cn)
+	return err
+}
 
-	registry.clusterNetwork = clusterNetwork
-	registry.hostSubnetLength = int(subnetLength)
-	registry.serviceNetwork = serviceNetwork
-	return nil
+func (registry *Registry) CreateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
+	cn := &originapi.ClusterNetwork{
+		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
+		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
+		Network:          clusterNetwork.String(),
+		HostSubnetLength: subnetLength,
+		ServiceNetwork:   serviceNetwork.String(),
+	}
+	_, err := registry.oClient.ClusterNetwork().Create(cn)
+	return err
 }
 
 func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*net.IPNet, int, *net.IPNet, error) {
@@ -324,6 +314,13 @@ func (registry *Registry) cacheClusterNetwork() error {
 	registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
 
 	return err
+}
+
+func (registry *Registry) GetNetworkInfo() (*net.IPNet, int, *net.IPNet, error) {
+	if err := registry.cacheClusterNetwork(); err != nil {
+		return nil, -1, nil, err
+	}
+	return registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, nil
 }
 
 func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
@@ -653,14 +650,9 @@ func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHa
 }
 
 func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
-	clusterNetwork, err := registry.GetClusterNetwork()
+	clusterNetwork, _, serviceNetwork, err := registry.GetNetworkInfo()
 	if err != nil {
 		log.Warningf("Error fetching cluster network: %v", err)
-		return
-	}
-	serviceNetwork, err := registry.GetServicesNetwork()
-	if err != nil {
-		log.Warningf("Error fetching service network: %v", err)
 		return
 	}
 
