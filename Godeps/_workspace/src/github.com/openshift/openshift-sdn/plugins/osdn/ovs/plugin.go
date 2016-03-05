@@ -120,7 +120,7 @@ func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
 		return strconv.FormatUint(uint64(vnid), 10), nil
 	}
 
-	return "-1", nil
+	return "0", nil
 }
 
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
