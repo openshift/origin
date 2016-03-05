@@ -30,7 +30,6 @@ import (
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -209,12 +208,9 @@ func (c *MasterConfig) RunDNSServer() {
 	}
 
 	go func() {
-		etcdClient, err := etcd.GetAndTestEtcdClient(c.Options.EtcdClientInfo)
-		if err != nil {
-			glog.Fatalf("Could not get etcd client: %v", err)
-			return
-		}
-		err = dns.ListenAndServe(config, c.DNSServerClient(), etcdClient)
+		s := dns.NewServer(config, c.DNSServerClient())
+		s.MetricsName = "apiserver"
+		err := s.ListenAndServe()
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 

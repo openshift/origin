@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
@@ -78,6 +79,7 @@ func TestKubeletDefaults(t *testing.T) {
 			RegisterSchedulable:            true,
 			RegistryBurst:                  10,
 			RegistryPullQPS:                5.0,
+			ResolverConfig:                 kubetypes.ResolvConfDefault,
 			KubeletCgroups:                 "",
 			RktAPIEndpoint:                 rkt.DefaultRktAPIServiceEndpoint,
 			RktPath:                        "",

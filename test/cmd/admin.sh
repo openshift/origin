@@ -41,10 +41,10 @@ os::cmd::expect_failure_and_text 'openshift start network' 'kubeconfig must be s
 os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --enable=kubelet' 'the following components are not recognized: kubelet'
 os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --enable=kubelet,other' 'the following components are not recognized: kubelet, other'
 os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
-os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --disable=proxy,plugins' 'at least one node component must be enabled \(plugins, proxy\)'
+os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG} --disable=dns,proxy,plugins' 'at least one node component must be enabled \(dns, plugins, proxy\)'
 os::cmd::expect_failure_and_text 'openshift start node' 'kubeconfig must be set'
 os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
-os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=kubelet,proxy,plugins' 'at least one node component must be enabled \(kubelet, plugins, proxy\)'
+os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=dns,kubelet,proxy,plugins' 'at least one node component must be enabled \(dns, kubelet, plugins, proxy\)'
 os::cmd::expect_failure_and_text 'openshift start --write-config=/tmp/test --hostname=""' 'error: --hostname must have a value'
 os::test::junit::declare_suite_end
 

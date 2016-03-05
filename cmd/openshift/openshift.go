@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/cmd/openshift"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 
@@ -17,6 +19,8 @@ import (
 func main() {
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
+	glog.CopyStandardLogTo("INFO")
 
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())

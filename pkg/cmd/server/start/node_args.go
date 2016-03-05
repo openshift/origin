@@ -28,6 +28,7 @@ import (
 const (
 	ComponentGroupNetwork = "network"
 	ComponentProxy        = "proxy"
+	ComponentDNS          = "dns"
 	ComponentPlugins      = "plugins"
 	ComponentKubelet      = "kubelet"
 )
@@ -36,13 +37,13 @@ const (
 func NewNodeComponentFlag() *utilflags.ComponentFlag {
 	return utilflags.NewComponentFlag(
 		map[string][]string{ComponentGroupNetwork: {ComponentProxy, ComponentPlugins}},
-		ComponentKubelet, ComponentProxy, ComponentPlugins,
-	)
+		ComponentKubelet, ComponentProxy, ComponentPlugins, ComponentDNS,
+	).DefaultDisable(ComponentDNS)
 }
 
 // NewNodeComponentFlag returns a flag capable of handling enabled components for the network
 func NewNetworkComponentFlag() *utilflags.ComponentFlag {
-	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins)
+	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins, ComponentDNS).DefaultDisable(ComponentDNS)
 }
 
 // NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting a node.
@@ -234,6 +235,34 @@ func (args NodeArgs) GetServerCertHostnames() (sets.String, error) {
 	}
 
 	return certHostnames, nil
+}
+
+// FindLocalIPForDNS attempts to find an IP that will be reachable from
+// inside containers as an IP address. It will try to use the Host values of
+// the DNSBindAddr, the MasterAddr, and the MasterPublicAddr, before falling
+// back to the local IP. This method will fail if the Master*Addrs point to
+// an IP loadbalancer, so this method is at best a heuristic.
+func findLocalIPForDNS(m *MasterArgs) (net.IP, error) {
+	if ip := specifiedIP(m.DNSBindAddr.Host); ip != nil {
+		return ip, nil
+	}
+	if ip := specifiedIP(m.MasterAddr.Host); ip != nil {
+		return ip, nil
+	}
+	if ip := specifiedIP(m.MasterPublicAddr.Host); ip != nil {
+		return ip, nil
+	}
+	return cmdutil.DefaultLocalIP4()
+}
+
+// specifiedIP parses the provided string as an IP, returning nil if the IP
+// is considered unspecified (0.0.0.0)
+func specifiedIP(s string) net.IP {
+	ip := net.ParseIP(s)
+	if ip.IsUnspecified() {
+		return nil
+	}
+	return ip
 }
 
 // defaultHostname returns the default hostname for this system.
