@@ -35,7 +35,9 @@ os::provision::build-etcd() {
   if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
      [ "${skip_build}" = "true" ]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
-  else
+  # Etcd is required for integration testing which isn't a use case
+  # for dind.
+  elif ! os::provision::in-container; then
     echo "Building etcd"
     ${origin_root}/hack/install-etcd.sh
   fi
