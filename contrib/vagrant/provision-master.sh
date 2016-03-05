@@ -37,5 +37,11 @@ if [ "${SDN_NODE}" = "true" ]; then
 
   # Disable scheduling for the sdn node - it's purpose is only to ensure
   # pod network connectivity on the master.
-  os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  #
+  # This will be performed separately for dind to allow as much time
+  # as possible for the node to register itself.  Vagrant can deploy
+  # in parallel but dind deploys serially for simplicity.
+  if ! os::provision::in-container; then
+    os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  fi
 fi
