@@ -2507,8 +2507,6 @@ type SecurityContextConstraints struct {
 	AllowedCapabilities []Capability
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool
-	// AllowEmptyDirVolumePlugin determines if the policy allow containers to use the EmptyDir volume plugin
-	AllowEmptyDirVolumePlugin bool
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool
 	// AllowHostPorts determines if the policy allows host ports in the containers.
