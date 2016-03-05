@@ -1558,14 +1558,10 @@ func deepCopy_api_DeploymentConfigStatus(in deployapi.DeploymentConfigStatus, ou
 func deepCopy_api_DeploymentDetails(in deployapi.DeploymentDetails, out *deployapi.DeploymentDetails, c *conversion.Cloner) error {
 	out.Message = in.Message
 	if in.Causes != nil {
-		out.Causes = make([]*deployapi.DeploymentCause, len(in.Causes))
+		out.Causes = make([]deployapi.DeploymentCause, len(in.Causes))
 		for i := range in.Causes {
-			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
+			if err := deepCopy_api_DeploymentCause(in.Causes[i], &out.Causes[i], c); err != nil {
 				return err
-			} else if newVal == nil {
-				out.Causes[i] = nil
-			} else {
-				out.Causes[i] = newVal.(*deployapi.DeploymentCause)
 			}
 		}
 	} else {

@@ -20257,6 +20257,9 @@
    "v1.DeploymentDetails": {
     "id": "v1.DeploymentDetails",
     "description": "DeploymentDetails captures information about the causes of a deployment.",
+    "required": [
+     "causes"
+    ],
     "properties": {
      "message": {
       "type": "string",
