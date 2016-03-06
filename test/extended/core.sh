@@ -113,6 +113,11 @@ excluded_tests=(
   "should support r/w"    # hostPath: This test  expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
   "should check that the kubernetes-dashboard instance is alive" # we don't create this
 
+  # See the CanSupport implementation in upstream to determine wether these work.
+  "Ceph RBD"      # Works if ceph-common Binary installed (but we can't gaurantee this on all clusters).
+  "GlusterFS" # May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
+  "should support r/w" # hostPath: This test  expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
+
   # Need fixing
   "should provide Internet connection for containers" # Needs recursive DNS
   PersistentVolume           # https://github.com/openshift/origin/pull/6884 for recycler
@@ -132,8 +137,6 @@ excluded_tests=(
   "\[Feature:Upgrade\]"   # TRIAGE
   "SELinux relabeling"    # started failing
   "\[Feature:Performance\]"
-  "Ceph RBD should be mountable"      # probably blocked by serial pulling
-  "GlusterFS RBD should be mountable" # probably blocked by serial pulling
   "schedule jobs on pod slaves use of jenkins with kubernetes plugin by creating slave from existing builder and adding it to Jenkins master" # https://github.com/openshift/origin/issues/7619
 
   # Inordinately slow tests
