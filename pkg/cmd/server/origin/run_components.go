@@ -447,7 +447,7 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewRegistry(osClient)
+	resourceQuotaRegistry := quota.NewRegistry(osClient, false)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:            kClient,
 		ResyncPeriod:          controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),

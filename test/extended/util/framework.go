@@ -302,7 +302,8 @@ func WaitForResourceQuotaSync(
 	name string,
 	expectedUsage kapi.ResourceList,
 	expectedIsUpperLimit bool,
-	timeout time.Duration) (kapi.ResourceList, error) {
+	timeout time.Duration,
+) (kapi.ResourceList, error) {
 
 	startTime := time.Now()
 	endTime := startTime.Add(timeout)
@@ -346,6 +347,74 @@ func WaitForResourceQuotaSync(
 		}
 	}
 	return nil, wait.ErrWaitTimeout
+}
+
+func isLimitSynced(received, expected kapi.ResourceList) bool {
+	resourceNames := quota.ResourceNames(expected)
+	masked := quota.Mask(received, resourceNames)
+	if len(masked) != len(expected) {
+		return false
+	}
+	if le, _ := quota.LessThanOrEqual(masked, expected); !le {
+		return false
+	}
+	if le, _ := quota.LessThanOrEqual(expected, masked); !le {
+		return false
+	}
+	return true
+}
+
+// WaitForResourceQuotaSync watches given resource quota until its hard limit is updated to match the desired
+// spec or timeout occurs.
+func WaitForResourceQuotaLimitSync(
+	client kclient.ResourceQuotaInterface,
+	name string,
+	hardLimit kapi.ResourceList,
+	timeout time.Duration,
+) error {
+
+	startTime := time.Now()
+	endTime := startTime.Add(timeout)
+
+	expectedResourceNames := quota.ResourceNames(hardLimit)
+
+	list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
+	if err != nil {
+		return err
+	}
+
+	for i := range list.Items {
+		used := quota.Mask(list.Items[i].Status.Hard, expectedResourceNames)
+		if isLimitSynced(used, hardLimit) {
+			return nil
+		}
+	}
+
+	rv := list.ResourceVersion
+	w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
+	if err != nil {
+		return err
+	}
+	defer w.Stop()
+
+	for time.Now().Before(endTime) {
+		select {
+		case val, ok := <-w.ResultChan():
+			if !ok {
+				// reget and re-watch
+				continue
+			}
+			if rq, ok := val.Object.(*kapi.ResourceQuota); ok {
+				used := quota.Mask(rq.Status.Hard, expectedResourceNames)
+				if isLimitSynced(used, hardLimit) {
+					return nil
+				}
+			}
+		case <-time.After(endTime.Sub(time.Now())):
+			return wait.ErrWaitTimeout
+		}
+	}
+	return wait.ErrWaitTimeout
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed

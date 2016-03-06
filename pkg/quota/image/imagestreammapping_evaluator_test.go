@@ -6,9 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -23,7 +21,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 		imageAnnotations map[string]string
 		destISNamespace  string
 		destISName       string
-		expectedUsage    kapi.ResourceList
+		expectedImages   int64
 	}{
 		{
 			name: "empty image stream",
@@ -41,12 +39,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "is",
-			expectedUsage: kapi.ResourceList{
-				// increase usage for the whole misc image size
-				imageapi.ResourceProjectImagesSize: resource.MustParse("554"),
-				imageapi.ResourceImageStreamSize:   resource.MustParse("554"),
-				imageapi.ResourceImageSize:         resource.MustParse("554"),
-			},
+			expectedImages:   1,
 		},
 
 		{
@@ -56,6 +49,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "is",
+			expectedImages:   1,
 		},
 
 		{
@@ -73,11 +67,7 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 			imageManifest:   miscImage,
 			destISNamespace: "test",
 			destISName:      "is",
-			expectedUsage: kapi.ResourceList{
-				imageapi.ResourceProjectImagesSize: resource.MustParse("0"),
-				imageapi.ResourceImageStreamSize:   resource.MustParse("0"),
-				imageapi.ResourceImageSize:         resource.MustParse("0"),
-			},
+			expectedImages:  0,
 		},
 
 		{
@@ -107,18 +97,11 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "havingtag",
-			expectedUsage: kapi.ResourceList{
-				// count only the second data layer (first is already present in the image stream)
-				imageapi.ResourceProjectImagesSize: resource.MustParse("126"),
-				// compute whole registry size - original image is contained in the new one
-				imageapi.ResourceImageStreamSize: resource.MustParse("254"),
-				// compute whole image size
-				imageapi.ResourceImageSize: resource.MustParse("254"),
-			},
+			expectedImages:   1,
 		},
 
 		{
-			name: "add a new tag with with 2 image streams ",
+			name: "add a new tag with 2 image streams",
 			iss: []imageapi.ImageStream{
 				{
 					ObjectMeta: kapi.ObjectMeta{
@@ -166,38 +149,43 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "destis",
-			expectedUsage: kapi.ResourceList{
-				// count only the last 2 data layers of the image (first layer is already in the is)
-				imageapi.ResourceProjectImagesSize: resource.MustParse("182"),
-				// compute whole registry size
-				imageapi.ResourceImageStreamSize: resource.MustParse("864"),
-				// compute whole image size
-				imageapi.ResourceImageSize: resource.MustParse("310"),
+			expectedImages:   1,
+		},
+
+		{
+			name: "add a new tag to a new image stream with image present in the other",
+			iss: []imageapi.ImageStream{
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace: "test",
+						Name:      "other",
+					},
+					Status: imageapi.ImageStreamStatus{
+						Tags: map[string]imageapi.TagEventList{
+							"latest": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", baseImageWith2LayersDigest),
+										Image:                baseImageWith2LayersDigest,
+									},
+								},
+							},
+						},
+					},
+				},
 			},
+			imageName:        baseImageWith2LayersDigest,
+			imageManifest:    baseImageWith2Layers,
+			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+			destISNamespace:  "test",
+			destISName:       "destis",
+			expectedImages:   0,
 		},
 	} {
 
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			switch a := action.(type) {
-			case ktestclient.GetAction:
-				for _, is := range tc.iss {
-					if a.GetNamespace() != is.Namespace {
-						continue
-					}
-					if a.GetName() != is.Name {
-						continue
-					}
-
-					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
-					return true, &is, nil
-				}
-				return true, nil, fmt.Errorf("image stream %s/%s not found", a.GetNamespace(), a.GetName())
-			}
-
-			return false, nil, nil
-		})
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.destISNamespace, tc.iss...))
+		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.iss...))
 
 		evaluator := NewImageStreamMappingEvaluator(fakeClient)
 
@@ -218,28 +206,30 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 
 		usage := evaluator.Usage(ism)
 
-		if len(usage) != len(tc.expectedUsage) {
+		if len(usage) != len(expectedResources) {
 			t.Errorf("[%s]: got unexpected number of computed resources: %d != %d", tc.name, len(usage), len(expectedResources))
 		}
 
-		expectedResourceNames := kquota.ResourceNames(tc.expectedUsage)
-		masked := kquota.Mask(usage, expectedResourceNames)
+		masked := kquota.Mask(usage, expectedResources)
+		expectedUsage := kapi.ResourceList{
+			imageapi.ResourceImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		}
 
-		if len(masked) != len(tc.expectedUsage) {
+		if len(masked) != len(expectedUsage) {
 			for k := range usage {
 				if _, exists := masked[k]; !exists {
 					t.Errorf("[%s]: got unexpected resource %q from Usage() method", tc.name, k)
 				}
 			}
 
-			for k := range tc.expectedUsage {
+			for k := range expectedUsage {
 				if _, exists := masked[k]; !exists {
 					t.Errorf("[%s]: expected resource %q not computed", tc.name, k)
 				}
 			}
 		}
 
-		for rname, expectedValue := range tc.expectedUsage {
+		for rname, expectedValue := range expectedUsage {
 			if v, exists := masked[rname]; exists {
 				if v.Cmp(expectedValue) != 0 {
 					t.Errorf("[%s]: got unexpected usage for %q: %s != %s", tc.name, rname, v.String(), expectedValue.String())
