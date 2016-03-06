@@ -38,6 +38,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/quota"
 
@@ -127,6 +128,10 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 	}
 	rqs, err := repo.quotaClient.ResourceQuotas(repo.namespace).List(kapi.ListOptions{})
 	if err != nil {
+		if kerrors.IsForbidden(err) {
+			context.GetLogger(ctx).Warnf("Cannot list resourcequotas because of outdated cluster roles: %v", err)
+			return nil
+		}
 		context.GetLogger(ctx).Errorf("Failed to list resourcequotas: %v", err)
 		return err
 	}
