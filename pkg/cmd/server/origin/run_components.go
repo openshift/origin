@@ -224,8 +224,7 @@ func (c *MasterConfig) RunBuildController() {
 			Codec: codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image:                stiImage,
-			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
+			Image: stiImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec:            codec,
 			AdmissionControl: admissionControl,

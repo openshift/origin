@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -190,13 +191,18 @@ func (s *S2IBuilder) Build() error {
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
-	allowedUIDs := os.Getenv("ALLOWED_UIDS")
-	glog.V(2).Infof("The value of ALLOWED_UIDS is [%s]", allowedUIDs)
+	allowedUIDs := os.Getenv(api.AllowedUIDs)
+	glog.V(2).Infof("The value of %s is [%s]", api.AllowedUIDs, allowedUIDs)
 	if len(allowedUIDs) > 0 {
 		err := config.AllowedUIDs.Set(allowedUIDs)
 		if err != nil {
 			return err
 		}
+	}
+	dropCaps := os.Getenv(api.DropCapabilities)
+	glog.V(2).Infof("The value of %s is [%s]", api.DropCapabilities, dropCaps)
+	if len(dropCaps) > 0 {
+		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
