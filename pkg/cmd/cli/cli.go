@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
@@ -176,6 +177,16 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
+
+	// experimental commands are those that are bundled with the binary but not displayed to end users
+	// directly
+	experimental := &cobra.Command{
+		Use: "ex", // Because this command exposes no description, it will not be shown in help
+	}
+	experimental.AddCommand(
+		dockerbuild.NewCmdDockerbuild(fullName, f, out, errout),
+	)
+	cmds.AddCommand(experimental)
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName, false))
