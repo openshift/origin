@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -77,8 +78,14 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 
 	portString := params["target-port"]
 	if len(portString) > 0 {
+		var targetPort intstr.IntOrString
+		if port, err := strconv.Atoi(portString); err == nil {
+			targetPort = intstr.FromInt(port)
+		} else {
+			targetPort = intstr.FromString(portString)
+		}
 		route.Spec.Port = &api.RoutePort{
-			TargetPort: intstr.FromString(portString),
+			TargetPort: targetPort,
 		}
 	}
 
