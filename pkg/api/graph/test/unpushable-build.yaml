@@ -7,6 +7,7 @@ items:
     labels:
       app: ruby
     name: ruby-hello-world
+    namespace: example
   spec:
     output:
       to:
@@ -42,6 +43,7 @@ items:
       app: ruby
       buildconfig: ruby-hello-world
     name: ruby-hello-world-1
+    namespace: example
   spec:
     output:
       to:
@@ -72,6 +74,7 @@ items:
     labels:
       app: ruby
     name: ruby-22-centos7
+    namespace: example
   spec:
     dockerImageRepository: centos/ruby-22-centos7
   status:
@@ -83,6 +86,7 @@ items:
     labels:
       app: ruby
     name: ruby-hello-world
+    namespace: example
   spec: {}
   status:
     dockerImageRepository: ""
@@ -93,6 +97,7 @@ items:
     labels:
       app: ruby
     name: ruby-hello-world
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -143,6 +148,7 @@ items:
     labels:
       app: ruby
     name: ruby-hello-world
+    namespace: example
   spec:
     portalIP: ""
     ports:

@@ -31,16 +31,6 @@ var originTypes map[unversioned.GroupVersionKind]bool
 // but that is not onerous
 var originTypesLock sync.Once
 
-// UserResources are the resource names that apply to the primary, user facing resources used by
-// client tools. They are in deletion-first order - dependent resources should be last.
-var UserResources = []string{
-	"buildConfigs", "builds",
-	"imageStreams",
-	"deploymentConfigs", "replicationControllers",
-	"routes", "services",
-	"pods",
-}
-
 // OriginKind returns true if OpenShift owns the GroupVersionKind.
 func OriginKind(gvk unversioned.GroupVersionKind) bool {
 	return getOrCreateOriginKinds()[gvk]

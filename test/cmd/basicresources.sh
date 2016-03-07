@@ -22,6 +22,7 @@ os::log::install_errexit
 
 os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
 os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'
+os::cmd::expect_success_and_text 'oc get all --loglevel=6' 'buildconfigs'
 os::cmd::expect_success_and_text 'oc explain pods' 'Pod is a collection of containers that can run on a host'
 os::cmd::expect_success_and_text 'oc explain pods.spec' 'SecurityContext holds pod-level security attributes'
 os::cmd::expect_success_and_text 'oc explain deploymentconfig' 'a desired deployment state'

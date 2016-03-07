@@ -1,0 +1,50 @@
+/* force a space where it may collapse */
+.space-after:after {
+  content: "\00a0";
+}
+.space-before:before {
+  content: "\00a0";
+}
+
+/* Device specific text alignment classes.
+   - use with the basic align-left & align-right provided by bootstrap.
+   - example usage:
+     <div class="text-xs-left text-right">
+     would align text to left on mobile, else align right on other devices.
+ ---------------------------------------------------------------------------- */
+// extra small
+@media (max-width: @screen-xs-max) {
+  .text-xs-left {
+    text-align: left;
+  }
+  .text-xs-right {
+    text-align: right;
+  }
+}
+// small
+@media (min-width: @screen-sm-min) and (max-width: @screen-sm-max) {
+  .text-sm-left {
+    text-align: left;
+  }
+  .text-sm-right {
+    text-align: right;
+  }
+}
+// medium
+@media (min-width: @screen-md-min) and (max-width: @screen-md-max) {
+  .text-md-left {
+    text-align: left;
+  }
+  .text-md-right {
+    text-align: right;
+  }
+}
+// large
+@media (min-width: @screen-lg-min) {
+  .text-lg-left {
+    text-align: left;
+  }
+  .text-lg-right {
+    text-align: right;
+  }
+}

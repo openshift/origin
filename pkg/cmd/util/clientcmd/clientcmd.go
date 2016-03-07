@@ -31,7 +31,9 @@ type Config struct {
 	Namespace string
 
 	// If set, allow kubeconfig file loading
-	FromFile     bool
+	FromFile bool
+	// If true, no environment is loaded (for testing, primarily)
+	SkipEnv      bool
 	clientConfig clientcmd.ClientConfig
 }
 
@@ -45,15 +47,25 @@ func NewConfig() *Config {
 }
 
 // AnonymousClientConfig returns a copy of the given config with all user credentials (cert/key, bearer token, and username/password) removed
-func AnonymousClientConfig(config kclient.Config) kclient.Config {
-	config.BearerToken = ""
-	config.CertData = nil
-	config.CertFile = ""
-	config.KeyData = nil
-	config.KeyFile = ""
-	config.Username = ""
-	config.Password = ""
-	return config
+func AnonymousClientConfig(config *kclient.Config) kclient.Config {
+	// copy only known safe fields
+	// TODO: expose a copy method on the config that is "auth free"
+	return kclient.Config{
+		Host:          config.Host,
+		APIPath:       config.APIPath,
+		Prefix:        config.Prefix,
+		ContentConfig: config.ContentConfig,
+		TLSClientConfig: kclient.TLSClientConfig{
+			CAFile: config.TLSClientConfig.CAFile,
+			CAData: config.TLSClientConfig.CAData,
+		},
+		Insecure:      config.Insecure,
+		UserAgent:     config.UserAgent,
+		Transport:     config.Transport,
+		WrapTransport: config.WrapTransport,
+		QPS:           config.QPS,
+		Burst:         config.Burst,
+	}
 }
 
 // BindClientConfigSecurityFlags adds flags for the supplied client config
@@ -77,6 +89,13 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	}
 }
 
+// BindToFile is used when this config will not be bound to flags, but should load the config file
+// from disk if available.
+func (cfg *Config) BindToFile() *Config {
+	cfg.clientConfig = DefaultClientConfig(pflag.NewFlagSet("empty", pflag.ContinueOnError))
+	return cfg
+}
+
 func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) []api.EnvVar {
 	envvars := []api.EnvVar{
 		{Name: "KUBERNETES_MASTER", Value: host},
@@ -97,9 +116,15 @@ func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) 
 }
 
 func (cfg *Config) bindEnv() error {
+	// bypass loading from env
+	if cfg.SkipEnv {
+		return nil
+	}
 	var err error
 
-	// callers may not use the config file if they have specified a master directly
+	// callers may not use the config file if they have specified a master directly, for backwards
+	// compatibility with components that used to use env, switch to service account token, and have
+	// config defined in env.
 	_, masterSet := util.GetEnv("OPENSHIFT_MASTER")
 	specifiedMaster := masterSet || cfg.MasterAddr.Provided
 
@@ -195,7 +220,9 @@ func (cfg *Config) OpenShiftConfig() *kclient.Config {
 	}
 
 	osConfig := cfg.CommonConfig
-	osConfig.Host = cfg.MasterAddr.String()
+	if len(osConfig.Host) == 0 || cfg.MasterAddr.Provided {
+		osConfig.Host = cfg.MasterAddr.String()
+	}
 
 	return &osConfig
 }

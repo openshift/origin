@@ -18,6 +18,7 @@ func TestMissingImageStreamTag(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers := FindDeploymentConfigTriggerErrors(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {
@@ -37,6 +38,7 @@ func TestMissingImageStream(t *testing.T) {
 	buildedges.AddAllInputOutputEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers := FindDeploymentConfigTriggerErrors(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {

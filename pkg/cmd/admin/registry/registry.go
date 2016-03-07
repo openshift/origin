@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -14,15 +16,16 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
+	authapi "github.com/openshift/origin/pkg/authorization/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	dapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 )
 
@@ -64,6 +67,7 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 )
 
 type RegistryConfig struct {
+	Name           string
 	Type           string
 	ImageTemplate  variable.ImageTemplate
 	Ports          string
@@ -75,6 +79,9 @@ type RegistryConfig struct {
 	Credentials    string
 	Selector       string
 	ServiceAccount string
+
+	ServingCertPath string
+	ServingKeyPath  string
 
 	// TODO: accept environment values.
 }
@@ -95,17 +102,23 @@ const (
 	 * a container and be used on subsequent checks. */
 	healthzRoute               = "/healthz"
 	healthzRouteTimeoutSeconds = 5
+	// this is the official private certificate path on Red Hat distros, and is at least structurally more
+	// correct than ubuntu based distributions which don't distinguish between public and private certs.
+	// Since Origin is CentOS based this is more likely to work.  Ubuntu images should symlink this directory
+	// into /etc/ssl/certs to be compatible.
+	defaultCertificateDir = "/etc/pki/tls/private"
 )
 
 // NewCmdRegistry implements the OpenShift cli registry command
 func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &RegistryConfig{
-		ImageTemplate: variable.NewDefaultImageTemplate(),
-
-		Labels:   defaultLabel,
-		Ports:    strconv.Itoa(defaultPort),
-		Volume:   "/registry",
-		Replicas: 1,
+		ImageTemplate:  variable.NewDefaultImageTemplate(),
+		Name:           "registry",
+		Labels:         defaultLabel,
+		Ports:          strconv.Itoa(defaultPort),
+		Volume:         "/registry",
+		ServiceAccount: "registry",
+		Replicas:       1,
 	}
 
 	cmd := &cobra.Command{
@@ -116,7 +129,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRegistry(f, cmd, out, cfg, args)
 			if err != errExit {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			} else {
 				os.Exit(1)
 			}
@@ -136,11 +149,13 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the registry pod.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
+	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
+	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
@@ -152,7 +167,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 	case 0:
 		name = "docker-registry"
 	default:
-		return cmdutil.UsageError(cmd, "No arguments are allowed to this command")
+		return kcmdutil.UsageError(cmd, "No arguments are allowed to this command")
 	}
 
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
@@ -169,7 +184,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			return err
 		}
 		if len(remove) > 0 {
-			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
+			return kcmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
 		}
 		label = valid
 	}
@@ -181,7 +196,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			return err
 		}
 		if len(remove) > 0 {
-			return cmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
+			return kcmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
 		}
 		nodeSelector = valid
 	}
@@ -197,31 +212,39 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	_, output, err := cmdutil.PrinterForCommand(cmd)
+	_, output, err := kcmdutil.PrinterForCommand(cmd)
 	if err != nil {
 		return fmt.Errorf("unable to configure printer: %v", err)
 	}
 
+	var clusterIP string
 	generate := output
-	if !generate {
-		_, err = kClient.Services(namespace).Get(name)
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
-			}
-			generate = true
+
+	service, err := kClient.Services(namespace).Get(name)
+	if err != nil {
+		if !errors.IsNotFound(err) && !generate {
+			return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
 		}
+		generate = true
+	} else {
+		clusterIP = service.Spec.ClusterIP
 	}
 
-	if generate {
-		if cfg.DryRun && !output {
-			return fmt.Errorf("docker-registry %q does not exist (no service).", name)
-		}
+	if !generate {
+		fmt.Fprintf(out, "Docker registry %q service exists\n", name)
+		return nil
+	}
 
-		// create new registry
-		if len(cfg.Credentials) == 0 {
-			return fmt.Errorf("registry does not exist; you must specify a .kubeconfig file path containing credentials for connecting the registry to the master with --credentials")
-		}
+	if cfg.DryRun && !output {
+		return fmt.Errorf("docker-registry %q does not exist (no service).", name)
+	}
+
+	// create new registry
+	secretEnv := app.Environment{}
+	switch {
+	case len(cfg.ServiceAccount) == 0 && len(cfg.Credentials) == 0:
+		return fmt.Errorf("registry could not be created; a service account or the path to a .kubeconfig file must be provided")
+	case len(cfg.Credentials) > 0:
 		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials}
 		credentials, err := clientConfigLoadingRules.Load()
 		if err != nil {
@@ -243,150 +266,265 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			}
 		}
 
-		env := app.Environment{
+		secretEnv = app.Environment{
 			"OPENSHIFT_MASTER":    config.Host,
 			"OPENSHIFT_CA_DATA":   string(config.CAData),
 			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
 			"OPENSHIFT_CERT_DATA": string(config.CertData),
 			"OPENSHIFT_INSECURE":  insecure,
 		}
+	}
 
-		healthzPort := defaultPort
-		if len(ports) > 0 {
-			healthzPort = ports[0].ContainerPort
-			env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
-			env["REGISTRY_HTTP_NET"] = "tcp"
+	needServiceAccountRole := len(cfg.ServiceAccount) > 0 && len(cfg.Credentials) == 0
+
+	var servingCert, servingKey []byte
+	if len(cfg.ServingCertPath) > 0 {
+		data, err := ioutil.ReadFile(cfg.ServingCertPath)
+		if err != nil {
+			return fmt.Errorf("registry does not exist; could not load TLS certificate file %q: %v", cfg.ServingCertPath, err)
 		}
-		livenessProbe := generateLivenessProbeConfig(healthzPort)
-		readinessProbe := generateReadinessProbeConfig(healthzPort)
-
-		secretBytes := make([]byte, randomSecretSize)
-		if _, err := cryptorand.Read(secretBytes); err != nil {
-			return fmt.Errorf("registry does not exist; could not generate random bytes for HTTP secret: %v", err)
+		servingCert = data
+	}
+	if len(cfg.ServingKeyPath) > 0 {
+		data, err := ioutil.ReadFile(cfg.ServingKeyPath)
+		if err != nil {
+			return fmt.Errorf("registry does not exist; could not load TLS private key file %q: %v", cfg.ServingKeyPath, err)
 		}
-		env["REGISTRY_HTTP_SECRET"] = base64.StdEncoding.EncodeToString(secretBytes)
+		servingCert = data
+	}
 
-		mountHost := len(cfg.HostMount) > 0
-		podTemplate := &kapi.PodTemplateSpec{
-			ObjectMeta: kapi.ObjectMeta{Labels: label},
-			Spec: kapi.PodSpec{
-				ServiceAccountName: cfg.ServiceAccount,
-				NodeSelector:       nodeSelector,
-				Containers: []kapi.Container{
-					{
-						Name:  "registry",
-						Image: image,
-						Ports: ports,
-						Env:   env.List(),
-						VolumeMounts: []kapi.VolumeMount{
-							{
-								Name:      "registry-storage",
-								MountPath: cfg.Volume,
-							},
-						},
-						SecurityContext: &kapi.SecurityContext{
-							Privileged: &mountHost,
-						},
-						LivenessProbe:  livenessProbe,
-						ReadinessProbe: readinessProbe,
+	env := app.Environment{}
+	env.Add(secretEnv)
+
+	healthzPort := defaultPort
+	if len(ports) > 0 {
+		healthzPort = ports[0].ContainerPort
+		env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
+		env["REGISTRY_HTTP_NET"] = "tcp"
+	}
+	secrets, volumes, mounts, extraEnv, tls, err := generateSecretsConfig(cfg, namespace, servingCert, servingKey)
+	if err != nil {
+		return err
+	}
+	env.Add(extraEnv)
+
+	livenessProbe := generateLivenessProbeConfig(healthzPort, tls)
+	readinessProbe := generateReadinessProbeConfig(healthzPort, tls)
+
+	mountHost := len(cfg.HostMount) > 0
+	podTemplate := &kapi.PodTemplateSpec{
+		ObjectMeta: kapi.ObjectMeta{Labels: label},
+		Spec: kapi.PodSpec{
+			NodeSelector: nodeSelector,
+			Containers: []kapi.Container{
+				{
+					Name:  "registry",
+					Image: image,
+					Ports: ports,
+					Env:   env.List(),
+					VolumeMounts: append(mounts, kapi.VolumeMount{
+						Name:      "registry-storage",
+						MountPath: cfg.Volume,
+					}),
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &mountHost,
 					},
-				},
-				Volumes: []kapi.Volume{
-					{
-						Name:         "registry-storage",
-						VolumeSource: kapi.VolumeSource{},
-					},
+					LivenessProbe:  livenessProbe,
+					ReadinessProbe: readinessProbe,
 				},
 			},
-		}
-		if mountHost {
-			podTemplate.Spec.Volumes[0].HostPath = &kapi.HostPathVolumeSource{Path: cfg.HostMount}
-		} else {
-			podTemplate.Spec.Volumes[0].EmptyDir = &kapi.EmptyDirVolumeSource{}
-		}
+			Volumes: append(volumes, kapi.Volume{
+				Name:         "registry-storage",
+				VolumeSource: kapi.VolumeSource{},
+			}),
+		},
+	}
+	if mountHost {
+		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].HostPath = &kapi.HostPathVolumeSource{Path: cfg.HostMount}
+	} else {
+		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].EmptyDir = &kapi.EmptyDirVolumeSource{}
+	}
 
-		objects := []runtime.Object{
-			&dapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:   name,
-					Labels: label,
-				},
-				Spec: dapi.DeploymentConfigSpec{
-					Replicas: cfg.Replicas,
-					Selector: label,
-					Triggers: []dapi.DeploymentTriggerPolicy{
-						{Type: dapi.DeploymentTriggerOnConfigChange},
+	objects := []runtime.Object{}
+	for _, s := range secrets {
+		objects = append(objects, s)
+	}
+	if needServiceAccountRole {
+		objects = append(objects,
+			&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
+			&authapi.ClusterRoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", cfg.Name)},
+				Subjects: []kapi.ObjectReference{
+					{
+						Kind:      "ServiceAccount",
+						Name:      cfg.ServiceAccount,
+						Namespace: namespace,
 					},
-					Template: podTemplate,
+				},
+				RoleRef: kapi.ObjectReference{
+					Kind: "ClusterRole",
+					Name: "system:registry",
 				},
 			},
+		)
+		podTemplate.Spec.ServiceAccountName = cfg.ServiceAccount
+	}
+
+	objects = append(objects, &deployapi.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:   name,
+			Labels: label,
+		},
+		Spec: deployapi.DeploymentConfigSpec{
+			Replicas: cfg.Replicas,
+			Selector: label,
+			Triggers: []deployapi.DeploymentTriggerPolicy{
+				{Type: deployapi.DeploymentTriggerOnConfigChange},
+			},
+			Template: podTemplate,
+		},
+	})
+	objects = app.AddServices(objects, true)
+
+	// Set registry service's sessionAffinity to ClientIP to prevent push
+	// failures due to a use of poorly consistent storage shared by
+	// multiple replicas. Also reuse the cluster IP if provided to avoid
+	// changing the internal value.
+	for _, obj := range objects {
+		switch t := obj.(type) {
+		case *kapi.Service:
+			t.Spec.SessionAffinity = kapi.ServiceAffinityClientIP
+			t.Spec.ClusterIP = clusterIP
 		}
-		objects = app.AddServices(objects, true)
+	}
 
-		// Set registry service's sessionAffinity to ClientIP to prevent push
-		// failures due to a use of poorly consistent storage shared by
-		// multiple replicas.
-		for _, obj := range objects {
-			switch t := obj.(type) {
-			case *kapi.Service:
-				t.Spec.SessionAffinity = kapi.ServiceAffinityClientIP
-			}
+	// TODO: label all created objects with the same label
+	list := &kapi.List{Items: objects}
+
+	if output {
+		list.Items, err = cmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
+		if err != nil {
+			return err
 		}
 
-		// TODO: label all created objects with the same label
-		list := &kapi.List{Items: objects}
-
-		if output {
-			list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-			if err != nil {
-				return err
-			}
-
-			if err := f.PrintObject(cmd, list, out); err != nil {
-				return fmt.Errorf("unable to print object: %v", err)
-			}
-			return nil
-		}
-
-		mapper, typer := f.Factory.Object()
-		bulk := configcmd.Bulk{
-			Mapper:            mapper,
-			Typer:             typer,
-			RESTClientFactory: f.Factory.ClientForMapping,
-
-			After: configcmd.NewPrintNameOrErrorAfter(mapper, cmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
-		}
-		if errs := bulk.Create(list, namespace); len(errs) != 0 {
-			return errExit
+		if err := f.PrintObject(cmd, list, out); err != nil {
+			return fmt.Errorf("unable to print object: %v", err)
 		}
 		return nil
 	}
 
-	fmt.Fprintf(out, "Docker registry %q service exists\n", name)
+	mapper, typer := f.Factory.Object()
+	bulk := configcmd.Bulk{
+		Mapper:            mapper,
+		Typer:             typer,
+		RESTClientFactory: f.Factory.ClientForMapping,
+
+		After: configcmd.NewPrintNameOrErrorAfter(mapper, kcmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
+	}
+	if errs := bulk.Create(list, namespace); len(errs) != 0 {
+		return errExit
+	}
 	return nil
 }
 
-func generateLivenessProbeConfig(port int) *kapi.Probe {
+func generateLivenessProbeConfig(port int, https bool) *kapi.Probe {
+	var scheme kapi.URIScheme
+	if https {
+		scheme = kapi.URISchemeHTTPS
+	}
 	return &kapi.Probe{
 		InitialDelaySeconds: 10,
 		TimeoutSeconds:      healthzRouteTimeoutSeconds,
 		Handler: kapi.Handler{
 			HTTPGet: &kapi.HTTPGetAction{
-				Path: healthzRoute,
-				Port: intstr.FromInt(port),
+				Scheme: scheme,
+				Path:   healthzRoute,
+				Port:   intstr.FromInt(port),
 			},
 		},
 	}
 }
 
-func generateReadinessProbeConfig(port int) *kapi.Probe {
+func generateReadinessProbeConfig(port int, https bool) *kapi.Probe {
+	var scheme kapi.URIScheme
+	if https {
+		scheme = kapi.URISchemeHTTPS
+	}
 	return &kapi.Probe{
 		TimeoutSeconds: healthzRouteTimeoutSeconds,
 		Handler: kapi.Handler{
 			HTTPGet: &kapi.HTTPGetAction{
-				Path: healthzRoute,
-				Port: intstr.FromInt(port),
+				Scheme: scheme,
+				Path:   healthzRoute,
+				Port:   intstr.FromInt(port),
 			},
 		},
 	}
+}
+
+// generateSecretsConfig generates any Secret and Volume objects, such
+// as the TLS serving cert that are necessary for the registry container.
+// Runs true if the registry should be served over TLS.
+func generateSecretsConfig(
+	cfg *RegistryConfig, namespace string, defaultCrt, defaultKey []byte,
+) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, app.Environment, bool, error) {
+	var secrets []*kapi.Secret
+	var volumes []kapi.Volume
+	var mounts []kapi.VolumeMount
+	extraEnv := app.Environment{}
+
+	if len(defaultCrt) > 0 && len(defaultKey) == 0 {
+		keys, err := cmdutil.PrivateKeysFromPEM(defaultCrt)
+		if err != nil {
+			return nil, nil, nil, nil, false, err
+		}
+		if len(keys) == 0 {
+			return nil, nil, nil, nil, false, fmt.Errorf("the default cert must contain a private key")
+		}
+		defaultKey = keys
+	}
+
+	if len(defaultCrt) > 0 {
+		secret := &kapi.Secret{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: fmt.Sprintf("%s-certs", cfg.Name),
+			},
+			Type: kapi.SecretTypeTLS,
+			Data: map[string][]byte{
+				kapi.TLSCertKey:       defaultCrt,
+				kapi.TLSPrivateKeyKey: defaultKey,
+			},
+		}
+		secrets = append(secrets, secret)
+		volume := kapi.Volume{
+			Name: "server-certificate",
+			VolumeSource: kapi.VolumeSource{
+				Secret: &kapi.SecretVolumeSource{
+					SecretName: secret.Name,
+				},
+			},
+		}
+		volumes = append(volumes, volume)
+
+		mount := kapi.VolumeMount{
+			Name:      volume.Name,
+			ReadOnly:  true,
+			MountPath: defaultCertificateDir,
+		}
+		mounts = append(mounts, mount)
+
+		extraEnv.Add(app.Environment{
+			"REGISTRY_HTTP_TLS_CERTIFICATE": path.Join(defaultCertificateDir, kapi.TLSCertKey),
+			"REGISTRY_HTTP_TLS_KEY":         path.Join(defaultCertificateDir, kapi.TLSPrivateKeyKey),
+		})
+	}
+
+	secretBytes := make([]byte, randomSecretSize)
+	if _, err := cryptorand.Read(secretBytes); err != nil {
+		return nil, nil, nil, nil, false, fmt.Errorf("registry does not exist; could not generate random bytes for HTTP secret: %v", err)
+	}
+	httpSecretString := base64.StdEncoding.EncodeToString(secretBytes)
+	extraEnv["REGISTRY_HTTP_SECRET"] = httpSecretString
+
+	return secrets, volumes, mounts, extraEnv, len(defaultCrt) > 0, nil
 }

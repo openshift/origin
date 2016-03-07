@@ -119,6 +119,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		Server:  config.Host,
 		Suggest: o.verbose,
 
+		// TODO: Remove these and reference them inside the markers using constants.
 		LogsCommandName:             o.logsCommandName,
 		SecurityPolicyCommandFormat: o.securityPolicyCommandFormat,
 		SetProbeCommandName:         o.setProbeCommandName,

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/homedir"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -167,7 +170,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
 	}
-	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
@@ -182,16 +184,32 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
+
+		defaultMapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
+		defaultTyper := api.Scheme
+
 		// Output using whatever version was negotiated in the client cache. The
 		// version we decode with may not be the same as what the server requires.
-		if cfg, err := clients.ClientConfigForVersion(nil); err == nil {
-			cmdApiVersion := unversioned.GroupVersion{}
-			if cfg.GroupVersion != nil {
-				cmdApiVersion = *cfg.GroupVersion
-			}
-			return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
+		cfg, err := clients.ClientConfigForVersion(nil)
+		if err != nil {
+			return defaultMapper, defaultTyper
 		}
-		return mapper, api.Scheme
+
+		cmdApiVersion := unversioned.GroupVersion{}
+		if cfg.GroupVersion != nil {
+			cmdApiVersion = *cfg.GroupVersion
+		}
+
+		// at this point we've negotiated and can get the client
+		oclient, err := clients.ClientForVersion(nil)
+		if err != nil {
+			return defaultMapper, defaultTyper
+		}
+
+		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
+		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute))
+		mapper := NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: restMapper})
+		return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 	}
 
 	kClientForMapping := w.Factory.ClientForMapping
@@ -450,6 +468,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	return w
 }
 
+// overlyCautiousIllegalFileCharacters matches characters that *might* not be supported.  Windows is really restrictive, so this is really restrictive
+var overlyCautiousIllegalFileCharacters = regexp.MustCompile(`[^(\w/\.)]`)
+
+// computeDiscoverCacheDir takes the parentDir and the host and comes up with a "usually non-colliding" name.
+func computeDiscoverCacheDir(parentDir, host string) string {
+	// strip the optional scheme from host if its there:
+	schemelessHost := strings.Replace(strings.Replace(host, "https://", "", 1), "http://", "", 1)
+	// now do a simple collapse of non-AZ09 characters.  Collisions are possible but unlikely.  Even if we do collide the problem is short lived
+	safeHost := overlyCautiousIllegalFileCharacters.ReplaceAllString(schemelessHost, "_")
+
+	return filepath.Join(parentDir, safeHost)
+}
+
 func getPorts(spec api.PodSpec) []string {
 	result := []string{}
 	for _, container := range spec.Containers {
@@ -579,76 +610,6 @@ func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unvers
 		return nil, fmt.Errorf("got '%s': %v", string(body), err)
 	}
 	return &schema, nil
-}
-
-// ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
-type ShortcutExpander struct {
-	RESTMapper meta.RESTMapper
-}
-
-var _ meta.RESTMapper = &ShortcutExpander{}
-
-func (e ShortcutExpander) KindFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionKind, error) {
-	return e.RESTMapper.KindFor(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) KindsFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionKind, error) {
-	return e.RESTMapper.KindsFor(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourcesFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionResource, error) {
-	return e.RESTMapper.ResourcesFor(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionResource, error) {
-	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
-	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
-}
-
-func (e ShortcutExpander) RESTMapping(gk unversioned.GroupKind, versions ...string) (*meta.RESTMapping, error) {
-	return e.RESTMapper.RESTMapping(gk, versions...)
-}
-
-// AliasesForResource returns whether a resource has an alias or not
-func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
-	aliases := map[string][]string{
-		"all": latest.UserResources,
-	}
-
-	if res, ok := aliases[resource]; ok {
-		return res, true
-	}
-	return e.RESTMapper.AliasesForResource(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
-}
-
-// shortForms is the list of short names to their expanded names
-var shortForms = map[string]string{
-	"dc":      "deploymentconfigs",
-	"bc":      "buildconfigs",
-	"is":      "imagestreams",
-	"istag":   "imagestreamtags",
-	"isimage": "imagestreamimages",
-	"sa":      "serviceaccounts",
-	"pv":      "persistentvolumes",
-	"pvc":     "persistentvolumeclaims",
-}
-
-// expandResourceShortcut will return the expanded version of resource
-// (something that a pkg/api/meta.RESTMapper can understand), if it is
-// indeed a shortcut. Otherwise, will return resource unmodified.
-func expandResourceShortcut(resource unversioned.GroupVersionResource) unversioned.GroupVersionResource {
-	if expanded, ok := shortForms[resource.Resource]; ok {
-		resource.Resource = expanded
-		return resource
-	}
-	return resource
 }
 
 // clientCache caches previously loaded clients for reuse. This is largely

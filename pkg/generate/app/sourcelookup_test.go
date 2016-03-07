@@ -34,9 +34,13 @@ func TestAddBuildSecrets(t *testing.T) {
 			},
 		},
 	}
+	repo := &SourceRepository{}
+	if err := repo.AddBuildSecrets([]string{"secret1:/absolute/path"}, true); err == nil {
+		t.Errorf("expected error for docker strategy when destDir is absolute")
+	}
 	for _, item := range table {
 		repo := &SourceRepository{}
-		err := repo.AddBuildSecrets(item.in)
+		err := repo.AddBuildSecrets(item.in, false)
 		if err != nil && len(item.expect) != 0 {
 			t.Errorf("unexpected error: %v", err)
 			continue

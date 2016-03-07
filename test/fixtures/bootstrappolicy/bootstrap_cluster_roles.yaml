@@ -170,6 +170,7 @@ items:
     - imagestreamimports
     - imagestreammappings
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     - localresourceaccessreviews
     - localsubjectaccessreviews
@@ -295,6 +296,7 @@ items:
     - imagestreamimports
     - imagestreammappings
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     - persistentvolumeclaims
     - pods
@@ -989,7 +991,7 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
-    name: system:registry-admin
+    name: registry-admin
   rules:
   - apiGroups: null
     attributeRestrictions: null
@@ -1054,7 +1056,7 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
-    name: system:registry-viewer
+    name: registry-viewer
   rules:
   - apiGroups: null
     attributeRestrictions: null
@@ -1080,7 +1082,7 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
-    name: system:registry-editor
+    name: registry-editor
   rules:
   - apiGroups: null
     attributeRestrictions: null

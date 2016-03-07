@@ -8,6 +8,7 @@ items:
       name: ruby-sample-build
       template: application-template-stibuild
     name: ruby-sample-build
+    namespace: example
   spec:
     output:
       to:
@@ -46,6 +47,7 @@ items:
       name: ruby-sample-build
       template: application-template-stibuild
     name: ruby-sample-build-1
+    namespace: example
   spec:
     output:
       to:
@@ -84,6 +86,7 @@ items:
     labels:
       template: application-template-stibuild
     name: database-2
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -140,6 +143,7 @@ items:
     labels:
       template: application-template-stibuild
     name: database-1
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -190,6 +194,7 @@ items:
     labels:
       template: application-template-stibuild
     name: database
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -248,6 +253,7 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend-2
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -308,6 +314,7 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend-1
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -362,6 +369,7 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
+    namespace: example
   spec:
     replicas: 1
     selector:
@@ -428,6 +436,7 @@ items:
     labels:
       template: application-template-stibuild
     name: database
+    namespace: example
   spec:
     portalIP: 172.30.17.240
     ports:
@@ -448,6 +457,7 @@ items:
     labels:
       template: application-template-stibuild
     name: database-external
+    namespace: example
   spec:
     portalIP: 172.30.17.241
     ports:
@@ -468,6 +478,7 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
+    namespace: example
   spec:
     portalIP: 172.30.17.154
     ports:
@@ -490,6 +501,7 @@ items:
     labels:
       template: application-template-stibuild
     name: frontend
+    namespace: example
     resourceVersion: "393"
   spec:
     host: frontend-example.router.default.svc.cluster.local
@@ -517,6 +529,7 @@ items:
     labels:
       template: application-template-stibuild
     name: other
+    namespace: example
     resourceVersion: "393"
   spec:
     host: www.test.com

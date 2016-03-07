@@ -22,7 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 var (
@@ -139,6 +142,14 @@ func verifyTestSuitePreconditions() {
 		// uid don't get forced into a range (mimics upstream
 		// behavior)
 		addE2EServiceAccountsToSCC(c, namespaces, "anyuid")
+
+		// The intra-pod test requires that the service account have
+		// permission to retrieve service endpoints.
+		osClient, _, err := configapi.GetOpenShiftClient(KubeConfigPath())
+		if err != nil {
+			FatalErr(err)
+		}
+		addRoleToE2EServiceAccounts(osClient, namespaces, bootstrappolicy.ViewRoleName)
 	}
 }
 
@@ -166,6 +177,29 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceLis
 		scc.Groups = groups
 		if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
 			return err
+		}
+		return nil
+	})
+	if err != nil {
+		FatalErr(err)
+	}
+}
+
+func addRoleToE2EServiceAccounts(c *client.Client, namespaces *kapi.NamespaceList, roleName string) {
+	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		for _, ns := range namespaces.Items {
+			if strings.HasPrefix(ns.Name, "e2e-") {
+				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
+				addRole := &policy.RoleModificationOptions{
+					RoleNamespace:       "",
+					RoleName:            roleName,
+					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c),
+					Users:               []string{sa},
+				}
+				if err := addRole.AddRole(); err != nil {
+					FatalErr(err)
+				}
+			}
 		}
 		return nil
 	})

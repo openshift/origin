@@ -1,19 +1,23 @@
 <div
-  row class="log-timestamp"
-  ng-if="(!chromeless) && state=='logs' && timeStart">
-  <div>
-    <span>Current log from {{timeStart}}&nbsp;</span>
-    <span ng-if="end">to {{timeEnd}}</span>
-  </div>
-  <div flex></div>
-  <div ng-if="kibanaAuthUrl">
-    <form
-      action="{{kibanaAuthUrl}}"
-      method="POST">
-      <input type="hidden" name="redirect" value="{{kibanaArchiveUrl}}">
-      <input type="hidden" name="access_token" value="{{access_token}}">
-      <button class="btn btn-sm btn-primary">View Archive</button>
-    </form>
+  row
+  mobile="column"
+  tablet="column"
+  ng-if="(!chromeless)"
+  style="margin-bottom: 10px;">
+  <div ng-transclude flex><!-- expect start time, end time, status details --></div>
+  <div row class="text-right text-xs-left">
+    <a href="" ng-click="goChromeless(options)" style="margin-right: 10px;">
+      Open full view of log <i class="fa fa-external-link"></i>
+    </a>
+    <div ng-if="kibanaAuthUrl">
+      <form
+        action="{{kibanaAuthUrl}}"
+        method="POST">
+        <input type="hidden" name="redirect" value="{{kibanaArchiveUrl}}">
+        <input type="hidden" name="access_token" value="{{access_token}}">
+        <button class="btn btn-sm btn-primary">View Archive</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -24,23 +28,6 @@
   messages will be displayed because of the large log size.
 </div>
 
-
-<div class="row" ng-if="(!chromeless)">
-  <div class="col-md-6 col-sm-12">
-    <span ng-if="status">
-      <span>Status:&nbsp;&nbsp;</span>
-      <status-icon status="status"></status-icon>
-      <span>{{status}}</span>
-    </span>
-  </div>
-  <div
-    class="log-link-external col-md-6 col-sm-12 text-right"
-    ng-if="state=='logs'">
-    <a href=""  ng-click="goChromeless(options)">
-      Open full view of log<i class="fa fa-external-link"></i>
-    </a>
-  </div>
-</div>
 
 <!-- show this spinner until the log viewer starts. important for pending state, etc -->
 <div row main-axis="center" ng-if="(!state)">

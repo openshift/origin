@@ -112,6 +112,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 	routeedges.AddAllRouteEdges(g)
 
 	return g, forbiddenResources, nil
@@ -222,6 +223,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat, d.SetProbeCommandName) {
 			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
+
+		// TODO: Provide an option to chase these hidden markers.
+		allMarkers = allMarkers.FilterByNamespace(namespace)
 
 		fmt.Fprintln(out)
 
@@ -335,6 +339,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
+		buildanalysis.FindMissingInputImageStreams,
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
 		},

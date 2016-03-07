@@ -10,6 +10,7 @@ import (
 	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -634,6 +635,24 @@ func NodesByKind(g Interface, nodes []graph.Node, kinds ...string) [][]graph.Nod
 		}
 	}
 	return result
+}
+
+// IsFromDifferentNamespace returns if a node is in a different namespace
+// than the one provided.
+func IsFromDifferentNamespace(namespace string, node graph.Node) bool {
+	potentiallySyntheticNode, ok := node.(ExistenceChecker)
+	if !ok || potentiallySyntheticNode.Found() {
+		return false
+	}
+	objectified, ok := node.(objectifier)
+	if !ok {
+		return false
+	}
+	object, err := meta.Accessor(objectified)
+	if err != nil {
+		return false
+	}
+	return object.GetNamespace() != namespace
 }
 
 func pathCovered(path []graph.Node, paths map[int][]graph.Node) bool {

@@ -70,6 +70,9 @@ func doesImageStreamExist(g osgraph.Graph, istag graph.Node) (graph.Node, bool) 
 	for _, imagestream := range g.SuccessorNodesByEdgeKind(istag, imageedges.ReferencedImageStreamGraphEdgeKind) {
 		return imagestream, imagestream.(*imagegraph.ImageStreamNode).Found()
 	}
+	for _, imagestream := range g.SuccessorNodesByEdgeKind(istag, imageedges.ReferencedImageStreamImageGraphEdgeKind) {
+		return imagestream, imagestream.(*imagegraph.ImageStreamNode).Found()
+	}
 	return nil, false
 }
 

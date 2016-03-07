@@ -102,6 +102,10 @@ func (n ImageStreamImageNode) String() string {
 	return string(ImageStreamImageNodeName(n.ImageStreamImage))
 }
 
+func (n ImageStreamImageNode) ResourceString() string {
+	return "isimage/" + n.Name
+}
+
 func (*ImageStreamImageNode) Kind() string {
 	return ImageStreamImageNodeKind
 }
