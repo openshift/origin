@@ -122,7 +122,7 @@ func (c defaultingClientConfig) ClientConfig() (*kclient.Config, error) {
 		return icc, nil
 	}
 
-	return nil, fmt.Errorf(`No configuration file found, please login or point to an existing file:
+	return nil, fmt.Errorf(`Missing or incomplete configuration info.  Please login or point to an existing, complete config file:
 
   1. Via the command-line flag --config
   2. Via the KUBECONFIG environment variable

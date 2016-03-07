@@ -193,7 +193,7 @@ os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" '
 os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
 
 # test client not configured
-os::cmd::expect_failure_and_text "oc get services" 'No configuration file found, please login'
+os::cmd::expect_failure_and_text "oc get services" 'Missing or incomplete configuration info.  Please login'
 unused_port="33333"
 # setting env bypasses the not configured message
 os::cmd::expect_failure_and_text "KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services" 'did you specify the right host or port'
