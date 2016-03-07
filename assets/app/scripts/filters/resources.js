@@ -861,18 +861,6 @@ angular.module('openshiftConsole')
       return portDisplayValue(servicePort.port, servicePort.targetPort, servicePort.protocol);
     };
   })
-  .filter('sentenceCase', function() {
-    // Converts a camel case string to sentence case
-    return function(str) {
-      if (!str) {
-        return str;
-      }
-
-      // Unfortunately, _.lowerCase() and _.upperFirst() aren't in our lodash version.
-      var lower = _.startCase(str).toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    };
-  })
   .filter('podStatus', function() {
     // Return results that match kubernetes/pkg/kubectl/resource_printer.go
     return function(pod) {
@@ -911,14 +899,14 @@ angular.module('openshiftConsole')
       });
 
       return reason;
-    };      
+    };
   })
   .filter('routeIngressCondition', function() {
     return function(ingress, type) {
       if (!ingress) {
         return null;
       }
-      return _.find(ingress.conditions, {type: type}); 
+      return _.find(ingress.conditions, {type: type});
     };
   })
   .filter('routeHost', function() {

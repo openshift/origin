@@ -207,14 +207,6 @@
                   {
                     "name": "JENKINS_PASSWORD",
                     "value": "${JENKINS_PASSWORD}"
-                  },
-                  {
-                    "name": "PROJECT_NAME",
-                    "valueFrom": {
-                      "fieldRef": {
-                        "fieldPath": "metadata.namespace"
-                      }
-                    }
                   }
                 ],
                 "resources": {},

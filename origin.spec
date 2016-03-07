@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1106d1e0605c5e43aa027d94c4493996a073d5dd
+%global commit 4af40cac3579e2a51157cad37f54e67c43aa7343
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.909-52-g1106d1e -X github.com/openshift/origin/pkg/version.commitFromGit 1106d1e -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.910-66-g4af40ca -X github.com/openshift/origin/pkg/version.commitFromGit 4af40ca -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.1.1.910
+Version:        3.1.1.911
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,55 @@ fi
 
 
 %changelog
+* Mon Mar 07 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.911
+- add oc status warnings for missing is/istag/dockref/isimg for bc
+  (gmontero@redhat.com)
+- Update skip tags for gluster and ceph. (jay@apache.org)
+- Skip quota check when cluster roles are outdated (miminar@redhat.com)
+- Put dev cluster unit files in /etc/systemd/system (marun@redhat.com)
+- dind: skip building etcd (marun@redhat.com)
+- dind: disable sdn node at the end of provisioning (marun@redhat.com)
+- Simplify vagrant/dind host provisioning (marun@redhat.com)
+- Remove / fix dead code (ccoleman@redhat.com)
+- UPSTREAM: <carry>: fix casting errors in case of obj nil
+  (jawed.khelil@amadeus.com)
+- Show log output in conversion generation (ccoleman@redhat.com)
+- Support in-cluster-config for registry (ccoleman@redhat.com)
+- Upgrade the registry to create secrets and service accounts
+  (ccoleman@redhat.com)
+- Support overriding the hostname in the router (ccoleman@redhat.com)
+- Remove invisible browse option from web console catalog (spadgett@redhat.com)
+- fixes bug 1312218 (bugzilla), fixes #7646 (github)
+  (admin@benjaminapetersen.me)
+- add discovery cache (deads@redhat.com)
+- Making margin consistent around alerts inside.modal-resource-edit
+  (rhamilto@redhat.com)
+- platformmanagement_public_425 - add quota information to oc describe is
+  (maszulik@redhat.com)
+- oc: hide markers from different projects on oc status (mkargaki@redhat.com)
+- Removing .page-header from About as the visuals aren't "right" for the page
+  (rhamilto@redhat.com)
+- bump(github.com/openshift/openshift-sdn):
+  58baf17e027bc1fd913cddd55c5eed4782400c60 (danw@redhat.com)
+- UPSTREAM: revert: 902e416: <carry>: v1beta3 scc (dgoodwin@redhat.com)
+- UPSTREAM: revert: 7d1b481: <carry>: scc (dgoodwin@redhat.com)
+- Dashboard extended test should not be run (ccoleman@redhat.com)
+- make all alias correctly (deads@redhat.com)
+- Bug 1310616: Validate absolute dir in build secret for docker strategy in oc
+  new-build (mfojtik@redhat.com)
+- Remove unnecessary word from oc volume command (nakayamakenjiro@gmail.com)
+- Revert "Updates to use the SCC allowEmptyDirVolumePlugin setting."
+  (dgoodwin@redhat.com)
+- UPSTREAM: <carry>: Increase test etcd request timeout to 30s
+  (ccoleman@redhat.com)
+- Fix services e2e tests for dev clusters (marun@redhat.com)
+- tweak registry roles (deads@redhat.com)
+- export OS_OUTPUT_GOPATH for target build (jawed.khelil@amadeus.com)
+- Fix intra-pod kube e2e test (marun@redhat.com)
+- WIP: Enable FSGroup in restricted and hostNS SCCs (pmorie@gmail.com)
+- Change default ClusterNetworkCIDR and HostSubnetLength (danw@redhat.com)
+- Remove downward api call for Jenkins kubernetes example (mfojtik@redhat.com)
+
 * Fri Mar 04 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.910
 - Resolving visual defect on Storage .page-header (rhamilto@redhat.com)
 - Cleaning up random drop shadow and rounded corners on messenger messages

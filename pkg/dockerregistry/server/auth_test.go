@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"testing"
 
@@ -13,15 +12,18 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/client"
 )
 
 // TestVerifyImageStreamAccess mocks openshift http request/response and
@@ -64,7 +66,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		_, client, err := NewUserOpenShiftClients("magic bearer token")
+		client, err := client.New(&kclient.Config{BearerToken: "magic bearer token", Host: server.URL})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,10 +87,6 @@ func TestAccessController(t *testing.T) {
 	options := map[string]interface{}{
 		"addr":       "https://openshift-example.com/osapi",
 		"apiVersion": latest.Version,
-	}
-	accessController, err := newAccessController(options)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	tests := map[string]struct {
@@ -279,6 +277,17 @@ func TestAccessController(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "http.request", req)
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
+		DefaultRegistryClient = NewRegistryClient(&clientcmd.Config{
+			CommonConfig: kclient.Config{
+				Host:     server.URL,
+				Insecure: true,
+			},
+			SkipEnv: true,
+		})
+		accessController, err := newAccessController(options)
+		if err != nil {
+			t.Fatal(err)
+		}
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()
 
@@ -338,8 +347,5 @@ func simulateOpenShiftMaster(responses []response) (*httptest.Server, *[]string)
 		fmt.Fprintln(w, response.body)
 		actions = append(actions, r.Method+" "+r.URL.Path)
 	}))
-
-	os.Setenv("OPENSHIFT_MASTER", server.URL)
-	os.Setenv("OPENSHIFT_INSECURE", "true")
 	return server, &actions
 }
