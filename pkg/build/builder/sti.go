@@ -167,8 +167,9 @@ func (s *S2IBuilder) Build() error {
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
-		BuilderImage: s.build.Spec.Strategy.SourceStrategy.From.Name,
-		Incremental:  s.build.Spec.Strategy.SourceStrategy.Incremental,
+		BuilderImage:       s.build.Spec.Strategy.SourceStrategy.From.Name,
+		Incremental:        s.build.Spec.Strategy.SourceStrategy.Incremental,
+		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
