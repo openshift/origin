@@ -38,7 +38,6 @@
 		"strategy": {
 		    "type": "Docker",
 		    "dockerStrategy": {
-			"nocache": true
 		    }
 		},
 		"output":{
