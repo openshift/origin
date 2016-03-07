@@ -259,6 +259,11 @@ func (p *F5Plugin) HandleEndpoints(eventType watch.EventType,
 
 			glog.V(4).Infof("Deleting pool %s", poolname)
 
+			// Note: deletePool will throw errors if the route
+			//       has not been deleted as the policy would
+			//       still refer to the pool. That is ok as the
+			//       pool will still get deleted when the route
+			//       gets deleted.
 			err = p.deletePool(poolname)
 			if err != nil {
 				return err
