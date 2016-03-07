@@ -63,6 +63,8 @@ type MasterArgs struct {
 	// CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
 	CORSAllowedOrigins []string
 
+	APIServerCAFiles []string
+
 	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
@@ -84,6 +86,8 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
+	flags.StringSliceVar(&args.APIServerCAFiles, prefix+"certificate-authority", args.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
+
 	nodes := []string{}
 	flags.StringSliceVar(&nodes, prefix+"nodes", nodes, "DEPRECATED: nodes now register themselves")
 	flags.MarkDeprecated(prefix+"nodes", "Nodes register themselves at startup, and are no longer statically registered")
@@ -92,7 +96,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")
-
+	cobra.MarkFlagFilename(flags, prefix+"certificate-authority")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
@@ -258,7 +262,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
 		if oauthConfig != nil {
-			s := admin.DefaultRootCAFile(args.ConfigDir.Value())
+			s := admin.DefaultCABundleFile(args.ConfigDir.Value())
 			oauthConfig.MasterCA = &s
 		}
 
@@ -266,7 +270,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		if builtInKubernetes {
 			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
-			config.ServiceAccountConfig.MasterCA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+			config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
 		}
 
 		// Only set up ca/cert info for etcd connections if we're self-hosting etcd

@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -24,7 +26,7 @@ const CreateKubeConfigCommandName = "create-kubeconfig"
 type CreateKubeConfigOptions struct {
 	APIServerURL       string
 	PublicAPIServerURL string
-	APIServerCAFile    string
+	APIServerCAFiles   []string
 
 	CertFile string
 	KeyFile  string
@@ -87,7 +89,7 @@ users:
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.StringVar(&options.APIServerCAFile, "certificate-authority", "openshift.local.config/master/ca.crt", "Path to the API server's CA file.")
+	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
 	flags.StringVar(&options.CertFile, "client-certificate", "", "The client cert file.")
 	flags.StringVar(&options.KeyFile, "client-key", "", "The client key file.")
 	flags.StringVar(&options.ContextNamespace, "namespace", kapi.NamespaceDefault, "Namespace for this context in .kubeconfig.")
@@ -115,8 +117,14 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 	if len(o.KeyFile) == 0 {
 		return errors.New("client-key must be provided")
 	}
-	if len(o.APIServerCAFile) == 0 {
+	if len(o.APIServerCAFiles) == 0 {
 		return errors.New("certificate-authority must be provided")
+	} else {
+		for _, caFile := range o.APIServerCAFiles {
+			if _, err := util.CertPoolFromFile(caFile); err != nil {
+				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
+			}
+		}
 	}
 	if len(o.ContextNamespace) == 0 {
 		return errors.New("namespace must be provided")
@@ -132,7 +140,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
 	// read all the referenced filenames
-	caData, err := ioutil.ReadFile(o.APIServerCAFile)
+	caData, err := readFiles(o.APIServerCAFiles, []byte("\n"))
 	if err != nil {
 		return nil, err
 	}
