@@ -37,7 +37,8 @@ type DeploymentController struct {
 	makeContainer func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error)
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
-	recorder     record.EventRecorder
+	// recorder is used to record events.
+	recorder record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -78,7 +79,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 		// Retry on error.
 		if !kerrors.IsAlreadyExists(err) {
-			c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			if config, err := c.decodeConfig(deployment); err == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			}
 			return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
 
@@ -88,7 +93,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// annotation on it, and throw a retryable error.
 		existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment.Name))
 		if err != nil {
-			c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			if config, err := c.decodeConfig(deployment); err == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			}
 			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
 
@@ -103,7 +112,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		if deployutil.DeploymentNameFor(existingPod) != deployment.Name {
 			nextStatus = deployapi.DeploymentStatusFailed
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
-			c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+			if config, err := c.decodeConfig(deployment); err == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+			}
 			glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
 			break
 		}
@@ -120,7 +133,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				nextStatus = deployapi.DeploymentStatusFailed
 				deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedDeployerPodNoLongerExists
-				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "failed", "Deployer pod %q has gone missing", deployerPodName)
+				if config, err := c.decodeConfig(deployment); err == nil {
+					c.recorder.Eventf(config, kapi.EventTypeWarning, "Failed", "Deployer pod %q has gone missing", deployerPodName)
+				} else {
+					c.recorder.Eventf(deployment, kapi.EventTypeWarning, "Failed", "Deployer pod %q has gone missing", deployerPodName)
+				}
 				glog.V(4).Infof("Failing deployment %q because its deployer pod %q disappeared", deployutil.LabelForDeployment(deployment), deployerPodName)
 				break
 			} else {
@@ -147,13 +164,21 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
 					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
 					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
-						c.recorder.Eventf(deployment, kapi.EventTypeWarning, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+						if config, err := c.decodeConfig(deployment); err == nil {
+							c.recorder.Eventf(config, kapi.EventTypeWarning, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+						} else {
+							c.recorder.Eventf(deployment, kapi.EventTypeWarning, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+						}
 						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 					}
 					glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
 				}
 			}
-			c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
+			if config, err := c.decodeConfig(deployment); err == nil {
+				c.recorder.Eventf(config, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
+			}
 		}
 	case deployapi.DeploymentStatusFailed:
 		// Check for test deployment and ensure the deployment scale matches
@@ -199,7 +224,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	if currentStatus != nextStatus || deploymentScaled {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
-			c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), nextStatus)
+			if config, err := c.decodeConfig(deployment); err == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), nextStatus)
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), nextStatus)
+			}
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
