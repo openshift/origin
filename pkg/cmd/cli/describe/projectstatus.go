@@ -112,6 +112,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
 	routeedges.AddAllRouteEdges(g)
 
 	return g, forbiddenResources, nil
@@ -338,6 +339,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
+		buildanalysis.FindMissingInputImageStreams,
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
 		},

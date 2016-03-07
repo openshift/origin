@@ -4,29 +4,37 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/topo"
+
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 const (
-	TagNotAvailableWarning     = "ImageStreamTagNotAvailable"
-	LatestBuildFailedErr       = "LatestBuildFailed"
-	MissingRequiredRegistryErr = "MissingRequiredRegistry"
-	MissingImageStreamErr      = "MissingImageStream"
-	CyclicBuildConfigWarning   = "CyclicBuildConfig"
+	TagNotAvailableWarning         = "ImageStreamTagNotAvailable"
+	LatestBuildFailedErr           = "LatestBuildFailed"
+	MissingRequiredRegistryErr     = "MissingRequiredRegistry"
+	MissingOutputImageStreamErr    = "MissingOutputImageStream"
+	CyclicBuildConfigWarning       = "CyclicBuildConfig"
+	MissingImageStreamTagWarning   = "MissingImageStreamTag"
+	MissingImageStreamImageWarning = "MissingImageStreamImage"
 )
 
 // FindUnpushableBuildConfigs checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
 func FindUnpushableBuildConfigs(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
+
+	// note, unlike with Inputs, ImageStreamImage is not a valid type for build output
 
 bc:
 	for _, bcNode := range g.NodesByKind(buildgraph.BuildConfigNodeKind) {
@@ -40,7 +48,7 @@ bc:
 						RelatedNodes: []graph.Node{istNode},
 
 						Severity: osgraph.ErrorSeverity,
-						Key:      MissingImageStreamErr,
+						Key:      MissingOutputImageStreamErr,
 						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but that image stream does not exist.",
 							f.ResourceName(bcNode), f.ResourceName(istNode), f.ResourceName(imageStreamNode)),
 					})
@@ -65,6 +73,75 @@ bc:
 		}
 	}
 
+	return markers
+}
+
+// FindMissingInputImageStreams checks all build configs and confirms that their From element exists
+//
+// Precedence of failures:
+// 1. A build config's input points to an image stream that does not exist
+// 2. A build config's input uses an image stream tag reference in an existing image stream, but no images within the image stream have that tag assigned
+// 3. A build config's input uses an image stream image reference in an exisiting image stream, but no images within the image stream have the supplied image hexadecimal ID
+func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, bcNode := range g.NodesByKind(buildgraph.BuildConfigNodeKind) {
+		for _, bcInputNode := range g.PredecessorNodesByEdgeKind(bcNode, buildedges.BuildInputImageEdgeKind) {
+			switch bcInputNode.(type) {
+			case *imagegraph.ImageStreamTagNode:
+
+				for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(bcInputNode, imageedges.ReferencedImageStreamGraphEdgeKind) {
+					imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
+
+					// note, BuildConfig.Spec.BuildSpec.Strategy.[Docker|Source|Custom]Stragegy.From Input of ImageStream has been converted to ImageStreamTag on the vX to api conversion
+					// prior to our reaching this point in the code; so there is not need to check for that type vs. ImageStreamTag or ImageStreamImage;
+
+					tagNode, _ := bcInputNode.(*imagegraph.ImageStreamTagNode)
+					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
+					if _, ok := imageStream.Status.Tags[tagNode.ImageTag()]; !ok {
+
+						markers = append(markers, osgraph.Marker{
+							Node: bcNode,
+							RelatedNodes: []graph.Node{bcInputNode,
+								imageStreamNode},
+							Severity:   osgraph.WarningSeverity,
+							Key:        MissingImageStreamTagWarning,
+							Message:    fmt.Sprintf("%s builds from %s, but the image stream tag does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
+							Suggestion: osgraph.Suggestion(fmt.Sprintf("examine analysis of build config outputs from this command and see if they build %s", f.ResourceName(bcInputNode))),
+						})
+
+					}
+
+				}
+
+			case *imagegraph.ImageStreamImageNode:
+
+				for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(bcInputNode, imageedges.ReferencedImageStreamImageGraphEdgeKind) {
+					imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
+
+					imageNode, _ := bcInputNode.(*imagegraph.ImageStreamImageNode)
+					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
+					found, imageID, suggestion := validImageStreamImage(imageNode, imageStream)
+					if !found {
+
+						markers = append(markers, osgraph.Marker{
+							Node: bcNode,
+							RelatedNodes: []graph.Node{bcInputNode,
+								imageStreamNode},
+							Severity:   osgraph.WarningSeverity,
+							Key:        MissingImageStreamImageWarning,
+							Message:    fmt.Sprintf("%s builds from %s, but the image stream image does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
+							Suggestion: osgraph.Suggestion(fmt.Sprintf(suggestion, imageID, f.ResourceName(imageStreamNode))),
+						})
+
+					}
+
+				}
+
+			}
+
+		}
+	}
 	return markers
 }
 
@@ -158,6 +235,44 @@ func FindPendingTags(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	}
 
 	return markers
+}
+
+// validImageStreamImage will cycle through the imageStream.Status.Tags.[]TagEvent.DockerImageReference and  determine whether an image with the hexadecimal image id
+// associated with an ImageStreamImage reference in fact exists in a given ImageStream; on return, this method returns a true if does exist, and as well as the hexadecimal image
+// id from the ImageStreamImage, as well as the appropriate message to add to the marker if the image was not found
+func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream) (bool, string, string) {
+	dockerImageReference, err := imageapi.ParseDockerImageReference(imageNode.Name)
+	if err == nil {
+		for _, tagEventList := range imageStream.Status.Tags {
+			for _, tagEvent := range tagEventList.Items {
+				if strings.Contains(tagEvent.DockerImageReference, dockerImageReference.ID) {
+					return true, dockerImageReference.ID, ""
+				}
+			}
+		}
+	}
+
+	// check the images stream to see if any import images are in flight or have failed
+	annotation, ok := imageStream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
+	if !ok {
+		return false, dockerImageReference.ID, "import the image with hexadecimal ID %s into the image stream %s"
+	}
+
+	if checkTime, err := time.Parse(time.RFC3339, annotation); err == nil {
+		// this time based annotation is set by pkg/image/controller/controller.go whenever import/tag operations are performed; unless
+		// in the midst of an import/tag operation, it stays set and serves as a timestamp for when the last operation occurred;
+		// so we will check if the image stream has been updated "recently";
+		// in case it is a slow link to the remote repo, see if if the check annotation occured within the last 5 minutes; if so, consider that as potentially "in progress"
+		compareTime := checkTime.Add(5 * time.Minute)
+		currentTime, _ := time.Parse(time.RFC3339, unversioned.Now().UTC().Format(time.RFC3339))
+		if compareTime.Before(currentTime) {
+			return false, dockerImageReference.ID, "import the image with hexadecimal ID %s into the image stream %s"
+		}
+
+		return false, dockerImageReference.ID, "a import of the image with hexadecimal ID %s into the image stream %s could be in progress; check again after a couple of minutes"
+
+	}
+	return false, dockerImageReference.ID, "an error occurred importing the image with hexadecimal ID %s into the image stream %s; inspect the images stream annotations for details"
 }
 
 // buildPointsToTag returns the buildConfig that points to the provided imageStreamTag.
