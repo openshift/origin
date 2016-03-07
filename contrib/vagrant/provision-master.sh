@@ -7,9 +7,7 @@ os::provision::base-provision "${ORIGIN_ROOT}" true
 os::provision::build-origin "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 
-echo "Installing openshift"
-os::provision::install-cmds "${ORIGIN_ROOT}"
-os::provision::install-sdn "${ORIGIN_ROOT}"
+os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
 
 if [ "${SDN_NODE}" = "true" ]; then
   # Running an sdn node on the master when using an openshift sdn
@@ -39,7 +37,11 @@ if [ "${SDN_NODE}" = "true" ]; then
 
   # Disable scheduling for the sdn node - it's purpose is only to ensure
   # pod network connectivity on the master.
-  os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  #
+  # This will be performed separately for dind to allow as much time
+  # as possible for the node to register itself.  Vagrant can deploy
+  # in parallel but dind deploys serially for simplicity.
+  if ! os::provision::in-container; then
+    os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  fi
 fi
-
-os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"

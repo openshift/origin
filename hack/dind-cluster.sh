@@ -233,8 +233,16 @@ ${DEPLOYED_CONFIG_ROOT}"
 
   local rc_file="dind-${INSTANCE_PREFIX}.rc"
   local admin_config=$(os::provision::get-admin-config ${CONFIG_ROOT})
+  local origin_bin_path="${ORIGIN_ROOT}/_output/local/bin/linux/amd64"
   echo "export KUBECONFIG=${admin_config}
-export PATH=\$PATH:${ORIGIN_ROOT}/_output/local/bin/linux/amd64" > "${rc_file}"
+export PATH=\$PATH:${origin_bin_path}" > "${rc_file}"
+
+  # Disable the sdn node as late as possible to allow time for the
+  # node to register itself.
+  if [ "${SDN_NODE}" = "true" ]; then
+    export PATH="${PATH}:${origin_bin_path}"
+    os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  fi
 
   if [ "${KUBECONFIG:-}" != "${admin_config}" ]; then
     echo ""

@@ -35,10 +35,22 @@ os::provision::build-etcd() {
   if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
      [ "${skip_build}" = "true" ]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
-  else
+  # Etcd is required for integration testing which isn't a use case
+  # for dind.
+  elif ! os::provision::in-container; then
     echo "Building etcd"
     ${origin_root}/hack/install-etcd.sh
   fi
+}
+
+os::provision::base-install() {
+  local origin_root=$1
+  local config_root=$2
+
+  echo "Installing openshift"
+  os::provision::install-cmds "${origin_root}"
+  os::provision::install-sdn "${origin_root}"
+  os::provision::set-os-env "${origin_root}" "${config_root}"
 }
 
 os::provision::install-cmds() {
@@ -265,7 +277,7 @@ os::provision::start-os-service() {
     dind_env_var="OPENSHIFT_DIND=true"
   fi
 
-  cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
+  cat <<EOF > "/etc/systemd/system/${unit_name}.service"
 [Unit]
 Description=${description}
 Requires=network.target
