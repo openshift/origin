@@ -1,6 +1,6 @@
 <div class="modal-resource-edit">
   <div class="modal-header">
-    <h2><i class="fa fa-pencil" aria-hidden="true"></i> Editing {{resource.metadata.name}}</h2>
+    <h2>Editing <span class="hidden-xs">{{resource.kind | humanizeKind}}</span> {{resource.metadata.name}}</h2>
   </div>
   <div class="modal-body">
     <!-- Error messages -->
