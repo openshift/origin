@@ -25,6 +25,7 @@ type rsyncStrategy struct {
 	RshCommand     string
 	LocalExecutor  executor
 	RemoteExecutor executor
+	podChecker     podChecker
 }
 
 var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet", "include", "exclude", "progress", "no-perms")
@@ -47,17 +48,26 @@ func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (
 	if err != nil {
 		return nil, err
 	}
-
 	// The blocking-io flag is used to resolve a sync issue when
 	// copying from the pod to the local machine
 	flags := []string{"-a", "--blocking-io", "--omit-dir-times", "--numeric-ids"}
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
+
+	podName := o.Source.PodName
+	if o.Source.Local() {
+		podName = o.Destination.PodName
+	}
+	client, err := f.Client()
+	if err != nil {
+		return nil, err
+	}
 
 	return &rsyncStrategy{
 		Flags:          flags,
 		RshCommand:     rshCmdStr,
 		RemoteExecutor: remoteExec,
 		LocalExecutor:  newLocalExecutor(),
+		podChecker:     podAPIChecker{client, o.Namespace, podName},
 	}, nil
 }
 
@@ -68,6 +78,10 @@ func (r *rsyncStrategy) Copy(source, destination *pathSpec, out, errOut io.Write
 	errBuf := &bytes.Buffer{}
 	err := r.LocalExecutor.Execute(cmd, nil, out, errBuf)
 	if isExitError(err) {
+		// Check if pod exists
+		if podCheckErr := r.podChecker.CheckPod(); podCheckErr != nil {
+			return podCheckErr
+		}
 		// Determine whether rsync is present in the pod container
 		testRsyncErr := checkRsync(r.RemoteExecutor)
 		if testRsyncErr != nil {
