@@ -29,13 +29,13 @@
                     <li>
                       <edit-link
                         resource="pod"
-                        kind="pods"
+                        kind="Pod"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li>
                       <delete-link
-                        resource-type="pod"
+                        kind="Pod"
                         resource-name="{{pod.metadata.name}}"
                         project-name="{{pod.metadata.namespace}}"
                         alerts="alerts">

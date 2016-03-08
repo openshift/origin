@@ -49,13 +49,13 @@
                     <li>
                       <edit-link
                         resource="deploymentConfig"
-                        kind="deploymentconfigs"
+                        kind="DeploymentConfig"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li>
                       <delete-link
-                        resource-type="deploymentconfig"
+                        kind="DeploymentConfig"
                         resource-name="{{deploymentConfig.metadata.name}}"
                         project-name="{{deploymentConfig.metadata.namespace}}"
                         alerts="alerts">
