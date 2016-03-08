@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, $filter) {
+  .controller('DeploymentController', function ($scope, $routeParams, AlertMessageService, DataService, ProjectsService, DeploymentsService, ImageStreamResolver, Navigate, $filter) {
     $scope.projectName = $routeParams.project;
     $scope.deployment = null;
     $scope.deploymentConfig = null;
@@ -87,6 +87,17 @@ angular.module('openshiftConsole')
           }));
         };
 
+        var pods, selector;
+        var updatePodsForDeployment = function() {
+          if (!pods || !selector) {
+            return;
+          }
+
+          $scope.podsForDeployment = _.filter(pods, function(pod) {
+            return selector.matches(pod);
+          });
+        };
+
         DataService.get("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, context).then(
           // success
           function(deployment) {
@@ -115,6 +126,16 @@ angular.module('openshiftConsole')
               // Check if we're the active deployment to enable or disable scaling.
               watchActiveDeployment();
             }
+
+            $scope.$watch('deployment.spec.selector', function() {
+              selector = new LabelSelector($scope.deployment.spec.selector);
+              updatePodsForDeployment();
+            }, true);
+
+            watches.push(DataService.watch("pods", context, function(podData) {
+              pods = podData.by('metadata.name');
+              updatePodsForDeployment();
+            }));
           },
           // failure
           function(e) {
@@ -150,6 +171,7 @@ angular.module('openshiftConsole')
             }
           );
         }
+
 
         function extractPodTemplates() {
           angular.forEach($scope.deployments, function(deployment, deploymentId){
@@ -242,6 +264,14 @@ angular.module('openshiftConsole')
           } else {
             DeploymentsService.scaleRC($scope.deployment, replicas).then(_.noop, showScalingError);
           }
+        };
+
+        $scope.viewPodsForDeployment = function() {
+          if ($filter('hashSize')($scope.podsForDeployment) === 0) {
+            return;
+          }
+
+          Navigate.toPodsForDeployment($scope.deployment);
         };
 
         $scope.$on('$destroy', function(){
