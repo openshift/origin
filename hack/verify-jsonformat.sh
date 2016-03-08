@@ -19,7 +19,7 @@ source "${OS_ROOT}/hack/common.sh"
 cd "${OS_ROOT}"
 
 json_files=$(find {api,examples,docs,images,plugins,test} -name "*.json")
-tmp_dir=$(mktemp -d --suffix=jsonformat)
+tmp_dir=$(mktemp -d)
 found=0
 
 set +e
