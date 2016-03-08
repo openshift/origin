@@ -113,7 +113,7 @@
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p ${MONGODB_ADMIN_PASSWORD} -n 1 --noheaders"]
+                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p $MONGODB_ADMIN_PASSWORD -n 1 --noheaders"]
                   }
                 },
                 "livenessProbe": {
