@@ -32,14 +32,6 @@ const (
 	VXLAN    = "vxlan0"
 )
 
-type FlowController struct {
-	multitenant bool
-}
-
-func NewFlowController(multitenant bool) *FlowController {
-	return &FlowController{multitenant}
-}
-
 func getPluginVersion(multitenant bool) []string {
 	if VERSION > 254 {
 		panic("Version too large!")
@@ -135,7 +127,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
+func (plugin *ovsPlugin) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -143,7 +135,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
-	if alreadySetUp(c.multitenant, gwCIDR) {
+	if alreadySetUp(plugin.multitenant, gwCIDR) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 		return false, nil
 	}
@@ -322,7 +314,7 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 
 	// Table 253: rule version; note action is hex bytes separated by '.'
 	otx = ovs.NewTransaction(BR)
-	pluginVersion := getPluginVersion(c.multitenant)
+	pluginVersion := getPluginVersion(plugin.multitenant)
 	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
 	err = otx.EndTransaction()
 	if err != nil {
@@ -332,15 +324,15 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	return true, nil
 }
 
-func (c *FlowController) GetName() string {
-	if c.multitenant {
+func (plugin *ovsPlugin) GetName() string {
+	if plugin.multitenant {
 		return MultiTenantPluginName()
 	} else {
 		return SingleTenantPluginName()
 	}
 }
 
-func (c *FlowController) AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error {
+func (plugin *ovsPlugin) AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error {
 	if nodeIP == localIP {
 		return nil
 	}
@@ -360,7 +352,7 @@ func (c *FlowController) AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) erro
 	return err
 }
 
-func (c *FlowController) DelOFRules(nodeIP, localIP string) error {
+func (plugin *ovsPlugin) DelOFRules(nodeIP, localIP string) error {
 	if nodeIP == localIP {
 		return nil
 	}
@@ -380,8 +372,8 @@ func generateCookie(ip string) string {
 	return hex.EncodeToString(net.ParseIP(ip).To4())
 }
 
-func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant {
+func (plugin *ovsPlugin) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+	if !plugin.multitenant {
 		return nil
 	}
 
@@ -396,8 +388,8 @@ func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.S
 	return err
 }
 
-func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
-	if !c.multitenant {
+func (plugin *ovsPlugin) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+	if !plugin.multitenant {
 		return nil
 	}
 

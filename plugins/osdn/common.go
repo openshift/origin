@@ -22,6 +22,15 @@ import (
 type PluginHooks interface {
 	PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error
 	PluginStartNode(mtu uint) error
+
+	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
+
+	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
+	DelOFRules(nodeIP, localIP string) error
+
+	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
 
@@ -34,25 +43,14 @@ type OsdnController struct {
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
 	podNetworkReady chan struct{}
-	flowController  FlowController
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 	services        map[string]api.Service
 }
 
-type FlowController interface {
-	Setup(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
-
-	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
-	DelOFRules(nodeIP, localIP string) error
-
-	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
-	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
-}
-
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OsdnController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, hostname string, selfIP string) error {
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -78,7 +76,6 @@ func (oc *OsdnController) BaseInit(registry *Registry, flowController FlowContro
 
 	oc.pluginHooks = pluginHooks
 	oc.Registry = registry
-	oc.flowController = flowController
 	oc.localIP = selfIP
 	oc.HostName = hostname
 	oc.VNIDMap = make(map[string]uint)

@@ -111,7 +111,7 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return false, err
 	}
-	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
+	networkChanged, err := oc.pluginHooks.SetupSDN(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
@@ -125,7 +125,7 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 	subnets := result.([]api.Subnet)
 	for _, s := range subnets {
-		oc.flowController.AddOFRules(s.NodeIP, s.SubnetCIDR, oc.localIP)
+		oc.pluginHooks.AddOFRules(s.NodeIP, s.SubnetCIDR, oc.localIP)
 	}
 
 	return networkChanged, nil
@@ -227,10 +227,10 @@ func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
 					continue
 				}
 				// add openflow rules
-				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetCIDR, oc.localIP)
+				oc.pluginHooks.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetCIDR, oc.localIP)
 			case api.Deleted:
 				// delete openflow rules meant for the node
-				oc.flowController.DelOFRules(ev.Subnet.NodeIP, oc.localIP)
+				oc.pluginHooks.DelOFRules(ev.Subnet.NodeIP, oc.localIP)
 			}
 		case <-oc.sig:
 			stop <- true

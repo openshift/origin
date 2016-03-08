@@ -34,7 +34,7 @@ func MultiTenantPluginName() string {
 func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
-	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP)
+	err := plugin.BaseInit(registry, plugin, hostname, selfIP)
 	if err != nil {
 		return nil, nil, err
 	}

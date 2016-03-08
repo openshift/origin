@@ -201,7 +201,7 @@ func (oc *OsdnController) VnidStartNode() error {
 		}
 		oc.services[svc.UID] = svc
 		for _, port := range svc.Ports {
-			oc.flowController.AddServiceOFRules(netid, svc.IP, port.Protocol, port.Port)
+			oc.pluginHooks.AddServiceOFRules(netid, svc.IP, port.Protocol, port.Port)
 		}
 	}
 
@@ -236,8 +236,8 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID, oldNetID uin
 	}
 	for _, svc := range services {
 		for _, port := range svc.Ports {
-			oc.flowController.DelServiceOFRules(oldNetID, svc.IP, port.Protocol, port.Port)
-			oc.flowController.AddServiceOFRules(netID, svc.IP, port.Protocol, port.Port)
+			oc.pluginHooks.DelServiceOFRules(oldNetID, svc.IP, port.Protocol, port.Port)
+			oc.pluginHooks.AddServiceOFRules(netID, svc.IP, port.Protocol, port.Port)
 		}
 	}
 	return nil
@@ -295,12 +295,12 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 			case api.Added:
 				oc.services[ev.Service.UID] = ev.Service
 				for _, port := range ev.Service.Ports {
-					oc.flowController.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+					oc.pluginHooks.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
 				}
 			case api.Deleted:
 				delete(oc.services, ev.Service.UID)
 				for _, port := range ev.Service.Ports {
-					oc.flowController.DelServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+					oc.pluginHooks.DelServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
 				}
 			case api.Modified:
 				oldsvc, exists := oc.services[ev.Service.UID]
@@ -318,12 +318,12 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 				}
 				if exists {
 					for _, port := range oldsvc.Ports {
-						oc.flowController.DelServiceOFRules(netid, oldsvc.IP, port.Protocol, port.Port)
+						oc.pluginHooks.DelServiceOFRules(netid, oldsvc.IP, port.Protocol, port.Port)
 					}
 				}
 				oc.services[ev.Service.UID] = ev.Service
 				for _, port := range ev.Service.Ports {
-					oc.flowController.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+					oc.pluginHooks.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
 				}
 			}
 		case <-oc.sig:
