@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 )
 
-func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
@@ -61,7 +61,7 @@ func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnet
 	return nil
 }
 
-func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
+func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
 		log.Errorf("Error creating network for node %s.", nodeName)
@@ -84,7 +84,7 @@ func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
 	return nil
 }
 
-func (oc *OvsController) deleteNode(nodeName string) error {
+func (oc *OsdnController) deleteNode(nodeName string) error {
 	sub, err := oc.Registry.GetSubnet(nodeName)
 	if err != nil {
 		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
@@ -99,7 +99,7 @@ func (oc *OvsController) deleteNode(nodeName string) error {
 	return oc.Registry.DeleteSubnet(nodeName)
 }
 
-func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
+func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	err := oc.initSelfSubnet()
 	if err != nil {
 		return false, err
@@ -131,7 +131,7 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 	return networkChanged, nil
 }
 
-func (oc *OvsController) initSelfSubnet() error {
+func (oc *OsdnController) initSelfSubnet() error {
 	// timeout: 30 secs
 	retries := 60
 	retryInterval := 500 * time.Millisecond
@@ -161,7 +161,7 @@ func (oc *OvsController) initSelfSubnet() error {
 }
 
 // Only run on the master
-func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
+func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	nodeEvent := make(chan *api.NodeEvent)
 	go oc.Registry.WatchNodes(nodeEvent, ready, start, stop)
@@ -213,7 +213,7 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 }
 
 // Only run on the nodes
-func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
+func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
 	clusterEvent := make(chan *api.SubnetEvent)
 	go oc.Registry.WatchSubnets(clusterEvent, ready, start, stop)
@@ -239,7 +239,7 @@ func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 	}
 }
 
-func (oc *OvsController) validateNode(nodeIP string) error {
+func (oc *OsdnController) validateNode(nodeIP string) error {
 	clusterNet, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		return fmt.Errorf("Failed to get Cluster Network address: %v", err)

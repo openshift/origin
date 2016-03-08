@@ -18,7 +18,7 @@ import (
 )
 
 type ovsPlugin struct {
-	osdn.OvsController
+	osdn.OsdnController
 
 	multitenant bool
 }

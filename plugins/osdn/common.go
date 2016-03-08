@@ -25,7 +25,7 @@ type PluginHooks interface {
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
 
-type OvsController struct {
+type OsdnController struct {
 	pluginHooks     PluginHooks
 	Registry        *Registry
 	localIP         string
@@ -52,7 +52,7 @@ type FlowController interface {
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -90,7 +90,7 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 	return nil
 }
 
-func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
+func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
 	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
 	// This will ensure both the kube/multitenant scripts and master validations use the same name.
 	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
@@ -146,7 +146,7 @@ func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *n
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OvsController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
+func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
 	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
@@ -159,7 +159,7 @@ func (oc *OvsController) isClusterNetworkChanged(clusterNetworkCIDR string, host
 	return false, nil
 }
 
-func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
 	hostBitsPerSubnet := int(clusterBitsPerSubnet)
 	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
@@ -187,7 +187,7 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	return nil
 }
 
-func (oc *OvsController) StartNode(mtu uint) error {
+func (oc *OsdnController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
 	clusterNetwork, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
@@ -216,15 +216,15 @@ func (oc *OvsController) StartNode(mtu uint) error {
 	return nil
 }
 
-func (oc *OvsController) GetLocalPods(namespace string) ([]api.Pod, error) {
+func (oc *OsdnController) GetLocalPods(namespace string) ([]api.Pod, error) {
 	return oc.Registry.GetRunningPods(oc.HostName, namespace)
 }
 
-func (oc *OvsController) markPodNetworkReady() {
+func (oc *OsdnController) markPodNetworkReady() {
 	close(oc.podNetworkReady)
 }
 
-func (oc *OvsController) WaitForPodNetworkReady() error {
+func (oc *OsdnController) WaitForPodNetworkReady() error {
 	logInterval := 10 * time.Second
 	numIntervals := 12 // timeout: 2 mins
 
@@ -240,7 +240,7 @@ func (oc *OvsController) WaitForPodNetworkReady() error {
 	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }
 
-func (oc *OvsController) Stop() {
+func (oc *OsdnController) Stop() {
 	close(oc.sig)
 }
 
@@ -257,7 +257,7 @@ func waitForWatchReadiness(ready chan bool, resourceName string) {
 	return
 }
 
-type watchWatcher func(oc *OvsController, ready chan<- bool, start <-chan string)
+type watchWatcher func(oc *OsdnController, ready chan<- bool, start <-chan string)
 type watchGetter func(registry *Registry) (interface{}, string, error)
 
 // watchAndGetResource will fetch current items in etcd and watch for any new
@@ -275,7 +275,7 @@ type watchGetter func(registry *Registry) (interface{}, string, error)
 // 6. Initiator: Send version from step-5 to WatchProcess
 // 7. WatchProcess: Ignore any items with version <= start version got from initiator on step-6
 // 8. WatchProcess: Handle new changes
-func (oc *OvsController) watchAndGetResource(resourceName string, watcher watchWatcher, getter watchGetter) (interface{}, error) {
+func (oc *OsdnController) watchAndGetResource(resourceName string, watcher watchWatcher, getter watchGetter) (interface{}, error) {
 	ready := make(chan bool)
 	start := make(chan string)
 
