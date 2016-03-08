@@ -33,6 +33,12 @@ angular.module('openshiftConsole')
       "" // "Other" category
     ];
 
+    // General tags shown at the top of the browse menu.
+    $scope.browseGeneral = ['instant-app', 'quickstart'];
+
+    // Specific technologies shown after the divider. Drop any tags included in general tags.
+    $scope.browseTechnologies = _.difference($scope.categoryTags, $scope.browseGeneral);
+
     // Map of tags to labels to show in the view.
     $scope.categoryLabels = {
       "instant-app": "Instant Apps",

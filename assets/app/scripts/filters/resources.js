@@ -174,7 +174,7 @@ angular.module('openshiftConsole')
       var icon = annotationFilter(resource, "iconClass");
       if (!icon) {
         if (kind === "template") {
-          return "fa fa-bolt";
+          return "fa fa-clone";
         }
 
         return "";
