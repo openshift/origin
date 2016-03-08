@@ -17,8 +17,15 @@
         <dd>{{pod.status.podIP || 'unknown'}}</dd>
         <dt>Node:</dt>
         <dd>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span></dd>
-        <dt>Restart policy:</dt>
+        <dt>Restart Policy:</dt>
         <dd>{{pod.spec.restartPolicy || 'Always'}}</dd>
+        <dt ng-if-start="pod.spec.activeDeadlineSeconds">Active Deadline:</dt>
+        <dd ng-if-end>
+          {{pod.spec.activeDeadlineSeconds | humanizeDurationValue : 'seconds'}}
+          <span ng-if="pod.status.phase === 'Running' && pod.status.startTime" class="text-muted">
+            (<duration-until-now timestamp="pod.status.startTime"></duration-until-now> elapsed)
+          </span>
+        </dd>
       </dl>
       <div ng-repeat="containerStatus in pod.status.containerStatuses | orderBy:'name'" >
         <h4>Container {{containerStatus.name}}</h4>
