@@ -2,6 +2,7 @@ package networking
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -110,4 +111,20 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	expectNoError(err)
 	defer podClient.Delete(podName, nil)
 	return waitForPodSuccessInNamespace(f.Client, podName, contName, f.Namespace.Name)
+}
+
+func pluginIsolatesNamespaces() bool {
+	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
+}
+
+func skipIfSingleTenant() {
+	if !pluginIsolatesNamespaces() {
+		e2e.Skipf("Not a multi-tenant plugin.")
+	}
+}
+
+func skipIfMultiTenant() {
+	if pluginIsolatesNamespaces() {
+		e2e.Skipf("Not a single-tenant plugin.")
+	}
 }

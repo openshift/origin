@@ -8,29 +8,41 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// This test requires a network plugin that supports namespace isolation.
-// NOTE: if you change the test description, update networking.sh too!
-var _ = Describe("[networking] network isolation plugin", func() {
+var _ = Describe("[networking] network isolation", func() {
 	f1 := e2e.NewFramework("net-isolation1")
 	f2 := e2e.NewFramework("net-isolation2")
 
-	It("should prevent communication between pods in different namespaces on the same node", func() {
-		checkPodIsolation(f1, f2, false)
+	Specify("multi-tenant plugins should prevent communication between pods in different namespaces on the same node", func() {
+		skipIfSingleTenant()
+		err := checkPodIsolation(f1, f2, 1)
+		Expect(err).To(HaveOccurred())
 	})
 
-	It("should prevent communication between pods in different namespaces on different nodes", func() {
-		checkPodIsolation(f1, f2, true)
+	Specify("multi-tenant plugins should prevent communication between pods in different namespaces on different nodes", func() {
+		skipIfSingleTenant()
+		err := checkPodIsolation(f1, f2, 2)
+		Expect(err).To(HaveOccurred())
+	})
+
+	Specify("single-tenant plugins should allow communication between pods in different namespaces on the same node", func() {
+		skipIfMultiTenant()
+		Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
+	})
+
+	Specify("single-tenant plugins should allow communication between pods in different namespaces on different nodes", func() {
+		skipIfMultiTenant()
+		Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
 	})
 })
 
-func checkPodIsolation(f1, f2 *e2e.Framework, differentNodes bool) {
+func checkPodIsolation(f1, f2 *e2e.Framework, numNodes int) error {
 	nodes, err := e2e.GetReadyNodes(f1)
 	if err != nil {
 		e2e.Failf("Failed to list nodes: %v", err)
 	}
 	var serverNode, clientNode *api.Node
 	serverNode = &nodes.Items[0]
-	if differentNodes {
+	if numNodes == 2 {
 		if len(nodes.Items) == 1 {
 			e2e.Skipf("Only one node is available in this environment")
 		}
@@ -43,6 +55,5 @@ func checkPodIsolation(f1, f2 *e2e.Framework, differentNodes bool) {
 	defer f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
 	ip := e2e.LaunchWebserverPod(f1, podName, serverNode.Name)
 
-	err = checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10)
-	Expect(err).To(HaveOccurred())
+	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10)
 }
