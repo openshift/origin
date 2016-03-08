@@ -85,6 +85,45 @@ func waitForPodSuccessInNamespace(c *client.Client, podName string, contName str
 	})
 }
 
+func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
+	e2e.LaunchWebserverPod(f, serviceName, nodeName)
+	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
+	podClient := f.Client.Pods(f.Namespace.Name)
+	pod, err := podClient.Get(serviceName)
+	expectNoError(err)
+	pod.ObjectMeta.Labels = make(map[string]string)
+	pod.ObjectMeta.Labels["name"] = "web"
+	podClient.Update(pod)
+
+	servicePort := 8080
+	service := &api.Service{
+		ObjectMeta: api.ObjectMeta{
+			Name: serviceName,
+		},
+		Spec: api.ServiceSpec{
+			Type: api.ServiceTypeClusterIP,
+			Ports: []api.ServicePort{
+				{
+					Protocol: api.ProtocolTCP,
+					Port:     servicePort,
+				},
+			},
+			Selector: map[string]string{
+				"name": "web",
+			},
+		},
+	}
+	serviceClient := f.Client.Services(f.Namespace.Name)
+	_, err = serviceClient.Create(service)
+	expectNoError(err)
+	expectNoError(f.WaitForAnEndpoint(serviceName))
+	createdService, err := serviceClient.Get(serviceName)
+	expectNoError(err)
+	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
+	e2e.Logf("Target service IP:port is %s", serviceAddr)
+	return
+}
+
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout int) error {
 	contName := fmt.Sprintf("%s-container", podName)
 	pod := &api.Pod{
