@@ -69,7 +69,7 @@ import (
 
 const (
 	OpenShiftOAuthAPIPrefix      = "/oauth"
-	OpenShiftLoginPrefix         = "/login"
+	openShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
 	OpenShiftWebConsoleClientID  = "openshift-web-console"
@@ -171,7 +171,6 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
-		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}, nil
 }
 
@@ -349,9 +348,23 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 }
 
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
-	// TODO: make these ordered once we can have more than one
+	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
-	redirectors := map[string]handlers.AuthenticationRedirector{}
+
+	redirectors := new(handlers.AuthenticationRedirectors)
+
+	// Determine if we have more than one password-based Identity Provider
+	multiplePasswordProviders := false
+	passwordProviderCount := 0
+	for _, identityProvider := range c.Options.IdentityProviders {
+		if configapi.IsPasswordAuthenticator(identityProvider) && identityProvider.UseAsLogin {
+			passwordProviderCount++
+			if passwordProviderCount > 1 {
+				multiplePasswordProviders = true
+				break
+			}
+		}
+	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
 		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
@@ -375,8 +388,17 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
+				loginPath := openShiftLoginPrefix
+
+				if multiplePasswordProviders {
+					// If there is more than one Identity Provider acting as a login
+					// provider, we need to give each of them their own login path,
+					// to avoid ambiguity.
+					loginPath = path.Join(openShiftLoginPrefix, identityProvider.Name)
+				}
+
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
-				redirectors[identityProvider.Name] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, loginPath+"?then=${url}"))
 
 				var loginTemplateFile string
 				if c.Options.Templates != nil {
@@ -388,7 +410,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 
 				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
-				login.Install(mux, OpenShiftLoginPrefix)
+				login.Install(mux, loginPath)
 			}
 			if identityProvider.UseAsChallenger {
 				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
@@ -422,7 +444,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = oauthHandler
+				redirectors.Add(identityProvider.Name, oauthHandler)
 			}
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
@@ -437,12 +459,12 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
 			}
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL))
 			}
 		}
 	}
 
-	if len(redirectors) > 0 && len(challengers) == 0 {
+	if redirectors.Count() > 0 && len(challengers) == 0 {
 		// Add a default challenger that will warn and give a link to the web browser token-granting location
 		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
 	}

@@ -86,9 +86,6 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 		}
 	}
 
-	if len(redirectingIdentityProviders) > 1 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("identityProviders"), "login", fmt.Sprintf("only one identity provider can support login for a browser, found: %v", strings.Join(redirectingIdentityProviders, ", "))))
-	}
 	if len(challengeRedirectingIdentityProviders) > 1 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("identityProviders"), "challenge", fmt.Sprintf("only one identity provider can redirect clients requesting an authentication challenge, found: %v", strings.Join(challengeRedirectingIdentityProviders, ", "))))
 	}
