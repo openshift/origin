@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	mathrand "math/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -142,15 +143,81 @@ var (
 )
 
 type CA struct {
+	Config *TLSCertificateConfig
+
+	SerialGenerator SerialGenerator
+}
+
+// SerialGenerator is an interface for getting a serial number for the cert.  It MUST be thread-safe.
+type SerialGenerator interface {
+	Next(template *x509.Certificate) (int64, error)
+}
+
+// SerialFileGenerator returns a unique, monotonically increasing serial number and ensures the CA on disk records that value.
+type SerialFileGenerator struct {
 	SerialFile string
-	Config     *TLSCertificateConfig
 
 	// lock guards access to the Serial field
 	lock   sync.Mutex
 	Serial int64
 }
 
+func NewSerialFileGenerator(serialFile string, createIfNeeded bool) (*SerialFileGenerator, error) {
+	// read serial file
+	var serial int64
+	serialData, err := ioutil.ReadFile(serialFile)
+	if err == nil {
+		serial, _ = strconv.ParseInt(string(serialData), 16, 64)
+	}
+	if os.IsNotExist(err) && createIfNeeded {
+		if err := ioutil.WriteFile(serialFile, []byte("00"), 0644); err != nil {
+			return nil, err
+		}
+		serial = 1
+
+	} else if err != nil {
+		return nil, err
+	}
+
+	if serial < 1 {
+		serial = 1
+	}
+
+	return &SerialFileGenerator{
+		Serial:     serial,
+		SerialFile: serialFile,
+	}, nil
+}
+
+// Next returns a unique, monotonically increasing serial number and ensures the CA on disk records that value.
+func (s *SerialFileGenerator) Next(template *x509.Certificate) (int64, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	next := s.Serial + 1
+	s.Serial = next
+
+	// Output in hex, padded to multiples of two characters for OpenSSL's sake
+	serialText := fmt.Sprintf("%X", next)
+	if len(serialText)%2 == 1 {
+		serialText = "0" + serialText
+	}
+
+	if err := ioutil.WriteFile(s.SerialFile, []byte(serialText), os.FileMode(0640)); err != nil {
+		return 0, err
+	}
+	return next, nil
+}
+
+// RandomSerialGenerator returns a serial based on time.Now and the subject
+type RandomSerialGenerator struct {
+}
+
+func (s *RandomSerialGenerator) Next(template *x509.Certificate) (int64, error) {
+	return mathrand.Int63(), nil
+}
+
 // EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
+// if serialFile is empty, a RandomSerialGenerator will be used
 func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, bool, error) {
 	if ca, err := GetCA(certFile, keyFile, serialFile); err == nil {
 		return ca, false, err
@@ -159,30 +226,30 @@ func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, bool, error) {
 	return ca, true, err
 }
 
+// if serialFile is empty, a RandomSerialGenerator will be used
 func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
 	caConfig, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	// read serial file
-	var serial int64
-	if serialData, err := ioutil.ReadFile(serialFile); err == nil {
-		serial, _ = strconv.ParseInt(string(serialData), 16, 64)
+	var serialGenerator SerialGenerator
+	if len(serialFile) > 0 {
+		serialGenerator, err = NewSerialFileGenerator(serialFile, false)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		return nil, err
-	}
-	if serial < 1 {
-		serial = 1
+		serialGenerator = &RandomSerialGenerator{}
 	}
 
 	return &CA{
-		Serial:     serial,
-		SerialFile: serialFile,
-		Config:     caConfig,
+		SerialGenerator: serialGenerator,
+		Config:          caConfig,
 	}, nil
 }
 
+// if serialFile is empty, a RandomSerialGenerator will be used
 func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 	glog.V(2).Infof("Generating new CA for %s cert, and key in %s, %s", name, certFile, keyFile)
 	// Create CA cert
@@ -206,14 +273,22 @@ func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 		return nil, err
 	}
 
-	if err := ioutil.WriteFile(serialFile, []byte("0"), 0644); err != nil {
-		return nil, err
+	var serialGenerator SerialGenerator
+	if len(serialFile) > 0 {
+		if err := ioutil.WriteFile(serialFile, []byte("00"), 0644); err != nil {
+			return nil, err
+		}
+		serialGenerator, err = NewSerialFileGenerator(serialFile, false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		serialGenerator = &RandomSerialGenerator{}
 	}
 
 	return &CA{
-		Serial:     0,
-		SerialFile: serialFile,
-		Config:     caConfig,
+		SerialGenerator: serialGenerator,
+		Config:          caConfig,
 	}, nil
 }
 
@@ -310,29 +385,9 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLS
 	return GetTLSCertificateConfig(certFile, keyFile)
 }
 
-// nextSerial returns a unique, monotonically increasing serial number and ensures the CA on
-// disk records that value.
-func (ca *CA) nextSerial() (int64, error) {
-	ca.lock.Lock()
-	defer ca.lock.Unlock()
-	next := ca.Serial + 1
-	ca.Serial = next
-
-	// Output in hex, padded to multiples of two characters for OpenSSL's sake
-	serialText := fmt.Sprintf("%X", next)
-	if len(serialText)%2 == 1 {
-		serialText = "0" + serialText
-	}
-
-	if err := ioutil.WriteFile(ca.SerialFile, []byte(serialText), os.FileMode(0640)); err != nil {
-		return 0, err
-	}
-	return next, nil
-}
-
 func (ca *CA) signCertificate(template *x509.Certificate, requestKey crypto.PublicKey) (*x509.Certificate, error) {
 	// Increment and persist serial
-	serial, err := ca.nextSerial()
+	serial, err := ca.SerialGenerator.Next(template)
 	if err != nil {
 		return nil, err
 	}
