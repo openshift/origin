@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4af40cac3579e2a51157cad37f54e67c43aa7343
+%global commit a9d9eb09ef197f7493b6ab94c581b2ad2e7c214b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.910-66-g4af40ca -X github.com/openshift/origin/pkg/version.commitFromGit 4af40ca -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.911-62-ga9d9eb0 -X github.com/openshift/origin/pkg/version.commitFromGit a9d9eb0 -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.0
+Version:        3.2.0.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,48 @@ fi
 
 
 %changelog
+* Wed Mar 09 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.1
+- Change version numbering from 3.1.1.9xx to 3.2.0.x to avoid confusion.
+  (tdawson@redhat.com)
+- oc: update route warnings for oc status (mkargaki@redhat.com)
+- Allow extra trusted bundles when generating master certs, node config, or
+  kubeconfig (jliggitt@redhat.com)
+- Update README.md (ccoleman@redhat.com)
+- Update README.md (ccoleman@redhat.com)
+- Update README (ccoleman@redhat.com)
+- Break words when wrapping values in environment table (spadgett@redhat.com)
+- Improve deployment name wrapping on overview page (spadgett@redhat.com)
+- Bug 1315595: Use in-container env vars for liveness/readiness probes
+  (mfojtik@redhat.com)
+- deploy: more informative cancellation event on dc (mkargaki@redhat.com)
+- Fixing typo (jhadvig@redhat.com)
+- Show kind in editor modal (spadgett@redhat.com)
+- rsync must validate if pod exists (ffranz@redhat.com)
+- Minor fixes to Jenkins kubernetes readme (mfojtik@redhat.com)
+- Breadcrumbs unification (jhadvig@redhat.com)
+- test-cmd: mktemp --suffix is not supported in Mac (mkargaki@redhat.com)
+- Fix hardcoded f5 username (admin). (smitram@gmail.com)
+- Add "quickstart" to web console browse menu (spadgett@redhat.com)
+- Add active deadline to browse pod page (spadgett@redhat.com)
+- Unconfuse web console about resource and kind (spadgett@redhat.com)
+- Fix role addition for kube e2e tests (marun@redhat.com)
+- UPSTREAM: 22516: kubectl: set maxUnavailable to 1 if both fenceposts resolve
+  to zero (mkargaki@redhat.com)
+- Add pods donut to deployment page (spadgett@redhat.com)
+- deploy: emit events on the dc instead of its rcs (mkargaki@redhat.com)
+- prevent skewed client updates (deads@redhat.com)
+- oc new-build: add --image-stream flag (cewong@redhat.com)
+- UPSTREAM: 22526: kubectl: bring the rolling updater on par with the
+  deployments (mkargaki@redhat.com)
+- Set source of incremental build artifacts (rhcarvalho@gmail.com)
+- bump(github.com/openshift/source-to-image):
+  2e889d092f8f3fd0266610fa6b4d92db999ef68f (rhcarvalho@gmail.com)
+- Use conventional profiler setup code (dmace@redhat.com)
+- Support HTTP pprof server in registry (dmace@redhat.com)
+- Bump docker minimum version to 1.9.1 in preparation for v1.2
+  (sdodson@redhat.com)
+- shorten dc caused by annotations (deads@redhat.com)
+
 * Mon Mar 07 2016 Troy Dawson <tdawson@redhat.com> 3.1.1.911
 - add oc status warnings for missing is/istag/dockref/isimg for bc
   (gmontero@redhat.com)
