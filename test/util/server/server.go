@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"testing"
 	"time"
 
 	"github.com/golang/glog"
@@ -40,15 +39,6 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 // PodCreationWaitTimeout is used to determine how long to wait after the service account token
 // is available for the admission control cache to catch up and allow pod creation
 const PodCreationWaitTimeout = 10 * time.Second
-
-// RequireServer verifies if the etcd and the OpenShift server are
-// available and you can successfully connect to them.
-func RequireServer(t *testing.T) {
-	util.RequireEtcd(t)
-	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
-		os.Exit(1)
-	}
-}
 
 // FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
 // If lowPort is 0, an ephemeral port is allocated.
