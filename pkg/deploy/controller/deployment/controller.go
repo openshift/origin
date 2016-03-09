@@ -165,9 +165,9 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
 					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
 						if config, err := c.decodeConfig(deployment); err == nil {
-							c.recorder.Eventf(config, kapi.EventTypeWarning, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+							c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 						} else {
-							c.recorder.Eventf(deployment, kapi.EventTypeWarning, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+							c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 						}
 						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 					}
@@ -175,7 +175,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				}
 			}
 			if config, err := c.decodeConfig(deployment); err == nil {
-				c.recorder.Eventf(config, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
+				c.recorder.Eventf(config, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment %s", deployutil.LabelForDeployment(deployment))
 			} else {
 				c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployment")
 			}
