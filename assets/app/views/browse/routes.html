@@ -53,7 +53,7 @@
                       <span ng-if="!(route | isWebRoute)" class="word-break">
                         {{route | routeLabel}}
                       </span>
-                      <span ng-if="!route.status.ingress" data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
+                      <span ng-if="!route.status.ingress" data-toggle="popover" data-placement="right" data-container="body" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
                         <status-icon status="'Pending'" disable-animation></status-icon>
                         <span class="sr-only">Pending</span>
                       </span>

@@ -12,7 +12,7 @@
             <div ng-if="build">
               <h1>
                 {{build.metadata.name}}
-                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="bottom" data-container="body" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
                 <span class="pficon pficon-warning-triangle-o"
                       ng-if="paused"
                       aria-hidden="true"
