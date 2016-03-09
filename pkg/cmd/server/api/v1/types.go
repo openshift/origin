@@ -270,29 +270,47 @@ type PolicyConfig struct {
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
 
-	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	LegacyClientPolicyConfig LegacyClientPolicyConfig `json:"legacyClientPolicyConfig"`
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	UserAgentMatchingConfig UserAgentMatchingConfig `json:"userAgentMatchingConfig"`
 }
 
-// LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API
-type LegacyClientPolicyConfig struct {
-	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	// The default is AllowAll
-	LegacyClientPolicy LegacyClientPolicy `json:"legacyClientPolicy"`
-	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
-	RestrictedHTTPVerbs []string `json:"restrictedHTTPVerbs"`
+// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+type UserAgentMatchingConfig struct {
+	// If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed
+	RequiredClients []UserAgentMatchRule `json:"requiredClients"`
+
+	// If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes
+	DeniedClients []UserAgentDenyRule `json:"deniedClients"`
+
+	// DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.
+	DefaultRejectionMessage string `json:"defaultRejectionMessage"`
 }
 
-type LegacyClientPolicy string
+// UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb
+type UserAgentMatchRule struct {
+	// UserAgentRegex is a regex that is checked against the User-Agent.
+	// Known variants of oc clients
+	// 1. oc accessing kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 4. openshit kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+	Regex string `json:"regex"`
 
-var (
-	// AllowAll does not prevent any kinds of client version skew
-	AllowAll LegacyClientPolicy = "allow-all"
-	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
-	DenyOldClients LegacyClientPolicy = "deny-old-clients"
-	// DenySkewedClients prevents any non-matching client from issuing stomping requests
-	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
-)
+	// HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means "match all verbs".
+	HTTPVerbs []string `json:"httpVerbs"`
+}
+
+// UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client
+type UserAgentDenyRule struct {
+	UserAgentMatchRule `json:", inline"`
+
+	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
+	RejectionMessage string `json:"rejectionMessage"`
+}
 
 // RoutingConfig holds the necessary configuration options for routing to subdomains
 type RoutingConfig struct {
