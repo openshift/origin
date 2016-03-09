@@ -5,19 +5,20 @@ OpenShift Application Platform
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
 [![Jenkins](https://ci.openshift.redhat.com/jenkins/buildStatus/icon?job=devenv_ami)](https://ci.openshift.redhat.com/jenkins/job/devenv_ami/)
 
-Origin is a distribution of [Kubernetes](https://kubernetes.io) optimized for enterprise application development and deployment.  Origin adds developer and operational centric tools on top of Kubernetes to enable rapid application development, easy deployment and scaling, and long-term lifecycle maintenance for small and large teams and applications.
+OpenShift Origin is a distribution of [Kubernetes](https://kubernetes.io) optimized for multi-tenant application development and deployment.  Origin adds developer and operational centric tools on top of Kubernetes to enable rapid application development, easy deployment and scaling, and long-term lifecycle maintenance for small and large teams and applications.
 
 **Features:**
 
 * Easily build applications with integrated service discovery, DNS, load balancing, failover, health checking, persistent storage, and fast scaling
 * Push source code to your Git repository and automatically roll out containerized applications (micro or macro)
-* Easy to use client and web console for building webapplications
-  * Templatize the components of your system, reuse them, and iteratively deploy them over time
+* Easy to use client and web console for building and monitoring applications
 * Centralized administration and management of an entire stack, team, or organization
+  * Templatize the components of your system, reuse them, and iteratively deploy them over time
   * Roll out changes to software stacks to your entire organization in a controlled fashion
 * Team and user isolation of containers, builds, and network communication in an easy multi-tenancy system
-  * Allow developers to run containers securely by preventing root access and isolating containers with SELinux
-  * Limit, track, and manage the resources teams are using
+  * Allow developers to run containers securely with fine-grained controls in production
+  * Limit, track, and manage the developers and teams on the platform
+* Integrated Docker registry, automatic edge load balancing, cluster logging, and integrated metrics
 
 **Learn More:**
 
