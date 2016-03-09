@@ -44,8 +44,13 @@ angular.module("openshiftConsole")
        * @param {type} projectName  the project name
        * @returns {undefined}
        */
-      toNextSteps: function(name, projectName){
-        $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search("name", name);
+      toNextSteps: function(name, projectName, searchPart){
+        var search = $location.search();
+        search.name = name;
+        if (_.isObject(searchPart)) {
+          _.extend(search, searchPart);
+        }
+        $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search(search);
       },
 
       toPodsForDeployment: function(deployment) {
