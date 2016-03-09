@@ -96,7 +96,7 @@
                       <tbody>
                         <tr ng-if='!quota.status.used' class="danger">
                           <td colspan="5">
-                            <span data-toggle="tooltip" data-placement="right" title="Missing quota status" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
+                            <span data-toggle="tooltip" title="Missing quota status" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                             Status has not been reported on this quota usage record.  Any resources limited by this quota record can not be allocated.
                           </td>
                         </tr>
@@ -114,7 +114,7 @@
                               <span ng-switch-when="memory">Memory</span>
                               <span ng-switch-default>{{resourceType | humanizeQuotaResource}}</span>
                             </span>
-                            <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" data-toggle="tooltip" data-placement="right" title="Quota limit reached" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;"></span>
+                            <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" data-toggle="tooltip" title="Quota limit reached" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;"></span>
                           </td>
                           <td>
                             <span ng-if="!quota.status.used">&mdash;</span>
@@ -149,39 +149,34 @@
                         <th>
                           <span class="nowrap">
                             Min
-                            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
-                               title="The minimum amount of this compute resource that can be requested."></i>
+                            <i class="small pficon pficon-help" data-toggle="tooltip" title="The minimum amount of this compute resource that can be requested."></i>
                           </span>
                         </th>
                         <th>
                           <span class="nowrap">
                             Max
-                            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
-                               title="The maximum amount of this compute resource that can be requested.  The limit must also be below the maximum value."></i>
+                            <i class="small pficon pficon-help" data-toggle="tooltip" title="The maximum amount of this compute resource that can be requested.  The limit must also be below the maximum value."></i>
                            </span>
                         </th>
                         <th>
                           Default
                           <span class="nowrap">
                             Request
-                            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
-                               title="A container will default to request this amount of a compute resource if no request is specified. The system will guarantee the requested amount of compute resource when scheduling a container for execution. If a quota is enabled for this compute resource, the quota usage is incremented by the requested value."></i>
+                            <i class="small pficon pficon-help" data-toggle="tooltip" title="A container will default to request this amount of a compute resource if no request is specified. The system will guarantee the requested amount of compute resource when scheduling a container for execution. If a quota is enabled for this compute resource, the quota usage is incremented by the requested value."></i>
                           </span>
                         </th>
                         <th>
                           Default
                           <span class="nowrap">
                             Limit
-                            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
-                               title="The default limit defines the maximum amount of compute resource the container may have access to during execution if no limit is specified. If no request is made for the compute resource on the container or via a Default Request value, the container will default to request the limit."></i>
+                            <i class="small pficon pficon-help" data-toggle="tooltip" title="The default limit defines the maximum amount of compute resource the container may have access to during execution if no limit is specified. If no request is made for the compute resource on the container or via a Default Request value, the container will default to request the limit."></i>
                           </span>
                         </th>
                         <th>
                           Max Limit/Request
                           <span class="nowrap">
                             Ratio
-                            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="left"
-                               title="If specified, the compute resource must have a request and limit that are both non-zero, where limit divided by request is less than or equal to the specified amount; this represents the max burst for the compute resource during execution."></i>
+                            <i class="small pficon pficon-help" data-toggle="tooltip" title="If specified, the compute resource must have a request and limit that are both non-zero, where limit divided by request is less than or equal to the specified amount; this represents the max burst for the compute resource during execution."></i>
                           </span>
                         </th>
                       </thead>
