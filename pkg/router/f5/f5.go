@@ -356,15 +356,20 @@ func newF5LTM(cfg f5LTMCfg) (*f5LTM, error) {
 // One of three things can happen as a result of a request to F5 iControl REST:
 //
 // (1) The request succeeds and F5 returns an HTTP 200 response, possibly with
-//     a result payload, which should have the fields defined in the
+//     a JSON result payload, which should have the fields defined in the
 //     result argument.  In this case, rest_request decodes the payload into
 //     the result argument and returns nil.
 //
 // (2) The request fails and F5 returns an HTTP 4xx or 5xx response with a
-//     response payload containing a code (which should be the same as the
-//     HTTP response code) and a string message.  In this case, rest_request
-//     decodes the response payload and returns an F5Error with the URL, HTTP
-//     verb, HTTP status code, and error information from the response payload.
+//     response payload.  Usually, this payload is JSON containing a numeric
+//     code (which should be the same as the HTTP response code) and a string
+//     message.  However, in some cases, the F5 iControl REST API returns an
+//     HTML response payload instead.  rest_request attempts to decode the
+//     response payload as JSON but ignores decoding failures on the assumption
+//     that a failure to decode means that the response was in HTML.  Finally,
+//     rest_request returns an F5Error with the URL, HTTP verb, HTTP status
+//     code, and (if the response was JSON) error information from the response
+//     payload.
 //
 // (3) The REST call fails in some other way, such as a socket error or an
 //     error decoding the result payload.  In this case, rest_request returns
@@ -402,16 +407,10 @@ func (f5 *f5LTM) rest_request(verb string, url string, payload io.Reader,
 
 	decoder := json.NewDecoder(resp.Body)
 	if resp.StatusCode >= 400 {
-		if resp.StatusCode == 404 {
-			// Just return the error without trying to decode the message
-			// body—F5 sometimes returns an HTML response in the case of a 404
-			// (even though we *ask* for JSON and F5 *usually* obliges).
-			return errorResult
-		}
-		err = decoder.Decode(&errorResult)
-		if err != nil {
-			errorResult.err = fmt.Errorf("Decoder.Decode failed: %v", err)
-		}
+		// F5 sometimes returns an HTML response even though we ask for JSON.
+		// If decoding fails, assume we got an HTML response and ignore both
+		// the response and the error.
+		decoder.Decode(&errorResult)
 		return errorResult
 	} else if result != nil {
 		err = decoder.Decode(result)
