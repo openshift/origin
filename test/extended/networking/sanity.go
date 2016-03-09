@@ -25,7 +25,7 @@ var _ = Describe("[networking] basic openshift networking", func() {
 		By("Creating a webserver pod")
 		podName := "same-node-webserver"
 		defer f.Client.Pods(f.Namespace.Name).Delete(podName, nil)
-		ip := launchWebserverPod(f, podName, node.Name)
+		ip := e2e.LaunchWebserverPod(f, podName, node.Name)
 
 		By("Checking that the webserver is accessible from a pod on the same node")
 		expectNoError(checkConnectivityToHost(f, node.Name, "same-node-wget", ip, timeout))
@@ -43,7 +43,7 @@ var _ = Describe("[networking] basic openshift networking", func() {
 		By("Creating a webserver pod")
 		podName := "different-node-webserver"
 		defer podClient.Delete(podName, nil)
-		ip := launchWebserverPod(f, podName, node1.Name)
+		ip := e2e.LaunchWebserverPod(f, podName, node1.Name)
 
 		By("Checking that the webserver is accessible from a pod on a different node")
 		expectNoError(checkConnectivityToHost(f, node2.Name, "different-node-wget", ip, timeout))

@@ -87,22 +87,6 @@ func waitForPodSuccessInNamespace(c *client.Client, podName string, contName str
 	})
 }
 
-func isNodeReadySetAsExpected(node *api.Node, wantReady bool) bool {
-	// Check the node readiness condition (logging all).
-	for i, cond := range node.Status.Conditions {
-		e2e.Logf("Node %s condition %d/%d: type: %v, status: %v, reason: %q, message: %q, last transition time: %v",
-			node.Name, i+1, len(node.Status.Conditions), cond.Type, cond.Status,
-			cond.Reason, cond.Message, cond.LastTransitionTime)
-		// Ensure that the condition type is readiness and the status
-		// matches as desired.
-		if cond.Type == api.NodeReady && (cond.Status == api.ConditionTrue) == wantReady {
-			e2e.Logf("Successfully found node %s readiness to be %t", node.Name, wantReady)
-			return true
-		}
-	}
-	return false
-}
-
 func providerIs(providers ...string) bool {
 	for _, provider := range providers {
 		if strings.ToLower(provider) == strings.ToLower(exutil.TestContext.Provider) {
@@ -112,34 +96,12 @@ func providerIs(providers ...string) bool {
 	return false
 }
 
-// Filters nodes in NodeList in place, removing nodes that do not
-// satisfy the given condition
-// TODO: consider merging with pkg/client/cache.NodeLister
-func filterNodes(nodeList *api.NodeList, fn func(node api.Node) bool) {
-	var l []api.Node
-
-	for _, node := range nodeList.Items {
-		if fn(node) {
-			l = append(l, node)
-		}
-	}
-	nodeList.Items = l
-}
-
 func getMultipleNodes(f *e2e.Framework) (nodes *api.NodeList) {
-	nodes, err := f.Client.Nodes().List(api.ListOptions{})
+	nodes, err := e2e.GetReadyNodes(f)
 	if err != nil {
 		e2e.Failf("Failed to list nodes: %v", err)
 	}
-	// previous tests may have cause failures of some nodes. Let's skip
-	// 'Not Ready' nodes, just in case (there is no need to fail the test).
-	filterNodes(nodes, func(node api.Node) bool {
-		return isNodeReadySetAsExpected(&node, true)
-	})
 
-	if len(nodes.Items) == 0 {
-		e2e.Failf("No Ready nodes found.")
-	}
 	if len(nodes.Items) == 1 {
 		// in general, the test requires two nodes. But for local development, often a one node cluster
 		// is created, for simplicity and speed. (see issue #10012). We permit one-node test
@@ -150,37 +112,6 @@ func getMultipleNodes(f *e2e.Framework) (nodes *api.NodeList) {
 		e2e.Logf("Only one ready node is detected. The test has limited scope in such setting. " +
 			"Rerun it with at least two nodes to get complete coverage.")
 	}
-	return
-}
-
-func launchWebserverPod(f *e2e.Framework, podName string, nodeName string) (ip string) {
-	containerName := fmt.Sprintf("%s-container", podName)
-	port := 8080
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
-			Name: podName,
-		},
-		Spec: api.PodSpec{
-			Containers: []api.Container{
-				{
-					Name:  containerName,
-					Image: "gcr.io/google_containers/porter:59ad46ed2c56ba50fa7f1dc176c07c37",
-					Env:   []api.EnvVar{{Name: fmt.Sprintf("SERVE_PORT_%d", port), Value: "foo"}},
-					Ports: []api.ContainerPort{{ContainerPort: port}},
-				},
-			},
-			NodeName:      nodeName,
-			RestartPolicy: api.RestartPolicyNever,
-		},
-	}
-	podClient := f.Client.Pods(f.Namespace.Name)
-	_, err := podClient.Create(pod)
-	expectNoError(err)
-	expectNoError(f.WaitForPodRunning(podName))
-	createdPod, err := podClient.Get(podName)
-	expectNoError(err)
-	ip = fmt.Sprintf("%s:%d", createdPod.Status.PodIP, port)
-	e2e.Logf("Target pod IP:port is %s", ip)
 	return
 }
 

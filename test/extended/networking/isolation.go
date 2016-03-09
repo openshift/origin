@@ -22,7 +22,7 @@ var _ = Describe("[networking] network isolation plugin", func() {
 		By("Running a webserver in one namespace")
 		podName := "isolation-webserver"
 		defer f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
-		ip := launchWebserverPod(f1, podName, node1.Name)
+		ip := e2e.LaunchWebserverPod(f1, podName, node1.Name)
 
 		By("Checking that the webserver is not accessible from a pod in a different namespace on the same node")
 		err := checkConnectivityToHost(f2, node1.Name, "isolation-same-node-wget", ip, 10)
