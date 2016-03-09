@@ -27,7 +27,7 @@
                 "name": "nginxglustervolpvc",
                 "persistentVolumeClaim": {
                     "claimName": "claim-default"
-                }                
+                }
             }
         ]
     }

@@ -9,7 +9,7 @@
       "name": "NODE_NAME",
       "value": "127.0.0.1"
     }
-  ],  
+  ],
   "objects": [
     {
       "kind": "Pod",

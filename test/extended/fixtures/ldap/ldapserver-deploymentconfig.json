@@ -65,7 +65,7 @@
               },
               "initialDelaySeconds": 5,
               "timeoutSeconds": 1
-            }            
+            }
           }
         ],
         "restartPolicy": "Always",

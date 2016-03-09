@@ -55,8 +55,8 @@ os::cmd::expect_success "openshift start --master=https://localhost:${API_PORT} 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
 os::util::sed "s/:4001$/:${ETCD_PORT}/g" master/master-config.yaml
 os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" master/master-config.yaml
-# replace top-level namedCertificates config 
-os::util::sed 's#^  namedCertificates: null#  namedCertificates: [{"certFile":"custom.crt","keyFile":"custom.key","names":["localhost"]}]#' master/master-config.yaml 
+# replace top-level namedCertificates config
+os::util::sed 's#^  namedCertificates: null#  namedCertificates: [{"certFile":"custom.crt","keyFile":"custom.key","names":["localhost"]}]#' master/master-config.yaml
 
 # Start master
 OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \

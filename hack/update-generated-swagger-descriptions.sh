@@ -2,7 +2,7 @@
 #
 # This script generates methods to allow our API objects to describe themsleves for the Swagger tool
 # by reading the current version of the Godoc for the objects. This script can either generate new
-# documentation or verify that the documentation currently in the repository remains valid. 
+# documentation or verify that the documentation currently in the repository remains valid.
 #
 # This script accepts the following parameters as environment variables:
 #  - VERIFY:  run the script to verify current documentation
@@ -65,7 +65,7 @@ for file in ${source_files}; do
 " >> "${tmp_output_file}"
 		${genswaggerdoc} --input="${file}" --output="${tmp_output_file}"
 		gofmt -s -w "${tmp_output_file}"
-		
+
 		if [[ -n "${verify}" ]]; then
 			if ! diff --new-file --unified=3 --text "${tmp_output_file}" "${swagger_file}"; then
 				echo "[ERROR] Generated Swagger documentation at \"${swagger_file}\" is out of date."

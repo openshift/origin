@@ -63,7 +63,7 @@ module.exports = function (grunt) {
             key: grunt.file.read('server.key'),
             cert: grunt.file.read('server.crt')
           }
-        }        
+        }
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
@@ -522,7 +522,7 @@ module.exports = function (grunt) {
         // 'imagemin',
         'svgmin',
         // Also do everything we do in concurrent server so that you can leave grunt server running while doing a build
-        'concurrent:server'       
+        'concurrent:server'
       ]
     },
 

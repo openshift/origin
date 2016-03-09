@@ -4,5 +4,5 @@ to pull the image from an external registry or override the default service acco
 from the internal registry. A list of paths to copy from the image and their respective destination
 within the build directory must be specified in the paths array.
 
-EXPERIMENTAL.  This will be changing to an array of images in the near future and no migration/compatibility 
+EXPERIMENTAL.  This will be changing to an array of images in the near future and no migration/compatibility
 will be provided.  Use at your own risk.

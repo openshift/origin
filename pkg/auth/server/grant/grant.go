@@ -289,7 +289,7 @@ Client: {{ .Values.ClientID }}
 Scope:  {{ .Values.Scopes }}
 URI:    {{ .Values.RedirectURI }}
 </pre>
-  
+
   <input type="submit" name="{{ .Values.ApproveParam }}" value="Approve">
   <input type="submit" name="{{ .Values.DenyParam }}" value="Reject">
 </form>

@@ -259,7 +259,7 @@ Labels:   <none>
 Description:  This example shows how to create a simple ruby application in openshift origin v3
 Annotations:  iconClass=icon-ruby,tags=instant-app,ruby,mysql
 
-Parameters:    
+Parameters:
     Name:   ADMIN_USERNAME
     Description:  administrator username
     Generated:    expression
@@ -316,7 +316,7 @@ Parameters:
 
 Object Labels:  template=application-template-stibuild
 
-Objects:   
+Objects:
     Service frontend
     Route route-edge
     ImageStream origin-ruby-sample

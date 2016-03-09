@@ -48,7 +48,7 @@ const (
 	edgeRouteLong = `
 Create a route that uses edge TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	edgeRouteExample = `  # Create an edge route named "my-route" that exposes frontend service.
@@ -153,7 +153,7 @@ const (
 	passthroughRouteLong = `
 Create a route that uses passthrough TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	passthroughRouteExample = `  # Create a passthrough route named "my-route" that exposes the frontend service.
@@ -238,7 +238,7 @@ const (
 	reencryptRouteLong = `
 Create a route that uses reencrypt TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag. A destination CA certificate
 is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`
 

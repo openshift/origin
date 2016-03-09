@@ -188,7 +188,7 @@
               "tags": "builder,php",
               "supports":"php:5.5,php",
               "version": "5.5",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"              
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
             },
             "from": {
               "kind": "DockerImage",

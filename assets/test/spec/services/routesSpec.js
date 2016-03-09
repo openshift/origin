@@ -132,7 +132,7 @@ describe("RoutesService", function(){
       }];
       var warnings = RoutesService.getRouteWarnings(route, serviceTemplate);
       expect(warnings).toEqual(["Requested host www.example.com was rejected by the router. Reason: route bar already exposes www.example.com and is older."]);
-    });    
+    });
 
     it("should not warn if there are no problems", function() {
       var route = angular.copy(routeTemplate);

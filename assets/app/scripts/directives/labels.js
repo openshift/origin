@@ -24,7 +24,7 @@ angular.module('openshiftConsole')
               var selector = {};
               selector[key] = value;
               LabelFilter.setLabelSelector(new LabelSelector(selector, true));
-            }, 1);            
+            }, 1);
           }
         };
       }

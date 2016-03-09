@@ -18,7 +18,7 @@
     "source": {
       "binary": {
         "asFile": ""
-      }          
+      }
     },
     "strategy": {
       "type": "Source",

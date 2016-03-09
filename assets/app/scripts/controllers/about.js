@@ -9,7 +9,7 @@
 angular.module('openshiftConsole')
   .controller('AboutController', function ($scope, DataService, AuthService, Constants) {
     AuthService.withUser();
-    
+
     $scope.version = {
       master: {
         openshift: Constants.VERSION.openshift,

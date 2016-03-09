@@ -81,7 +81,7 @@ angular.module('openshiftConsole')
         };
         return;
       }
-      
+
       var groupVersion = APIService.objectToResourceGroupVersion(resource);
       var updatedGroupVersion = APIService.objectToResourceGroupVersion(updatedResource);
       if (!updatedGroupVersion) {

@@ -5,14 +5,14 @@ This document describes how OpenShift developers should interact with the OpenSh
 ## Test Structure
 
 The script to run the entire suite lives in [`hack/test-cmd.sh`](./../../hack/test-cmd.sh). All of the test suites that make up
-the parent suite live in `test/cmd`, and are divided by functional area. 
+the parent suite live in `test/cmd`, and are divided by functional area.
 
 ## Running Tests
 
 To run the full test suite, use:
 ```sh
 $ hack/test-cmd.sh
-``` 
+```
 
 To run a single test suite, use:
 ```sh
@@ -39,7 +39,7 @@ New suites can be added by placing scripts in `test/cmd`.
 ## `os::cmd` Utility Functions
 
 The `os::cmd` namespace provides a number of utility functions for writing CLI integration tests. All tests in all CLI test suites
-must use these functions, except for some exceptions mentioned later. 
+must use these functions, except for some exceptions mentioned later.
 
 The utility functions have two major functions - expecting a specific exit code from the command to be tested, and expecting something
 about the output of that command to `stdout` and/or `stderr`. There are three classes of utility functions - those that expect "success"
@@ -53,32 +53,32 @@ so the functions can accept either text literals or regex compliant with `grep -
 The utility functions use `eval` to run the commands passed to them, and do so in a sub-shell. In order to pass a command into a utility
 function, it must be quoted. Therefore, if there is a literal string (`'text'`) in your command, you must use double-quotes (`"there is
 the text: 'text'"`) to ensure that when the command is passed to `eval`, the text that you wanted to be a literal string remains so
-and does not get interpreted as a command itself. 
+and does not get interpreted as a command itself.
 
 Furthermore, variables can be passed in either surrounded by single quotes (`'$var'`) or double quotes (`"$var"`). It is best practice
-to use double-quotes in your test scripts when passing variables to the utility functions, as this will allow the test to see the 
+to use double-quotes in your test scripts when passing variables to the utility functions, as this will allow the test to see the
 expanded variable and display your command exactly as it will be run, instead of displaying the fact that there is a variable that has
 yet to be expanded.
 
 In some cases, you may want to pass a string in to the wrapper functions that contains what looks like a `bash` variable but is not.
-In this case, you must escape the dollar-sign when passing it in, for example: `"\$notavar"`. 
+In this case, you must escape the dollar-sign when passing it in, for example: `"\$notavar"`.
 
-`bash` variable assignments done inside of a command passed to a utility function are not visible to the shell running your test. 
-Therefore, if your test uses bash variables and you would like to do an assignment, you should *not* use the `os::cmd` wrapper functions. 
+`bash` variable assignments done inside of a command passed to a utility function are not visible to the shell running your test.
+Therefore, if your test uses bash variables and you would like to do an assignment, you should *not* use the `os::cmd` wrapper functions.
 
 ---
 
 The utility functions contingent on command success or failure are:
 
-#### `os::cmd::expect_success CMD` 
-`expect_success` takes one argument, the command to be run, and runs it. If the command succeeds (its return code is `0`), the utility 
+#### `os::cmd::expect_success CMD`
+`expect_success` takes one argument, the command to be run, and runs it. If the command succeeds (its return code is `0`), the utility
 function returns `0`. Otherwise, the utility function returns `1`.
 
 In order to test that a command succeeds, pass it to `os::cmd::expect_success` like:
 ```sh
 $ os::cmd::expect_success 'openshift admin config'
 ```
-   
+
 #### `os::cmd::expect_failure CMD`
 `expect_failure` takes one argument, the command to be run, and runs it. If the command fails (its return code is not `0`), the utility
 function returns `0`. Otherwise, the utility function returns `1`.
@@ -185,7 +185,7 @@ function returns `1`.
 
 
 #### `os::cmd::expect_code_and_not_text CMD CODE TEXT`
-`expect_code_and_not_text` takes three arguments, the command to be run, the code to be expected and the text not to be expected from it, and 
+`expect_code_and_not_text` takes three arguments, the command to be run, the code to be expected and the text not to be expected from it, and
 runs the command. If the command returns the expected code *and* `stdout` or `stderr` *do not* contain the expected text, the utility function
 returns `0`. Otherwise, the utility function returns `1`.
 

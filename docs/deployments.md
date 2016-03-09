@@ -12,7 +12,7 @@ In OpenShift, deployment is an update to a single replication controller's pod t
 
 #### Concepts
 
-An OpenShift `deploymentConfig` describes a single `template` and a set of `triggers` for when a new `deployment` should be created. A `deployment` is simply a specially annotated `replicationController`. A `strategy` is responsible for making a `deployment` live in the cluster. 
+An OpenShift `deploymentConfig` describes a single `template` and a set of `triggers` for when a new `deployment` should be created. A `deployment` is simply a specially annotated `replicationController`. A `strategy` is responsible for making a `deployment` live in the cluster.
 
 Each time a new deployment is created, the `latestVersion` field of `deploymentConfig` is incremented, and a `deploymentCause` is added to the `deploymentConfig` describing the change that led to the latest deployment.
 
@@ -148,7 +148,7 @@ The algorithm for this `strategy` is:
 
 ##### Custom strategy
 
-The Custom `strategy` allows users of OpenShift to provide their own deployment behavior. 
+The Custom `strategy` allows users of OpenShift to provide their own deployment behavior.
 
 ```
 {

@@ -8,7 +8,7 @@
 
 As an application administrator, I would like my routes to be configured with shards so they can
 grow beyond a single active/active or active/passive setup.  I should be able to configure many
-routers to allocate user requested routes to and be able to visualize the configuration.  
+routers to allocate user requested routes to and be able to visualize the configuration.
 
 ## Use Cases
 
@@ -46,7 +46,7 @@ Pros:
 - Deal with routers as infra
 - The system knows about routers for route route binding and visualization with no extra effort
 
-Cons: 
+Cons:
 
 - More divergent from Kubernetes codebase initially, though we may be able to generalize parts of
   this approach to sharding to other resources and controllers which allow sharding
@@ -100,7 +100,7 @@ The `Route` REST API will be changed to validate that:
 1.  The `DNS` and `Phase` fields of a `Route` are not set during create
 2.  The value of `DNS` and `Phase` fields do not change during update
 3.  The `RouteDNS` represents the final DNS name that will be used for the requested route.  For example
-if the user requests the route `test` for their app in namespace `myapp` they will be allocted to a shard 
+if the user requests the route `test` for their app in namespace `myapp` they will be allocted to a shard
 and given a name in the form of `myapp-test.shard1.v3.rhcloud.com`.  This field may only change during
 router allocation or reallocation and is only changed by the system.  If the user owns their own
 domain then this field will be populated from `Route.Host` and remain unchanged during allocation.
@@ -156,14 +156,14 @@ allocation, and router configuration.  OpenShift does not provide DNS services f
 their own domain, users who own their own domain should point their domain name to the allocated
 shard(s) for resolution.
 
-When requesting a route the user has two options.  
+When requesting a route the user has two options.
 
 1.  Requesting a specific route name in `Route.Host`: This indicates that the user owns the domain.
     The system should not manipulate the requested name but should ensure uniqueness against the
     existing routes.
 2.  Requesting a route with no name specified in `Route.Host`: This indicates that the user would
-    like to have system provided DNS.  The `RouteScheduler` will create a name in the format of 
-    `<namespace>-<Host>.<shard>.v3.rhcloud.com` and populate the `DNS` field of the route upon 
+    like to have system provided DNS.  The `RouteScheduler` will create a name in the format of
+    `<namespace>-<Host>.<shard>.v3.rhcloud.com` and populate the `DNS` field of the route upon
     completion.
 
 ## DNS
@@ -173,7 +173,7 @@ DNS plugin or manual setup that is aware of the configured router shards.  The D
 will be set up with a wild card DNS zone for each router shard.  Below is an example of the zone
 files of a router configuration with two shards.
 
-If a plugin infrastructure is created it will be able to watch the `router` configuration to 
+If a plugin infrastructure is created it will be able to watch the `router` configuration to
 determine the correct zone files to set up with wildcard entries.
 
 
@@ -203,5 +203,5 @@ determine the correct zone files to set up with wildcard entries.
             IN      NS      ns1.v3.rhcloud.com.
     ns1     IN      A       127.0.0.1
     *       IN      A       10.245.2.4      ; active/active DNS round robin
-            IN      A       10.245.2.5      ; active/active DNS round robin 
+            IN      A       10.245.2.5      ; active/active DNS round robin
 

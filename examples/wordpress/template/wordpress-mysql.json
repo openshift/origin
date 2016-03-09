@@ -334,7 +334,7 @@
     {
       "name": "MYSQL_IMAGE",
       "description": "Image to use for mysql",
-      "value": "openshift/mysql-55-centos7"      
+      "value": "openshift/mysql-55-centos7"
     }
   ]
 }

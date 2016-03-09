@@ -6,4 +6,4 @@ OpenShift Applications/Containers/Pods have the ability to use Persistent Local 
 * [GlusterFS Storage Examples](./gluster-examples)
 * TBD - Ceph
 * TBD - Cinder
-* 
+*

@@ -31,7 +31,7 @@ window.OPENSHIFT_CONSTANTS.HELP = {
 };
 
 /*
-  Custom angular module 
+  Custom angular module
 */
 angular.module('openshiftOnlineConsoleExtensions', ['openshiftConsole'])
   .run(function(HawtioExtension) {
@@ -44,7 +44,7 @@ angular.module('openshiftOnlineConsoleExtensions', ['openshiftConsole'])
 
     $.getJSON("https://m0sg3q4t415n.statuspage.io/api/v2/summary.json", function (data) {
       var n = (data.incidents || [ ]).length;
-    
+
       if (n > 0) {
         var issueStr = n + ' open issue';
         if (n !== 1) {
@@ -68,7 +68,7 @@ angular.module('openshiftOnlineConsoleExtensions', ['openshiftConsole'])
 
     HawtioExtension.add('nav-system-status-mobile', function ($scope) {
       return system_status_elem_mobile;
-    });    
+    });
 
     /*
       Add additional items to the help dropdown in the top navigation bar
@@ -85,7 +85,7 @@ angular.module('openshiftOnlineConsoleExtensions', ['openshiftConsole'])
         $('<a href="https://stackoverflow.com/tags/openshift" target="_blank">Stack Overflow</a>')
           .appendTo(li);
       return li;
-    });    
+    });
 
     HawtioExtension.add('nav-help-dropdown', function ($scope) {
       return $('<li class="divider">');
@@ -96,7 +96,7 @@ angular.module('openshiftOnlineConsoleExtensions', ['openshiftConsole'])
         $('<a href="http://status.openshift.com/" target="_blank">System Status</a>')
           .appendTo(li);
       return li;
-    });    
+    });
   });
 
 /*

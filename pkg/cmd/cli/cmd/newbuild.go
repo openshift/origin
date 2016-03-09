@@ -58,7 +58,7 @@ You can use '%[1]s status' to check the progress.`
 
   # Create a build config from a remote repository and inject the npmrc into a build
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
-  
+
   # Create a build config that gets its input from a remote repository and another Docker image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
 

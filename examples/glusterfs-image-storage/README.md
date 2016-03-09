@@ -5,7 +5,7 @@
   * OSE 3.x
   * GlusterFS volume Created and Started
   * glusterfs-client installed on all Nodes
-  
+
 ### DNS Configuration
 
 Before we can initiate the docker-registry, the dnsmasq.service and the openshift DNS collision on port 53 must be corrected.
@@ -36,7 +36,7 @@ bogus-priv
 ```
 
 ##### Edit /etc/origin/master/master-config.yaml
- 
+
 Change
 ```
 dnsConfig:

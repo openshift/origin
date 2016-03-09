@@ -11,7 +11,7 @@ describe("KeyValuesEntryController", function(){
        controller = _$controller_("KeyValuesEntryController", {$scope: scope});
       });
     });
-    
+
     describe("#edit", function(){
       it("should copy the original value", function(){
         scope.edit();
@@ -19,7 +19,7 @@ describe("KeyValuesEntryController", function(){
         expect(scope.editing).toEqual(true);
       });
     });
-    
+
     describe("#cancel", function(){
       it("should reset value to the original value", function(){
         scope.originalValue = "bar";
@@ -28,7 +28,7 @@ describe("KeyValuesEntryController", function(){
         expect(scope.editing).toEqual(false);
       });
     });
-    
+
     describe("#update", function(){
       var entries = { foo: "abc"};
       it("should update the entries for the key when the value is not empty", function(){
@@ -43,7 +43,7 @@ describe("KeyValuesController", function(){
   var scope, controller;
 
   beforeEach(function(){
-    scope = { 
+    scope = {
       entries: { "foo": "bar"},
       form: {
         $setPristine: function(){},
@@ -56,20 +56,20 @@ describe("KeyValuesController", function(){
       // The injector unwraps the underscores (_) from around the parameter names when matching
      controller = _$controller_("KeyValuesController", {$scope: scope});
     });
-    
+
   });
-  
+
   describe("#allowDelete", function(){
 
     it("should when the deletePolicy equals always", function(){
       expect(scope.allowDelete("foo")).toBe(true);
     });
-    
+
     it("should not when the deletePolicy equals never", function(){
       scope.deletePolicy = "never";
       expect(scope.allowDelete("foo")).toBe(false);
     });
-    
+
     it("should when the deletePolicy equals added and the entry was not originally in entries", function(){
       scope.deletePolicy = "added";
       scope.key = "abc";
@@ -95,7 +95,7 @@ describe("KeyValuesController", function(){
       expect(scope.key).toEqual("abc");
       expect(scope.value).toEqual("xyz");
     });
-    
+
     it("should add the key/value to the scope", function(){
       scope.key = "foo";
       scope.value = "bar";
@@ -108,12 +108,12 @@ describe("KeyValuesController", function(){
       expect(scope.key).toEqual(null);
       expect(scope.value).toEqual(null);
     });
-      
+
   });
-  
+
   describe("#deleteEntry", function(){
     //TODO add test for nonrecognized key?
-    
+
     it("should delete the key/value from the scope", function(){
       scope.deleteEntry("foo");
       expect(scope.entries["foo"]).toBe(undefined);

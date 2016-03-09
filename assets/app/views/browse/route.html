@@ -44,7 +44,7 @@
                 </ul>
               </div>
             </h1>
-            <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels> 
+            <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
           </div>
         </div>
       </div><!-- /middle-header-->
@@ -60,16 +60,16 @@
                       {{route | routeLabel}}
                       <span data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
                         <status-icon status="'Pending'" disable-animation></status-icon>
-                        <span class="sr-only">Pending</span>                        
+                        <span class="sr-only">Pending</span>
                       </span>
-                    </span>  
+                    </span>
                     <div ng-repeat="ingress in route.status.ingress">
                       <span ng-if="(route | isWebRoute)">
                         <a href="{{route | routeWebURL : ingress.host}}" target="_blank">{{route | routeLabel : ingress.host}}</a>
                       </span>
                       <span ng-if="!(route | isWebRoute)">
                         {{route | routeLabel : ingress.host}}
-                      </span>                    
+                      </span>
                       &ndash;
                       <span ng-init="admittedCondition = (ingress | routeIngressCondition : 'Admitted')">
                         <span ng-if="!admittedCondition">admission status unknown for router '{{ingress.routerName}}'</span>
@@ -78,7 +78,7 @@
                         </span>
                         <span ng-if="admittedCondition.status === 'False'">
                           rejected by router '{{ingress.routerName}}' <relative-timestamp timestamp="admittedCondition.lastTransitionTime"></relative-timestamp>
-                        </span>                        
+                        </span>
                       </span>
                     </div>
                   </dd>

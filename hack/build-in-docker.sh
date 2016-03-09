@@ -7,7 +7,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-function absolute_path() { 
+function absolute_path() {
   pushd . > /dev/null
   [ -d "$1" ] && cd "$1" && dirs -l +0
   popd > /dev/null

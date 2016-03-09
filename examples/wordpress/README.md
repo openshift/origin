@@ -1,14 +1,14 @@
 # How To Use Persistent Volumes
 
 The purpose of this guide is to help you understand storage provisioning by creating a WordPress blog and MySQL database.
-In this example, both the blog and database require persistent storage.  
+In this example, both the blog and database require persistent storage.
 
 This guide assumes knowledge of OpenShift fundamentals and that you have a cluster up and running.  Please review steps 1 - 10 in the
 [sample-app](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md) to run an OpenShift cluster.
 
 ## Root access
 
-The Wordpress Dockerhub image binds Apache to port 80 in the container, which requires root access.  We can allow that 
+The Wordpress Dockerhub image binds Apache to port 80 in the container, which requires root access.  We can allow that
 in this example, but those wishing to run a more secure cluster will want to ensure their images don't require root access (e.g, bind to high number ports, don't chown or chmod dirs, etc)
 
 Allow Wordpress to bind to port 80 by editing the restricted security context restraint.  Change "runAsUser" from ```MustRunAsRange``` to ```RunAsAny```.
@@ -33,7 +33,7 @@ seLinuxContext:
   type: MustRunAs
 ```
 
-Changing the restricted security context as shown above allows the Wordpress container to bind to port 80.  
+Changing the restricted security context as shown above allows the Wordpress container to bind to port 80.
 
 ## Storage Provisioning
 
@@ -49,7 +49,7 @@ Now that the "system admin" guy has deployed some Persistent Volumes, you can co
 ```
 # Create claims for storage.
 # The claims in this example carefully match the volumes created above.
-$ oc create -f examples/wordpress/pvc-wp.yaml 
+$ oc create -f examples/wordpress/pvc-wp.yaml
 $ oc create -f examples/wordpress/pvc-mysql.yaml
 $ oc get pvc
 
@@ -58,7 +58,7 @@ claim-mysql   map[]     Bound     pv0002
 claim-wp      map[]     Bound     pv0001
 ```
 
-## MySQL 
+## MySQL
 
 Launch the MySQL pod.
 
@@ -67,20 +67,20 @@ oc create -f examples/wordpress/pod-mysql.yaml
 ```
 
 After a few moments, MySQL will be running and accessible via the pod's IP address.  We don't know what the IP address
-will be and we wouldn't want to hard-code that value in any pod that wants access to MySQL.  
+will be and we wouldn't want to hard-code that value in any pod that wants access to MySQL.
 
 Create a service in front of MySQL that allows other pods to connect to it by name.
 
 ```
 # This allows the pod to access MySQL via a service name instead of hard-coded host address
-oc create -f examples/wordpress/service-mysql.yaml 
+oc create -f examples/wordpress/service-mysql.yaml
 ```
 
 ## WordPress
 
 We use the MySQL service defined above in our Wordpress pod.  The variable WORDPRESS_DB_HOST is set to the name
  of our MySQL service.
- 
+
 Because the Wordpress pod and MySQL service are running in the same namespace, we can reference the service by name.  We
 can also access a service in another namespace by using the name and namespace: ```mysql.another_namespace```.  The fully qualified
 name of the service would also work: ```mysql.<namespace>.svc.cluster.local```
@@ -95,8 +95,8 @@ name of the service would also work: ```mysql.<namespace>.svc.cluster.local```
 Launch the Wordpress pod and its corresponding service.
 
 ```
-oc create -f examples/wordpress/pod-wordpress.yaml 
-oc create -f examples/wordpress/service-wp.yaml 
+oc create -f examples/wordpress/pod-wordpress.yaml
+oc create -f examples/wordpress/service-wp.yaml
 
 oc get svc
 NAME            LABELS                                    SELECTOR         IP(S)            PORT(S)

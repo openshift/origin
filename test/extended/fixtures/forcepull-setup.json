@@ -4,7 +4,7 @@
     "metadata": {},
     "items": [
 	{
-    
+
 	    "kind": "ImageStream",
 	    "apiVersion": "v1",
 	    "metadata": {
@@ -15,7 +15,7 @@
 	    "status": {
 		"dockerImageRepository": ""
 	    }
-    
+
 	},
 	{
 	    "kind": "BuildConfig",
