@@ -192,8 +192,12 @@ func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullR
 	return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
 }
 
-// CheckAllowedUser checks if the Docker image contains allowed users
-// FIXME: @cswong this need better godoc
+// CheckAllowedUser retrieves the user for a Docker image and checks that user against
+// an allowed range of uids.
+// - If the range of users is not empty, then the user on the Docker image needs to be a numeric user
+// - The user's uid must be contained by the range(s) specified by the uids Rangelist
+// - If the image contains ONBUILD instructions and those instructions also contain a USER directive,
+//   then the user specified by that USER directive must meet the uid range criteria as well.
 func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild bool) error {
 	if uids == nil || uids.Empty() {
 		return nil

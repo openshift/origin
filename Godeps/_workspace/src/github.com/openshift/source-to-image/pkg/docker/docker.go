@@ -123,6 +123,7 @@ type RunContainerOptions struct {
 	NetworkMode      string
 	User             string
 	CGroupLimits     *api.CGroupLimits
+	CapDrop          []string
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -611,6 +612,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		ccopts.HostConfig.CPUQuota = opts.CGroupLimits.CPUQuota
 		ccopts.HostConfig.CPUPeriod = opts.CGroupLimits.CPUPeriod
 	}
+	ccopts.HostConfig.CapDrop = opts.CapDrop
 	glog.V(2).Infof("Creating container %s using config: %+v, hostconfig: %+v", ccopts.Name, ccopts.Config, ccopts.HostConfig)
 	container, err := d.client.CreateContainer(ccopts)
 	if err != nil {
