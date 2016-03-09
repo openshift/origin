@@ -54,7 +54,7 @@ func NewEtcd(client *etcdclient.Client, key, value string, ttl uint64) Leaser {
 		value:  value,
 		ttl:    ttl,
 
-		waitFraction:         0.75,
+		waitFraction:         0.66,
 		pauseInterval:        time.Second,
 		maxRetries:           10,
 		minimumRetryInterval: 100 * time.Millisecond,
