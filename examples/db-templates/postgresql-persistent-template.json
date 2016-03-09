@@ -113,7 +113,7 @@
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 5,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"]
+                    "command": [ "/bin/sh", "-i", "-c", "psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c 'SELECT 1'"]
                   }
                 },
                 "livenessProbe": {
@@ -138,10 +138,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
