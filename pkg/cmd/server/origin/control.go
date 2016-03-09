@@ -48,7 +48,7 @@ func initControllerRoutes(root *restful.WebService, path string, canStart bool, 
 	root.Route(root.DELETE(path).To(func(req *restful.Request, resp *restful.Response) {
 		resp.ResponseWriter.WriteHeader(http.StatusAccepted)
 		fmt.Fprintf(resp, "terminating")
-		plug.Stop()
+		plug.Stop(nil)
 	}).Doc("Stop the master").
 		Returns(http.StatusAccepted, "if the master will stop", nil).
 		Produces(restful.MIME_JSON))
