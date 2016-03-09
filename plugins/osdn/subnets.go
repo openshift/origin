@@ -106,14 +106,9 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 
 	// Assume we are working with IPv4
-	clusterNetwork, err := oc.Registry.GetClusterNetwork()
+	clusterNetwork, _, servicesNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
-		return false, err
-	}
-	servicesNetwork, err := oc.Registry.GetServicesNetwork()
-	if err != nil {
-		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 		return false, err
 	}
 	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
@@ -202,7 +197,7 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 								continue
 							}
 						} else {
-							log.Errorf("Deleting invalid node %s/%s subnet: %v", ev.Node.Name, ev.Node.IP, nodeErr)
+							log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, ev.Node.IP, nodeErr)
 						}
 					}
 				}

@@ -146,25 +146,44 @@ func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *n
 	return kerrors.NewAggregate(errList)
 }
 
+func (oc *OvsController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
+	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
+	if err != nil {
+		return false, err
+	}
+	if clusterNetworkCIDR != clusterNetwork.String() ||
+		hostSubnetLength != hostBitsPerSubnet ||
+		serviceNetworkCIDR != serviceNetwork.String() {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
-	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR)
+	hostBitsPerSubnet := int(clusterBitsPerSubnet)
+	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		return err
 	}
 
-	if err := oc.validateNetworkConfig(clusterNetwork, serviceNetwork); err != nil {
-		return err
-	}
-
-	if err := oc.Registry.WriteNetworkConfig(clusterNetwork, clusterBitsPerSubnet, serviceNetwork); err != nil {
-		return err
+	changed, net_err := oc.isClusterNetworkChanged(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
+	if changed {
+		if err := oc.validateNetworkConfig(clusterNetwork, serviceNetwork); err != nil {
+			return err
+		}
+		if err := oc.Registry.UpdateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+			return err
+		}
+	} else if net_err != nil {
+		if err := oc.Registry.CreateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+			return err
+		}
 	}
 
 	if err := oc.pluginHooks.PluginStartMaster(clusterNetwork, clusterBitsPerSubnet); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
-
 	return nil
 }
 
