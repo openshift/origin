@@ -10,10 +10,7 @@
         <div class="middle-content">
           <div class="container surface-shaded">
             <div class="col-md-12">
-              <ol class="breadcrumb">
-                <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-                <li class="active"><strong>Create Route</strong></li>
-              </ol>
+              <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
               <alerts alerts="alerts"></alerts>
               <div class="row">
                 <div class="create-route-icon col-md-2 gutter-top hidden-sm hidden-xs">

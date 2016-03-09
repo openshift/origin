@@ -16,21 +16,49 @@ angular.module("openshiftConsole")
     $scope.emptyMessage = "Loading...";
     $scope.alerts = [];
     $scope.loginBaseUrl = DataService.openshiftAPIBaseUrl();
-    $scope.projectName = $routeParams.project;
     $scope.buildConfigs = {};
+
+    $scope.projectName = $routeParams.project;
+    var imageName = $routeParams.imageName;
+    var imageTag = $routeParams.imageTag;
+    var namespace = $routeParams.namespace;
+
+    var name = $routeParams.name;
+    var nameLink = "";
+    if (creatingFromImage()) {
+      nameLink = "project/" + $scope.projectName + "/create/fromimage?imageName=" + imageName + "&imageTag=" + imageTag + "&namespace=" + namespace + "&name=" + name;
+    } else {
+      nameLink = "project/" + $scope.projectName + "/create/fromtemplate?name=" + name + "&namespace=" + namespace;
+    }
+
+    $scope.breadcrumbs = [
+      {
+        title: $scope.projectName,
+        link: "project/" + $scope.projectName
+      },
+      {
+        title: "Add to Project",
+        link: "project/" + $scope.projectName + "/create"
+      },
+      {
+        title: name,
+        link: nameLink
+      },
+      {
+        title: "Next Steps"
+      }
+    ];
 
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
-        var name = $routeParams.name;
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
         if (!name || (!creatingFromTemplate($routeParams) && !(creatingFromImage($routeParams)))) {
           Navigate.toProjectOverview($scope.projectName);
           return;
         }
-
-        $scope.name = name;
-
         watches.push(DataService.watch("buildconfigs", context, function(buildconfigs) {
           $scope.buildConfigs = buildconfigs.by("metadata.name");
           $scope.createdBuildConfig = $scope.buildConfigs[name];
@@ -51,10 +79,6 @@ angular.module("openshiftConsole")
 
         $scope.allTasksSuccessful = function(tasks) {
           return !pendingTasks(tasks).length && !erroredTasks(tasks).length;
-        };
-
-        $scope.projectDisplayName = function() {
-          return displayNameFilter(this.project) || this.projectName;
         };
 
         function erroredTasks(tasks) {
@@ -87,17 +111,17 @@ angular.module("openshiftConsole")
           }
         };
 
-        function creatingFromTemplate() {
-          return $routeParams.name && $routeParams.namespace;
-        }
-
-        function creatingFromImage() {
-          return $routeParams.imageName && $routeParams.imageTag && $routeParams.namespace;
-        }
-
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
         });
 
       }));
+
+      function creatingFromTemplate() {
+        return name && namespace;
+      }
+
+      function creatingFromImage() {
+        return imageName && imageTag && namespace;
+      }
   });

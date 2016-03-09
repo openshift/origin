@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -10,6 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -23,7 +25,7 @@ type CreateClientOptions struct {
 	User   string
 	Groups []string
 
-	APIServerCAFile    string
+	APIServerCAFiles   []string
 	APIServerURL       string
 	PublicAPIServerURL string
 	Output             io.Writer
@@ -67,7 +69,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.StringVar(&options.APIServerCAFile, "certificate-authority", "openshift.local.config/master/ca.crt", "Path to the API server's CA file.")
+	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("client-dir")
@@ -89,8 +91,14 @@ func (o CreateClientOptions) Validate(args []string) error {
 	if len(o.APIServerURL) == 0 {
 		return errors.New("master must be provided")
 	}
-	if len(o.APIServerCAFile) == 0 {
+	if len(o.APIServerCAFiles) == 0 {
 		return errors.New("certificate-authority must be provided")
+	} else {
+		for _, caFile := range o.APIServerCAFiles {
+			if _, err := util.CertPoolFromFile(caFile); err != nil {
+				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
+			}
+		}
 	}
 
 	if o.SignerCertOptions == nil {
@@ -129,17 +137,17 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		return err
 	}
 
-	// copy the CA file over
-	if caBytes, err := ioutil.ReadFile(o.APIServerCAFile); err != nil {
-		return err
-	} else if err := ioutil.WriteFile(clientCopyOfCAFile, caBytes, 0644); err != nil {
-		return nil
+	// copy the CA file(s) over
+	if caBytes, readErr := readFiles(o.APIServerCAFiles, []byte("\n")); readErr != nil {
+		return readErr
+	} else if writeErr := ioutil.WriteFile(clientCopyOfCAFile, caBytes, 0644); writeErr != nil {
+		return writeErr
 	}
 
 	createKubeConfigOptions := CreateKubeConfigOptions{
 		APIServerURL:       o.APIServerURL,
 		PublicAPIServerURL: o.PublicAPIServerURL,
-		APIServerCAFile:    clientCopyOfCAFile,
+		APIServerCAFiles:   []string{clientCopyOfCAFile},
 
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,

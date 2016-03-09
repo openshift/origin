@@ -26,7 +26,7 @@ if [[ "${SOURCE_REPOSITORY}" != "git://"* ]] && [[ "${SOURCE_REPOSITORY}" != "gi
 fi
 
 if [ -n "${SOURCE_REF}" ]; then
-  BUILD_DIR=$(mktemp --directory --suffix=docker-build)
+  BUILD_DIR=$(mktemp --directory)
   git clone --recursive "${SOURCE_REPOSITORY}" "${BUILD_DIR}"
   if [ $? != 0 ]; then
     echo "Error trying to fetch git source: ${SOURCE_REPOSITORY}"

@@ -40,15 +40,15 @@ $ oc policy add-role-to-user edit system:serviceaccount:ci:default -n ci
 3. Install the provided OpenShift templates:
 ```
 # Slave convertor (optional):
-$ oc create -f https://goo.gl/YROngT
+$ oc create -f https://goo.gl/HPXiOs
 
 # Jenkins master template:
-$ oc create -f https://goo.gl/HPXiOs
+$ oc create -f https://goo.gl/YROngT
 ```
 
 4. Now navigate to the OpenShift Web Console and switch to the `ci` project.
 
-5. Click on *Add to project* a select the `s2i-to-jenkins-slave` template. Here
+5. Click on *Add to project* a select the `jenkins-slave-builder` template. Here
    you can customize the image stream name for the builder image or use
    alternative repository with your own custom entry point script.
 

@@ -312,6 +312,8 @@ func (o MasterOptions) CreateCerts() error {
 		SignerName:         signerName,
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
+		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
+		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
 		Output:             o.Output,
 	}

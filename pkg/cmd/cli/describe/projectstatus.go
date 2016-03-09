@@ -343,7 +343,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
 		},
-		routeanalysis.FindMissingPortMapping,
+		routeanalysis.FindPortMappingIssues,
 		routeanalysis.FindMissingTLSTerminationType,
 		routeanalysis.FindPathBasedPassthroughRoutes,
 		routeanalysis.FindRouteAdmissionFailures,

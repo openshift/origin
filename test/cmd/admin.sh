@@ -248,7 +248,7 @@ os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affi
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
 echo "registry: ok"
 
-workingdir=$(mktemp -d --suffix=registry)
+workingdir=$(mktemp -d)
 os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} -o yaml > ${workingdir}/oadm_registry.yaml"
 os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
 os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"

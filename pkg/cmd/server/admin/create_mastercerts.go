@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -12,6 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/util/parallel"
@@ -68,6 +71,9 @@ type CreateMasterCertsOptions struct {
 	CertDir    string
 	SignerName string
 
+	APIServerCAFiles []string
+	CABundleFile     string
+
 	Hostnames []string
 
 	APIServerURL       string
@@ -99,6 +105,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	flags.StringVar(&options.CertDir, "cert-dir", "openshift.local.config/master", "The certificate data directory.")
 	flags.StringVar(&options.SignerName, "signer-name", DefaultSignerName(), "The name to use for the generated signer.")
+	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", options.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
@@ -107,6 +114,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("cert-dir")
+	cmd.MarkFlagFilename("certificate-authority")
 
 	return cmd
 }
@@ -140,6 +148,12 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 		return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
 	}
 
+	for _, caFile := range o.APIServerCAFiles {
+		if _, err := util.CertPoolFromFile(caFile); err != nil {
+			return fmt.Errorf("certificate authority must be a valid certificate file: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -168,6 +182,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	}
 
 	errs := parallel.Run(
+		func() error { return o.createCABundle(&getSignerCertOptions) },
 		func() error { return o.createServerCerts(&getSignerCertOptions) },
 		func() error { return o.createAPIClients(&getSignerCertOptions) },
 		func() error { return o.createEtcdClientCerts(&getSignerCertOptions) },
@@ -187,7 +202,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 		createKubeConfigOptions := CreateKubeConfigOptions{
 			APIServerURL:       o.APIServerURL,
 			PublicAPIServerURL: o.PublicAPIServerURL,
-			APIServerCAFile:    getSignerCertOptions.CertFile,
+			APIServerCAFiles:   append([]string{getSignerCertOptions.CertFile}, o.APIServerCAFiles...),
 
 			CertFile: clientCertInfo.CertLocation.CertFile,
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
@@ -250,6 +265,21 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 		return err
 	}
 	return nil
+}
+
+func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *SignerCertOptions) error {
+	caFiles := []string{getSignerCertOptions.CertFile}
+	caFiles = append(caFiles, o.APIServerCAFiles...)
+	caData, err := readFiles(caFiles, []byte("\n"))
+	if err != nil {
+		return err
+	}
+
+	// ensure parent dir
+	if err := os.MkdirAll(o.CertDir, os.FileMode(0755)); err != nil {
+		return err
+	}
+	return ioutil.WriteFile(DefaultCABundleFile(o.CertDir), caData, 0644)
 }
 
 func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *SignerCertOptions) error {

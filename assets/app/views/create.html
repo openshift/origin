@@ -9,10 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded">
-            <ol class="breadcrumb">
-              <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-              <li class="active"><strong>Add to Project</strong></li>
-            </ol>
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div class="row">
               <div class="col-md-12">
                 <p ng-if="emptyCatalog && !loaded">Loading...</p>
@@ -58,7 +55,11 @@
                             <span class="caret" aria-hidden="true"></span>
                           </button>
                           <ul class="uib-dropdown-menu">
-                            <li ng-repeat="tag in categoryTags" ng-if="tag" role="menuitem">
+                            <li ng-repeat="tag in browseGeneral" role="menuitem">
+                              <a href="" ng-click="filter.tag = tag">{{tag}}</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li ng-repeat="tag in browseTechnologies" ng-if="tag" role="menuitem">
                               <a href="" ng-click="filter.tag = tag">{{tag}}</a>
                             </li>
                           </ul>
@@ -90,13 +91,17 @@
                     <div class="col-sm-6 catalog-legend">
                       <dl aria-hidden="true" class="text-muted">
                         <dt>
-                          <i class="pficon pficon-image"></i> Builder Image
+                          <i class="pficon pficon-image fa-fw"></i> Builder Image
                         </dt>
                         <dd>Builds images from source code in a Git repository.</dd>
                         <dt>
-                          <i class="fa fa-bolt"></i> Template
+                          <i class="fa fa-clone fa-fw"></i> Template
                         </dt>
                         <dd>Creates a predefined set of resources.</dd>
+                        <dt>
+                          <i class="fa fa-bolt fa-fw"></i> Quickstart
+                        </dt>
+                        <dd>Provides a skeleton for developing an application.</dd>
                       </dl>
                     </div>
                   </div>

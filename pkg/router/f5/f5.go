@@ -1514,7 +1514,7 @@ func (f5 *f5LTM) uploadCert(cert, certname string) error {
 	glog.V(4).Infof("Copying tempfile for certificate %s to F5 BIG-IP...",
 		certname)
 	certfilePath := fmt.Sprintf("/var/tmp/%s.cert", certname)
-	sshUserHost := fmt.Sprintf("admin@%s", f5.host)
+	sshUserHost := fmt.Sprintf("%s@%s", f5.username, f5.host)
 	certfileDest := fmt.Sprintf("%s:%s", sshUserHost, certfilePath)
 	args := f5.buildSshArgs(certfile.Name(), certfileDest)
 	defer func() {
@@ -1583,7 +1583,7 @@ func (f5 *f5LTM) uploadKey(privkey, keyname string) error {
 	glog.V(4).Infof("Copying tempfile for key %s to F5 BIG-IP...", keyname)
 
 	keyfilePath := fmt.Sprintf("/var/tmp/%s.key", keyname)
-	sshUserHost := fmt.Sprintf("admin@%s", f5.host)
+	sshUserHost := fmt.Sprintf("%s@%s", f5.username, f5.host)
 	keyfileDest := fmt.Sprintf("%s:%s", sshUserHost, keyfilePath)
 	args := f5.buildSshArgs(keyfile.Name(), keyfileDest)
 	defer func() {

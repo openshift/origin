@@ -21,11 +21,22 @@ angular.module('openshiftConsole')
       name: $scope.serviceName || ""
     };
 
+    $scope.breadcrumbs = [
+      {
+        title: $scope.projectName,
+        link: "project/" + $scope.projectName
+      },
+      {
+        title: "Create Route"
+      }
+    ];
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
-
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
         var updatePortOptions = function(service) {
           if (!service) {
             return;
