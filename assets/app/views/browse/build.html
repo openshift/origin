@@ -113,7 +113,7 @@
                             <status-icon status="build.status.phase"></status-icon>
                             <span class="space-after">{{build.status.phase}}</span>
 
-                            <span ng-if="build.status.startTimestamp">
+                            <span ng-if="build.status.startTimestamp && state === 'logs'">
                               &mdash; Log from {{build.status.startTimestamp  | date : 'short'}}
                               <span ng-if="build.status.completionTimestamp">
                                 to {{build.status.completionTimestamp  | date : 'short'}}
