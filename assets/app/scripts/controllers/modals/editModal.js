@@ -97,7 +97,7 @@ angular.module('openshiftConsole')
         return;
       }
 
-      DataService.update($scope.kind, $scope.resource.metadata.name, updatedResource, {
+      DataService.update(APIService.kindToResource($scope.kind), $scope.resource.metadata.name, updatedResource, {
         namespace: $scope.resource.metadata.namespace
       }).then(
         // success

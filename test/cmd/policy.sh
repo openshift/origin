@@ -37,7 +37,7 @@ os::cmd::expect_success 'oc policy remove-user system:no-user'
 
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
-workingdir=$(mktemp -d --suffix=policy)
+workingdir=$(mktemp -d)
 cp ${OS_ROOT}/test/fixtures/bootstrappolicy/cluster_admin_1.0.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION//g" ${workingdir}/cluster_admin_1.0.yaml
 os::cmd::expect_success "oc create -f ${workingdir}/cluster_admin_1.0.yaml"

@@ -65,6 +65,14 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
+		func(obj *LegacyClientPolicyConfig) {
+			if len(obj.LegacyClientPolicy) == 0 {
+				obj.LegacyClientPolicy = AllowAll
+			}
+			if obj.LegacyClientPolicy != AllowAll && len(obj.RestrictedHTTPVerbs) == 0 {
+				obj.RestrictedHTTPVerbs = []string{"PUT", "POST"}
+			}
+		},
 		func(obj *NodeConfig) {
 			// Defaults/migrations for NetworkConfig
 			if len(obj.NetworkConfig.NetworkPluginName) == 0 {

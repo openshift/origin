@@ -39,14 +39,7 @@ func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.
 }
 
 const createSignerLong = `
-Create a self-signed CA key/cert
-
-Create a self-signed CA key/cert for signing certificates used by server
-components.
-
-This is mainly intended for development/trial deployments as production
-deployments should utilize properly signed certificates (generated
-separately) or start with a properly signed CA.
+Create a self-signed CA key/cert for signing certificates used by server components.
 `
 
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {

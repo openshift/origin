@@ -28,13 +28,13 @@
                   <li>
                     <edit-link
                       resource="service"
-                      kind="services"
+                      kind="Service"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="service"
+                      kind="Service"
                       resource-name="{{service.metadata.name}}"
                       project-name="{{service.metadata.namespace}}"
                       alerts="alerts">

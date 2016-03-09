@@ -113,4 +113,11 @@ angular.module('openshiftConsole')
 
       return items;
     };
+  })
+  // Humanize duration values like 300 "seconds" as opposed to timestamps (see duration filter above).
+  // http://momentjs.com/docs/#/durations/
+  .filter('humanizeDurationValue', function() {
+    return function(duration, unit) {
+      return moment.duration(duration, unit).humanize();
+    };
   });

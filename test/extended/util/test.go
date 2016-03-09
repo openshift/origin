@@ -188,7 +188,7 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceLis
 func addRoleToE2EServiceAccounts(c *client.Client, namespaces *kapi.NamespaceList, roleName string) {
 	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
 		for _, ns := range namespaces.Items {
-			if strings.HasPrefix(ns.Name, "e2e-") {
+			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
 				addRole := &policy.RoleModificationOptions{
 					RoleNamespace:       "",
@@ -197,7 +197,7 @@ func addRoleToE2EServiceAccounts(c *client.Client, namespaces *kapi.NamespaceLis
 					Users:               []string{sa},
 				}
 				if err := addRole.AddRole(); err != nil {
-					FatalErr(err)
+					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
 				}
 			}
 		}

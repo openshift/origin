@@ -48,13 +48,13 @@
                   <li>
                     <edit-link
                       resource="buildConfig"
-                      kind="buildconfigs"
+                      kind="BuildConfig"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="buildconfig"
+                      kind="BuildConfig"
                       resource-name="{{buildConfig.metadata.name}}"
                       project-name="{{buildConfig.metadata.namespace}}"
                       alerts="alerts">

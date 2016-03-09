@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/gonum/graph"
 
@@ -18,6 +19,10 @@ const (
 	// MissingRoutePortWarning is returned when a route has no route port specified
 	// and the service it routes to has multiple ports.
 	MissingRoutePortWarning = "MissingRoutePort"
+	// WrongRoutePortWarning is returned when a route has a route port specified
+	// but the service it points to has no such port (either as a named port or as
+	// a target port).
+	WrongRoutePortWarning = "WrongRoutePort"
 	// MissingServiceWarning is returned when there is no service for the specific route.
 	MissingServiceWarning = "MissingService"
 	// MissingTLSTerminationTypeErr is returned when a route with a tls config doesn't
@@ -31,49 +36,105 @@ const (
 	RouteNotAdmittedTypeErr = "RouteNotAdmitted"
 )
 
-// FindMissingPortMapping checks all routes and reports those that don't specify a port while
-// the service they are routing to, has multiple ports. Also if a service for a route doesn't
-// exist, will be reported.
-func FindMissingPortMapping(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+// FindPortMappingIssues checks all routes and reports any issues related to their ports.
+// Also non-existent services for routes are reported here.
+func FindPortMappingIssues(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
-route:
 	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
-		for _, uncastServiceNode := range g.SuccessorNodesByEdgeKind(uncastRouteNode, routeedges.ExposedThroughRouteEdgeKind) {
-			routeNode := uncastRouteNode.(*routegraph.RouteNode)
-			svcNode := uncastServiceNode.(*kubegraph.ServiceNode)
-
-			if !svcNode.Found() {
-				markers = append(markers, osgraph.Marker{
-					Node:         routeNode,
-					RelatedNodes: []graph.Node{svcNode},
-
-					Severity: osgraph.WarningSeverity,
-					Key:      MissingServiceWarning,
-					Message: fmt.Sprintf("%s is supposed to route traffic to %s but %s doesn't exist.",
-						f.ResourceName(routeNode), f.ResourceName(svcNode), f.ResourceName(svcNode)),
-				})
-
-				continue route
-			}
-
-			if len(svcNode.Spec.Ports) > 1 && (routeNode.Spec.Port == nil || len(routeNode.Spec.Port.TargetPort.String()) == 0) {
-				markers = append(markers, osgraph.Marker{
-					Node:         routeNode,
-					RelatedNodes: []graph.Node{svcNode},
-
-					Severity: osgraph.WarningSeverity,
-					Key:      MissingRoutePortWarning,
-					Message: fmt.Sprintf("%s doesn't have a port specified and is routing traffic to %s which uses multiple ports.",
-						f.ResourceName(routeNode), f.ResourceName(svcNode)),
-				})
-
-				continue route
-			}
+		routeNode := uncastRouteNode.(*routegraph.RouteNode)
+		marker := routePortMarker(g, f, routeNode)
+		if marker != nil {
+			markers = append(markers, *marker)
 		}
 	}
 
 	return markers
+}
+
+func routePortMarker(g osgraph.Graph, f osgraph.Namer, routeNode *routegraph.RouteNode) *osgraph.Marker {
+	for _, uncastServiceNode := range g.SuccessorNodesByEdgeKind(routeNode, routeedges.ExposedThroughRouteEdgeKind) {
+		svcNode := uncastServiceNode.(*kubegraph.ServiceNode)
+
+		if !svcNode.Found() {
+			return &osgraph.Marker{
+				Node:         routeNode,
+				RelatedNodes: []graph.Node{svcNode},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      MissingServiceWarning,
+				Message: fmt.Sprintf("%s is supposed to route traffic to %s but %s doesn't exist.",
+					f.ResourceName(routeNode), f.ResourceName(svcNode), f.ResourceName(svcNode)),
+				// TODO: Suggest 'oc create service' once that's a thing.
+				// See https://github.com/kubernetes/kubernetes/pull/19509
+			}
+		}
+
+		if len(svcNode.Spec.Ports) > 1 && (routeNode.Spec.Port == nil || len(routeNode.Spec.Port.TargetPort.String()) == 0) {
+			return &osgraph.Marker{
+				Node:         routeNode,
+				RelatedNodes: []graph.Node{svcNode},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      MissingRoutePortWarning,
+				Message: fmt.Sprintf("%s doesn't have a port specified and is routing traffic to %s which uses multiple ports.",
+					f.ResourceName(routeNode), f.ResourceName(svcNode)),
+			}
+		}
+
+		if routeNode.Spec.Port == nil {
+			// If no port is specified, we don't need to analyze any further.
+			return nil
+		}
+
+		routePortString := routeNode.Spec.Port.TargetPort.String()
+		if routePort, err := strconv.Atoi(routePortString); err == nil {
+			for _, port := range svcNode.Spec.Ports {
+				if port.TargetPort.IntValue() == routePort {
+					return nil
+				}
+			}
+
+			// route has a numeric port, service has no port with that number as a targetPort.
+			marker := &osgraph.Marker{
+				Node:         routeNode,
+				RelatedNodes: []graph.Node{svcNode},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      WrongRoutePortWarning,
+				Message: fmt.Sprintf("%s has a port specified (%d) but %s has no such targetPort.",
+					f.ResourceName(routeNode), routePort, f.ResourceName(svcNode)),
+			}
+			if len(svcNode.Spec.Ports) == 1 {
+				marker.Suggestion = osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"port\":{\"targetPort\": %d}}}'", f.ResourceName(routeNode), svcNode.Spec.Ports[0].TargetPort.IntValue()))
+			}
+
+			return marker
+		}
+
+		for _, port := range svcNode.Spec.Ports {
+			if port.Name == routePortString {
+				return nil
+			}
+		}
+
+		// route has a named port, service has no port with that name.
+		marker := &osgraph.Marker{
+			Node:         routeNode,
+			RelatedNodes: []graph.Node{svcNode},
+
+			Severity: osgraph.WarningSeverity,
+			Key:      WrongRoutePortWarning,
+			Message: fmt.Sprintf("%s has a named port specified (%q) but %s has no such named port.",
+				f.ResourceName(routeNode), routePortString, f.ResourceName(svcNode)),
+		}
+		if len(svcNode.Spec.Ports) == 1 {
+			marker.Suggestion = osgraph.Suggestion(fmt.Sprintf("oc patch %s -p '{\"spec\":{\"port\":{\"targetPort\": %d}}}'", f.ResourceName(routeNode), svcNode.Spec.Ports[0].TargetPort.IntValue()))
+		}
+
+		return marker
+	}
+	return nil
 }
 
 func FindMissingTLSTerminationType(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {

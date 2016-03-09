@@ -217,9 +217,9 @@ func (o NodeOptions) RunNode() error {
 
 func (o NodeOptions) CreateNodeConfig() error {
 	getSignerOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(o.NodeArgs.MasterCertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.MasterCertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, "ca"),
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.MasterCertDir, admin.CAFilePrefix),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.MasterCertDir, admin.CAFilePrefix),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, admin.CAFilePrefix),
 	}
 
 	var dnsIP string
@@ -253,8 +253,8 @@ func (o NodeOptions) CreateNodeConfig() error {
 		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
 		NetworkPluginName:   o.NodeArgs.NetworkPluginName,
 
-		APIServerURL:    masterAddr.String(),
-		APIServerCAFile: getSignerOptions.CertFile,
+		APIServerURL:     masterAddr.String(),
+		APIServerCAFiles: []string{admin.DefaultCABundleFile(o.NodeArgs.MasterCertDir)},
 
 		NodeClientCAFile: getSignerOptions.CertFile,
 		Output:           o.Output,

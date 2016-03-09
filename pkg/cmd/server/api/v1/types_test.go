@@ -421,6 +421,9 @@ oauthConfig:
 pauseControllers: false
 policyConfig:
   bootstrapPolicyFile: ""
+  legacyClientPolicyConfig:
+    legacyClientPolicy: ""
+    restrictedHTTPVerbs: null
   openshiftInfrastructureNamespace: ""
   openshiftSharedResourcesNamespace: ""
 projectConfig:

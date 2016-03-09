@@ -40,6 +40,7 @@ func DescribeConfig(config *api.Config) string {
 		}
 		fmt.Fprintf(out, "Remove Old Build:\t%s\n", printBool(config.RemovePreviousImage))
 		fmt.Fprintf(out, "Builder Pull Policy:\t%s\n", config.BuilderPullPolicy)
+		fmt.Fprintf(out, "Previous Image Pull Policy:\t%s\n", config.PreviousImagePullPolicy)
 		fmt.Fprintf(out, "Quiet:\t%s\n", printBool(config.Quiet))
 		fmt.Fprintf(out, "Layered Build:\t%s\n", printBool(config.LayeredBuild))
 		if len(config.Destination) > 0 {

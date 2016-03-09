@@ -777,9 +777,9 @@ os::util::host_platform() {
 
 os::util::sed() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-  	sed -i '' $@
+  	sed -i '' "$@"
   else
-  	sed -i'' $@
+  	sed -i'' "$@"
   fi
 }
 

@@ -9,11 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded">
-            <ol class="breadcrumb">
-              <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-              <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-              <li class="active"><strong>{{imageName}}</strong></li>
-            </ol>
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div class="row">
               <div class="col-md-12">
                 <div class="create-from-image">

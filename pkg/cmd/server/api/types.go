@@ -317,7 +317,29 @@ type PolicyConfig struct {
 
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string
+
+	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	LegacyClientPolicyConfig LegacyClientPolicyConfig
 }
+
+type LegacyClientPolicyConfig struct {
+	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// The default is AllowAll
+	LegacyClientPolicy LegacyClientPolicy
+	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
+	RestrictedHTTPVerbs []string
+}
+
+type LegacyClientPolicy string
+
+var (
+	// AllowAll does not prevent any kinds of client version skew
+	AllowAll LegacyClientPolicy = "allow-all"
+	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
+	DenyOldClients LegacyClientPolicy = "deny-old-clients"
+	// DenySkewedClients prevents any non-matching client from issuing stomping requests
+	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
+)
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {

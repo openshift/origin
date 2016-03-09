@@ -58,13 +58,13 @@
                     <li>
                       <edit-link
                         resource="build"
-                        kind="builds"
+                        kind="Build"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li>
                       <delete-link
-                        resource-type="build"
+                        kind="Build"
                         resource-name="{{build.metadata.name}}"
                         project-name="{{build.metadata.namespace}}"
                         alerts="alerts">

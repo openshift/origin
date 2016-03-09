@@ -212,8 +212,7 @@ module.exports = function (grunt) {
           'bower_components/messenger/build/css/messenger-theme-block.css',
           'bower_components/messenger/build/css/messenger-theme-air.css',
           'bower_components/messenger/build/css/messenger-theme-ice.css',
-          'bower_components/messenger/build/js/messenger-theme-future.js',
-          'bower_components/fontawesome/css/font-awesome.css'
+          'bower_components/messenger/build/js/messenger-theme-future.js'
         ]
       }
     },
@@ -446,7 +445,7 @@ module.exports = function (grunt) {
           dest: '<%= yeoman.dist %>/styles'
         }, {
           expand: true,
-          cwd: 'bower_components/patternfly/components/font-awesome',
+          cwd: 'bower_components/font-awesome',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
         },
@@ -473,7 +472,7 @@ module.exports = function (grunt) {
           dest: '.tmp/styles'
         }, {
           expand: true,
-          cwd: 'bower_components/patternfly/components/font-awesome',
+          cwd: 'bower_components/font-awesome',
           src: 'fonts/*',
           dest: '.tmp/styles'
         }]

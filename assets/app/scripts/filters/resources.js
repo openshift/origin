@@ -174,7 +174,7 @@ angular.module('openshiftConsole')
       var icon = annotationFilter(resource, "iconClass");
       if (!icon) {
         if (kind === "template") {
-          return "fa fa-bolt";
+          return "fa fa-clone";
         }
 
         return "";
@@ -790,28 +790,26 @@ angular.module('openshiftConsole')
       return _.startCase(kind);
     };
   })
-  .filter('humanizeResourceType', function() {
+  .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
       if (!resourceType) {
         return resourceType;
       }
 
       var nameFormatMap = {
-        'build': 'Build',
-        'buildconfig': 'Build Config',
-        'deployment': 'Deployment',
-        'deploymentconfig': 'Deployment Config',
-        'imagestream': 'Image Stream',
+        'configmaps': 'Config Maps',
+        'limits.cpu': 'CPU (Limit)',
+        'limits.memory': 'Memory (Limit)',
+        'openshift.io/imagesize': 'Image Size',
+        'openshift.io/imagestreamsize': 'Image Stream Size',
+        'openshift.io/projectimagessize': 'Project Image Size',
         'persistentvolumeclaims': 'Persistent Volume Claims',
-        'pod': 'Pod',
         'pods': 'Pods',
-        'project': 'Project',
-        'resourcequotas': 'Resource Quotas',
-        'replicationcontroller': 'Replication Controller',
         'replicationcontrollers': 'Replication Controllers',
-        'route': 'Route',
+        'requests.cpu': 'CPU (Request)',
+        'requests.memory': 'Memory (Request)',
+        'resourcequotas': 'Resource Quotas',
         'secrets': 'Secrets',
-        'service': 'Service',
         'services': 'Services'
       };
       return nameFormatMap[resourceType] || resourceType;
