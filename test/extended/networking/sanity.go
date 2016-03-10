@@ -1,7 +1,6 @@
 package networking
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/test/e2e"
 
 	. "github.com/onsi/ginkgo"
@@ -14,9 +13,8 @@ var _ = Describe("[networking] basic openshift networking", func() {
 	f := e2e.NewFramework(svcname)
 
 	It("should function for pod communication on a single node", func() {
-
 		By("Picking a node")
-		nodes, err := f.Client.Nodes().List(api.ListOptions{})
+		nodes, err := e2e.GetReadyNodes(f)
 		if err != nil {
 			e2e.Failf("Failed to list nodes: %v", err)
 		}
@@ -32,11 +30,16 @@ var _ = Describe("[networking] basic openshift networking", func() {
 	})
 
 	It("should function for pod communication between nodes", func() {
-
 		podClient := f.Client.Pods(f.Namespace.Name)
 
 		By("Picking multiple nodes")
-		nodes := getMultipleNodes(f)
+		nodes, err := e2e.GetReadyNodes(f)
+		if err != nil {
+			e2e.Failf("Failed to list nodes: %v", err)
+		}
+		if len(nodes.Items) == 1 {
+			e2e.Skipf("Only one node is available in this environment")
+		}
 		node1 := nodes.Items[0]
 		node2 := nodes.Items[1]
 

@@ -2,15 +2,12 @@ package networking
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/test/e2e"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -85,34 +82,6 @@ func waitForPodSuccessInNamespace(c *client.Client, podName string, contName str
 		}
 		return false, nil
 	})
-}
-
-func providerIs(providers ...string) bool {
-	for _, provider := range providers {
-		if strings.ToLower(provider) == strings.ToLower(exutil.TestContext.Provider) {
-			return true
-		}
-	}
-	return false
-}
-
-func getMultipleNodes(f *e2e.Framework) (nodes *api.NodeList) {
-	nodes, err := e2e.GetReadyNodes(f)
-	if err != nil {
-		e2e.Failf("Failed to list nodes: %v", err)
-	}
-
-	if len(nodes.Items) == 1 {
-		// in general, the test requires two nodes. But for local development, often a one node cluster
-		// is created, for simplicity and speed. (see issue #10012). We permit one-node test
-		// only in some cases
-		if !providerIs("local") {
-			e2e.Failf(fmt.Sprintf("The test requires two Ready nodes on %s, but found just one.", exutil.TestContext.Provider))
-		}
-		e2e.Logf("Only one ready node is detected. The test has limited scope in such setting. " +
-			"Rerun it with at least two nodes to get complete coverage.")
-	}
-	return
 }
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout int) error {
