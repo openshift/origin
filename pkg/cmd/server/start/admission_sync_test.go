@@ -25,6 +25,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
 	"BuildDefaults",            // from origin, only needed for managing builds, not kubernetes resources
 	"BuildOverrides",           // from origin, only needed for managing builds, not kubernetes resources
+	"ImageLimitRange",          // from origin, used for limiting image sizes, not kubernetes resources
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube
 	"ProjectRequestLimit",      // from origin, used for limiting project requests by user (online use case)
 	"RunOnceDuration",          // from origin, used for overriding the ActiveDeadlineSeconds for run-once pods

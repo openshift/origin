@@ -36,6 +36,10 @@ type GenericImageStreamUsageComputer struct {
 	imageStreamCache map[string]*imageapi.ImageStream
 }
 
+// ImageStreamComputerFunc is a function passed to the computer when processing images that allows
+// the caller to perform actions during the processing.
+type ImageStreamComputerFunc func(tag string, dockerImageReference string, image *imageapi.Image) error
+
 // NewGenericImageStreamUsageComputer returns an instance of GenericImageStreamUsageComputer.
 // Returned object can be used just once and must be thrown away afterwards.
 func NewGenericImageStreamUsageComputer(osClient osclient.Interface, processSpec bool, fetchImagesFromImageStream bool) *GenericImageStreamUsageComputer {
@@ -56,7 +60,7 @@ func (c *GenericImageStreamUsageComputer) GetImageStreamUsage(
 ) *resource.Quantity {
 	images := resource.NewQuantity(0, resource.DecimalSI)
 
-	c.processImageStreamImages(is, func(_, _ string, img *imageapi.Image) error {
+	c.ProcessImageStreamImages(is, func(_, _ string, img *imageapi.Image) error {
 		if processedImages.Has(img.Name) {
 			return nil
 		}
@@ -80,7 +84,7 @@ func (c *GenericImageStreamUsageComputer) GetProjectImagesUsage(namespace string
 	images := resource.NewQuantity(0, resource.DecimalSI)
 
 	for _, is := range iss.Items {
-		c.processImageStreamImages(&is, func(_, _ string, img *imageapi.Image) error {
+		c.ProcessImageStreamImages(&is, func(_, _ string, img *imageapi.Image) error {
 			if !processedImages.Has(img.Name) {
 				processedImages.Insert(img.Name)
 				images.Set(images.Value() + 1)
@@ -117,14 +121,14 @@ func (c *GenericImageStreamUsageComputer) GetProjectImagesUsageIncrement(
 		if is != nil && imageStream.Name == is.Name {
 			continue
 		}
-		c.processImageStreamImages(&imageStream, func(_, _ string, img *imageapi.Image) error {
+		c.ProcessImageStreamImages(&imageStream, func(_, _ string, img *imageapi.Image) error {
 			processedImages.Insert(img.Name)
 			return nil
 		})
 	}
 
 	if is != nil {
-		c.processImageStreamImages(is, func(_, _ string, img *imageapi.Image) error {
+		c.ProcessImageStreamImages(is, func(_, _ string, img *imageapi.Image) error {
 			if !processedImages.Has(img.Name) {
 				processedImages.Insert(img.Name)
 				imagesIncrement.Set(imagesIncrement.Value() + 1)
@@ -146,11 +150,11 @@ func (c *GenericImageStreamUsageComputer) GetProjectImagesUsageIncrement(
 	return
 }
 
-// processImageStreamImages is a utility method that calls a given handler for every image of the given image
+// ProcessImageStreamImages is a utility method that calls a given handler for every image of the given image
 // stream that belongs to internal registry. It process image stream status and optionally spec.
-func (c *GenericImageStreamUsageComputer) processImageStreamImages(
+func (c *GenericImageStreamUsageComputer) ProcessImageStreamImages(
 	is *imageapi.ImageStream,
-	handler func(tag string, dockerImageReference string, image *imageapi.Image) error,
+	handler ImageStreamComputerFunc,
 ) error {
 	processedImages := sets.NewString()
 
@@ -172,7 +176,7 @@ func (c *GenericImageStreamUsageComputer) processImageStreamImages(
 					continue
 				}
 			} else {
-				img, err = c.getImage(imageName)
+				img, err = c.GetImage(imageName)
 				if err != nil {
 					glog.Errorf("Failed to get image %s: %v", imageName, err)
 					continue
@@ -210,14 +214,14 @@ func (c *GenericImageStreamUsageComputer) processImageStreamImages(
 func (c *GenericImageStreamUsageComputer) processImageStreamSpecImages(
 	is *imageapi.ImageStream,
 	processedImages sets.String,
-	handler func(tag string, dockerImageReference string, image *imageapi.Image) error,
+	handler ImageStreamComputerFunc,
 ) error {
 	for tag, tagRef := range is.Spec.Tags {
 		if tagRef.From == nil {
 			continue
 		}
 
-		ref, err := c.getImageReferenceForObjectReference(is.Namespace, tagRef.From)
+		ref, err := c.GetImageReferenceForObjectReference(is.Namespace, tagRef.From)
 		if err != nil {
 			glog.V(4).Infof("Could not process object reference: %v", err)
 			continue
@@ -248,7 +252,7 @@ func (c *GenericImageStreamUsageComputer) processImageStreamSpecImages(
 				}
 
 			} else {
-				img, err = c.getImage(ref.ID)
+				img, err = c.GetImage(ref.ID)
 				if err != nil {
 					glog.Errorf("Failed to get image %s: %v", ref.ID, err)
 					continue
@@ -277,9 +281,9 @@ func (c *GenericImageStreamUsageComputer) processImageStreamSpecImages(
 	return nil
 }
 
-// getImageReferenceForObjectReference returns corresponding docker image reference for the given object
+// GetImageReferenceForObjectReference returns corresponding docker image reference for the given object
 // reference representing either an image stream image or image stream tag or docker image.
-func (c *GenericImageStreamUsageComputer) getImageReferenceForObjectReference(
+func (c *GenericImageStreamUsageComputer) GetImageReferenceForObjectReference(
 	namespace string,
 	objRef *kapi.ObjectReference,
 ) (imageapi.DockerImageReference, error) {
@@ -351,8 +355,8 @@ func (c *GenericImageStreamUsageComputer) getImageStream(namespace, name string)
 	return is, err
 }
 
-// getImage gets image object from etcd and caches the result for the following queries.
-func (c *GenericImageStreamUsageComputer) getImage(name string) (*imageapi.Image, error) {
+// GetImage gets image object from etcd and caches the result for the following queries.
+func (c *GenericImageStreamUsageComputer) GetImage(name string) (*imageapi.Image, error) {
 	if image, exists := c.imageCache[name]; exists {
 		return image, nil
 	}

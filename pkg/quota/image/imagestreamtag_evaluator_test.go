@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagetest "github.com/openshift/origin/pkg/quota/image/testutil"
 )
 
 func TestImageStreamTagEvaluatorUsage(t *testing.T) {
@@ -40,7 +41,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + miscImageDigest,
+						Name:      "is@" + imagetest.MiscImageDigest,
 					},
 				},
 			},
@@ -59,7 +60,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + miscImageDigest,
+						Name:      "is@" + imagetest.MiscImageDigest,
 					},
 				},
 			},
@@ -94,11 +95,11 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				},
 				Image: imageapi.Image{
 					ObjectMeta: kapi.ObjectMeta{
-						Name:        miscImageDigest,
+						Name:        imagetest.MiscImageDigest,
 						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 					},
-					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "shared", "is", miscImageDigest),
-					DockerImageManifest:  miscImageDigest,
+					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "shared", "is", imagetest.MiscImageDigest),
+					DockerImageManifest:  imagetest.MiscImageDigest,
 				},
 			},
 			expectedImages: 0,
@@ -116,11 +117,11 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				},
 				Image: imageapi.Image{
 					ObjectMeta: kapi.ObjectMeta{
-						Name:        miscImageDigest,
+						Name:        imagetest.MiscImageDigest,
 						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 					},
-					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "test", "dest", miscImageDigest),
-					DockerImageManifest:  miscImage,
+					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "test", "dest", imagetest.MiscImageDigest),
+					DockerImageManifest:  imagetest.MiscImage,
 				},
 			},
 			expectedImages: 0,
@@ -139,8 +140,8 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/havingtag@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/havingtag@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 								},
 							},
@@ -158,7 +159,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + childImageWith2LayersDigest,
+						Name:      "is@" + imagetest.ChildImageWith2LayersDigest,
 					},
 				},
 			},
@@ -178,12 +179,12 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.MiscImageDigest),
+										Image:                imagetest.MiscImageDigest,
 									},
 								},
 							},
@@ -200,8 +201,8 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", baseImageWith2LayersDigest),
-										Image:                baseImageWith2LayersDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.BaseImageWith2LayersDigest),
+										Image:                imagetest.BaseImageWith2LayersDigest,
 									},
 								},
 							},
@@ -239,12 +240,12 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.MiscImageDigest),
+										Image:                imagetest.MiscImageDigest,
 									},
 								},
 							},
@@ -262,7 +263,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + baseImageWith1LayerDigest,
+						Name:      "is@" + imagetest.BaseImageWith1LayerDigest,
 					},
 				},
 			},
@@ -282,12 +283,12 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.MiscImageDigest),
+										Image:                imagetest.MiscImageDigest,
 									},
 								},
 							},
@@ -315,10 +316,10 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 	} {
 
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("get", "images", getFakeImageGetHandler(t, "ns"))
-		fakeClient.AddReactor("get", "imagestreams", getFakeImageStreamGetHandler(t, tc.iss...))
-		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, tc.iss...))
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "images", imagetest.GetFakeImageGetHandler(t, "test"))
+		fakeClient.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.iss...))
+		fakeClient.AddReactor("list", "imagestreams", imagetest.GetFakeImageStreamListHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "imagestreamimages", imagetest.GetFakeImageStreamImageGetHandler(t, "test", tc.iss...))
 
 		evaluator := NewImageStreamTagEvaluator(fakeClient)
 

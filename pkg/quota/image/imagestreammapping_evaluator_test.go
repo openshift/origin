@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagetest "github.com/openshift/origin/pkg/quota/image/testutil"
 )
 
 func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
@@ -34,8 +35,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 					Status: imageapi.ImageStreamStatus{},
 				},
 			},
-			imageName:        miscImageDigest,
-			imageManifest:    miscImage,
+			imageName:        imagetest.MiscImageDigest,
+			imageManifest:    imagetest.MiscImage,
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "is",
@@ -44,8 +45,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 
 		{
 			name:             "no image stream",
-			imageName:        miscImageDigest,
-			imageManifest:    miscImage,
+			imageName:        imagetest.MiscImageDigest,
+			imageManifest:    imagetest.MiscImage,
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "is",
@@ -63,8 +64,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 					Status: imageapi.ImageStreamStatus{},
 				},
 			},
-			imageName:       miscImageDigest,
-			imageManifest:   miscImage,
+			imageName:       imagetest.MiscImageDigest,
+			imageManifest:   imagetest.MiscImage,
 			destISNamespace: "test",
 			destISName:      "is",
 			expectedImages:  0,
@@ -83,8 +84,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/havingtag@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/havingtag@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 								},
 							},
@@ -92,8 +93,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			imageName:        childImageWith2LayersDigest,
-			imageManifest:    childImageWith2Layers,
+			imageName:        imagetest.ChildImageWith2LayersDigest,
+			imageManifest:    imagetest.ChildImageWith2Layers,
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "havingtag",
@@ -113,12 +114,12 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.MiscImageDigest),
+										Image:                imagetest.MiscImageDigest,
 									},
 								},
 							},
@@ -135,8 +136,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", baseImageWith2LayersDigest),
-										Image:                baseImageWith2LayersDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.BaseImageWith2LayersDigest),
+										Image:                imagetest.BaseImageWith2LayersDigest,
 									},
 								},
 							},
@@ -144,8 +145,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			imageName:        childImageWith3LayersDigest,
-			imageManifest:    childImageWith3Layers,
+			imageName:        imagetest.ChildImageWith3LayersDigest,
+			imageManifest:    imagetest.ChildImageWith3Layers,
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "destis",
@@ -165,8 +166,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", baseImageWith2LayersDigest),
-										Image:                baseImageWith2LayersDigest,
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", imagetest.BaseImageWith2LayersDigest),
+										Image:                imagetest.BaseImageWith2LayersDigest,
 									},
 								},
 							},
@@ -174,8 +175,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			imageName:        baseImageWith2LayersDigest,
-			imageManifest:    baseImageWith2Layers,
+			imageName:        imagetest.BaseImageWith2LayersDigest,
+			imageManifest:    imagetest.BaseImageWith2Layers,
 			imageAnnotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			destISNamespace:  "test",
 			destISName:       "destis",
@@ -184,8 +185,8 @@ func TestImageStreamMappingEvaluatorUsage(t *testing.T) {
 	} {
 
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, tc.iss...))
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.iss...))
+		fakeClient.AddReactor("list", "imagestreams", imagetest.GetFakeImageStreamListHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "imagestreamimages", imagetest.GetFakeImageStreamImageGetHandler(t, "test", tc.iss...))
 
 		evaluator := NewImageStreamMappingEvaluator(fakeClient)
 

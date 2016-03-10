@@ -6,6 +6,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
+	_ "github.com/openshift/origin/pkg/image/admission"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
