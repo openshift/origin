@@ -126,9 +126,8 @@ func (b *Builder) FilenameParam(enforceNamespace bool, paths ...string) *Builder
 func (b *Builder) URL(urls ...*url.URL) *Builder {
 	for _, u := range urls {
 		b.paths = append(b.paths, &URLVisitor{
-			Mapper: b.mapper,
-			URL:    u,
-			Schema: b.schema,
+			URL:           u,
+			StreamVisitor: NewStreamVisitor(nil, b.mapper, u.String(), b.schema),
 		})
 	}
 	return b
@@ -440,27 +439,15 @@ func (b *Builder) resourceMappings() ([]*meta.RESTMapping, error) {
 	}
 	mappings := []*meta.RESTMapping{}
 	for _, r := range b.resources {
-		gvks, err := b.mapper.KindsFor(unversioned.GroupVersionResource{Resource: r})
+		gvk, err := b.mapper.KindFor(unversioned.ParseGroupResource(r).WithVersion(""))
 		if err != nil {
 			return nil, err
 		}
-		// the list is in most-preferred to least preferred, so iterate until we find a hit
-		var firstErr error
-		for _, gvk := range gvks {
-			mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err == nil {
-				firstErr = nil
-				mappings = append(mappings, mapping)
-				break
-			}
-
-			if firstErr == nil {
-				firstErr = err
-			}
+		mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+		if err != nil {
+			return nil, err
 		}
-		if firstErr != nil {
-			return nil, firstErr
-		}
+		mappings = append(mappings, mapping)
 	}
 	return mappings, nil
 }
@@ -472,28 +459,14 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 		if _, ok := mappings[r.Resource]; ok {
 			continue
 		}
-		gvks, err := b.mapper.KindsFor(unversioned.GroupVersionResource{Resource: r.Resource})
+		gvk, err := b.mapper.KindFor(unversioned.ParseGroupResource(r.Resource).WithVersion(""))
 		if err != nil {
 			return nil, err
 		}
-		// the list is in most-preferred to least preferred, so iterate until we find a hit
-		var firstErr error
-		var mapping *meta.RESTMapping
-		for _, gvk := range gvks {
-			mapping, err = b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err == nil {
-				firstErr = nil
-				break
-			}
-
-			if firstErr == nil {
-				firstErr = err
-			}
+		mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+		if err != nil {
+			return nil, err
 		}
-		if firstErr != nil {
-			return nil, firstErr
-		}
-
 		mappings[mapping.Resource] = mapping
 		mappings[r.Resource] = mapping
 		canonical[mapping.Resource] = struct{}{}

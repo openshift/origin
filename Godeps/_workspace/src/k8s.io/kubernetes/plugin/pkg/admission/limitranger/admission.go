@@ -74,6 +74,11 @@ func (l *limitRanger) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
+	// ignore all calls that do not deal with pod resources since that is all this supports now.
+	if a.GetKind() != api.Kind("Pod") {
+		return nil
+	}
+
 	obj := a.GetObject()
 	name := "Unknown"
 	if obj != nil {
@@ -98,6 +103,11 @@ func (l *limitRanger) Admit(a admission.Attributes) (err error) {
 	if len(items) == 0 {
 		lruItemObj, ok := l.liveLookupCache.Get(a.GetNamespace())
 		if !ok || lruItemObj.(liveLookupEntry).expiry.Before(time.Now()) {
+			// TODO: If there are multiple operations at the same time and cache has just expired,
+			// this may cause multiple List operations being issued at the same time.
+			// If there is already in-flight List() for a given namespace, we should wait until
+			// it is finished and cache is updated instead of doing the same, also to avoid
+			// throttling - see #22422 for details.
 			liveList, err := l.client.Core().LimitRanges(a.GetNamespace()).List(api.ListOptions{})
 			if err != nil {
 				return admission.NewForbidden(a, err)
