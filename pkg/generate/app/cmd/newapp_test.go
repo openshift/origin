@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate/app"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -398,5 +399,66 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 	}
 	if e, a := expectedPorts.List(), actualPorts.List(); !reflect.DeepEqual(e, a) {
 		t.Errorf("Expected ports=%v, got %v", e, a)
+	}
+}
+
+func TestCheckCircularReference(t *testing.T) {
+	tests := []struct {
+		name string
+		bc   *buildapi.BuildConfig
+		err  error
+	}{
+		{
+			name: "no nil pointer dereference",
+			bc:   nil,
+			err:  nil,
+		},
+		{
+			name: "no output == no circular reference",
+			bc:   &buildapi.BuildConfig{},
+			err:  nil,
+		},
+		{
+			name: "no triggers == no build loop",
+			bc: &buildapi.BuildConfig{
+				Spec: buildapi.BuildConfigSpec{
+					Triggers:  []buildapi.BuildTriggerPolicy{},
+					BuildSpec: buildapi.BuildSpec{},
+				},
+			},
+			err: nil,
+		},
+		{
+			name: "ImageChange trigger + (input == output) == error",
+			bc: &buildapi.BuildConfig{
+				Spec: buildapi.BuildConfigSpec{
+					Triggers: []buildapi.BuildTriggerPolicy{
+						{Type: buildapi.ImageChangeBuildTriggerType},
+					},
+					BuildSpec: buildapi.BuildSpec{
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "centos:latest",
+								},
+							},
+						},
+						Output: buildapi.BuildOutput{
+							To: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "centos:latest",
+							},
+						},
+					},
+				},
+			},
+			err: app.CircularOutputReferenceError{Reference: "centos:latest"},
+		},
+	}
+	for _, tt := range tests {
+		if got := checkCircularReference(tt.bc); got != tt.err {
+			t.Errorf("test: %s\ncheckCircularReference(bc) = %v, want %v", tt.name, got, tt.err)
+		}
 	}
 }

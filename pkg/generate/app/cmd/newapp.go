@@ -717,6 +717,20 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 	return nil
 }
 
+// checkCircularReference returns an error if the output of the BuildConfig bc
+// matches the build input and would automatically trigger build after build in
+// a loop through an ImageChange trigger.
+func checkCircularReference(bc *buildapi.BuildConfig) error {
+	if bc == nil {
+		return nil
+	}
+	input := buildutil.GetInputReference(bc.Spec.Strategy)
+	if bc.Spec.Output.To != nil && input != nil && reflect.DeepEqual(input, bc.Spec.Output.To) {
+		return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s", input.Name)}
+	}
+	return nil
+}
+
 func (c *AppConfig) Querying() bool {
 	return c.AsList || c.AsSearch
 }
