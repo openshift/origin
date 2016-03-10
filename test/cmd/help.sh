@@ -48,8 +48,8 @@ os::cmd::expect_success_and_text 'oadm' 'Basic Commands:'
 os::cmd::expect_success_and_text 'oadm' 'Install Commands:'
 os::cmd::expect_success_and_text 'oadm ca' 'Manage certificates'
 os::cmd::expect_success_and_text 'openshift start kubernetes' 'Kubernetes server components'
-os::cmd::expect_success_and_text 'oc exec --help' '\[options\] \-\- COMMAND'
-os::cmd::expect_success_and_text 'oc rsh --help' '\[options\] \[COMMAND\]'
+os::cmd::expect_success_and_text 'oc exec --help' '\[options\] \-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc rsh --help' '\[options\] \[COMMAND\]$'
 
 # check deprecated admin cmds for backward compatibility
 os::cmd::expect_success_and_text 'oadm create-master-certs -h' 'Create keys and certificates'
