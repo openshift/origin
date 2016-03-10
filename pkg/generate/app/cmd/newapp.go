@@ -1097,17 +1097,20 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
-	err = c.checkCircularReferences(objects)
-	if err != nil {
-		if err, ok := err.(app.CircularOutputReferenceError); ok {
-			if len(c.To) == 0 {
-				// Output reference was generated, return error.
-				return nil, fmt.Errorf("%v, set a different tag with --to", err)
+	// Only check circular references for `oc new-build`.
+	if c.ExpectToBuild {
+		err = c.checkCircularReferences(objects)
+		if err != nil {
+			if err, ok := err.(app.CircularOutputReferenceError); ok {
+				if len(c.To) == 0 {
+					// Output reference was generated, return error.
+					return nil, fmt.Errorf("%v, set a different tag with --to", err)
+				}
+				// Output reference was explicitly provided, print warning.
+				fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+			} else {
+				return nil, err
 			}
-			// Output reference was explicitly provided, print warning.
-			fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
-		} else {
-			return nil, err
 		}
 	}
 
