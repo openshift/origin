@@ -919,50 +919,6 @@ func TestNewAppRunBuilds(t *testing.T) {
 			},
 		},
 		{
-			name: "successful build from dockerfile with identical input and output image references with warning",
-			config: &cmd.AppConfig{
-				Dockerfile: "FROM centos\nRUN yum install -y httpd",
-				To:         "centos",
-			},
-			expected: map[string][]string{
-				"buildConfig": {"centos"},
-				"imageStream": {"centos"},
-			},
-			checkOutput: func(stdout, stderr io.Reader) error {
-				got, err := ioutil.ReadAll(stderr)
-				if err != nil {
-					return err
-				}
-				want := "--> WARNING: output image of \"default/centos:latest\" must be different than input\n"
-				if string(got) != want {
-					return fmt.Errorf("stderr: got %q; want %q", got, want)
-				}
-				return nil
-			},
-		},
-		{
-			name: "successful build from dockerfile with identical input and output image references with warning",
-			config: &cmd.AppConfig{
-				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
-				To:         "ruby-22-centos7",
-			},
-			expected: map[string][]string{
-				"buildConfig": {"ruby-22-centos7"},
-				"imageStream": {"ruby-22-centos7"},
-			},
-			checkOutput: func(stdout, stderr io.Reader) error {
-				got, err := ioutil.ReadAll(stderr)
-				if err != nil {
-					return err
-				}
-				want := "--> WARNING: output image of \"default/ruby-22-centos7:latest\" must be different than input\n"
-				if string(got) != want {
-					return fmt.Errorf("stderr: got %q; want %q", got, want)
-				}
-				return nil
-			},
-		},
-		{
 			name: "successful generation of BC with multiple sources: repo + Dockerfile",
 			config: &cmd.AppConfig{
 				SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
@@ -1015,30 +971,6 @@ func TestNewAppRunBuilds(t *testing.T) {
 			},
 			expectedErr: func(err error) bool {
 				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
-			},
-		},
-		{
-			name: "unsuccessful build from dockerfile due to identical input and output image references",
-			config: &cmd.AppConfig{
-				Dockerfile: "FROM centos\nRUN yum install -y httpd",
-			},
-			expectedErr: func(err error) bool {
-				e := app.CircularOutputReferenceError{
-					Reference: "default/centos:latest",
-				}
-				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
-			},
-		},
-		{
-			name: "unsuccessful build from dockerfile due to identical input and output image references",
-			config: &cmd.AppConfig{
-				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
-			},
-			expectedErr: func(err error) bool {
-				e := app.CircularOutputReferenceError{
-					Reference: "default/ruby-22-centos7:latest",
-				}
-				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
 			},
 		},
 		{
@@ -1215,6 +1147,134 @@ func TestNewAppRunBuilds(t *testing.T) {
 		if test.checkResult != nil {
 			if err := test.checkResult(res); err != nil {
 				t.Errorf("%s: unexpected result: %v", test.name, err)
+			}
+		}
+	}
+}
+
+func TestBuildOutputCycleDetection(t *testing.T) {
+	skipExternalGit(t)
+	tests := []struct {
+		name   string
+		config *cmd.AppConfig
+
+		expected    map[string][]string
+		expectedErr func(error) bool
+		checkOutput func(stdout, stderr io.Reader) error
+	}{
+		{
+			name: "successful build from dockerfile with identical input and output image references with warning",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+				To:         "centos",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"centos"},
+				"imageStream": {"centos"},
+			},
+			checkOutput: func(stdout, stderr io.Reader) error {
+				got, err := ioutil.ReadAll(stderr)
+				if err != nil {
+					return err
+				}
+				want := "--> WARNING: output image of \"default/centos:latest\" must be different than input\n"
+				if string(got) != want {
+					return fmt.Errorf("stderr: got %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful build from dockerfile with identical input and output image references with warning",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
+				To:         "ruby-22-centos7",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-22-centos7"},
+				"imageStream": {"ruby-22-centos7"},
+			},
+			checkOutput: func(stdout, stderr io.Reader) error {
+				got, err := ioutil.ReadAll(stderr)
+				if err != nil {
+					return err
+				}
+				want := "--> WARNING: output image of \"default/ruby-22-centos7:latest\" must be different than input\n"
+				if string(got) != want {
+					return fmt.Errorf("stderr: got %q; want %q", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to identical input and output image references",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM centos\nRUN yum install -y httpd",
+			},
+			expectedErr: func(err error) bool {
+				e := app.CircularOutputReferenceError{
+					Reference: "default/centos:latest",
+				}
+				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to identical input and output image references",
+			config: &cmd.AppConfig{
+				Dockerfile: "FROM openshift/ruby-22-centos7\nRUN yum install -y httpd",
+			},
+			expectedErr: func(err error) bool {
+				e := app.CircularOutputReferenceError{
+					Reference: "default/ruby-22-centos7:latest",
+				}
+				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
+			},
+		},
+	}
+	for _, test := range tests {
+		stdout, stderr := PrepareAppConfig(test.config)
+
+		res, err := test.config.Run()
+		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if err != nil {
+			continue
+		}
+		if test.checkOutput != nil {
+			if err := test.checkOutput(stdout, stderr); err != nil {
+				t.Error(err)
+				continue
+			}
+		}
+		got := map[string][]string{}
+		for _, obj := range res.List.Items {
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				got["buildConfig"] = append(got["buildConfig"], tp.Name)
+			case *imageapi.ImageStream:
+				got["imageStream"] = append(got["imageStream"], tp.Name)
+			}
+		}
+
+		if len(test.expected) != len(got) {
+			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			continue
+		}
+
+		for k, exp := range test.expected {
+			g, ok := got[k]
+			if !ok {
+				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+			}
+
+			sort.Strings(g)
+			sort.Strings(exp)
+
+			if !reflect.DeepEqual(g, exp) {
+				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
+				continue
 			}
 		}
 	}
