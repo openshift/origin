@@ -68,7 +68,7 @@
       <dt>Selectors:</dt>
       <dd>
         <span ng-if="!deployment.spec.selector">none</span>
-        <span ng-repeat="(labelKey, labelValue) in deployment.spec.selector">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
+        <span ng-repeat="(labelKey, labelValue) in deployment.spec.selector" class="word-break">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
       </dd>
       <dt>Replicas:</dt>
       <dd>
@@ -79,11 +79,11 @@
                   scale-fn="scale(replicas)">
         </replicas>
       </dd>
-      <annotations annotations="deployment.metadata.annotations"></annotations>
     </dl>
   </div>
 </div>
-<div class="deployment-detail gutter-bottom">
+<annotations annotations="deployment.metadata.annotations"></annotations>
+<div class="deployment-detail">
   <span>Pod template:</span>
   <pod-template
     pod-template="deployment.spec.template"
