@@ -121,7 +121,7 @@ func TestDescribers(t *testing.T) {
 		&BuildDescriber{c, fakeKube},
 		&BuildConfigDescriber{c, ""},
 		&ImageDescriber{c},
-		&ImageStreamDescriber{c, fakeKube},
+		&ImageStreamDescriber{c},
 		&ImageStreamTagDescriber{c},
 		&ImageStreamImageDescriber{c},
 		&RouteDescriber{c, fakeKube},

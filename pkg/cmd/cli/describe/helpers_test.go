@@ -6,11 +6,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 func TestFormatImageStreamTags(t *testing.T) {
@@ -80,46 +78,4 @@ func TestFormatImageStreamTags(t *testing.T) {
 	out.Flush()
 	actual := string(buf.String())
 	t.Logf("\n%s", actual)
-}
-
-func TestFormatQuantity(t *testing.T) {
-	testCases := []struct {
-		value    int64
-		scale    scale
-		expected string
-	}{
-		{
-			value:    1 << 30,
-			scale:    giga,
-			expected: "1GiB",
-		},
-		{
-			value:    1 << 20,
-			scale:    mega,
-			expected: "1MiB",
-		},
-		{
-			value:    10 * (1 << 20),
-			scale:    giga,
-			expected: "0.01GiB",
-		},
-		{
-			value:    (1 << 30) + (1 << 20),
-			scale:    giga,
-			expected: "1GiB",
-		},
-		{
-			value:    (1 << 30) + 10*(1<<20),
-			scale:    giga,
-			expected: "1.01GiB",
-		},
-	}
-
-	for idx, test := range testCases {
-		quantity := resource.NewQuantity(test.value, resource.BinarySI)
-		actual := formatQuantity(quantity, test.scale)
-		if actual != test.expected {
-			t.Errorf("(%d) expected '%s', got '%s'", idx, test.expected, actual)
-		}
-	}
 }

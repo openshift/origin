@@ -29,7 +29,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -42,7 +41,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		deployapi.Kind("DeploymentConfig"):            NewDeploymentConfigDescriber(c, kclient),
 		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
 		imageapi.Kind("Image"):                        &ImageDescriber{c},
-		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c, kclient},
+		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},
 		imageapi.Kind("ImageStreamTag"):               &ImageStreamTagDescriber{c},
 		imageapi.Kind("ImageStreamImage"):             &ImageStreamImageDescriber{c},
 		routeapi.Kind("Route"):                        &RouteDescriber{c, kclient},
@@ -587,13 +586,12 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 
 // ImageStreamDescriber generates information about a ImageStream
 type ImageStreamDescriber struct {
-	OSClient   client.Interface
-	KubeClient kclient.Interface
+	client.Interface
 }
 
 // Describe returns the description of an imageStream
 func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) {
-	c := d.OSClient.ImageStreams(namespace)
+	c := d.ImageStreams(namespace)
 	imageStream, err := c.Get(name)
 	if err != nil {
 		return "", err
@@ -602,7 +600,6 @@ func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
 		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
-		formatImageStreamQuota(out, d.OSClient, d.KubeClient, imageStream)
 		formatImageStreamTags(out, imageStream)
 		return nil
 	})
