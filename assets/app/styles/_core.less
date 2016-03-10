@@ -69,6 +69,14 @@
   }
 }
 
+// Firefox-specific hack for preventing fieldset content causing the container to expand
+// see: https://stackoverflow.com/questions/17408815/fieldset-resizes-wrong-appears-to-have-unremovable-min-width-min-content/17863685#17863685
+@-moz-document url-prefix() {
+  .console-os fieldset {
+    display: table-cell;
+  }
+}
+
 /* Data toolbar
    - Includes customizations for label filter input and active filter
 ---------------------------------------------------------------------------- */
