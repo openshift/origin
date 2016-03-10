@@ -1128,7 +1128,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 	for _, obj := range objects {
 		if bc, ok := obj.(*buildapi.BuildConfig); ok {
-			input := buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+			input := buildutil.GetInputReference(bc.Spec.Strategy)
 			if bc.Spec.Output.To != nil && input != nil &&
 				reflect.DeepEqual(input, bc.Spec.Output.To) {
 				ns := input.Namespace

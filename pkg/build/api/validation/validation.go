@@ -64,7 +64,7 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 	fromRefs := map[string]struct{}{}
 	specPath := field.NewPath("spec")
 	triggersPath := specPath.Child("triggers")
-	buildFrom := buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
+	buildFrom := buildutil.GetInputReference(config.Spec.Strategy)
 	for i, trg := range config.Spec.Triggers {
 		allErrs = append(allErrs, validateTrigger(&trg, buildFrom, triggersPath.Index(i))...)
 		if trg.Type != buildapi.ImageChangeBuildTriggerType || trg.ImageChange == nil {
