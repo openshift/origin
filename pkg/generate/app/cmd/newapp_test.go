@@ -9,31 +9,18 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/generate/dockerfile"
-	"github.com/openshift/origin/pkg/generate/source"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
-
-func skipExternalGit(t *testing.T) {
-	if len(os.Getenv("SKIP_EXTERNAL_GIT")) > 0 {
-		t.Skip("external Git tests are disabled")
-	}
-}
 
 func TestValidate(t *testing.T) {
 	tests := map[string]struct {
@@ -93,7 +80,6 @@ func TestValidate(t *testing.T) {
 			},
 		},
 	}
-
 	for n, c := range tests {
 		c.cfg.RefBuilder = &app.ReferenceBuilder{}
 		cr, _, env, parms, err := c.cfg.validate()
@@ -140,7 +126,6 @@ func TestBuildTemplates(t *testing.T) {
 			parms:        map[string]string{},
 		},
 	}
-
 	for n, c := range tests {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
@@ -187,6 +172,31 @@ func TestBuildTemplates(t *testing.T) {
 	}
 }
 
+func fakeTemplateSearcher() app.Searcher {
+	client := &client.Fake{}
+	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, templateList(), nil
+	})
+	return app.TemplateSearcher{
+		Client:     client,
+		Namespaces: []string{"default"},
+	}
+}
+
+func templateList() *templateapi.TemplateList {
+	return &templateapi.TemplateList{
+		Items: []templateapi.Template{
+			{
+				Objects: []runtime.Object{},
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "first-stored-template",
+					Namespace: "default",
+				},
+			},
+		},
+	}
+}
+
 func TestEnsureHasSource(t *testing.T) {
 	gitLocalDir := createLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
@@ -206,7 +216,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t, gitLocalDir),
+			repositories: mockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -219,7 +229,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: MockSourceRepositories(t, gitLocalDir),
+			repositories: mockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -254,7 +264,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t, gitLocalDir)[:1],
+			repositories: mockSourceRepositories(t, gitLocalDir)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -264,11 +274,10 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: MockSourceRepositories(t, gitLocalDir),
+			repositories: mockSourceRepositories(t, gitLocalDir),
 			expectedErr:  "",
 		},
 	}
-
 	for _, test := range tests {
 		err := test.cfg.ensureHasSource(test.components, test.repositories)
 		if err != nil {
@@ -288,62 +297,30 @@ func TestEnsureHasSource(t *testing.T) {
 	}
 }
 
-func mapContains(a, b map[string]string) bool {
-	for k, v := range a {
-		if v2, exists := b[k]; !exists || v != v2 {
-			return false
+func createLocalGitDirectory(t *testing.T) string {
+	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
+	if err != nil {
+		t.Error(err)
+	}
+	os.Mkdir(filepath.Join(dir, ".git"), 0600)
+	return dir
+}
+
+// mockSourceRepositories is a set of mocked source repositories used for
+// testing.
+func mockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
+	var b []*app.SourceRepository
+	for _, location := range []string{
+		"https://github.com/openshift/ruby-hello-world.git",
+		file,
+	} {
+		s, err := app.NewSourceRepository(location)
+		if err != nil {
+			t.Fatal(err)
 		}
+		b = append(b, s)
 	}
-	return true
-}
-
-// ExactMatchDockerSearcher returns a match with the value that was passed in
-// and a march score of 0.0(exact)
-type ExactMatchDockerSearcher struct {
-	Errs []error
-}
-
-// Search always returns a match for every term passed in
-func (r *ExactMatchDockerSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
-	matches := app.ComponentMatches{}
-	for _, value := range terms {
-		matches = append(matches, &app.ComponentMatch{
-			Value:       value,
-			Name:        value,
-			Argument:    fmt.Sprintf("--docker-image=%q", value),
-			Description: fmt.Sprintf("Docker image %q", value),
-			Score:       0.0,
-		})
-	}
-	return matches, r.Errs
-}
-
-// PrepareAppConfig sets fields in config appropriate for running tests. It
-// returns two buffers bound to stdout and stderr.
-func PrepareAppConfig(config *AppConfig) (stdout, stderr *bytes.Buffer) {
-	config.ExpectToBuild = true
-	stdout, stderr = new(bytes.Buffer), new(bytes.Buffer)
-	config.Out, config.ErrOut = stdout, stderr
-
-	config.Detector = app.SourceRepositoryEnumerator{
-		Detectors: source.DefaultDetectors,
-		Tester:    dockerfile.NewTester(),
-	}
-	config.DockerSearcher = app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10*time.Second, true),
-	}
-	config.ImageStreamByAnnotationSearcher = fakeImageStreamSearcher()
-	config.ImageStreamSearcher = fakeImageStreamSearcher()
-	config.OriginNamespace = "default"
-	config.OSClient = &client.Fake{}
-	config.RefBuilder = &app.ReferenceBuilder{}
-	config.TemplateSearcher = app.TemplateSearcher{
-		Client: &client.Fake{},
-		TemplateConfigsNamespacer: &client.Fake{},
-		Namespaces:                []string{"openshift", "default"},
-	}
-	config.Typer = kapi.Scheme
-	return
+	return b
 }
 
 // Make sure that buildPipelines defaults DockerImage.Config if needed to
@@ -389,161 +366,4 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 	if e, a := expectedPorts.List(), actualPorts.List(); !reflect.DeepEqual(e, a) {
 		t.Errorf("Expected ports=%v, got %v", e, a)
 	}
-}
-
-func builderImageStream() *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:            "ruby",
-			ResourceVersion: "1",
-		},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				"latest": {
-					Items: []imageapi.TagEvent{
-						{
-							Image: "the-image-id",
-						},
-					},
-				},
-			},
-			DockerImageRepository: "example/ruby:latest",
-		},
-	}
-
-}
-
-func builderImageStreams() *imageapi.ImageStreamList {
-	return &imageapi.ImageStreamList{
-		Items: []imageapi.ImageStream{*builderImageStream()},
-	}
-}
-
-func builderImage() *imageapi.ImageStreamImage {
-	return &imageapi.ImageStreamImage{
-		Image: imageapi.Image{
-			DockerImageReference: "example/ruby:latest",
-			DockerImageMetadata: imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
-					Env: []string{
-						"STI_SCRIPTS_URL=http://repo/git/ruby",
-					},
-					ExposedPorts: map[string]struct{}{
-						"8080/tcp": {},
-					},
-				},
-			},
-		},
-	}
-}
-
-func dockerBuilderImage() *docker.Image {
-	return &docker.Image{
-		ID: "ruby",
-		Config: &docker.Config{
-			Env: []string{
-				"STI_SCRIPTS_URL=http://repo/git/ruby",
-			},
-			ExposedPorts: map[docker.Port]struct{}{
-				"8080/tcp": {},
-			},
-		},
-	}
-}
-
-func fakeImageStreamSearcher() app.Searcher {
-	client := &client.Fake{}
-	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, builderImageStream(), nil
-	})
-	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, builderImageStreams(), nil
-	})
-	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, builderImage(), nil
-	})
-
-	return app.ImageStreamSearcher{
-		Client:            client,
-		ImageStreamImages: client,
-		Namespaces:        []string{"default"},
-	}
-}
-
-func fakeTemplateSearcher() app.Searcher {
-	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, templateList(), nil
-	})
-
-	return app.TemplateSearcher{
-		Client:     client,
-		Namespaces: []string{"default"},
-	}
-}
-
-func templateList() *templateapi.TemplateList {
-	return &templateapi.TemplateList{
-		Items: []templateapi.Template{
-			{
-				Objects: []runtime.Object{},
-				ObjectMeta: kapi.ObjectMeta{
-					Name:      "first-stored-template",
-					Namespace: "default",
-				},
-			},
-		},
-	}
-}
-
-func fakeDockerSearcher() app.Searcher {
-	return app.DockerClientSearcher{
-		Client: &dockertools.FakeDockerClient{
-			Images: []docker.APIImages{{RepoTags: []string{"library/ruby:latest"}}},
-			Image:  dockerBuilderImage(),
-		},
-		Insecure:         true,
-		RegistrySearcher: &ExactMatchDockerSearcher{},
-	}
-}
-
-func fakeSimpleDockerSearcher() app.Searcher {
-	return app.DockerClientSearcher{
-		Client: &dockertools.FakeDockerClient{
-			Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
-			Image: &docker.Image{
-				ID: "ruby",
-				Config: &docker.Config{
-					Env: []string{},
-				},
-			},
-		},
-		RegistrySearcher: &ExactMatchDockerSearcher{},
-	}
-}
-
-func createLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
-	if err != nil {
-		t.Error(err)
-	}
-	os.Mkdir(filepath.Join(dir, ".git"), 0600)
-	return dir
-}
-
-// MockSourceRepositories is a set of mocked source repositories used for
-// testing
-func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
-	var b []*app.SourceRepository
-	for _, location := range []string{
-		"https://github.com/openshift/ruby-hello-world.git",
-		file,
-	} {
-		s, err := app.NewSourceRepository(location)
-		if err != nil {
-			t.Fatal(err)
-		}
-		b = append(b, s)
-	}
-	return b
 }
