@@ -25,6 +25,7 @@ set -o pipefail
 
 function exit_trap() {
     local return_code=$?
+    echo "[DEBUG] Exit trap handler got return code ${return_code}"
 
     end_time=$(date +%s)
     
@@ -227,6 +228,7 @@ if [[ -n "${junit_report}" ]]; then
                            --output "${junit_report_file}"
 
     return_code="${PIPESTATUS[0]}"
+    echo "[DEBUG] Found return code of \`go test\` to be ${return_code}"
     set -o pipefail
     
     echo
@@ -234,6 +236,7 @@ if [[ -n "${junit_report}" ]]; then
     echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
     echo "[INFO] jUnit XML report placed at ${junit_report_file}"
 
+    echo "[DEBUG] Exiting with return code ${return_code}"
     exit "${return_code}"
 
 elif [[ -n "${coverage_output_dir}" ]]; then
