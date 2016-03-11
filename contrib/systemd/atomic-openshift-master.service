@@ -1,10 +1,10 @@
 [Unit]
 Description=Atomic OpenShift Master
 Documentation=https://github.com/openshift/origin
-After=network.target
+After=network-online.target
 After=etcd.service
 Before=atomic-openshift-node.service
-Requires=network.target
+Requires=network-online.target
 
 [Service]
 Type=notify
