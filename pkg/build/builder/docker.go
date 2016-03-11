@@ -105,6 +105,7 @@ func (d *DockerBuilder) Build() error {
 		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
+	defer glog.Flush()
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
