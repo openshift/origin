@@ -75,9 +75,6 @@ func (o CreateSignerCertOptions) Validate(args []string) error {
 	if len(o.KeyFile) == 0 {
 		return errors.New("key must be provided")
 	}
-	if len(o.SerialFile) == 0 {
-		return errors.New("serial must be provided")
-	}
 	if len(o.Name) == 0 {
 		return errors.New("name must be provided")
 	}

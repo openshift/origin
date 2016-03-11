@@ -2,7 +2,7 @@ package strategy
 
 import (
 	"fmt"
-	"io/ioutil"
+	"strings"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/admission"
@@ -17,8 +17,7 @@ import (
 
 // SourceBuildStrategy creates STI(source to image) builds
 type SourceBuildStrategy struct {
-	Image                string
-	TempDirectoryCreator TempDirectoryCreator
+	Image string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -26,17 +25,14 @@ type SourceBuildStrategy struct {
 	AdmissionControl admission.Interface
 }
 
-type TempDirectoryCreator interface {
-	CreateTempDirectory() (string, error)
+// DefaultDropCaps is the list of capabilities to drop if the current user cannot run as root
+var DefaultDropCaps = []string{
+	"KILL",
+	"MKNOD",
+	"SETGID",
+	"SETUID",
+	"SYS_CHROOT",
 }
-
-type tempDirectoryCreator struct{}
-
-func (tc *tempDirectoryCreator) CreateTempDirectory() (string, error) {
-	return ioutil.TempDir("", "stibuild")
-}
-
-var STITempDirectoryCreator = &tempDirectoryCreator{}
 
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
@@ -61,7 +57,12 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	// check if can run container as root
 	if !bs.canRunAsRoot(build) {
-		containerEnv = append(containerEnv, kapi.EnvVar{Name: "ALLOWED_UIDS", Value: "1-"})
+		// TODO: both AllowedUIDs and DropCapabilities should
+		// be controlled via the SCC that's in effect for the build service account
+		// For now, both are hard-coded based on whether the build service account can
+		// run as root.
+		containerEnv = append(containerEnv, kapi.EnvVar{Name: buildapi.AllowedUIDs, Value: "1-"})
+		containerEnv = append(containerEnv, kapi.EnvVar{Name: buildapi.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
 	}
 
 	privileged := true

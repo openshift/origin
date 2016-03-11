@@ -22,6 +22,7 @@ angular.module("openshiftConsole")
     var imageName = $routeParams.imageName;
     var imageTag = $routeParams.imageTag;
     var namespace = $routeParams.namespace;
+    $scope.fromSampleRepo = $routeParams.fromSample;
 
     var name = $routeParams.name;
     var nameLink = "";
@@ -66,15 +67,11 @@ angular.module("openshiftConsole")
         }));
 
         $scope.createdBuildConfigWithGitHubTrigger = function() {
-          var created = false;
-          if ($scope.createdBuildConfig) {
-            angular.forEach($scope.createdBuildConfig.spec.triggers, function(trigger) {
-              if (trigger.type == "GitHub") {
-                created = true;
-              }
-            });
-          }
-          return created;
+          return _.some(_.get($scope, 'createdBuildConfig.spec.triggers'), {type: 'GitHub'});
+        };
+
+        $scope.createdBuildConfigWithConfigChangeTrigger = function() {
+          return _.some(_.get($scope, 'createdBuildConfig.spec.triggers'), {type: 'ConfigChange'});
         };
 
         $scope.allTasksSuccessful = function(tasks) {

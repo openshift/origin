@@ -63,7 +63,7 @@ module.exports = function (grunt) {
             key: grunt.file.read('server.key'),
             cert: grunt.file.read('server.crt')
           }
-        }        
+        }
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
@@ -223,7 +223,11 @@ module.exports = function (grunt) {
           '.tmp/styles/main.css': '<%= yeoman.app %>/styles/main.less'
         },
         options: {
-          paths: ['<%= yeoman.app %>/styles']
+          paths: ['<%= yeoman.app %>/styles'],
+          sourceMap: true,
+          sourceMapFilename: '.tmp/styles/main.css.map',
+          sourceMapURL: 'main.css.map',
+          outputSourceFiles: true
         }
       },
       production: {
@@ -522,7 +526,7 @@ module.exports = function (grunt) {
         // 'imagemin',
         'svgmin',
         // Also do everything we do in concurrent server so that you can leave grunt server running while doing a build
-        'concurrent:server'       
+        'concurrent:server'
       ]
     },
 

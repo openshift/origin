@@ -68,7 +68,7 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   install_registry
   wait_for_registry
-  CREATE_ROUTER_CERT=1 install_router
+  DROP_SYN_DURING_RESTART=1 CREATE_ROUTER_CERT=1 install_router
 
   echo "[INFO] Creating image streams"
   oc create -n openshift -f examples/image-streams/image-streams-centos7.json --config="${ADMIN_KUBECONFIG}"

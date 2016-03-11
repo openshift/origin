@@ -177,8 +177,9 @@ This section covers how to perform all the steps of building, deploying, and upd
     be added to the docker-registry service list so that it's reachable from other places.
 
 
-6. Login as `test-admin` using any password
+6. For the sake of this demo, grant a `cluster-admin` role to the `test-admin` user and login as that user using any password you want (note that in a real world scenario, as an OpenShift user you would be granted roles from a cluster admin and you might not be able to do most of the following things - depending on your granted roles).
 
+        $ oadm policy add-cluster-role-to-user cluster-admin test-admin --config=openshift.local.config/master/admin.kubeconfig
         $ oc login --certificate-authority=openshift.local.config/master/ca.crt -u test-admin
 
 
@@ -232,17 +233,26 @@ This section covers how to perform all the steps of building, deploying, and upd
     and then request creation of the processed template:
 
         $ oc new-app application-template-stibuild.json
+        --> Deploying template ruby-helloworld-sample for "application-template-stibuild.json"
+            With parameters:
+              ADMIN_USERNAME=adminO3P # generated
+              ADMIN_PASSWORD=7fmIanc7 # generated
+              MYSQL_USER=userXFF # generated
+              MYSQL_PASSWORD=jmsyVsGo # generated
+              MYSQL_DATABASE=root
+        --> Creating resources with label app=ruby-sample-build ...
+            service "frontend" created
+            route "route-edge" created
+            imagestream "origin-ruby-sample" created
+            imagestream "ruby-22-centos7" created
+            buildconfig "ruby-sample-build" created
+            deploymentconfig "frontend" created
+            service "database" created
+            deploymentconfig "database" created
+        --> Success
+            Build scheduled for "ruby-sample-build", use 'oc logs' to track its progress.
+            Run 'oc status' to view your app.
 
-    This will define a number of related OpenShift entities in the project:
-
-    * A BuildConfig (ruby-sample-build) to specify a build that uses
-      your ruby-hello-world fork as the input for a source-to-image (S2I) build
-    * ImageStreams for the images used and created in the build:
-      * The ruby-20-centos7 S2I builder will build an image from your source
-      * The output image will be called origin-ruby-sample
-    * DeploymentConfigs (frontend, backend) for defining Deployments once the images are available
-    * Services (routable endpoints) for the ruby frontend and database backend deployments
-      that will deployed as output of the build
 
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit. But since we've defined
@@ -250,57 +260,81 @@ This section covers how to perform all the steps of building, deploying, and upd
     immediately.
 
 
-13. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
+13. Monitor the progress of the build (this can take a few minutes):
 
         $ oc get builds
+        NAME                  TYPE      FROM          STATUS    STARTED         DURATION
+        ruby-sample-build-1   Source    Git@bd94cbb   Running   7 seconds ago   7s
 
-    You can add the --watch flag to wait for updates until the build completes:
 
-        $ oc get builds --watch
+    The built image will be named with the ImageStream
+    (origin-ruby-sample) named in the BuildConfig and pushed to the
+    private Docker registry running in OpenShift.  (Note that the private
+    docker registry is using ephemeral storage, so when it is stopped,
+    the image will be lost.)
 
-    Sample output:
+    Stream the build logs:
 
-        NAME                  TYPE                STATUS              POD
-        ruby-sample-build-1   Source              Complete            ruby-sample-build-1
+        $ oc logs -f bc/ruby-sample-build
+        ... removed for readability ...
+        ---> Installing application source ...
+        ---> Building your Ruby application from source ...
+        ---> Running 'bundle install --deployment' ...
+        Fetching gem metadata from https://rubygems.org/..........
+        Installing rake 10.3.2
+        Installing i18n 0.6.11
+        Installing json 1.8.3
+        Installing minitest 5.4.2
+        ... removed for readability ...
+        I0310 12:54:07.595390       1 sti.go:250] Using provided push secret for pushing 172.30.163.205:5000/test/origin-ruby-sample:latest image
+        I0310 12:54:07.596061       1 sti.go:254] Pushing 172.30.163.205:5000/test/origin-ruby-sample:latest image ...
+        I0310 12:54:10.286740       1 sti.go:270] Successfully pushed 172.30.163.205:5000/test/origin-ruby-sample:latest
 
-     The built image will be named with the ImageStream
-     (origin-ruby-sample) named in the BuildConfig and pushed to the
-     private Docker registry running in OpenShift.  (Note that the private
-     docker registry is using ephemeral storage, so when it is stopped,
-     the image will be lost.)
-
-     If you want to see the build logs of a complete build, use the
-     command below (substituting your build name from the "oc get builds"
-     output).
-
-         $ oc logs build/ruby-sample-build-1 -n test
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 
 
-14. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
+14. Wait for the application's frontend pod and database pods to be started. By the time your build completes, the database pod will most probably have been deployed. Since your frontend depends on your build and once your build is complete, you can monitor your frontend deployment:
+
+        $ oc logs -f dc/frontend
+        I0310 12:36:46.976047       1 deployer.go:199] Deploying test/frontend-1 for the first time (replicas: 2)
+        I0310 12:36:47.025372       1 lifecycle.go:168] Created lifecycle pod test/frontend-1-hook-pre for deployment test/frontend-1
+        I0310 12:36:47.025942       1 lifecycle.go:181] Watching logs for hook pod test/frontend-1-hook-pre while awaiting completion
+        I0310 12:36:50.194431       1 lifecycle.go:221] Finished reading logs for hook pod test/frontend-1-hook-pre
+        I0310 12:36:50.195868       1 rolling.go:120] Pre hook finished
+        I0310 12:36:50.197033       1 recreate.go:126] Scaling test/frontend-1 to 1 before performing acceptance check
+        I0310 12:36:52.247222       1 recreate.go:131] Performing acceptance check of test/frontend-1
+        I0310 12:36:52.249717       1 lifecycle.go:445] Waiting 120 seconds for pods owned by deployment "test/frontend-1" to become ready (checking every 1 seconds; 0 pods previously accepted)
+        I0310 12:36:54.289925       1 lifecycle.go:466] All pods ready for test/frontend-1
+        I0310 12:36:54.290422       1 recreate.go:139] Scaling test/frontend-1 to 2
+        I0310 12:36:56.360679       1 recreate.go:156] Deployment frontend-1 successfully made active
+        I0310 12:36:56.371762       1 lifecycle.go:168] Created lifecycle pod test/frontend-1-hook-post for deployment test/frontend-2
+        I0310 12:36:56.371825       1 lifecycle.go:181] Watching logs for hook pod test/frontend-1-hook-post while awaiting completion
+        I0310 12:37:00.209644       1 lifecycle.go:221] Finished reading logs for hook pod test/frontend-1-hook-post
+        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring: 
+        I0310 12:37:00.236387       1 rolling.go:134] Post hook finished
+
+
+    *Note:* If the deployment finishes before you try to get its logs, `oc logs -f dc/frontend` will start serving logs from the application pods.
+
 
         $ oc get pods
+        NAME                        READY     STATUS      RESTARTS   AGE
+        database-1-le4wx            1/1       Running     0          1m
+        frontend-1-e572n            1/1       Running     0          27s
+        frontend-1-votq4            1/1       Running     0          31s
+        ruby-sample-build-1-build   0/1       Completed   0          1m
 
-    Sample output:
-
-        POD                   IP                  CONTAINER(S)               IMAGE(S)                                                                                                      HOST                           LABELS                                                                                                                  STATUS              CREATED
-        database-1-zhomu      172.17.0.16         ruby-helloworld-database   openshift/mysql-55-centos7                                                                                    openshiftdev.local/127.0.0.1   deployment=database-1,deploymentconfig=database,name=database,template=application-template-stibuild                    Running             3 minutes
-        frontend-1-lb4c4      172.17.0.20         ruby-helloworld            172.30.17.113:5000/test/origin-ruby-sample:029721e6cb1b4a4f6b52ccac0abfbf2a3be1a344fb1355a75bed29ccca0d1ba2   openshiftdev.local/127.0.0.1   deployment=frontend-1,deploymentconfig=frontend,name=frontend,template=application-template-stibuild                    Running             About a minute
-        ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           3 minutes
 
 
 15. Determine the IP for the frontend service:
 
         $ oc get services
-
-    Sample output:
-
-        NAME                LABELS                                   SELECTOR            IP                PORT
-        database            template=application-template-stibuild   name=database       172.30.17.5       5434
-        frontend            template=application-template-stibuild   name=frontend       172.30.17.4       5432
+        NAME       CLUSTER-IP      EXTERNAL-IP   PORT(S)    SELECTOR        AGE
+        database   172.30.80.39    <none>        5434/TCP   name=database   1m
+        frontend   172.30.17.4     <none>        5432/TCP   name=frontend   1m
 
     In this case, the IP for frontend is 172.30.17.4 and it is on port 5432.
 
@@ -315,22 +349,20 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 		$ vagrant ssh -- -L 9999:172.30.17.4:5432 (or 9999:whatever IP address was reported above)
 
-	You can now confirm the application is accessible on port 5432 by going to `http://<host>:9999`.  Note that port 9999 is arbitrary.
+	You can now confirm the application is accessible on port 5432 by going to http://127.0.0.1:9999.  Note that port 9999 is arbitrary.
 	- - -
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
 
-17. Make a change to your ruby sample main.html file, commit, and push it via git.
+17. Make a change to your ruby sample main.html file, commit, and push it via git. If you do not have the webhook enabled, you'll have to manually trigger another build:
 
- * If you do not have the webhook enabled, you'll have to manually trigger another build:
-
-            $ oc start-build ruby-sample-build
+        $ oc start-build ruby-sample-build
 
 
 18. Repeat step 13 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
-Congratulations, you've successfully deployed and updated an application on OpenShift.
+Congratulations, you've successfully deployed and updated an application on OpenShift!
 
 
 Advanced
@@ -339,9 +371,9 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
 1.  Your sample app has been created with a secure route which can be viewed by performing a `GET` on the route api object.
 
-            $ oc get routes
-            NAME                HOST/PORT           PATH                SERVICE             LABELS
-            route-edge          www.example.com                         frontend            template=application-template-stibuild
+        $ oc get routes
+        NAME                HOST/PORT           PATH                SERVICE             LABELS
+        route-edge          www.example.com                         frontend            template=application-template-stibuild
 
 
 2.  To use the route you must first install a router.  OpenShift provides an HAProxy router implementation that we'll use.
@@ -349,69 +381,67 @@ To install the router you must know the ip address of the host the router will b
 url the master is listening on.  The api url can be found in the logs, your ip address can be determined with `ip a`.  Replace
 the ip address shown below with the correct one for your environment.
 
-            # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will
-            # take some time.  Your pod will stay in Pending state while the pull is completed
-            $ docker pull openshift/origin-haproxy-router
 
-            # Create a service account that the router will use.  This service account must have access to use a
-            # security context constraint that allows host ports
-            $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+    Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will take some time.  Your pod will stay in Pending state while the pull is completed
+    
 
-            # You may either create a new SCC or use an existing SCC.  The following command will
-            # display existing SCCs and if they support host network and host ports.
-            $ oc get scc --template="{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
-            privileged: n=true,p=true; restricted: n=false,p=false;
+        $ docker pull openshift/origin-haproxy-router
 
-            # Edit your security context constraint to add the new service account in the users section
-            # in the form of system:serviceaccount:<namespace>:<name>.  In the above example the full
-            # name would be system:serviceaccount:default:router if you are creating the router in the default namespace.
-            $ oc edit scc <name>
 
-            $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            # The router by default uses the host network. If you wish to
-            # use the container network stack and expose ports, add the
-            # --host-network=false option to the oadm router command.
-            $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
-              DeploymentConfig "router" created
-              Service "router" created
+    Create a service account that the router will use.
+
+
+        $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+
+
+    Give the following permissions to your router service account. It needs to be able to use host network and host ports, and it also needs to be able to list endpoints in all namespaces, that's why you need to grant it the `system:router` cluster role.
+
+
+        $ oadm policy add-scc-to-user hostnetwork -z router
+        $ oadm policy add-cluster-role-to-user system:router system:serviceaccount:default:router
+
+
+    The router by default uses the host network. If you wish to use the container network stack and expose ports, add the --host-network=false option to the oadm router command.
+
+
+        $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
+        $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --service-account=router
+        DeploymentConfig "router" created
+        Service "router" created
 
 
 3.  Switch to the `default` project to watch for router to start
 
-            $ oc project default --config=openshift.local.config/master/admin.kubeconfig
+        $ oc project default
 
 4.  Wait for the router to start.
 
-            $ oc describe dc router --config=openshift.local.config/master/admin.kubeconfig
-            # watch for the number of deployed pods to go to 1
+        $ oc describe dc router
+        # watch for the number of deployed pods to go to 1
 
 
-5.  *Optional:* View the logs of the router.  First though, you need to get random suffix that Kubernetes includes as part of the name it generates.
+5.  *Optional:* View the logs of the router.
 
-	    $ oc get pods --config=openshift.local.config/master/admin.kubeconfig
-            # Look for the pod name starting with "router-1-"
-
-6. *Optional:* With that precise pod name, you can view its logs.
-
-            $ oc logs router-1-<podrandom-suffix> --config=openshift.local.config/master/admin.kubeconfig
+        $ oc logs dc/router
+        I0310 13:08:53.095282       1 router.go:161] Router is including routes in all namespaces
 
 
 7.  Curl the url, substituting the ip address shown for the correct value in your environment.  The easiest way to get the IP is to do a ifconfig from where you have been running the oc command.
 
-            $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com
-                ... removed for readability ...
-                <title>Hello from OpenShift v3!</title>
-                ... removed for readability ...
+        $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com
+        ... removed for readability ...
+        <title>Hello from OpenShift v3!</title>
+        ... removed for readability ...
 
 
 8. *Optional*: View the certificate being used for the secure route.
 
-            $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
-            ... removed for readability ...
-            subject=/CN=www.example.com/ST=SC/C=US/emailAddress=example@example.com/O=Example/OU=Example
-            issuer=/C=US/ST=SC/L=Default City/O=Default Company Ltd/OU=Test CA/CN=www.exampleca.com/emailAddress=example@example.com
-            ... removed for readability ...
-            ^C
+        $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
+        ... removed for readability ...
+        subject=/CN=www.example.com/ST=SC/C=US/emailAddress=example@example.com/O=Example/OU=Example
+        issuer=/C=US/ST=SC/L=Default City/O=Default Company Ltd/OU=Test CA/CN=www.exampleca.com/emailAddress=example@example.com
+        ... removed for readability ...
+        ^C
 
 
 
@@ -423,64 +453,51 @@ In addition to creating resources, you can delete resources based on IDs. For ex
   - List the existing services:
 
         $ oc get services
-
-    Sample output:
-
-        NAME                LABELS                                   SELECTOR            IP                PORT
-        database            template=application-template-stibuild   name=database       172.30.17.5       5434
-        frontend            template=application-template-stibuild   name=frontend       172.30.17.4       5432
+        NAME       CLUSTER-IP      EXTERNAL-IP   PORT(S)    SELECTOR        AGE
+        database   172.30.80.39    <none>        5434/TCP   name=database   6m
+        frontend   172.30.17.4     <none>        5432/TCP   name=frontend   6m
 
 
   - To remove the **frontend** service use the command:
 
         $ oc delete service frontend
-
-    Sample output:
-
         Service "frontend" deleted
 
   - Check the service was removed:
 
         $ oc get services
-
-    Sample output:
-
-        NAME                LABELS                                   SELECTOR            IP                PORT
-        database            template=application-template-stibuild   name=database       172.30.17.5       5434
+        NAME       CLUSTER-IP      EXTERNAL-IP   PORT(S)    SELECTOR        AGE
+        database   172.30.80.39    <none>        5434/TCP   name=database   6m
 
   - You can also curl the application to check the service has terminated:
 
-        $ curl http://172.17.17.4:5432
-
-    Sample output:
-
-        curl: (7) Failed connect to 172.17.17.4:5432; No route to host
+        $ curl http://172.30.17.4:5432
+        curl: (7) Failed connect to 172.30.17.4:5432; No route to host
 
 Another interesting example is deleting a pod.
 
   - List available pods:
 
         $ oc get pods
+        NAME                        READY     STATUS      RESTARTS   AGE
+        database-1-le4wx            1/1       Running     0          7m
+        frontend-1-e572n            1/1       Running     0          6m
+        frontend-1-votq4            1/1       Running     0          6m
+        ruby-sample-build-1-build   0/1       Completed   0          7m
 
-    Sample output:
-
-        POD                   IP                  CONTAINER(S)               IMAGE(S)                                                                                                      HOST                           LABELS                                                                                                                  STATUS              CREATED
-        database-1-zhomu      172.17.0.16         ruby-helloworld-database   openshift/mysql-55-centos7                                                                                    openshiftdev.local/127.0.0.1   deployment=database-1,deploymentconfig=database,name=database,template=application-template-stibuild                    Running             9 minutes
-        frontend-1-lb4c4      172.17.0.20         ruby-helloworld            172.30.17.113:5000/test/origin-ruby-sample:029721e6cb1b4a4f6b52ccac0abfbf2a3be1a344fb1355a75bed29ccca0d1ba2   openshiftdev.local/127.0.0.1   deployment=frontend-1,deploymentconfig=frontend,name=frontend,template=application-template-stibuild                    Running             7 minutes
-        ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           9 minutes
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ oc delete pod frontend-1-lb4c4
+        $ oc delete pod frontend-1-votq4
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
         $ docker ps -a
-
-    Sample output:
-
         CONTAINER ID        IMAGE                                                COMMAND                CREATED              STATUS                          PORTS               NAMES
+        [ ... ]
         068ffffa9624        127.0.0.1:5001/openshift/origin-ruby-sample:latest   "ruby /tmp/app.rb"     3 minutes ago        Exited (0) About a minute ago                       k8s_ruby-helloworld
+        [ ... ]
+
 
 Cleaning Up
 -----------

@@ -72,9 +72,10 @@ type AppConfig struct {
 	OutputDocker     bool
 	NoOutput         bool
 
-	ExpectToBuild      bool
-	BinaryBuild        bool
-	AllowMissingImages bool
+	ExpectToBuild               bool
+	BinaryBuild                 bool
+	AllowMissingImages          bool
+	AllowMissingImageStreamTags bool
 
 	Deploy           bool
 	AsTestDeployment bool
@@ -193,6 +194,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        namespaces,
+		AllowMissingTags:  c.AllowMissingImageStreamTags,
 	}
 	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.TemplateSearcher = app.TemplateSearcher{

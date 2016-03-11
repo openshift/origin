@@ -9,6 +9,10 @@ angular.module('openshiftConsole')
         dynamicContent: '@?'
       },
       link: function($scope, element, attrs) {
+        var popupConfig = {
+          container: "body",
+          placement: "auto"
+        };
         if (attrs) {
           switch(attrs.toggle) {
             case "popover":
@@ -25,11 +29,11 @@ angular.module('openshiftConsole')
                   setTimeout(function() {
                     $(element)
                       .attr("data-content", $scope.dynamicContent)
-                      .popover();
+                      .popover(popupConfig);
                   }, 200);
                 });
               }
-              $(element).popover();
+              $(element).popover(popupConfig);
               break;
             case "tooltip":
               // If dynamic-content attr is set at all, even if it hasn't evaluated to a value
@@ -45,11 +49,11 @@ angular.module('openshiftConsole')
                   setTimeout(function() {
                     $(element)
                       .attr("title", $scope.dynamicContent)
-                      .tooltip();
+                      .tooltip(popupConfig);
                   }, 200);
                 });
               }
-              $(element).tooltip();
+              $(element).tooltip(popupConfig);
               break;
             case "dropdown":
               if (attrs.hover === "dropdown") {

@@ -25,6 +25,7 @@ set -o pipefail
 
 function exit_trap() {
     local return_code=$?
+    echo "[DEBUG] Exit trap handler got return code ${return_code}"
 
     end_time=$(date +%s)
     
@@ -139,7 +140,7 @@ function list_test_packages_under() {
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
         \) -prune                             \
-    \) -name '*_test.go' -print0 | xargs -0n1 dirname -z | sort -uz | xargs -0n1 printf "${OS_GO_PACKAGE}/%s\n"
+    \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }
 
 # Break up the positional arguments into packages that need to be tested and arguments that need to be passed to `go test`
@@ -181,7 +182,7 @@ else
             -o -path "${kubernetes_path}/test/e2e"                                                    \
             -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
           \) -prune                                                                                   \
-        \) -name '*_test.go' -print0 | xargs -0n1 dirname -z | sort -uz | xargs -0n1 printf "${OS_GO_PACKAGE}/%s\n")"
+        \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n")"
 
         test_packages="${test_packages} ${optional_kubernetes_packages}"
     fi
@@ -227,6 +228,7 @@ if [[ -n "${junit_report}" ]]; then
                            --output "${junit_report_file}"
 
     return_code="${PIPESTATUS[0]}"
+    echo "[DEBUG] Found return code of \`go test\` to be ${return_code}"
     set -o pipefail
     
     echo
@@ -234,6 +236,7 @@ if [[ -n "${junit_report}" ]]; then
     echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
     echo "[INFO] jUnit XML report placed at ${junit_report_file}"
 
+    echo "[DEBUG] Exiting with return code ${return_code}"
     exit "${return_code}"
 
 elif [[ -n "${coverage_output_dir}" ]]; then
