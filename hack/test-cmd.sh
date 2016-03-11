@@ -11,6 +11,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
@@ -52,6 +53,34 @@ function cleanup()
         echo "Complete"
     fi
 
+    # TODO(skuznets): un-hack this nonsense once traps are in a better state
+    if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+      # get the jUnit output file into a workable state in case we crashed in the middle of testing something
+      os::test::junit::reconcile_output
+
+      # check that we didn't mangle jUnit output
+      os::test::junit::check_test_counters
+
+      # use the junitreport tool to generate us a report
+      "${OS_ROOT}/hack/build-go.sh" tools/junitreport
+      junitreport="$(os::build::find-binary junitreport)"
+
+      if [[ -z "${junitreport}" ]]; then
+          echo "It looks as if you don't have a compiled junitreport binary"
+          echo
+          echo "If you are running from a clone of the git repo, please run"
+          echo "'./hack/build-go.sh tools/junitreport'."
+          exit 1
+      fi
+
+      cat "${JUNIT_REPORT_OUTPUT}"                             \
+        | "${junitreport}" --type oscmd                        \
+                           --suites nested                     \
+                           --roots github.com/openshift/origin \
+                           --output "${LOG_DIR}/junit.xml"
+      cat "${LOG_DIR}/junit.xml" | "${junitreport}" summarize
+    fi 
+
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
     exit $out
 }
@@ -80,7 +109,7 @@ os::util::environment::setup_all_server_vars "test-cmd/"
 reset_tmp_dir
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT}" ]]; then
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
   export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 fi
 
@@ -311,9 +340,6 @@ for test in "${tests[@]}"; do
   oc delete project "cmd-${name}"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
-
-# check that we didn't mangle jUnit output
-os::test::junit::check_test_counters
 
 # Done
 echo

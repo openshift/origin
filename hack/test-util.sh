@@ -11,6 +11,7 @@ source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 BASETMPDIR="${TMPDIR:-/tmp}/openshift/test-tools"
 JUNIT_REPORT_OUTPUT="${BASETMPDIR}/junit_output.txt"
