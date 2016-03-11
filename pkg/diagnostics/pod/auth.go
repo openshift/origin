@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 const (
@@ -63,8 +63,8 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 	clientConfig := &clientcmd.Config{
 		MasterAddr:     flagtypes.Addr{Value: d.MasterUrl}.Default(),
 		KubernetesAddr: flagtypes.Addr{Value: d.MasterUrl}.Default(),
-		CommonConfig: kclient.Config{
-			TLSClientConfig: kclient.TLSClientConfig{CAFile: d.MasterCaPath},
+		CommonConfig: restclient.Config{
+			TLSClientConfig: restclient.TLSClientConfig{CAFile: d.MasterCaPath},
 			BearerToken:     token,
 		},
 	}

@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
+	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -146,13 +149,16 @@ JSON and YAML formats are accepted.`
 )
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
-func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdCreate(f.Factory, out)
 	cmd.Long = createLong
-	cmd.Example = fmt.Sprintf(createExample, fullName)
+	cmd.Example = fmt.Sprintf(createExample, parentName)
 
 	// create subcommands
-	cmd.AddCommand(NewCmdCreateRoute(fullName, f, out))
+	cmd.AddCommand(NewCmdCreateRoute(parentName, f, out))
+
+	adjustCmdExamples(cmd, parentName, "create")
+
 	return cmd
 }
 
@@ -551,4 +557,55 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
 	return cmd
+}
+
+const (
+	configLong = `
+Manage the client config files
+
+The client stores configuration in the current user's home directory (under the .kube directory as
+config). When you login the first time, a new config file is created, and subsequent project changes with the
+'project' command will set the current context. These subcommands allow you to manage the config directly.
+
+Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md`
+
+	configExample = `  # Change the config context to use
+  %[1]s %[2]s use-context my-context
+
+  # Set the value of a config preference
+  %[1]s %[2]s set preferences.some true`
+)
+
+func NewCmdConfig(parentName, name string) *cobra.Command {
+	pathOptions := &config.PathOptions{
+		GlobalFile:       cmdconfig.RecommendedHomeFile,
+		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
+		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
+
+		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
+
+		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
+	}
+	pathOptions.LoadingRules.DoNotResolvePaths = true
+
+	cmd := config.NewCmdConfig(pathOptions, os.Stdout)
+	cmd.Short = "Change configuration files for the client"
+	cmd.Long = configLong
+	cmd.Example = fmt.Sprintf(configExample, parentName, name)
+	adjustCmdExamples(cmd, parentName, name)
+	return cmd
+}
+
+func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
+	for _, subCmd := range cmd.Commands() {
+		adjustCmdExamples(subCmd, parentName, cmd.Name())
+	}
+	cmd.Example = strings.Replace(cmd.Example, "kubectl", parentName, -1)
+	tabbing := "  "
+	examples := []string{}
+	scanner := bufio.NewScanner(strings.NewReader(cmd.Example))
+	for scanner.Scan() {
+		examples = append(examples, tabbing+strings.TrimSpace(scanner.Text()))
+	}
+	cmd.Example = strings.Join(examples, "\n")
 }

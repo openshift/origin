@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	// required to register defaulting functions for containers
+	_ "k8s.io/kubernetes/pkg/api/install"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"

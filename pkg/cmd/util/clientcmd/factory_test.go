@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -24,12 +24,12 @@ func TestClientConfigForVersion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	defaultConfig := &kclient.Config{Host: server.URL}
+	defaultConfig := &restclient.Config{Host: server.URL}
 	client.SetOpenShiftDefaults(defaultConfig)
 
 	clients := &clientCache{
 		clients:       make(map[string]*client.Client),
-		configs:       make(map[string]*kclient.Config),
+		configs:       make(map[string]*restclient.Config),
 		defaultConfig: defaultConfig,
 	}
 

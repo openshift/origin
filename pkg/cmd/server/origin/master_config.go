@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -112,7 +113,7 @@ type MasterConfig struct {
 
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
-	PrivilegedLoopbackClientConfig kclient.Config
+	PrivilegedLoopbackClientConfig restclient.Config
 
 	// PrivilegedLoopbackKubernetesClient is the client used to call Kubernetes APIs from system components,
 	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply

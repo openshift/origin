@@ -8,7 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -24,7 +24,7 @@ import (
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	Client       *client.Client
-	ClientConfig *kclient.Config
+	ClientConfig *restclient.Config
 	Out          io.Writer
 	PathOptions  *kubecmdconfig.PathOptions
 
@@ -271,7 +271,7 @@ func getProjects(oClient *client.Client) ([]api.Project, error) {
 	return projects.Items, nil
 }
 
-func clusterAndAuthEquality(clientCfg *kclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
+func clusterAndAuthEquality(clientCfg *restclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
 	return cluster.Server == clientCfg.Host &&
 		cluster.InsecureSkipTLSVerify == clientCfg.Insecure &&
 		cluster.CertificateAuthority == clientCfg.CAFile &&
