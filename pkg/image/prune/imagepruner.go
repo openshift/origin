@@ -600,11 +600,11 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 		func(g graph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKinds sets.String) bool {
-			if prunableImageIDs.Has(head.ID()) {
+		func(g graph.Interface, from, to gonum.Node, edgeKinds sets.String) bool {
+			if prunableImageIDs.Has(from.ID()) {
 				return false
 			}
-			if prunableImageIDs.Has(tail.ID()) {
+			if prunableImageIDs.Has(to.ID()) {
 				return false
 			}
 			return true
