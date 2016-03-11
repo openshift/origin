@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -54,6 +55,9 @@ import (
 const (
 	defaultConcurrentResourceQuotaSyncs int           = 5
 	defaultResourceQuotaSyncPeriod      time.Duration = 5 * time.Minute
+
+	// TODO: is this the right default?
+	defaultReplenishmentSyncPeriod time.Duration = 12 * time.Hour
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -440,20 +444,23 @@ func (c *MasterConfig) RunGroupCache() {
 func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	concurrentResourceQuotaSyncs := defaultConcurrentResourceQuotaSyncs
 	resourceQuotaSyncPeriod := defaultResourceQuotaSyncPeriod
+	replenishmentSyncPeriodFunc := controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod)
 	if cm != nil {
 		// TODO: should these be part of os master config?
 		concurrentResourceQuotaSyncs = cm.ConcurrentResourceQuotaSyncs
-		resourceQuotaSyncPeriod = cm.ResourceQuotaSyncPeriod
+		resourceQuotaSyncPeriod = cm.ResourceQuotaSyncPeriod.Duration
+		replenishmentSyncPeriodFunc = kctrlmgr.ResyncPeriod(cm)
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
 	resourceQuotaRegistry := quota.NewRegistry(osClient)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:            kClient,
-		ResyncPeriod:          controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
-		Registry:              resourceQuotaRegistry,
-		GroupKindsToReplenish: []unversioned.GroupKind{imageapi.Kind("ImageStream")},
-		ControllerFactory:     quotacontroller.NewReplenishmentControllerFactory(osClient),
+		KubeClient:                kClient,
+		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
+		Registry:                  resourceQuotaRegistry,
+		GroupKindsToReplenish:     []unversioned.GroupKind{imageapi.Kind("ImageStream")},
+		ControllerFactory:         quotacontroller.NewReplenishmentControllerFactory(osClient),
+		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
 }
