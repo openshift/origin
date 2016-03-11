@@ -69,6 +69,14 @@
   }
 }
 
+// Firefox-specific hack for preventing fieldset content causing the container to expand
+// see: https://stackoverflow.com/questions/17408815/fieldset-resizes-wrong-appears-to-have-unremovable-min-width-min-content/17863685#17863685
+@-moz-document url-prefix() {
+  .console-os fieldset {
+    display: table-cell;
+  }
+}
+
 /* Data toolbar
    - Includes customizations for label filter input and active filter
 ---------------------------------------------------------------------------- */
@@ -88,7 +96,7 @@
 }
 .filter .navbar-filter-widget {
  @media(min-width: @screen-sm-min) {
-   white-space: nowrap; // prevent button wrap in Safari when not at mobile resolutions 
+   white-space: nowrap; // prevent button wrap in Safari when not at mobile resolutions
  }
  .label-filter-add.btn {
    margin-right: 0;
@@ -188,18 +196,11 @@
 }
 
 .service-table {
-  border: 0;
-  margin: 10px 0 5px;
-  table {
-    .table;
-    .table-condensed;
-    .text-center;
-    .small;
-    margin-bottom: 0;
-    thead {
-      tr th {
-        .text-center;
-      }
+  .text-center;
+  max-width: 650px;
+  thead {
+    tr th {
+      .text-center;
     }
   }
 }
@@ -775,6 +776,7 @@ a.disabled-link {
     font-size: 21px;
     font-weight: 500;
     margin-bottom: 20px;
+    .word-break();
   }
   p {
     font-size: @font-size-large + 1;

@@ -110,15 +110,16 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	}
 
 	templateRouterCfg := templateRouterCfg{
-		dir:                cfg.WorkingDir,
-		templates:          templates,
-		reloadScriptPath:   cfg.ReloadScriptPath,
-		reloadInterval:     cfg.ReloadInterval,
-		defaultCertificate: cfg.DefaultCertificate,
-		statsUser:          cfg.StatsUsername,
-		statsPassword:      cfg.StatsPassword,
-		statsPort:          cfg.StatsPort,
-		peerEndpointsKey:   peerKey,
+		dir:                    cfg.WorkingDir,
+		templates:              templates,
+		reloadScriptPath:       cfg.ReloadScriptPath,
+		reloadInterval:         cfg.ReloadInterval,
+		defaultCertificate:     cfg.DefaultCertificate,
+		defaultCertificatePath: cfg.DefaultCertificatePath,
+		statsUser:              cfg.StatsUsername,
+		statsPassword:          cfg.StatsPassword,
+		statsPort:              cfg.StatsPort,
+		peerEndpointsKey:       peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err

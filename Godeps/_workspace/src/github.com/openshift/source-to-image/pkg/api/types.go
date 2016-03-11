@@ -175,6 +175,9 @@ type Config struct {
 	// CGroupLimits describes the cgroups limits that will be applied to any containers
 	// run by s2i.
 	CGroupLimits *CGroupLimits
+
+	// DropCapabilities contains a list of capabilities to drop when executing containers
+	DropCapabilities []string
 }
 
 type CGroupLimits struct {
@@ -343,7 +346,7 @@ func (p *PullPolicy) Set(v string) error {
 	case "if-not-present":
 		*p = PullIfNotPresent
 	default:
-		return fmt.Errorf("invalid value %q, valid values are: always, never or if-not-present")
+		return fmt.Errorf("invalid value %q, valid values are: always, never or if-not-present", v)
 	}
 	return nil
 }

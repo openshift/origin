@@ -73,18 +73,25 @@
                         <span ng-repeat="ingress in resource.status.loadBalancer.ingress"
                           >{{ingress.ip}}<span ng-if="!$last">, </span></span>
                       </dd>
+                      <dt>Routes:</dt>
+                      <dd>
+                        <span ng-if="!routesForService.length">
+                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create route</a>
+                        </span>
+                        <span ng-repeat="route in routesForService">
+                            <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
+                            <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
+                            <span ng-show="!$last">, </span>
+                        </span>
+                      </dd>
                     </dl>
-                    <div class="service-table table-responsive">
-                      <table ng-if="service.spec.ports.length" style="max-width: 650px;">
+                    <div ng-if="service.spec.ports.length" class="table-responsive">
+                      <table class="table table-bordered small service-table">
                         <thead>
                           <tr>
                             <th>Node Port</th>
                             <th role="presentation"></th>
-                            <th>
-                              Service Port
-                              <!-- Show cluster IP in column header instead of table body at small screen widths to save space. -->
-                              <span class="visible-xs">({{service.spec.clusterIP}})</span>
-                            </th>
+                            <th>Service Port</th>
                             <th role="presentation"></th>
                             <th>Target Port</th>
                           </tr>
@@ -104,20 +111,6 @@
                         </tbody>
                       </table>
                     </div>
-                    <!-- No bottom margin so Create Route link is close to content. -->
-                    <dl class="dl-horizontal left" style="margin-bottom: 0;">
-                      <dt>Routes:</dt>
-                      <dd>
-                        <span ng-if="!routesForService.length">
-                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create route</a>
-                        </span>
-                        <span ng-repeat="route in routesForService">
-                            <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
-                            <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
-                            <span ng-show="!$last">, </span>
-                        </span>
-                      </dd>
-                    </dl>
                     <annotations annotations="service.metadata.annotations"></annotations>
                   </div>
                 </uib-tab>

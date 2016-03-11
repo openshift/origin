@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a9d9eb09ef197f7493b6ab94c581b2ad2e7c214b
+%global commit b29afb4d914dc4d9950848eaa71f8ab0f0ab998c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 1+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.1.1.911-62-ga9d9eb0 -X github.com/openshift/origin/pkg/version.commitFromGit a9d9eb0 -X k8s.io/kubernetes/pkg/version.gitCommit bc4550d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.7-703-gbc4550d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.1-59-gb29afb4 -X github.com/openshift/origin/pkg/version.commitFromGit b29afb4 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.1
+Version:        3.2.0.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,51 @@ fi
 
 
 %changelog
+* Fri Mar 11 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.2
+- Remove left over after move to test/integration (rhcarvalho@gmail.com)
+- Improved next steps pages for bcs using sample repos (ffranz@redhat.com)
+- Remove dead code (rhcarvalho@gmail.com)
+- oc new-app/new-build: handle the case when an imagestream matches but has no
+  tags (cewong@redhat.com)
+- Add the ability to install iptables rules to eat SYN packets targeted to
+  haproxy while the haproxy reload happens.  This prevents traffic to haproxy
+  getting dropped if it connects while the reload is in progess.
+  (bbennett@redhat.com)
+- sample-app: update docs (mkargaki@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  fb7794026064c5a7b83905674a5244916a07fef9 (rhcarvalho@gmail.com)
+- Fixing BZ1291521 where long project name spills out of modal
+  (rhamilto@redhat.com)
+- Moving overflow:hidden to specifically target  long replication controller or
+  deployment name instead of deployment-block when caused another issue.  -
+  Fixes https://github.com/openshift/origin/issues/7887 (sgoodwin@redhat.com)
+- changed find behavior for OSX compatibility (skuznets@redhat.com)
+- add debug statements for test-go (skuznets@redhat.com)
+- Improve log text highlighting in Firefox (spadgett@redhat.com)
+- Fixes [options] in usage (ffranz@redhat.com)
+- Prevent last catalog tile from stretching to 100%% width
+  (spadgett@redhat.com)
+- Fix default cert for edge route not being used - fixes #7904
+  (smitram@gmail.com)
+- Initial addition of issue template (mfojtik@redhat.com)
+- Fix deployment page layout problems (spadgett@redhat.com)
+- allow different cert serial number generators (deads@redhat.com)
+- Enabling LessCSS source maps for development (rhamilto@redhat.com)
+- Prevent fieldset from expanding due to content (jawnsy@redhat.com)
+- Add placement and container to popover and tooltip into popover.js so that
+  messages aren't hidden when spanning multiple scrollable areas.  - Fixes
+  https://github.com/openshift/origin/issues/7723 (sgoodwin@redhat.com)
+- bump(k8s.io/kubernetes): 91d3e753a4eca4e87462b7c9e5391ec94bb792d9
+  (jliggitt@redhat.com)
+- Add liveness and readiness probe for Jenkins (mfojtik@redhat.com)
+- Fix word-break in Firefox (spadgett@redhat.com)
+- Add table-bordered styles to service port table (spadgett@redhat.com)
+- nocache should be noCache (haowang@redhat.com)
+- Drop capabilities when running s2i build container (cewong@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  0278ed91e641158fbbf1de08808a12d5719322d8 (cewong@redhat.com)
+- Fixed races in ratelimiter tests on go1.5 (maszulik@redhat.com)
+
 * Wed Mar 09 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.1
 - Change version numbering from 3.1.1.9xx to 3.2.0.x to avoid confusion.
   (tdawson@redhat.com)

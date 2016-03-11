@@ -59,14 +59,14 @@
           {{event.involvedObject.kind | humanizeKind}}</td>
         <td data-title="Severity" class="hidden-xs hidden-sm hidden-md text-center severity-icon-td">
           <span class="sr-only">{{event.type}}</span>
-          <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span></td>
+          <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-original-title="Warning"></span></td>
         <td class="hidden-sm hidden-md" data-title="Reason">
-          {{event.reason | sentenceCase}}&nbsp;<span class="visible-xs-inline pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
+          {{event.reason | sentenceCase}}&nbsp;<span class="visible-xs-inline pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-original-title="Warning"></span>
         </td>
         <td data-title="Message" class="word-break">
           <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
             {{event.reason | sentenceCase}}&nbsp;
-            <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-placement="right" data-original-title="Warning"></span>
+            <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-original-title="Warning"></span>
           </div>
           {{event.message}}
           <div ng-if="event.count > 1" class="text-muted small">

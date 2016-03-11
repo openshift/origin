@@ -52,7 +52,7 @@
                   <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1" ng-if="buildConfigs[buildConfigName] || !unfilteredBuildConfigs[buildConfigName]">
                     <td data-title="Name">
                       <a ng-if="buildConfigName" href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
-                      <span ng-if="buildConfigs && buildConfigName && !buildConfigs[buildConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>
+                      <span ng-if="buildConfigs && buildConfigName && !buildConfigs[buildConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" title="This build config no longer exists" style="cursor: help;"></span>
                       <span ng-if="buildConfigName == ''"><em>none</em></span>
                     </td>
                     <td data-title="Last Build">

@@ -143,7 +143,11 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	if b.incremental = b.artifacts.Exists(config); b.incremental {
-		glog.V(1).Infof("Existing image for tag %s detected for incremental build", config.Tag)
+		tag := config.IncrementalFromTag
+		if len(tag) == 0 {
+			tag = config.Tag
+		}
+		glog.V(1).Infof("Existing image for tag %s detected for incremental build", tag)
 	} else {
 		glog.V(1).Infof("Clean build will be performed")
 	}
@@ -403,6 +407,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 		OnStart:         extractFunc,
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
+		CapDrop:         config.DropCapabilities,
 	}
 
 	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
@@ -454,6 +459,7 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
+		CapDrop:         config.DropCapabilities,
 	}
 
 	// If there are injections specified, override the original assemble script

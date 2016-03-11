@@ -16,12 +16,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-type FakeTempDirCreator struct{}
-
-func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
-	return "test_temp", nil
-}
-
 type FakeAdmissionControl struct {
 	admit bool
 }
@@ -47,10 +41,9 @@ func TestSTICreateBuildPodRootAllowed(t *testing.T) {
 
 func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
-		Image:                "sti-test-image",
-		TempDirectoryCreator: &FakeTempDirCreator{},
-		Codec:                kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
-		AdmissionControl:     &FakeAdmissionControl{admit: rootAllowed},
+		Image:            "sti-test-image",
+		Codec:            kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+		AdmissionControl: &FakeAdmissionControl{admit: rootAllowed},
 	}
 
 	expected := mockSTIBuild()
@@ -82,7 +75,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	// the values are allowed, so only expect 10 not 11 values.
 	expectedEnvCount := 10
 	if !rootAllowed {
-		expectedEnvCount = 11
+		expectedEnvCount = 12
 	}
 	if len(container.Env) != expectedEnvCount {
 		var keys []string
@@ -111,6 +104,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	found := false
 	foundIllegal := false
 	foundAllowedUIDs := false
+	foundDropCaps := false
 	for _, v := range container.Env {
 		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
 			found = true
@@ -118,8 +112,11 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		if v.Name == "ILLEGAL" {
 			foundIllegal = true
 		}
-		if v.Name == "ALLOWED_UIDS" && v.Value == "1-" {
+		if v.Name == buildapi.AllowedUIDs && v.Value == "1-" {
 			foundAllowedUIDs = true
+		}
+		if v.Name == buildapi.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID,SYS_CHROOT" {
+			foundDropCaps = true
 		}
 	}
 	if !found {
@@ -129,10 +126,16 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 	if foundAllowedUIDs && rootAllowed {
-		t.Fatalf("Did not expect ALLOWED_UIDS when root is allowed")
+		t.Fatalf("Did not expect %s when root is allowed", buildapi.AllowedUIDs)
 	}
 	if !foundAllowedUIDs && !rootAllowed {
-		t.Fatalf("Expected ALLLOWED_UIDS when root is not allowed")
+		t.Fatalf("Expected %s when root is not allowed", buildapi.AllowedUIDs)
+	}
+	if foundDropCaps && rootAllowed {
+		t.Fatalf("Did not expect %s when root is allowed", buildapi.DropCapabilities)
+	}
+	if !foundDropCaps && !rootAllowed {
+		t.Fatalf("Expected %s when root is not allowed", buildapi.DropCapabilities)
 	}
 	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
 	errorCases := map[int][]string{

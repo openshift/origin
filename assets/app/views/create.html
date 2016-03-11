@@ -155,6 +155,9 @@
                           version="image.version"
                           ng-repeat="image in filteredNonBuilders | orderBy : ['name', 'imageStream.metadata.namespace']">
                       </catalog-image>
+
+                      <!-- Add an empty item to keep the last tile from stretching to 100% width. -->
+                      <div style="height: 0;" class="tile-image"></div>
                     </div>
                   </div>
                 </div>
