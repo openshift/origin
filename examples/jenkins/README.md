@@ -57,10 +57,10 @@ Steps
 
         $ oc new-app jenkins-ephemeral-template.json
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
-    
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.
+
 5. Retrieve the ip and port of the jenkins service that was just created:
-   
+
         $ oc get svc jenkins
 
     Note the ip and port of the Jenkins service reported by the second command, you will need it later.
@@ -68,9 +68,9 @@ Steps
 6. Create the sample application configuration
 
         $ oc new-app application-template.json
- 
+
 7. Open the Jenkins service ip:port from step 5 in your browser.  Once it is available, login using username `admin` and password `password`.
-   
+
 8. Select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to step 11.
 
 9. Optional (if the default values are no longer applicable based on how your OpenShift environment was constructed): change the settings for each build step as needed.  For example, update the "URL of the OpenShift api endpoint" field with `https://hostname:port` where hostname/ip and port are for your OpenShift api endpoint, or update the "The authorization token for interacting with OpenShift" field with the token value retrieved in step 3.  You can save your changes to the job, click `Build` and skip to step 12.

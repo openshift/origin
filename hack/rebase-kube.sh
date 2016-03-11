@@ -12,7 +12,7 @@ echo "This command will update Origin with the latest stable_proposed branch or 
 echo "in your OpenShift fork of Kubernetes."
 echo
 echo "This command is destructive and will alter the contents of your GOPATH projects"
-echo 
+echo
 echo "Hit ENTER to continue or CTRL+C to cancel"
 read
 

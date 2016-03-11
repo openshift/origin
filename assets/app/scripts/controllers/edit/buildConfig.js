@@ -127,7 +127,7 @@ angular.module('openshiftConsole')
               $scope.builderOptions = $scope.setPickedVariables(
                 $scope.builderOptions,
                 buildFrom.kind,
-                buildFrom.namespace || buildConfig.metadata.namespace, 
+                buildFrom.namespace || buildConfig.metadata.namespace,
                 buildFrom.name.split(":")[0],
                 buildFrom.name.split(":")[1],
                 (buildFrom.kind === "ImageStreamImage") ? buildFrom.name : "",
@@ -220,7 +220,7 @@ angular.module('openshiftConsole')
               }
               $scope.availableProjects = angular.copy($scope.buildFrom.projects);
 
-              // If builder or output image namespace is not part of users available namespaces, add it to 
+              // If builder or output image namespace is not part of users available namespaces, add it to
               // the namespace array anyway together with and call that checks the availability of the namespace.
               if (!$scope.buildFrom.projects.contains($scope.builderOptions.pickedNamespace)) {
                 $scope.checkNamespaceAvailability($scope.builderOptions.pickedNamespace);
@@ -249,7 +249,7 @@ angular.module('openshiftConsole')
                   $scope.imageSourceBuildFrom.projects.push($scope.imageSourceOptions.pickedNamespace);
                 }
                 if ($scope.imageSourceOptions.pickedType === "ImageStreamTag") {
-                  $scope.updateImageSourceImageStreams($scope.imageSourceOptions.pickedNamespace, false);                
+                  $scope.updateImageSourceImageStreams($scope.imageSourceOptions.pickedNamespace, false);
                 }
               }
               $scope.loaded = true;
@@ -565,7 +565,7 @@ angular.module('openshiftConsole')
       }
     };
 
-    // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable 
+    // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable
     $scope.checkNamespaceAvailability = function(namespace) {
       DataService.get("projects", namespace, {}, { errorNotification: false})
       .then(function() {
@@ -606,7 +606,7 @@ angular.module('openshiftConsole')
         } else {
           $scope.updatedBuildConfig.spec.source.binary = {};
         }
-      }      
+      }
     };
 
     $scope.constructImageObject = function(optionsModel) {
@@ -656,7 +656,7 @@ angular.module('openshiftConsole')
       }
 
       // Add all imageChange triggers to the triggers array. The imageChange trigger for the builder is added in getTriggerMap()
-      // method into imageChangeTriggers array, even if the buildConfig doesn't contain it. If builder imageChange trigger is checked, 
+      // method into imageChangeTriggers array, even if the buildConfig doesn't contain it. If builder imageChange trigger is checked,
       // keep the trigger, otherwise delete it.
       triggers = triggers.concat($scope.triggers.imageChangeTriggers)
       if (!presentTriggers.imageChange) {
@@ -690,7 +690,7 @@ angular.module('openshiftConsole')
         $filter('buildStrategy')($scope.updatedBuildConfig).from = $scope.constructImageObject($scope.builderOptions);
       }
 
-      // Construct updated output image object based on it's kind. Only Image Stream Tag, Docker Image and None can 
+      // Construct updated output image object based on it's kind. Only Image Stream Tag, Docker Image and None can
       // be specified for the output image. Not Image Stream Image since they are immutable.
       if ($scope.outputOptions.pickedType === "None") {
         // If user will change the output reference to 'None' shall the potential PushSecret be deleted as well?
@@ -738,7 +738,7 @@ angular.module('openshiftConsole')
     $scope.inspectNamespace = function(imageStreams, pickedImageStream) {
       if (imageStreams.length === 0) {
         return "empty";
-      } 
+      }
       if (imageStreams.length !== 0 && !imageStreams.contains(pickedImageStream)) {
         return "noMatch";
       }
@@ -749,7 +749,7 @@ angular.module('openshiftConsole')
       if (tagHash[pickedImageStream] && pickedImageStream !== '') {
         if (tagHash[pickedImageStream].length === 0) {
           return "empty";
-        } 
+        }
         if (tagHash[pickedImageStream].length !== 0 && !tagHash[pickedImageStream].contains(pickedTag)) {
           return "noMatch";
         }

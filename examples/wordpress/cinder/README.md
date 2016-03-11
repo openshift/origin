@@ -136,8 +136,8 @@ Each Cinder volume becomes its own Persistent Volume in the cluster.
 [root@vm1 ~] $ oc get pv
 
 NAME      LABELS    CAPACITY     ACCESSMODES   STATUS      CLAIM     REASON
-pv0001    <none>    1073741824   RWO,RWX       Available             
-pv0002    <none>    5368709120   RWO           Available             
+pv0001    <none>    1073741824   RWO,RWX       Available
+pv0002    <none>    5368709120   RWO           Available
 ```
 
 Now the volumes are ready to be used by applications in the cluster.

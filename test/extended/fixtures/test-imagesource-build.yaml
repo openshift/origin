@@ -25,9 +25,9 @@ items:
         - destinationDir: injected/dir
           sourcePath: /usr/lib/jenkins/jenkins.war
     strategy:
-      sourceStrategy: 
+      sourceStrategy:
         forcePull: true
-        from: 
+        from:
           kind: ImageStreamTag
           name: ruby:latest
           namespace: openshift
@@ -54,9 +54,9 @@ items:
         - destinationDir: injected/dir
           sourcePath: /usr/lib/jenkins/jenkins.war
     strategy:
-      sourceStrategy: 
+      sourceStrategy:
         forcePull: true
-        from: 
+        from:
           kind: ImageStreamTag
           name: ruby:latest
           namespace: openshift
@@ -159,4 +159,3 @@ items:
           kind: ImageStreamTag
           name: imagedockerapp:latest
       type: ImageChange
-      

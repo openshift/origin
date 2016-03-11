@@ -19,7 +19,7 @@
       <replicaCount>0</replicaCount>
       <authToken></authToken>
     </com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
-    
+
     <com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
       <apiURL>https://openshift.default.svc.cluster.local</apiURL>
       <bldCfg>frontend</bldCfg>
@@ -28,7 +28,7 @@
       <followLog>true</followLog>
       <checkForTriggeredDeployments>true</checkForTriggeredDeployments>
     </com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
-    
+
     <com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
       <apiURL>https://openshift.default.svc.cluster.local</apiURL>
       <depCfg>frontend</depCfg>
@@ -45,7 +45,7 @@
       <authToken></authToken>
       <verifyReplicaCount>true</verifyReplicaCount>
     </com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
-    
+
      <com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
       <apiURL>https://openshift.default.svc.cluster.local</apiURL>
       <svcName>frontend</svcName>
@@ -62,7 +62,7 @@
       <prodStream>origin-nodejs-sample</prodStream>
       <authToken></authToken>
     </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
-    
+
     <com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
       <apiURL>https://openshift.default.svc.cluster.local</apiURL>
       <depCfg>frontend-prod</depCfg>

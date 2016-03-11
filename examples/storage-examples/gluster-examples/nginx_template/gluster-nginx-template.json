@@ -39,7 +39,7 @@
                 "name": "templatevol",
                 "persistentVolumeClaim": {
                     "claimName": "claim-default2"
-                }                
+                }
             }
         ],
         "restartPolicy": "Always"

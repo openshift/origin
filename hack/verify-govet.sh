@@ -60,7 +60,7 @@ DIR_BLACKLIST='./hack
 
 for test_dir in $ALL_DIRS
 do
-  # use `grep` failure to determine that a directory is not in the blacklist 
+  # use `grep` failure to determine that a directory is not in the blacklist
   if ! echo "${DIR_BLACKLIST}" | grep -q "${test_dir}"; then
     go tool vet -shadow -shadowstrict $test_dir
     if [ "$?" -ne "0" ]

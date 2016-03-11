@@ -72,7 +72,7 @@
           }
         }
       }
-    },    
+    },
     {
       "kind": "DeploymentConfig",
       "apiVersion": "v1",

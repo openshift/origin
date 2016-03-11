@@ -102,7 +102,7 @@ function cleanup_openshift {
 
 	set +e
 	dump_container_logs
-	
+
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
 	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
 
@@ -126,7 +126,7 @@ function cleanup_openshift {
 
 	echo "[INFO] Cleanup complete"
 	set -e
-}	
+}
 
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs()
@@ -146,7 +146,7 @@ function dump_container_logs()
 	done
 }
 
-# kill_all_processes function will kill all 
+# kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes()
 {

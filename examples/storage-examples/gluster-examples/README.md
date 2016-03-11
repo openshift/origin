@@ -1,17 +1,17 @@
 # OpenShift and GlusterFS – running NGINX applications with Storage
 ---
 ### Environment:
-This environment consists of 4 hosts: 
+This environment consists of 4 hosts:
 * 2 GlusterFS nodes consisting of the gluster cluster (gluster1.rhs and gluster2.rhs)
 * 2 RHEL7 Atomic Hosts running OpenShift and GlusterFS Client (master= ose1.rhs and node1 = ose2.rhs)
 
-OpenShift is installed from [OpenShift Admin Guide – quick installation](https://docs.openshift.com/enterprise/3.0/admin_guide/install/quick_install.html) and operational (meaning the server is running and you can login to the OpenShift Console via the GUI - https://master-host:8443/console).  Also the gluster cluster has been tested with all RHEL Atomic Nodes and is working properly and accessible to the OpenShift nodes.  
+OpenShift is installed from [OpenShift Admin Guide – quick installation](https://docs.openshift.com/enterprise/3.0/admin_guide/install/quick_install.html) and operational (meaning the server is running and you can login to the OpenShift Console via the GUI - https://master-host:8443/console).  Also the gluster cluster has been tested with all RHEL Atomic Nodes and is working properly and accessible to the OpenShift nodes.
 
 Below is a summary of the Gluster Volume Info used for this example:
 
 
 | Attribute       | Value                 |
-|:--------------- | --------------------- | 
+|:--------------- | --------------------- |
 | Volume Name     | myVol1                |
 | Status          | Started               |
 | Num Bricks      | 2                     |
@@ -44,7 +44,7 @@ The goal of these examples are to validate/verify the glusterfs plugin as it per
 
 - [example 2](./nginx_gluster_plugin):  Deploy NGINX application, using OpenShift Console that creates the relationship and mount to the GlusterFS volume via the POD definition using the glusterfs plugin.
 
-- [example 3](./nginx_gluster_pvc):  Deploy NGINX application, using OpenShift Console and PersistentVolume and PersistentVolumeClaims using glusterfs plugin 
+- [example 3](./nginx_gluster_pvc):  Deploy NGINX application, using OpenShift Console and PersistentVolume and PersistentVolumeClaims using glusterfs plugin
 
 - [example 4](./nginx_template):  Create an OpenShift v3 Template that deploys a NGINX application out of the box for OpenShift users – applied via the OpenShift Console Web GUI
 

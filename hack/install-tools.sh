@@ -14,7 +14,7 @@ go get golang.org/x/tools/cmd/cover github.com/tools/godep golang.org/x/tools/cm
 # Check out a stable commit for go vet in order to version lock it to something we can work with
 pushd $GOPATH/src/golang.org/x/tools >/dev/null 2>&1
   git fetch
-  git checkout c262de870b618eed648983aa994b03bc04641c72 
+  git checkout c262de870b618eed648983aa994b03bc04641c72
 popd >/dev/null 2>&1
 
 # Re-install using this version of the tool

@@ -128,7 +128,7 @@ func (endpoints *endpointDetails) implicitToken(w http.ResponseWriter, req *http
 	w.Write([]byte(`
 You have reached this page by following a redirect Location header from an OAuth authorize request.
 
-If a response_type=token parameter was passed to the /authorize endpoint, that requested an 
+If a response_type=token parameter was passed to the /authorize endpoint, that requested an
 "Implicit Grant" OAuth flow (see https://tools.ietf.org/html/rfc6749#section-4.2).
 
 That flow requires the access token to be returned in the fragment portion of a redirect header.

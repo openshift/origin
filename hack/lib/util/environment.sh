@@ -185,7 +185,7 @@ function os::util::environment::setup_etcd_vars() {
 }
 
 # os::util::environment::setup_server_vars sets up environment variables necessary for interacting with the server
-# 
+#
 # Globals:
 #  - BASETMPDIR
 #  - KUBELET_HOST

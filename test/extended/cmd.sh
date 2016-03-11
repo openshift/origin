@@ -77,7 +77,7 @@ rm -rf $tmp
 [ "$(oc new-app test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml |& tr '\n' ' ' | grep -E "from:\s+kind:\s+DockerImage\s+name:\s+test/scratchimage:latest\s+")" ]
 # error due to partial match
 [ "$(oc new-app test/scratchimage2 -o yaml |& tr '\n' ' ' 2>&1 | grep -E "partial match")" ]
-# success with exact match	
+# success with exact match
 [ "$(oc new-app test/scratchimage -o yaml)" ]
 echo "[INFO] newapp: ok"
 
@@ -116,32 +116,32 @@ oc delete secrets --all
 oc secrets new image-ns-pull .dockerconfigjson=${DOCKER_CONFIG_JSON}
 oc secrets new-dockercfg image-ns-pull-old --docker-email=fake@example.org --docker-username=imagensbuilder --docker-server=${DOCKER_REGISTRY} --docker-password=${IMAGE_NS_TOKEN}
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-no-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
+oc process -f test/extended/fixtures/image-pull-secrets/pod-with-no-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f -
 wait_for_command "oc describe pod/no-pull-pod | grep 'Back-off pulling image'" 30*TIME_SEC
 oc delete pods --all
 
 # TODO remove sleeps once jsonpath stops panicing.  The code still works without the sleep, it just looks nasty
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
+oc process -f test/extended/fixtures/image-pull-secrets/pod-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f -
 sleep 1
 wait_for_command "oc get pods/new-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}' | grep 'docker'" 30*TIME_SEC
 oc delete pods --all
 docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
 
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
+oc process -f test/extended/fixtures/image-pull-secrets/pod-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f -
 sleep 1
 wait_for_command "oc get pods/old-pull-pod -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
 oc delete pods --all
 docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
 
-oc process -f test/extended/fixtures/image-pull-secrets/dc-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
+oc process -f test/extended/fixtures/image-pull-secrets/dc-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f -
 sleep 4
 wait_for_command "oc get pods/my-dc-old-1-prehook -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
 oc delete all --all
 docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
 
-oc process -f test/extended/fixtures/image-pull-secrets/dc-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
+oc process -f test/extended/fixtures/image-pull-secrets/dc-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f -
 sleep 4
 wait_for_command "oc get pods/my-dc-1-prehook -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
 oc delete all --all

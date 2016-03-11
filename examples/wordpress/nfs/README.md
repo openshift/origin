@@ -14,7 +14,7 @@ Create two NFS exports, each of which will become a Persistent Volume in the clu
 mkdir -p /home/data/pv0001
 mkdir -p /home/data/pv0002
 
-# security needs to be permissive currently, but the export will soon be restricted 
+# security needs to be permissive currently, but the export will soon be restricted
 # to the same UID/GID that wrote the data
 chmod -R 777 /home/data/
 
@@ -51,8 +51,8 @@ $ oc create -f examples/wordpress/nfs/pv-2.yaml
 $ oc get pv
 
 NAME      LABELS    CAPACITY     ACCESSMODES   STATUS      CLAIM     REASON
-pv0001    <none>    1073741824   RWO,RWX       Available             
-pv0002    <none>    5368709120   RWO           Available             
+pv0001    <none>    1073741824   RWO,RWX       Available
+pv0002    <none>    5368709120   RWO           Available
 
 ```
 

@@ -4,11 +4,11 @@
 
 ## Installation
 
-In order to build and install `junitreport`, from the root of the OpenShift Origin repository, run `hack/build-go.sh tools/junitreport`. 
+In order to build and install `junitreport`, from the root of the OpenShift Origin repository, run `hack/build-go.sh tools/junitreport`.
 
-## Usage 
+## Usage
 
-`junitreport` can read the output of different types of tests. Specify which output is being read with `--type=<type>`. Supported test output types currently include `'gotest'`, for `go test` output. The default test type is `'gotest'`. 
+`junitreport` can read the output of different types of tests. Specify which output is being read with `--type=<type>`. Supported test output types currently include `'gotest'`, for `go test` output. The default test type is `'gotest'`.
 
 `junitreport` can output flat or nested test suites. To choose which type of output to use, set `--suites=<type>` to either `'flat'` or `'nested'`. The default suite output structure is `'flat'`. When creating nested test suites, `junitreport` will use `/` as the delimeter between suite names: `github.com/maintainer/repository/suite` will be parsed as a hierarchy of `github.com`, `github.com/maintainer`, *etc.* If you are requesting nested test suite output but do not want the root suite(s) to be as general as `github.com`, for example, set `--roots=<root suite names>` to be a comma-delimited list of the names of the suites you wish to use as roots. If the parser encounters a package outside of those roots, it will ignore it. This allows a user to provide a root suite and only collect data for children of that root from a larger data set.
 

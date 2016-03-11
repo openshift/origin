@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x 
+set -x
 
 # Wait for daemon
 for ((i=30; i>0; i--))

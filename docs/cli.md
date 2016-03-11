@@ -156,7 +156,7 @@ $ oc project
 
 This manually starts a build, using either the specified buildConfig or a build name with the `--from-build` option.
 
-Other options:  
+Other options:
 
 | Name       |  Description                                                                                             |
 |:-----------|:---------------------------------------------------------------------------------------------------------|

@@ -25,12 +25,12 @@ function os::log::install_system_logger_cleanup() {
 #  - SAR_LOGFILE
 # Arguments:
 #  None
-# Returns:  
+# Returns:
 #  None
 function os::log::clean_up_logger() {
     local return_code=$?
 
-    # we don't want failures in this logger to 
+    # we don't want failures in this logger to
     set +o errexit
 
     if jobs -pr | grep -q "${LOGGER_PID}"; then
@@ -88,7 +88,7 @@ function os::log::clean_up_logger() {
 #  None
 # Arguments:
 #  - 1: datafile
-#  - 2: comma-delimited columns to remove, with trailing comma 
+#  - 2: comma-delimited columns to remove, with trailing comma
 # Returns:
 #  None
 function os::log::internal::prune_datafile() {
@@ -119,9 +119,9 @@ function os::log::internal::prune_datafile() {
     mv "${datafile}.tmp" "${datafile}"
 }
 
-# os::log::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used 
+# os::log::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used
 # on the output of a 'sar -f' read of a sar binary file. Plots will be made of all columns and stacked on each other with one x axis.
-# This function needs the non-data columns of the file to be prefixed with comments. 
+# This function needs the non-data columns of the file to be prefixed with comments.
 #
 # Globals:
 #  - LOG_DIR
@@ -143,13 +143,13 @@ function os::log::internal::plot() {
     records="$(( $( cat "${datafile}" | wc -l ) - 1 ))" # one of these lines will be the header comment
     if [[ "${records}" -gt 90 ]]; then
         width="$(echo "8.5 + ${records}*0.025" | bc )"
-    else 
+    else
         width="8.5"
     fi
 
     local gnuplot_directive=( "set terminal pdf size ${width}in,$(( 2 * (${#headers[@]} - 1) ))in" \
                               "set output \"${LOG_DIR}/${plotname}.pdf\"" \
-                              "set datafile separator \";\"" \    
+                              "set datafile separator \";\"" \
                               "set xdata time" \
                               "set timefmt '%Y-%m-%d %H:%M:%S UTC'" \
                               "set tmargin 1" \
@@ -167,9 +167,9 @@ function os::log::internal::plot() {
         if (( $i == ${#headers[@]} - 1 )); then
             # we need x-tick labels on the bottom plot
             gnuplot_directive+=( "set xtics format '%H:%M:%S' rotate by -90" )
-        else 
+        else
             gnuplot_directive+=( "set format x ''" )
-        fi 
+        fi
 
         gnuplot_directive+=( "plot \"${datafile}\" using 1:$(( $i + 1 )) title \"${header}\" with lines" )
     done
@@ -225,7 +225,7 @@ function os::log::internal::run_system_logger() {
     local stderr_logfile=$2
 
     sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}" &
-    
+
     LOGGER_PID=$!
     readonly LOGGER_PID
     export LOGGER_PID

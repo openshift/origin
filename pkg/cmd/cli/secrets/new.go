@@ -24,8 +24,8 @@ const (
 	newLong = `
 Create a new secret based on a file or directory
 
-Key files can be specified using their file path, in which case a default name will be given to them, or optionally 
-with a name and file path, in which case the given name will be used. Specifying a directory will create a secret 
+Key files can be specified using their file path, in which case a default name will be given to them, or optionally
+with a name and file path, in which case the given name will be used. Specifying a directory will create a secret
 using with all valid keys in that directory.
 `
 

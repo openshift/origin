@@ -12,7 +12,7 @@ describe("valuesNotInFilter", function(){
       filter = valuesNotInFilter;
     });
   });
-  
+
   it("should return a subset of the entries", function(){
     var results = filter(entries,"foo,another");
     delete entries["foo"];
@@ -20,4 +20,3 @@ describe("valuesNotInFilter", function(){
     expect(results).toEqual(entries);
   });
 });
-  
