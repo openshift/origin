@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -19,7 +19,7 @@ import (
 
 type LogoutOptions struct {
 	StartingKubeConfig *kclientcmdapi.Config
-	Config             *kclient.Config
+	Config             *restclient.Config
 	Out                io.Writer
 
 	PathOptions *kcmdconfig.PathOptions

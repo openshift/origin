@@ -10,7 +10,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -270,7 +270,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client kclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
+func postFile(client restclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
 	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/fixtures/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)

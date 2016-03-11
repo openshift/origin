@@ -20,7 +20,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
@@ -540,9 +540,9 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	if hook.Scheme == "https" {
 		config, err := f.OpenShiftClientConfig.ClientConfig()
 		if err == nil {
-			if url, _, err := client.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
+			if url, _, err := restclient.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
 				if url.Host == hook.Host && url.Scheme == hook.Scheme {
-					if rt, err := client.TransportFor(config); err == nil {
+					if rt, err := restclient.TransportFor(config); err == nil {
 						httpClient = &http.Client{Transport: rt}
 					}
 				}

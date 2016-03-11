@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/third_party/golang/netutil"
 
@@ -24,15 +24,15 @@ import (
 // connections and those that require upgrading (e.g. web sockets). It implements
 // the http.RoundTripper and http.Handler interfaces.
 type UpgradeAwareSingleHostReverseProxy struct {
-	clientConfig *kclient.Config
+	clientConfig *restclient.Config
 	backendAddr  *url.URL
 	transport    http.RoundTripper
 	reverseProxy *httputil.ReverseProxy
 }
 
 // NewUpgradeAwareSingleHostReverseProxy creates a new UpgradeAwareSingleHostReverseProxy.
-func NewUpgradeAwareSingleHostReverseProxy(clientConfig *kclient.Config, backendAddr *url.URL) (*UpgradeAwareSingleHostReverseProxy, error) {
-	transport, err := kclient.TransportFor(clientConfig)
+func NewUpgradeAwareSingleHostReverseProxy(clientConfig *restclient.Config, backendAddr *url.URL) (*UpgradeAwareSingleHostReverseProxy, error) {
+	transport, err := restclient.TransportFor(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) dialBackend(req *http.Request) (net
 	case "http":
 		return net.Dial("tcp", dialAddr)
 	case "https":
-		tlsConfig, err := kclient.TLSConfigFor(p.clientConfig)
+		tlsConfig, err := restclient.TLSConfigFor(p.clientConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -261,7 +261,7 @@ func removeCORSHeaders(resp *http.Response) {
 
 // addAuthHeaders adds basic/bearer auth from the given config (if specified)
 // This should be run on any requests not handled by the transport returned from TransportFor(config)
-func addAuthHeaders(req *http.Request, clientConfig *kclient.Config) {
+func addAuthHeaders(req *http.Request, clientConfig *restclient.Config) {
 	if clientConfig.BearerToken != "" {
 		req.Header.Set("Authorization", "Bearer "+clientConfig.BearerToken)
 	} else if clientConfig.Username != "" || clientConfig.Password != "" {

@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -357,11 +358,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 
 	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := kclient.TransportFor(&kclient.Config{})
+	importTransport, err := restclient.TransportFor(&restclient.Config{})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
-	insecureImportTransport, err := kclient.TransportFor(&kclient.Config{Insecure: true})
+	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{Insecure: true})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
@@ -636,7 +637,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
-		NonDefaultGroupVersionKinds: map[string]unversioned.GroupVersionKind{},
+		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
 	}
 }
 
@@ -655,7 +656,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version.GroupVersion = v1beta3.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 
@@ -673,7 +674,7 @@ func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVe
 	version.GroupVersion = v1.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 

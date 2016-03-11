@@ -7378,7 +7378,7 @@ func autoConvert_api_Volume_To_v1_Volume(in *api.Volume, out *apiv1.Volume, s co
 		defaulting.(func(*api.Volume))(in)
 	}
 	out.Name = in.Name
-	if err := v1beta1.Convert_api_VolumeSource_To_v1beta1_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
+	if err := apiv1.Convert_api_VolumeSource_To_v1_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
 		return err
 	}
 	return nil
@@ -8575,7 +8575,7 @@ func autoConvert_v1_Volume_To_api_Volume(in *apiv1.Volume, out *api.Volume, s co
 		defaulting.(func(*apiv1.Volume))(in)
 	}
 	out.Name = in.Name
-	if err := v1beta1.Convert_v1beta1_VolumeSource_To_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
+	if err := apiv1.Convert_v1_VolumeSource_To_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
 		return err
 	}
 	return nil

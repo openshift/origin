@@ -11,14 +11,14 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // CachedDiscoveryClient implements the functions that dicovery server-supported API groups,
 // versions and resources.
 type CachedDiscoveryClient struct {
-	kclient.DiscoveryInterface
+	discovery.DiscoveryInterface
 
 	// cacheDirectory is the directory where discovery docs are held.  It must be unique per host:port combination to work well.
 	cacheDirectory string
@@ -58,7 +58,7 @@ func (d *CachedDiscoveryClient) ServerResources() (map[string]*unversioned.APIRe
 	if err != nil {
 		return nil, err
 	}
-	groupVersions := kclient.ExtractGroupVersions(apiGroups)
+	groupVersions := unversioned.ExtractGroupVersions(apiGroups)
 	result := map[string]*unversioned.APIResourceList{}
 	for _, groupVersion := range groupVersions {
 		resources, err := d.ServerResourcesForGroupVersion(groupVersion)
@@ -131,6 +131,6 @@ func (d *CachedDiscoveryClient) writeCachedFile(filename string, obj runtime.Obj
 }
 
 // NewCachedDiscoveryClient creates a new DiscoveryClient.  cacheDirectory is the directory where discovery docs are held.  It must be unique per host:port combination to work well.
-func NewCachedDiscoveryClient(delegate kclient.DiscoveryInterface, cacheDirectory string, ttl time.Duration) *CachedDiscoveryClient {
+func NewCachedDiscoveryClient(delegate discovery.DiscoveryInterface, cacheDirectory string, ttl time.Duration) *CachedDiscoveryClient {
 	return &CachedDiscoveryClient{DiscoveryInterface: delegate, cacheDirectory: cacheDirectory, ttl: ttl}
 }
