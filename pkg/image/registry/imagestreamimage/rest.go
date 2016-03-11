@@ -69,8 +69,6 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	if err := api.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
-	image.DockerImageManifest = ""
-	image.DockerImageConfig = ""
 
 	isi := api.ImageStreamImage{
 		ObjectMeta: kapi.ObjectMeta{
