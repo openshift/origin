@@ -814,7 +814,6 @@ func TestNewAppRunBuilds(t *testing.T) {
 		checkResult func(*cmd.AppResult) error
 		checkOutput func(stdout, stderr io.Reader) error
 	}{
-
 		{
 			name: "successful ruby app generation",
 			config: &cmd.AppConfig{
@@ -1219,34 +1218,6 @@ func TestNewAppRunBuilds(t *testing.T) {
 			}
 		}
 	}
-}
-
-// PrepareNewAppAppConfig sets fields in config appropriate for running tests. It
-// returns two buffers bound to stdout and stderr.
-func PrepareNewAppAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
-	config.ExpectToBuild = true
-	stdout, stderr = new(bytes.Buffer), new(bytes.Buffer)
-	config.Out, config.ErrOut = stdout, stderr
-
-	config.Detector = app.SourceRepositoryEnumerator{
-		Detectors: source.DefaultDetectors,
-		Tester:    dockerfile.NewTester(),
-	}
-	config.DockerSearcher = app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(10*time.Second, true),
-	}
-	config.ImageStreamByAnnotationSearcher = fakeImageStreamSearcher()
-	config.ImageStreamSearcher = fakeImageStreamSearcher()
-	config.OriginNamespace = "default"
-	config.OSClient = &client.Fake{}
-	config.RefBuilder = &app.ReferenceBuilder{}
-	config.TemplateSearcher = app.TemplateSearcher{
-		Client: &client.Fake{},
-		TemplateConfigsNamespacer: &client.Fake{},
-		Namespaces:                []string{"openshift", "default"},
-	}
-	config.Typer = kapi.Scheme
-	return
 }
 
 func TestNewAppNewBuildEnvVars(t *testing.T) {
