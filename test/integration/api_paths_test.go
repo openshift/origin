@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -59,7 +60,7 @@ func TestRootAPIPaths(t *testing.T) {
 	// We need to make sure that any APILevels specified in the config are present in the RootPaths, and that
 	// any not specified are not
 	expectedOpenShiftAPILevels := sets.NewString(masterConfig.APILevels...)
-	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, configapi.APIGroupKube)...)
+	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, kapi.GroupName)...)
 	actualOpenShiftAPILevels := sets.String{}
 	actualKubeAPILevels := sets.String{}
 	for _, route := range broadcastRootPaths.Paths {

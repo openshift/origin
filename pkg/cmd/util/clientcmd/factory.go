@@ -32,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/homedir"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -145,8 +144,8 @@ type Factory struct {
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 	generators := map[string]map[string]kubectl.Generator{}
 	generators["run"] = map[string]kubectl.Generator{
-		"run/v1":            deploygen.BasicDeploymentConfigController{},
-		"run-controller/v1": kubectl.BasicReplicationController{},
+		cmdutil.RunV1GeneratorName: deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1":        kubectl.BasicReplicationController{},
 	}
 	generators["expose"] = map[string]kubectl.Generator{
 		"route/v1": routegen.RouteGenerator{},
@@ -157,20 +156,7 @@ func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	var restMapper meta.MultiRESTMapper
-	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
-		if seenGroups.Has(gv.Group) {
-			continue
-		}
-		seenGroups.Insert(gv.Group)
-
-		groupMeta, err := registered.Group(gv.Group)
-		if err != nil {
-			continue
-		}
-		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
-	}
+	restMapper := registered.RESTMapper()
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
@@ -303,6 +289,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		ret := map[string]kubectl.Generator{}
 		for k, v := range kubeGenerators {
 			ret[k] = v
+		}
+		// TODO: enable once deployments are supported in origin
+		if cmdName == "run" {
+			delete(ret, cmdutil.DeploymentV1Beta1GeneratorName)
 		}
 		for k, v := range originGenerators {
 			ret[k] = v

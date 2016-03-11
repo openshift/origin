@@ -232,6 +232,16 @@ os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Neve
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1beta1 --restart=Never test4'
 os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
 
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}"'                                'DeploymentConfig v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --restart=Always'               'DeploymentConfig v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --restart=Never'                'Pod v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=job/v1beta1'        'Job extensions/v1beta1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=job/v1'             'Job batch/v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=run/v1'             'DeploymentConfig v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=run-controller/v1'  'ReplicationController v1'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=run-pod/v1'         'Pod v1'
+os::cmd::expect_failure_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=deployment/v1beta1' 'not found'
+
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world'

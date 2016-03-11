@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -336,7 +337,8 @@ foreground for an interactive container execution.  You may pass 'run-controller
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdRun(f.Factory, in, out, errout)
+	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: kcmdutil.RunV1GeneratorName, DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
+	cmd := kcmd.NewCmdRunWithOptions(f.Factory, opts, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
 	cmd.SuggestFor = []string{"image"}

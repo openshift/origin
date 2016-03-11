@@ -194,5 +194,21 @@ items:
   - kind: SystemGroup
     name: system:unauthenticated
   userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:discovery-binding
+  roleRef:
+    name: system:discovery
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
 kind: List
 metadata: {}

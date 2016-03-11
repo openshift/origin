@@ -25,7 +25,7 @@ func TestExtensionsAPIDisabled(t *testing.T) {
 	}
 
 	// Disable all extensions API versions
-	masterConfig.KubernetesMasterConfig.DisabledAPIGroupVersions = map[string][]string{"extensions": {"*"}}
+	masterConfig.KubernetesMasterConfig.DisabledAPIGroupVersions = map[string][]string{"extensions": {"*"}, "autoscaling": {"*"}, "batch": {"*"}}
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {

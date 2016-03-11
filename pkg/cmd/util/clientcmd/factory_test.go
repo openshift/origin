@@ -3,14 +3,32 @@ package clientcmd
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	"github.com/openshift/origin/pkg/client"
 )
+
+// TestRunGenerators makes sure we catch new generators added to `oc run`
+func TestRunGenerators(t *testing.T) {
+	f := NewFactory(nil)
+
+	// Contains the run generators we expect to see
+	// If new generators appear from upstream, make sure we support the underlying types
+	// If we do (like Job, Pod, etc), add them to the expected list here
+	// If we do not support in oc yet (like upstream Deployments), remove them in our factory's Generators function in factory.go
+	expectedRunGenerators := sets.NewString("job/v1", "job/v1beta1", "run-controller/v1", "run-pod/v1", "run/v1").List()
+
+	runGenerators := sets.StringKeySet(f.Generators("run")).List()
+	if !reflect.DeepEqual(expectedRunGenerators, runGenerators) {
+		t.Errorf("Expected run generators:%#v, got:\n%#v", expectedRunGenerators, runGenerators)
+	}
+}
 
 func TestClientConfigForVersion(t *testing.T) {
 	called := 0

@@ -57,7 +57,7 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		partialResource := unversioned.GroupVersionResource{Resource: parts[0]}
+		partialResource := unversioned.GroupVersionResource{Resource: strings.ToLower(parts[0])}
 		gvrs, err := mapper.ResourcesFor(partialResource)
 		if err != nil {
 			return "", "", err

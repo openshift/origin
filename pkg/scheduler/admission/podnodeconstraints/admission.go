@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -59,6 +60,7 @@ var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
 	kapi.Resource("pods"):                   kapi.Kind("Pod"),
 	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
 	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
+	batch.Resource("jobs"):                  batch.Kind("Job"),
 	extensions.Resource("deployments"):      extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"):      extensions.Kind("ReplicaSet"),
 	extensions.Resource("jobs"):             extensions.Kind("Job"),

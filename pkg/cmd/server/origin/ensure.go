@@ -200,6 +200,32 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	if err != nil {
 		glog.Errorf("error waiting for policy cache to initialize: %v", err)
 	}
+
+	// Reconcile roles that must exist for the cluster to function
+	// Be very judicious about what is placed in this list, since it will be enforced on every server start
+	reconcileRoles := &policy.ReconcileClusterRolesOptions{
+		RolesToReconcile: []string{bootstrappolicy.DiscoveryRoleName},
+		Confirmed:        true,
+		Union:            true,
+		Out:              ioutil.Discard,
+		RoleClient:       c.PrivilegedLoopbackOpenShiftClient.ClusterRoles(),
+	}
+	if err := reconcileRoles.RunReconcileClusterRoles(nil, nil); err != nil {
+		glog.Errorf("Could not auto reconcile roles: %v\n", err)
+	}
+
+	// Reconcile rolebindings that must exist for the cluster to function
+	// Be very judicious about what is placed in this list, since it will be enforced on every server start
+	reconcileRoleBindings := &policy.ReconcileClusterRoleBindingsOptions{
+		RolesToReconcile:  []string{bootstrappolicy.DiscoveryRoleName},
+		Confirmed:         true,
+		Union:             true,
+		Out:               ioutil.Discard,
+		RoleBindingClient: c.PrivilegedLoopbackOpenShiftClient.ClusterRoleBindings(),
+	}
+	if err := reconcileRoleBindings.RunReconcileClusterRoleBindings(nil, nil); err != nil {
+		glog.Errorf("Could not auto reconcile role bindings: %v\n", err)
+	}
 }
 
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin

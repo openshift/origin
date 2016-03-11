@@ -55,7 +55,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account
 // TODO: change return types to client.Interface/kclient.Interface to allow auto-reloading credentials
-func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*client.Client, *kclient.Client, error) {
+func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclient.Client, error) {
 	// Clear existing auth info
 	config.Username = ""
 	config.Password = ""
@@ -63,26 +63,32 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	config.CertData = []byte{}
 	config.KeyFile = ""
 	config.KeyData = []byte{}
+	config.BearerToken = ""
+
+	if len(config.UserAgent) > 0 {
+		config.UserAgent += " "
+	}
+	config.UserAgent += fmt.Sprintf("system:serviceaccount:%s:%s", namespace, name)
 
 	// For now, just initialize the token once
 	// TODO: refetch the token if the client encounters 401 errors
 	token, err := tokenRetriever.GetToken(namespace, name)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	config.BearerToken = token
 
 	c, err := client.New(&config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	kc, err := kclient.New(&config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return c, kc, nil
+	return &config, c, kc, nil
 }
 
 // IsValidServiceAccountToken returns true if the given secret contains a service account token valid for the given service account

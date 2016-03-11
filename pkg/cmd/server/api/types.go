@@ -38,11 +38,24 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube                   = ""
-	APIGroupExtensions             = "extensions"
+	APIGroupKube        = ""
+	APIGroupExtensions  = "extensions"
+	APIGroupAutoscaling = "autoscaling"
+	APIGroupBatch       = "batch"
+
+	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:       {"v1"},
-		APIGroupExtensions: {"v1beta1"},
+		APIGroupKube:        {"v1"},
+		APIGroupExtensions:  {"v1beta1"},
+		APIGroupAutoscaling: {"v1"},
+		APIGroupBatch:       {"v1"},
+	}
+	// Map of group names to known, but disallowed REST API versions
+	KubeAPIGroupsToDeadVersions = map[string][]string{
+		APIGroupKube:        {"v1beta3"},
+		APIGroupExtensions:  {},
+		APIGroupAutoscaling: {},
+		APIGroupBatch:       {},
 	}
 	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 

@@ -441,7 +441,7 @@ func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -480,7 +480,7 @@ func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -567,9 +567,9 @@ func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersio
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
 // named service account in the infra namespace
-func (c *MasterConfig) GetServiceAccountClients(name string) (*osclient.Client, *kclient.Client, error) {
+func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclient.Client, error) {
 	if len(name) == 0 {
-		return nil, nil, errors.New("No service account name specified")
+		return nil, nil, nil, errors.New("No service account name specified")
 	}
 	return serviceaccounts.Clients(
 		c.PrivilegedLoopbackClientConfig,
