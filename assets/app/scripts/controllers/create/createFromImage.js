@@ -100,6 +100,10 @@ angular.module("openshiftConsole")
             scope.buildConfig.contextDir = annotations.sampleContextDir || "";
           };
 
+          scope.usingSampleRepo = function() {
+            return scope.buildConfig.sourceUrl === _.get(scope, 'image.metadata.annotations.sampleRepo');
+          };
+
           DataService.get("imagestreams", scope.imageName, {namespace: (scope.namespace || $routeParams.project)}).then(function(imageStream){
               scope.imageStream = imageStream;
               var imageName = scope.imageTag;
@@ -252,7 +256,7 @@ angular.module("openshiftConsole")
                   };
               }
             );
-          Navigate.toNextSteps($scope.name, $scope.projectName);
+          Navigate.toNextSteps($scope.name, $scope.projectName, $scope.usingSampleRepo() ? {"fromSample": true} : null);
         };
 
         var elseShowWarning = function(){
