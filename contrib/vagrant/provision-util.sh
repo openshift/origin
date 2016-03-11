@@ -326,7 +326,7 @@ os::provision::wait-for-condition() {
   # condition should be a string that can be eval'd.  When eval'd, it
   # should not output anything to stderr or stdout.
   local condition=$2
-  local timeout=${3:-30}
+  local timeout=${3:-60}
 
   local start_msg="Waiting for ${msg}"
   local error_msg="[ERROR] Timeout waiting for ${msg}"
