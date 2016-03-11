@@ -146,6 +146,15 @@ os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a part
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.6\"\\) in project"
 
+# verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
+# new-app
+os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run emptystream' 'error: no tags found on matching image stream'
+os::cmd::expect_success 'oc new-app --dry-run emptystream --allow-missing-imagestream-tags'
+# new-build
+os::cmd::expect_failure_and_text 'oc new-build --dry-run emptystream~https://github.com/openshift/ruby-ex' 'error: no tags found on matching image stream'
+os::cmd::expect_success 'oc new-build --dry-run emptystream~https://github.com/openshift/ruby-ex --allow-missing-imagestream-tags --strategy=source'
+
 # Allow setting --name when specifying grouping
 os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/openshift/ruby-ex --name foo -o yaml"
 # but not with multiple components

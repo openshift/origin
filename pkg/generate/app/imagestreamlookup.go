@@ -17,6 +17,7 @@ type ImageStreamSearcher struct {
 	Client            client.ImageStreamsNamespacer
 	ImageStreamImages client.ImageStreamImagesNamespacer
 	Namespaces        []string
+	AllowMissingTags  bool
 }
 
 // Search will attempt to find imagestreams with names that match the passed in value
@@ -75,6 +76,34 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				imageref.Registry = ""
 				matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
+				addMatch := func(tag string, matchScore float32, image *imageapi.DockerImage, notFound bool) {
+					name := matchName
+					var description, argument string
+					if len(tag) > 0 {
+						name = fmt.Sprintf("%s:%s", name, tag)
+						argument = fmt.Sprintf("--image-stream=%q", name)
+						description = fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, tag, stream.Namespace)
+					} else {
+						argument = fmt.Sprintf("--image-stream=%q --allow-missing-imagestream-tags", name)
+						description = fmt.Sprintf("Image stream %q in project %q", stream.Name, stream.Namespace)
+					}
+
+					match := &ComponentMatch{
+						Value:       term,
+						Argument:    argument,
+						Name:        name,
+						Description: description,
+						Score:       matchScore,
+						ImageStream: stream,
+						Image:       image,
+						ImageTag:    tag,
+						Meta:        meta,
+						NoTagsFound: notFound,
+					}
+					glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, matchScore)
+					componentMatches = append(componentMatches, match)
+				}
+
 				// When an image stream contains a tag that references another local tag, and the user has not
 				// provided a tag themselves (i.e. they asked for mysql and we defaulted to mysql:latest), walk
 				// the chain of references to the end. This ensures that applications can default to using a "stable"
@@ -90,17 +119,32 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 
 				latest := imageapi.LatestTaggedImage(stream, finalTag)
 				if latest == nil || len(latest.Image) == 0 {
+
 					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
-					componentMatches = append(componentMatches, &ComponentMatch{
-						Value:       term,
-						Argument:    fmt.Sprintf("--image-stream=%q", matchName),
-						Name:        matchName,
-						Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
-						Score:       0.5 + score,
-						ImageStream: stream,
-						ImageTag:    finalTag,
-						Meta:        meta,
-					})
+					if r.AllowMissingTags {
+						addMatch(finalTag, score, nil, false)
+						continue
+					}
+					// Find tags that do exist and return those as partial matches
+					foundOtherTags := false
+					for tag := range stream.Status.Tags {
+						latest := imageapi.LatestTaggedImage(stream, tag)
+						if latest == nil || len(latest.Image) == 0 {
+							continue
+						}
+						foundOtherTags = true
+
+						// If the user specified a tag in their search string (followTag == false),
+						// then score this match lower.
+						tagScore := score
+						if !followTag {
+							tagScore += 0.5
+						}
+						addMatch(tag, tagScore, nil, false)
+					}
+					if !foundOtherTags {
+						addMatch("", 0.5+score, nil, true)
+					}
 					continue
 				}
 
@@ -115,22 +159,10 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 					continue
 				}
 
-				match := &ComponentMatch{
-					Value:       term,
-					Argument:    fmt.Sprintf("--image-stream=%q", matchName),
-					Name:        matchName,
-					Description: fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, finalTag, stream.Namespace),
-					Score:       score,
-					ImageStream: stream,
-					Image:       &imageStreamImage.Image.DockerImageMetadata,
-					ImageTag:    finalTag,
-					Meta:        meta,
-				}
-				glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, score)
+				addMatch(finalTag, score, &imageStreamImage.Image.DockerImageMetadata, false)
 				if score == 0.0 {
 					exact = true
 				}
-				componentMatches = append(componentMatches, match)
 			}
 
 			// If we found one or more exact matches in this namespace, do not continue looking at

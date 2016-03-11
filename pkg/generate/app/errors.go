@@ -22,7 +22,7 @@ func (e ErrNoMatch) Error() string {
 	return fmt.Sprintf("no match for %q", e.Value)
 }
 
-// UsageError is the usage error message returned when no match is found.
+// Suggestion is the usage error message returned when no match is found.
 func (e ErrNoMatch) Suggestion(commandName string) string {
 	return fmt.Sprintf("%[3]s - does a Docker image with that name exist?", e.Value, commandName, e.Error())
 }
@@ -39,7 +39,7 @@ func (e ErrPartialMatch) Error() string {
 	return fmt.Sprintf("only a partial match was found for %q: %q", e.Value, e.Match.Name)
 }
 
-// UsageError is the usage error message returned when only a partial match is
+// Suggestion is the usage error message returned when only a partial match is
 // found.
 func (e ErrPartialMatch) Suggestion(commandName string) string {
 	buf := &bytes.Buffer{}
@@ -48,6 +48,32 @@ func (e ErrPartialMatch) Suggestion(commandName string) string {
 
 	return fmt.Sprintf(`%[3]s
 The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
+
+%[2]s
+`, e.Value, buf.String(), cmdutil.MultipleErrors("error: ", e.Errs))
+}
+
+// ErrNoTagsFound is returned when a matching image stream has no tags associated with it
+type ErrNoTagsFound struct {
+	Value string
+	Match *ComponentMatch
+	Errs  []error
+}
+
+func (e ErrNoTagsFound) Error() string {
+	imageStream := fmt.Sprintf("%s/%s", e.Match.ImageStream.Namespace, e.Match.ImageStream.Name)
+	return fmt.Sprintf("no tags found on matching image stream: %q", imageStream)
+}
+
+// Suggestion is the usage error message returned when no tags are found on matching image stream
+func (e ErrNoTagsFound) Suggestion(commandName string) string {
+
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, "* %s\n", e.Match.Description)
+	fmt.Fprintf(buf, "  Use --allow-missing-imagestreamtags to use this image stream\n\n")
+
+	return fmt.Sprintf(`%[3]s
+The argument %[1]q matched the following OpenShift image stream which has no tags:
 
 %[2]s
 `, e.Value, buf.String(), cmdutil.MultipleErrors("error: ", e.Errs))
