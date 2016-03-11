@@ -33,10 +33,10 @@
 
                 <!-- Show an abbreviated message if only non-builders exist in the project.
                      We show a link to view the non-builder images below. -->
-                <p ng-if="emptyCatalog && loaded && nonBuilderImages.length">No builder images or templates.</p>
+                <p ng-if="emptyCatalog && loaded && nonBuilderImages.length">No source builders or templates.</p>
 
                 <div ng-show="!emptyCatalog">
-                  <h1>Select Image or Template</h1>
+                  <h1>Add Components to Your Project</h1>
 
                   <div class="row">
                     <!-- Right padding to line up cleanly with the left column tiles. -->
@@ -91,7 +91,7 @@
                     <div class="col-sm-6 catalog-legend">
                       <dl aria-hidden="true" class="text-muted">
                         <dt>
-                          <i class="pficon pficon-image fa-fw"></i> Builder Image
+                          <i class="fa fa-code fa-fw"></i> Source Builder
                         </dt>
                         <dd>Builds images from source code in a Git repository.</dd>
                         <dt>
@@ -107,7 +107,7 @@
                   </div>
 
                   <div ng-if="filteredCategoryTags.length === 0 && !emptyCatalog && loaded" style="margin-top: 5px;">
-                    All builder images and templates are hidden by the current filter.
+                    All source builders and templates are hidden by the current filter.
                     <a href="" ng-click="filter.keyword = ''; filter.tag = ''">Clear filter</a>
                   </div>
 
