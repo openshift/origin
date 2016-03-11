@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
@@ -11,10 +11,10 @@ import (
 // NewFixtureClients returns mocks of the OpenShift and Kubernetes clients
 func NewFixtureClients(o testclient.ObjectRetriever) (osclient.Interface, kclient.Interface) {
 	oc := &Fake{}
-	oc.AddReactor("*", "*", testclient.ObjectReaction(o, kapi.RESTMapper))
+	oc.AddReactor("*", "*", testclient.ObjectReaction(o, registered.RESTMapper()))
 
 	kc := &testclient.Fake{}
-	kc.AddReactor("*", "*", testclient.ObjectReaction(o, kapi.RESTMapper))
+	kc.AddReactor("*", "*", testclient.ObjectReaction(o, registered.RESTMapper()))
 
 	return oc, kc
 }
