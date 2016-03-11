@@ -4802,6 +4802,7 @@ func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauthapi.OAuthClient, out
 	} else {
 		out.RedirectURIs = nil
 	}
+	out.GrantStrategy = oauthapiv1.GrantHandlerType(in.GrantStrategy)
 	return nil
 }
 
@@ -5004,6 +5005,7 @@ func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *oauthapiv1.OAuthClient, o
 	} else {
 		out.RedirectURIs = nil
 	}
+	out.GrantStrategy = oauthapi.GrantHandlerType(in.GrantStrategy)
 	return nil
 }
 

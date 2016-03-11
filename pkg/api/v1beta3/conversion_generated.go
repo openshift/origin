@@ -3477,30 +3477,6 @@ func Convert_api_OAuthAuthorizeTokenList_To_v1beta3_OAuthAuthorizeTokenList(in *
 	return autoConvert_api_OAuthAuthorizeTokenList_To_v1beta3_OAuthAuthorizeTokenList(in, out, s)
 }
 
-func autoConvert_api_OAuthClient_To_v1beta3_OAuthClient(in *oauthapi.OAuthClient, out *oauthapiv1beta3.OAuthClient, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauthapi.OAuthClient))(in)
-	}
-	if err := Convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	out.Secret = in.Secret
-	out.RespondWithChallenges = in.RespondWithChallenges
-	if in.RedirectURIs != nil {
-		out.RedirectURIs = make([]string, len(in.RedirectURIs))
-		for i := range in.RedirectURIs {
-			out.RedirectURIs[i] = in.RedirectURIs[i]
-		}
-	} else {
-		out.RedirectURIs = nil
-	}
-	return nil
-}
-
-func Convert_api_OAuthClient_To_v1beta3_OAuthClient(in *oauthapi.OAuthClient, out *oauthapiv1beta3.OAuthClient, s conversion.Scope) error {
-	return autoConvert_api_OAuthClient_To_v1beta3_OAuthClient(in, out, s)
-}
-
 func autoConvert_api_OAuthClientAuthorization_To_v1beta3_OAuthClientAuthorization(in *oauthapi.OAuthClientAuthorization, out *oauthapiv1beta3.OAuthClientAuthorization, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*oauthapi.OAuthClientAuthorization))(in)
@@ -3548,30 +3524,6 @@ func autoConvert_api_OAuthClientAuthorizationList_To_v1beta3_OAuthClientAuthoriz
 
 func Convert_api_OAuthClientAuthorizationList_To_v1beta3_OAuthClientAuthorizationList(in *oauthapi.OAuthClientAuthorizationList, out *oauthapiv1beta3.OAuthClientAuthorizationList, s conversion.Scope) error {
 	return autoConvert_api_OAuthClientAuthorizationList_To_v1beta3_OAuthClientAuthorizationList(in, out, s)
-}
-
-func autoConvert_api_OAuthClientList_To_v1beta3_OAuthClientList(in *oauthapi.OAuthClientList, out *oauthapiv1beta3.OAuthClientList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauthapi.OAuthClientList))(in)
-	}
-	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]oauthapiv1beta3.OAuthClient, len(in.Items))
-		for i := range in.Items {
-			if err := Convert_api_OAuthClient_To_v1beta3_OAuthClient(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func Convert_api_OAuthClientList_To_v1beta3_OAuthClientList(in *oauthapi.OAuthClientList, out *oauthapiv1beta3.OAuthClientList, s conversion.Scope) error {
-	return autoConvert_api_OAuthClientList_To_v1beta3_OAuthClientList(in, out, s)
 }
 
 func autoConvert_v1beta3_OAuthAccessToken_To_api_OAuthAccessToken(in *oauthapiv1beta3.OAuthAccessToken, out *oauthapi.OAuthAccessToken, s conversion.Scope) error {
@@ -3679,30 +3631,6 @@ func Convert_v1beta3_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *
 	return autoConvert_v1beta3_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in, out, s)
 }
 
-func autoConvert_v1beta3_OAuthClient_To_api_OAuthClient(in *oauthapiv1beta3.OAuthClient, out *oauthapi.OAuthClient, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauthapiv1beta3.OAuthClient))(in)
-	}
-	if err := Convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	out.Secret = in.Secret
-	out.RespondWithChallenges = in.RespondWithChallenges
-	if in.RedirectURIs != nil {
-		out.RedirectURIs = make([]string, len(in.RedirectURIs))
-		for i := range in.RedirectURIs {
-			out.RedirectURIs[i] = in.RedirectURIs[i]
-		}
-	} else {
-		out.RedirectURIs = nil
-	}
-	return nil
-}
-
-func Convert_v1beta3_OAuthClient_To_api_OAuthClient(in *oauthapiv1beta3.OAuthClient, out *oauthapi.OAuthClient, s conversion.Scope) error {
-	return autoConvert_v1beta3_OAuthClient_To_api_OAuthClient(in, out, s)
-}
-
 func autoConvert_v1beta3_OAuthClientAuthorization_To_api_OAuthClientAuthorization(in *oauthapiv1beta3.OAuthClientAuthorization, out *oauthapi.OAuthClientAuthorization, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*oauthapiv1beta3.OAuthClientAuthorization))(in)
@@ -3750,30 +3678,6 @@ func autoConvert_v1beta3_OAuthClientAuthorizationList_To_api_OAuthClientAuthoriz
 
 func Convert_v1beta3_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList(in *oauthapiv1beta3.OAuthClientAuthorizationList, out *oauthapi.OAuthClientAuthorizationList, s conversion.Scope) error {
 	return autoConvert_v1beta3_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList(in, out, s)
-}
-
-func autoConvert_v1beta3_OAuthClientList_To_api_OAuthClientList(in *oauthapiv1beta3.OAuthClientList, out *oauthapi.OAuthClientList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauthapiv1beta3.OAuthClientList))(in)
-	}
-	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]oauthapi.OAuthClient, len(in.Items))
-		for i := range in.Items {
-			if err := Convert_v1beta3_OAuthClient_To_api_OAuthClient(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func Convert_v1beta3_OAuthClientList_To_api_OAuthClientList(in *oauthapiv1beta3.OAuthClientList, out *oauthapi.OAuthClientList, s conversion.Scope) error {
-	return autoConvert_v1beta3_OAuthClientList_To_api_OAuthClientList(in, out, s)
 }
 
 func autoConvert_api_Project_To_v1beta3_Project(in *projectapi.Project, out *projectapiv1beta3.Project, s conversion.Scope) error {
@@ -6685,8 +6589,6 @@ func init() {
 		autoConvert_api_OAuthAuthorizeToken_To_v1beta3_OAuthAuthorizeToken,
 		autoConvert_api_OAuthClientAuthorizationList_To_v1beta3_OAuthClientAuthorizationList,
 		autoConvert_api_OAuthClientAuthorization_To_v1beta3_OAuthClientAuthorization,
-		autoConvert_api_OAuthClientList_To_v1beta3_OAuthClientList,
-		autoConvert_api_OAuthClient_To_v1beta3_OAuthClient,
 		autoConvert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector,
 		autoConvert_api_ObjectMeta_To_v1beta3_ObjectMeta,
 		autoConvert_api_ObjectReference_To_v1beta3_ObjectReference,
@@ -6826,8 +6728,6 @@ func init() {
 		autoConvert_v1beta3_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken,
 		autoConvert_v1beta3_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList,
 		autoConvert_v1beta3_OAuthClientAuthorization_To_api_OAuthClientAuthorization,
-		autoConvert_v1beta3_OAuthClientList_To_api_OAuthClientList,
-		autoConvert_v1beta3_OAuthClient_To_api_OAuthClient,
 		autoConvert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector,
 		autoConvert_v1beta3_ObjectMeta_To_api_ObjectMeta,
 		autoConvert_v1beta3_ObjectReference_To_api_ObjectReference,

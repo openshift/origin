@@ -204,7 +204,7 @@ func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_GrantConfig = map[string]string{
 	"":       "GrantConfig holds the necessary configuration options for grant handlers",
-	"method": "Method: allow, deny, prompt",
+	"method": "Method determines the default strategy to use when an OAuth client requests a grant. This method will be used only if the specific OAuth client doesn't provide a strategy of their own. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
 }
 
 func (GrantConfig) SwaggerDoc() map[string]string {

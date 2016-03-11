@@ -841,7 +841,9 @@ type OpenIDClaims struct {
 }
 
 type GrantConfig struct {
-	// Method: allow, deny, prompt
+	// Method determines the default strategy to use when an OAuth client requests a grant.
+	// This method will be used only if the specific OAuth client doesn't provide a strategy
+	// of their own.
 	Method GrantHandlerType
 }
 
