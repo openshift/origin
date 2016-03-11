@@ -17700,6 +17700,10 @@
      "customStrategy": {
       "$ref": "v1.CustomBuildStrategy",
       "description": "CustomStrategy holds the parameters to the Custom build strategy"
+     },
+     "externalStrategy": {
+      "$ref": "v1.ExternalBuildStrategy",
+      "description": "holds parameters to the External build strategy"
      }
     }
    },
@@ -17922,6 +17926,10 @@
       "description": "MountPath is the path at which to mount the secret"
      }
     }
+   },
+   "v1.ExternalBuildStrategy": {
+    "id": "v1.ExternalBuildStrategy",
+    "properties": {}
    },
    "v1.BuildOutput": {
     "id": "v1.BuildOutput",
