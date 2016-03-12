@@ -4,7 +4,7 @@
   namespace
  -->
 <div ng-repeat="volume in volumes">
-  <h5 style="margin-bottom:0;">{{volume.name}}</h5>
+  <h5>{{volume.name}}</h5>
   <dl class="dl-horizontal left">
     <div ng-if="volume.secret">
       <dt>Type:</dt>
@@ -47,4 +47,4 @@
       <dd ng-if-end>{{volume.gitRepo.revision}}</dd>
     </div>
   </dl>
-</div> 
+</div>
