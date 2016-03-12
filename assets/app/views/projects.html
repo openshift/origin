@@ -20,7 +20,7 @@
                   <div flex class="project-summary">
                     <h2 class="project truncate">
                       <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | uniqueDisplayName : projects)}}</a>
-                      <span ng-if="project.status.phase != 'Active'" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: top; margin-left: 5px;"></span>
+                      <span ng-if="project.status.phase != 'Active'" data-toggle="tooltip" title="This project has been marked for deletion." class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: top; margin-left: 5px;"></span>
                     </h2>
                     <div class="muted" style="margin-top: -5px;" ng-if="project | description">
                       <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
@@ -29,7 +29,7 @@
                   <div row flex main-axis="end" class="project-delete" ng-if="project.status.phase == 'Active'">
                     <delete-link
                       class="fa-lg"
-                      resource-type="project"
+                      kind="Project"
                       resource-name="{{project.metadata.name}}"
                       project-name="{{project.metadata.name}}"
                       display-name="{{(project | displayName)}}"

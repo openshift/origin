@@ -2,6 +2,8 @@ package gotest
 
 import (
 	"bufio"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
@@ -10,11 +12,12 @@ import (
 )
 
 // NewParser returns a new parser that's capable of parsing Go unit test output
-func NewParser(builder builder.TestSuitesBuilder) parser.TestOutputParser {
+func NewParser(builder builder.TestSuitesBuilder, stream bool) parser.TestOutputParser {
 	return &testOutputParser{
 		builder:     builder,
 		testParser:  newTestDataParser(),
 		suiteParser: newTestSuiteDataParser(),
+		stream:      stream,
 	}
 }
 
@@ -22,6 +25,7 @@ type testOutputParser struct {
 	builder     builder.TestSuitesBuilder
 	testParser  testDataParser
 	suiteParser testSuiteDataParser
+	stream      bool
 }
 
 // Parse parses `go test -v` output into test suites. Test output from `go test -v` is not bookmarked for packages, so
@@ -89,6 +93,10 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 		}
 
 		if p.suiteParser.MarksCompletion(line) {
+			if p.stream {
+				fmt.Fprintln(os.Stdout, line)
+			}
+
 			p.builder.AddSuite(currentSuite)
 
 			currentSuite = &api.TestSuite{}

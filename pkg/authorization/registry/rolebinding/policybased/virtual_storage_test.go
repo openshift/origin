@@ -18,6 +18,7 @@ import (
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
@@ -67,14 +68,16 @@ func makeTestStorage() rolebindingregistry.Storage {
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
 	policyRegistry := test.NewPolicyRegistry([]authorizationapi.Policy{}, nil)
 
-	return NewVirtualStorage(policyRegistry, bindingRegistry, clusterPolicyRegistry, clusterBindingRegistry)
+	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, bindingRegistry, clusterPolicyRegistry, clusterBindingRegistry))
 }
 
 func makeClusterTestStorage() rolebindingregistry.Storage {
 	clusterBindingRegistry := test.NewClusterPolicyBindingRegistry(testNewClusterBindings(), nil)
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
+	bindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry)
+	policyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
 
-	return NewVirtualStorage(clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry), clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry), clusterPolicyRegistry, clusterBindingRegistry)
+	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, bindingRegistry, clusterPolicyRegistry, clusterBindingRegistry))
 }
 
 func TestCreateValidationError(t *testing.T) {
@@ -237,8 +240,7 @@ func TestDeleteError(t *testing.T) {
 	bindingRegistry := &test.PolicyBindingRegistry{}
 	bindingRegistry.Err = errors.New("Sample Error")
 
-	storage := NewVirtualStorage(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{})
-
+	storage := NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}))
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, err := storage.Delete(ctx, "foo", nil)
 	if err != bindingRegistry.Err {

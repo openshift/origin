@@ -170,6 +170,7 @@ items:
     - imagestreamimports
     - imagestreammappings
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     - localresourceaccessreviews
     - localsubjectaccessreviews
@@ -295,6 +296,7 @@ items:
     - imagestreamimports
     - imagestreammappings
     - imagestreams
+    - imagestreams/secrets
     - imagestreamtags
     - persistentvolumeclaims
     - pods
@@ -727,6 +729,12 @@ items:
     - imagestreammappings
     verbs:
     - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -979,6 +987,135 @@ items:
     verbs:
     - create
     - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: registry-admin
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreamimports
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    - resourceaccessreviews
+    - rolebindings
+    - roles
+    - subjectaccessreviews
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - policies
+    - policybindings
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    - projects
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: registry-viewer
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreamimports
+    - imagestreammappings
+    - imagestreams
+    - imagestreamtags
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    - namespaces
+    - projects
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: registry-editor
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    - projects
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreamimports
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

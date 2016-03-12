@@ -188,7 +188,28 @@
                     "name": "MONGODB_ADMIN_PASSWORD",
                     "value": "${DATABASE_ADMIN_PASSWORD}"
                   }
-                ]
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/pagecount",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 30,
+                    "httpGet": {
+                        "path": "/pagecount",
+                        "port": 8080
+                    }
+                },
+                "resources": {
+                    "limits": {
+                        "memory": "${MEMORY_LIMIT}"
+                    }
+                }
               }
             ]
           }
@@ -287,7 +308,26 @@
                     "name": "MONGODB_ADMIN_PASSWORD",
                     "value": "${DATABASE_ADMIN_PASSWORD}"
                   }
-                ]
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 3,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p ${DATABASE_ADMIN_PASSWORD} -n 1 --noheaders"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 27017
+                  }
+                },
+                "resources": {
+                    "limits": {
+                        "memory": "${MEMORY_MONGODB_LIMIT}"
+                    }
+                }
               }
             ]
           }
@@ -297,59 +337,82 @@
   ],
   "parameters": [
     {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the Node.js container can use",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_MONGODB_LIMIT",
+      "displayName": "Memory limit",
+      "description": "Maximum amount of memory the MongoDB container can use",
+      "value": "512Mi"
+    },
+    {
       "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Source repository URL",
       "description": "The URL of the repository with your application source code",
       "value": "https://github.com/openshift/nodejs-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Source repository reference",
       "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
     },
     {
       "name": "CONTEXT_DIR",
+      "displayName": "Context directory",
       "description": "Set this to the relative path to your project if it is not in the root of your repository"
     },
     {
       "name": "APPLICATION_DOMAIN",
+      "displayName": "Application hostname",
       "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub webhook secret",
       "description": "A secret string used to configure the GitHub webhook",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "GENERIC_WEBHOOK_SECRET",
+      "displayName": "Generic webhook secret",
       "description": "A secret string used to configure the Generic webhook",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database service name",
       "description": "Database service name",
       "value": "mongodb"
     },
     {
       "name": "DATABASE_USER",
+      "displayName": "MongoDB user name",
       "description": "Username for MongoDB user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
       "name": "DATABASE_PASSWORD",
+      "displayName": "MongoDB password",
       "description": "Password for the MongoDB user",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"
     },
     {
       "name": "DATABASE_NAME",
+      "displayName": "Database name",
       "description": "Database name",
       "value": "sampledb"
     },
     {
       "name": "DATABASE_ADMIN_PASSWORD",
+      "displayName": "Database administrator password",
       "description": "Password for the database admin user",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"

@@ -2600,6 +2600,28 @@ const (
 	ResourceSecrets ResourceName = "secrets"
 	// ResourcePersistentVolumeClaims, number
 	ResourcePersistentVolumeClaims ResourceName = "persistentvolumeclaims"
+	// CPU request, in cores. (500m = .5 cores)
+	ResourceCPURequest ResourceName = "cpu.request"
+	// CPU limit, in cores. (500m = .5 cores)
+	ResourceCPULimit ResourceName = "cpu.limit"
+	// Memory request, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemoryRequest ResourceName = "memory.request"
+	// Memory limit, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemoryLimit ResourceName = "memory.limit"
+)
+
+// A ResourceQuotaScope defines a filter that must match each object tracked by a quota
+type ResourceQuotaScope string
+
+const (
+	// Match all pod objects where spec.activeDeadlineSeconds
+	ResourceQuotaScopeTerminating ResourceQuotaScope = "Terminating"
+	// Match all pod objects where !spec.activeDeadlineSeconds
+	ResourceQuotaScopeNotTerminating ResourceQuotaScope = "NotTerminating"
+	// Match all pod objects that have best effort quality of service
+	ResourceQuotaScopeBestEffort ResourceQuotaScope = "BestEffort"
+	// Match all pod objects that do not have best effort quality of service
+	ResourceQuotaScopeNotBestEffort ResourceQuotaScope = "NotBestEffort"
 )
 
 // ResourceQuotaSpec defines the desired hard limits to enforce for Quota.
@@ -2607,6 +2629,9 @@ type ResourceQuotaSpec struct {
 	// Hard is the set of desired hard limits for each named resource.
 	// More info: http://releases.k8s.io/HEAD/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota
 	Hard ResourceList `json:"hard,omitempty"`
+	// A collection of filters that must match each object tracked by a quota.
+	// If not specified, the quota matches all objects.
+	Scopes []ResourceQuotaScope `json:"scopes,omitempty"`
 }
 
 // ResourceQuotaStatus defines the enforced hard limits and observed use.
@@ -2925,8 +2950,6 @@ type SecurityContextConstraints struct {
 	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
-	// AllowEmptyDirVolumePlugin determines if the policy allow containers to use the EmptyDir volume plugin
-	AllowEmptyDirVolumePlugin *bool `json:"allowEmptyDirVolumePlugin" description:"allow the use of the empty dir volume plugin; defaults to true"`
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
 	// AllowHostPorts determines if the policy allows host ports in the containers.

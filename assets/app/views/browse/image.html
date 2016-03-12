@@ -24,13 +24,13 @@
                   <li>
                     <edit-link
                       resource="imageStream"
-                      kind="imagestreams"
+                      kind="ImageStream"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="imagestream"
+                      kind="ImageStream"
                       resource-name="{{imageStream.metadata.name}}"
                       project-name="{{imageStream.metadata.namespace}}"
                       alerts="alerts">

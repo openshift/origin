@@ -6,6 +6,9 @@
   border-left: 3px solid #ccc;
   border-left-style: dotted;
   margin-bottom: 30px;
+  &:last-child {
+    margin-bottom: 10px; // reduce margin since the .container-fluid parent already has bottom margin
+  }
   .connector {
     display: none;
   }
@@ -55,6 +58,7 @@
       color: @gray-light;
       font-size: @component-label;
       line-height: @line-height-base;
+      overflow: hidden;
       text-transform: uppercase;
       + span {
         margin-left: 5px;
@@ -232,22 +236,24 @@
   }
 }
 
+.clickable {
+  cursor: pointer;
+}
+
+.pod-status-chart {
+  // Give an empty pod donut chart a light gray outline.
+  path.c3-arc-Empty {
+    stroke: #d1d1d1;
+    // Override the style set in JavaScript since you can't click or hover
+    // on the empty chart.
+    cursor: inherit !important;
+  }
+}
+
 .pod-block {
   .overview-pods {
     margin-right: 10px;
     min-width: 190px;
-    .clickable {
-      cursor: pointer;
-    }
-    .pod-status-chart {
-      // Give an empty pod donut chart a light gray outline.
-      path.c3-arc-Empty {
-        stroke: #d1d1d1;
-        // Override the style set in JavaScript since you can't click or hover
-        // on the empty chart.
-        cursor: inherit !important;
-      }
-    }
     .scaling-controls {
       font-size: 24px;
       a {

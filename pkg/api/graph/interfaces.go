@@ -51,6 +51,30 @@ func (m Markers) BySeverity(severity Severity) []Marker {
 	return ret
 }
 
+// FilterByNamespace returns all the markers that are not associated with missing nodes
+// from other namespaces (other than the provided namespace).
+func (m Markers) FilterByNamespace(namespace string) Markers {
+	filtered := Markers{}
+
+	for i := range m {
+		markerNodes := []graph.Node{}
+		markerNodes = append(markerNodes, m[i].Node)
+		markerNodes = append(markerNodes, m[i].RelatedNodes...)
+		hasCrossNamespaceLink := false
+		for _, node := range markerNodes {
+			if IsFromDifferentNamespace(namespace, node) {
+				hasCrossNamespaceLink = true
+				break
+			}
+		}
+		if !hasCrossNamespaceLink {
+			filtered = append(filtered, m[i])
+		}
+	}
+
+	return filtered
+}
+
 type BySeverity []Marker
 
 func (m BySeverity) Len() int      { return len(m) }

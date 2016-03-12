@@ -143,7 +143,11 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	if b.incremental = b.artifacts.Exists(config); b.incremental {
-		glog.V(1).Infof("Existing image for tag %s detected for incremental build", config.Tag)
+		tag := config.IncrementalFromTag
+		if len(tag) == 0 {
+			tag = config.Tag
+		}
+		glog.V(1).Infof("Existing image for tag %s detected for incremental build", tag)
 	} else {
 		glog.V(1).Infof("Clean build will be performed")
 	}
@@ -152,9 +156,7 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	if b.incremental {
 		if err := b.artifacts.Save(config); err != nil {
 			glog.Warningf("Clean build will be performed because of error saving previous build artifacts")
-			if glog.V(2) {
-				glog.Infof("ERROR: %v", err)
-			}
+			glog.V(2).Infof("ERROR: %v", err)
 		}
 	}
 
@@ -344,9 +346,14 @@ func (b *STI) Exists(config *api.Config) bool {
 		policy = api.DefaultPreviousImagePullPolicy
 	}
 
-	result, err := dockerpkg.PullImage(config.Tag, b.incrementalDocker, policy, false)
+	tag := config.IncrementalFromTag
+	if len(tag) == 0 {
+		tag = config.Tag
+	}
+
+	result, err := dockerpkg.PullImage(tag, b.incrementalDocker, policy, false)
 	if err != nil {
-		glog.V(2).Infof("Unable to pull previously build %q image: %v", config.Tag, err)
+		glog.V(2).Infof("Unable to pull previously built image %q: %v", tag, err)
 		return false
 	}
 
@@ -361,14 +368,18 @@ func (b *STI) Save(config *api.Config) (err error) {
 		return err
 	}
 
-	image := config.Tag
+	image := config.IncrementalFromTag
+	if len(image) == 0 {
+		image = config.Tag
+	}
 	outReader, outWriter := io.Pipe()
+	defer outReader.Close()
+	defer outWriter.Close()
 	errReader, errWriter := io.Pipe()
 	defer errReader.Close()
 	defer errWriter.Close()
 	glog.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
 	extractFunc := func(string) error {
-		defer outReader.Close()
 		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
 
@@ -396,6 +407,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 		OnStart:         extractFunc,
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
+		CapDrop:         config.DropCapabilities,
 	}
 
 	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
@@ -447,6 +459,7 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 		PostExec:        b.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
+		CapDrop:         config.DropCapabilities,
 	}
 
 	// If there are injections specified, override the original assemble script

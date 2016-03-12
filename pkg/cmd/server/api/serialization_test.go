@@ -80,6 +80,15 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
+		func(obj *configapi.LegacyClientPolicyConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			if len(obj.LegacyClientPolicy) == 0 {
+				obj.LegacyClientPolicy = configapi.AllowAll
+			}
+			if len(obj.RestrictedHTTPVerbs) == 0 {
+				obj.RestrictedHTTPVerbs = []string{"PUT", "POST"}
+			}
+		},
 		func(obj *configapi.NodeConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
 			// Defaults/migrations for NetworkConfig
@@ -171,6 +180,13 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				// If multiple identity providers collide, the second one in will fail to auth
 				// The admin can set this to "add" if they want to allow new identities to join existing users
 				obj.MappingMethod = "claim"
+			}
+		},
+		func(s *configapi.StringSource, c fuzz.Continue) {
+			if c.RandBool() {
+				c.Fuzz(&s.Value)
+			} else {
+				c.Fuzz(&s.StringSourceSpec)
 			}
 		},
 	)

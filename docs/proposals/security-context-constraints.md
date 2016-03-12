@@ -90,8 +90,6 @@ type SecurityContextConstraints struct {
 	AllowedCapabilities []CapabilityType `json:"allowedCapabilities,omitempty" description:"capabilities that are allowed to be added"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin,omitempty" description:"allow the use of the host dir volume plugin"`
-	// AllowEmptyDirVolumePlugin determines if the policy allow containers to use the EmptyDir volume plugin
-	AllowEmptyDirVolumePlugin bool `json:"allowEmptyDirVolumePlugin,omitempty" description:"allow the use of the empty dir volume plugin"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.

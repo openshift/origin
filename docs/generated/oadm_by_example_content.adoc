@@ -23,6 +23,40 @@ Output the inputs and dependencies of your builds
 ====
 
 
+== oadm ca decrypt
+Decrypt data encrypted with "oadm ca encrypt"
+
+====
+
+[options="nowrap"]
+----
+	# Decrypt an encrypted file to a cleartext file:
+	$ oadm ca decrypt --key=secret.key --in=secret.encrypted --out=secret.decrypted
+	
+	# Decrypt from stdin to stdout:
+	$ oadm ca decrypt --key=secret.key < secret2.encrypted > secret2.decrypted
+
+----
+====
+
+
+== oadm ca encrypt
+Encrypt data with AES-256-CBC encryption
+
+====
+
+[options="nowrap"]
+----
+	# Encrypt the content of secret.txt with a generated key:
+	$ oadm ca encrypt --genkey=secret.key --in=secret.txt --out=secret.encrypted
+	
+	# Encrypt the content of secret2.txt with an existing key:
+	$ oadm ca encrypt --key=secret.key < secret2.txt > secret2.encrypted
+
+----
+====
+
+
 == oadm config
 Change configuration files for the client
 

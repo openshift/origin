@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 var (
@@ -117,4 +118,16 @@ func rsyncSpecificFlags(o *RsyncOptions) []string {
 		flags = append(flags, "--no-perms")
 	}
 	return flags
+}
+
+type podAPIChecker struct {
+	client    *kclient.Client
+	namespace string
+	podName   string
+}
+
+// CheckPods will check if pods exists in the provided context
+func (p podAPIChecker) CheckPod() error {
+	_, err := p.client.Pods(p.namespace).Get(p.podName)
+	return err
 }

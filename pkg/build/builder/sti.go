@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -91,6 +92,10 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *S2IBuilder) Build() error {
+	if s.build.Spec.Strategy.SourceStrategy == nil {
+		return fmt.Errorf("the source to image builder must be used with the source strategy")
+	}
+
 	var push bool
 
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
@@ -163,8 +168,9 @@ func (s *S2IBuilder) Build() error {
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
-		BuilderImage: s.build.Spec.Strategy.SourceStrategy.From.Name,
-		Incremental:  s.build.Spec.Strategy.SourceStrategy.Incremental,
+		BuilderImage:       s.build.Spec.Strategy.SourceStrategy.From.Name,
+		Incremental:        s.build.Spec.Strategy.SourceStrategy.Incremental,
+		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
@@ -185,13 +191,18 @@ func (s *S2IBuilder) Build() error {
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
-	allowedUIDs := os.Getenv("ALLOWED_UIDS")
-	glog.V(2).Infof("The value of ALLOWED_UIDS is [%s]", allowedUIDs)
+	allowedUIDs := os.Getenv(api.AllowedUIDs)
+	glog.V(2).Infof("The value of %s is [%s]", api.AllowedUIDs, allowedUIDs)
 	if len(allowedUIDs) > 0 {
 		err := config.AllowedUIDs.Set(allowedUIDs)
 		if err != nil {
 			return err
 		}
+	}
+	dropCaps := os.Getenv(api.DropCapabilities)
+	glog.V(2).Infof("The value of %s is [%s]", api.DropCapabilities, dropCaps)
+	if len(dropCaps) > 0 {
+		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {

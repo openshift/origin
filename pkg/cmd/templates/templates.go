@@ -30,14 +30,15 @@ const (
 		`{{$rootCmd := rootCmd .}}` +
 		`{{$visibleFlags := visibleFlags (flagsNotIntersected .LocalFlags .PersistentFlags)}}` +
 		`{{$explicitlyExposedFlags := exposed .}}` +
-		`{{$optionsCmdFor := optionsCmdFor .}}`
+		`{{$optionsCmdFor := optionsCmdFor .}}` +
+		`{{$usageLine := usageLine .}}`
 
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
 	mainUsageTemplate = vars + `{{if and .Runnable (ne .UseLine "") (ne .UseLine $rootCmd)}}
 Usage:
-  {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{if .HasExample}}
+  {{$usageLine}}{{if .HasExample}}
 
 Examples:
 {{ .Example | trimRight}}

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -91,7 +93,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", "pods", true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 
@@ -152,7 +154,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", "pods", true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 

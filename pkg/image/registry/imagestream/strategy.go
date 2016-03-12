@@ -411,6 +411,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 		subjectAccessReview := authorizationapi.SubjectAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
 				Verb:         "get",
+				Group:        api.GroupName,
 				Resource:     "imagestreams",
 				ResourceName: streamName,
 			},

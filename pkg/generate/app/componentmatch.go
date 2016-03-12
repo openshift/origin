@@ -17,6 +17,7 @@ type ComponentMatch struct {
 	Score       float32
 	Insecure    bool
 	LocalOnly   bool
+	NoTagsFound bool
 
 	// The source of the match. Generally only a single source is
 	// available.

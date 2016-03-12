@@ -51,9 +51,9 @@ func TestNodeAuth(t *testing.T) {
 	// Client configs for lesser users
 	masterKubeletClientConfig := configapi.GetKubeletClientConfig(*masterConfig)
 
-	anonymousConfig := clientcmd.AnonymousClientConfig(*adminConfig)
+	anonymousConfig := clientcmd.AnonymousClientConfig(adminConfig)
 
-	badTokenConfig := clientcmd.AnonymousClientConfig(*adminConfig)
+	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
 	bobClient, _, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
@@ -82,10 +82,10 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	// Wait for policy cache
-	if err := testutil.WaitForClusterPolicyUpdate(bobClient, "get", "nodes/metrics", true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(bobClient, "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", "nodes/metrics", true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

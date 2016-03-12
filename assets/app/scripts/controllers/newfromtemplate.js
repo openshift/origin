@@ -25,6 +25,19 @@ angular.module('openshiftConsole')
     $scope.projectName = $routeParams.project;
     $scope.projectPromise = $.Deferred();
 
+    $scope.breadcrumbs = [
+      {
+        title: $scope.projectName,
+        link: "project/" + $scope.projectName
+      },
+      {
+        title: "Add to Project",
+        link: "project/" + $scope.projectName + "/create"
+      },
+      {
+        title: name
+      }
+    ];
 
     var displayNameFilter = $filter('displayName');
     var humanize = $filter('humanize');
@@ -37,7 +50,8 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
-
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
         function deploymentConfigImages(dc) {
           var images = [];
           var containers = dcContainers(dc);

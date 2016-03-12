@@ -96,6 +96,8 @@
   text-align: right;
   a {
     margin-left: 20px;
+    margin-right: 10px;
+    white-space: nowrap;
   }
   i {
     font-size: @font-size-xsmall;
@@ -108,6 +110,9 @@
     background-color: lighten(@log-bg-color, 8%);
     color: #ededed;
   }
+}
+.log-line-number:before {
+  content: attr(data-line-number);
 }
 .log-line-number {
   .unselectable();
@@ -123,6 +128,13 @@
   white-space: pre-wrap;
   width: 100%;
   .word-break();
+  // Invert colors on selection in Firefox. Change the background style for
+  // Firefox only since it's illegible with its defaults and our log colors.
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/::selection
+  &::-moz-selection {
+    color: @log-bg-color;
+    background: lighten(#d1d1d1, 8%);
+  }
 }
 
 .table-log-pods {

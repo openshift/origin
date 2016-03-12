@@ -312,6 +312,8 @@ func (o MasterOptions) CreateCerts() error {
 		SignerName:         signerName,
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
+		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
+		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
 		Output:             o.Output,
 	}
@@ -564,6 +566,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		// called by admission control
 		kc.RunResourceQuotaManager()
+		oc.RunResourceQuotaManager(kc.ControllerManager)
 
 		// no special order
 		kc.RunNodeController()
@@ -581,6 +584,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 
 		glog.Infof("Started Kubernetes Controllers")
+	} else {
+		oc.RunResourceQuotaManager(nil)
 	}
 
 	// no special order

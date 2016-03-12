@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"text/template"
@@ -74,11 +75,20 @@ type routerInterface interface {
 	Commit()
 }
 
+func env(name, defaultValue string) string {
+	if envValue := os.Getenv(name); envValue != "" {
+		return envValue
+	}
+
+	return defaultValue
+}
+
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	globalFuncs := template.FuncMap{
 		"endpointsForAlias": endpointsForAlias,
+		"env":               env,
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
@@ -100,15 +110,16 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	}
 
 	templateRouterCfg := templateRouterCfg{
-		dir:                cfg.WorkingDir,
-		templates:          templates,
-		reloadScriptPath:   cfg.ReloadScriptPath,
-		reloadInterval:     cfg.ReloadInterval,
-		defaultCertificate: cfg.DefaultCertificate,
-		statsUser:          cfg.StatsUsername,
-		statsPassword:      cfg.StatsPassword,
-		statsPort:          cfg.StatsPort,
-		peerEndpointsKey:   peerKey,
+		dir:                    cfg.WorkingDir,
+		templates:              templates,
+		reloadScriptPath:       cfg.ReloadScriptPath,
+		reloadInterval:         cfg.ReloadInterval,
+		defaultCertificate:     cfg.DefaultCertificate,
+		defaultCertificatePath: cfg.DefaultCertificatePath,
+		statsUser:              cfg.StatsUsername,
+		statsPassword:          cfg.StatsPassword,
+		statsPort:              cfg.StatsPort,
+		peerEndpointsKey:       peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err

@@ -234,7 +234,8 @@ func (r *templateRouter) commitAndReload() error {
 
 	glog.V(4).Infof("Reloading the router")
 	if err := r.reloadRouter(); err != nil {
-		return err
+		// TODO: This needs to be propagated up
+		glog.Fatalf("%s", err)
 	}
 
 	return nil

@@ -12,12 +12,11 @@
             <div ng-if="build">
               <h1>
                 {{build.metadata.name}}
-                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
                 <span class="pficon pficon-warning-triangle-o"
                       ng-if="paused"
                       aria-hidden="true"
                       data-toggle="tooltip"
-                      data-placement="bottom"
                       data-original-title="Building from build configuration {{buildConfig.metadata.name}} has been paused.">
                 </span>
                 <small class="meta">created <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></small>
@@ -58,13 +57,13 @@
                     <li>
                       <edit-link
                         resource="build"
-                        kind="builds"
+                        kind="Build"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li>
                       <delete-link
-                        resource-type="build"
+                        kind="Build"
                         resource-name="{{build.metadata.name}}"
                         project-name="{{build.metadata.namespace}}"
                         alerts="alerts">
@@ -105,10 +104,23 @@
                         name="build.metadata.name"
                         context="projectContext"
                         options="logOptions"
-                        status="build.status.phase"
-                        time-start="build.status.startTimestamp | date : 'short'"
-                        time-end="build.status.completionTimestamp | date : 'short'"
                         run="logCanRun">
+
+                        <div row cross-axis="center">
+                          <div>
+                            Build status:
+                            <status-icon status="build.status.phase"></status-icon>
+                            <span class="space-after">{{build.status.phase}}</span>
+
+                            <span ng-if="build.status.startTimestamp">
+                              &mdash; Log from {{build.status.startTimestamp  | date : 'short'}}
+                              <span ng-if="build.status.completionTimestamp">
+                                to {{build.status.completionTimestamp  | date : 'short'}}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
                       </log-viewer>
                     </uib-tab>
                     <uib-tab active="selectedTab.events">

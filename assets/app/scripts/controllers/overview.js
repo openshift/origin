@@ -133,11 +133,14 @@ angular.module('openshiftConsole')
           // Must be called after deploymentConfigsByService() and podRelationships()
           updateShowGetStarted();
 
-          angular.forEach(services, function(service, serviceName) {
+          angular.forEach($scope.unfilteredServices, function(service, serviceName) {
             $scope.routeWarningsByService[serviceName] = {};
 
             angular.forEach($scope.routesByService[serviceName], function(route, routeName) {
-              $scope.routeWarningsByService[serviceName][routeName] = RoutesService.getRouteWarnings(route, service);
+              var warnings = RoutesService.getRouteWarnings(route, service);
+              if (warnings.length) {
+                $scope.routeWarningsByService[serviceName][routeName] = RoutesService.getRouteWarnings(route, service);
+              }
             });
           });
 
@@ -164,7 +167,12 @@ angular.module('openshiftConsole')
               // if the service doesn't exist or hasn't yet loaded, the route won't show up anyway
               // checking for existence will prevent flickering of the missing service warning
               $scope.routeWarningsByService[serviceName] = $scope.routeWarningsByService[serviceName] || {};
-              $scope.routeWarningsByService[serviceName][routeName] = RoutesService.getRouteWarnings(route, $scope.unfilteredServices[serviceName]);
+              var warnings = RoutesService.getRouteWarnings(route, $scope.unfilteredServices[serviceName]);
+              if (warnings.length) {
+                $scope.routeWarningsByService[serviceName][routeName] = warnings;
+              } else {
+                delete $scope.routeWarningsByService[serviceName][routeName];
+              }
             }
 
             if (!displayRouteMap[serviceName]) {

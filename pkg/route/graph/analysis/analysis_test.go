@@ -8,7 +8,7 @@ import (
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 )
 
-func TestMissingPortMapping(t *testing.T) {
+func TestPortMappingIssues(t *testing.T) {
 	// Multiple service ports - no route port specified
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/missing-route-port.yaml")
 	if err != nil {
@@ -16,7 +16,7 @@ func TestMissingPortMapping(t *testing.T) {
 	}
 	routeedges.AddAllRouteEdges(g)
 
-	markers := FindMissingPortMapping(g, osgraph.DefaultNamer)
+	markers := FindPortMappingIssues(g, osgraph.DefaultNamer)
 	if expected, got := 1, len(markers); expected != got {
 		t.Fatalf("expected %d markers, got %d", expected, got)
 	}
@@ -31,11 +31,41 @@ func TestMissingPortMapping(t *testing.T) {
 	}
 	routeedges.AddAllRouteEdges(g)
 
-	markers = FindMissingPortMapping(g, osgraph.DefaultNamer)
+	markers = FindPortMappingIssues(g, osgraph.DefaultNamer)
 	if expected, got := 1, len(markers); expected != got {
 		t.Fatalf("expected %d markers, got %d", expected, got)
 	}
 	if expected, got := MissingServiceWarning, markers[0].Key; expected != got {
+		t.Fatalf("expected %s marker key, got %s", expected, got)
+	}
+
+	// Wrong named route port
+	g, _, err = osgraphtest.BuildGraph("../../../api/graph/test/wrong-numeric-port.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	routeedges.AddAllRouteEdges(g)
+
+	markers = FindPortMappingIssues(g, osgraph.DefaultNamer)
+	if expected, got := 1, len(markers); expected != got {
+		t.Fatalf("expected %d markers, got %d", expected, got)
+	}
+	if expected, got := WrongRoutePortWarning, markers[0].Key; expected != got {
+		t.Fatalf("expected %s marker key, got %s", expected, got)
+	}
+
+	// Wrong numeric route port
+	g, _, err = osgraphtest.BuildGraph("../../../api/graph/test/wrong-named-port.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	routeedges.AddAllRouteEdges(g)
+
+	markers = FindPortMappingIssues(g, osgraph.DefaultNamer)
+	if expected, got := 1, len(markers); expected != got {
+		t.Fatalf("expected %d markers, got %d", expected, got)
+	}
+	if expected, got := WrongRoutePortWarning, markers[0].Key; expected != got {
 		t.Fatalf("expected %s marker key, got %s", expected, got)
 	}
 }

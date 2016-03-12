@@ -212,3 +212,48 @@ func TestHandle_raceWithTheImageController(t *testing.T) {
 		t.Fatalf("expected config change cause to be set to image change trigger, got %s", updated.Status.Details.Causes[0].Type)
 	}
 }
+
+func TestHandle_nonAutomaticImageUpdates(t *testing.T) {
+	var updated *deployapi.DeploymentConfig
+
+	controller := &DeploymentConfigChangeController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generated := deployapitest.OkDeploymentConfig(1)
+				// The generator doesn't change automatic so it's ok to fake it here.
+				generated.Spec.Triggers[0].ImageChangeParams.Automatic = false
+				generated.Status.Details = deployapitest.OkImageChangeDetails()
+				updated = generated
+				return generated, nil
+			},
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				updated.Status.Details = deployapitest.OkConfigChangeDetails()
+				return updated, nil
+			},
+		},
+	}
+
+	config := deployapitest.OkDeploymentConfig(0)
+	ict := deployapitest.OkImageChangeTrigger()
+	ict.ImageChangeParams.Automatic = false
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger(), ict}
+
+	if err := controller.Handle(config); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if e, a := 1, updated.Status.LatestVersion; e != a {
+		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
+	}
+
+	if updated.Status.Details == nil {
+		t.Fatalf("expected config change details to be set")
+	} else if updated.Status.Details.Causes == nil {
+		t.Fatalf("expected config change causes to be set")
+	} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
+		t.Fatalf("expected config change cause to be set to config change trigger, got %s", updated.Status.Details.Causes[0].Type)
+	}
+}

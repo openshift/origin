@@ -714,7 +714,7 @@ angular.module('openshiftConsole')
             name: $scope.updatedBuildConfig.metadata.name,
             data: {
               type: "success",
-              message: "Build Config " + $scope.updatedBuildConfig.metadata.name + " was sucessfully updated."
+              message: "Build Config " + $scope.updatedBuildConfig.metadata.name + " was successfully updated."
             }
           });
           $location.path(Navigate.resourceURL($scope.updatedBuildConfig, "BuildConfig", $scope.updatedBuildConfig.metadata.namespace));

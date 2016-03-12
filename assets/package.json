@@ -22,7 +22,7 @@
     "grunt-contrib-imagemin": "0.8.1",
     "grunt-contrib-jshint": "0.10.0",
     "grunt-contrib-less": "1.0.0",
-    "grunt-contrib-uglify": "0.4.1",
+    "grunt-contrib-uglify": "0.6.0",
     "grunt-contrib-watch": "0.6.1",
     "grunt-filerev": "0.2.1",
     "grunt-google-cdn": "0.4.3",
@@ -51,8 +51,7 @@
     "pretty-bytes": "1.0.4",
     "protractor": "1.7.0",
     "protractor-screenshot-reporter": "0.0.5",
-    "time-grunt": "0.3.2",
-    "uglify-js": "2.4.17"
+    "time-grunt": "0.3.2"
   },
   "engines": {
     "node": ">=0.10.0"

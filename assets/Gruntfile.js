@@ -63,7 +63,7 @@ module.exports = function (grunt) {
             key: grunt.file.read('server.key'),
             cert: grunt.file.read('server.crt')
           }
-        }        
+        }
       },
       extensions: {
         files: ['extensions/extensions.js', 'extensions/extensions.css'],
@@ -106,7 +106,7 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect().use(
                 '/java',
@@ -125,7 +125,7 @@ module.exports = function (grunt) {
         options: {
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect.static('test'),
               connect().use(
@@ -212,8 +212,7 @@ module.exports = function (grunt) {
           'bower_components/messenger/build/css/messenger-theme-block.css',
           'bower_components/messenger/build/css/messenger-theme-air.css',
           'bower_components/messenger/build/css/messenger-theme-ice.css',
-          'bower_components/messenger/build/js/messenger-theme-future.js',
-          'bower_components/fontawesome/css/font-awesome.css'
+          'bower_components/messenger/build/js/messenger-theme-future.js'
         ]
       }
     },
@@ -224,7 +223,11 @@ module.exports = function (grunt) {
           '.tmp/styles/main.css': '<%= yeoman.app %>/styles/main.less'
         },
         options: {
-          paths: ['<%= yeoman.app %>/styles']
+          paths: ['<%= yeoman.app %>/styles'],
+          sourceMap: true,
+          sourceMapFilename: '.tmp/styles/main.css.map',
+          sourceMapURL: 'main.css.map',
+          outputSourceFiles: true
         }
       },
       production: {
@@ -429,7 +432,7 @@ module.exports = function (grunt) {
             '*.{ico,png,txt}',
             '.htaccess',
             '*.html',
-            'images/{,*/}*.{png,jpg,jpeg,gif}',
+            'images/{,*/}*.{ico,png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',
             'styles/fonts/*'
@@ -446,7 +449,7 @@ module.exports = function (grunt) {
           dest: '<%= yeoman.dist %>/styles'
         }, {
           expand: true,
-          cwd: 'bower_components/patternfly/components/font-awesome',
+          cwd: 'bower_components/font-awesome',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
         },
@@ -473,7 +476,7 @@ module.exports = function (grunt) {
           dest: '.tmp/styles'
         }, {
           expand: true,
-          cwd: 'bower_components/patternfly/components/font-awesome',
+          cwd: 'bower_components/font-awesome',
           src: 'fonts/*',
           dest: '.tmp/styles'
         }]
@@ -523,7 +526,7 @@ module.exports = function (grunt) {
         // 'imagemin',
         'svgmin',
         // Also do everything we do in concurrent server so that you can leave grunt server running while doing a build
-        'concurrent:server'       
+        'concurrent:server'
       ]
     },
 

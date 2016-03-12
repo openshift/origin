@@ -63,7 +63,7 @@ func GetClientForUser(clientConfig kclient.Config, username string) (*client.Cli
 		return nil, nil, nil, err
 	}
 
-	userClientConfig := clientcmd.AnonymousClientConfig(clientConfig)
+	userClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
 	userClientConfig.BearerToken = token
 
 	kubeClient, err := kclient.New(&userClientConfig)
@@ -112,7 +112,7 @@ func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig kclien
 		return nil, nil, nil, err
 	}
 
-	saClientConfig := clientcmd.AnonymousClientConfig(clientConfig)
+	saClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
 	saClientConfig.BearerToken = token
 
 	kubeClient, err := kclient.New(&saClientConfig)

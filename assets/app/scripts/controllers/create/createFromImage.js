@@ -22,14 +22,31 @@ angular.module("openshiftConsole")
 
     $scope.projectName = $routeParams.project;
     $scope.sourceURLPattern = SOURCE_URL_PATTERN;
+    var imageName = $routeParams.imageName;
+
+    $scope.breadcrumbs = [
+      {
+        title: $scope.projectName,
+        link: "project/" + $scope.projectName
+      },
+      {
+        title: "Add to Project",
+        link: "project/" + $scope.projectName + "/create"
+      },
+      {
+        title: imageName
+      }
+    ];
 
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+        // Update project breadcrumb with display name.
+        $scope.breadcrumbs[0].title = $filter('displayName')(project);
         function initAndValidate(scope){
 
-          if(!$routeParams.imageName){
+          if(!imageName){
             Navigate.toErrorPage("Cannot create from source: a base image was not specified");
           }
           if(!$routeParams.imageTag){
@@ -37,7 +54,7 @@ angular.module("openshiftConsole")
           }
 
           scope.emptyMessage = "Loading...";
-          scope.imageName = $routeParams.imageName;
+          scope.imageName = imageName;
           scope.imageTag = $routeParams.imageTag;
           scope.namespace = $routeParams.namespace;
           scope.buildConfig = {
@@ -81,6 +98,10 @@ angular.module("openshiftConsole")
             scope.buildConfig.sourceUrl = annotations.sampleRepo || "";
             scope.buildConfig.gitRef = annotations.sampleRef || "";
             scope.buildConfig.contextDir = annotations.sampleContextDir || "";
+          };
+
+          scope.usingSampleRepo = function() {
+            return scope.buildConfig.sourceUrl === _.get(scope, 'image.metadata.annotations.sampleRepo');
           };
 
           DataService.get("imagestreams", scope.imageName, {namespace: (scope.namespace || $routeParams.project)}).then(function(imageStream){
@@ -235,7 +256,7 @@ angular.module("openshiftConsole")
                   };
               }
             );
-          Navigate.toNextSteps($scope.name, $scope.projectName);
+          Navigate.toNextSteps($scope.name, $scope.projectName, $scope.usingSampleRepo() ? {"fromSample": true} : null);
         };
 
         var elseShowWarning = function(){

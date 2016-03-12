@@ -75,7 +75,7 @@ os::cmd::expect_success "openshift admin new-project cache --description='This i
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
-install_router
+DROP_SYN_DURING_RESTART=1 install_router
 install_registry
 
 echo "[INFO] Pre-pulling and pushing ruby-22-centos7"

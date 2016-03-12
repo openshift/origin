@@ -28,12 +28,19 @@
     </div>
     <!-- Unset title attribute to prevent two tooltips. -->
     <div title="">
+      <span ng-if="(template | tags).indexOf('quickstart') !== -1">
+        <i
+          class="fa fa-bolt tile-badge-icon"
+          style="margin-right: 5px;"
+          aria-hidden="true"
+          data-toggle="tooltip"
+          data-original-title="Quickstart"></i>
+        <span class="sr-only">Quickstart</span>
+      </span>
       <i
-        class="fa fa-bolt tile-badge-icon"
+        class="fa fa-clone tile-badge-icon"
         aria-hidden="true"
         data-toggle="tooltip"
-        data-placement="bottom"
-        data-container="body"
         data-original-title="Template"></i>
       <span class="sr-only">Template</span>
     </div>

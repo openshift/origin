@@ -591,7 +591,7 @@ function install_router {
 	echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f - --config="${ADMIN_KUBECONFIG}"
 	oc get scc privileged -o json --config="${ADMIN_KUBECONFIG}" | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f - --config="${ADMIN_KUBECONFIG}"
         # Create a TLS certificate for the router
-        if [[ -n "${CREATE_ROUTER_CERT-}" ]]; then
+        if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
             echo "[INFO] Generating router TLS certificate"
             oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
                  --signer-key=${MASTER_CONFIG_DIR}/ca.key \
@@ -603,6 +603,14 @@ function install_router {
             ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
         fi
         openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
+
+        # Set the SYN eater to make router reloads more robust
+        if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
+            # Rewrite the DC for the router to add the environment variable into the pod definition
+            echo "[INFO] Changing the router DC to drop SYN packets during a reload"
+            oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
+        fi
+
 }
 
 # install registry for the extended tests
@@ -777,9 +785,9 @@ os::util::host_platform() {
 
 os::util::sed() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-  	sed -i '' $@
+  	sed -i '' "$@"
   else
-  	sed -i'' $@
+  	sed -i'' "$@"
   fi
 }
 

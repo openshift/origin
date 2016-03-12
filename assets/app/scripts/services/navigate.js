@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module("openshiftConsole")
-  .service("Navigate", function($location, annotationFilter){
+  .service("Navigate", function($location, $timeout, annotationFilter, LabelFilter){
     return {
       /**
        * Navigate and display the error page.
@@ -44,8 +44,20 @@ angular.module("openshiftConsole")
        * @param {type} projectName  the project name
        * @returns {undefined}
        */
-      toNextSteps: function(name, projectName){
-        $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search("name", name);
+      toNextSteps: function(name, projectName, searchPart){
+        var search = $location.search();
+        search.name = name;
+        if (_.isObject(searchPart)) {
+          _.extend(search, searchPart);
+        }
+        $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search(search);
+      },
+
+      toPodsForDeployment: function(deployment) {
+        $location.url("/project/" + deployment.metadata.namespace + "/browse/pods");
+        $timeout(function() {
+          LabelFilter.setLabelSelector(new LabelSelector(deployment.spec.selector, true));
+        }, 1);
       },
 
       // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified
@@ -112,28 +124,27 @@ angular.module("openshiftConsole")
       /**
        * Navigate to a list view for a resource type
        *
-       * @param {String} resourceType  the resource type
+       * @param {String} resource      the resource (e.g., builds or replicationcontrollers)
        * @param {String} projectName   the project name
-       * @param {String} parentName    the parent resource name (build config for builds or deployment config for deployments)
        * @returns {undefined}
        */
-      toResourceList: function(resourceType, projectName) {
+      toResourceList: function(resource, projectName) {
         var routeMap = {
-          'build': 'builds',
-          'buildconfig': 'builds',
-          'deployment': 'deployments',
-          'deploymentconfig': 'deployments',
-          'imagestream': 'images',
-          'pod': 'pods',
-          'replicationcontroller': 'deployments',
-          'route': 'routes',
-          'service': 'services',
-          'persistentvolumeclaim': 'storage'
+          'builds': 'builds',
+          'buildconfigs': 'builds',
+          'deployments': 'deployments',
+          'deploymentconfigs': 'deployments',
+          'imagestreams': 'images',
+          'pods': 'pods',
+          'replicationcontrollers': 'deployments',
+          'routes': 'routes',
+          'services': 'services',
+          'persistentvolumeclaims': 'storage'
         };
 
         var redirect = URI.expand("project/{projectName}/browse/{browsePath}", {
           projectName: projectName,
-          browsePath: routeMap[resourceType]
+          browsePath: routeMap[resource]
         });
 
         $location.url(redirect);

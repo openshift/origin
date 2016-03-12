@@ -13,6 +13,7 @@ import (
 
 const (
 	CAFilePrefix     = "ca"
+	CABundlePrefix   = "ca-bundle"
 	MasterFilePrefix = "master"
 )
 
@@ -25,6 +26,10 @@ type ClientCertInfo struct {
 
 func DefaultSignerName() string {
 	return fmt.Sprintf("%s@%d", "openshift-signer", time.Now().Unix())
+}
+
+func DefaultCABundleFile(certDir string) string {
+	return DefaultCertFilename(certDir, CABundlePrefix)
 }
 
 func DefaultRootCAFile(certDir string) string {

@@ -120,6 +120,22 @@
               {
                 "name": "jenkins",
                 "image": "${JENKINS_IMAGE}",
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 30,
+                    "httpGet": {
+                        "path": "/login",
+                        "port": 8080
+                    }
+                },
                 "env": [
                   {
                     "name": "JENKINS_PASSWORD",

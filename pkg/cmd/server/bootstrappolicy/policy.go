@@ -101,7 +101,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
-					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale", "imagestreams/secrets"),
 				},
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
@@ -131,7 +131,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
-					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale", "imagestreams/secrets"),
 				},
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
@@ -361,6 +361,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("create"),
 					Resources: sets.NewString("imagestreammappings"),
 				},
+				{
+					Verbs:     sets.NewString("list"),
+					Resources: sets.NewString("resourcequotas"),
+				},
 			},
 		},
 		{
@@ -554,6 +558,67 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     sets.NewString("get", "create"),
 					Resources: sets.NewString("buildconfigs/webhooks"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryAdminRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews", "rolebindings", "roles", "subjectaccessreviews"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("policies", "policybindings"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("namespaces", "projects"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryViewerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreams/layers", "namespaces", "projects"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryEditorRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("namespaces", "projects"),
+				},
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},

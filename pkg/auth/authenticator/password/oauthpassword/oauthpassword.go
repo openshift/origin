@@ -1,8 +1,6 @@
 package oauthpassword
 
 import (
-	"fmt"
-
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"

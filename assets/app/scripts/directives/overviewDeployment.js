@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $uibModal, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter, isDeploymentFilter) {
+  .directive('overviewDeployment', function($location, $uibModal, $timeout, $filter, LabelFilter, DeploymentsService, Navigate, hashSizeFilter, isDeploymentFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -58,10 +58,7 @@ angular.module('openshiftConsole')
             return;
           }
 
-          $location.url("/project/" + deployment.metadata.namespace + "/browse/pods");
-          $timeout(function() {
-            LabelFilter.setLabelSelector(new LabelSelector(deployment.spec.selector, true));
-          }, 1);
+          Navigate.toPodsForDeployment(deployment);
         };
 
         $scope.scaleUp = function() {

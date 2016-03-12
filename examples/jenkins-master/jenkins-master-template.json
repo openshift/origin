@@ -203,18 +203,26 @@
               {
                 "name": "jenkins",
                 "image": "jenkins-master",
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 30,
+                    "httpGet": {
+                        "path": "/login",
+                        "port": 8080
+                    }
+                },
                 "env": [
                   {
                     "name": "JENKINS_PASSWORD",
                     "value": "${JENKINS_PASSWORD}"
-                  },
-                  {
-                    "name": "PROJECT_NAME",
-                    "valueFrom": {
-                      "fieldRef": {
-                        "fieldPath": "metadata.namespace"
-                      }
-                    }
                   }
                 ],
                 "resources": {},

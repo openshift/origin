@@ -10,23 +10,29 @@ import (
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 type ClusterRoleBindingStorage struct {
 	roleBindingStorage rolebindingstorage.VirtualStorage
 }
 
-func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleBindingStorage {
+func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleBindingStorage {
 	simulatedPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
-	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry)
+	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterPolicyBindingRegistry)
+
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		simulatedPolicyRegistry,
+		simulatedPolicyBindingRegistry,
+		clusterPolicyRegistry,
+		clusterPolicyBindingRegistry,
+	)
 
 	return &ClusterRoleBindingStorage{
 		rolebindingstorage.VirtualStorage{
-			PolicyRegistry:               simulatedPolicyRegistry,
-			BindingRegistry:              simulatedPolicyBindingRegistry,
-			ClusterPolicyRegistry:        clusterPolicyRegistry,
-			ClusterPolicyBindingRegistry: clusterBindingRegistry,
+			BindingRegistry: simulatedPolicyBindingRegistry,
 
+			RuleResolver:   ruleResolver,
 			CreateStrategy: rolebindingregistry.ClusterStrategy,
 			UpdateStrategy: rolebindingregistry.ClusterStrategy,
 		},

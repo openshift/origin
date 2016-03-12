@@ -2097,6 +2097,14 @@ func deepCopy_v1_ResourceQuotaSpec(in ResourceQuotaSpec, out *ResourceQuotaSpec,
 	} else {
 		out.Hard = nil
 	}
+	if in.Scopes != nil {
+		out.Scopes = make([]ResourceQuotaScope, len(in.Scopes))
+		for i := range in.Scopes {
+			out.Scopes[i] = in.Scopes[i]
+		}
+	} else {
+		out.Scopes = nil
+	}
 	return nil
 }
 
@@ -2333,12 +2341,6 @@ func deepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	if in.AllowEmptyDirVolumePlugin != nil {
-		out.AllowEmptyDirVolumePlugin = new(bool)
-		*out.AllowEmptyDirVolumePlugin = *in.AllowEmptyDirVolumePlugin
-	} else {
-		out.AllowEmptyDirVolumePlugin = nil
-	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID

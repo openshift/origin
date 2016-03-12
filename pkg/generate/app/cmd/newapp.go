@@ -72,9 +72,10 @@ type AppConfig struct {
 	OutputDocker     bool
 	NoOutput         bool
 
-	ExpectToBuild      bool
-	BinaryBuild        bool
-	AllowMissingImages bool
+	ExpectToBuild               bool
+	BinaryBuild                 bool
+	AllowMissingImages          bool
+	AllowMissingImageStreamTags bool
 
 	Deploy           bool
 	AsTestDeployment bool
@@ -193,6 +194,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        namespaces,
+		AllowMissingTags:  c.AllowMissingImageStreamTags,
 	}
 	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.TemplateSearcher = app.TemplateSearcher{
@@ -377,7 +379,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
 
-	if len(c.Strategy) != 0 && len(repos) == 0 {
+	if len(c.Strategy) != 0 && len(repos) == 0 && !c.BinaryBuild {
 		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
 	}
 
@@ -595,7 +597,8 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 						continue
 					}
 					repo := app.NewBinarySourceRepository()
-					if c.Strategy == "docker" || len(c.Strategy) == 0 {
+					isBuilder := input.ResolvedMatch != nil && input.ResolvedMatch.Builder
+					if c.Strategy == "docker" || (len(c.Strategy) == 0 && !isBuilder) {
 						repo.BuildWithDocker()
 					}
 					input.Use(repo)
@@ -662,7 +665,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
-				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
+				if err := refInput.Uses.AddBuildSecrets(c.Secrets, refInput.Uses.IsDockerBuild()); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
 				}
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)

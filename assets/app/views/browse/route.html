@@ -29,13 +29,13 @@
                   <li>
                     <edit-link
                       resource="route"
-                      kind="routes"
+                      kind="Route"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="route"
+                      kind="Route"
                       resource-name="{{route.metadata.name}}"
                       project-name="{{route.metadata.namespace}}"
                       alerts="alerts">
@@ -58,7 +58,7 @@
                   <dd>
                     <span ng-if="!route.status.ingress">
                       {{route | routeLabel}}
-                      <span data-toggle="popover" data-placement="right" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
+                      <span data-toggle="popover" data-trigger="hover" data-content="The route is not accepting traffic yet because it has not been admitted by a router." style="cursor: help; padding-left: 5px;">
                         <status-icon status="'Pending'" disable-animation></status-icon>
                         <span class="sr-only">Pending</span>                        
                       </span>

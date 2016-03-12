@@ -14,7 +14,6 @@
                     ng-if="paused"
                     aria-hidden="true"
                     data-toggle="tooltip"
-                    data-placement="bottom"
                     data-original-title="Building from build configuration {{buildConfig.metadata.name}} has been paused.">
               </span>
               <div class="pull-right dropdown" ng-if="buildConfig">
@@ -48,13 +47,13 @@
                   <li>
                     <edit-link
                       resource="buildConfig"
-                      kind="buildconfigs"
+                      kind="BuildConfig"
                       alerts="alerts">
                     </edit-link>
                   </li>
                   <li>
                     <delete-link
-                      resource-type="buildconfig"
+                      kind="BuildConfig"
                       resource-name="{{buildConfig.metadata.name}}"
                       project-name="{{buildConfig.metadata.namespace}}"
                       alerts="alerts">
@@ -156,7 +155,7 @@
                               <span ng-if="!(build | annotation : 'buildNumber')">
                                 <a ng-href="{{build | navigateResourceURL}}">{{build.metadata.name}}</a>
                               </span>
-                              <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                              <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
                             </td>
                             <td data-title="Status">
                               <div row class="status">

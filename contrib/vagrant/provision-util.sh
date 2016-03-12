@@ -35,10 +35,22 @@ os::provision::build-etcd() {
   if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
      [ "${skip_build}" = "true" ]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
-  else
+  # Etcd is required for integration testing which isn't a use case
+  # for dind.
+  elif ! os::provision::in-container; then
     echo "Building etcd"
     ${origin_root}/hack/install-etcd.sh
   fi
+}
+
+os::provision::base-install() {
+  local origin_root=$1
+  local config_root=$2
+
+  echo "Installing openshift"
+  os::provision::install-cmds "${origin_root}"
+  os::provision::install-sdn "${origin_root}"
+  os::provision::set-os-env "${origin_root}" "${config_root}"
 }
 
 os::provision::install-cmds() {
@@ -215,6 +227,12 @@ os::provision::base-provision() {
       # network plugins need to be able to work with one enabled.
       systemctl enable iptables.service
       systemctl start iptables.service
+
+      # Ensure that the master can access the kubelet for capabilities
+      # like 'oc exec'.  Explicitly specifying the insertion location
+      # is brittle but the tests should catch conflicts with the
+      # package rules.
+      iptables -I INPUT 4 -p tcp -m state --state NEW --dport 10250 -j ACCEPT
     fi
   fi
 }
@@ -265,7 +283,7 @@ os::provision::start-os-service() {
     dind_env_var="OPENSHIFT_DIND=true"
   fi
 
-  cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
+  cat <<EOF > "/etc/systemd/system/${unit_name}.service"
 [Unit]
 Description=${description}
 Requires=network.target
@@ -308,7 +326,7 @@ os::provision::wait-for-condition() {
   # condition should be a string that can be eval'd.  When eval'd, it
   # should not output anything to stderr or stdout.
   local condition=$2
-  local timeout=${3:-30}
+  local timeout=${3:-60}
 
   local start_msg="Waiting for ${msg}"
   local error_msg="[ERROR] Timeout waiting for ${msg}"

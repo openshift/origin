@@ -71,6 +71,29 @@ os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=exampl
 os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
 os::cmd::expect_failure_and_text 'oadm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
 
+# check encrypt/decrypt of plain text
+os::cmd::expect_success          'echo -n "secret data 1" | oadm ca encrypt --genkey=secret.key --out=secret.encrypted'
+os::cmd::expect_success_and_text 'oadm ca decrypt --in=secret.encrypted --key=secret.key' '^secret data 1$'
+# create a file with trailing whitespace
+echo "data with newline" > secret.whitespace.data
+os::cmd::expect_success_and_text 'oadm ca encrypt --key=secret.key --in=secret.whitespace.data      --out=secret.whitespace.encrypted' 'Warning.*whitespace'
+os::cmd::expect_success          'oadm ca decrypt --key=secret.key --in=secret.whitespace.encrypted --out=secret.whitespace.decrypted'
+os::cmd::expect_success          'diff secret.whitespace.data secret.whitespace.decrypted'
+# create a binary file
+echo "hello" | gzip > secret.data
+# encrypt using file and pipe input/output
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key --in=secret.data --out=secret.file-in-file-out.encrypted'
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key --in=secret.data     > secret.file-in-pipe-out.encrypted'
+os::cmd::expect_success 'oadm ca encrypt --key=secret.key    < secret.data     > secret.pipe-in-pipe-out.encrypted'
+# decrypt using all three methods
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key --in=secret.file-in-file-out.encrypted --out=secret.file-in-file-out.decrypted'
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key --in=secret.file-in-pipe-out.encrypted     > secret.file-in-pipe-out.decrypted'
+os::cmd::expect_success 'oadm ca decrypt --key=secret.key    < secret.pipe-in-pipe-out.encrypted     > secret.pipe-in-pipe-out.decrypted'
+# verify lossless roundtrip
+os::cmd::expect_success 'diff secret.data secret.file-in-file-out.decrypted'
+os::cmd::expect_success 'diff secret.data secret.file-in-pipe-out.decrypted'
+os::cmd::expect_success 'diff secret.data secret.pipe-in-pipe-out.decrypted'
+
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
 # os::cmd::expect_success_and_text 'oadm manage-node --list-pods' '(unassigned|assigned)'
@@ -131,7 +154,7 @@ os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
 os::cmd::expect_failure 'oc get clusterrole/cluster-status'
 os::cmd::expect_success 'oadm policy reconcile-cluster-roles'
 os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm --loglevel=8'
 os::cmd::expect_success 'oc get clusterrole/cluster-status'
 # check the reconcile again with a specific cluster role name
 os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
@@ -224,6 +247,13 @@ os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
 echo "registry: ok"
+
+workingdir=$(mktemp -d)
+os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} -o yaml > ${workingdir}/oadm_registry.yaml"
+os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
+os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"
+os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' '6000'
+echo "apply: ok"
 
 # Test building a dependency tree
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
@@ -319,3 +349,21 @@ os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins 
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --output-version=v1 --template='{{.subjects}}' -n default" 'cascaded-group'
 os::cmd::expect_success_and_not_text "oc get scc/restricted                     --output-version=v1 --template='{{.groups}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
+
+# create a new service account
+os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'serviceaccount "my-sa-name" created'
+os::cmd::expect_success 'oc get sa my-sa-name'
+
+# extract token and ensure it links us back to the service account
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+
+# add a new token and ensure it links us back to the service account
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa new-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+
+# add a new labeled token and ensure the label stuck
+os::cmd::expect_success 'oc sa new-token my-sa-name --labels="mykey=myvalue,myotherkey=myothervalue"'
+os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue"' 'my-sa-name'
+os::cmd::expect_success_and_text 'oc get secrets --selector="myotherkey=myothervalue"' 'my-sa-name'
+os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue,myotherkey=myothervalue"' 'my-sa-name'
+
+echo "serviceacounts: ok"

@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -101,8 +102,10 @@ import (
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -158,7 +161,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		}
 		extra = append(extra, msgs...)
 	}
-	handler := c.authorizationFilter(safe)
+	handler := c.versionSkewFilter(version.Get(), kversion.Get(), safe)
+	handler = c.authorizationFilter(handler)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
 	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
@@ -394,9 +398,16 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(c.EtcdHelper)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry)
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		policyRegistry,
+		policyBindingRegistry,
+		clusterPolicyRegistry,
+		clusterPolicyBindingRegistry,
+	)
+
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)

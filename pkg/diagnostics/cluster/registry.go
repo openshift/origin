@@ -159,6 +159,7 @@ func (d *ClusterRegistry) CanRun() (bool, error) {
 	return userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Namespace:    kapi.NamespaceDefault,
 		Verb:         "get",
+		Group:        kapi.GroupName,
 		Resource:     "services",
 		ResourceName: registryName,
 	})

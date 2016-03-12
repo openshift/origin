@@ -84,6 +84,12 @@ func NewImagePipelineFromBuildConfigNode(g osgraph.Graph, bcNode *buildgraph.Bui
 
 			flow.DestinationResolved = (len(imageStreamNode.Status.DockerImageRepository) != 0)
 		}
+		// this will handle the imagestream image case
+		for _, input := range g.SuccessorNodesByEdgeKind(buildOutputNode, imageedges.ReferencedImageStreamImageGraphEdgeKind) {
+			imageStreamNode := input.(*imagegraph.ImageStreamNode)
+
+			flow.DestinationResolved = (len(imageStreamNode.Status.DockerImageRepository) != 0)
+		}
 
 		// TODO handle the DockerImage case
 	}
@@ -119,6 +125,12 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 	}
 
 	for _, input := range g.SuccessorNodesByEdgeKind(node, imageedges.ReferencedImageStreamGraphEdgeKind) {
+		covered.Insert(input.ID())
+		imageStreamNode := input.(*imagegraph.ImageStreamNode)
+
+		flow.DestinationResolved = (len(imageStreamNode.Status.DockerImageRepository) != 0)
+	}
+	for _, input := range g.SuccessorNodesByEdgeKind(node, imageedges.ReferencedImageStreamImageGraphEdgeKind) {
 		covered.Insert(input.ID())
 		imageStreamNode := input.(*imagegraph.ImageStreamNode)
 

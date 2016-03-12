@@ -78,6 +78,9 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 		return nil, ErrNoMatch{Value: value, Errs: errs}
 	case 1:
 		if candidates[0].Score != 0.0 {
+			if candidates[0].NoTagsFound {
+				return nil, ErrNoTagsFound{Value: value, Match: candidates[0], Errs: errs}
+			}
 			return nil, ErrPartialMatch{Value: value, Match: candidates[0], Errs: errs}
 		}
 		return candidates[0], errors.NewAggregate(errs)

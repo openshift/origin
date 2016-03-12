@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -42,7 +43,18 @@ func init() {
 		panic(err)
 	}
 	cachedLayers = cache
-	repomw.Register("openshift", repomw.InitFunc(newRepository))
+
+	// load the client when the middleware is initialized, which allows test code to change
+	// DefaultRegistryClient before starting a registry.
+	repomw.Register("openshift",
+		func(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+			registryClient, quotaClient, err := DefaultRegistryClient.Clients()
+			if err != nil {
+				return nil, err
+			}
+			return newRepositoryWithClient(registryClient, quotaClient, ctx, repo, options)
+		},
+	)
 
 	secureTransport = http.DefaultTransport
 	insecureTransport, err = kclient.TransportFor(&kclient.Config{Insecure: true})
@@ -57,6 +69,7 @@ type repository struct {
 	distribution.Repository
 
 	ctx            context.Context
+	quotaClient    kclient.ResourceQuotasNamespacer
 	registryClient client.Interface
 	registryAddr   string
 	namespace      string
@@ -73,8 +86,8 @@ type repository struct {
 
 var _ distribution.ManifestService = &repository{}
 
-// newRepository returns a new repository middleware.
-func newRepository(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+// newRepositoryWithClient returns a new repository middleware.
+func newRepositoryWithClient(registryClient client.Interface, quotaClient kclient.ResourceQuotasNamespacer, ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
 	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
 	if len(registryAddr) == 0 {
 		return nil, errors.New("DOCKER_REGISTRY_URL is required")
@@ -87,11 +100,6 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 		}
 	}
 
-	registryClient, err := NewRegistryOpenShiftClient()
-	if err != nil {
-		return nil, err
-	}
-
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
 	if len(nameParts) != 2 {
 		return nil, fmt.Errorf("invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
@@ -101,6 +109,7 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 		Repository: repo,
 
 		ctx:            ctx,
+		quotaClient:    quotaClient,
 		registryClient: registryClient,
 		registryAddr:   registryAddr,
 		namespace:      nameParts[0],
@@ -122,14 +131,19 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 
 // Blobs returns a blob store which can delegate to remote repositories.
 func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
-	if !r.pullthrough {
-		return r.Repository.Blobs(ctx)
-	}
-
 	repo := repository(*r)
 	repo.ctx = ctx
-	return &pullthroughBlobStore{
+
+	bs := &quotaRestrictedBlobStore{
 		BlobStore: r.Repository.Blobs(ctx),
+		repo:      &repo,
+	}
+	if !r.pullthrough {
+		return bs
+	}
+
+	return &pullthroughBlobStore{
+		BlobStore: bs,
 
 		repo:          &repo,
 		digestToStore: make(map[string]distribution.BlobStore),
@@ -334,12 +348,21 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		},
 	}
 
+	if err := r.fillImageWithMetadata(manifest, &ism.Image); err != nil {
+		return err
+	}
+
 	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
 			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
+		}
+
+		if kerrors.IsForbidden(statusErr) {
+			context.GetLogger(r.ctx).Errorf("Denied creating ImageStreamMapping: %v", statusErr)
+			return distribution.ErrAccessDenied
 		}
 
 		status := statusErr.ErrStatus
@@ -384,6 +407,40 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// fillImageWithMetadata fills a given image with metadata. Also correct layer sizes with blob sizes. Newer
+// Docker client versions don't set layer sizes in the manifest at all. Origin master needs correct layer
+// sizes for proper image quota support. That's why we need to fill the metadata in the registry.
+func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, image *imageapi.Image) error {
+	if err := imageapi.ImageWithMetadata(image); err != nil {
+		return err
+	}
+
+	layerSet := sets.NewString()
+	size := int64(0)
+
+	blobs := r.Blobs(r.ctx)
+	for i := range image.DockerImageLayers {
+		layer := &image.DockerImageLayers[i]
+		// DockerImageLayers represents manifest.Manifest.FSLayers in reversed order
+		desc, err := blobs.Stat(r.ctx, manifest.Manifest.FSLayers[len(image.DockerImageLayers)-i-1].BlobSum)
+		if err != nil {
+			context.GetLogger(r.ctx).Errorf("Failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
+			return err
+		}
+		layer.Size = desc.Size
+		// count empty layer just once (empty layer may actually have non-zero size)
+		if !layerSet.Has(layer.Name) {
+			size += desc.Size
+			layerSet.Insert(layer.Name)
+		}
+	}
+
+	image.DockerImageMetadata.Size = size
+	context.GetLogger(r.ctx).Infof("Total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, size)
 
 	return nil
 }

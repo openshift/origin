@@ -10,11 +10,38 @@ import (
 	log "github.com/Sirupsen/logrus"
 	context "github.com/docker/distribution/context"
 	registryauth "github.com/docker/distribution/registry/auth"
+
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+// DefaultRegistryClient is exposed for testing the registry with fake client.
+var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
+
+// RegistryClient encapsulates getting access to the OpenShift API.
+type RegistryClient struct {
+	config *clientcmd.Config
+}
+
+// NewRegistryClient creates a registry client.
+func NewRegistryClient(config *clientcmd.Config) *RegistryClient {
+	return &RegistryClient{config: config}
+}
+
+// Client returns the authenticated client to use with the server.
+func (r *RegistryClient) Clients() (client.Interface, kclient.Interface, error) {
+	return r.config.Clients()
+}
+
+// SafeClientConfig returns a client config without authentication info.
+func (r *RegistryClient) SafeClientConfig() kclient.Config {
+	return clientcmd.AnonymousClientConfig(r.config.OpenShiftConfig())
+}
 
 func init() {
 	registryauth.Register("openshift", registryauth.InitFunc(newAccessController))
@@ -24,17 +51,18 @@ type contextKey int
 
 var userClientKey contextKey = 0
 
-func WithUserClient(parent context.Context, userClient *client.Client) context.Context {
+func WithUserClient(parent context.Context, userClient client.Interface) context.Context {
 	return context.WithValue(parent, userClientKey, userClient)
 }
 
-func UserClientFrom(ctx context.Context) (*client.Client, bool) {
-	userClient, ok := ctx.Value(userClientKey).(*client.Client)
+func UserClientFrom(ctx context.Context) (client.Interface, bool) {
+	userClient, ok := ctx.Value(userClientKey).(client.Interface)
 	return userClient, ok
 }
 
 type AccessController struct {
-	realm string
+	realm  string
+	config kclient.Config
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -67,7 +95,7 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 		// Default to openshift if not present
 		realm = "origin"
 	}
-	return &AccessController{realm: realm}, nil
+	return &AccessController{realm: realm, config: DefaultRegistryClient.SafeClientConfig()}, nil
 }
 
 // Error returns the internal error string for this authChallenge.
@@ -117,14 +145,16 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(err)
 	}
 
-	client, err := NewUserOpenShiftClient(bearerToken)
+	copied := ac.config
+	copied.BearerToken = bearerToken
+	osClient, err := client.New(&copied)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		if err := verifyOpenShiftUser(ctx, client); err != nil {
+		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
 			return nil, ac.wrapErr(err)
 		}
 	}
@@ -160,12 +190,12 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(ctx, client); err != nil {
+				if err := verifyPruneAccess(ctx, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
 			default:
-				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, client); err != nil {
+				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 			}
@@ -176,7 +206,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(ctx, client); err != nil {
+				if err := verifyPruneAccess(ctx, osClient); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
@@ -188,7 +218,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
-	return WithUserClient(ctx, client), nil
+	return WithUserClient(ctx, osClient), nil
 }
 
 func getNamespaceName(resourceName string) (string, string, error) {
@@ -229,7 +259,7 @@ func getToken(ctx context.Context, req *http.Request) (string, error) {
 	return bearerToken, nil
 }
 
-func verifyOpenShiftUser(ctx context.Context, client *client.Client) error {
+func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
 	if _, err := client.Users().Get("~"); err != nil {
 		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -241,10 +271,11 @@ func verifyOpenShiftUser(ctx context.Context, client *client.Client) error {
 	return nil
 }
 
-func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client *client.Client) error {
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         verb,
+			Group:        imageapi.GroupName,
 			Resource:     "imagestreams/layers",
 			ResourceName: imageRepo,
 		},
@@ -267,10 +298,11 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 	return nil
 }
 
-func verifyPruneAccess(ctx context.Context, client *client.Client) error {
+func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:     "delete",
+			Group:    imageapi.GroupName,
 			Resource: "images",
 		},
 	}

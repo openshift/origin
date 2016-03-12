@@ -185,7 +185,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	}
 
 	// Wait until the policy cache has caught up before continuing
-	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "clusterpolicies"}}
+	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: authorizationapi.GroupName, Resource: "clusterpolicies"}}
 	err := wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		result, err := c.PolicyClient().SubjectAccessReviews().Create(review)
 		if err == nil && result.Allowed {

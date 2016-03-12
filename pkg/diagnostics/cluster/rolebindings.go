@@ -40,6 +40,7 @@ func (d *ClusterRoleBindings) CanRun() (bool, error) {
 
 	return userCan(d.SARClient, authorizationapi.AuthorizationAttributes{
 		Verb:     "list",
+		Group:    authorizationapi.GroupName,
 		Resource: "clusterrolebindings",
 	})
 }

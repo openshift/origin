@@ -362,6 +362,16 @@ func (LDAPSyncConfig) SwaggerDoc() map[string]string {
 	return map_LDAPSyncConfig
 }
 
+var map_LegacyClientPolicyConfig = map[string]string{
+	"":                    "LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API",
+	"legacyClientPolicy":  "LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS! The default is AllowAll",
+	"restrictedHTTPVerbs": "RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST",
+}
+
+func (LegacyClientPolicyConfig) SwaggerDoc() map[string]string {
+	return map_LegacyClientPolicyConfig
+}
+
 var map_MasterClients = map[string]string{
 	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
 	"openshiftLoopbackKubeConfig":  "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
@@ -555,6 +565,7 @@ var map_PolicyConfig = map[string]string{
 	"bootstrapPolicyFile":               "BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace",
 	"openshiftSharedResourcesNamespace": "OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)",
 	"openshiftInfrastructureNamespace":  "OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)",
+	"legacyClientPolicyConfig":          "LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
 func (PolicyConfig) SwaggerDoc() map[string]string {
@@ -688,6 +699,26 @@ var map_SessionSecrets = map[string]string{
 
 func (SessionSecrets) SwaggerDoc() map[string]string {
 	return map_SessionSecrets
+}
+
+var map_StringSource = map[string]string{
+	"": "StringSource allows specifying a string inline, or externally via env var or file. When it contains only a string value, it marshals to a simple JSON string.",
+}
+
+func (StringSource) SwaggerDoc() map[string]string {
+	return map_StringSource
+}
+
+var map_StringSourceSpec = map[string]string{
+	"":        "StringSourceSpec specifies a string value, or external location",
+	"value":   "Value specifies the cleartext value, or an encrypted value if keyFile is specified.",
+	"env":     "Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.",
+	"file":    "File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.",
+	"keyFile": "KeyFile references a file containing the key to use to decrypt the value.",
+}
+
+func (StringSourceSpec) SwaggerDoc() map[string]string {
+	return map_StringSourceSpec
 }
 
 var map_TokenConfig = map[string]string{

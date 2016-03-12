@@ -158,6 +158,22 @@
                     "containerPort": 8080
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 30,
+                    "httpGet": {
+                        "path": "/",
+                        "port": 8080
+                    }
+                },
                 "env": [
                   {
                     "name": "DATABASE_SERVICE_NAME",
@@ -270,6 +286,20 @@
                     "containerPort": 3306
                   }
                 ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "MYSQL_PWD='${DATABASE_PASSWORD}' mysql -h 127.0.0.1 -u ${DATABASE_USER} -D ${DATABASE_NAME} -e 'SELECT 1'" ]
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 1,
+                    "initialDelaySeconds": 30,
+                    "tcpSocket": {
+                        "port": 3306
+                    }
+                },
                 "env": [
                   {
                     "name": "MYSQL_USER",
@@ -280,14 +310,14 @@
                     "value": "${DATABASE_PASSWORD}"
                   },
                   {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${DATABASE_NAME}"
+                      "name": "MYSQL_DATABASE",
+                      "value": "${DATABASE_NAME}"
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_MYSQL_LIMIT}"
-		      }
+                    "limits": {
+                        "memory": "${MEMORY_MYSQL_LIMIT}"
+                    }
                 }
               }
             ]
@@ -301,7 +331,7 @@
       "name": "MEMORY_LIMIT",
       "displayName": "Memory limit",
       "description": "Maximum amount of memory the Perl Dancer container can use",
-      "value": "128Mi"
+      "value": "512Mi"
     },
     {
       "name": "MEMORY_MYSQL_LIMIT",

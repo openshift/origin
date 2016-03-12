@@ -162,3 +162,16 @@ func verify(t *testing.T, cert *x509.Certificate, opts x509.VerifyOptions, succe
 		t.Fatalf("Expected failure, got success")
 	}
 }
+
+func TestRandomSerialGenerator(t *testing.T) {
+	generator := &RandomSerialGenerator{}
+
+	hostnames := []string{"foo", "bar"}
+	template, err := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := generator.Next(template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

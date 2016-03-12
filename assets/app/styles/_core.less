@@ -48,6 +48,7 @@
     margin-right: -20px;
     margin-top: 20px;
     padding-left: 20px;
+    padding-right: 20px;
     .actions {
       margin-top: 0;
     }
@@ -68,57 +69,68 @@
   }
 }
 
-// Data toolbar with label filter customizations
+// Firefox-specific hack for preventing fieldset content causing the container to expand
+// see: https://stackoverflow.com/questions/17408815/fieldset-resizes-wrong-appears-to-have-unremovable-min-width-min-content/17863685#17863685
+@-moz-document url-prefix() {
+  .console-os fieldset {
+    display: table-cell;
+  }
+}
+
+/* Data toolbar
+   - Includes customizations for label filter input and active filter
+---------------------------------------------------------------------------- */
 .data-toolbar {
-  .flex-display(@display: flex);
-  .flex(@columns: 1 0 0%);
-  .flex-wrap(@wrap: wrap);
-  padding: 3px 0 1px;
-  .data-toolbar-filter {
-    .flex-display(@display: flex);
-    .flex(@columns: 1 0 0%);
-  }
-  .data-toolbar-views {
-    .flex(@columns: 0 0 55px);
-    text-align: right;
-  }
+ .flex-display(@display: flex);
+ .flex(@columns: 1 0 0%);
+ .flex-wrap(@wrap: wrap);
+ padding: 3px 0 1px;
+ .data-toolbar-filter {
+   .flex-display(@display: flex);
+   .flex(@columns: 1 0 0%);
+ }
+ .data-toolbar-views {
+   .flex(@columns: 0 0 55px);
+   text-align: right;
+ }
 }
 .filter .navbar-filter-widget {
-  .label-filter-add.btn {
-    margin-right: 0;
-  }
-  @media (min-width: @screen-md-min) {
-    .selectize-input.not-full {
-      width: 300px !important;
-    }
-  }
+ @media(min-width: @screen-sm-min) {
+   white-space: nowrap; // prevent button wrap in Safari when not at mobile resolutions
+ }
+ .label-filter-add.btn {
+   margin-right: 0;
+ }
+ @media (min-width: @screen-md-min) {
+   .selectize-input.not-full {
+     width: 300px !important;
+   }
+ }
 }
-
 @media (max-width: @screen-xs-max) {
-  project-filter {
-    width: 100%; // Extends flex container full width of flex parent
-  }
-  .filter .navbar-filter-widget .label-filter {
-    min-width: initial;
-    width: 80%; // Width of the input field that allows for the 'add' button to be appended down to 320px
-  }
-  .filter .navbar-filter-widget .selectize-input {
-    width: auto !important;
-  }
+ project-filter {
+   width: 100%; // Extends flex container full width of flex parent
+ }
+ .filter .navbar-filter-widget .label-filter {
+   min-width: initial;
+   width: 80%; // Width of the input field that allows for the 'add' button to be appended down to 320px
+ }
+ .filter .navbar-filter-widget .selectize-input {
+   width: auto !important;
+ }
 }
-
 .navbar-filter-widget-collapse .form-group {
-  margin-bottom: 0;
+ margin-bottom: 0;
 }
 .active-filters {
-  line-height: 0;
-  .label-filter-active-filters {
-    padding-bottom: 3px;
-    .label {
-      max-width: none;
-      word-break: break-all;
-    }
-  }
+ line-height: 0;
+ .label-filter-active-filters {
+   padding-bottom: 3px;
+   .label {
+     max-width: none;
+     word-break: break-all;
+   }
+ }
 }
 
 .separator {
@@ -144,6 +156,7 @@
 }
 
 .nav-tabs, .tab-content {
+  margin-bottom: @grid-gutter-width / 2;
   margin-top: @grid-gutter-width / 2;
 }
 
@@ -183,18 +196,11 @@
 }
 
 .service-table {
-  border: 0;
-  margin: 10px 0 5px;
-  table {
-    .table;
-    .table-condensed;
-    .text-center;
-    .small;
-    margin-bottom: 0;
-    thead {
-      tr th {
-        .text-center;
-      }
+  .text-center;
+  max-width: 650px;
+  thead {
+    tr th {
+      .text-center;
     }
   }
 }
@@ -313,13 +319,16 @@ label.checkbox {
 // Make sure icons are the same size so headings align.
 .add-to-project {
   .catalog-legend {
-    dd {
-      margin-bottom: 5px;
+    dt, dd {
+      display: inline;
     }
-    .fa, .pficon {
-      width: 12px;
-      margin-right: 5px;
-      text-align: center;
+    dt:before {
+      content: "";
+      display: block;
+    }
+    dd:before {
+      // dash and space
+      content: '\2014\00a0';
     }
   }
 
@@ -767,6 +776,7 @@ a.disabled-link {
     font-size: 21px;
     font-weight: 500;
     margin-bottom: 20px;
+    .word-break();
   }
   p {
     font-size: @font-size-large + 1;
@@ -806,7 +816,10 @@ a.disabled-link {
     border-bottom: 1px solid #bbbbbb;
     padding: 0;
     .alert {
-      margin-bottom: 0;
+      margin: 10px;
+      &:not(.ng-hide) + .ace_editor {
+        border-top: 1px solid #bbb;
+      }
     }
   }
   .modal-footer {
@@ -953,6 +966,7 @@ h1 small.meta, .build-config-summary .meta {
     vertical-align: top;
   }
   &.table.table-bordered > tbody > tr > td:last-child {
+    word-break: break-all;
     width: 100%;
 
     .env-var-value {

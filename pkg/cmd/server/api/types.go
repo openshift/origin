@@ -317,7 +317,29 @@ type PolicyConfig struct {
 
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string
+
+	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	LegacyClientPolicyConfig LegacyClientPolicyConfig
 }
+
+type LegacyClientPolicyConfig struct {
+	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// The default is AllowAll
+	LegacyClientPolicy LegacyClientPolicy
+	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
+	RestrictedHTTPVerbs []string
+}
+
+type LegacyClientPolicy string
+
+var (
+	// AllowAll does not prevent any kinds of client version skew
+	AllowAll LegacyClientPolicy = "allow-all"
+	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
+	DenyOldClients LegacyClientPolicy = "deny-old-clients"
+	// DenySkewedClients prevents any non-matching client from issuing stomping requests
+	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
+)
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {
@@ -616,7 +638,8 @@ type LDAPPasswordIdentityProvider struct {
 	// BindDN is an optional DN to bind with during the search phase.
 	BindDN string
 	// BindPassword is an optional password to bind with during the search phase.
-	BindPassword string
+	BindPassword StringSource
+
 	// Insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
@@ -689,7 +712,7 @@ type GitHubIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
-	ClientSecret string
+	ClientSecret StringSource
 	// Organizations optionally restricts which organizations are allowed to log in
 	Organizations []string
 }
@@ -705,7 +728,7 @@ type GitLabIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
-	ClientSecret string
+	ClientSecret StringSource
 }
 
 type GoogleIdentityProvider struct {
@@ -714,7 +737,7 @@ type GoogleIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
-	ClientSecret string
+	ClientSecret StringSource
 
 	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
 	HostedDomain string
@@ -730,7 +753,7 @@ type OpenIDIdentityProvider struct {
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
-	ClientSecret string
+	ClientSecret StringSource
 
 	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
 	ExtraScopes []string
@@ -870,6 +893,35 @@ type AssetExtensionsConfig struct {
 	HTML5Mode bool
 }
 
+const (
+	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
+	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
+	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
+	StringSourceKeyBlockType = "ENCRYPTING KEY"
+)
+
+// StringSource allows specifying a string inline, or externally via env var or file.
+// When it contains only a string value, it marshals to a simple JSON string.
+type StringSource struct {
+	// StringSourceSpec specifies the string value, or external location
+	StringSourceSpec
+}
+
+// StringSourceSpec specifies a string value, or external location
+type StringSourceSpec struct {
+	// Value specifies the cleartext value, or an encrypted value if keyFile is specified.
+	Value string
+
+	// Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.
+	Env string
+
+	// File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.
+	File string
+
+	// KeyFile references a file containing the key to use to decrypt the value.
+	KeyFile string
+}
+
 type LDAPSyncConfig struct {
 	unversioned.TypeMeta
 
@@ -878,7 +930,8 @@ type LDAPSyncConfig struct {
 	// BindDN is an optional DN to bind with during the search phase.
 	BindDN string
 	// BindPassword is an optional password to bind with during the search phase.
-	BindPassword string
+	BindPassword StringSource
+
 	// Insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830

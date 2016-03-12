@@ -174,7 +174,7 @@ angular.module('openshiftConsole')
       var icon = annotationFilter(resource, "iconClass");
       if (!icon) {
         if (kind === "template") {
-          return "fa fa-bolt";
+          return "fa fa-clone";
         }
 
         return "";
@@ -790,28 +790,26 @@ angular.module('openshiftConsole')
       return _.startCase(kind);
     };
   })
-  .filter('humanizeResourceType', function() {
+  .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
       if (!resourceType) {
         return resourceType;
       }
 
       var nameFormatMap = {
-        'build': 'Build',
-        'buildconfig': 'Build Config',
-        'deployment': 'Deployment',
-        'deploymentconfig': 'Deployment Config',
-        'imagestream': 'Image Stream',
+        'configmaps': 'Config Maps',
+        'limits.cpu': 'CPU (Limit)',
+        'limits.memory': 'Memory (Limit)',
+        'openshift.io/imagesize': 'Image Size',
+        'openshift.io/imagestreamsize': 'Image Stream Size',
+        'openshift.io/projectimagessize': 'Project Image Size',
         'persistentvolumeclaims': 'Persistent Volume Claims',
-        'pod': 'Pod',
         'pods': 'Pods',
-        'project': 'Project',
-        'resourcequotas': 'Resource Quotas',
-        'replicationcontroller': 'Replication Controller',
         'replicationcontrollers': 'Replication Controllers',
-        'route': 'Route',
+        'requests.cpu': 'CPU (Request)',
+        'requests.memory': 'Memory (Request)',
+        'resourcequotas': 'Resource Quotas',
         'secrets': 'Secrets',
-        'service': 'Service',
         'services': 'Services'
       };
       return nameFormatMap[resourceType] || resourceType;
@@ -861,18 +859,6 @@ angular.module('openshiftConsole')
       return portDisplayValue(servicePort.port, servicePort.targetPort, servicePort.protocol);
     };
   })
-  .filter('sentenceCase', function() {
-    // Converts a camel case string to sentence case
-    return function(str) {
-      if (!str) {
-        return str;
-      }
-
-      // Unfortunately, _.lowerCase() and _.upperFirst() aren't in our lodash version.
-      var lower = _.startCase(str).toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    };
-  })
   .filter('podStatus', function() {
     // Return results that match kubernetes/pkg/kubectl/resource_printer.go
     return function(pod) {
@@ -911,26 +897,14 @@ angular.module('openshiftConsole')
       });
 
       return reason;
-    };      
+    };
   })
   .filter('routeIngressCondition', function() {
     return function(ingress, type) {
       if (!ingress) {
         return null;
       }
-      return _.find(ingress.conditions, {type: type}); 
-    };
-  })
-  .filter('routeStatus', function(routeIngressConditionFilter) {
-    return function(route) {
-      if (!route.status.ingress) {
-        return "Pending";
-      }
-      var admittedCondition = routeIngressConditionFilter(route, 'Admitted');
-      if (!admittedCondition) {
-        return "Unknown";
-      }
-      return admittedCondition.status === "True" ? "Admitted" : "Rejected";
+      return _.find(ingress.conditions, {type: type});
     };
   })
   .filter('routeHost', function() {

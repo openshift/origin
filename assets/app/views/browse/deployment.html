@@ -17,7 +17,6 @@
                   class="pficon pficon-warning-triangle-o"
                   style="cursor: help; vertical-align: middle;"
                   data-toggle="tooltip"
-                  data-placement="bottom"
                   data-trigger="hover"
                   title="The deployment's deployment config is missing."
                   aria-hidden="true">
@@ -40,13 +39,13 @@
                     <li>
                       <edit-link
                         resource="deployment"
-                        kind="replicationcontrollers"
+                        kind="ReplicationController"
                         alerts="alerts">
                       </edit-link>
                     </li>
                     <li ng-class="{disabled: deployment.status.replicas}">
                       <delete-link
-                        resource-type="replicationcontroller"
+                        kind="ReplicationController"
                         type-display-name="Deployment"
                         resource-name="{{deployment.metadata.name}}"
                         project-name="{{deployment.metadata.namespace}}"
@@ -91,9 +90,23 @@
                       name="deploymentConfigName"
                       context="projectContext"
                       options="logOptions"
-                      status="deployment | deploymentStatus"
-                      time-start="deployment.metadata.creationTimestamp | date : 'short'"
                       run="logCanRun">
+
+                      <div row cross-axis="center">
+                        <div row>
+                          <div ng-if="deployment | deploymentStatus">
+                            Deployment status:
+                            <status-icon status="deployment | deploymentStatus"></status-icon>
+                            {{deployment | deploymentStatus}}
+                          </div>
+                          <div ng-if="deployment.metadata.creationTimestamp">
+                            <div ng-if="(deployment | deploymentStatus) !== 'Deployed'">
+                              &mdash; Log from {{deployment.metadata.creationTimestamp  | date : 'short'}}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                     </log-viewer>
                   </uib-tab>
                   <uib-tab active="selectedTab.events">

@@ -9,12 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded next-steps">
-            <ol class="breadcrumb"><!-- TODO use the breadcrumb directive -->
-              <li><a href="{{projectName | projectOverviewURL}}">{{projectDisplayName()}}</a></li>
-              <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-              <li ng-if="name"><a href="" ng-click="goBack()">{{name}}</a></li>
-              <li class="active"><strong ng-if="pendingTasks(tasks()).length">Creating</strong><strong ng-if="!pendingTasks(tasks()).length">Next Steps</strong></li>
-            </ol>
+            <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div ng-controller="TasksController">
               <h1 ng-if="!tasks().length">Completed. <a href="project/{{projectName}}/overview">Go to overview</a>.</h1>
               <h1 ng-if="tasks().length && allTasksSuccessful(tasks())">Application created. <a href="project/{{projectName}}/overview">Continue to overview</a>.</h1>
@@ -73,11 +68,23 @@ oc status</pre>
                 <p>For more information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
               </div>
 
-              <div ng-if="createdBuildConfigWithGitHubTrigger()" class="col-md-6">
+              <div ng-if="createdBuildConfig" class="col-md-6">
                 <h2>Making code changes</h2>
+                <p ng-if="fromSampleRepo">
+                  You are set up to use the example git repository. If you would like to modify the source code, fork the <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}">{{createdBuildConfig.spec.source.git.uri | githubLink}}</a> repository to an OpenShift-visible git account and <a href="{{createdBuildConfig | editResourceURL}}">edit the <strong>{{createdBuildConfig.metadata.name}}</strong> build config</a> to point to your fork.
+                  <span ng-if="createdBuildConfigWithConfigChangeTrigger()">Note that this will start a new build.</span>
+                </p>
                 <div ng-repeat="trigger in createdBuildConfig.spec.triggers" ng-if="trigger.type == 'GitHub'">
-                  <p>A GitHub <a target="_blank" href="{{'webhooks' | helpLink}}">webhook trigger</a> has been created for the <strong>{{createdBuildConfig.metadata.name}}</strong> build config. You can now set up the webhook in your GitHub repository settings in <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:</p>
-                  <pre class="code">{{createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName}}</pre>
+                  <p>
+                    A GitHub <a target="_blank" href="{{'webhooks' | helpLink}}">webhook trigger</a> has been created for the <strong>{{createdBuildConfig.metadata.name}}</strong> build config.
+                  </p>
+                  <p ng-if="fromSampleRepo">
+                  	You can configure the webhook in the forked repository's settings, using the following payload URL:
+                  </p>
+                  <p ng-if="!fromSampleRepo">
+                    You can now set up the webhook in the GitHub repository settings if you own it, in <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:
+                  </p>
+									<pre class="code">{{createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName}}</pre>
                 </div>
               </div>
             </div>
