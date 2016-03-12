@@ -3,16 +3,16 @@
 
 ## Description
 
-## How reproducible
+## Steps To Reproduce
 
 1. [step 1]
 2. [step 2]
 
-## Current result
+## Current Result
 
-## Expected result
+## Expected Result
 
-## Additional information
+## Additional Information
 
 [try to run `$ oadm diagnostics` command if possible]
 [if you are reporting issue related to builds, provide build logs with `BUILD_LOGLEVEL=5`]
