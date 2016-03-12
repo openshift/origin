@@ -74,7 +74,7 @@ func TestRouter(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 1)
 
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
@@ -406,7 +406,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 1)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -661,7 +661,7 @@ func TestRouterDuplications(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 1)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -805,7 +805,7 @@ func TestRouterStatsPort(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 1)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -865,7 +865,7 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, tc.port, 0)
+		routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, tc.port, 1)
 		if err != nil {
 			t.Fatalf("Test with %q error starting container %s : %v", tc.name, getRouterImage(), err)
 		}
@@ -910,7 +910,7 @@ func TestRouterServiceUnavailable(t *testing.T) {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}
 
-	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 0)
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, 1)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
