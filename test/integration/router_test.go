@@ -207,6 +207,21 @@ func TestRouter(t *testing.T) {
 			routerUrl: "0.0.0.0",
 		},
 		{
+			name:              "reencrypt-destcacert",
+			serviceName:       "example-reencrypt-destcacert",
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
+			routeAlias:        "www.example.com",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodSecure,
+			routeTLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationReencrypt,
+				DestinationCACertificate: tr.ExampleCACert,
+			},
+			routerUrl: "0.0.0.0",
+		},
+		{
 			name:              "reencrypt path",
 			serviceName:       "example-reencrypt-path",
 			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
