@@ -1209,6 +1209,13 @@ items:
     verbs:
     - create
     - delete
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods/binding
+    verbs:
+    - create
   - apiGroups: null
     attributeRestrictions: null
     resources:

@@ -19,6 +19,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
@@ -187,6 +188,12 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				c.Fuzz(&s.Value)
 			} else {
 				c.Fuzz(&s.StringSourceSpec)
+			}
+		},
+		func(obj *podnodeapi.PodNodeConstraintsConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			if obj.NodeSelectorLabelBlacklist == nil {
+				obj.NodeSelectorLabelBlacklist = []string{"kubernetes.io/hostname"}
 			}
 		},
 	)

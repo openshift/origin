@@ -7,22 +7,16 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
-
-	_ "github.com/openshift/origin/pkg/build/admission/defaults/api/install"
-	_ "github.com/openshift/origin/pkg/build/admission/overrides/api/install"
-	_ "github.com/openshift/origin/pkg/project/admission/requestlimit/api/install"
-	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
-	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration/api/install"
-	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api/install"
+	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/cmd/server/api"
+const importPrefix = "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{configapiv1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
 
 func init() {
 	if err := enableVersions(availableVersions); err != nil {
@@ -41,12 +35,12 @@ func enableVersions(externalVersions []unversioned.GroupVersion) error {
 
 func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 	// add the internal version to Scheme
-	configapi.AddToScheme(configapi.Scheme)
+	api.AddToScheme(configapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		switch v {
-		case configapiv1.SchemeGroupVersion:
-			configapiv1.AddToScheme(configapi.Scheme)
+		case v1.SchemeGroupVersion:
+			v1.AddToScheme(configapi.Scheme)
 
 		default:
 			glog.Errorf("Version %s is not known, so it will not be added to the Scheme.", v)
