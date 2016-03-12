@@ -6,8 +6,8 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
-	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )

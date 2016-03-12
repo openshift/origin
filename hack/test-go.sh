@@ -158,10 +158,15 @@ done
 gotest_flags+=" $*"
 
 # Determine packages to test
+godeps_package_prefix="Godeps/_workspace/src/"
 test_packages=
 if [[ -n "${package_args}" ]]; then
     for package in ${package_args}; do
-        test_packages="${test_packages} ${OS_GO_PACKAGE}/${package}"
+        if [[ "${package}" == "${godeps_package_prefix}"* ]]; then
+            test_packages="${test_packages} ${package:${#godeps_package_prefix}}"
+        else
+            test_packages="${test_packages} ${OS_GO_PACKAGE}/${package}"
+        fi
     done
 else
     # If no packages are given to test, we need to generate a list of all packages with unit tests

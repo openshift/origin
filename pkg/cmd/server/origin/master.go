@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -216,11 +217,12 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	longRunningRequestCheck := apiserver.BasicLongRunningRequestCheck(longRunningRE, map[string]string{"watch": "true"})
 	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
 		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
-		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+		handler = apiserver.MaxInFlightLimit(sem, longRunningRequestCheck, handler)
 	}
 
 	c.serve(handler, extra)
@@ -357,11 +359,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 
 	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := kclient.TransportFor(&kclient.Config{})
+	importTransport, err := restclient.TransportFor(&restclient.Config{})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
-	insecureImportTransport, err := kclient.TransportFor(&kclient.Config{Insecure: true})
+	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{Insecure: true})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
@@ -559,7 +561,13 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) ([]st
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, versions...)
+	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *unversioned.APIVersions {
+		apiVersionsForDiscovery := unversioned.APIVersions{
+			// TODO: ServerAddressByClientCIDRs: s.getServerAddressByClientCIDRs(req.Request),
+			Versions: versions,
+		}
+		return &apiVersionsForDiscovery
+	})
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
@@ -636,7 +644,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
-		NonDefaultGroupVersionKinds: map[string]unversioned.GroupVersionKind{},
+		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
 	}
 }
 
@@ -655,7 +663,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version.GroupVersion = v1beta3.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 
@@ -673,7 +681,7 @@ func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVe
 	version.GroupVersion = v1.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
@@ -140,7 +140,7 @@ func newLoginOptions(server string, username string, password string, insecure b
 	return loginOptions
 }
 
-func whoami(clientCfg *kclient.Config) (*api.User, error) {
+func whoami(clientCfg *restclient.Config) (*api.User, error) {
 	oClient, err := client.New(clientCfg)
 	if err != nil {
 		return nil, err

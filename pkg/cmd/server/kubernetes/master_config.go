@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -50,6 +51,9 @@ var AdmissionPlugins = []string{"NamespaceLifecycle", "PodNodeConstraints", "Ori
 type MasterConfig struct {
 	Options    configapi.KubernetesMasterConfig
 	KubeClient *kclient.Client
+
+	// TODO: partition this by controller
+	KubeConfig *restclient.Config
 
 	Master            *master.Config
 	ControllerManager *cmapp.CMServer
@@ -113,7 +117,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	cmserver := cmapp.NewCMServer()
-	cmserver.PodEvictionTimeout = podEvictionTimeout
+	cmserver.PodEvictionTimeout = unversioned.Duration{podEvictionTimeout}
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors

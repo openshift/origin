@@ -260,7 +260,7 @@ func init() {
 				// HPA Controller
 				{
 					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "list"),
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("horizontalpodautoscalers"),
 				},
 				{

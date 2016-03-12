@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
@@ -17,7 +18,7 @@ type remoteExecutor struct {
 	PodName       string
 	ContainerName string
 	Client        *kclient.Client
-	Config        *kclient.Config
+	Config        *restclient.Config
 }
 
 // Ensure it implements the executor interface

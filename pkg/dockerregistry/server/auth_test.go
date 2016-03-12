@@ -12,7 +12,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/docker/distribution/context"
@@ -66,7 +66,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		client, err := client.New(&kclient.Config{BearerToken: "magic bearer token", Host: server.URL})
+		client, err := client.New(&restclient.Config{BearerToken: "magic bearer token", Host: server.URL})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -278,7 +278,7 @@ func TestAccessController(t *testing.T) {
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
 		DefaultRegistryClient = NewRegistryClient(&clientcmd.Config{
-			CommonConfig: kclient.Config{
+			CommonConfig: restclient.Config{
 				Host:     server.URL,
 				Insecure: true,
 			},

@@ -6,7 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/oauth/client"
 	"k8s.io/kubernetes/pkg/auth/user"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 type OAuthAccessTokenSource interface {
@@ -34,7 +34,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 
 	auth := oclient.OAuthWrapper{a.rt, token}
 
-	client, err := client.New(&kclient.Config{Transport: auth, Host: a.host})
+	client, err := client.New(&restclient.Config{Transport: auth, Host: a.host})
 	if err != nil {
 		return nil, false, err
 	}

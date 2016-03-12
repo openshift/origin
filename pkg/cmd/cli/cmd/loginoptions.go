@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -49,7 +49,7 @@ type LoginOptions struct {
 	// infra
 	StartingKubeConfig *kclientcmdapi.Config
 	DefaultNamespace   string
-	Config             *kclient.Config
+	Config             *restclient.Config
 	Reader             io.Reader
 	Out                io.Writer
 
@@ -75,12 +75,12 @@ func (o *LoginOptions) GatherInfo() error {
 
 // getClientConfig returns back the current clientConfig as we know it.  If there is no clientConfig, it builds one with enough information
 // to talk to a server.  This may involve user prompts.  This method is not threadsafe.
-func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
+func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	if o.Config != nil {
 		return o.Config, nil
 	}
 
-	clientConfig := &kclient.Config{}
+	clientConfig := &restclient.Config{}
 
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
@@ -176,7 +176,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 }
 
 // getMatchingClusters examines the kubeconfig for all clusters that point to the same server
-func getMatchingClusters(clientConfig kclient.Config, kubeconfig clientcmdapi.Config) sets.String {
+func getMatchingClusters(clientConfig restclient.Config, kubeconfig clientcmdapi.Config) sets.String {
 	ret := sets.String{}
 
 	for key, cluster := range kubeconfig.Clusters {

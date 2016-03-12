@@ -52,6 +52,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util/configz"
 	"k8s.io/kubernetes/pkg/util/flushwriter"
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
@@ -169,6 +170,7 @@ type HostInterface interface {
 	DockerImagesFsInfo() (cadvisorapiv2.FsInfo, error)
 	RootFsInfo() (cadvisorapiv2.FsInfo, error)
 	ListVolumesForPod(podUID types.UID) (map[string]volume.Volume, bool)
+	PLEGHealthCheck() (bool, error)
 }
 
 // NewServer initializes and configures a kubelet.Server object to handle HTTP requests.
@@ -226,6 +228,7 @@ func (s *Server) InstallDefaultHandlers() {
 	healthz.InstallHandler(s.restfulCont,
 		healthz.PingHealthz,
 		healthz.NamedCheck("syncloop", s.syncLoopHealthCheck),
+		healthz.NamedCheck("pleg", s.plegHealthCheck),
 	)
 	var ws *restful.WebService
 	ws = new(restful.WebService)
@@ -332,6 +335,8 @@ func (s *Server) InstallDebuggingHandlers() {
 		Operation("getContainerLogs"))
 	s.restfulCont.Add(ws)
 
+	configz.InstallHandler(s.restfulCont)
+
 	handlePprofEndpoint := func(req *restful.Request, resp *restful.Response) {
 		name := strings.TrimPrefix(req.Request.URL.Path, pprofBasePath)
 		switch name {
@@ -382,6 +387,14 @@ func (s *Server) syncLoopHealthCheck(req *http.Request) error {
 	enterLoopTime := s.host.LatestLoopEntryTime()
 	if !enterLoopTime.IsZero() && time.Now().After(enterLoopTime.Add(duration)) {
 		return fmt.Errorf("Sync Loop took longer than expected.")
+	}
+	return nil
+}
+
+// Checks if pleg, which lists pods periodically, is healthy.
+func (s *Server) plegHealthCheck(req *http.Request) error {
+	if ok, err := s.host.PLEGHealthCheck(); !ok {
+		return fmt.Errorf("PLEG took longer than expected: %v", err)
 	}
 	return nil
 }

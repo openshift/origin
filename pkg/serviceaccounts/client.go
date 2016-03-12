@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/client"
@@ -54,7 +55,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account
 // TODO: change return types to client.Interface/kclient.Interface to allow auto-reloading credentials
-func Clients(config kclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*client.Client, *kclient.Client, error) {
+func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*client.Client, *kclient.Client, error) {
 	// Clear existing auth info
 	config.Username = ""
 	config.Password = ""

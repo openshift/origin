@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/homedir"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -109,7 +109,7 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 }
 
 // ClientConfig returns a complete client config
-func (c defaultingClientConfig) ClientConfig() (*kclient.Config, error) {
+func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 	cfg, err := c.nested.ClientConfig()
 	if err == nil {
 		return cfg, nil
@@ -120,7 +120,7 @@ func (c defaultingClientConfig) ClientConfig() (*kclient.Config, error) {
 	}
 
 	// TODO: need to expose inClusterConfig upstream and use that
-	if icc, err := kclient.InClusterConfig(); err == nil {
+	if icc, err := restclient.InClusterConfig(); err == nil {
 		glog.V(4).Infof("Using in-cluster configuration")
 		return icc, nil
 	}
@@ -156,24 +156,11 @@ func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	var restMapper meta.MultiRESTMapper
-	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
-		if seenGroups.Has(gv.Group) {
-			continue
-		}
-		seenGroups.Insert(gv.Group)
-
-		groupMeta, err := registered.Group(gv.Group)
-		if err != nil {
-			continue
-		}
-		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
-	}
+	restMapper := registered.RESTMapper()
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
-		configs: make(map[string]*kclient.Config),
+		configs: make(map[string]*restclient.Config),
 		loader:  clientConfig,
 	}
 
@@ -339,7 +326,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 	}
 	kLogsForObjectFunc := w.Factory.LogsForObject
-	w.LogsForObject = func(object, options runtime.Object) (*kclient.Request, error) {
+	w.LogsForObject = func(object, options runtime.Object) (*restclient.Request, error) {
 		oc, _, err := w.Clients()
 		if err != nil {
 			return nil, err
@@ -596,7 +583,7 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (f *Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	if version.IsEmpty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}
@@ -618,14 +605,14 @@ func (f *Factory) OriginSwaggerSchema(client *kclient.RESTClient, version unvers
 type clientCache struct {
 	loader        kclientcmd.ClientConfig
 	clients       map[string]*client.Client
-	configs       map[string]*kclient.Config
-	defaultConfig *kclient.Config
+	configs       map[string]*restclient.Config
+	defaultConfig *restclient.Config
 	// negotiatingClient is used only for negotiating versions with the server.
 	negotiatingClient *kclient.Client
 }
 
 // ClientConfigForVersion returns the correct config for a server
-func (c *clientCache) ClientConfigForVersion(version *unversioned.GroupVersion) (*kclient.Config, error) {
+func (c *clientCache) ClientConfigForVersion(version *unversioned.GroupVersion) (*restclient.Config, error) {
 	if c.defaultConfig == nil {
 		config, err := c.loader.ClientConfig()
 		if err != nil {

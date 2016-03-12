@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-func (s *AWSCloud) ensureLoadBalancer(namespacedName types.NamespacedName, name string, listeners []*elb.Listener, subnetIDs []string, securityGroupIDs []string) (*elb.LoadBalancerDescription, error) {
+func (s *AWSCloud) ensureLoadBalancer(namespacedName types.NamespacedName, name string, listeners []*elb.Listener, subnetIDs []string, securityGroupIDs []string, internalELB bool) (*elb.LoadBalancerDescription, error) {
 	loadBalancer, err := s.describeLoadBalancer(name)
 	if err != nil {
 		return nil, err
@@ -42,6 +42,10 @@ func (s *AWSCloud) ensureLoadBalancer(namespacedName types.NamespacedName, name 
 
 		createRequest.Listeners = listeners
 
+		if internalELB {
+			createRequest.Scheme = aws.String("internal")
+		}
+
 		// We are supposed to specify one subnet per AZ.
 		// TODO: What happens if we have more than one subnet per AZ?
 		createRequest.Subnets = stringPointerArray(subnetIDs)
@@ -53,13 +57,15 @@ func (s *AWSCloud) ensureLoadBalancer(namespacedName types.NamespacedName, name 
 			{Key: aws.String(TagNameKubernetesService), Value: aws.String(namespacedName.String())},
 		}
 
-		glog.Infof("Creating load balancer for %v with name: ", namespacedName, name)
+		glog.Infof("Creating load balancer for %v with name: %s", namespacedName, name)
 		_, err := s.elb.CreateLoadBalancer(createRequest)
 		if err != nil {
 			return nil, err
 		}
 		dirty = true
 	} else {
+		// TODO: Sync internal vs non-internal
+
 		{
 			// Sync subnets
 			expected := sets.NewString(subnetIDs...)
@@ -206,7 +212,7 @@ func (s *AWSCloud) ensureLoadBalancerHealthCheck(loadBalancer *elb.LoadBalancerD
 	expectedTimeout := int64(5)
 	expectedInterval := int64(10)
 
-	// We only a TCP health-check on the first port
+	// We only configure a TCP health-check on the first port
 	expectedTarget := ""
 	for _, listener := range listeners {
 		if listener.InstancePort == nil {

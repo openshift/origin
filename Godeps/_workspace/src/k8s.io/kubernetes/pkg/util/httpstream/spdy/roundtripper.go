@@ -189,6 +189,7 @@ func (s *SpdyRoundTripper) dialWithoutProxy(url *url.URL) (net.Conn, error) {
 	return conn, nil
 }
 
+// proxyAuth returns, for a given proxy URL, the value to be used for the Proxy-Authorization header
 func (s *SpdyRoundTripper) proxyAuth(proxyURL *url.URL) string {
 	if proxyURL == nil || proxyURL.User == nil {
 		return ""

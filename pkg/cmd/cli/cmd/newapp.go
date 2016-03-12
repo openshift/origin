@@ -17,6 +17,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -810,10 +811,10 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 }
 
 type configSecretRetriever struct {
-	config *kclient.Config
+	config *restclient.Config
 }
 
-func newConfigSecretRetriever(config *kclient.Config) newapp.SecretAccessor {
+func newConfigSecretRetriever(config *restclient.Config) newapp.SecretAccessor {
 	return &configSecretRetriever{config}
 }
 

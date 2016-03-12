@@ -18,7 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -498,7 +498,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 }
 
 func TestImageStreamImportDockerHub(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	imports := &api.ImageStreamImport{
@@ -559,7 +559,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 }
 
 func TestImageStreamImportQuayIO(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	repositoryName := quayRegistryName + "/coreos/etcd"
@@ -612,7 +612,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 }
 
 func TestImageStreamImportRedHatRegistry(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	repositoryName := pulpRegistryName + "/rhel7"

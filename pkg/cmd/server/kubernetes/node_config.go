@@ -188,7 +188,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
 		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
 		glog.Warningf("Disabling cgroup manipulation of nested docker daemon for docker-in-docker compatibility")
-		cfg.DockerDaemonContainer = ""
+		cfg.RuntimeCgroups = ""
+		// TODO: should KubeletCgroups and SystemCgroups also be set to ""?
 	}
 
 	// Setup auth

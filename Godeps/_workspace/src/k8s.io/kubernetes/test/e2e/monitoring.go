@@ -31,9 +31,8 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-// TODO: quinton: debug issue #6541 and then remove Pending flag here.
-var _ = Describe("[Flaky] Monitoring", func() {
-	f := NewFramework("monitoring")
+var _ = Describe("Monitoring", func() {
+	f := NewDefaultFramework("monitoring")
 
 	BeforeEach(func() {
 		SkipUnlessProviderIs("gce")
