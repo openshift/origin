@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/cache"
 )
@@ -21,4 +22,10 @@ type WantsProjectCache interface {
 // after initialization has happened.
 type Validator interface {
 	Validate() error
+}
+
+// WantsAuthorizer should be implemented by admission plugins that
+// need access to the Authorizer interface
+type WantsAuthorizer interface {
+	SetAuthorizer(authorizer.Authorizer)
 }
