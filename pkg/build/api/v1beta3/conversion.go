@@ -20,7 +20,7 @@ func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.
 	// strip off any default imagechange triggers where the buildconfig's
 	// "from" is not an ImageStreamTag, because those triggers
 	// will never be invoked.
-	imageRef := buildutil.GetImageStreamForStrategy(out.Spec.Strategy)
+	imageRef := buildutil.GetInputReference(out.Spec.Strategy)
 	hasIST := imageRef != nil && imageRef.Kind == "ImageStreamTag"
 	for _, trigger := range out.Spec.Triggers {
 		if trigger.Type != newer.ImageChangeBuildTriggerType {

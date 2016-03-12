@@ -34,7 +34,7 @@ USER 1001
 	g.Describe("being created from new-build", func() {
 		g.It("should create a image via new-build", func() {
 			g.By(fmt.Sprintf("calling oc new-build with Dockerfile"))
-			err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile).Execute()
+			err := oc.Run("new-build").Args("-D", "-", "--to", "origin-base:custom").InputString(testDockerfile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
