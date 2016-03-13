@@ -50,8 +50,12 @@ type CLI struct {
 // with the project name. Note that this function does not initialize the project
 // role bindings for the namespace.
 func NewCLI(project, adminConfigPath string) *CLI {
+	// Avoid every caller needing to provide a unique project name
+	// SetupProject already treats this as a baseName
+	uniqueProject := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", project))
+
 	client := &CLI{}
-	client.kubeFramework = e2e.InitializeFramework(project, client.SetupProject)
+	client.kubeFramework = e2e.NewDefaultFramework(uniqueProject)
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	client.execPath = "oc"
@@ -59,6 +63,10 @@ func NewCLI(project, adminConfigPath string) *CLI {
 		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
+
+	// Register custom ns setup func
+	setCreateTestingNSFunc(uniqueProject, client.SetupProject)
+
 	return client
 }
 
