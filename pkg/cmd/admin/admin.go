@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/admin/prune"
+	"github.com/openshift/origin/pkg/cmd/admin/quota"
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -67,6 +68,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
+				quota.NewCommandQuota(quota.QuotaRecommendedName, fullName+" "+quota.QuotaRecommendedName, f, out),
 			},
 		},
 		{

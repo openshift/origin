@@ -322,12 +322,12 @@ func formatImageStreamQuota(out *tabwriter.Writer, c client.Interface, kc kclien
 	}
 	if limit != nil {
 		quantity := imagequota.GetImageStreamSize(c, stream, make(map[string]*imageapi.Image))
-		scale := mega
-		if quantity.Value() >= (1<<giga.scale) || limit.Value() >= (1<<giga.scale) {
-			scale = giga
+		scale := Mega
+		if quantity.Value() >= (1<<Giga.scale) || limit.Value() >= (1<<Giga.scale) {
+			scale = Giga
 		}
 		formatString(out, "Quota Usage", fmt.Sprintf("%s / %s",
-			formatQuantity(quantity, scale), formatQuantity(limit, scale)))
+			FormatQuantity(quantity, scale), FormatQuantity(limit, scale)))
 	}
 }
 
@@ -337,13 +337,13 @@ type scale struct {
 }
 
 var (
-	mega = scale{20, "MiB"}
-	giga = scale{30, "GiB"}
+	Mega = scale{20, "MiB"}
+	Giga = scale{30, "GiB"}
 )
 
 // formatQuantity prints quantity according to passed scale. Manual scaling was
 // done here to make sure we print correct binary values for quantity.
-func formatQuantity(quantity *resource.Quantity, scale scale) string {
+func FormatQuantity(quantity *resource.Quantity, scale scale) string {
 	integer := quantity.Value() >> scale.scale
 	// fraction is the reminder of a division shifted by one order of magnitude
 	fraction := (quantity.Value() % (1 << scale.scale)) >> (scale.scale - 10)
