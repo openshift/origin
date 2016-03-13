@@ -94,3 +94,25 @@ func (r *runtimeCache) getPodsWithTimestamp() ([]*Pod, time.Time, error) {
 	pods, err := r.getter.GetPods(false)
 	return pods, timestamp, err
 }
+
+// TestRunTimeCache embeds runtimeCache with some additional methods for testing.
+type TestRuntimeCache struct {
+	runtimeCache
+}
+
+func (r *TestRuntimeCache) UpdateCacheWithLock() error {
+	r.Lock()
+	defer r.Unlock()
+	return r.updateCache()
+}
+
+func (r *TestRuntimeCache) GetCachedPods() []*Pod {
+	r.Lock()
+	defer r.Unlock()
+	return r.pods
+}
+
+func NewTestRuntimeCache(getter podsGetter) *TestRuntimeCache {
+	c, _ := NewRuntimeCache(getter)
+	return &TestRuntimeCache{*c.(*runtimeCache)}
+}
