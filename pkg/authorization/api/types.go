@@ -27,6 +27,12 @@ const (
 	ServiceAccountKind = "ServiceAccount"
 	SystemUserKind     = "SystemUser"
 	SystemGroupKind    = "SystemGroup"
+
+	UserResource           = "users"
+	GroupResource          = "groups"
+	ServiceAccountResource = "serviceaccounts"
+	SystemUserResource     = "systemusers"
+	SystemGroupResource    = "systemgroups"
 )
 
 const (

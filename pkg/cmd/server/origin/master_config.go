@@ -317,6 +317,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 
 		authenticators = append(authenticators,
 			// if you have a bearer token, you're a human (usually)
+			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
@@ -333,6 +334,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 	ret := &unionrequest.Authenticator{
 		FailOnError: true,
 		Handlers: []authenticator.Request{
+			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
 			anonymous.NewAuthenticator(),
 		},

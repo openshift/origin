@@ -16,11 +16,18 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
@@ -290,4 +297,121 @@ func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handl
 		// Dispatch to the next handler
 		handler.ServeHTTP(w, req)
 	})
+}
+
+func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		requestedSubject := req.Header.Get("Impersonate-User")
+		if len(requestedSubject) == 0 {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		resource, namespace, name, err := parseRequestedSubject(requestedSubject)
+		if err != nil {
+			forbidden(err.Error(), nil, w, req)
+			return
+		}
+
+		ctx, exists := c.RequestContextMapper.Get(req)
+		if !exists {
+			forbidden("context not found", nil, w, req)
+			return
+		}
+
+		actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
+			Verb:         "impersonate",
+			APIGroup:     resource.Group,
+			Resource:     resource.Resource,
+			ResourceName: name,
+		}
+		authCheckCtx := kapi.WithNamespace(ctx, namespace)
+
+		allowed, reason, err := c.Authorizer.Authorize(authCheckCtx, actingAsAttributes)
+		if err != nil {
+			forbidden(err.Error(), actingAsAttributes, w, req)
+			return
+		}
+		if !allowed {
+			forbidden(reason, actingAsAttributes, w, req)
+			return
+		}
+
+		switch resource {
+		case kapi.Resource(authorizationapi.ServiceAccountResource):
+			newUser := &user.DefaultInfo{
+				Name:   serviceaccount.MakeUsername(namespace, name),
+				Groups: serviceaccount.MakeGroupNames(namespace, name),
+			}
+			newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup)
+			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
+
+		case userapi.Resource(authorizationapi.UserResource):
+			newUser := &user.DefaultInfo{
+				Name: name,
+			}
+			groups, err := c.GroupCache.GroupsFor(name)
+			if err == nil {
+				for _, group := range groups {
+					newUser.Groups = append(newUser.Groups, group.Name)
+				}
+			}
+
+			newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
+			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
+
+		case userapi.Resource(authorizationapi.SystemUserResource):
+			newUser := &user.DefaultInfo{
+				Name: name,
+			}
+
+			if name == bootstrappolicy.UnauthenticatedUsername {
+				newUser.Groups = append(newUser.Groups, bootstrappolicy.UnauthenticatedGroup)
+			} else {
+				newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup)
+			}
+			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
+
+		default:
+			forbidden(fmt.Sprintf("%v is an unhandled resource for acting-as", resource), nil, w, req)
+			return
+		}
+
+		newCtx, _ := c.RequestContextMapper.Get(req)
+		oldUser, _ := kapi.UserFrom(ctx)
+		newUser, _ := kapi.UserFrom(newCtx)
+		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
+
+		handler.ServeHTTP(w, req)
+	})
+}
+
+func parseRequestedSubject(requestedSubject string) (unversioned.GroupResource, string, string, error) {
+	subjects := authorizationapi.BuildSubjects([]string{requestedSubject}, nil,
+		// validates whether the usernames are regular users or system users
+		uservalidation.ValidateUserName,
+		// validates group names, but we never pass any groups
+		func(s string, b bool) (bool, string) { return true, "" })
+
+	if len(subjects) == 0 {
+		return unversioned.GroupResource{}, "", "", fmt.Errorf("subject must be in the form of a username, not %v", requestedSubject)
+
+	}
+
+	resource := unversioned.GroupResource{}
+	switch subjects[0].GetObjectKind().GroupVersionKind().GroupKind() {
+	case userapi.Kind(authorizationapi.UserKind):
+		resource = userapi.Resource(authorizationapi.UserResource)
+
+	case userapi.Kind(authorizationapi.SystemUserKind):
+		resource = userapi.Resource(authorizationapi.SystemUserResource)
+
+	case kapi.Kind(authorizationapi.ServiceAccountKind):
+		resource = kapi.Resource(authorizationapi.ServiceAccountResource)
+
+	default:
+		return unversioned.GroupResource{}, "", "", fmt.Errorf("unknown subject type: %v", subjects[0])
+	}
+
+	return resource, subjects[0].Namespace, subjects[0].Name, nil
 }
