@@ -24,7 +24,7 @@ type PolicyRule struct {
 	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
 	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
 	// will be allowed
-	APIGroups []string `json:"apiGroups" description:"list of API groups this rule applies to.  * represents all API groups."`
+	APIGroups []string `json:"apiGroups"`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
 	ResourceKinds []string `json:"resourceKinds,omitempty"`
@@ -181,10 +181,10 @@ type AuthorizationAttributes struct {
 	Verb string `json:"verb"`
 	// Group is the API group of the resource
 	// Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined
-	Group string `json:"resourceAPIGroup" description:"API group of the resource being requested"`
+	Group string `json:"resourceAPIGroup"`
 	// Version is the API version of the resource
 	// Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined
-	Version string `json:"resourceAPIVersion" description:"API version of the resource being requested"`
+	Version string `json:"resourceAPIVersion"`
 	// Resource is one of the existing resource types
 	Resource string `json:"resource"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"

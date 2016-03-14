@@ -20,12 +20,12 @@ const (
 // ProjectSpec describes the attributes on a Project
 type ProjectSpec struct {
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
-	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty" description:"an opaque list of values that must be empty to permanently remove object from storage"`
+	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty"`
 }
 
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
-	Phase kapi.NamespacePhase `json:"phase,omitempty" description:"phase is the current lifecycle phase of the project"`
+	Phase kapi.NamespacePhase `json:"phase,omitempty"`
 }
 
 // Project is a logical top-level container for a set of origin resources
@@ -34,10 +34,10 @@ type Project struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec defines the behavior of the Namespace.
-	Spec ProjectSpec `json:"spec,omitempty" description:"spec defines the behavior of the Project"`
+	Spec ProjectSpec `json:"spec,omitempty"`
 
 	// Status describes the current status of a Namespace
-	Status ProjectStatus `json:"status,omitempty" description:"status describes the current status of a Project; read-only"`
+	Status ProjectStatus `json:"status,omitempty"`
 }
 
 type ProjectRequest struct {
