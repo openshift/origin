@@ -8,14 +8,16 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/openshift/origin/pkg/api/graph"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	rcutils "k8s.io/kubernetes/pkg/controller/replication"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 
+	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -27,101 +29,34 @@ import (
 
 // DeploymentConfigDescriber generates information about a DeploymentConfig
 type DeploymentConfigDescriber struct {
-	client deploymentDescriberClient
-}
+	osClient   client.Interface
+	kubeClient kclient.Interface
 
-type deploymentDescriberClient interface {
-	getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
-	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
-	listDeployments(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	listPods(namespace string, selector labels.Selector) (*kapi.PodList, error)
-	listEvents(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
-}
-
-type genericDeploymentDescriberClient struct {
-	getDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
-	getDeploymentFunc       func(namespace, name string) (*kapi.ReplicationController, error)
-	listDeploymentsFunc     func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	listPodsFunc            func(namespace string, selector labels.Selector) (*kapi.PodList, error)
-	listEventsFunc          func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
-}
-
-func (c *genericDeploymentDescriberClient) getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return c.getDeploymentConfigFunc(namespace, name)
-}
-
-func (c *genericDeploymentDescriberClient) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return c.getDeploymentFunc(namespace, name)
-}
-
-func (c *genericDeploymentDescriberClient) listDeployments(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-	return c.listDeploymentsFunc(namespace, selector)
-}
-
-func (c *genericDeploymentDescriberClient) listPods(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-	return c.listPodsFunc(namespace, selector)
-}
-
-func (c *genericDeploymentDescriberClient) listEvents(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
-	return c.listEventsFunc(deploymentConfig)
-}
-
-// NewDeploymentConfigDescriberForConfig returns a new DeploymentConfigDescriber
-// for a DeploymentConfig
-func NewDeploymentConfigDescriberForConfig(client client.Interface, kclient kclient.Interface, config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
-	return &DeploymentConfigDescriber{
-		client: &genericDeploymentDescriberClient{
-			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return config, nil
-			},
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound(kapi.Resource("replicatoncontroller"), name)
-			},
-			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return nil, kerrors.NewNotFound(kapi.Resource("replicationcontrollerlist"), fmt.Sprintf("%v", selector))
-			},
-			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return nil, kerrors.NewNotFound(kapi.Resource("podlist"), fmt.Sprintf("%v", selector))
-			},
-			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
-				return kclient.Events(config.Namespace).Search(config)
-			},
-		},
-	}
+	config *deployapi.DeploymentConfig
 }
 
 // NewDeploymentConfigDescriber returns a new DeploymentConfigDescriber
-func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Interface) *DeploymentConfigDescriber {
+func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Interface, config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
-		client: &genericDeploymentDescriberClient{
-			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return client.DeploymentConfigs(namespace).Get(name)
-			},
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return kclient.ReplicationControllers(namespace).Get(name)
-			},
-			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
-			},
-			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
-			},
-			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
-				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
-			},
-		},
+		osClient:   client,
+		kubeClient: kclient,
+		config:     config,
 	}
 }
 
 // Describe returns the description of a DeploymentConfig
 func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
-	deploymentConfig, err := d.client.getDeploymentConfig(namespace, name)
-	if err != nil {
-		return "", err
-	}
-	events, err := d.client.listEvents(deploymentConfig)
-	if err != nil {
-		return "", err
+	var deploymentConfig *deployapi.DeploymentConfig
+	if d.config != nil {
+		// If a deployment config is already provided use that.
+		// This is used by `oc rollback --dry-run`.
+		deploymentConfig = d.config
+	} else {
+		var err error
+		deploymentConfig, err = d.osClient.DeploymentConfigs(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
@@ -133,14 +68,15 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			formatString(out, "Latest Version", strconv.Itoa(deploymentConfig.Status.LatestVersion))
 		}
 
-		printDeploymentConfigSpec(deploymentConfig.Spec, out)
+		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
 		fmt.Fprintln(out)
 
 		if deploymentConfig.Status.Details != nil && len(deploymentConfig.Status.Details.Message) > 0 {
 			fmt.Fprintf(out, "Warning:\t%s\n", deploymentConfig.Status.Details.Message)
 		}
+
 		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
-		deployment, err := d.client.getDeployment(namespace, deploymentName)
+		deployment, err := d.kubeClient.ReplicationControllers(namespace).Get(deploymentName)
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				formatString(out, "Latest Deployment", "<none>")
@@ -149,22 +85,25 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			}
 		} else {
 			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
-			printDeploymentRc(deployment, d.client, out, header, true)
+			printDeploymentRc(deployment, d.kubeClient, out, header, true)
 		}
-		deploymentsHistory, err := d.client.listDeployments(namespace, labels.Everything())
-		if err == nil {
-			sorted := rcSorter{}
-			sorted = append(sorted, deploymentsHistory.Items...)
-			sort.Sort(sorted)
-			for _, item := range sorted {
-				if item.Name != deploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
-					header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
-					printDeploymentRc(&item, d.client, out, header, false)
+		// We don't show the deployment history when running `oc rollback --dry-run`.
+		if d.config == nil {
+			deploymentsHistory, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
+			if err == nil {
+				sorted := deploymentsHistory.Items
+				sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
+				for _, item := range sorted {
+					if item.Name != deploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
+						header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
+						printDeploymentRc(&item, d.kubeClient, out, header, false)
+					}
 				}
 			}
 		}
 
-		if events != nil {
+		// Events
+		if events, err := d.kubeClient.Events(deploymentConfig.Namespace).Search(deploymentConfig); err == nil && events != nil {
 			fmt.Fprintln(out)
 			kctl.DescribeEvents(events, out)
 		}
@@ -271,7 +210,8 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Wr
 	formatString(w, "Triggers", desc)
 }
 
-func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w *tabwriter.Writer) error {
+func printDeploymentConfigSpec(kc kclient.Interface, dc deployapi.DeploymentConfig, w *tabwriter.Writer) error {
+	spec := dc.Spec
 	// Selector
 	formatString(w, "Selector", formatLabels(spec.Selector))
 
@@ -281,6 +221,9 @@ func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w *tabwriter
 		test = " (test, will be scaled down between deployments)"
 	}
 	formatString(w, "Replicas", fmt.Sprintf("%d%s", spec.Replicas, test))
+
+	// Autoscaling info
+	printAutoscalingInfo(deployapi.Resource("DeploymentConfig"), dc.Namespace, dc.Name, kc, w)
 
 	// Triggers
 	printTriggers(spec.Triggers, w)
@@ -296,7 +239,33 @@ func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w *tabwriter
 	return nil
 }
 
-func printDeploymentRc(deployment *kapi.ReplicationController, client deploymentDescriberClient, w io.Writer, header string, verbose bool) error {
+// TODO: Move this upstream
+func printAutoscalingInfo(res unversioned.GroupResource, namespace, name string, kclient kclient.Interface, w *tabwriter.Writer) {
+	hpaList, err := kclient.Extensions().HorizontalPodAutoscalers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
+	if err != nil {
+		return
+	}
+
+	scaledBy := []extensions.HorizontalPodAutoscaler{}
+	for _, hpa := range hpaList.Items {
+		if hpa.Spec.ScaleRef.Name == name && hpa.Spec.ScaleRef.Kind == res.String() {
+			scaledBy = append(scaledBy, hpa)
+		}
+	}
+
+	for _, hpa := range scaledBy {
+		cpuUtil := ""
+		if hpa.Spec.CPUUtilization != nil {
+			cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", hpa.Spec.CPUUtilization.TargetPercentage)
+		}
+		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas%s\n", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, cpuUtil)
+		// TODO: Print a warning in case of multiple hpas.
+		// Related oc status PR: https://github.com/openshift/origin/pull/7799
+		break
+	}
+}
+
+func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclient.Interface, w io.Writer, header string, verbose bool) error {
 	if len(header) > 0 {
 		fmt.Fprintf(w, "%v:\n", header)
 	}
@@ -312,7 +281,7 @@ func printDeploymentRc(deployment *kapi.ReplicationController, client deployment
 	if verbose {
 		fmt.Fprintf(w, "\tSelector:\t%s\n", formatLabels(deployment.Spec.Selector))
 		fmt.Fprintf(w, "\tLabels:\t%s\n", formatLabels(deployment.Labels))
-		running, waiting, succeeded, failed, err := getPodStatusForDeployment(deployment, client)
+		running, waiting, succeeded, failed, err := getPodStatusForDeployment(deployment, kubeClient)
 		if err != nil {
 			return err
 		}
@@ -322,8 +291,8 @@ func printDeploymentRc(deployment *kapi.ReplicationController, client deployment
 	return nil
 }
 
-func getPodStatusForDeployment(deployment *kapi.ReplicationController, client deploymentDescriberClient) (running, waiting, succeeded, failed int, err error) {
-	rcPods, err := client.listPods(deployment.Namespace, labels.SelectorFromSet(deployment.Spec.Selector))
+func getPodStatusForDeployment(deployment *kapi.ReplicationController, kubeClient kclient.Interface) (running, waiting, succeeded, failed int, err error) {
+	rcPods, err := kubeClient.Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: labels.Set(deployment.Spec.Selector).AsSelector()})
 	if err != nil {
 		return
 	}
@@ -343,31 +312,17 @@ func getPodStatusForDeployment(deployment *kapi.ReplicationController, client de
 }
 
 type LatestDeploymentsDescriber struct {
-	count  int
-	client deploymentDescriberClient
+	count      int
+	osClient   client.Interface
+	kubeClient kclient.Interface
 }
 
 // NewLatestDeploymentsDescriber lists the latest deployments limited to "count". In case count == -1, list back to the last successful.
 func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Interface, count int) *LatestDeploymentsDescriber {
 	return &LatestDeploymentsDescriber{
-		count: count,
-		client: &genericDeploymentDescriberClient{
-			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return client.DeploymentConfigs(namespace).Get(name)
-			},
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return kclient.ReplicationControllers(namespace).Get(name)
-			},
-			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: selector})
-			},
-			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(kapi.ListOptions{LabelSelector: selector})
-			},
-			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
-				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
-			},
-		},
+		count:      count,
+		osClient:   client,
+		kubeClient: kclient,
 	}
 }
 
@@ -375,21 +330,21 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
 	var f formatter
 
-	config, err := d.client.getDeploymentConfig(namespace, name)
+	config, err := d.osClient.DeploymentConfigs(namespace).Get(name)
 	if err != nil {
 		return "", err
 	}
 
 	var deployments []kapi.ReplicationController
 	if d.count == -1 || d.count > 1 {
-		list, err := d.client.listDeployments(namespace, labels.Everything())
+		list, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: labels.Set(config.Spec.Selector).AsSelector()})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err
 		}
 		deployments = list.Items
 	} else {
 		deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-		deployment, err := d.client.getDeployment(config.Namespace, deploymentName)
+		deployment, err := d.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err
 		}
@@ -415,16 +370,4 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 		printLines(out, "", 0, descriptions...)
 		return nil
 	})
-}
-
-type rcSorter []kapi.ReplicationController
-
-func (s rcSorter) Len() int {
-	return len(s)
-}
-func (s rcSorter) Less(i, j int) bool {
-	return s[i].CreationTimestamp.Unix() > s[j].CreationTimestamp.Unix()
-}
-func (s rcSorter) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
 }

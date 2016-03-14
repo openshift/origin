@@ -37,7 +37,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 	m := map[unversioned.GroupKind]kctl.Describer{
 		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, host},
-		deployapi.Kind("DeploymentConfig"):            NewDeploymentConfigDescriber(c, kclient),
+		deployapi.Kind("DeploymentConfig"):            &DeploymentConfigDescriber{c, kclient, nil},
 		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
 		imageapi.Kind("Image"):                        &ImageDescriber{c},
 		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},

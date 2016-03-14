@@ -129,6 +129,7 @@ func FormatRelativeTime(t time.Time) string {
 
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
+	formatString(out, "Namespace", m.Namespace)
 	if !m.CreationTimestamp.IsZero() {
 		formatTime(out, "Created", m.CreationTimestamp.Time)
 	}

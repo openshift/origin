@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	api "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -147,27 +147,28 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	podList := &kapi.PodList{}
-	eventList := &kapi.EventList{}
-	deploymentList := &kapi.ReplicationControllerList{}
+
+	fake := &testclient.Fake{}
+	fake.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, config, nil
+	})
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("list", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, &kapi.ReplicationControllerList{}, nil
+	})
+	kFake.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, podList, nil
+	})
+	kFake.PrependReactor("list", "events", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, &kapi.EventList{}, nil
+	})
 
 	d := &DeploymentConfigDescriber{
-		client: &genericDeploymentDescriberClient{
-			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return config, nil
-			},
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return deploymentList, nil
-			},
-			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return podList, nil
-			},
-			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
-				return eventList, nil
-			},
-		},
+		osClient:   fake,
+		kubeClient: kFake,
 	}
 
 	describe := func() {
