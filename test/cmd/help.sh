@@ -106,12 +106,6 @@ os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
 os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
 os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc help projects' 'Switch to another project'
-# TODO: fix these tests
-# os::cmd::expect_success_and_text 'openshift cli help update' 'Update a resource'
-# os::cmd::expect_success_and_text 'openshift cli help replace' 'Replace a resource'
-# os::cmd::expect_success_and_text 'openshift cli help patch' 'Update field\(s\) of a resource'
-# os::cmd::expect_success_and_text 'openshift cli help project' 'Switch to another project'
-# os::cmd::expect_success_and_text 'openshift cli help projects' 'Switch to another project'
 
 # runnable commands with required flags must error consistently
 os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'
