@@ -93,12 +93,10 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, rea
 	cmd.Flags().StringVar(&o.Username, "username", "", "Username for Git authentication")
 	cmd.Flags().StringVar(&o.Password, "password", "", "Password or token for Git authentication")
 	cmd.Flags().StringVar(&o.CertificatePath, "ca-cert", "", "Path to a certificate file")
-	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
-	cmd.Flags().BoolVarP(&o.PromptForPassword, "prompt", "", false, "Prompt for password or token")
-
-	// autocompletion hints
 	cmd.MarkFlagFilename("ca-cert")
+	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
 	cmd.MarkFlagFilename("gitconfig")
+	cmd.Flags().BoolVarP(&o.PromptForPassword, "prompt", "", false, "Prompt for password or token")
 
 	kcmdutil.AddPrinterFlags(cmd)
 

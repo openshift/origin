@@ -169,6 +169,10 @@
     border-radius: @border-radius-md;
     max-width: 600px;
     padding: 5px 10px;
+    // so that .word-break() on children works
+    [flex] {
+      min-width: 0;
+    }
     h4 {
       margin: 5px 0;
     }
@@ -176,6 +180,11 @@
       .word-break();
     }
   }
+}
+
+// so that .word-break() on children works
+.pod-template-column {
+  min-width: 0;
 }
 
 .pod-container-terminal {

@@ -72,7 +72,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			if trigger.ImageChange.From != nil {
 				from = trigger.ImageChange.From
 			} else {
-				from = buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
+				from = buildutil.GetInputReference(config.Spec.Strategy)
 			}
 
 			if from == nil || from.Kind != "ImageStreamTag" {

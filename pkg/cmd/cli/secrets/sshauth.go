@@ -23,7 +23,7 @@ Create a new SSH authentication secret
 SSH authentication secrets are used to authenticate against SCM servers.
 
 When creating applications, you may have a SCM server that requires SSH authentication - private SSH key.
-In order for the nodes to clone source code on your behalf, they have to have the credentials. You can 
+In order for the nodes to clone source code on your behalf, they have to have the credentials. You can
 provide this information by creating a 'sshauth' secret and attaching it to your service account.`
 
 	createSSHAuthSecretExample = `  // If your SSH authentication method requires only private SSH key, add it by using:
@@ -84,13 +84,11 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 		},
 	}
 
-	cmd.Flags().StringVar(&o.PrivateKeyPath, "ssh-privatekey", "", "Path to a SSH private key")
-	cmd.Flags().StringVar(&o.CertificatePath, "ca-cert", "", "Path to a certificate file")
-	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
-
-	// autocompletion hints
+	cmd.Flags().StringVar(&o.PrivateKeyPath, "ssh-privatekey", "", "Path to a SSH private key file")
 	cmd.MarkFlagFilename("ssh-privatekey")
+	cmd.Flags().StringVar(&o.CertificatePath, "ca-cert", "", "Path to a certificate file")
 	cmd.MarkFlagFilename("ca-cert")
+	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
 	cmd.MarkFlagFilename("gitconfig")
 
 	kcmdutil.AddPrinterFlags(cmd)

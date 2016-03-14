@@ -672,7 +672,7 @@ Outer:
 // strategyTrigger returns a synthetic ImageChangeTrigger that represents the image stream tag the build strategy
 // points to, or nil if no such strategy trigger is possible (if the build doesn't point to an ImageStreamTag).
 func strategyTrigger(config *buildapi.BuildConfig) *ImageChangeTrigger {
-	if from := buildutil.GetImageStreamForStrategy(config.Spec.Strategy); from != nil {
+	if from := buildutil.GetInputReference(config.Spec.Strategy); from != nil {
 		if from.Kind == "ImageStreamTag" {
 			// normalize the strategy object reference
 			from.Namespace = defaultNamespace(from.Namespace, config.Namespace)

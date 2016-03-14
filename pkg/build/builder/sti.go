@@ -246,6 +246,7 @@ func (s *S2IBuilder) Build() error {
 		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
+	defer glog.Flush()
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
@@ -274,7 +275,6 @@ func (s *S2IBuilder) Build() error {
 			return errors.New(msg)
 		}
 		glog.Infof("Successfully pushed %s", pushTag)
-		glog.Flush()
 	}
 	return nil
 }

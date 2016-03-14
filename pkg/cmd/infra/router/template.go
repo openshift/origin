@@ -34,6 +34,8 @@ You may restrict the set of routes exposed to a single project (with --namespace
 access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
 namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
 that you must have a cluster-wide administrative role to view all namespaces.`
+	// defaultReloadInterval is how often to do reloads in seconds.
+	defaultReloadInterval = 5
 )
 
 type TemplateRouterOptions struct {
@@ -55,6 +57,18 @@ type TemplateRouter struct {
 	RouterService          *ktypes.NamespacedName
 }
 
+// reloadInterval returns how often to run the router reloads. The interval
+// value is based on an environment variable or the default.
+func reloadInterval() time.Duration {
+	interval := util.Env("RELOAD_INTERVAL", fmt.Sprintf("%vs", defaultReloadInterval))
+	value, err := time.ParseDuration(interval)
+	if err != nil {
+		glog.Warningf("Invalid RELOAD_INTERVAL %q, using default value %v ...", interval, defaultReloadInterval)
+		value = time.Duration(defaultReloadInterval * time.Second)
+	}
+	return value
+}
+
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.RouterName, "name", util.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/containers/router", "The working directory for the router plugin")
@@ -62,16 +76,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
-
-	interval := util.Env("RELOAD_INTERVAL", "0s")
-
-	var err error
-	o.ReloadInterval, err = time.ParseDuration(interval)
-	if err != nil {
-		glog.Warningf("Invalid RELOAD_INTERVAL %q, ignoring ...", interval)
-		o.ReloadInterval = time.Duration(0 * time.Second)
-	}
-	flag.DurationVar(&o.ReloadInterval, "interval", o.ReloadInterval, "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
+	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
 }
 
 type RouterStats struct {
@@ -139,7 +144,7 @@ func (o *TemplateRouterOptions) Complete() error {
 		o.StatsPort = statsPort
 	}
 
-	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 0 {
+	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 1 {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
 	}
 

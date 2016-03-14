@@ -48,7 +48,7 @@ const (
 	edgeRouteLong = `
 Create a route that uses edge TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	edgeRouteExample = `  # Create an edge route named "my-route" that exposes frontend service.
@@ -80,8 +80,11 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
 	cmd.Flags().String("cert", "", "Path to a certificate file.")
+	cmd.MarkFlagFilename("cert")
 	cmd.Flags().String("key", "", "Path to a key file.")
+	cmd.MarkFlagFilename("key")
 	cmd.Flags().String("ca-cert", "", "Path to a CA certificate file.")
+	cmd.MarkFlagFilename("ca-cert")
 
 	return cmd
 }
@@ -153,7 +156,7 @@ const (
 	passthroughRouteLong = `
 Create a route that uses passthrough TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	passthroughRouteExample = `  # Create a passthrough route named "my-route" that exposes the frontend service.
@@ -238,7 +241,7 @@ const (
 	reencryptRouteLong = `
 Create a route that uses reencrypt TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the 
+Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag. A destination CA certificate
 is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`
 
@@ -271,10 +274,14 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
 	cmd.Flags().String("cert", "", "Path to a certificate file.")
+	cmd.MarkFlagFilename("cert")
 	cmd.Flags().String("key", "", "Path to a key file.")
+	cmd.MarkFlagFilename("key")
 	cmd.Flags().String("ca-cert", "", "Path to a CA certificate file.")
+	cmd.MarkFlagFilename("ca-cert")
 	cmd.Flags().String("dest-ca-cert", "", "Path to a CA certificate file, used for securing the connection from the router to the destination.")
 	cmd.MarkFlagRequired("dest-ca-cert")
+	cmd.MarkFlagFilename("dest-ca-cert")
 
 	return cmd
 }

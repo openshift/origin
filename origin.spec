@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b29afb4d914dc4d9950848eaa71f8ab0f0ab998c
+%global commit baf7ff301abf3ed5c6aff5d1bc1a581c82603bf3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.1-59-gb29afb4 -X github.com/openshift/origin/pkg/version.commitFromGit b29afb4 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.2-39-gbaf7ff3 -X github.com/openshift/origin/pkg/version.commitFromGit baf7ff3 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.2
+Version:        3.2.0.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -467,6 +467,33 @@ fi
 
 
 %changelog
+* Mon Mar 14 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.3
+- UPSTREAM: 22929: Test relative timestamps using UTC (jliggitt@redhat.com)
+- DETECT_RACES doesn't work (ccoleman@redhat.com)
+- Add policy constraints for node targeting (jolamb@redhat.com)
+- Mark filename flags for completions (ffranz@redhat.com)
+- UPSTREAM: 22877: mark filename flags for completions (ffranz@redhat.com)
+- Send graceful shutdown signal to all haproxy processes + wait for process to
+  start listening, fixes as per @smarterclayton review comments and for
+  integration tests. (smitram@gmail.com)
+- always flush glog before returning from build logic (bparees@redhat.com)
+- Improving markup semantics and appearance of display of Volumes data
+  (rhamilto@redhat.com)
+- Bumping openshift-object-describer to v1.1.2 (rhamilto@redhat.com)
+- Bump grunt-contrib-uglify to 0.6.0 (spadgett@redhat.com)
+- Export OS_OUTPUT_GOPATH=1 in Makefile (stefw@redhat.com)
+- Bug fix for long, unbroken words that don't wrap in pod template
+  (rhamilto@redhat.com)
+- Fix test with build reference cycle (rhcarvalho@gmail.com)
+- updated issue template (skuznets@redhat.com)
+- Rename misleading util function (rhcarvalho@gmail.com)
+- Only check circular references for oc new-build (rhcarvalho@gmail.com)
+- Extract TestBuildOutputCycleDetection (rhcarvalho@gmail.com)
+- Fixes rsh usage (ffranz@redhat.com)
+- Increase sdn node provisioning timeout (marun@redhat.com)
+- Set default template router reload interval to 5 seconds. (smitram@gmail.com)
+- Update and additions to web console screenshots (sgoodwin@redhat.com)
+
 * Fri Mar 11 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.2
 - Remove left over after move to test/integration (rhcarvalho@gmail.com)
 - Improved next steps pages for bcs using sample repos (ffranz@redhat.com)
