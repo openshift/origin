@@ -27,6 +27,18 @@ if [[ "$(git name-rev --name-only --tags HEAD)" != "${tag}^0" ]]; then
   fi
 fi
 
+function removeimage() {
+  for i in $@; do
+    if docker inspect $i &>/dev/null; then
+      docker rmi $i
+    fi
+    if docker inspect docker.io/$i &>/dev/null; then
+      docker rmi docker.io/$i
+    fi
+  done
+}
+
+removeimage openshift/origin-base openshift/origin-release openshift/origin-haproxy-router-base
 docker pull openshift/origin-base
 docker pull openshift/origin-release
 docker pull openshift/origin-haproxy-router-base
