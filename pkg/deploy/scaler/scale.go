@@ -1,6 +1,8 @@
 package scaler
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -62,6 +64,9 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
 	if err != nil {
 		return err
+	}
+	if dc.Spec.Test {
+		fmt.Fprintln(os.Stderr, "Replica size for a test deployment applies only when the deployment is running.")
 	}
 	scale := deployapi.ScaleFromConfig(dc)
 	scale.Spec.Replicas = int(newSize)
