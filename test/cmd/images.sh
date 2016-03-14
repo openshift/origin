@@ -168,7 +168,6 @@ os::cmd::expect_success_and_text "oc describe is/newrepo" '\* tag is scheduled'
 os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --insecure'
 os::cmd::expect_success_and_text "oc describe is/newrepo" '\! tag is insecure'
 os::cmd::expect_success_and_not_text "oc describe is/newrepo" '\* tag is scheduled'
-oc get -o yaml is/newrepo
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.insecure}}'" 'true'
 
 # test creating streams that don't exist

@@ -137,26 +137,26 @@ echo "routes: ok"
 # Validate the probe command
 arg="-f examples/hello-openshift/hello-pod.json"
 os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
-os::cmd::expect_failure_and_text "oc set probe $arg" "error: you must specify one of --readiness or --liveness"
-os::cmd::expect_success_and_text "oc set probe $arg --liveness -o yaml" 'livenessProbe: \{\}'
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --initial-delay-seconds=10 -o yaml" "livenessProbe:"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --initial-delay-seconds=10 -o yaml" "initialDelaySeconds: 10"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "livenessProbe:"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --readiness -- echo test" "readinessProbe:"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "exec:"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "\- echo"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness -- echo test" "\- test"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=3306" "tcpSocket:"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=3306" "port: 3306"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --open-tcp=port" "port: port"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:8080/path" "port: 8080"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1/path" 'port: ""'
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "path: /path"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "scheme: HTTPS"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
-os::cmd::expect_success_and_text "oc set probe $arg -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify one of --readiness or --liveness"
+os::cmd::expect_success_and_text "oc set probe ${arg} --liveness -o yaml" 'livenessProbe: \{\}'
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --initial-delay-seconds=10 -o yaml" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --initial-delay-seconds=10 -o yaml" "initialDelaySeconds: 10"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness -- echo test" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --readiness -- echo test" "readinessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness -- echo test" "exec:"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness -- echo test" "\- echo"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness -- echo test" "\- test"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --open-tcp=3306" "tcpSocket:"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --open-tcp=3306" "port: 3306"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --open-tcp=port" "port: port"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:8080/path" "port: 8080"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1/path" 'port: ""'
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "path: /path"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "scheme: HTTPS"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
+os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
 os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set probe dc/test-deployment-config --liveness" "Required value: must specify a handler type"
 os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --open-tcp=8080" "updated"
@@ -247,8 +247,7 @@ os::cmd::expect_failure 'oc get dc/ruby-hello-world'
 echo "delete all: ok"
 
 # service accounts should not be allowed to request new projects
-SA_TOKEN=`oc get sa/builder --template='{{range .secrets}}{{ .name }} {{end}}' | xargs -n 1 oc get secret --template='{{ if .data.token }}{{ .data.token }}{{end}}' | os::util::base64decode -`
-os::cmd::expect_failure_and_text "oc new-project --token=${SA_TOKEN} will-fail" 'Error from server: You may not request a new project via this API'
+os::cmd::expect_failure_and_text "oc new-project --token="$( oc sa get-token builder )" will-fail" 'Error from server: You may not request a new project via this API'
 
 
 # Validate patching works correctly
