@@ -6,12 +6,12 @@
   </span>
   <span ng-if="toggles.expanded">
     <div ng-if="prettifyJson" class="well">
-      <span class="pull-right" style="margin-top: -10px;"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>  
+      <span class="pull-right" style="margin-top: -10px;"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>
       <span class="pretty-json">{{content | prettifyJSON}}</span>
     </div>
     <span ng-if="!prettifyJson">
-      <span class="pull-right"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>  
+      <span class="pull-right"><a href="" ng-click="toggles.expanded = false">Collapse</a></span>
      {{content}}
-    </span>    
+    </span>
   </span>
 </span>

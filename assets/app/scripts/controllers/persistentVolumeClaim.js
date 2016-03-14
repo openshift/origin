@@ -25,7 +25,7 @@ angular.module('openshiftConsole')
     ];
 
     var watches = [];
-  
+
     ProjectsService
     .get($routeParams.project)
     .then(_.spread(function(project, context) {

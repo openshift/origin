@@ -6,7 +6,7 @@ angular.module("openshiftConsole")
 
       /**
        * Get a name suggestion for resources based on the the source URL
-       * 
+       *
        * @param {String} sourceUrl  the sourceURL
        * @param {Array} kinds  the kinds of resources to check
        * @param {String} the namespace to use when querying for existence of a resource

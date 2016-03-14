@@ -222,10 +222,10 @@ exports.config = {
       baseDirectory: './test/tmp/screenshots',
       takeScreenShotsOnlyForFailedSpecs: true,
       pathBuilder: function pathBuilder(spec, descriptions, results, capabilities) {
-        // Return '<specname>' as path for screenshots: 
-        // Example: 'list-should work'. 
+        // Return '<specname>' as path for screenshots:
+        // Example: 'list-should work'.
         return descriptions.reverse().join(' ');
-      }       
+      }
     }));
   },
 

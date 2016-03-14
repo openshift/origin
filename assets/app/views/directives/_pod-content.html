@@ -2,7 +2,7 @@
   <strong class="pod-status-label">{{pod.status.phase}}</strong>
   <span ng-if="troubled">
     <pod-warnings pod="pod" style="margin-right: -15px;"></pod-warnings>
-  </span>   
+  </span>
   <div ng-switch-when="Pending">
     <span ng-if="!pod.spec.nodeName">scheduling...</span>
     <span ng-if="pod.spec.nodeName && !pod.status.startTime">scheduled</span>
