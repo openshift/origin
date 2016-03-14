@@ -4,6 +4,26 @@ config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
 old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
+readonly max_retries=30
+
+function waitForHAProxyToStartListening() {
+  local port=${STATS_PORT:-"1936"}
+  local retries=0
+
+  echo " - Checking if HAProxy is listening on port $port ..."
+  while ! lsof -n -P -p $(< $pid_file) | grep ":${port} (LISTEN)" &> /dev/null ; do
+    sleep 0.2
+    retries=$((retries + 1))
+    if [ $retries -ge $max_retries ]; then
+      echo " - Exceeded $max_retries retries waiting for HAProxy to start listening on port $port"
+      return
+    fi
+  done
+
+  echo " - HAProxy listening on port $port : $retries retry attempt(s)."
+  return 0
+}
+
 
 # How many times to retry removal of the iptables rules (if requested at all)
 # It will sleep for 1/2 a second between attempts, so the time is retries / 2 secs
@@ -15,13 +35,11 @@ for mapfile in "$haproxy_conf_dir"/*.map; do
   sort -r "$mapfile" -o "$mapfile"
 done
 
-if [ -f $pid_file ]; then
-  old_pid=$(<$pid_file)
-fi
+old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
 DROP_SYN_DURING_RESTART=1
 installed_iptables=0
-if [ -n "$old_pid" ]; then
+if [ -n "$old_pids" ]; then
   if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 1 ]]; then
     # We install the syn eater so that connections that come in during the restart don't
     # go onto the wrong socket, which is then closed.
@@ -45,7 +63,7 @@ if [ -n "$old_pid" ]; then
     fi
   fi
 
-  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
+  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pids
 
   if [[ "$installed_iptables" == 1 ]]; then
     # We NEVER want to leave the syn eater in place after the reload or haproxy
@@ -73,3 +91,5 @@ if [ -n "$old_pid" ]; then
 else
   /usr/sbin/haproxy -f $config_file -p $pid_file
 fi
+
+waitForHAProxyToStartListening

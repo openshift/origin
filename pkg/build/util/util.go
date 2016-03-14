@@ -30,9 +30,9 @@ func GetBuildName(pod *kapi.Pod) string {
 	return pod.Annotations[buildapi.BuildAnnotation]
 }
 
-// GetImageStreamForStrategy returns the ImageStream[Tag/Image] ObjectReference associated
-// with the BuildStrategy.
-func GetImageStreamForStrategy(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
+// GetInputReference returns the From ObjectReference associated with the
+// BuildStrategy.
+func GetInputReference(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
 	switch {
 	case strategy.SourceStrategy != nil:
 		return &strategy.SourceStrategy.From

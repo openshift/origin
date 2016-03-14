@@ -95,7 +95,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().Bool("wait", false, "Wait for a build to complete and exit with a non-zero return code if the build fails")
 
-	cmd.Flags().String("from-file", "", "A file use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
+	cmd.Flags().String("from-file", "", "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
 	cmd.Flags().String("from-dir", "", "A directory to archive and use as the binary input for a build.")
 	cmd.Flags().String("from-repo", "", "The path to a local source code repository to use as the binary input for a build.")
 	cmd.Flags().String("commit", "", "Specify the source code commit identifier the build should use; requires a build based on a Git repository")

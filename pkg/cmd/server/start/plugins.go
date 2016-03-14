@@ -12,6 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	_ "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
+	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	_ "github.com/openshift/origin/pkg/security/admission"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/alwayspullimages"

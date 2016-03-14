@@ -143,7 +143,7 @@ func findImageChangeTrigger(bc *buildapi.BuildConfig, ref *kapi.ObjectReference)
 		imageChange := trigger.ImageChange
 		triggerRef := imageChange.From
 		if triggerRef == nil {
-			triggerRef = buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+			triggerRef = buildutil.GetInputReference(bc.Spec.Strategy)
 			if triggerRef == nil || triggerRef.Kind != "ImageStreamTag" {
 				continue
 			}
@@ -288,7 +288,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.Buil
 
 		triggerImageRef := trigger.ImageChange.From
 		if triggerImageRef == nil {
-			triggerImageRef = buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+			triggerImageRef = buildutil.GetInputReference(bc.Spec.Strategy)
 		}
 		if triggerImageRef == nil {
 			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
@@ -434,7 +434,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		var sourceImageSpec string
 		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
 		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildutil.GetImageStreamForStrategy(bc.Spec.Strategy); reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
+		if strategyFrom := buildutil.GetInputReference(bc.Spec.Strategy); reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
 			strategyImageChangeTrigger != nil {
 			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
 		} else {

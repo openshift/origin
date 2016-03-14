@@ -91,7 +91,8 @@
     builds="builds"
     detailed="true"></pod-template>
   <h4 style="margin-top: 20px;">Volumes</h4>
-  <a ng-if="!deployment.spec.template.spec.volumes.length"
-     ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
+  <p ng-if="!deployment.spec.template.spec.volumes.length">
+    <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
+  </p>
   <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
 </div>
