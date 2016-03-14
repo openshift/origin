@@ -52,7 +52,7 @@ __oc_require_pod_and_container()
 
 __custom_func() {
     case ${last_command} in
- 
+
         # first arg is the kind according to ValidArgs, second is resource name
         oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale )
             __oc_get_resource
@@ -66,13 +66,13 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         # first arg is a pod name, second is a container name
         oc_logs | oc_attach)
             __oc_require_pod_and_container
             return
             ;;
- 
+
         # args other than the first are filenames
         oc_secrets_new)
             # Complete args other than the first as filenames
@@ -81,7 +81,7 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         # first arg is a build config name
         oc_start-build | oc_cancel-build)
             if [[ ${#nouns[@]} -eq 0 ]]; then
@@ -89,7 +89,7 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         # first arg is a deployment config
         oc_deploy)
             if [[ ${#nouns[@]} -eq 0 ]]; then
@@ -97,7 +97,7 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         # first arg is a deployment config OR deployment
         oc_rollback)
             if [[ ${#nouns[@]} -eq 0 ]]; then
@@ -113,7 +113,7 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         # first arg is an image stream
         oc_import-image)
             if [[ ${#nouns[@]} -eq 0 ]]; then
@@ -121,7 +121,7 @@ __custom_func() {
             fi;
             return
             ;;
- 
+
         *)
             ;;
     esac

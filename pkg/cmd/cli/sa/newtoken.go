@@ -44,7 +44,7 @@ be applied to any created token so that tokens created with this command can be 
 	newServiceAccountTokenExamples = `  # Generate a new token for service account 'default'
   $ %[1]s 'default'
 
-  # Generate a new token for service account 'default' and apply 
+  # Generate a new token for service account 'default' and apply
   # labels 'foo' and 'bar' to the new token for identification
   # %[1]s 'default' --labels foo=foo-value,bar=bar-value
 `
