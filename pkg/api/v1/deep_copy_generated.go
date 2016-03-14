@@ -1267,6 +1267,27 @@ func deepCopy_v1_DockerBuildStrategy(in apiv1.DockerBuildStrategy, out *apiv1.Do
 }
 
 func deepCopy_v1_ExternalBuildStrategy(in apiv1.ExternalBuildStrategy, out *apiv1.ExternalBuildStrategy, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Env != nil {
+		out.Env = make([]pkgapiv1.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
+				return err
+			} else {
+				out.Env[i] = newVal.(pkgapiv1.EnvVar)
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	if in.JenkinsPipeline != nil {
+		out.JenkinsPipeline = new(apiv1.JenkinsPipelineStrategy)
+		if err := deepCopy_v1_JenkinsPipelineStrategy(*in.JenkinsPipeline, out.JenkinsPipeline, c); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipeline = nil
+	}
 	return nil
 }
 
@@ -1345,6 +1366,10 @@ func deepCopy_v1_ImageSource(in apiv1.ImageSource, out *apiv1.ImageSource, c *co
 func deepCopy_v1_ImageSourcePath(in apiv1.ImageSourcePath, out *apiv1.ImageSourcePath, c *conversion.Cloner) error {
 	out.SourcePath = in.SourcePath
 	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func deepCopy_v1_JenkinsPipelineStrategy(in apiv1.JenkinsPipelineStrategy, out *apiv1.JenkinsPipelineStrategy, c *conversion.Cloner) error {
 	return nil
 }
 
@@ -3234,6 +3259,7 @@ func init() {
 		deepCopy_v1_ImageChangeTrigger,
 		deepCopy_v1_ImageSource,
 		deepCopy_v1_ImageSourcePath,
+		deepCopy_v1_JenkinsPipelineStrategy,
 		deepCopy_v1_SecretBuildSource,
 		deepCopy_v1_SecretSpec,
 		deepCopy_v1_SourceBuildStrategy,

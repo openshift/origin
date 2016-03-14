@@ -2,6 +2,8 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 import (
+	reflect "reflect"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -29,7 +31,6 @@ import (
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
-	reflect "reflect"
 )
 
 func autoConvert_api_ClusterPolicy_To_v1_ClusterPolicy(in *authorizationapi.ClusterPolicy, out *authorizationapiv1.ClusterPolicy, s conversion.Scope) error {
@@ -1569,6 +1570,26 @@ func autoConvert_api_ExternalBuildStrategy_To_v1_ExternalBuildStrategy(in *build
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.ExternalBuildStrategy))(in)
 	}
+	out.Type = v1.ExternalBuilderType(in.Type)
+	if in.Env != nil {
+		out.Env = make([]apiv1.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if err := Convert_api_EnvVar_To_v1_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	// unable to generate simple pointer conversion for api.JenkinsPipelineStrategy -> v1.JenkinsPipelineStrategy
+	if in.JenkinsPipeline != nil {
+		out.JenkinsPipeline = new(v1.JenkinsPipelineStrategy)
+		if err := Convert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy(in.JenkinsPipeline, out.JenkinsPipeline, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipeline = nil
+	}
 	return nil
 }
 
@@ -1681,6 +1702,17 @@ func autoConvert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSou
 
 func Convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSourcePath, out *v1.ImageSourcePath, s conversion.Scope) error {
 	return autoConvert_api_ImageSourcePath_To_v1_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy(in *buildapi.JenkinsPipelineStrategy, out *v1.JenkinsPipelineStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.JenkinsPipelineStrategy))(in)
+	}
+	return nil
+}
+
+func Convert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy(in *buildapi.JenkinsPipelineStrategy, out *v1.JenkinsPipelineStrategy, s conversion.Scope) error {
+	return autoConvert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy(in, out, s)
 }
 
 func autoConvert_api_SecretBuildSource_To_v1_SecretBuildSource(in *buildapi.SecretBuildSource, out *v1.SecretBuildSource, s conversion.Scope) error {
@@ -2423,6 +2455,26 @@ func autoConvert_v1_ExternalBuildStrategy_To_api_ExternalBuildStrategy(in *v1.Ex
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.ExternalBuildStrategy))(in)
 	}
+	out.Type = buildapi.ExternalBuilderType(in.Type)
+	if in.Env != nil {
+		out.Env = make([]api.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if err := Convert_v1_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	// unable to generate simple pointer conversion for v1.JenkinsPipelineStrategy -> api.JenkinsPipelineStrategy
+	if in.JenkinsPipeline != nil {
+		out.JenkinsPipeline = new(buildapi.JenkinsPipelineStrategy)
+		if err := Convert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy(in.JenkinsPipeline, out.JenkinsPipeline, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipeline = nil
+	}
 	return nil
 }
 
@@ -2535,6 +2587,17 @@ func autoConvert_v1_ImageSourcePath_To_api_ImageSourcePath(in *v1.ImageSourcePat
 
 func Convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *v1.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	return autoConvert_v1_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy(in *v1.JenkinsPipelineStrategy, out *buildapi.JenkinsPipelineStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1.JenkinsPipelineStrategy))(in)
+	}
+	return nil
+}
+
+func Convert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy(in *v1.JenkinsPipelineStrategy, out *buildapi.JenkinsPipelineStrategy, s conversion.Scope) error {
+	return autoConvert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy(in, out, s)
 }
 
 func autoConvert_v1_SecretBuildSource_To_api_SecretBuildSource(in *v1.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
@@ -9005,6 +9068,7 @@ func init() {
 		autoConvert_api_ImageStream_To_v1_ImageStream,
 		autoConvert_api_Image_To_v1_Image,
 		autoConvert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview,
+		autoConvert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy,
 		autoConvert_api_KeyToPath_To_v1_KeyToPath,
 		autoConvert_api_LifecycleHook_To_v1_LifecycleHook,
 		autoConvert_api_Lifecycle_To_v1_Lifecycle,
@@ -9185,6 +9249,7 @@ func init() {
 		autoConvert_v1_ImageStream_To_api_ImageStream,
 		autoConvert_v1_Image_To_api_Image,
 		autoConvert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
+		autoConvert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy,
 		autoConvert_v1_KeyToPath_To_api_KeyToPath,
 		autoConvert_v1_LifecycleHook_To_api_LifecycleHook,
 		autoConvert_v1_Lifecycle_To_api_Lifecycle,
