@@ -2,6 +2,7 @@ package importer
 
 import (
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -121,7 +122,17 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
 	// TODO: compare this logic to Docker authConfig in v2 configuration
 	value := target.Host + target.Path
+
+	// Lookup(...) expects an image (not a URL path).
+	// The keyring strips /v1/ and /v2/ version prefixes,
+	// so we should also when selecting a valid auth for a URL.
+	pathWithSlash := target.Path + "/"
+	if strings.HasPrefix(pathWithSlash, "/v1/") || strings.HasPrefix(pathWithSlash, "/v2/") {
+		value = target.Host + target.Path[3:]
+	}
+
 	configs, found := keyring.Lookup(value)
+
 	if !found || len(configs) == 0 {
 		// do a special case check for docker.io to match historical lookups when we respond to a challenge
 		if value == "auth.docker.io/token" {

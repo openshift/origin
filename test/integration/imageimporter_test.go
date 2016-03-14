@@ -253,7 +253,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
 			Type:       kapi.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/v2/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
+				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
 			},
 		})
 		if err != nil {
