@@ -416,14 +416,16 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 				config.Certificates = make(map[string]Certificate)
 			}
 
-			certKey := generateCertKey(&config)
-			cert := Certificate{
-				ID:         backendKey,
-				Contents:   tls.Certificate,
-				PrivateKey: tls.Key,
-			}
+			if len(tls.Certificate) > 0 {
+				certKey := generateCertKey(&config)
+				cert := Certificate{
+					ID:         backendKey,
+					Contents:   tls.Certificate,
+					PrivateKey: tls.Key,
+				}
 
-			config.Certificates[certKey] = cert
+				config.Certificates[certKey] = cert
+			}
 
 			if len(tls.CACertificate) > 0 {
 				caCertKey := generateCACertKey(&config)
@@ -552,18 +554,23 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 	if cfg.TLSTermination == routeapi.TLSTerminationEdge || cfg.TLSTermination == routeapi.TLSTerminationReencrypt {
 		if hasRequiredEdgeCerts(cfg) {
 			return true
-		} else {
-			msg := fmt.Sprintf("a %s terminated route with host %s does not have the required certificates.  The route will still be created but no certificates will be written",
-				cfg.TLSTermination, cfg.Host)
-			// if a default cert is configured we'll assume it is meant to be a wildcard and only log info
-			// otherwise we'll consider this a warning
-			if len(r.defaultCertificate) > 0 {
-				glog.V(4).Info(msg)
-			} else {
-				glog.Warning(msg)
-			}
-			return false
 		}
+
+		if cfg.TLSTermination == routeapi.TLSTerminationReencrypt && hasReencryptDestinationCACert(cfg) {
+			glog.V(4).Info("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
+			return true
+		}
+
+		msg := fmt.Sprintf("a %s terminated route with host %s does not have the required certificates.  The route will still be created but no certificates will be written",
+			cfg.TLSTermination, cfg.Host)
+		// if a default cert is configured we'll assume it is meant to be a wildcard and only log info
+		// otherwise we'll consider this a warning
+		if len(r.defaultCertificate) > 0 {
+			glog.V(4).Info(msg)
+		} else {
+			glog.Warning(msg)
+		}
+		return false
 	}
 	return false
 }
@@ -572,10 +579,14 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 // a ca cert is not required because it may be something that is in the root cert chain
 func hasRequiredEdgeCerts(cfg *ServiceAliasConfig) bool {
 	hostCert, ok := cfg.Certificates[cfg.Host]
-	if ok && len(hostCert.Contents) > 0 && len(hostCert.PrivateKey) > 0 {
-		return true
-	}
-	return false
+	return ok && len(hostCert.Contents) > 0 && len(hostCert.PrivateKey) > 0
+}
+
+// hasReencryptDestinationCACert checks whether a destination CA certificate has been provided.
+func hasReencryptDestinationCACert(cfg *ServiceAliasConfig) bool {
+	destCertKey := generateDestCertKey(cfg)
+	destCACert, ok := cfg.Certificates[destCertKey]
+	return ok && len(destCACert.Contents) > 0
 }
 
 func generateCertKey(config *ServiceAliasConfig) string {
