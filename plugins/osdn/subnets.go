@@ -141,15 +141,15 @@ func (oc *OvsController) initSelfSubnet() error {
 	// Try every retryInterval and bail-out if it exceeds max retries
 	for i := 0; i < retries; i++ {
 		// Get subnet for current node
-		subnet, err = oc.Registry.GetSubnet(oc.hostName)
+		subnet, err = oc.Registry.GetSubnet(oc.HostName)
 		if err == nil {
 			break
 		}
-		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", oc.hostName)
+		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", oc.HostName)
 		time.Sleep(retryInterval)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.hostName, err)
+		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.HostName, err)
 	}
 
 	if err := oc.validateNode(subnet.NodeIP); err != nil {
