@@ -51,6 +51,7 @@ verify: build
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
+	hack/verify-shellcheck.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh
