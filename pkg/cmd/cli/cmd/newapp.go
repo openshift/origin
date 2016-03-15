@@ -286,9 +286,9 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 				}
 			}
 			if triggered {
-				fmt.Fprintf(out, "%sBuild scheduled for %q, use 'oc logs' to track its progress.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sBuild scheduled, use 'oc logs -f bc/%s' to track its progress.\n", indent, t.Name)
 			} else {
-				fmt.Fprintf(out, "%sBuild config %q does not include any automatic triggers, use 'oc start-build' to start a build.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sUse 'oc start-build %s' to start a build.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
