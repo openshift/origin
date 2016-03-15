@@ -2,15 +2,13 @@ package networking
 
 import (
 	"fmt"
-	"strings"
+	"os"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/test/e2e"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,100 +85,42 @@ func waitForPodSuccessInNamespace(c *client.Client, podName string, contName str
 	})
 }
 
-func isNodeReadySetAsExpected(node *api.Node, wantReady bool) bool {
-	// Check the node readiness condition (logging all).
-	for i, cond := range node.Status.Conditions {
-		e2e.Logf("Node %s condition %d/%d: type: %v, status: %v, reason: %q, message: %q, last transition time: %v",
-			node.Name, i+1, len(node.Status.Conditions), cond.Type, cond.Status,
-			cond.Reason, cond.Message, cond.LastTransitionTime)
-		// Ensure that the condition type is readiness and the status
-		// matches as desired.
-		if cond.Type == api.NodeReady && (cond.Status == api.ConditionTrue) == wantReady {
-			e2e.Logf("Successfully found node %s readiness to be %t", node.Name, wantReady)
-			return true
-		}
-	}
-	return false
-}
+func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
+	e2e.LaunchWebserverPod(f, serviceName, nodeName)
+	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
+	podClient := f.Client.Pods(f.Namespace.Name)
+	pod, err := podClient.Get(serviceName)
+	expectNoError(err)
+	pod.ObjectMeta.Labels = make(map[string]string)
+	pod.ObjectMeta.Labels["name"] = "web"
+	podClient.Update(pod)
 
-func providerIs(providers ...string) bool {
-	for _, provider := range providers {
-		if strings.ToLower(provider) == strings.ToLower(exutil.TestContext.Provider) {
-			return true
-		}
-	}
-	return false
-}
-
-// Filters nodes in NodeList in place, removing nodes that do not
-// satisfy the given condition
-// TODO: consider merging with pkg/client/cache.NodeLister
-func filterNodes(nodeList *api.NodeList, fn func(node api.Node) bool) {
-	var l []api.Node
-
-	for _, node := range nodeList.Items {
-		if fn(node) {
-			l = append(l, node)
-		}
-	}
-	nodeList.Items = l
-}
-
-func getMultipleNodes(f *e2e.Framework) (nodes *api.NodeList) {
-	nodes, err := f.Client.Nodes().List(api.ListOptions{})
-	if err != nil {
-		e2e.Failf("Failed to list nodes: %v", err)
-	}
-	// previous tests may have cause failures of some nodes. Let's skip
-	// 'Not Ready' nodes, just in case (there is no need to fail the test).
-	filterNodes(nodes, func(node api.Node) bool {
-		return isNodeReadySetAsExpected(&node, true)
-	})
-
-	if len(nodes.Items) == 0 {
-		e2e.Failf("No Ready nodes found.")
-	}
-	if len(nodes.Items) == 1 {
-		// in general, the test requires two nodes. But for local development, often a one node cluster
-		// is created, for simplicity and speed. (see issue #10012). We permit one-node test
-		// only in some cases
-		if !providerIs("local") {
-			e2e.Failf(fmt.Sprintf("The test requires two Ready nodes on %s, but found just one.", exutil.TestContext.Provider))
-		}
-		e2e.Logf("Only one ready node is detected. The test has limited scope in such setting. " +
-			"Rerun it with at least two nodes to get complete coverage.")
-	}
-	return
-}
-
-func launchWebserverPod(f *e2e.Framework, podName string, nodeName string) (ip string) {
-	containerName := fmt.Sprintf("%s-container", podName)
-	port := 8080
-	pod := &api.Pod{
+	servicePort := 8080
+	service := &api.Service{
 		ObjectMeta: api.ObjectMeta{
-			Name: podName,
+			Name: serviceName,
 		},
-		Spec: api.PodSpec{
-			Containers: []api.Container{
+		Spec: api.ServiceSpec{
+			Type: api.ServiceTypeClusterIP,
+			Ports: []api.ServicePort{
 				{
-					Name:  containerName,
-					Image: "gcr.io/google_containers/porter:59ad46ed2c56ba50fa7f1dc176c07c37",
-					Env:   []api.EnvVar{{Name: fmt.Sprintf("SERVE_PORT_%d", port), Value: "foo"}},
-					Ports: []api.ContainerPort{{ContainerPort: port}},
+					Protocol: api.ProtocolTCP,
+					Port:     servicePort,
 				},
 			},
-			NodeName:      nodeName,
-			RestartPolicy: api.RestartPolicyNever,
+			Selector: map[string]string{
+				"name": "web",
+			},
 		},
 	}
-	podClient := f.Client.Pods(f.Namespace.Name)
-	_, err := podClient.Create(pod)
+	serviceClient := f.Client.Services(f.Namespace.Name)
+	_, err = serviceClient.Create(service)
 	expectNoError(err)
-	expectNoError(f.WaitForPodRunning(podName))
-	createdPod, err := podClient.Get(podName)
+	expectNoError(f.WaitForAnEndpoint(serviceName))
+	createdService, err := serviceClient.Get(serviceName)
 	expectNoError(err)
-	ip = fmt.Sprintf("%s:%d", createdPod.Status.PodIP, port)
-	e2e.Logf("Target pod IP:port is %s", ip)
+	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
+	e2e.Logf("Target service IP:port is %s", serviceAddr)
 	return
 }
 
@@ -210,4 +150,20 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	expectNoError(err)
 	defer podClient.Delete(podName, nil)
 	return waitForPodSuccessInNamespace(f.Client, podName, contName, f.Namespace.Name)
+}
+
+func pluginIsolatesNamespaces() bool {
+	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
+}
+
+func skipIfSingleTenant() {
+	if !pluginIsolatesNamespaces() {
+		e2e.Skipf("Not a multi-tenant plugin.")
+	}
+}
+
+func skipIfMultiTenant() {
+	if pluginIsolatesNamespaces() {
+		e2e.Skipf("Not a single-tenant plugin.")
+	}
 }
