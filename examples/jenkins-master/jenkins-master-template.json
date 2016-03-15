@@ -15,33 +15,38 @@
   "parameters": [
     {
       "name": "JENKINS_SERVICE_NAME",
-      "description": "Jenkins service name",
+      "displayName": "Jenkins Service Name",
       "value": "jenkins"
     },
     {
       "name": "JENKINS_PASSWORD",
-      "description": "Password for the Jenkins user",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins user.",
       "generate": "expression",
       "value": "password"
     },
     {
       "name": "JENKINS_IMAGE",
-      "description": "Jenkins Docker image to use",
+      "displayName": "Jenkins Image",
+      "description": "Jenkins Docker image to use.",
       "value": "openshift/jenkins-1-centos7"
     },
     {
       "name": "JENKINS_REPO_URL",
-      "description": "The repository to use to customize the Jenkins server",
+      "displayName": "Jenkins URL",
+      "description": "The repository to use to customize the Jenkins server.",
       "value": "git://github.com/openshift/origin"
     },
     {
       "name": "JENKINS_REPO_CONTEXTDIR",
-      "description": "The sub-directory inside the repository",
+      "displayName": "Jenkins Context",
+      "description": "The sub-directory inside the repository.",
       "value": "examples/jenkins-master"
     },
     {
       "name": "JENKINS_REPO_REF",
-      "description": "The git ref or tag to use for customization",
+      "displayName": "Jenkins Reference",
+      "description": "The git ref or tag to use for customization.",
       "value": "master"
     }
   ],

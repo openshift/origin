@@ -17,7 +17,7 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs-mongodb-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Exposes and load balances the application pods"
         }
@@ -31,7 +31,7 @@
           }
         ],
         "selector": {
-          "name": "nodejs-mongodb-example"
+          "name": "${NAME}"
         }
       }
     },
@@ -39,13 +39,13 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs-mongodb-example"
+        "name": "${NAME}"
       },
       "spec": {
         "host": "${APPLICATION_DOMAIN}",
         "to": {
           "kind": "Service",
-          "name": "nodejs-mongodb-example"
+          "name": "${NAME}"
         }
       }
     },
@@ -53,7 +53,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs-mongodb-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Keeps track of changes in the application image"
         }
@@ -63,7 +63,7 @@
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs-mongodb-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Defines how to build the application"
         }
@@ -82,7 +82,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "namespace": "openshift",
+              "namespace": "${NAMESPACE}",
               "name": "nodejs:0.10"
             }
           }
@@ -90,7 +90,7 @@
         "output": {
           "to": {
             "kind": "ImageStreamTag",
-            "name": "nodejs-mongodb-example:latest"
+            "name": "${NAME}:latest"
           }
         },
         "triggers": [
@@ -119,7 +119,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs-mongodb-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Defines how to deploy the application server"
         }
@@ -138,7 +138,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "nodejs-mongodb-example:latest"
+                "name": "${NAME}:latest"
               }
             }
           },
@@ -148,13 +148,13 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "nodejs-mongodb-example"
+          "name": "${NAME}"
         },
         "template": {
           "metadata": {
-            "name": "nodejs-mongodb-example",
+            "name": "${NAME}",
             "labels": {
-              "name": "nodejs-mongodb-example"
+              "name": "${NAME}"
             }
           },
           "spec": {
@@ -261,7 +261,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "namespace": "openshift",
+                "namespace": "${NAMESPACE}",
                 "name": "mongodb:2.6"
               }
             }
@@ -337,83 +337,94 @@
   ],
   "parameters": [
     {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "nodejs-mongodb-example"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the Node.js container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the Node.js container can use.",
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MONGODB_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the MongoDB container can use",
+      "displayName": "Memory Limit (MongoDB)",
+      "description": "Maximum amount of memory the MongoDB container can use.",
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
-      "displayName": "Source repository URL",
-      "description": "The URL of the repository with your application source code",
+      "displayName": "Git Repository URL",
+      "description": "The URL of the repository with your application source code.",
       "value": "https://github.com/openshift/nodejs-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
-      "displayName": "Source repository reference",
-      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
     },
     {
       "name": "CONTEXT_DIR",
-      "displayName": "Context directory",
-      "description": "Set this to the relative path to your project if it is not in the root of your repository"
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
     },
     {
       "name": "APPLICATION_DOMAIN",
-      "displayName": "Application hostname",
+      "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
-      "displayName": "GitHub webhook secret",
-      "description": "A secret string used to configure the GitHub webhook",
+      "displayName": "GitHub Webhook Secret",
+      "description": "A secret string used to configure the GitHub webhook.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "GENERIC_WEBHOOK_SECRET",
-      "displayName": "Generic webhook secret",
-      "description": "A secret string used to configure the Generic webhook",
+      "displayName": "Generic Webhook Secret",
+      "description": "A secret string used to configure the Generic webhook.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database service name",
-      "description": "Database service name",
+      "displayName": "Database Service Name",
       "value": "mongodb"
     },
     {
       "name": "DATABASE_USER",
-      "displayName": "MongoDB user name",
-      "description": "Username for MongoDB user that will be used for accessing the database",
+      "displayName": "MongoDB Username",
+      "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
       "name": "DATABASE_PASSWORD",
-      "displayName": "MongoDB password",
-      "description": "Password for the MongoDB user",
+      "displayName": "MongoDB Password",
+      "description": "Password for the MongoDB user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"
     },
     {
       "name": "DATABASE_NAME",
-      "displayName": "Database name",
-      "description": "Database name",
+      "displayName": "Database Name",
       "value": "sampledb"
     },
     {
       "name": "DATABASE_ADMIN_PASSWORD",
-      "displayName": "Database administrator password",
-      "description": "Password for the database admin user",
+      "displayName": "Database Administrator Password",
+      "description": "Password for the database admin user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"
     }

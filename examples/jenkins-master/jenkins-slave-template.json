@@ -16,23 +16,27 @@
   "parameters": [
     {
       "name": "IMAGE_STREAM_NAME",
-      "description": "The name of an image stream to convert",
+      "displayName": "ImageStream Name",
+      "description": "The name of an image stream to convert.",
       "value": "ruby-22-centos7",
       "required": true
     },
     {
       "name": "SLAVE_REPO_URL",
-      "description": "Git repository with Dockerfile and slave entrypoint",
+      "displayName": "Repository URL",
+      "description": "Git repository with Dockerfile and slave entrypoint.",
       "value": "git://github.com/openshift/origin"
     },
     {
       "name": "SLAVE_REPO_CONTEXTDIR",
-      "description": "The sub-directory inside the repository",
+      "displayName": "Context Directory",
+      "description": "The sub-directory inside the repository.",
       "value": "examples/jenkins-master/slave"
     },
     {
       "name": "SLAVE_REPO_REF",
-      "description": "The git ref or tag to use for customization",
+      "displayName": "Git Reference",
+      "description": "The git ref or tag to use for customization.",
       "value": "master"
     }
   ],
