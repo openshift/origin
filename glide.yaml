@@ -512,6 +512,8 @@ import:
   subpackages:
   - api/v1/types
 - package: k8s.io/kubernetes
+  vcs: git
+  repo: git@github.com:openshift/kubernetes.git
   version: 91d3e753a4eca4e87462b7c9e5391ec94bb792d9
   subpackages:
   - cmd/kube-apiserver/app
