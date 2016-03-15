@@ -37,6 +37,7 @@ done
 
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
+reload_status=0
 DROP_SYN_DURING_RESTART=1
 installed_iptables=0
 if [ -n "$old_pids" ]; then
@@ -64,6 +65,7 @@ if [ -n "$old_pids" ]; then
   fi
 
   /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pids
+  reload_status=$?
 
   if [[ "$installed_iptables" == 1 ]]; then
     # We NEVER want to leave the syn eater in place after the reload or haproxy
@@ -90,6 +92,8 @@ if [ -n "$old_pids" ]; then
   fi
 else
   /usr/sbin/haproxy -f $config_file -p $pid_file
+  reload_status=$?
 fi
 
+[ $reload_status -ne 0 ] && exit $reload_status
 waitForHAProxyToStartListening
