@@ -443,21 +443,19 @@ function validate_response {
 
 
 # reset_tmp_dir will try to delete the testing directory.
-# If it fails will unmount all the mounts associated with
+# If necessary, it will unmount all the mounts associated with
 # the test.
 #
 # $1 expression for which the mounts should be checked
 reset_tmp_dir() {
 	local sudo="${USE_SUDO:+sudo}"
 
-	set +e
-	${sudo} rm -rf "${BASETMPDIR}" &>/dev/null
-	if [[ $? != 0 ]]; then
-		echo "[INFO] Unmounting previously used volumes ..."
-		findmnt -lo TARGET | grep "${BASETMPDIR}" | xargs -r "${sudo}" umount
-		${sudo} rm -rf "${BASETMPDIR}"
-	fi
-
+	echo "[INFO] Unmounting previously used volumes ..."
+	for mount in $( findmnt -lo TARGET | grep "${BASETMPDIR}" ); do
+		${sudo} umount "${mount}"
+	done
+	${sudo} rm -rf "${BASETMPDIR}"
+	
 	mkdir -p "${BASETMPDIR}" "${LOG_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}" "${VOLUME_DIR}"
 	set -e
 }
@@ -468,10 +466,11 @@ function kill_all_processes()
 {
 	local sudo="${USE_SUDO:+sudo}"
 
-	pids="$(jobs -pr)"
-	for i in ${pids}; do
-		pgrep -P "${i}" | xargs "${sudo}" kill &> /dev/null
-		$sudo kill "${i}" &> /dev/null
+	for parent in $(jobs -pr); do
+		for child in $(pgrep -P "${parent}"); do
+			${sudo} kill "${child}" &> /dev/null
+		done
+		${sudo} kill "${parent}" &> /dev/null
 	done
 }
 
