@@ -2081,6 +2081,10 @@
 			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
 		},
 		{
+			"ImportPath": "github.com/smarterclayton/chanstream",
+			"Rev": "a13defa2faca99901cb7149d4b06754850b4b0f3"
+		},
+		{
 			"ImportPath": "github.com/spf13/cobra",
 			"Rev": "4c05eb1145f16d0e6bb4a3e1b6d769f4713cb41f"
 		},
