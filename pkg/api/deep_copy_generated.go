@@ -1348,6 +1348,18 @@ func deepCopy_api_ImageSourcePath(in buildapi.ImageSourcePath, out *buildapi.Ima
 }
 
 func deepCopy_api_JenkinsPipelineStrategy(in buildapi.JenkinsPipelineStrategy, out *buildapi.JenkinsPipelineStrategy, c *conversion.Cloner) error {
+	if in.JenkinsfilePath != nil {
+		out.JenkinsfilePath = new(string)
+		*out.JenkinsfilePath = *in.JenkinsfilePath
+	} else {
+		out.JenkinsfilePath = nil
+	}
+	if in.Jenkinsfile != nil {
+		out.Jenkinsfile = new(string)
+		*out.Jenkinsfile = *in.Jenkinsfile
+	} else {
+		out.Jenkinsfile = nil
+	}
 	return nil
 }
 

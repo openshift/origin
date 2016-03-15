@@ -1708,6 +1708,18 @@ func autoConvert_api_JenkinsPipelineStrategy_To_v1_JenkinsPipelineStrategy(in *b
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.JenkinsPipelineStrategy))(in)
 	}
+	if in.JenkinsfilePath != nil {
+		out.JenkinsfilePath = new(string)
+		*out.JenkinsfilePath = *in.JenkinsfilePath
+	} else {
+		out.JenkinsfilePath = nil
+	}
+	if in.Jenkinsfile != nil {
+		out.Jenkinsfile = new(string)
+		*out.Jenkinsfile = *in.Jenkinsfile
+	} else {
+		out.Jenkinsfile = nil
+	}
 	return nil
 }
 
@@ -2592,6 +2604,18 @@ func Convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *v1.ImageSourcePath, o
 func autoConvert_v1_JenkinsPipelineStrategy_To_api_JenkinsPipelineStrategy(in *v1.JenkinsPipelineStrategy, out *buildapi.JenkinsPipelineStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.JenkinsPipelineStrategy))(in)
+	}
+	if in.JenkinsfilePath != nil {
+		out.JenkinsfilePath = new(string)
+		*out.JenkinsfilePath = *in.JenkinsfilePath
+	} else {
+		out.JenkinsfilePath = nil
+	}
+	if in.Jenkinsfile != nil {
+		out.Jenkinsfile = new(string)
+		*out.Jenkinsfile = *in.Jenkinsfile
+	} else {
+		out.Jenkinsfile = nil
 	}
 	return nil
 }

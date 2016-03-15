@@ -17702,8 +17702,7 @@
       "description": "CustomStrategy holds the parameters to the Custom build strategy"
      },
      "externalStrategy": {
-      "$ref": "v1.ExternalBuildStrategy",
-      "description": "holds parameters to the External build strategy"
+      "$ref": "v1.ExternalBuildStrategy"
      }
     }
    },
@@ -17929,7 +17928,37 @@
    },
    "v1.ExternalBuildStrategy": {
     "id": "v1.ExternalBuildStrategy",
-    "properties": {}
+    "required": [
+     "type"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "identifies the type of external build"
+     },
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "additional environment variables you want to pass into an external build"
+     },
+     "jenkinsPipelineStrategy": {
+      "$ref": "v1.JenkinsPipelineStrategy",
+      "description": "holds parameters to the Jenkins Pipeline external build strategy"
+     }
+    }
+   },
+   "v1.JenkinsPipelineStrategy": {
+    "id": "v1.JenkinsPipelineStrategy",
+    "properties": {
+     "jenkinsfilePath": {
+      "type": "string"
+     },
+     "jenkinsfile": {
+      "type": "string"
+     }
+    }
    },
    "v1.BuildOutput": {
     "id": "v1.BuildOutput",

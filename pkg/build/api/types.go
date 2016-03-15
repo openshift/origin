@@ -443,6 +443,12 @@ type ExternalBuildStrategy struct {
 
 // JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
 type JenkinsPipelineStrategy struct {
+	// JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline
+	// relative to the root of the source repository.
+	JenkinsfilePath *string `json:"jenkinsfilePath,omitempty"`
+
+	// Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition.
+	Jenkinsfile *string `json:"jenkinsfile,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
