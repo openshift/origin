@@ -163,10 +163,6 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnsupported)
 			return
 		}
-		if err == distribution.ErrAccessDenied {
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeDenied)
-			return
-		}
 		switch err := err.(type) {
 		case distribution.ErrManifestVerification:
 			for _, verificationError := range err {
