@@ -114,7 +114,6 @@ blacklist='
 ./hack/build-base-images.sh
 ./hack/update-external-examples.sh
 ./hack/verify-golint.sh
-./hack/util.sh
 ./examples/zookeeper/teardown.sh
 ./examples/zookeeper/config-and-run.sh
 ./examples/project-spawner/project-spawner.sh
@@ -153,9 +152,15 @@ blacklist='
 ./contrib/node/install-sdn.sh
 ./tools/junitreport/test/integration.sh
 '
+
+declare -a ignored_checks
+ignored_checks+=('SC2009') # using pgrep instead of ps ... | grep
+
+ignored_checks="$( IFS=','; echo "${ignored_checks[*]}" )"
+
 for file in ${files}; do
     if ! echo "${blacklist}" | grep -q "${file}"; then
-        if ! shellcheck "${file}"; then
+        if ! shellcheck --exclude="${ignored_checks}" "${file}"; then
             failed=true
         fi
     fi
