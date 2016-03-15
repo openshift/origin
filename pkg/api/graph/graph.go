@@ -63,7 +63,7 @@ func EnsureUnique(g UniqueNodeInitializer, name UniqueName, fn NodeInitializerFu
 }
 
 type MutableDirectedEdge interface {
-	AddEdge(head, tail graph.Node, edgeKind string)
+	AddEdge(from, to graph.Node, edgeKind string)
 }
 
 type MutableUniqueGraph interface {
@@ -78,8 +78,8 @@ type Edge struct {
 	kinds sets.String
 }
 
-func NewEdge(head, tail graph.Node, kinds ...string) Edge {
-	return Edge{concrete.Edge{F: head, T: tail}, sets.NewString(kinds...)}
+func NewEdge(from, to graph.Node, kinds ...string) Edge {
+	return Edge{concrete.Edge{F: from, T: to}, sets.NewString(kinds...)}
 }
 
 func (e Edge) Kinds() sets.String {
@@ -344,24 +344,24 @@ func (g Graph) AddNode(n graph.Node) {
 }
 
 // AddEdge implements MutableUniqueGraph
-func (g Graph) AddEdge(head, tail graph.Node, edgeKind string) {
+func (g Graph) AddEdge(from, to graph.Node, edgeKind string) {
 	// a Contains edge has semantic meaning for osgraph.Graph objects.  It never makes sense
 	// to allow a single object to be "contained" by multiple nodes.
 	if edgeKind == ContainsEdgeKind {
-		// check incoming edges on the tail to be certain that we aren't already contained
-		containsEdges := g.InboundEdges(tail, ContainsEdgeKind)
+		// check incoming edges on the 'to' node to be certain that we aren't already contained
+		containsEdges := g.InboundEdges(to, ContainsEdgeKind)
 		if len(containsEdges) != 0 {
 			// TODO consider changing the AddEdge API to make this cleaner.  This is a pretty severe programming error
-			panic(fmt.Sprintf("%v is already contained by %v", tail, containsEdges))
+			panic(fmt.Sprintf("%v is already contained by %v", to, containsEdges))
 		}
 	}
 
 	kinds := sets.NewString(edgeKind)
-	if existingEdge := g.Edge(head, tail); existingEdge != nil {
+	if existingEdge := g.Edge(from, to); existingEdge != nil {
 		kinds.Insert(g.EdgeKinds(existingEdge).List()...)
 	}
 
-	g.internal.SetEdge(NewEdge(head, tail, kinds.List()...), 1.0)
+	g.internal.SetEdge(NewEdge(from, to, kinds.List()...), 1.0)
 }
 
 // addEdges adds the specified edges, filtered by the provided edge connection
@@ -404,19 +404,19 @@ func NodesOfKind(kinds ...string) NodeFunc {
 
 // EdgeFunc is passed a new graph, an edge in the current graph, and should mutate
 // the new graph as needed. If true is returned, the existing edge will be added to the graph.
-type EdgeFunc func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool
+type EdgeFunc func(g Interface, from, to graph.Node, edgeKinds sets.String) bool
 
 // EdgesOfKind returns a new EdgeFunc accepting the provided kinds of edges
 // If no kinds are specified, the returned EdgeFunc will accept all edges
 func EdgesOfKind(kinds ...string) EdgeFunc {
 	if len(kinds) == 0 {
-		return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
+		return func(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
 			return true
 		}
 	}
 
 	allowedKinds := sets.NewString(kinds...)
-	return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
+	return func(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
 		return allowedKinds.HasAny(edgeKinds.List()...)
 	}
 }
@@ -424,9 +424,9 @@ func EdgesOfKind(kinds ...string) EdgeFunc {
 // RemoveInboundEdges returns a new EdgeFunc dismissing any inbound edges to
 // the provided set of nodes
 func RemoveInboundEdges(nodes []graph.Node) EdgeFunc {
-	return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
+	return func(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
 		for _, node := range nodes {
-			if node == tail {
+			if node == to {
 				return false
 			}
 		}
@@ -483,24 +483,24 @@ func AllNodes(g Interface, node graph.Node) bool {
 	return true
 }
 
-// ExistingDirectEdge returns true if both head and tail already exist in the graph and the edge kind is
+// ExistingDirectEdge returns true if both from and to already exist in the graph and the edge kind is
 // not ReferencedByEdgeKind (the generic reverse edge kind). This will purge the graph of any
 // edges created by AddReversedEdge.
-func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
-	return !edgeKinds.Has(ReferencedByEdgeKind) && g.Has(head) && g.Has(tail)
+func ExistingDirectEdge(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
+	return !edgeKinds.Has(ReferencedByEdgeKind) && g.Has(from) && g.Has(to)
 }
 
 // ReverseExistingDirectEdge reverses the order of the edge and drops the existing edge only if
-// both head and tail already exist in the graph and the edge kind is not ReferencedByEdgeKind
+// both from and to already exist in the graph and the edge kind is not ReferencedByEdgeKind
 // (the generic reverse edge kind).
-func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
-	return ExistingDirectEdge(g, head, tail, edgeKinds) && ReverseGraphEdge(g, head, tail, edgeKinds)
+func ReverseExistingDirectEdge(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
+	return ExistingDirectEdge(g, from, to, edgeKinds) && ReverseGraphEdge(g, from, to, edgeKinds)
 }
 
 // ReverseGraphEdge reverses the order of the edge and drops the existing edge.
-func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
+func ReverseGraphEdge(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
 	for edgeKind := range edgeKinds {
-		g.AddEdge(tail, head, edgeKind)
+		g.AddEdge(to, from, edgeKind)
 	}
 	return false
 }
@@ -508,17 +508,17 @@ func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKinds sets.String)
 // AddReversedEdge adds a reversed edge for every passed edge and preserves the existing
 // edge. Used to convert a one directional edge into a bidirectional edge, but will
 // create duplicate edges if a bidirectional edge between two nodes already exists.
-func AddReversedEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
-	g.AddEdge(tail, head, ReferencedByEdgeKind)
+func AddReversedEdge(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
+	g.AddEdge(to, from, ReferencedByEdgeKind)
 	return true
 }
 
 // AddGraphEdgesTo returns an EdgeFunc that will add the selected edges to the passed
 // graph.
 func AddGraphEdgesTo(g Interface) EdgeFunc {
-	return func(_ Interface, head, tail graph.Node, edgeKinds sets.String) bool {
+	return func(_ Interface, from, to graph.Node, edgeKinds sets.String) bool {
 		for edgeKind := range edgeKinds {
-			g.AddEdge(head, tail, edgeKind)
+			g.AddEdge(from, to, edgeKind)
 		}
 
 		return false
