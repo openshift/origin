@@ -3,6 +3,8 @@ package graph
 import (
 	"sort"
 
+	"github.com/gonum/graph"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
@@ -75,4 +77,32 @@ func defaultNamespace(value, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// BuildConfigForTag returns the buildConfig that points to the provided imageStreamTag.
+// TODO: Handle multiple buildconfigs pointing to the same tag.
+func BuildConfigForTag(g osgraph.Graph, istag graph.Node) *buildgraph.BuildConfigNode {
+	for _, bcNode := range g.PredecessorNodesByEdgeKind(istag, BuildOutputEdgeKind) {
+		return bcNode.(*buildgraph.BuildConfigNode)
+	}
+	return nil
+}
+
+// GetLatestBuild returns the latest build for the provided buildConfig.
+func GetLatestBuild(g osgraph.Graph, bc graph.Node) *buildgraph.BuildNode {
+	builds := g.SuccessorNodesByEdgeKind(bc, BuildEdgeKind)
+	if len(builds) == 0 {
+		return nil
+	}
+	latestBuild := builds[0].(*buildgraph.BuildNode)
+
+	for _, buildNode := range builds[1:] {
+		if build, ok := buildNode.(*buildgraph.BuildNode); ok {
+			if latestBuild.Build.CreationTimestamp.Before(build.Build.CreationTimestamp) {
+				latestBuild = build
+			}
+		}
+	}
+
+	return latestBuild
 }

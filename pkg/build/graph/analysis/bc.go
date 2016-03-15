@@ -2,7 +2,6 @@ package analysis
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -173,8 +172,8 @@ func FindPendingTags(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 
 	for _, uncastIstNode := range g.NodesByKind(imagegraph.ImageStreamTagNodeKind) {
 		istNode := uncastIstNode.(*imagegraph.ImageStreamTagNode)
-		if bcNode, points := buildPointsToTag(g, uncastIstNode); points && !istNode.Found() {
-			latestBuild := latestBuild(g, bcNode)
+		if bcNode := buildedges.BuildConfigForTag(g, uncastIstNode); bcNode != nil && !istNode.Found() {
+			latestBuild := buildedges.GetLatestBuild(g, bcNode)
 
 			// A build config points to the non existent tag but no current build exists.
 			if latestBuild == nil {
@@ -305,28 +304,4 @@ func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStre
 		return false, dockerImageReference.ID
 	}
 	return false, ""
-}
-
-// buildPointsToTag returns the first buildConfig that points to the provided imageStreamTag.
-func buildPointsToTag(g osgraph.Graph, istag graph.Node) (*buildgraph.BuildConfigNode, bool) {
-	for _, bcNode := range g.PredecessorNodesByEdgeKind(istag, buildedges.BuildOutputEdgeKind) {
-		return bcNode.(*buildgraph.BuildConfigNode), true
-	}
-	return nil, false
-}
-
-// latestBuild returns the latest build for the provided buildConfig.
-func latestBuild(g osgraph.Graph, bc graph.Node) *buildgraph.BuildNode {
-	builds := []*buildapi.Build{}
-	buildNameToNode := map[string]*buildgraph.BuildNode{}
-	for _, buildNode := range g.SuccessorNodesByEdgeKind(bc, buildedges.BuildEdgeKind) {
-		build := buildNode.(*buildgraph.BuildNode)
-		buildNameToNode[build.Build.Name] = build
-		builds = append(builds, build.Build)
-	}
-	if len(builds) == 0 {
-		return nil
-	}
-	sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(builds)))
-	return buildNameToNode[builds[0].Name]
 }
