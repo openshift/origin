@@ -137,37 +137,38 @@ func ListenAndServe(srv *http.Server, network string) error {
 	if err != nil {
 		return err
 	}
-	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
+	return srv.Serve(ln)
+}
+
+// AddCertKeyToTLSConfig loads an X509 certificate into the provided tls config.
+func AddCertKeyToTLSConfig(config *tls.Config, certFile, keyFile string) error {
+	if config.NextProtos == nil {
+		config.NextProtos = []string{"http/1.1"}
+	}
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return err
+	}
+	config.Certificates = []tls.Certificate{cert}
+	return nil
 }
 
 // ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
 // by net.Listen).
-func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile string) error {
+func ListenAndServeTLS(srv *http.Server, network string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"
-	}
-	config := &tls.Config{}
-	if srv.TLSConfig != nil {
-		config = srv.TLSConfig
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
-	}
-
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return err
 	}
 
 	ln, err := net.Listen(network, addr)
 	if err != nil {
 		return err
 	}
+	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
 
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+	tlsListener := tls.NewListener(ln, srv.TLSConfig)
 	return srv.Serve(tlsListener)
 }
 

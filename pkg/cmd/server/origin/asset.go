@@ -82,22 +82,27 @@ func (c *AssetConfig) Run() {
 	}
 
 	isTLS := configapi.UseTLS(c.Options.ServingInfo.ServingInfo)
+	if isTLS {
+		extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
+		if err != nil {
+			glog.Fatal(err)
+		}
+		server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
+			// Set SNI certificate func
+			GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+		})
+		if err := cmdutil.AddCertKeyToTLSConfig(server.TLSConfig, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile); err != nil {
+			glog.Fatal(err)
+		}
+	}
 
 	go utilwait.Forever(func() {
 		if isTLS {
-			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
-			if err != nil {
-				glog.Fatal(err)
-			}
-			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
-				// Set SNI certificate func
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			})
 			glog.Infof("Web console listening at https://%s", c.Options.ServingInfo.BindAddress)
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork))
 		} else {
 			glog.Infof("Web console listening at http://%s", c.Options.ServingInfo.BindAddress)
-			glog.Fatal(server.ListenAndServe())
+			glog.Fatal(cmdutil.ListenAndServe(server, c.Options.ServingInfo.BindNetwork))
 		}
 	}, 0)
 
