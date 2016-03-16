@@ -4,16 +4,11 @@ import (
 	rflag "flag"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
-	"testing"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -79,34 +74,6 @@ func InitTest() {
 
 	// Override the default Kubernetes E2E configuration
 	e2e.SetTestContext(TestContext)
-}
-
-func ExecuteTest(t *testing.T, suite string) {
-	var r []ginkgo.Reporter
-
-	if reportDir != "" {
-		if err := os.MkdirAll(reportDir, 0755); err != nil {
-			glog.Errorf("Failed creating report directory: %v", err)
-		}
-		defer e2e.CoreDump(reportDir)
-	}
-
-	// Disable density test unless it's explicitly requested.
-	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
-		config.GinkgoConfig.SkipString = "Skipped"
-	}
-	gomega.RegisterFailHandler(ginkgo.Fail)
-
-	if reportDir != "" {
-		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
-	}
-
-	if quiet {
-		r = append(r, NewSimpleReporter())
-		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-	} else {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
-	}
 }
 
 // verifyTestSuitePreconditions ensures that all namespaces prefixed with 'e2e-' have their
