@@ -19,7 +19,7 @@ package unversioned
 import (
 	api "k8s.io/kubernetes/pkg/api"
 	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	unversioned "k8s.io/kubernetes/pkg/client/unversioned"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 )
 
 type CoreInterface interface {
@@ -37,15 +37,14 @@ type CoreInterface interface {
 	ReplicationControllersGetter
 	ResourceQuotasGetter
 	SecretsGetter
+	SecurityContextConstraintsGetter
 	ServicesGetter
 	ServiceAccountsGetter
-
-	SecurityContextConstraintsInterface
 }
 
 // CoreClient is used to interact with features provided by the Core group.
 type CoreClient struct {
-	*unversioned.RESTClient
+	*restclient.RESTClient
 }
 
 func (c *CoreClient) ComponentStatuses() ComponentStatusInterface {
@@ -104,6 +103,10 @@ func (c *CoreClient) Secrets(namespace string) SecretInterface {
 	return newSecrets(c, namespace)
 }
 
+func (c *CoreClient) SecurityContextConstraints() SecurityContextConstraintsInterface {
+	return newSecurityContextConstraints(c)
+}
+
 func (c *CoreClient) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
 }
@@ -113,12 +116,12 @@ func (c *CoreClient) ServiceAccounts(namespace string) ServiceAccountInterface {
 }
 
 // NewForConfig creates a new CoreClient for the given config.
-func NewForConfig(c *unversioned.Config) (*CoreClient, error) {
+func NewForConfig(c *restclient.Config) (*CoreClient, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := unversioned.RESTClientFor(&config)
+	client, err := restclient.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +130,7 @@ func NewForConfig(c *unversioned.Config) (*CoreClient, error) {
 
 // NewForConfigOrDie creates a new CoreClient for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *unversioned.Config) *CoreClient {
+func NewForConfigOrDie(c *restclient.Config) *CoreClient {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -136,11 +139,11 @@ func NewForConfigOrDie(c *unversioned.Config) *CoreClient {
 }
 
 // New creates a new CoreClient for the given RESTClient.
-func New(c *unversioned.RESTClient) *CoreClient {
+func New(c *restclient.RESTClient) *CoreClient {
 	return &CoreClient{c}
 }
 
-func setConfigDefaults(config *unversioned.Config) error {
+func setConfigDefaults(config *restclient.Config) error {
 	// if core group is not registered, return an error
 	g, err := registered.Group("")
 	if err != nil {
@@ -148,7 +151,7 @@ func setConfigDefaults(config *unversioned.Config) error {
 	}
 	config.APIPath = "/api"
 	if config.UserAgent == "" {
-		config.UserAgent = unversioned.DefaultKubernetesUserAgent()
+		config.UserAgent = restclient.DefaultKubernetesUserAgent()
 	}
 	// TODO: Unconditionally set the config.Version, until we fix the config.
 	//if config.Version == "" {
@@ -164,8 +167,4 @@ func setConfigDefaults(config *unversioned.Config) error {
 		config.Burst = 10
 	}
 	return nil
-}
-
-func (c *CoreClient) SecurityContextConstraints() SecurityContextConstraintInterface {
-	return newSecurityContextConstraints(c)
 }

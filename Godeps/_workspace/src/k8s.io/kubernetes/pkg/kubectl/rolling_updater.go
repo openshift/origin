@@ -20,7 +20,6 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/deployment"
+	"k8s.io/kubernetes/pkg/util/integer"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -204,7 +204,7 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 	}
 	// The minumum pods which must remain available througout the update
 	// calculated for internal convenience.
-	minAvailable := int(math.Max(float64(0), float64(desired-maxUnavailable)))
+	minAvailable := integer.IntMax(0, desired-maxUnavailable)
 	// If the desired new scale is 0, then the max unavailable is necessarily
 	// the effective scale of the old RC regardless of the configuration
 	// (equivalent to 100% maxUnavailable).

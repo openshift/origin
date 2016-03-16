@@ -162,6 +162,11 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			parallelism := int(c.Rand.Int31())
 			j.Completions = &completions
 			j.Parallelism = &parallelism
+			if c.Rand.Int31()%2 == 0 {
+				j.ManualSelector = newBool(true)
+			} else {
+				j.ManualSelector = nil
+			}
 		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -398,19 +403,35 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			s.MinReplicas = &minReplicas
 			s.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: int(int32(c.RandUint64()))}
 		},
-		func(s *extensions.DaemonSetUpdateStrategy, c fuzz.Continue) {
-			c.FuzzNoCustom(s)
-			s.Type = extensions.RollingUpdateDaemonSetStrategyType
-			s.RollingUpdate = &extensions.RollingUpdateDaemonSet{
-				MaxUnavailable: intstr.FromInt(10),
-			}
+		func(s *extensions.SubresourceReference, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+			s.Subresource = "scale"
 		},
 		func(psp *extensions.PodSecurityPolicySpec, c fuzz.Continue) {
 			c.FuzzNoCustom(psp) // fuzz self without calling this function again
-			userTypes := []extensions.RunAsUserStrategy{extensions.RunAsUserStrategyMustRunAsNonRoot, extensions.RunAsUserStrategyMustRunAs, extensions.RunAsUserStrategyRunAsAny}
-			psp.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
-			seLinuxTypes := []extensions.SELinuxContextStrategy{extensions.SELinuxStrategyRunAsAny, extensions.SELinuxStrategyMustRunAs}
-			psp.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			runAsUserRules := []extensions.RunAsUserStrategy{extensions.RunAsUserStrategyMustRunAsNonRoot, extensions.RunAsUserStrategyMustRunAs, extensions.RunAsUserStrategyRunAsAny}
+			psp.RunAsUser.Rule = runAsUserRules[c.Rand.Intn(len(runAsUserRules))]
+			seLinuxRules := []extensions.SELinuxStrategy{extensions.SELinuxStrategyRunAsAny, extensions.SELinuxStrategyMustRunAs}
+			psp.SELinux.Rule = seLinuxRules[c.Rand.Intn(len(seLinuxRules))]
+		},
+		func(s *extensions.Scale, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+			// TODO: Implement a fuzzer to generate valid keys, values and operators for
+			// selector requirements.
+			if s.Status.Selector != nil {
+				s.Status.Selector = &unversioned.LabelSelector{
+					MatchLabels: map[string]string{
+						"testlabelkey": "testlabelval",
+					},
+					MatchExpressions: []unversioned.LabelSelectorRequirement{
+						{
+							Key:      "testkey",
+							Operator: unversioned.LabelSelectorOpIn,
+							Values:   []string{"val1", "val2", "val3"},
+						},
+					},
+				}
+			}
 		},
 		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
 			c.FuzzNoCustom(scc) // fuzz self without calling this function again
@@ -425,4 +446,10 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 		},
 	)
 	return f
+}
+
+func newBool(val bool) *bool {
+	p := new(bool)
+	*p = val
+	return p
 }

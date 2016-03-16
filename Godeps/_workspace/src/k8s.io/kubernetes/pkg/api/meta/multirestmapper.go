@@ -55,7 +55,10 @@ func (m MultiRESTMapper) ResourcesFor(resource unversioned.GroupVersionResource)
 	for _, t := range m {
 		gvrs, err := t.ResourcesFor(resource)
 		// ignore "no match" errors, but any other error percolates back up
-		if err != nil && !IsNoResourceMatchError(err) {
+		if IsNoResourceMatchError(err) {
+			continue
+		}
+		if err != nil {
 			return nil, err
 		}
 
@@ -87,7 +90,10 @@ func (m MultiRESTMapper) KindsFor(resource unversioned.GroupVersionResource) (gv
 	for _, t := range m {
 		gvks, err := t.KindsFor(resource)
 		// ignore "no match" errors, but any other error percolates back up
-		if err != nil && !IsNoResourceMatchError(err) {
+		if IsNoResourceMatchError(err) {
+			continue
+		}
+		if err != nil {
 			return nil, err
 		}
 
@@ -123,11 +129,6 @@ func (m MultiRESTMapper) ResourceFor(resource unversioned.GroupVersionResource) 
 		return resources[0], nil
 	}
 
-	preferredResources := getMostPreferredVersionForResource(resources)
-	if len(preferredResources) == 1 {
-		return preferredResources[0], nil
-	}
-
 	return unversioned.GroupVersionResource{}, &AmbiguousResourceError{PartialResource: resource, MatchingResources: resources}
 }
 
@@ -138,14 +139,6 @@ func (m MultiRESTMapper) KindFor(resource unversioned.GroupVersionResource) (unv
 	}
 	if len(kinds) == 1 {
 		return kinds[0], nil
-	}
-
-	// TODO for each group, choose the most preferred (first) version.  This keeps us consistent with code today.
-	// eventually, we'll need a RESTMapper that is aware of what's available server-side and deconflicts that with
-	// user preferences
-	preferredKinds := getMostPreferredVersionForKind(kinds)
-	if len(preferredKinds) == 1 {
-		return preferredKinds[0], nil
 	}
 
 	return unversioned.GroupVersionKind{}, &AmbiguousResourceError{PartialResource: resource, MatchingKinds: kinds}
@@ -161,6 +154,9 @@ func (m MultiRESTMapper) RESTMapping(gk unversioned.GroupKind, versions ...strin
 	for _, t := range m {
 		currMapping, err := t.RESTMapping(gk, versions...)
 		// ignore "no match" errors, but any other error percolates back up
+		if IsNoResourceMatchError(err) {
+			continue
+		}
 		if err != nil {
 			errors = append(errors, err)
 			continue
@@ -195,14 +191,4 @@ func (m MultiRESTMapper) AliasesForResource(alias string) ([]string, bool) {
 		}
 	}
 	return allAliases, handled
-}
-
-// ResourceIsValid takes a string (either group/kind or kind) and checks if it's a valid resource
-func (m MultiRESTMapper) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	for _, t := range m {
-		if t.ResourceIsValid(resource) {
-			return true
-		}
-	}
-	return false
 }

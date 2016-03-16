@@ -181,7 +181,23 @@ func (r *replenishmentControllerFactory) NewController(options *ReplenishmentCon
 					return r.kubeClient.Core().Secrets(api.NamespaceAll).Watch(options)
 				},
 			},
-			&api.PersistentVolumeClaim{},
+			&api.Secret{},
+			options.ResyncPeriod(),
+			framework.ResourceEventHandlerFuncs{
+				DeleteFunc: ObjectReplenishmentDeleteFunc(options),
+			},
+		)
+	case api.Kind("ConfigMap"):
+		_, result = framework.NewInformer(
+			&cache.ListWatch{
+				ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+					return r.kubeClient.Core().ConfigMaps(api.NamespaceAll).List(options)
+				},
+				WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+					return r.kubeClient.Core().ConfigMaps(api.NamespaceAll).Watch(options)
+				},
+			},
+			&api.ConfigMap{},
 			options.ResyncPeriod(),
 			framework.ResourceEventHandlerFuncs{
 				DeleteFunc: ObjectReplenishmentDeleteFunc(options),

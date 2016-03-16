@@ -17,9 +17,9 @@ limitations under the License.
 package runtime_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -50,6 +50,80 @@ func TestDecodeUnstructured(t *testing.T) {
 	}
 }
 
+func TestDecode(t *testing.T) {
+	tcs := []struct {
+		json []byte
+		want runtime.Object
+	}{
+		{
+			json: []byte(`{"apiVersion": "test", "kind": "test_kind"}`),
+			want: &runtime.Unstructured{
+				TypeMeta: runtime.TypeMeta{
+					APIVersion: "test",
+					Kind:       "test_kind",
+				},
+				Object: map[string]interface{}{"apiVersion": "test", "kind": "test_kind"},
+			},
+		},
+		{
+			json: []byte(`{"apiVersion": "test", "kind": "test_list", "items": []}`),
+			want: &runtime.UnstructuredList{
+				TypeMeta: runtime.TypeMeta{
+					APIVersion: "test",
+					Kind:       "test_list",
+				},
+			},
+		},
+		{
+			json: []byte(`{"items": [{"metadata": {"name": "object1"}, "apiVersion": "test", "kind": "test_kind"}, {"metadata": {"name": "object2"}, "apiVersion": "test", "kind": "test_kind"}], "apiVersion": "test", "kind": "test_list"}`),
+			want: &runtime.UnstructuredList{
+				TypeMeta: runtime.TypeMeta{
+					APIVersion: "test",
+					Kind:       "test_list",
+				},
+				Items: []*runtime.Unstructured{
+					{
+						TypeMeta: runtime.TypeMeta{
+							APIVersion: "test",
+							Kind:       "test_kind",
+						},
+						Name: "object1",
+						Object: map[string]interface{}{
+							"metadata":   map[string]interface{}{"name": "object1"},
+							"apiVersion": "test",
+							"kind":       "test_kind",
+						},
+					},
+					{
+						TypeMeta: runtime.TypeMeta{
+							APIVersion: "test",
+							Kind:       "test_kind",
+						},
+						Name: "object2",
+						Object: map[string]interface{}{
+							"metadata":   map[string]interface{}{"name": "object2"},
+							"apiVersion": "test",
+							"kind":       "test_kind",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		got, _, err := runtime.UnstructuredJSONScheme.Decode(tc.json, nil, nil)
+		if err != nil {
+			t.Errorf("Unexpected error for %q: %v", string(tc.json), err)
+			continue
+		}
+
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("Decode(%q) want: %v\ngot: %v", string(tc.json), tc.want, got)
+		}
+	}
+}
+
 func TestDecodeNumbers(t *testing.T) {
 
 	// Start with a valid pod
@@ -59,7 +133,7 @@ func TestDecodeNumbers(t *testing.T) {
 		"metadata":{"name":"pod","namespace":"foo"},
 		"spec":{
 			"containers":[{"name":"container","image":"container"}],
-			"activeDeadlineSeconds":9223372036854775807
+			"activeDeadlineSeconds":1000030003
 		}
 	}`)
 
@@ -84,18 +158,26 @@ func TestDecodeNumbers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	roundtripJSON, err := json.Marshal(unstructuredObj.(*runtime.Unstructured).Object)
+	roundtripJSON, err := runtime.Encode(runtime.UnstructuredJSONScheme, unstructuredObj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Make sure we serialize back out in int form
+	if !strings.Contains(string(roundtripJSON), `"activeDeadlineSeconds":1000030003`) {
+		t.Errorf("Expected %s, got %s", `"activeDeadlineSeconds":1000030003`, string(roundtripJSON))
+	}
+
 	// Decode with structured codec again
-	pod2 := &api.Pod{}
-	err = runtime.DecodeInto(codec, roundtripJSON, pod2)
+	obj2, err := runtime.Decode(codec, roundtripJSON)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// ensure pod is still valid
+	pod2, ok := obj2.(*api.Pod)
+	if !ok {
+		t.Fatalf("expected an *api.Pod, got %#v", obj2)
+	}
 	if errs := validation.ValidatePod(pod2); len(errs) > 0 {
 		t.Fatalf("pod should be valid: %v", errs)
 	}

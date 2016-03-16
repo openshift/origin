@@ -31,7 +31,6 @@ import (
 )
 
 func TestSetDefaultDaemonSet(t *testing.T) {
-	defaultIntOrString := intstr.FromInt(1)
 	defaultLabels := map[string]string{"foo": "bar"}
 	period := int64(v1.DefaultTerminationGracePeriodSeconds)
 	defaultTemplate := v1.PodTemplateSpec{
@@ -72,13 +71,6 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 						MatchLabels: defaultLabels,
 					},
 					Template: defaultTemplate,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
-					UniqueLabelKey: newString(DefaultDaemonSetUniqueLabelKey),
 				},
 			},
 		},
@@ -91,12 +83,6 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 				},
 				Spec: DaemonSetSpec{
 					Template: defaultTemplate,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
 				},
 			},
 			expected: &DaemonSet{
@@ -110,13 +96,6 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 						MatchLabels: defaultLabels,
 					},
 					Template: defaultTemplate,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
-					UniqueLabelKey: newString(DefaultDaemonSetUniqueLabelKey),
 				},
 			},
 		},
@@ -125,56 +104,26 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 			expected: &DaemonSet{
 				Spec: DaemonSetSpec{
 					Template: templateNoLabel,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
-					UniqueLabelKey: newString(DefaultDaemonSetUniqueLabelKey),
 				},
 			},
 		},
 		{ // Update strategy.
 			original: &DaemonSet{
-				Spec: DaemonSetSpec{
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						RollingUpdate: &RollingUpdateDaemonSet{},
-					},
-				},
+				Spec: DaemonSetSpec{},
 			},
 			expected: &DaemonSet{
 				Spec: DaemonSetSpec{
 					Template: templateNoLabel,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
-					UniqueLabelKey: newString(DefaultDaemonSetUniqueLabelKey),
 				},
 			},
 		},
 		{ // Custom unique label key.
 			original: &DaemonSet{
-				Spec: DaemonSetSpec{
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						RollingUpdate: &RollingUpdateDaemonSet{},
-					},
-					UniqueLabelKey: newString("customDaemonSetKey"),
-				},
+				Spec: DaemonSetSpec{},
 			},
 			expected: &DaemonSet{
 				Spec: DaemonSetSpec{
 					Template: templateNoLabel,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: RollingUpdateDaemonSetStrategyType,
-						RollingUpdate: &RollingUpdateDaemonSet{
-							MaxUnavailable: &defaultIntOrString,
-						},
-					},
-					UniqueLabelKey: newString("customDaemonSetKey"),
 				},
 			},
 		},
@@ -477,7 +426,7 @@ func TestSetDefaultReplicaSet(t *testing.T) {
 		{
 			rs: &ReplicaSet{
 				Spec: ReplicaSetSpec{
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -497,7 +446,7 @@ func TestSetDefaultReplicaSet(t *testing.T) {
 					},
 				},
 				Spec: ReplicaSetSpec{
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -522,7 +471,7 @@ func TestSetDefaultReplicaSet(t *testing.T) {
 							"some": "other",
 						},
 					},
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -542,7 +491,7 @@ func TestSetDefaultReplicaSet(t *testing.T) {
 							"some": "other",
 						},
 					},
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -589,7 +538,7 @@ func TestSetDefaultReplicaSetReplicas(t *testing.T) {
 		{
 			rs: ReplicaSet{
 				Spec: ReplicaSetSpec{
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -604,7 +553,7 @@ func TestSetDefaultReplicaSetReplicas(t *testing.T) {
 			rs: ReplicaSet{
 				Spec: ReplicaSetSpec{
 					Replicas: newInt32(0),
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -619,7 +568,7 @@ func TestSetDefaultReplicaSetReplicas(t *testing.T) {
 			rs: ReplicaSet{
 				Spec: ReplicaSetSpec{
 					Replicas: newInt32(3),
-					Template: &v1.PodTemplateSpec{
+					Template: v1.PodTemplateSpec{
 						ObjectMeta: v1.ObjectMeta{
 							Labels: map[string]string{
 								"foo": "bar",
@@ -662,7 +611,7 @@ func TestDefaultRequestIsNotSetForReplicaSet(t *testing.T) {
 	rs := &ReplicaSet{
 		Spec: ReplicaSetSpec{
 			Replicas: newInt32(3),
-			Template: &v1.PodTemplateSpec{
+			Template: v1.PodTemplateSpec{
 				ObjectMeta: v1.ObjectMeta{
 					Labels: map[string]string{
 						"foo": "bar",
