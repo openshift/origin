@@ -12,6 +12,8 @@ FROM centos:centos7
 # base images land
 RUN yum swap -y -- remove systemd-container\* -- install systemd systemd-libs
 
-RUN yum install -y which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
-    socat ethtool device-mapper iptables && \
+RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
+        socat ethtool device-mapper iptables e2fsprogs xfsprogs" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
