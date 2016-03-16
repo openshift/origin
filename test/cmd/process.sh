@@ -1,0 +1,65 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
+os::log::install_errexit
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  oc delete user someval
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/process"
+# This test validates oc process
+
+# fail to process two templates by name
+os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
+# fail to pass a filename or template by name
+os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
+# can't ask for parameters and try process the template
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --value=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -v someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -o someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template' 
+
+# providing a value more than once should fail
+os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name --value=key=value --value=key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name key=value --value=key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --value=key=value --value=other=baz' 'provided more than once: key, other'
+
+required_params="${OS_ROOT}/test/fixtures/template_required_params.yaml"
+
+# providing something other than a template is not OK
+os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/fixtures/basic-user.json'" 'not a valid Template but'
+
+# not providing required parameter should fail
+os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
+# not providiing an optional param is OK
+os::cmd::expect_success "oc process -f '${required_params}' --value=required_param=someval | oc create -f -"
+# we should have overwritten the template param
+os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.Name}' 'someval'
+# providing a value not in the template should fail
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unknown parameter name "other_param"'
+# failure on values fails the entire call
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param=some=series=of=values=" 'invalid parameter assignment in'
+# failure on labels fails the entire call
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --labels======" 'error parsing labels'
+
+echo "process: ok"
+os::test::junit::declare_suite_end

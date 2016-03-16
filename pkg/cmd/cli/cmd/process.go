@@ -15,6 +15,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -96,6 +98,34 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
+	keys := sets.NewString()
+	duplicatedKeys := sets.NewString()
+
+	var flagValues []string
+	if cmd.Flag("value").Changed {
+		flagValues = kcmdutil.GetFlagStringSlice(cmd, "value")
+	}
+
+	for _, value := range flagValues {
+		key := strings.Split(value, "=")[0]
+		if keys.Has(key) {
+			duplicatedKeys.Insert(key)
+		}
+		keys.Insert(key)
+	}
+
+	for _, value := range valueArgs {
+		key := strings.Split(value, "=")[0]
+		if keys.Has(key) {
+			duplicatedKeys.Insert(key)
+		}
+		keys.Insert(key)
+	}
+
+	if len(duplicatedKeys) != 0 {
+		return kcmdutil.UsageError(cmd, fmt.Sprintf("The following values were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
+	}
+
 	filename := kcmdutil.GetFlagString(cmd, "filename")
 	if len(templateName) == 0 && len(filename) == 0 {
 		return kcmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
@@ -171,73 +201,74 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 
-	for i := range infos {
-		obj, ok := infos[i].Object.(*templateapi.Template)
-		if !ok {
-			sourceName := filename
-			if len(templateName) > 0 {
-				sourceName = namespace + "/" + templateName
-			}
-			fmt.Fprintf(cmd.Out(), "unable to parse %q, not a valid Template but %s\n", sourceName, reflect.TypeOf(infos[i].Object))
-			continue
-		}
-
-		// If 'parameters' flag is set it does not do processing but only print
-		// the template parameters to console for inspection.
-		// If multiple templates are passed, this will print combined output for all
-		// templates.
-		if kcmdutil.GetFlagBool(cmd, "parameters") {
-			if len(infos) > 1 {
-				fmt.Fprintf(out, "\n%s:\n", obj.Name)
-			}
-			if err := describe.PrintTemplateParameters(obj.Parameters, out); err != nil {
-				fmt.Fprintf(cmd.Out(), "error printing parameters for %q: %v\n", obj.Name, err)
-			}
-			continue
-		}
-
-		if label := kcmdutil.GetFlagString(cmd, "labels"); len(label) > 0 {
-			lbl, err := kubectl.ParseLabels(label)
-			if err != nil {
-				fmt.Fprintf(cmd.Out(), "error parsing labels: %v\n", err)
-				continue
-			}
-			if obj.ObjectLabels == nil {
-				obj.ObjectLabels = make(map[string]string)
-			}
-			for key, value := range lbl {
-				obj.ObjectLabels[key] = value
-			}
-		}
-
-		// Override the values for the current template parameters
-		// when user specify the --value
-		if cmd.Flag("value").Changed {
-			values := kcmdutil.GetFlagStringSlice(cmd, "value")
-			injectUserVars(values, cmd, obj)
-		}
-		injectUserVars(valueArgs, cmd, obj)
-
-		resultObj, err := client.TemplateConfigs(namespace).Create(obj)
-		if err != nil {
-			fmt.Fprintf(cmd.Out(), "error processing the template %q: %v\n", obj.Name, err)
-			continue
-		}
-
-		if outputFormat == "describe" {
-			if s, err := (&describe.TemplateDescriber{
-				MetadataAccessor: meta.NewAccessor(),
-				ObjectTyper:      kapi.Scheme,
-				ObjectDescriber:  nil,
-			}).DescribeTemplate(resultObj); err != nil {
-				fmt.Fprintf(cmd.Out(), "error describing %q: %v\n", obj.Name, err)
-			} else {
-				fmt.Fprintf(out, s)
-			}
-			continue
-		}
-		objects = append(objects, resultObj.Objects...)
+	if len(infos) > 1 {
+		// in order to run validation on the input given to us by a user, we only support the processing
+		// of one template in a list. For instance, we want to be able to fail when a user does not give
+		// a parameter that the template wants or when they give a parameter the template doesn't need,
+		// as this may indicate that they have mis-used `oc process`. This is much less complicated when
+		// we process at most one template.
+		fmt.Fprintf(out, "%d input templates found, but only the first will be processed", len(infos))
 	}
+
+	obj, ok := infos[0].Object.(*templateapi.Template)
+	if !ok {
+		sourceName := filename
+		if len(templateName) > 0 {
+			sourceName = namespace + "/" + templateName
+		}
+		return fmt.Errorf("unable to parse %q, not a valid Template but %s\n", sourceName, reflect.TypeOf(infos[0].Object))
+	}
+
+	// If 'parameters' flag is set it does not do processing but only print
+	// the template parameters to console for inspection.
+	if kcmdutil.GetFlagBool(cmd, "parameters") {
+		return describe.PrintTemplateParameters(obj.Parameters, out)
+	}
+
+	if label := kcmdutil.GetFlagString(cmd, "labels"); len(label) > 0 {
+		lbl, err := kubectl.ParseLabels(label)
+		if err != nil {
+			return fmt.Errorf("error parsing labels: %v\n", err)
+		}
+		if obj.ObjectLabels == nil {
+			obj.ObjectLabels = make(map[string]string)
+		}
+		for key, value := range lbl {
+			obj.ObjectLabels[key] = value
+		}
+	}
+
+	// Override the values for the current template parameters
+	// when user specify the --value
+	if cmd.Flag("value").Changed {
+		values := kcmdutil.GetFlagStringSlice(cmd, "value")
+		if errs := injectUserVars(values, obj); errs != nil {
+			return kerrors.NewAggregate(errs)
+		}
+	}
+
+	if errs := injectUserVars(valueArgs, obj); errs != nil {
+		return kerrors.NewAggregate(errs)
+	}
+
+	resultObj, err := client.TemplateConfigs(namespace).Create(obj)
+	if err != nil {
+		return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
+	}
+
+	if outputFormat == "describe" {
+		if s, err := (&describe.TemplateDescriber{
+			MetadataAccessor: meta.NewAccessor(),
+			ObjectTyper:      kapi.Scheme,
+			ObjectDescriber:  nil,
+		}).DescribeTemplate(resultObj); err != nil {
+			return fmt.Errorf("error describing %q: %v\n", obj.Name, err)
+		} else {
+			_, err := fmt.Fprintf(out, s)
+			return err
+		}
+	}
+	objects = append(objects, resultObj.Objects...)
 
 	// Do not print the processed templates when asked to only show parameters or
 	// describe.
@@ -271,19 +302,20 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values []string, cmd *cobra.Command, t *templateapi.Template) {
+func injectUserVars(values []string, t *templateapi.Template) []error {
+	var errors []error
 	for _, keypair := range values {
-		p := strings.SplitN(keypair, "=", 2)
+		p := strings.Split(keypair, "=")
 		if len(p) != 2 {
-			fmt.Fprintf(cmd.Out(), "invalid parameter assignment in %q: %q\n", t.Name, keypair)
-			continue
+			errors = append(errors, fmt.Errorf("invalid parameter assignment in %q: %q\n", t.Name, keypair))
 		}
 		if v := template.GetParameterByName(t, p[0]); v != nil {
 			v.Value = p[1]
 			v.Generate = ""
 			template.AddParameter(t, *v)
 		} else {
-			fmt.Fprintf(cmd.Out(), "unknown parameter name %q\n", p[0])
+			errors = append(errors, fmt.Errorf("unknown parameter name %q\n", p[0]))
 		}
 	}
+	return errors
 }
