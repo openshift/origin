@@ -2633,6 +2633,7 @@ func autoConvert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStat
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
 	out.Replicas = int32(in.Replicas)
+	out.FullyLabeledReplicas = int32(in.FullyLabeledReplicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -6078,6 +6079,7 @@ func autoConvert_v1_ReplicationControllerStatus_To_api_ReplicationControllerStat
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
 	out.Replicas = int(in.Replicas)
+	out.FullyLabeledReplicas = int(in.FullyLabeledReplicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
