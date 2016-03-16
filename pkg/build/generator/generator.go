@@ -218,10 +218,6 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	if bc.Spec.Strategy.ExternalStrategy != nil {
-		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig uses an External build strategy", bc.Namespace, bc.Name)}
-	}
-
 	if buildutil.IsPaused(bc) {
 		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
 	}
