@@ -6,19 +6,22 @@ import (
 	"net"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
+	"github.com/golang/glog"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 )
-
-const DefaultOpenshiftDockerURL = "docker-registry.default.svc.cluster.local:5000"
 
 // DockerRegistryServiceControllerOptions contains options for the DockerRegistryServiceController
 type DockerRegistryServiceControllerOptions struct {
@@ -29,128 +32,195 @@ type DockerRegistryServiceControllerOptions struct {
 	RegistryNamespace   string
 	RegistryServiceName string
 
-	DefaultDockerURL string
-
 	DockercfgController *DockercfgController
 }
 
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
 func NewDockerRegistryServiceController(cl client.Interface, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
-		client: cl,
+		client:              cl,
+		dockercfgController: options.DockercfgController,
+		queue:               workqueue.New(),
+		serviceName:         options.RegistryServiceName,
+		serviceNamespace:    options.RegistryNamespace,
 	}
 
-	_, e.serviceController = framework.NewInformer(
+	e.serviceCache, e.serviceController = framework.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts api.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Services(options.RegistryNamespace).List(opts)
 			},
-			WatchFunc: func(opts api.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Services(options.RegistryNamespace).Watch(opts)
 			},
 		},
-		&api.Service{},
+		&kapi.Service{},
 		options.Resync,
 		framework.ResourceEventHandlerFuncs{
-			AddFunc:    e.serviceAdded,
-			UpdateFunc: e.serviceUpdated,
-			DeleteFunc: e.serviceDeleted,
+			AddFunc: func(obj interface{}) {
+				service := obj.(*kapi.Service)
+				glog.V(4).Infof("Adding service %s", service.Name)
+				e.enqueueService(service)
+			},
+			UpdateFunc: func(old, cur interface{}) {
+				service := cur.(*kapi.Service)
+				glog.V(4).Infof("Updating service %s", service.Name)
+				// Resync on service object relist.
+				e.enqueueService(service)
+			},
+			DeleteFunc: func(obj interface{}) {
+				service := obj.(*kapi.Service)
+				glog.V(4).Infof("Adding service %s", service.Name)
+				e.enqueueService(service)
+			},
 		},
 	)
-	e.registryServiceName = options.RegistryServiceName
-	e.dockercfgController = options.DockercfgController
-	e.defaultDockerURL = options.DefaultDockerURL
+	e.syncHandler = e.syncService
+	e.servicesSynced = e.serviceController.HasSynced
 
 	return e
 }
 
 // DockerRegistryServiceController manages ServiceToken secrets for Service objects
 type DockerRegistryServiceController struct {
-	stopChan chan struct{}
-
 	client client.Interface
 
-	registryServiceName string
-	defaultDockerURL    string
+	serviceName      string
+	serviceNamespace string
 
 	dockercfgController *DockercfgController
 
 	serviceController *framework.Controller
+	serviceCache      cache.Store
+	servicesSynced    func() bool
+
+	queue                 *workqueue.Type
+	lastRegistryLocations sets.String
+
+	// syncHandler does the work. It's factored out for unit testing
+	syncHandler func(serviceKey string) error
 }
 
 // Runs controller loops and returns immediately
-func (e *DockerRegistryServiceController) Run() {
-	if e.stopChan == nil {
-		e.stopChan = make(chan struct{})
-		go e.serviceController.Run(e.stopChan)
+func (e *DockerRegistryServiceController) Run(stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	go e.serviceController.Run(stopCh)
+	go e.waitForSync(stopCh)
+
+	<-stopCh
+	glog.Infof("Shutting down docker registry service controller")
+	e.queue.ShutDown()
+}
+
+func (e *DockerRegistryServiceController) enqueueService(service *kapi.Service) {
+	key, err := controller.KeyFunc(service)
+	if err != nil {
+		glog.Errorf("Couldn't get key for service %+v: %v", service, err)
+		return
+	}
+
+	e.queue.Add(key)
+}
+
+// waitForSync polls to see if all the controllers are synced.  If so, it then makes a call to
+// update the dockercfg secrets initially
+func (e *DockerRegistryServiceController) waitForSync(stopCh <-chan struct{}) {
+	// don't let panics escape
+	defer utilruntime.HandleCrash()
+
+	for {
+		if e.servicesSynced() {
+			// after syncing, determine the current state and assume that we're up to date for it if you don't do this,
+			// you'll get an initial storm as you mess with all the dockercfg secrets every time you startup
+			e.intializeServiceLocations()
+
+			// don't start doing work until we've sync'ed
+			go wait.Until(e.worker, time.Second, stopCh)
+			return
+		}
+
+		select {
+		case <-stopCh:
+			return
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
 }
 
-// Stop gracefully shuts down this controller
-func (e *DockerRegistryServiceController) Stop() {
-	if e.stopChan != nil {
-		close(e.stopChan)
-		e.stopChan = nil
+func (e *DockerRegistryServiceController) intializeServiceLocations() {
+	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: kapi.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
+	if err != nil {
+		return
+	}
+
+	obj, exists, err := e.serviceCache.GetByKey(key)
+	if err != nil {
+		return
+	}
+	if !exists {
+		return
+	}
+	service := obj.(*kapi.Service)
+
+	e.lastRegistryLocations = sets.NewString(getServiceLocations(service)...)
+	e.dockercfgController.SetDockerURLs(e.lastRegistryLocations.List()...)
+}
+
+// worker runs a worker thread that just dequeues items, processes them, and marks them done.
+// It enforces that the syncHandler is never invoked concurrently with the same key.
+func (e *DockerRegistryServiceController) worker() {
+	for {
+		func() {
+			key, quit := e.queue.Get()
+			if quit {
+				return
+			}
+			defer e.queue.Done(key)
+			err := e.syncHandler(key.(string))
+			if err != nil {
+				glog.Errorf("Error syncing service: %v", err)
+			}
+		}()
 	}
 }
 
-func (e *DockerRegistryServiceController) getServiceLocation(service *api.Service) string {
+// getServiceLocations returns the dns form and the ip form of the secret
+func getServiceLocations(service *kapi.Service) []string {
 	hasPortalIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasPortalIP && len(service.Spec.Ports) > 0 {
-		return net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port))
+		return []string{
+			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
+			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
+		}
 	}
 
-	return e.defaultDockerURL
-}
-
-// serviceAdded reacts to the creation of a docker-registry service by updating all service account dockercfg secrets and
-// changing all interestedURLs
-func (e *DockerRegistryServiceController) serviceAdded(obj interface{}) {
-	service := obj.(*api.Service)
-	if service.Name != e.registryServiceName {
-		return
-	}
-
-	if err := e.handleLocationChange(e.getServiceLocation(service)); err != nil {
-		utilruntime.HandleError(err)
-	}
-}
-
-// serviceUpdated reacts to the creation of a docker-registry service by updating all service account dockercfg secrets and
-// changing all interestedURLs, if needed
-func (e *DockerRegistryServiceController) serviceUpdated(oldObj interface{}, newObj interface{}) {
-	oldService := oldObj.(*api.Service)
-	newService := newObj.(*api.Service)
-	if newService.Name != e.registryServiceName {
-		return
-	}
-	if e.getServiceLocation(oldService) == e.getServiceLocation(newService) {
-		return
-	}
-
-	if err := e.handleLocationChange(e.getServiceLocation(newService)); err != nil {
-		utilruntime.HandleError(err)
-	}
-}
-
-// serviceDeleted reacts to the docker-registry deletion by updating all the generated dockercfg secrets
-func (e *DockerRegistryServiceController) serviceDeleted(obj interface{}) {
-	service, ok := obj.(*api.Service)
-	if !ok {
-		return
-	}
-	if service.Name != e.registryServiceName {
-		return
-	}
-
-	if err := e.handleLocationChange(e.defaultDockerURL); err != nil {
-		utilruntime.HandleError(err)
-	}
+	return []string{}
 }
 
 // handleLocationChange goes through all service account dockercfg secrets and updates them to point at a new docker-registry location
-func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation string) error {
-	e.dockercfgController.SetDockerURL(serviceLocation)
+func (e *DockerRegistryServiceController) syncService(key string) error {
+	obj, exists, err := e.serviceCache.GetByKey(key)
+	if err != nil {
+		glog.Infof("Unable to retrieve service %v from store: %v", key, err)
+		e.queue.Add(key)
+		return err
+	}
+	locationSet := sets.String{}
+	if exists {
+		service := obj.(*kapi.Service)
+		locationSet.Insert(getServiceLocations(service)...)
+	}
+	// if we don't exist, then we've been deleted.  Cleanup the dockercfg secrets
+
+	if e.lastRegistryLocations.Equal(locationSet) {
+		glog.V(4).Infof("No effective update: %v", locationSet)
+		return nil
+	}
+	// make sure that new dockercfg secrets get the correct locations
+	e.dockercfgController.SetDockerURLs(locationSet.List()...)
 
 	dockercfgSecrets, err := e.listDockercfgSecrets()
 	if err != nil {
@@ -159,27 +229,41 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 
 	for _, dockercfgSecret := range dockercfgSecrets {
 		dockercfg := &credentialprovider.DockerConfig{}
-		if err := json.Unmarshal(dockercfgSecret.Data[api.DockerConfigKey], dockercfg); err != nil {
+		if err := json.Unmarshal(dockercfgSecret.Data[kapi.DockerConfigKey], dockercfg); err != nil {
 			utilruntime.HandleError(err)
 			continue
 		}
 
 		dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
-		keys := sets.StringKeySet(dockercfgMap)
-		if len(keys) != 1 {
-			utilruntime.HandleError(err)
-			continue
-		}
-		oldKey := keys.List()[0]
-
-		// if there's no change, skip
-		if oldKey == serviceLocation {
+		existingDockercfgSecretLocations := sets.StringKeySet(dockercfgMap)
+		// if the existingDockercfgSecretLocations haven't changed, don't make an update and check the next one
+		if existingDockercfgSecretLocations.Equal(locationSet) {
 			continue
 		}
 
-		dockercfgMap[serviceLocation] = dockercfgMap[oldKey]
-		delete(dockercfgMap, oldKey)
-		t := credentialprovider.DockerConfig(dockercfgMap)
+		dockerCredentials := dockercfgSecret.Annotations[ServiceAccountTokenValueAnnotation]
+		if len(dockerCredentials) == 0 && len(existingDockercfgSecretLocations) > 0 {
+			dockerCredentials = dockercfgMap[existingDockercfgSecretLocations.List()[0]].Password
+		}
+		if len(dockerCredentials) == 0 {
+			tokenSecret, err := e.client.Secrets(dockercfgSecret.Namespace).Get(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey])
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("cannot determine SA token: %v", err))
+				continue
+			}
+			dockerCredentials = string(tokenSecret.Data[kapi.ServiceAccountTokenKey])
+		}
+
+		newDockercfgMap := map[string]credentialprovider.DockerConfigEntry{}
+		for key := range locationSet {
+			newDockercfgMap[key] = credentialprovider.DockerConfigEntry{
+				Username: "serviceaccount",
+				Password: dockerCredentials,
+				Email:    "serviceaccount@example.org",
+			}
+		}
+
+		t := credentialprovider.DockerConfig(newDockercfgMap)
 		dockercfg = &t
 
 		dockercfgContent, err2 := json.Marshal(dockercfg)
@@ -187,7 +271,7 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 			utilruntime.HandleError(err2)
 			continue
 		}
-		dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent
+		dockercfgSecret.Data[kapi.DockerConfigKey] = dockercfgContent
 
 		if _, updateErr := e.client.Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); updateErr != nil {
 			utilruntime.HandleError(updateErr)
@@ -195,18 +279,23 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 		}
 	}
 
-	return err
+	e.lastRegistryLocations = locationSet
+	return nil
 }
 
-func (e *DockerRegistryServiceController) listDockercfgSecrets() ([]*api.Secret, error) {
-	options := api.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeDockercfg)})}
-	potentialSecrets, err := e.client.Secrets(api.NamespaceAll).List(options)
+func (e *DockerRegistryServiceController) listDockercfgSecrets() ([]*kapi.Secret, error) {
+	options := kapi.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{client.SecretType: string(kapi.SecretTypeDockercfg)})}
+	potentialSecrets, err := e.client.Secrets(kapi.NamespaceAll).List(options)
 	if err != nil {
 		return nil, err
 	}
 
-	dockercfgSecretsForThisSA := []*api.Secret{}
+	dockercfgSecretsForThisSA := []*kapi.Secret{}
 	for i, currSecret := range potentialSecrets.Items {
+		// the fake clients doesn't handle filters and this isn't strictly incorrect, just unnecessary.
+		if currSecret.Type != kapi.SecretTypeDockercfg {
+			continue
+		}
 		if len(currSecret.Annotations[ServiceAccountTokenSecretNameKey]) > 0 {
 			dockercfgSecretsForThisSA = append(dockercfgSecretsForThisSA, &potentialSecrets.Items[i])
 		}
