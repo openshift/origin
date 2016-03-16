@@ -969,7 +969,7 @@ func TestValidateSource(t *testing.T) {
 		},
 	}
 	for i, tc := range errorCases {
-		errors := validateSource(tc.source, false, false, nil)
+		errors := validateSource(tc.source, false, false, false, nil)
 		switch len(errors) {
 		case 0:
 			if !tc.ok {
@@ -997,7 +997,7 @@ func TestValidateSource(t *testing.T) {
 	}
 
 	errorCases[11].source.ContextDir = "."
-	validateSource(errorCases[11].source, false, false, nil)
+	validateSource(errorCases[11].source, false, false, false, nil)
 	if len(errorCases[11].source.ContextDir) != 0 {
 		t.Errorf("ContextDir was not cleaned: %s", errorCases[11].source.ContextDir)
 	}
@@ -1016,9 +1016,10 @@ func TestValidateStrategy(t *testing.T) {
 			t:    field.ErrorTypeInvalid,
 			path: "",
 			strategy: &buildapi.BuildStrategy{
-				SourceStrategy: &buildapi.SourceBuildStrategy{},
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-				CustomStrategy: &buildapi.CustomBuildStrategy{},
+				SourceStrategy:   &buildapi.SourceBuildStrategy{},
+				DockerStrategy:   &buildapi.DockerBuildStrategy{},
+				CustomStrategy:   &buildapi.CustomBuildStrategy{},
+				ExternalStrategy: &buildapi.ExternalBuildStrategy{},
 			},
 		},
 	}
@@ -1428,6 +1429,53 @@ func TestValidateBuildSpec(t *testing.T) {
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
+					},
+				},
+			},
+		},
+		// 18
+		{
+			string(field.ErrorTypeInvalid) + "strategy.externalStrategy",
+			&buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					ExternalStrategy: &buildapi.ExternalBuildStrategy{},
+				},
+			},
+		},
+		// 19
+		{
+			string(field.ErrorTypeInvalid) + "strategy.externalStrategy.jenkinsPipelineStrategy",
+			&buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					ExternalStrategy: &buildapi.ExternalBuildStrategy{
+						JenkinsPipeline: &buildapi.JenkinsPipelineStrategy{
+							Jenkinsfile:     "a",
+							JenkinsfilePath: "b",
+						},
+					},
+				},
+			},
+		},
+		// 20
+		{
+			string(field.ErrorTypeInvalid) + "source.git",
+			&buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					ExternalStrategy: &buildapi.ExternalBuildStrategy{
+						JenkinsPipeline: &buildapi.JenkinsPipelineStrategy{},
+					},
+				},
+			},
+		},
+		// 21
+		{
+			string(field.ErrorTypeInvalid) + "source.git",
+			&buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					ExternalStrategy: &buildapi.ExternalBuildStrategy{
+						JenkinsPipeline: &buildapi.JenkinsPipelineStrategy{
+							JenkinsfilePath: "b",
+						},
 					},
 				},
 			},

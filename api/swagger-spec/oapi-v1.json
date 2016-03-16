@@ -17702,7 +17702,8 @@
       "description": "CustomStrategy holds the parameters to the Custom build strategy"
      },
      "externalStrategy": {
-      "$ref": "v1.ExternalBuildStrategy"
+      "$ref": "v1.ExternalBuildStrategy",
+      "description": "ExternalStrategy holds the parameters to the External build strategy"
      }
     }
    },
@@ -17928,35 +17929,39 @@
    },
    "v1.ExternalBuildStrategy": {
     "id": "v1.ExternalBuildStrategy",
+    "description": "ExternalBuildStrategy defines input parameters specific to an External build.",
     "required": [
      "type"
     ],
     "properties": {
      "type": {
       "type": "string",
-      "description": "identifies the type of external build"
+      "description": "Type is the kind of external builder."
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "additional environment variables you want to pass into an external build"
+      "description": "Env contains additional environment variables you want to pass to the external builder."
      },
      "jenkinsPipelineStrategy": {
       "$ref": "v1.JenkinsPipelineStrategy",
-      "description": "holds parameters to the Jenkins Pipeline external build strategy"
+      "description": "JenkinsPipeline holds the config for an external build that will use Jenkins Pipeline to build."
      }
     }
    },
    "v1.JenkinsPipelineStrategy": {
     "id": "v1.JenkinsPipelineStrategy",
+    "description": "JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.",
     "properties": {
      "jenkinsfilePath": {
-      "type": "string"
+      "type": "string",
+      "description": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository."
      },
      "jenkinsfile": {
-      "type": "string"
+      "type": "string",
+      "description": "Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition."
      }
     }
    },

@@ -103,11 +103,18 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 	s := spec.Strategy
 
-	if s.CustomStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
+	if s.CustomStrategy == nil && s.ExternalStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, or dockerfile"))
 	}
 
-	allErrs = append(allErrs, validateSource(&spec.Source, s.CustomStrategy != nil, s.DockerStrategy != nil, fldPath.Child("source"))...)
+	allErrs = append(allErrs,
+		validateSource(
+			&spec.Source,
+			s.CustomStrategy != nil,
+			s.DockerStrategy != nil,
+			s.ExternalStrategy != nil && s.ExternalStrategy.JenkinsPipeline != nil && len(s.ExternalStrategy.JenkinsPipeline.Jenkinsfile) == 0,
+			fldPath.Child("source"))...,
+	)
 
 	if spec.CompletionDeadlineSeconds != nil {
 		if *spec.CompletionDeadlineSeconds <= 0 {
@@ -129,7 +136,7 @@ func hasProxy(source *buildapi.GitBuildSource) bool {
 	return (source.HTTPProxy != nil && len(*source.HTTPProxy) > 0) || (source.HTTPSProxy != nil && len(*source.HTTPSProxy) > 0)
 }
 
-func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy bool, fldPath *field.Path) field.ErrorList {
+func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy, isJenkinsPipelineStrategyFromRepo bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// Ensure that Git and Binary source types are mutually exclusive.
@@ -169,6 +176,10 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 			}
 			input.ContextDir = cleaned
 		}
+	}
+
+	if input.Git == nil && isJenkinsPipelineStrategyFromRepo {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("git"), "", "must be set when using Jenkins Pipeline strategy with Jenkinsfile from a git repo"))
 	}
 
 	return allErrs
@@ -453,6 +464,39 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *fie
 
 func validateExternalStrategy(strategy *buildapi.ExternalBuildStrategy, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+	strategyCount := 0
+	if strategy.JenkinsPipeline != nil {
+		strategyCount++
+	}
+	if strategyCount != 1 {
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of jenkinsPipelineStrategy"))
+	}
+
+	if strategy.JenkinsPipeline != nil {
+		allErrs = append(allErrs, validateJenkinsPipelineStrategy(strategy.JenkinsPipeline, fldPath.Child("jenkinsPipelineStrategy"))...)
+	}
+	return allErrs
+}
+
+func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineStrategy, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(strategy.JenkinsfilePath) != 0 && len(strategy.Jenkinsfile) != 0 {
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of jenkinsfilePath, or jenkinsfile"))
+	}
+	if len(strategy.JenkinsfilePath) != 0 {
+		cleaned := path.Clean(strategy.JenkinsfilePath)
+		switch {
+		case strings.HasPrefix(cleaned, "/"):
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not be an absolute path"))
+		case strings.HasPrefix(cleaned, ".."):
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not start with .."))
+		default:
+			if cleaned == "." {
+				cleaned = ""
+			}
+			strategy.JenkinsfilePath = cleaned
+		}
+	}
 	return allErrs
 }
 

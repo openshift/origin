@@ -1370,18 +1370,8 @@ func deepCopy_v1_ImageSourcePath(in apiv1.ImageSourcePath, out *apiv1.ImageSourc
 }
 
 func deepCopy_v1_JenkinsPipelineStrategy(in apiv1.JenkinsPipelineStrategy, out *apiv1.JenkinsPipelineStrategy, c *conversion.Cloner) error {
-	if in.JenkinsfilePath != nil {
-		out.JenkinsfilePath = new(string)
-		*out.JenkinsfilePath = *in.JenkinsfilePath
-	} else {
-		out.JenkinsfilePath = nil
-	}
-	if in.Jenkinsfile != nil {
-		out.Jenkinsfile = new(string)
-		*out.Jenkinsfile = *in.Jenkinsfile
-	} else {
-		out.Jenkinsfile = nil
-	}
+	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
 	return nil
 }
 
