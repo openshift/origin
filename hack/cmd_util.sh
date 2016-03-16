@@ -244,6 +244,13 @@ function os::cmd::internal::determine_caller() {
 	done
 
 	local caller_file="${BASH_SOURCE[${call_depth}]}"
+	if which realpath >&/dev/null; then
+		# if the caller has `realpath`, we can use it to make our file names cleaner by
+		# trimming the absolute file path up to `...openshift/origin/` and showing only
+		# the relative path from the Origin root directory
+		caller_file="$( realpath "${caller_file}" )"
+		caller_file="${caller_file//*openshift\/origin\/}"
+	fi
 	local caller_line="${BASH_LINENO[${call_depth}-1]}"
 	echo "${caller_file}:${caller_line}"
 }
