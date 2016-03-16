@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit baf7ff301abf3ed5c6aff5d1bc1a581c82603bf3
+%global commit 9ca84e008f688106d6ad148d128c856448886c1a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.2-39-gbaf7ff3 -X github.com/openshift/origin/pkg/version.commitFromGit baf7ff3 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.3-44-g9ca84e0 -X github.com/openshift/origin/pkg/version.commitFromGit 9ca84e0 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.3
+Version:        3.2.0.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,47 @@ fi
 
 
 %changelog
+* Wed Mar 16 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.4
+- Update ose build scripts (tdawson@redhat.com)
+- move-upstream should use UPSTREAM_REPO_LOCATION like cherry-pick
+  (ccoleman@redhat.com)
+- Update javaLink extension (admin@benjaminapetersen.me)
+- add parameter to start OS server with latest images (skuznets@redhat.com)
+- added test to decode and validate ldap sync config fixtures
+  (skuznets@redhat.com)
+- Bug 1317783: avoid shadowing errors in the deployment controller
+  (mkargaki@redhat.com)
+- Add a test of services/service isolation to tests/e2e/networking/
+  (danw@redhat.com)
+- Run the isolation extended networking tests under both plugins
+  (danw@redhat.com)
+- Make sanity and isolation network tests pass in a single-node environment
+  (danw@redhat.com)
+- Update extended networking tests to use k8s e2e utilities (danw@redhat.com)
+- UPSTREAM: 22303: Make net e2e helpers public for 3rd party reuse
+  (danw@gnome.org)
+- Handle parametrized content types for build triggers (jimmidyson@gmail.com)
+- Fix for bugz https://bugzilla.redhat.com/show_bug.cgi?id=1316698 and issue
+  #7444   o Fixes as per @pweil- and @marun review comments.   o Fixes as per
+  @smarterclayton review comments. (smitram@gmail.com)
+- Ensure we are clean to docker.io/* images during hack/release.sh
+  (ccoleman@redhat.com)
+- make userAgentMatching take a set of required and deny regexes
+  (deads@redhat.com)
+- UPSTREAM: 22746: add user-agent defaulting for discovery (deads@redhat.com)
+- fine tune which template parameter error types are returned
+  (gmontero@redhat.com)
+- Add ConfigMap permissions (pmorie@gmail.com)
+- Slim down issue template appearance (jliggitt@redhat.com)
+- Bug 1316749: prompt warning when scaling test deployments
+  (mkargaki@redhat.com)
+- Remove description field from types (mfojtik@redhat.com)
+- [RPMS] Add extended.test to /usr/libexec/origin/extended.test
+  (sdodson@redhat.com)
+- made edge language less ambiguous (skuznets@redhat.com)
+- Move hack/test-cmd_util.sh to test-util.sh, messing with script-fu
+  (ccoleman@redhat.com)
+
 * Mon Mar 14 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.3
 - UPSTREAM: 22929: Test relative timestamps using UTC (jliggitt@redhat.com)
 - DETECT_RACES doesn't work (ccoleman@redhat.com)
