@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
@@ -51,7 +52,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 				glog.Fatal("namespace is required")
 			}
 
-			kcfg, err := kclient.InClusterConfig()
+			kcfg, err := restclient.InClusterConfig()
 			if err != nil {
 				glog.Fatal(err)
 			}

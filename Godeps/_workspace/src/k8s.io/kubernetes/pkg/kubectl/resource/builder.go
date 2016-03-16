@@ -126,9 +126,8 @@ func (b *Builder) FilenameParam(enforceNamespace bool, paths ...string) *Builder
 func (b *Builder) URL(urls ...*url.URL) *Builder {
 	for _, u := range urls {
 		b.paths = append(b.paths, &URLVisitor{
-			Mapper: b.mapper,
-			URL:    u,
-			Schema: b.schema,
+			URL:           u,
+			StreamVisitor: NewStreamVisitor(nil, b.mapper, u.String(), b.schema),
 		})
 	}
 	return b
@@ -434,33 +433,37 @@ func (b *Builder) SingleResourceType() *Builder {
 	return b
 }
 
+// mappingFor returns the RESTMapping for the Kind referenced by the resource.
+// prefers a fully specified GroupVersionResource match.  If we don't have one match on GroupResource
+func (b *Builder) mappingFor(resourceArg string) (*meta.RESTMapping, error) {
+	fullySpecifiedGVR, groupResource := unversioned.ParseResourceArg(resourceArg)
+	gvk := unversioned.GroupVersionKind{}
+	if fullySpecifiedGVR != nil {
+		gvk, _ = b.mapper.KindFor(*fullySpecifiedGVR)
+	}
+	if gvk.IsEmpty() {
+		var err error
+		gvk, err = b.mapper.KindFor(groupResource.WithVersion(""))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+}
+
 func (b *Builder) resourceMappings() ([]*meta.RESTMapping, error) {
 	if len(b.resources) > 1 && b.singleResourceType {
 		return nil, fmt.Errorf("you may only specify a single resource type")
 	}
 	mappings := []*meta.RESTMapping{}
 	for _, r := range b.resources {
-		gvks, err := b.mapper.KindsFor(unversioned.GroupVersionResource{Resource: r})
+		mapping, err := b.mappingFor(r)
 		if err != nil {
 			return nil, err
 		}
-		// the list is in most-preferred to least preferred, so iterate until we find a hit
-		var firstErr error
-		for _, gvk := range gvks {
-			mapping, err := b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err == nil {
-				firstErr = nil
-				mappings = append(mappings, mapping)
-				break
-			}
 
-			if firstErr == nil {
-				firstErr = err
-			}
-		}
-		if firstErr != nil {
-			return nil, firstErr
-		}
+		mappings = append(mappings, mapping)
 	}
 	return mappings, nil
 }
@@ -472,26 +475,9 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 		if _, ok := mappings[r.Resource]; ok {
 			continue
 		}
-		gvks, err := b.mapper.KindsFor(unversioned.GroupVersionResource{Resource: r.Resource})
+		mapping, err := b.mappingFor(r.Resource)
 		if err != nil {
 			return nil, err
-		}
-		// the list is in most-preferred to least preferred, so iterate until we find a hit
-		var firstErr error
-		var mapping *meta.RESTMapping
-		for _, gvk := range gvks {
-			mapping, err = b.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err == nil {
-				firstErr = nil
-				break
-			}
-
-			if firstErr == nil {
-				firstErr = err
-			}
-		}
-		if firstErr != nil {
-			return nil, firstErr
 		}
 
 		mappings[mapping.Resource] = mapping

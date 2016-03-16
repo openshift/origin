@@ -178,6 +178,10 @@ func TestAuthorizationResolution(t *testing.T) {
 var globalClusterAdminUsers = sets.NewString()
 var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:masters")
 
+// This list includes the admins from above, plus users or groups known to have global view access
+var globalClusterReaderUsers = sets.NewString("system:serviceaccount:openshift-infra:namespace-controller")
+var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
+
 type resourceAccessReviewTest struct {
 	description     string
 	clientInterface client.ResourceAccessReviewInterface
@@ -339,12 +343,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:     sets.NewString("harold", "valerie"),
-				Groups:    globalClusterAdminGroups,
+				Groups:    sets.NewString(),
 				Namespace: "hammer-project",
 			},
 		}
-		test.response.Users.Insert(globalClusterAdminUsers.List()...)
-		test.response.Groups.Insert("system:cluster-readers")
+		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 	{
@@ -354,12 +358,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:     sets.NewString("mark", "edgar"),
-				Groups:    globalClusterAdminGroups,
+				Groups:    sets.NewString(),
 				Namespace: "mallet-project",
 			},
 		}
-		test.response.Users.Insert(globalClusterAdminUsers.List()...)
-		test.response.Groups.Insert("system:cluster-readers")
+		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 
@@ -381,11 +385,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: clusterAdminClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:  globalClusterAdminUsers,
-				Groups: globalClusterAdminGroups,
+				Users:  sets.NewString(),
+				Groups: sets.NewString(),
 			},
 		}
-		test.response.Groups.Insert("system:cluster-readers")
+		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 
@@ -399,12 +404,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:     sets.NewString("edgar"),
-				Groups:    globalClusterAdminGroups,
+				Groups:    sets.NewString(),
 				Namespace: "mallet-project",
 			},
 		}
-		test.response.Users.Insert(globalClusterAdminUsers.List()...)
-		test.response.Groups.Insert("system:cluster-readers")
+		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 }
@@ -1047,7 +1052,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder"),
+			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1074,7 +1079,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder"),
+			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

@@ -9,8 +9,8 @@ import (
 )
 
 var _ = Describe("[networking] services", func() {
-	f1 := e2e.NewFramework("net-services2")
-	f2 := e2e.NewFramework("net-services2")
+	f1 := e2e.NewDefaultFramework("net-services2")
+	f2 := e2e.NewDefaultFramework("net-services2")
 
 	It("should allow connections to another pod on the same node via a service IP", func() {
 		Expect(checkServiceConnectivity(f1, f1, 1)).To(Succeed())

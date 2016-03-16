@@ -34,7 +34,7 @@ func NewDockercfgDeletedController(cl client.Interface, options DockercfgDeleted
 		client: cl,
 	}
 
-	dockercfgSelector := fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeDockercfg))
+	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg))
 	_, e.secretController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {

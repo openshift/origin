@@ -10,7 +10,7 @@ var _ = Describe("[networking] basic openshift networking", func() {
 	svcname := "net-sanity"
 	timeout := 10
 
-	f := e2e.NewFramework(svcname)
+	f := e2e.NewDefaultFramework(svcname)
 
 	It("should function for pod communication on a single node", func() {
 		By("Picking a node")

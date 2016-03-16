@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -27,6 +30,9 @@ const (
 
 	InfraHPAControllerServiceAccountName = "hpa-controller"
 	HPAControllerRoleName                = "system:hpa-controller"
+
+	InfraNamespaceControllerServiceAccountName = "namespace-controller"
+	NamespaceControllerRoleName                = "system:namespace-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
@@ -218,13 +224,13 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("jobs"),
 				},
 				// JobController.syncJob() -> updateJobStatus()
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("jobs/status"),
 				},
@@ -259,17 +265,17 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// HPA Controller
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
-					Verbs:     sets.NewString("get", "list"),
+					APIGroups: []string{extensions.GroupName, autoscaling.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("horizontalpodautoscalers"),
 				},
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName, autoscaling.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("horizontalpodautoscalers/status"),
 				},
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName, kapi.GroupName},
 					Verbs:     sets.NewString("get", "update"),
 					Resources: sets.NewString("replicationcontrollers/scale"),
 				},
@@ -456,7 +462,7 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// DaemonSetsController.dsStore.ListWatch
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("daemonsets"),
 				},
@@ -472,7 +478,7 @@ func init() {
 				},
 				// DaemonSetsController.storeDaemonSetStatus
 				{
-					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("daemonsets/status"),
 				},
@@ -490,6 +496,39 @@ func init() {
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraNamespaceControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NamespaceControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Watching/deleting namespaces
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch", "delete"),
+					Resources: sets.NewString("namespaces"),
+				},
+				// Updating status to terminating, updating finalizer list
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("namespaces/finalize", "namespaces/status"),
+				},
+
+				// Ability to delete resources
+				{
+					APIGroups: []string{"*"},
+					Verbs:     sets.NewString("get", "list", "delete", "deletecollection"),
+					Resources: sets.NewString("*"),
 				},
 			},
 		},

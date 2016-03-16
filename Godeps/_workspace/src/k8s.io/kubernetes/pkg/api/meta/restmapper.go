@@ -82,6 +82,10 @@ type DefaultRESTMapper struct {
 	interfacesFunc VersionInterfacesFunc
 }
 
+func (m *DefaultRESTMapper) String() string {
+	return fmt.Sprintf("DefaultRESTMapper{kindToPluralResource=%v}", m.kindToPluralResource)
+}
+
 var _ RESTMapper = &DefaultRESTMapper{}
 
 // VersionInterfacesFunc returns the appropriate typer, and metadata accessor for a
@@ -180,23 +184,18 @@ func (m *DefaultRESTMapper) ResourceSingularizer(resourceType string) (string, e
 		}
 
 		if currSingular.Resource != singular.Resource {
-			return resourceType, fmt.Errorf("multiple possibilities found %v has been defined", resources)
+			return resourceType, fmt.Errorf("multiple possibile singular resources (%v) found for %v", resources, resourceType)
 		}
 	}
 
 	if singular.IsEmpty() {
-		return resourceType, fmt.Errorf("no singular of resource %v has been defined", resources[0])
+		return resourceType, fmt.Errorf("no singular of resource %v has been defined", resourceType)
 	}
 
 	return singular.Resource, nil
 }
 
 func (m *DefaultRESTMapper) ResourcesFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionResource, error) {
-	resource.Resource = strings.ToLower(resource.Resource)
-	if resource.Version == runtime.APIVersionInternal {
-		resource.Version = ""
-	}
-
 	hasResource := len(resource.Resource) > 0
 	hasGroup := len(resource.Group) > 0
 	hasVersion := len(resource.Version) > 0
@@ -269,11 +268,6 @@ func (m *DefaultRESTMapper) ResourceFor(resource unversioned.GroupVersionResourc
 		return resources[0], nil
 	}
 
-	preferredResources := getMostPreferredVersionForResource(resources)
-	if len(preferredResources) == 1 {
-		return preferredResources[0], nil
-	}
-
 	return unversioned.GroupVersionResource{}, &AmbiguousResourceError{PartialResource: resource, MatchingResources: resources}
 }
 
@@ -336,64 +330,11 @@ func (m *DefaultRESTMapper) KindFor(resource unversioned.GroupVersionResource) (
 	if err != nil {
 		return unversioned.GroupVersionKind{}, err
 	}
-
-	// TODO for each group, choose the most preferred (first) version.  This keeps us consistent with code today.
-	// eventually, we'll need a RESTMapper that is aware of what's available server-side and deconflicts that with
-	// user preferences
-	preferredKinds := getMostPreferredVersionForKind(kinds)
-	if len(preferredKinds) == 1 {
-		return preferredKinds[0], nil
+	if len(kinds) == 1 {
+		return kinds[0], nil
 	}
 
 	return unversioned.GroupVersionKind{}, &AmbiguousResourceError{PartialResource: resource, MatchingKinds: kinds}
-}
-
-// getMostPreferredVersionForKind chooses the first group,version,kind for a given group,kind and skips the rest
-// this has the effect of choose the most preferred
-func getMostPreferredVersionForKind(kinds []unversioned.GroupVersionKind) []unversioned.GroupVersionKind {
-	observedGroupKinds := []unversioned.GroupKind{}
-	oneVersionPerGroupKind := []unversioned.GroupVersionKind{}
-	for _, kind := range kinds {
-		alreadyObserved := false
-		for _, currObserved := range observedGroupKinds {
-			if kind.GroupKind() == currObserved {
-				alreadyObserved = true
-				break
-			}
-		}
-		if alreadyObserved {
-			continue
-		}
-
-		observedGroupKinds = append(observedGroupKinds, kind.GroupKind())
-		oneVersionPerGroupKind = append(oneVersionPerGroupKind, kind)
-	}
-
-	return oneVersionPerGroupKind
-}
-
-// getMostPreferredVersionForResource chooses the first group,version,resource for a given group,resource and skips the rest
-// this has the effect of choose the most preferred
-func getMostPreferredVersionForResource(resources []unversioned.GroupVersionResource) []unversioned.GroupVersionResource {
-	observedGroupResources := []unversioned.GroupResource{}
-	oneVersionPerGroupResource := []unversioned.GroupVersionResource{}
-	for _, resource := range resources {
-		alreadyObserved := false
-		for _, currObserved := range observedGroupResources {
-			if resource.GroupResource() == currObserved {
-				alreadyObserved = true
-				break
-			}
-		}
-		if alreadyObserved {
-			continue
-		}
-
-		observedGroupResources = append(observedGroupResources, resource.GroupResource())
-		oneVersionPerGroupResource = append(oneVersionPerGroupResource, resource)
-	}
-
-	return oneVersionPerGroupResource
 }
 
 type kindByPreferredGroupVersion struct {
@@ -565,10 +506,4 @@ func (m *DefaultRESTMapper) AliasesForResource(alias string) ([]string, bool) {
 		return res, true
 	}
 	return nil, false
-}
-
-// ResourceIsValid takes a partial resource and checks if it's valid
-func (m *DefaultRESTMapper) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	_, err := m.KindFor(resource)
-	return err == nil
 }

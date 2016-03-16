@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	gruntime "runtime"
 	"strings"
 
@@ -64,13 +65,13 @@ to apply your changes to the newer version of the resource, or update your tempo
 saved copy to include the latest resource version.`
 
 	editExample = `  # Edit the service named 'docker-registry':
-  $ kubectl edit svc/docker-registry
+  kubectl edit svc/docker-registry
 
   # Use an alternative editor
-  $ KUBE_EDITOR="nano" kubectl edit svc/docker-registry
+  KUBE_EDITOR="nano" kubectl edit svc/docker-registry
 
   # Edit the service 'docker-registry' in JSON using the v1 API format:
-  $ kubectl edit svc/docker-registry --output-version=v1 -o json`
+  kubectl edit svc/docker-registry --output-version=v1 -o json`
 )
 
 var errExit = fmt.Errorf("exit directly")
@@ -93,7 +94,7 @@ func NewCmdEdit(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	usage := "Filename, directory, or URL to file to use to edit the resource"
 	kubectl.AddJsonFilenameFlag(cmd, &filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
-	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+	cmd.Flags().String("output-version", "", "Output the formatted object with the given group version (for ex: 'extensions/v1beta1').")
 	cmd.Flags().Bool("windows-line-endings", gruntime.GOOS == "windows", "Use Windows line-endings (default Unix line-endings)")
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddRecordFlag(cmd)
@@ -173,7 +174,7 @@ outter:
 		obj := objs[i]
 		// some bookkeeping
 		results.header.flush()
-		isError := false
+		containsError := false
 
 		for {
 			// generate the file to edit
@@ -185,7 +186,7 @@ outter:
 			if err := results.header.writeTo(w); err != nil {
 				return preservedFile(err, results.file, out)
 			}
-			if !isError {
+			if !containsError {
 				if err := printer.PrintObj(obj, w); err != nil {
 					return preservedFile(err, results.file, out)
 				}
@@ -199,7 +200,7 @@ outter:
 
 			// launch the editor
 			editedDiff := edited
-			edited, file, err = edit.LaunchTempFile(fmt.Sprintf("%s-edit-", os.Args[0]), ext, buf)
+			edited, file, err = edit.LaunchTempFile(fmt.Sprintf("%s-edit-", path.Base(os.Args[0])), ext, buf)
 			if err != nil {
 				return preservedFile(err, results.file, out)
 			}
@@ -208,6 +209,7 @@ outter:
 				// save the same changes we tried to save in the previous iteration
 				// which means our changes are invalid or (2) when we exit the second
 				// time. The second case is more usual so we can probably live with it.
+				// TODO: A less hacky fix would be welcome :)
 				fmt.Fprintln(out, "Edit cancelled, no valid changes were saved.")
 				continue outter
 			}
@@ -216,6 +218,7 @@ outter:
 			if len(results.file) > 0 {
 				os.Remove(results.file)
 			}
+			glog.V(4).Infof("User edited:\n%s", string(edited))
 
 			// Compare content without comments
 			if bytes.Equal(stripComments(original), stripComments(edited)) {
@@ -241,12 +244,12 @@ outter:
 			updates, err := resourceMapper.InfoForData(edited, "edited-file")
 			if err != nil {
 				// syntax error
-				isError = true
+				containsError = true
 				results.header.reasons = append(results.header.reasons, editReason{head: fmt.Sprintf("The edited file had a syntax error: %v", err)})
 				continue
 			}
 			// not a syntax error as it turns out...
-			isError = false
+			containsError = false
 
 			// put configuration annotation in "updates"
 			if err := kubectl.CreateOrUpdateAnnotation(cmdutil.GetFlagBool(cmd, cmdutil.ApplyAnnotationsFlag), updates, encoder); err != nil {
@@ -326,7 +329,7 @@ outter:
 				continue outter
 			}
 			// validation error
-			isError = true
+			containsError = true
 		}
 	}
 	return nil

@@ -5,13 +5,14 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 // DiscoveryClient implements the functions that dicovery server-supported API groups,
 // versions and resources.
 type DiscoveryClient struct {
-	*kclient.DiscoveryClient
+	*discovery.DiscoveryClient
 }
 
 // ServerResourcesForGroupVersion returns the supported resources for a group and version.
@@ -55,7 +56,7 @@ func (d *DiscoveryClient) ServerResources() (map[string]*unversioned.APIResource
 	if err != nil {
 		return nil, err
 	}
-	groupVersions := kclient.ExtractGroupVersions(apiGroups)
+	groupVersions := unversioned.ExtractGroupVersions(apiGroups)
 	result := map[string]*unversioned.APIResourceList{}
 	for _, groupVersion := range groupVersions {
 		resources, err := d.ServerResourcesForGroupVersion(groupVersion)
@@ -68,6 +69,6 @@ func (d *DiscoveryClient) ServerResources() (map[string]*unversioned.APIResource
 }
 
 // New creates a new DiscoveryClient for the given RESTClient.
-func NewDiscoveryClient(c *kclient.RESTClient) *DiscoveryClient {
-	return &DiscoveryClient{kclient.NewDiscoveryClient(c)}
+func NewDiscoveryClient(c *restclient.RESTClient) *DiscoveryClient {
+	return &DiscoveryClient{discovery.NewDiscoveryClient(c)}
 }

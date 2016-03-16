@@ -199,6 +199,13 @@ os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o 
 # Ensure --additive-only=false removes customized users from the binding
 os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm'
 os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o json' 'custom-user'
+# check the reconcile again with a specific cluster role name
+os::cmd::expect_success 'oc delete clusterrolebinding/basic-users'
+os::cmd::expect_failure 'oc get clusterrolebinding/basic-users'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings cluster-admin --confirm'
+os::cmd::expect_failure 'oc get clusterrolebinding/basic-users'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings basic-user --confirm'
+os::cmd::expect_success 'oc get clusterrolebinding/basic-users'
 echo "admin-reconcile-cluster-role-bindings: ok"
 
 os::cmd::expect_success "oc create -f test/extended/fixtures/roles/policy-roles.yaml"

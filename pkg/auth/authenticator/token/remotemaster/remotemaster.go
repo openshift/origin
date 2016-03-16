@@ -2,18 +2,18 @@ package remotemaster
 
 import (
 	"k8s.io/kubernetes/pkg/auth/user"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type Authenticator struct {
-	anonymousConfig kclient.Config
+	anonymousConfig restclient.Config
 }
 
 // NewAuthenticator authenticates by fetching users/~ using the provided token as a bearer token
-func NewAuthenticator(anonymousConfig kclient.Config) (*Authenticator, error) {
+func NewAuthenticator(anonymousConfig restclient.Config) (*Authenticator, error) {
 	// Ensure credentials are removed from the anonymous config
 	anonymousConfig = clientcmd.AnonymousClientConfig(&anonymousConfig)
 

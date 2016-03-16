@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/errors"
 
@@ -72,9 +72,9 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	return config, nil
 }
 
-func clientFromConfig(path string) (*kclient.Config, string, error) {
+func clientFromConfig(path string) (*restclient.Config, string, error) {
 	if path == "-" {
-		cfg, err := kclient.InClusterConfig()
+		cfg, err := restclient.InClusterConfig()
 		if err != nil {
 			return nil, "", fmt.Errorf("cluster config not available: %v", err)
 		}

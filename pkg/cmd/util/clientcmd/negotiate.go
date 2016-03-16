@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
@@ -14,7 +15,7 @@ import (
 //   commandline flag), and is unsupported by the server, print a warning to
 //   stderr and try client's registered versions in order of preference.
 // - If version is config default, and the server does not support it, return an error.
-func negotiateVersion(client *kclient.Client, config *kclient.Config, requestedGV *unversioned.GroupVersion, clientGVs []unversioned.GroupVersion) (*unversioned.GroupVersion, error) {
+func negotiateVersion(client *kclient.Client, config *restclient.Config, requestedGV *unversioned.GroupVersion, clientGVs []unversioned.GroupVersion) (*unversioned.GroupVersion, error) {
 	// Ensure we have a client
 	var err error
 	if client == nil {

@@ -187,8 +187,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if value := cmdutil.Env("OPENSHIFT_DIND", ""); value == "true" {
 		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
 		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
-		glog.Warningf("Disabling cgroup manipulation of nested docker daemon for docker-in-docker compatibility")
-		cfg.DockerDaemonContainer = ""
 	}
 
 	// Setup auth

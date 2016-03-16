@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -45,7 +45,7 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 		},
 	}
 	for i, test := range testCases {
-		c, err := New(&kclient.Config{
+		c, err := New(&restclient.Config{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(api.SchemeGroupVersion), &test.status)))
 				return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(buf)}, nil

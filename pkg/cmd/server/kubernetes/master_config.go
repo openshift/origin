@@ -113,7 +113,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	cmserver := cmapp.NewCMServer()
-	cmserver.PodEvictionTimeout = podEvictionTimeout
+	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
@@ -188,6 +188,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		storageVersions[configapi.APIGroupKube] = options.EtcdStorageConfig.KubernetesStorageVersion
 	}
 
+	// TODO: also need to enable this if batch or autoscaling is enabled and doesn't have a storage version set
 	enabledExtensionsVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupExtensions)
 	if len(enabledExtensionsVersions) > 0 {
 		groupMeta, err := registered.Group(configapi.APIGroupExtensions)

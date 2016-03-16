@@ -1,9 +1,44 @@
 package api
 
 import (
+	"reflect"
 	"strings"
 	"testing"
+
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
+
+func TestKnownAPIGroups(t *testing.T) {
+	unexposedGroups := sets.NewString("authorization.k8s.io", "componentconfig", "metrics")
+
+	enabledGroups := sets.NewString()
+	for _, enabledVersion := range registered.EnabledVersions() {
+		enabledGroups.Insert(enabledVersion.Group)
+	}
+
+	if missingKnownGroups := KnownKubeAPIGroups.Difference(enabledGroups); len(missingKnownGroups) > 0 {
+		t.Errorf("KnownKubeAPIGroups are missing from registered.EnabledVersions: %v", missingKnownGroups.List())
+	}
+	if unknownEnabledGroups := enabledGroups.Difference(KnownKubeAPIGroups).Difference(unexposedGroups); len(unknownEnabledGroups) > 0 {
+		t.Errorf("KnownKubeAPIGroups is missing groups from registered.EnabledVersions: %v", unknownEnabledGroups.List())
+	}
+}
+
+func TestAllowedAPIVersions(t *testing.T) {
+	// Make sure all versions we know about match registered versions
+	for group, versions := range KubeAPIGroupsToAllowedVersions {
+		enabled := sets.NewString()
+		for _, enabledVersion := range registered.EnabledVersionsForGroup(group) {
+			enabled.Insert(enabledVersion.Version)
+		}
+		expected := sets.NewString(versions...)
+		actual := enabled.Difference(sets.NewString(KubeAPIGroupsToDeadVersions[group]...))
+		if e, a := expected.List(), actual.List(); !reflect.DeepEqual(e, a) {
+			t.Errorf("For group %s, expected versions %#v, got %#v", group, e, a)
+		}
+	}
+}
 
 func TestFeatureListAdd(t *testing.T) {
 	orderedList := []string{FeatureBuilder, FeatureWebConsole, FeatureS2I}

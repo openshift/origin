@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
@@ -26,7 +27,7 @@ type Config struct {
 	// If omitted defaults to the master.
 	KubernetesAddr flagtypes.Addr
 	// CommonConfig is the shared base config for both the OpenShift config and Kubernetes config
-	CommonConfig kclient.Config
+	CommonConfig restclient.Config
 	// Namespace is the namespace to act in
 	Namespace string
 
@@ -42,20 +43,20 @@ func NewConfig() *Config {
 	return &Config{
 		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
 		KubernetesAddr: flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080}.Default(),
-		CommonConfig:   kclient.Config{},
+		CommonConfig:   restclient.Config{},
 	}
 }
 
 // AnonymousClientConfig returns a copy of the given config with all user credentials (cert/key, bearer token, and username/password) removed
-func AnonymousClientConfig(config *kclient.Config) kclient.Config {
+func AnonymousClientConfig(config *restclient.Config) restclient.Config {
 	// copy only known safe fields
 	// TODO: expose a copy method on the config that is "auth free"
-	return kclient.Config{
+	return restclient.Config{
 		Host:          config.Host,
 		APIPath:       config.APIPath,
 		Prefix:        config.Prefix,
 		ContentConfig: config.ContentConfig,
-		TLSClientConfig: kclient.TLSClientConfig{
+		TLSClientConfig: restclient.TLSClientConfig{
 			CAFile: config.TLSClientConfig.CAFile,
 			CAData: config.TLSClientConfig.CAData,
 		},
@@ -69,7 +70,7 @@ func AnonymousClientConfig(config *kclient.Config) kclient.Config {
 }
 
 // BindClientConfigSecurityFlags adds flags for the supplied client config
-func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
+func BindClientConfigSecurityFlags(config *restclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
 	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client certificate file for TLS.")
 	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
@@ -195,7 +196,7 @@ func (cfg *Config) bindEnv() error {
 }
 
 // KubeConfig returns the Kubernetes configuration
-func (cfg *Config) KubeConfig() *kclient.Config {
+func (cfg *Config) KubeConfig() *restclient.Config {
 	err := cfg.bindEnv()
 	if err != nil {
 		glog.Error(err)
@@ -213,7 +214,7 @@ func (cfg *Config) KubeConfig() *kclient.Config {
 }
 
 // OpenShiftConfig returns the OpenShift configuration
-func (cfg *Config) OpenShiftConfig() *kclient.Config {
+func (cfg *Config) OpenShiftConfig() *restclient.Config {
 	err := cfg.bindEnv()
 	if err != nil {
 		glog.Error(err)
