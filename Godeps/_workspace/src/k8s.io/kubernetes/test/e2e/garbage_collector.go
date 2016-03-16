@@ -33,7 +33,6 @@ import (
 var _ = Describe("Garbage collector [Slow]", func() {
 	f := NewDefaultFramework("garbage-collector")
 	It("should handle the creation of 1000 pods", func() {
-		SkipUnlessProviderIs("gce")
 
 		var count int
 		for count < 1000 {
