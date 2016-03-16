@@ -69,6 +69,9 @@ trap "cleanup" EXIT INT TERM
 
 os::log::start_system_logger
 
+# we are going to be messing with DNS so we can't have anyone bound to 53
+os::util::fail_if_port_bound 53
+
 out=$(
 	set +e
 	docker stop origin 2>&1
