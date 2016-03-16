@@ -81,15 +81,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
-		func(obj *configapi.LegacyClientPolicyConfig, c fuzz.Continue) {
-			c.FuzzNoCustom(obj)
-			if len(obj.LegacyClientPolicy) == 0 {
-				obj.LegacyClientPolicy = configapi.AllowAll
-			}
-			if len(obj.RestrictedHTTPVerbs) == 0 {
-				obj.RestrictedHTTPVerbs = []string{"PUT", "POST"}
-			}
-		},
 		func(obj *configapi.NodeConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
 			// Defaults/migrations for NetworkConfig

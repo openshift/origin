@@ -41,16 +41,16 @@ type BuildSpec struct {
 	Output BuildOutput `json:"output,omitempty"`
 
 	// Compute resource requirements to execute the build
-	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"the desired compute resources the build should have"`
+	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 
 	// PostCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
-	PostCommit BuildPostCommitSpec `json:"postCommit,omitempty" description:"an action executed after the build output image is committed"`
+	PostCommit BuildPostCommitSpec `json:"postCommit,omitempty"`
 
 	// Optional duration in seconds, counted from the time when a build pod gets
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer
-	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty" description:"optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"`
+	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty"`
 }
 
 // BuildStatus contains the status of a build
@@ -62,7 +62,7 @@ type BuildStatus struct {
 	Cancelled bool `json:"cancelled,omitempty"`
 
 	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.
-	Reason StatusReason `json:"reason,omitempty" description:"brief CamelCase string describing a failure, meant for machine parsing and tidy display in the CLI"`
+	Reason StatusReason `json:"reason,omitempty"`
 
 	// Message is a human-readable message indicating details about why the build has this status.
 	Message string `json:"message,omitempty"`
@@ -85,7 +85,7 @@ type BuildStatus struct {
 	// will be built by this build. It's value is computed from
 	// Build.Spec.Output.To, and should include the registry address, so that
 	// it can be used to push and pull the image.
-	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty" description:"reference to the Docker image built by this build, computed from build.spec.output.to, and can be used to push and pull the image"`
+	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty"`
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`
@@ -142,7 +142,7 @@ const (
 // BuildSource is the SCM used for the build.
 type BuildSource struct {
 	// Type of build input to accept
-	Type BuildSourceType `json:"type" description:"type of build input to accept"`
+	Type BuildSourceType `json:"type"`
 
 	// Binary builds accept a binary as their input. The binary is generally assumed to be a tar,
 	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
@@ -151,17 +151,17 @@ type BuildSource struct {
 	// Source and Docker builds, if binary.asFile is set the build will receive a directory with
 	// a single file. contextDir may be used when an archive is provided. Custom builds will
 	// receive this binary as input on STDIN.
-	Binary *BinaryBuildSource `json:"binary,omitempty" description:"the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"`
+	Binary *BinaryBuildSource `json:"binary,omitempty"`
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
 	// specified, the From and Env on the Docker build strategy are applied on top of this file.
-	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM and ENV may be overridden if you have specified 'from' and 'env' on the build strategy"`
+	Dockerfile *string `json:"dockerfile,omitempty"`
 
 	// Git contains optional information about git build source.
 	Git *GitBuildSource `json:"git,omitempty"`
 
 	// Images describes a set of images to be used to provide source for the build
-	Images []ImageSource `json:"images,omitempty" description:"optional images for build source."`
+	Images []ImageSource `json:"images,omitempty"`
 
 	// Specify the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
@@ -173,36 +173,36 @@ type BuildSource struct {
 	// The secret contains valid credentials for remote repository, where the
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
-	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" description:"supported auth methods are: ssh-privatekey"`
+	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty"`
 
 	// Secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
-	Secrets []SecretBuildSource `json:"secrets" description:"list of build secrets and destination directories"`
+	Secrets []SecretBuildSource `json:"secrets"`
 }
 
 // ImageSource describes an image that is used as source for the build
 type ImageSource struct {
 	// From is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
 	// copy source from.
-	From kapi.ObjectReference `json:"from" description:"reference to ImageStreamTag, ImageStreamImage, or DockerImage"`
+	From kapi.ObjectReference `json:"from"`
 
 	// Paths is a list of source and destination paths to copy from the image.
-	Paths []ImageSourcePath `json:"paths" description:"paths to copy from image"`
+	Paths []ImageSourcePath `json:"paths"`
 
 	// PullSecret is a reference to a secret to be used to pull the image from a registry
 	// If the image is pulled from the OpenShift registry, this field does not need to be set.
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"overrides the default pull secret for the source image"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty"`
 }
 
 // ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
 type ImageSourcePath struct {
 	// SourcePath is the absolute path of the file or directory inside the image to
 	// copy to the build directory.
-	SourcePath string `json:"sourcePath" description:"source path (directory or file) inside image"`
+	SourcePath string `json:"sourcePath"`
 
 	// DestinationDir is the relative directory within the build directory
 	// where files copied from the image are placed.
-	DestinationDir string `json:"destinationDir" description:"relative destination directory in build home"`
+	DestinationDir string `json:"destinationDir"`
 }
 
 // SecretBuildSource describes a secret and its destination directory that will be
@@ -211,7 +211,7 @@ type ImageSourcePath struct {
 type SecretBuildSource struct {
 	// Secret is a reference to an existing secret that you want to use in your
 	// build.
-	Secret kapi.LocalObjectReference `json:"secret" description:"name of a secret to be used as a source"`
+	Secret kapi.LocalObjectReference `json:"secret"`
 
 	// DestinationDir is the directory where the files from the secret should be
 	// available for the build time.
@@ -221,7 +221,7 @@ type SecretBuildSource struct {
 	// For the Docker build strategy, these will be copied into the build
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
 	// during docker build.
-	DestinationDir string `json:"destinationDir,omitempty" description:"destination directory for the secret files"`
+	DestinationDir string `json:"destinationDir,omitempty"`
 }
 
 type BinaryBuildSource struct {
@@ -231,7 +231,7 @@ type BinaryBuildSource struct {
 	// strategies assume this file is a zip, tar, or tar.gz file and extract it as the source.
 	// The custom strategy receives this binary as standard input. This filename may not
 	// contain slashes or be '..' or '.'.
-	AsFile string `json:"asFile,omitempty" description:"indicate the provided binary should be considered a single file placed within the root of the input; must be a valid filename with no path segments"`
+	AsFile string `json:"asFile,omitempty"`
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -265,10 +265,10 @@ type GitBuildSource struct {
 	Ref string `json:"ref,omitempty"`
 
 	// HTTPProxy is a proxy used to reach the git repository over http
-	HTTPProxy *string `json:"httpProxy,omitempty" description:"specifies a http proxy to be used during git clone operations"`
+	HTTPProxy *string `json:"httpProxy,omitempty"`
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
-	HTTPSProxy *string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
+	HTTPSProxy *string `json:"httpsProxy,omitempty"`
 }
 
 // SourceControlUser defines the identity of a user of source control
@@ -317,7 +317,7 @@ type CustomBuildStrategy struct {
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -329,13 +329,13 @@ type CustomBuildStrategy struct {
 
 	// ForcePull describes if the controller should configure the build pod to always pull the images
 	// for the builder or only pull if it is not present locally
-	ForcePull bool `json:"forcePull,omitempty" description:"forces pulling of builder image from remote registry if true"`
+	ForcePull bool `json:"forcePull,omitempty"`
 
 	// Secrets is a list of additional secrets that will be included in the build pod
-	Secrets []SecretSpec `json:"secrets,omitempty" description:"a list of secrets to include in the build pod in addition to pull, push and source secrets"`
+	Secrets []SecretSpec `json:"secrets,omitempty"`
 
 	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
-	BuildAPIVersion string `json:"buildAPIVersion,omitempty" description:"requested API version for the Build object serialized and passed to the custom builder"`
+	BuildAPIVersion string `json:"buildAPIVersion,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -348,21 +348,21 @@ type DockerBuildStrategy struct {
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty"`
 
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
 
 	// Env contains additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+	Env []kapi.EnvVar `json:"env,omitempty"`
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
-	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
+	ForcePull bool `json:"forcePull,omitempty"`
 
 	// DockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
 	// relative to the root of the context (contextDir).
-	DockerfilePath string `json:"dockerfilePath,omitempty" description:"path of the Dockerfile to use for building the Docker image, relative to the contextDir, if set"`
+	DockerfilePath string `json:"dockerfilePath,omitempty"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -374,7 +374,7 @@ type SourceBuildStrategy struct {
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -386,7 +386,7 @@ type SourceBuildStrategy struct {
 	Incremental bool `json:"incremental,omitempty"`
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
-	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
+	ForcePull bool `json:"forcePull,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -459,11 +459,11 @@ type BuildPostCommitSpec struct {
 	// This might be needed if the image doesn't have `/bin/sh`, or if you
 	// do not want to use a shell. In all other cases, using Script might be
 	// more convenient.
-	Command []string `json:"command,omitempty" description:"command to be executed in a container running the build output image replacing the image's entrypoint"`
+	Command []string `json:"command,omitempty"`
 	// Args is a list of arguments that are provided to either Command,
 	// Script or the Docker image's default entrypoint. The arguments are
 	// placed immediately after the command to be run.
-	Args []string `json:"args,omitempty" description:"arguments to command, script or the default image entrypoint"`
+	Args []string `json:"args,omitempty"`
 	// Script is a shell script to be run with `/bin/sh -ic`. It may not be
 	// specified with Command. Use Script when a shell script is appropriate
 	// to execute the post build hook, for example for running unit tests
@@ -474,7 +474,7 @@ type BuildPostCommitSpec struct {
 	// collections enabled in the shell. E.g., in the Ruby image, this is
 	// necessary to make `ruby`, `bundle` and other binaries available in
 	// the PATH.
-	Script string `json:"script,omitempty" description:"shell script to be executed in a container running the build output image"`
+	Script string `json:"script,omitempty"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
@@ -489,7 +489,7 @@ type BuildOutput struct {
 	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
-	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" description:"supported type: dockercfg"`
+	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty"`
 }
 
 // BuildConfig is a template which can be used to create new builds.
@@ -535,7 +535,7 @@ type ImageChangeTrigger struct {
 	// It is optional. If no From is specified, the From image from the build strategy
 	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
 	// a build configuration.
-	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to an ImageStreamTag that will trigger the build"`
+	From *kapi.ObjectReference `json:"from,omitempty"`
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
@@ -620,18 +620,18 @@ type BuildRequest struct {
 	TriggeredByImage *kapi.ObjectReference `json:"triggeredByImage,omitempty"`
 
 	// From is the reference to the ImageStreamTag that triggered the build.
-	From *kapi.ObjectReference `json:"from,omitempty" description:"ImageStreamTag that triggered this build"`
+	From *kapi.ObjectReference `json:"from,omitempty"`
 
 	// Binary indicates a request to build from a binary provided to the builder
-	Binary *BinaryBuildSource `json:"binary,omitempty" description:"the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"`
+	Binary *BinaryBuildSource `json:"binary,omitempty"`
 
 	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
-	LastVersion *int `json:"lastVersion,omitempty" description:"LastVersion of the BuildConfig that triggered this build"`
+	LastVersion *int `json:"lastVersion,omitempty"`
 
 	// Env contains additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+	Env []kapi.EnvVar `json:"env,omitempty"`
 }
 
 type BinaryBuildRequestOptions struct {
@@ -641,22 +641,22 @@ type BinaryBuildRequestOptions struct {
 	AsFile string `json:"asFile,omitempty"`
 
 	// Commit is the value identifying a specific commit
-	Commit string `json:"revision.commit,omitempty" description:"string identifying a specific commit"`
+	Commit string `json:"revision.commit,omitempty"`
 
 	// Message is the description of a specific commit
-	Message string `json:"revision.message,omitempty" description:"description of a specific commit"`
+	Message string `json:"revision.message,omitempty"`
 
 	// AuthorName of the source control user
-	AuthorName string `json:"revision.authorName,omitempty" description:"name of the user who authored the commit"`
+	AuthorName string `json:"revision.authorName,omitempty"`
 
 	// AuthorEmail of the source control user
-	AuthorEmail string `json:"revision.authorEmail,omitempty" description:"e-mail of the user who authored the commit"`
+	AuthorEmail string `json:"revision.authorEmail,omitempty"`
 
 	// CommitterName of the source control user
-	CommitterName string `json:"revision.committerName,omitempty" description:"name of the user who added the commit"`
+	CommitterName string `json:"revision.committerName,omitempty"`
 
 	// CommitterEmail of the source control user
-	CommitterEmail string `json:"revision.committerEmail,omitempty" description:"e-mail of the user who added the commit"`
+	CommitterEmail string `json:"revision.committerEmail,omitempty"`
 }
 
 // BuildLogOptions is the REST options for a build log
@@ -664,46 +664,46 @@ type BuildLogOptions struct {
 	unversioned.TypeMeta
 
 	// The container for which to stream logs. Defaults to only container if there is one container in the pod.
-	Container string `json:"container,omitempty" description:"the container for which to stream logs; defaults to only container if there is one container in the pod"`
+	Container string `json:"container,omitempty"`
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.
-	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+	Follow bool `json:"follow,omitempty"`
 	// Return previous build logs. Defaults to false.
-	Previous bool `json:"previous,omitempty" description:"return previous build logs; defaults to false."`
+	Previous bool `json:"previous,omitempty"`
 	// A relative time in seconds before the current time from which to show logs. If this value
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
-	SinceSeconds *int64 `json:"sinceSeconds,omitempty" description:"relative time in seconds before the current time from which to show logs"`
+	SinceSeconds *int64 `json:"sinceSeconds,omitempty"`
 	// An RFC3339 timestamp from which to show logs. If this value
 	// preceeds the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
-	SinceTime *unversioned.Time `json:"sinceTime,omitempty" description:"relative time in seconds before the current time from which to show logs"`
+	SinceTime *unversioned.Time `json:"sinceTime,omitempty"`
 	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
 	// of log output. Defaults to false.
-	Timestamps bool `json:"timestamps,omitempty" description:"add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output"`
+	Timestamps bool `json:"timestamps,omitempty"`
 	// If set, the number of lines from the end of the logs to show. If not specified,
 	// logs are shown from the creation of the container or sinceSeconds or sinceTime
-	TailLines *int64 `json:"tailLines,omitempty" description:"the number of lines from the end of the logs to show"`
+	TailLines *int64 `json:"tailLines,omitempty"`
 	// If set, the number of bytes to read from the server before terminating the
 	// log output. This may not display a complete final line of logging, and may return
 	// slightly more or slightly less than the specified limit.
-	LimitBytes *int64 `json:"limitBytes,omitempty" description:"the number of bytes to read from the server before terminating the log output"`
+	LimitBytes *int64 `json:"limitBytes,omitempty"`
 
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
-	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+	NoWait bool `json:"nowait,omitempty"`
 
 	// Version of the build for which to view logs.
-	Version *int64 `json:"version,omitempty" description:"the version of the build for which to view logs"`
+	Version *int64 `json:"version,omitempty"`
 }
 
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
 type SecretSpec struct {
 	// SecretSource is a reference to the secret
-	SecretSource kapi.LocalObjectReference `json:"secretSource" description:"a reference to a secret"`
+	SecretSource kapi.LocalObjectReference `json:"secretSource"`
 
 	// MountPath is the path at which to mount the secret
-	MountPath string `json:"mountPath" description:"path within the container at which the secret should be mounted"`
+	MountPath string `json:"mountPath"`
 }

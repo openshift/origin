@@ -318,28 +318,38 @@ type PolicyConfig struct {
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string
 
-	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	LegacyClientPolicyConfig LegacyClientPolicyConfig
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	UserAgentMatchingConfig UserAgentMatchingConfig
 }
 
-type LegacyClientPolicyConfig struct {
-	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	// The default is AllowAll
-	LegacyClientPolicy LegacyClientPolicy
-	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
-	RestrictedHTTPVerbs []string
+// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+type UserAgentMatchingConfig struct {
+	// If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed
+	RequiredClients []UserAgentMatchRule
+
+	// If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes
+	DeniedClients []UserAgentDenyRule
+
+	// DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.
+	DefaultRejectionMessage string
 }
 
-type LegacyClientPolicy string
+// UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb
+type UserAgentMatchRule struct {
+	// UserAgentRegex is a regex that is checked against the User-Agent.
+	Regex string
 
-var (
-	// AllowAll does not prevent any kinds of client version skew
-	AllowAll LegacyClientPolicy = "allow-all"
-	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
-	DenyOldClients LegacyClientPolicy = "deny-old-clients"
-	// DenySkewedClients prevents any non-matching client from issuing stomping requests
-	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
-)
+	// HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means "match all verbs".
+	HTTPVerbs []string
+}
+
+// UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client
+type UserAgentDenyRule struct {
+	UserAgentMatchRule
+
+	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
+	RejectionMessage string
+}
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {

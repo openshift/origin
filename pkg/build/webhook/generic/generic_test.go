@@ -27,13 +27,17 @@ func GivenRequest(method string) *http.Request {
 }
 
 func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
+	return GivenRequestWithPayloadAndContentType(t, filename, "application/json")
+}
+
+func GivenRequestWithPayloadAndContentType(t *testing.T, filename, contentType string) *http.Request {
 	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil
 	}
 	req, _ := http.NewRequest("POST", "http://someurl.com", bytes.NewReader(data))
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", contentType)
 	return req
 }
 
@@ -185,6 +189,42 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 
 func TestExtractWithGitPayload(t *testing.T) {
 	req := GivenRequestWithPayload(t, "push-github.json")
+	buildConfig := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+			},
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						Ref: "master",
+					},
+				},
+				Strategy: mockBuildStrategy,
+			},
+		},
+	}
+	plugin := New()
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision == nil {
+		t.Error("Expected the 'revision' return value to not be nil")
+	}
+}
+
+func TestExtractWithGitPayloadAndUTF8Charset(t *testing.T) {
+	req := GivenRequestWithPayloadAndContentType(t, "push-github.json", "application/json; charset=utf-8")
 	buildConfig := &api.BuildConfig{
 		Spec: api.BuildConfigSpec{
 			Triggers: []api.BuildTriggerPolicy{

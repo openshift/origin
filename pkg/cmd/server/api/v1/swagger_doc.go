@@ -362,16 +362,6 @@ func (LDAPSyncConfig) SwaggerDoc() map[string]string {
 	return map_LDAPSyncConfig
 }
 
-var map_LegacyClientPolicyConfig = map[string]string{
-	"":                    "LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API",
-	"legacyClientPolicy":  "LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS! The default is AllowAll",
-	"restrictedHTTPVerbs": "RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST",
-}
-
-func (LegacyClientPolicyConfig) SwaggerDoc() map[string]string {
-	return map_LegacyClientPolicyConfig
-}
-
 var map_MasterClients = map[string]string{
 	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
 	"openshiftLoopbackKubeConfig":  "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
@@ -565,7 +555,7 @@ var map_PolicyConfig = map[string]string{
 	"bootstrapPolicyFile":               "BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace",
 	"openshiftSharedResourcesNamespace": "OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)",
 	"openshiftInfrastructureNamespace":  "OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)",
-	"legacyClientPolicyConfig":          "LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"userAgentMatchingConfig":           "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
 func (PolicyConfig) SwaggerDoc() map[string]string {
@@ -729,4 +719,34 @@ var map_TokenConfig = map[string]string{
 
 func (TokenConfig) SwaggerDoc() map[string]string {
 	return map_TokenConfig
+}
+
+var map_UserAgentDenyRule = map[string]string{
+	"":                 "UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client",
+	"rejectionMessage": "RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
+}
+
+func (UserAgentDenyRule) SwaggerDoc() map[string]string {
+	return map_UserAgentDenyRule
+}
+
+var map_UserAgentMatchRule = map[string]string{
+	"":          "UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb",
+	"regex":     "UserAgentRegex is a regex that is checked against the User-Agent. Known variants of oc clients 1. oc accessing kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 4. openshit kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f",
+	"httpVerbs": "HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means \"match all verbs\".",
+}
+
+func (UserAgentMatchRule) SwaggerDoc() map[string]string {
+	return map_UserAgentMatchRule
+}
+
+var map_UserAgentMatchingConfig = map[string]string{
+	"":                        "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"requiredClients":         "If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed",
+	"deniedClients":           "If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes",
+	"defaultRejectionMessage": "DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.",
+}
+
+func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
+	return map_UserAgentMatchingConfig
 }

@@ -36,12 +36,12 @@ declare -A packagekey
 packagekey['aos-f5-router-docker']="aos-f5-router-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/router/f5 openshift3/ose-f5-router aep3_beta/aep-f5-router"
 packagekey['image-inspector-docker']="image-inspector-docker None None None openshift3/image-inspector aep3_beta/image-inspector"
 packagekey['logging-auth-proxy-docker']="logging-auth-proxy-docker None None None openshift3/logging-auth-proxy aep3_beta/logging-auth-proxy"
-packagekey['logging-deployment-docker']="logging-deployment-docker None None None openshift3/logging-deployment aep3_beta/logging-deployment"
+packagekey['logging-deployment-docker']="logging-deployment-docker openshift-enterprise-docker None None openshift3/logging-deployment aep3_beta/logging-deployment"
 packagekey['logging-elasticsearch-docker']="logging-elasticsearch-docker None None None openshift3/logging-elasticsearch aep3_beta/logging-elasticsearch"
 packagekey['logging-fluentd-docker']="logging-fluentd-docker None None None openshift3/logging-fluentd aep3_beta/logging-fluentd"
 packagekey['logging-kibana-docker']="logging-kibana-docker None None None openshift3/logging-kibana aep3_beta/logging-kibana"
 packagekey['metrics-cassandra-docker']="metrics-cassandra-docker None https://github.com/openshift/origin-metrics.git origin-metrics/cassandra openshift3/metrics-cassandra aep3_beta/metrics-cassandra"
-packagekey['metrics-deployer-docker']="metrics-deployer-docker None https://github.com/openshift/origin-metrics.git origin-metrics/deployer openshift3/metrics-deployer aep3_beta/metrics-deployer"
+packagekey['metrics-deployer-docker']="metrics-deployer-docker openshift-enterprise-docker https://github.com/openshift/origin-metrics.git origin-metrics/deployer openshift3/metrics-deployer aep3_beta/metrics-deployer"
 packagekey['metrics-hawkular-metrics-docker']="metrics-hawkular-metrics-docker None https://github.com/openshift/origin-metrics.git origin-metrics/hawkular-metrics openshift3/metrics-hawkular-metrics aep3_beta/metrics-hawkular-metrics"
 packagekey['metrics-heapster-docker']="metrics-heapster-docker None https://github.com/openshift/origin-metrics.git origin-metrics/heapster openshift3/metrics-heapster aep3_beta/metrics-heapster"
 packagekey['openshift-enterprise-base-docker']="openshift-enterprise-base-docker None ${BASE_GIT_REPO} ose/images/base none none"
@@ -53,7 +53,7 @@ packagekey['openshift-enterprise-haproxy-router-base-docker']="openshift-enterpr
 packagekey['openshift-enterprise-haproxy-router-docker']="openshift-enterprise-haproxy-router-docker openshift-enterprise-haproxy-router-base-docker ${BASE_GIT_REPO} ose/images/router/haproxy openshift3/ose-haproxy-router aep3_beta/aep-haproxy-router"
 packagekey['openshift-enterprise-keepalived-ipfailover-docker']="openshift-enterprise-keepalived-ipfailover-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/ipfailover/keepalived openshift3/ose-keepalived-ipfailover aep3_beta/aep-keepalived-ipfailover"
 packagekey['openshift-enterprise-node-docker']="openshift-enterprise-node-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/node openshift3/node aep3_beta/node"
-packagekey['openshift-enterprise-openvswitch-docker']="openshift-enterprise-openvswitch-docker None ${BASE_GIT_REPO} ose/images/openvswitch openshift3/openvswitch none"
+packagekey['openshift-enterprise-openvswitch-docker']="openshift-enterprise-openvswitch-docker None ${BASE_GIT_REPO} ose/images/openvswitch openshift3/openvswitch aep3_beta/openvswitch"
 packagekey['openshift-enterprise-pod-docker']="openshift-enterprise-pod-docker None ${BASE_GIT_REPO} ose/images/pod openshift3/ose-pod aep3_beta/aep-pod"
 packagekey['openshift-enterprise-recycler-docker']="openshift-enterprise-recycler-docker openshift-enterprise-base-docker ${BASE_GIT_REPO} ose/images/recycler openshift3/ose-recycler aep3_beta/aep-recycler"
 packagekey['openshift-enterprise-sti-builder-docker']="openshift-enterprise-sti-builder-docker openshift-enterprise-docker ${BASE_GIT_REPO} ose/images/builder/docker/sti-builder openshift3/ose-sti-builder none"
@@ -132,6 +132,8 @@ add_group_to_list() {
       add_to_list openshift-enterprise-deployer-docker
       add_to_list openshift-enterprise-node-docker
       add_to_list openshift-enterprise-sti-builder-docker
+      add_to_list metrics-deployer-docker
+      add_to_list logging-deployment-docker
       add_to_list openshift-enterprise-docker-builder-docker
       add_to_list openshift-enterprise-haproxy-router-docker
       ;;
@@ -152,14 +154,12 @@ add_group_to_list() {
       ;;
     logging)
       add_to_list logging-auth-proxy-docker
-      add_to_list logging-deployment-docker
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
       add_to_list logging-kibana-docker
       ;;
     metrics)
       add_to_list metrics-cassandra-docker
-      add_to_list metrics-deployer-docker
       add_to_list metrics-hawkular-metrics-docker
       add_to_list metrics-heapster-docker
       ;;
@@ -492,30 +492,42 @@ start_push_image() {
   if ! [ "${update_release}" == "TRUE" ] ; then
     release_version=`grep Release= Dockerfile | cut -d'"' -f2`
   fi
-  echo "  ${container} ${package_name}:${version_version}"
-  echo
-  docker pull ${OSBS_REGISTRY}/${package_name}:${version_version}
-  docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version}
-  push_image ${PUSH_REGISTRY}/${package_name}:${version_version}
+  echo "====================================================" >>  ${workingdir}/logs/push.image.log
+  echo "  ${container} ${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
+  echo "    START: $(date +"%Y-%m-%d %H:%M:%S")" | tee -a ${workingdir}/logs/push.image.log
+  echo | tee -a ${workingdir}/logs/push.image.log
+  docker pull ${OSBS_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  echo | tee -a ${workingdir}/logs/push.image.log
+  docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  echo | tee -a ${workingdir}/logs/push.image.log
+  push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  echo | tee -a ${workingdir}/logs/push.image.log
   if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest
-    push_image ${PUSH_REGISTRY}/${package_name}:latest
+    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
+    push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
   fi
-  if ! [ "${alt_name}" == "none" ] ; then
+  if ! [ "${alt_name}" == "" ] ; then
     trimmed_alt_name=$(echo "${alt_name}" | cut -d'/' -f2)
     if [ "${VERBOSE}" == "TRUE" ] ; then
       echo "----------"
-      echo "docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}"
-      echo "push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}"
+      echo "docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
+      echo "push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
       echo "----------"
     fi
-    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}
-    push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:${version_version}
+    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
+    push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-      docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:latest
-      push_image ${PUSH_REGISTRY}/openshift3/${trimmed_alt_name}:latest
+      docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      echo | tee -a ${workingdir}/logs/push.image.log
+      push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      echo | tee -a ${workingdir}/logs/push.image.log
     fi
   fi
+  echo "    END: $(date +"%Y-%m-%d %H:%M:%S")" | tee -a ${workingdir}/logs/push.image.log
   popd >/dev/null
 }
 

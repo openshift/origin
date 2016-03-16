@@ -38,7 +38,7 @@ type Parameter struct {
 	Name string `json:"name"`
 
 	// Optional: The name that will show in UI instead of parameter 'Name'
-	DisplayName string `json:"displayName,omitempty" description:"optional: provides human readable name for the parameter"`
+	DisplayName string `json:"displayName,omitempty"`
 
 	// Optional: Parameter can have description
 	Description string `json:"description,omitempty"`
@@ -58,5 +58,5 @@ type Parameter struct {
 	From string `json:"from,omitempty"`
 
 	// Optional: Indicates the parameter must have a value.  Defaults to false.
-	Required bool `json:"required,omitempty" description:"indicates the parameter must have a non-empty value or be generated"`
+	Required bool `json:"required,omitempty"`
 }

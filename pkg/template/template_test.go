@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	"github.com/openshift/origin/pkg/template/api"
@@ -61,6 +62,13 @@ func (g ErrorGenerator) GenerateValue(expression string) (interface{}, error) {
 	return "", fmt.Errorf("error")
 }
 
+type NoStringGenerator struct {
+}
+
+func (g NoStringGenerator) GenerateValue(expression string) (interface{}, error) {
+	return NoStringGenerator{}, nil
+}
+
 type EmptyGenerator struct {
 }
 
@@ -74,54 +82,93 @@ func TestParameterGenerators(t *testing.T) {
 		generators map[string]generator.Generator
 		shouldPass bool
 		expected   api.Parameter
+		errType    field.ErrorType
+		fieldPath  string
 	}{
 		{ // Empty generator, should pass
-			makeParameter("PARAM", "X", "", false),
+			makeParameter("PARAM-pass-empty-gen", "X", "", false),
 			map[string]generator.Generator{},
 			true,
-			makeParameter("PARAM", "X", "", false),
+			makeParameter("PARAM-pass-empty-gen", "X", "", false),
+			"",
+			"",
 		},
 		{ // Foo generator, should pass
-			makeParameter("PARAM", "", "foo", false),
+			makeParameter("PARAM-pass-foo-gen", "", "foo", false),
 			map[string]generator.Generator{"foo": FooGenerator{}},
 			true,
-			makeParameter("PARAM", "foo", "", false),
+			makeParameter("PARAM-pass-foo-gen", "foo", "", false),
+			"",
+			"",
+		},
+		{ // Foo generator, should fail
+			makeParameter("PARAM-fail-foo-gen", "", "foo", false),
+			map[string]generator.Generator{},
+			false,
+			makeParameter("PARAM-fail-foo-gen", "foo", "", false),
+			field.ErrorTypeNotFound,
+			"template.parameters[0]",
+		},
+		{ // No str generator, should fail
+			makeParameter("PARAM-fail-nostr-gen", "", "foo", false),
+			map[string]generator.Generator{"foo": NoStringGenerator{}},
+			false,
+			makeParameter("PARAM-fail-nostr-gen", "foo", "", false),
+			field.ErrorTypeInvalid,
+			"template.parameters[0]",
 		},
 		{ // Invalid generator, should fail
-			makeParameter("PARAM", "", "invalid", false),
+			makeParameter("PARAM-fail-inv-gen", "", "invalid", false),
 			map[string]generator.Generator{"invalid": nil},
 			false,
-			makeParameter("PARAM", "", "invalid", false),
+			makeParameter("PARAM-fail-inv-gen", "", "invalid", false),
+			field.ErrorTypeInvalid,
+			"template.parameters[0]",
 		},
 		{ // Error generator, should fail
-			makeParameter("PARAM", "", "error", false),
+			makeParameter("PARAM-fail-err-gen", "", "error", false),
 			map[string]generator.Generator{"error": ErrorGenerator{}},
 			false,
-			makeParameter("PARAM", "", "error", false),
+			makeParameter("PARAM-fail-err-gen", "", "error", false),
+			field.ErrorTypeInvalid,
+			"template.parameters[0]",
 		},
 		{ // Error required parameter, no value, should fail
-			makeParameter("PARAM", "", "", true),
+			makeParameter("PARAM-fail-no-val", "", "", true),
 			map[string]generator.Generator{"error": ErrorGenerator{}},
 			false,
-			makeParameter("PARAM", "", "", true),
+			makeParameter("PARAM-fail-no-val", "", "", true),
+			field.ErrorTypeRequired,
+			"template.parameters[0]",
 		},
 		{ // Error required parameter, no value from generator, should fail
-			makeParameter("PARAM", "", "empty", true),
+			makeParameter("PARAM-fail-no-val-from-gen", "", "empty", true),
 			map[string]generator.Generator{"empty": EmptyGenerator{}},
 			false,
-			makeParameter("PARAM", "", "empty", true),
+			makeParameter("PARAM-fail-no-val-from-gen", "", "empty", true),
+			field.ErrorTypeRequired,
+			"template.parameters[0]",
 		},
 	}
 
 	for i, test := range tests {
 		processor := NewProcessor(test.generators)
 		template := api.Template{Parameters: []api.Parameter{test.parameter}}
-		err, _ := processor.GenerateParameterValues(&template)
+		err := processor.GenerateParameterValues(&template)
 		if err != nil && test.shouldPass {
 			t.Errorf("test[%v]: Unexpected error %v", i, err)
 		}
 		if err == nil && !test.shouldPass {
 			t.Errorf("test[%v]: Expected error", i)
+		}
+		if err != nil {
+			if test.errType != err.Type {
+				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.errType, err.Type)
+			}
+			if test.fieldPath != err.Field {
+				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.fieldPath, err.Field)
+			}
+			continue
 		}
 		actual := template.Parameters[0]
 		if actual.Value != test.expected.Value {

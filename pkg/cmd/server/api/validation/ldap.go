@@ -40,10 +40,10 @@ func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	}
 
 	if len(schemaConfigsFound) > 1 {
-		validationResults.AddErrors(field.Invalid(nil, config, fmt.Sprintf("only one schema-specific config is allowed; found %v", schemaConfigsFound)))
+		validationResults.AddErrors(field.Invalid(field.NewPath("schema"), config, fmt.Sprintf("only one schema-specific config is allowed; found %v", schemaConfigsFound)))
 	}
 	if len(schemaConfigsFound) == 0 {
-		validationResults.AddErrors(field.Invalid(nil, config, fmt.Sprintf("exactly one schema-specific config is required;  one of %v", []string{"rfc2307", "activeDirectory", "augmentedActiveDirectory"})))
+		validationResults.AddErrors(field.Required(field.NewPath("schema"), fmt.Sprintf("exactly one schema-specific config is required;  one of %v", []string{"rfc2307", "activeDirectory", "augmentedActiveDirectory"})))
 	}
 
 	return validationResults
