@@ -78,7 +78,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "mysql:latest",
-                "namespace": "openshift"
+                "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
             }
@@ -177,44 +177,50 @@
   "parameters": [
     {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
       "value": "512Mi"
     },
     {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
       "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database service name",
-      "description": "The name of the OpenShift Service exposed for the database",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
       "value": "mysql",
       "required": true
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL user",
-      "description": "Username for MySQL user that will be used for accessing the database",
+      "displayName": "MySQL User",
+      "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
       "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL password",
-      "description": "Password for the MySQL user",
+      "displayName": "MySQL Password",
+      "description": "Password for the MySQL user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "MYSQL_DATABASE",
-      "displayName": "MySQL database name",
-      "description": "Name of the MySQL database accessed",
+      "displayName": "MySQL Database Name",
+      "description": "Name of the MySQL database accessed.",
       "value": "sampledb",
       "required": true
     },
     {
       "name": "VOLUME_CAPACITY",
-      "displayName": "Volume capacity",
-      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "512Mi",
       "required": true
     }
