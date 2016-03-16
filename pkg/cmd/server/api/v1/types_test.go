@@ -421,11 +421,12 @@ oauthConfig:
 pauseControllers: false
 policyConfig:
   bootstrapPolicyFile: ""
-  legacyClientPolicyConfig:
-    legacyClientPolicy: ""
-    restrictedHTTPVerbs: null
   openshiftInfrastructureNamespace: ""
   openshiftSharedResourcesNamespace: ""
+  userAgentMatchingConfig:
+    defaultRejectionMessage: ""
+    deniedClients: null
+    requiredClients: null
 projectConfig:
   defaultNodeSelector: ""
   projectRequestMessage: ""

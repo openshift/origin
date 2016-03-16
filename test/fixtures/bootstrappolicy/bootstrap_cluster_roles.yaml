@@ -44,6 +44,7 @@ items:
     - clusterpolicybindings
     - clusterrolebindings
     - clusterroles
+    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
@@ -159,6 +160,7 @@ items:
     - builds/docker
     - builds/log
     - builds/source
+    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
@@ -224,6 +226,7 @@ items:
     attributeRestrictions: null
     resources:
     - bindings
+    - configmaps
     - endpoints
     - events
     - imagestreams/status
@@ -285,6 +288,7 @@ items:
     - builds/docker
     - builds/log
     - builds/source
+    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
@@ -343,6 +347,7 @@ items:
     attributeRestrictions: null
     resources:
     - bindings
+    - configmaps
     - endpoints
     - events
     - imagestreams/status
@@ -395,6 +400,7 @@ items:
     - builds
     - builds/clone
     - builds/log
+    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
@@ -873,6 +879,7 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     resources:
+    - configmaps
     - secrets
     verbs:
     - get

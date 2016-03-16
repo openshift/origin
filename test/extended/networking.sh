@@ -90,11 +90,13 @@ TEST_FAILURES=0
 function test-osdn-plugin() {
   local name=$1
   local plugin=$2
+  local isolation=$3
 
   os::log::info "Targeting ${name} plugin: ${plugin}"
   os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
   export OPENSHIFT_NETWORK_PLUGIN="${plugin}"
   export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
+  export OPENSHIFT_NETWORK_ISOLATION="${isolation}"
   # Images have already been built
   export OS_DIND_BUILD_IMAGES=0
   DIND_CLEANUP_REQUIRED=1
@@ -145,13 +147,6 @@ function run-extended-tests() {
 
   if [ -z "${skip_regex}" ]; then
       skip_regex=$(join '|' "${DEFAULT_SKIP_LIST[@]}")
-
-      local conf_path="${config_root}/openshift.local.config"
-      # Only the multitenant plugin can pass the isolation test
-      if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="${skip_regex}|\[networking\] network isolation plugin"
-      fi
   fi
 
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
@@ -264,10 +259,10 @@ else
   os::log::info "Ensuring that previous test cluster is shut down"
   ${CLUSTER_CMD} stop
 
-  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet"
+  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false"
 
   # Avoid unnecessary go builds for subsequent deployments
   export OPENSHIFT_SKIP_BUILD=true
 
-  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant"
+  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true"
 fi

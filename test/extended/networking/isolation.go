@@ -1,35 +1,59 @@
 package networking
 
 import (
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/test/e2e"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-// This test requires a network plugin that supports namespace isolation.
-// NOTE: if you change the test description, update networking.sh too!
-var _ = Describe("[networking] network isolation plugin", func() {
+var _ = Describe("[networking] network isolation", func() {
 	f1 := e2e.NewFramework("net-isolation1")
 	f2 := e2e.NewFramework("net-isolation2")
 
-	It("should prevent communication between pods in different namespaces", func() {
-		By("Picking multiple nodes")
-		nodes := getMultipleNodes(f1)
-		node1 := nodes.Items[0]
-		node2 := nodes.Items[1]
-
-		By("Running a webserver in one namespace")
-		podName := "isolation-webserver"
-		defer f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
-		ip := launchWebserverPod(f1, podName, node1.Name)
-
-		By("Checking that the webserver is not accessible from a pod in a different namespace on the same node")
-		err := checkConnectivityToHost(f2, node1.Name, "isolation-same-node-wget", ip, 10)
-		Expect(err).To(HaveOccurred())
-
-		By("Checking that the webserver is not accessible from a pod in a different namespace on a different node")
-		err = checkConnectivityToHost(f2, node2.Name, "isolation-different-node-wget", ip, 10)
+	Specify("multi-tenant plugins should prevent communication between pods in different namespaces on the same node", func() {
+		skipIfSingleTenant()
+		err := checkPodIsolation(f1, f2, 1)
 		Expect(err).To(HaveOccurred())
 	})
+
+	Specify("multi-tenant plugins should prevent communication between pods in different namespaces on different nodes", func() {
+		skipIfSingleTenant()
+		err := checkPodIsolation(f1, f2, 2)
+		Expect(err).To(HaveOccurred())
+	})
+
+	Specify("single-tenant plugins should allow communication between pods in different namespaces on the same node", func() {
+		skipIfMultiTenant()
+		Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
+	})
+
+	Specify("single-tenant plugins should allow communication between pods in different namespaces on different nodes", func() {
+		skipIfMultiTenant()
+		Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
+	})
 })
+
+func checkPodIsolation(f1, f2 *e2e.Framework, numNodes int) error {
+	nodes, err := e2e.GetReadyNodes(f1)
+	if err != nil {
+		e2e.Failf("Failed to list nodes: %v", err)
+	}
+	var serverNode, clientNode *api.Node
+	serverNode = &nodes.Items[0]
+	if numNodes == 2 {
+		if len(nodes.Items) == 1 {
+			e2e.Skipf("Only one node is available in this environment")
+		}
+		clientNode = &nodes.Items[1]
+	} else {
+		clientNode = serverNode
+	}
+
+	podName := "isolation-webserver"
+	defer f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
+	ip := e2e.LaunchWebserverPod(f1, podName, serverNode.Name)
+
+	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10)
+}

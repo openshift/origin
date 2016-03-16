@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 
 	"github.com/golang/glog"
@@ -86,13 +87,18 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s", method)
+		return fmt.Errorf("unsupported HTTP method %s", method)
 	}
-	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		return fmt.Errorf("Unsupported Content-Type %s", contentType)
+	contentType := req.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return fmt.Errorf("non-parseable Content-Type %s (%s)", contentType, err)
+	}
+	if mediaType != "application/json" {
+		return fmt.Errorf("unsupported Content-Type %s", contentType)
 	}
 	if len(getEvent(req.Header)) == 0 {
-		return errors.New("Missing X-GitHub-Event or X-Gogs-Event")
+		return errors.New("missing X-GitHub-Event or X-Gogs-Event")
 	}
 	return nil
 }

@@ -123,6 +123,13 @@ function configure_os_server {
 function start_os_server {
 	local sudo="${USE_SUDO:+sudo}"
 
+	local use_latest_images
+	if [[ -n "${USE_LATEST_IMAGES:-}" ]]; then
+		use_latest_images="true"
+	else
+		use_latest_images="false"
+	fi
+
 	echo "[INFO] `openshift version`"
 	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
@@ -140,6 +147,7 @@ function start_os_server {
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
+	 --latest-images="${use_latest_images}" \
 	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 

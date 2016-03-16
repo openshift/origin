@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 
 	"github.com/golang/glog"
@@ -44,7 +45,15 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return nil, true, nil
 	}
 
-	if req.Body != nil && req.Header.Get("Content-Type") == "application/json" {
+	contentType := req.Header.Get("Content-Type")
+	if len(contentType) != 0 {
+		contentType, _, err = mime.ParseMediaType(contentType)
+		if err != nil {
+			return nil, false, fmt.Errorf("non-parseable Content-Type %s (%s)", contentType, err)
+		}
+	}
+
+	if req.Body != nil && contentType == "application/json" {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return nil, false, err

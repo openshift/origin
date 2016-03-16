@@ -62,11 +62,11 @@ type Group struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Users is the list of users in this group.
-	Users []string `json:"users" description:"list of users in this group"`
+	Users []string `json:"users"`
 }
 
 type GroupList struct {
 	unversioned.TypeMeta `json:",inline"`
 	unversioned.ListMeta `json:"metadata,omitempty"`
-	Items                []Group `json:"items" description:"list of groups"`
+	Items                []Group `json:"items"`
 }

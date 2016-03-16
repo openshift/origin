@@ -476,12 +476,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 
 				{
-					// TODO: restrict to secrets used by pods scheduled on bound node once supported
-					// Needed for imagepullsecrets, rbd/ceph and secret volumes
+					// TODO: restrict to secrets and configmaps used by pods scheduled on bound node once supported
+					// Needed for imagepullsecrets, rbd/ceph and secret volumes, and secrets in envs
+					// Needed for configmap volume and envs
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("secrets"),
+					Resources: sets.NewString("secrets", "configmaps"),
 				},
-
 				{
 					// TODO: restrict to claims/volumes used by pods scheduled on bound node once supported
 					// Needed for persistent volumes

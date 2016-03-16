@@ -110,7 +110,7 @@ func TestMissingEvent(t *testing.T) {
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "Missing X-GitHub-Event or X-Gogs-Event") {
+		!strings.Contains(string(body), "missing X-GitHub-Event or X-Gogs-Event") {
 		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
@@ -158,6 +158,15 @@ func TestJsonGitHubPushEvent(t *testing.T) {
 		http.StatusOK, t)
 }
 
+func TestJsonGitHubPushEventWithCharset(t *testing.T) {
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
+		map[string]webhook.Plugin{"github": New()}))
+	defer server.Close()
+
+	postFileWithCharset("X-GitHub-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
+		"application/json; charset=utf-8", http.StatusOK, t)
+}
+
 func TestJsonGogsPushEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
@@ -168,22 +177,30 @@ func TestJsonGogsPushEvent(t *testing.T) {
 }
 
 func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) {
+	postFileWithCharset(eventHeader, eventName, filename, url, "application/json", expStatusCode, t)
+}
+
+func postFileWithCharset(eventHeader, eventName, filename, url, charset string, expStatusCode int, t *testing.T) {
 	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
 
-	post(eventHeader, eventName, data, url, expStatusCode, t)
+	postWithCharset(eventHeader, eventName, data, url, charset, expStatusCode, t)
 }
 
 func post(eventHeader, eventName string, data []byte, url string, expStatusCode int, t *testing.T) {
+	postWithCharset(eventHeader, eventName, data, url, "application/json", expStatusCode, t)
+}
+
+func postWithCharset(eventHeader, eventName string, data []byte, url, charset string, expStatusCode int, t *testing.T) {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		t.Errorf("Error creating POST request: %v!", err)
 	}
 
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", charset)
 	req.Header.Add(eventHeader, eventName)
 	resp, err := client.Do(req)
 

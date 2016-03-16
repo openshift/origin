@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -105,7 +104,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -161,7 +159,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		}
 		extra = append(extra, msgs...)
 	}
-	handler := c.versionSkewFilter(version.Get(), kversion.Get(), safe)
+	handler := c.versionSkewFilter(safe)
 	handler = c.authorizationFilter(handler)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())

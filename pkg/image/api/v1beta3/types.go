@@ -28,15 +28,15 @@ type Image struct {
 	// The raw JSON of the manifest
 	DockerImageManifest string `json:"dockerImageManifest,omitempty"`
 	// DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.
-	DockerImageLayers []ImageLayer `json:"dockerImageLayers" description:"a list of the image layers from lowest to highest"`
+	DockerImageLayers []ImageLayer `json:"dockerImageLayers"`
 }
 
 // ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.
 type ImageLayer struct {
 	// Name of the layer as defined by the underlying store.
-	Name string `json:"name" description:"the name of the layer (blob, in Docker parlance)"`
+	Name string `json:"name"`
 	// Size of the layer as defined by the underlying store.
-	Size int64 `json:"size" description:"size of the layer in bytes"`
+	Size int64 `json:"size"`
 }
 
 // ImageStreamList is a list of ImageStream objects.
@@ -74,19 +74,19 @@ type TagReference struct {
 	Annotations map[string]string     `json:"annotations"`
 	From        *kapi.ObjectReference `json:"from,omitempty"`
 	// Reference states if the tag will be imported. Default value is false, which means the tag will be imported.
-	Reference bool `json:"reference,omitempty" description:"if true consider this tag a reference only and do not attempt to import metadata about the image"`
+	Reference bool `json:"reference,omitempty"`
 	// Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated.
 	// Legacy clients will send this as nil, which means the client doesn't know or care.
-	Generation *int64 `json:"generation" description:"the generation of the image stream this was updated to"`
+	Generation *int64 `json:"generation"`
 	// Import is information that controls how images may be imported by the server.
-	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" description:"attributes controlling how this reference is imported"`
+	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty"`
 }
 
 type TagImportPolicy struct {
 	// Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
-	Insecure bool `json:"insecure,omitempty" description:"if true, the server may bypass certificate verification or connect directly over HTTP during image import"`
+	Insecure bool `json:"insecure,omitempty"`
 	// Scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported
-	Scheduled bool `json:"scheduled,omitempty" description:"if true, the server will periodically check to ensure this tag is up to date"`
+	Scheduled bool `json:"scheduled,omitempty"`
 }
 
 // ImageStreamStatus contains information about the state of this image stream.
@@ -104,19 +104,19 @@ type NamedTagEventList struct {
 	Tag   string     `json:"tag"`
 	Items []TagEvent `json:"items"`
 	// Conditions is an array of conditions that apply to the tag event list.
-	Conditions []TagEventCondition `json:"conditions" description:"the set of conditions that apply to this tag"`
+	Conditions []TagEventCondition `json:"conditions"`
 }
 
 // TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.
 type TagEvent struct {
 	// Created holds the time the TagEvent was created
-	Created unversioned.Time `json:"created" description:"when the event was created"`
+	Created unversioned.Time `json:"created"`
 	// DockerImageReference is the string that can be used to pull this image
-	DockerImageReference string `json:"dockerImageReference" description:"the string that can be used to pull this image"`
+	DockerImageReference string `json:"dockerImageReference"`
 	// Image is the image
-	Image string `json:"image" description:"the image"`
+	Image string `json:"image"`
 	// Generation is the spec tag generation that resulted in this tag being updated
-	Generation int64 `json:"generation" description:"the generation of the image stream spec tag this tag event represents"`
+	Generation int64 `json:"generation"`
 }
 
 type TagEventConditionType string
@@ -140,7 +140,7 @@ type TagEventCondition struct {
 	// Human readable message indicating details about last transition.
 	Message string `json:"message,omitempty"`
 	// Generation is the spec tag generation that this status corresponds to
-	Generation int64 `json:"generation" description:"the generation of the image stream spec tag this tag event represents"`
+	Generation int64 `json:"generation"`
 }
 
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as

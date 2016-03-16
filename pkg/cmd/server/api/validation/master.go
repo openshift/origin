@@ -497,6 +497,19 @@ func ValidatePolicyConfig(config api.PolicyConfig, fldPath *field.Path) field.Er
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
 
+	for i, matchingRule := range config.UserAgentMatchingConfig.DeniedClients {
+		_, err := regexp.Compile(matchingRule.Regex)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("userAgentMatchingConfig", "deniedClients").Index(i), matchingRule.Regex, err.Error()))
+		}
+	}
+	for i, matchingRule := range config.UserAgentMatchingConfig.RequiredClients {
+		_, err := regexp.Compile(matchingRule.Regex)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("userAgentMatchingConfig", "requiredClients").Index(i), matchingRule.Regex, err.Error()))
+		}
+	}
+
 	return allErrs
 }
 

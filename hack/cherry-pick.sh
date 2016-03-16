@@ -26,6 +26,10 @@ fi
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
+rm -rf "${patch}"
+mkdir -p "${patch}"
+patch="${patch}/cherry-pick"
+
 if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
   echo "Expected ${UPSTREAM_REPO_LOCATION} to exist" 1>&2
   exit 1
