@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer"
@@ -306,6 +307,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.Location = in.Location
 			return nil
 		},
+		api.Convert_resource_Quantity_To_resource_Quantity,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
