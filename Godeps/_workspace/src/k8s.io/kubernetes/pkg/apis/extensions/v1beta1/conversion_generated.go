@@ -3217,6 +3217,7 @@ func autoConvert_extensions_ReplicaSetStatus_To_v1beta1_ReplicaSetStatus(in *ext
 		defaulting.(func(*extensions.ReplicaSetStatus))(in)
 	}
 	out.Replicas = int32(in.Replicas)
+	out.FullyLabeledReplicas = int32(in.FullyLabeledReplicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -4460,6 +4461,7 @@ func autoConvert_v1beta1_ReplicaSetStatus_To_extensions_ReplicaSetStatus(in *Rep
 		defaulting.(func(*ReplicaSetStatus))(in)
 	}
 	out.Replicas = int(in.Replicas)
+	out.FullyLabeledReplicas = int(in.FullyLabeledReplicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }

@@ -101,6 +101,12 @@ var (
 	//
 	// TODO(ihmccreery): remove once we don't care about v1.1 anymore, (tentatively in v1.4).
 	deploymentsVersion = version.MustParse("v1.2.0-alpha.7.726")
+
+	// Pod probe parameters were introduced in #15967 (v1.2) so we dont expect tests that use
+	// these probe parameters to work on clusters before that.
+	//
+	// TODO(ihmccreery): remove once we don't care about v1.1 anymore, (tentatively in v1.4).
+	podProbeParametersVersion = version.MustParse("v1.2.0-alpha.4")
 )
 
 var _ = Describe("Kubectl client", func() {
@@ -176,7 +182,7 @@ var _ = Describe("Kubectl client", func() {
 	Describe("Simple pod", func() {
 		var podPath string
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			podPath = filepath.Join(testContext.RepoRoot, "test", "e2e", "testing-manifests", "kubectl", "pod-with-readiness-probe.yaml")
 			By(fmt.Sprintf("creating the pod from %v", podPath))
 			runKubectlOrDie("create", "-f", podPath, fmt.Sprintf("--namespace=%v", ns))
@@ -271,7 +277,18 @@ var _ = Describe("Kubectl client", func() {
 			}
 			// start exec-proxy-tester container
 			netexecPodPath := filepath.Join(testContext.RepoRoot, "test/images/netexec/pod.yaml")
-			runKubectlOrDie("create", "-f", netexecPodPath, fmt.Sprintf("--namespace=%v", ns))
+
+			// Add "validate=false" if the server version is less than 1.2.
+			// More details: https://github.com/kubernetes/kubernetes/issues/22884.
+			validateFlag := "--validate=true"
+			gte, err := serverVersionGTE(podProbeParametersVersion, c)
+			if err != nil {
+				Failf("Failed to get server version: %v", err)
+			}
+			if !gte {
+				validateFlag = "--validate=false"
+			}
+			runKubectlOrDie("create", "-f", netexecPodPath, fmt.Sprintf("--namespace=%v", ns), validateFlag)
 			checkPodsRunningReady(c, ns, []string{netexecContainer}, podStartTimeout)
 			// Clean up
 			defer cleanup(netexecPodPath, ns, netexecPodSelector)
@@ -726,7 +743,7 @@ var _ = Describe("Kubectl client", func() {
 	Describe("Kubectl label", func() {
 		var podPath string
 		var nsFlag string
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			podPath = filepath.Join(testContext.RepoRoot, "docs/user-guide/pod.yaml")
 			By("creating the pod")
 			nsFlag = fmt.Sprintf("--namespace=%v", ns)
@@ -763,7 +780,7 @@ var _ = Describe("Kubectl client", func() {
 		var rcPath string
 		var nsFlag string
 		containerName := "redis-master"
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples/guestbook-go", file)
 			}
@@ -861,6 +878,48 @@ var _ = Describe("Kubectl client", func() {
 		})
 	})
 
+	Describe("Kubectl run default", func() {
+		var nsFlag string
+		var name string
+
+		var cleanUp func()
+
+		BeforeEach(func() {
+			nsFlag = fmt.Sprintf("--namespace=%v", ns)
+			gte, err := serverVersionGTE(deploymentsVersion, c)
+			if err != nil {
+				Failf("Failed to get server version: %v", err)
+			}
+			if gte {
+				name = "e2e-test-nginx-deployment"
+				cleanUp = func() { runKubectlOrDie("delete", "deployment", name, nsFlag) }
+			} else {
+				name = "e2e-test-nginx-rc"
+				cleanUp = func() { runKubectlOrDie("delete", "rc", name, nsFlag) }
+			}
+		})
+
+		AfterEach(func() {
+			cleanUp()
+		})
+
+		It("should create an rc or deployment from an image [Conformance]", func() {
+			By("running the image " + nginxImage)
+			runKubectlOrDie("run", name, "--image="+nginxImage, nsFlag)
+			By("verifying the pod controlled by " + name + " gets created")
+			label := labels.SelectorFromSet(labels.Set(map[string]string{"run": name}))
+			podlist, err := waitForPodsWithLabel(c, ns, label)
+			if err != nil {
+				Failf("Failed getting pod controlled by %s: %v", name, err)
+			}
+			pods := podlist.Items
+			if pods == nil || len(pods) != 1 || len(pods[0].Spec.Containers) != 1 || pods[0].Spec.Containers[0].Image != nginxImage {
+				runKubectlOrDie("get", "pods", "-L", "run", nsFlag)
+				Failf("Failed creating 1 pod with expected image %s. Number of pods = %v", nginxImage, len(pods))
+			}
+		})
+	})
+
 	Describe("Kubectl run rc", func() {
 		var nsFlag string
 		var rcName string
@@ -913,7 +972,6 @@ var _ = Describe("Kubectl client", func() {
 				Failf("Failed getting logs by rc %s: %v", rcName, err)
 			}
 		})
-
 	})
 
 	Describe("Kubectl run deployment", func() {
@@ -933,7 +991,7 @@ var _ = Describe("Kubectl client", func() {
 			SkipUnlessServerVersionGTE(deploymentsVersion, c)
 
 			By("running the image " + nginxImage)
-			runKubectlOrDie("run", dName, "--image="+nginxImage, nsFlag)
+			runKubectlOrDie("run", dName, "--image="+nginxImage, "--generator=deployment/v1beta1", nsFlag)
 			By("verifying the deployment " + dName + " was created")
 			d, err := c.Extensions().Deployments(ns).Get(dName)
 			if err != nil {
@@ -956,7 +1014,6 @@ var _ = Describe("Kubectl client", func() {
 				Failf("Failed creating 1 pod with expected image %s. Number of pods = %v", nginxImage, len(pods))
 			}
 		})
-
 	})
 
 	Describe("Kubectl run job", func() {
@@ -1009,7 +1066,6 @@ var _ = Describe("Kubectl client", func() {
 				Failf("Failed creating a job with correct restart policy for --restart=OnFailure")
 			}
 		})
-
 	})
 
 	Describe("Kubectl run --rm job", func() {
