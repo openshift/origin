@@ -2,8 +2,6 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 import (
-	reflect "reflect"
-
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -31,6 +29,7 @@ import (
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	reflect "reflect"
 )
 
 func autoConvert_api_ClusterPolicy_To_v1_ClusterPolicy(in *authorizationapi.ClusterPolicy, out *authorizationapiv1.ClusterPolicy, s conversion.Scope) error {
