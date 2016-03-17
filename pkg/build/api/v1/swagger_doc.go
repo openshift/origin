@@ -202,12 +202,12 @@ func (BuildStatus) SwaggerDoc() map[string]string {
 }
 
 var map_BuildStrategy = map[string]string{
-	"":                 "BuildStrategy contains the details of how to perform a build.",
-	"type":             "Type is the kind of build strategy.",
-	"dockerStrategy":   "DockerStrategy holds the parameters to the Docker build strategy.",
-	"sourceStrategy":   "SourceStrategy holds the parameters to the Source build strategy.",
-	"customStrategy":   "CustomStrategy holds the parameters to the Custom build strategy",
-	"externalStrategy": "ExternalStrategy holds the parameters to the External build strategy",
+	"":                        "BuildStrategy contains the details of how to perform a build.",
+	"type":                    "Type is the kind of build strategy.",
+	"dockerStrategy":          "DockerStrategy holds the parameters to the Docker build strategy.",
+	"sourceStrategy":          "SourceStrategy holds the parameters to the Source build strategy.",
+	"customStrategy":          "CustomStrategy holds the parameters to the Custom build strategy",
+	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy",
 }
 
 func (BuildStrategy) SwaggerDoc() map[string]string {
@@ -253,17 +253,6 @@ var map_DockerBuildStrategy = map[string]string{
 
 func (DockerBuildStrategy) SwaggerDoc() map[string]string {
 	return map_DockerBuildStrategy
-}
-
-var map_ExternalBuildStrategy = map[string]string{
-	"":     "ExternalBuildStrategy defines input parameters specific to an External build.",
-	"type": "Type is the kind of external builder.",
-	"env":  "Env contains additional environment variables you want to pass to the external builder.",
-	"jenkinsPipelineStrategy": "JenkinsPipeline holds the config for an external build that will use Jenkins Pipeline to build.",
-}
-
-func (ExternalBuildStrategy) SwaggerDoc() map[string]string {
-	return map_ExternalBuildStrategy
 }
 
 var map_GenericWebHookEvent = map[string]string{
@@ -339,14 +328,15 @@ func (ImageSourcePath) SwaggerDoc() map[string]string {
 	return map_ImageSourcePath
 }
 
-var map_JenkinsPipelineStrategy = map[string]string{
-	"":                "JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.",
+var map_JenkinsPipelineBuildStrategy = map[string]string{
+	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
 	"jenkinsfilePath": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository.",
 	"jenkinsfile":     "Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition.",
+	"env":             "Env contains additional environment variables you want to pass to the Jenkins Pipeline.",
 }
 
-func (JenkinsPipelineStrategy) SwaggerDoc() map[string]string {
-	return map_JenkinsPipelineStrategy
+func (JenkinsPipelineBuildStrategy) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineBuildStrategy
 }
 
 var map_SecretBuildSource = map[string]string{

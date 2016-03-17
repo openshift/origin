@@ -304,8 +304,8 @@ type BuildStrategy struct {
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
 
-	// ExternalStrategy holds the parameters to the External build strategy
-	ExternalStrategy *ExternalBuildStrategy `json:"externalStrategy,omitempty"`
+	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy
+	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy `json:"jenkinsPipelineStrategy,omitempty"`
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -323,8 +323,8 @@ const (
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
 
-	// ExternalBuildStrategyType indicates the build will run on external infrastructure.
-	ExternalBuildStrategyType BuildStrategyType = "External"
+	// JenkinsPipelineBuildStrategyType indicates the build will run via Jenkine Pipeline.
+	JenkinsPipelineBuildStrategyType BuildStrategyType = "JenkinsPipeline"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -408,32 +408,17 @@ type SourceBuildStrategy struct {
 	ForcePull bool `json:"forcePull,omitempty"`
 }
 
-type ExternalBuilderType string
-
-const (
-	JenkinsPipelineBuilderType ExternalBuilderType = "JenkinsPipeline"
-)
-
-// ExternalBuildStrategy defines input parameters specific to an External build.
-type ExternalBuildStrategy struct {
-	// Type is the kind of external builder.
-	Type ExternalBuilderType `json:"type" description:"identifies the type of external build"`
-
-	// Env contains additional environment variables you want to pass to the external builder.
-	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into an external build"`
-
-	// JenkinsPipeline holds the config for an external build that will use Jenkins Pipeline to build.
-	JenkinsPipeline *JenkinsPipelineStrategy `json:"jenkinsPipelineStrategy,omitempty" description:"holds parameters to the Jenkins Pipeline external build strategy"`
-}
-
-// JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
-type JenkinsPipelineStrategy struct {
+// JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
+type JenkinsPipelineBuildStrategy struct {
 	// JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the source repository.
 	JenkinsfilePath string `json:"jenkinsfilePath,omitempty"`
 
 	// Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition.
 	Jenkinsfile string `json:"jenkinsfile,omitempty"`
+
+	// Env contains additional environment variables you want to pass to the Jenkins Pipeline.
+	Env []kapi.EnvVar `json:"env,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook

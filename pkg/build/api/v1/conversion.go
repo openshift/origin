@@ -105,21 +105,6 @@ func convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *newer.CustomB
 	return nil
 }
 
-func convert_v1_ExternalBuildStrategy_To_api_ExternalBuildStrategy(in *ExternalBuildStrategy, out *newer.ExternalBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_ExternalBuildStrategy_To_v1_ExternalBuildStrategy(in *newer.ExternalBuildStrategy, out *ExternalBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
@@ -214,9 +199,6 @@ func convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 		out.Type = DockerBuildStrategyType
 	case in.CustomStrategy != nil:
 		out.Type = CustomBuildStrategyType
-		out.Type = DockerBuildStrategyType
-	case in.ExternalStrategy != nil:
-		out.Type = ExternalBuildStrategyType
 	}
 	return nil
 }
@@ -272,8 +254,6 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
 		convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy,
 		convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
-		convert_v1_ExternalBuildStrategy_To_api_ExternalBuildStrategy,
-		convert_api_ExternalBuildStrategy_To_v1_ExternalBuildStrategy,
 		convert_v1_BuildOutput_To_api_BuildOutput,
 		convert_api_BuildOutput_To_v1_BuildOutput,
 		convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy,

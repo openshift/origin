@@ -2,10 +2,10 @@ package api
 
 // Synthetic authorization endpoints
 const (
-	DockerBuildResource   = "builds/docker"
-	SourceBuildResource   = "builds/source"
-	CustomBuildResource   = "builds/custom"
-	ExternalBuildResource = "builds/external"
+	DockerBuildResource          = "builds/docker"
+	SourceBuildResource          = "builds/source"
+	CustomBuildResource          = "builds/custom"
+	JenkinsPipelineBuildResource = "builds/jenkinsPipeline"
 
 	NodeMetricsResource = "nodes/metrics"
 	NodeStatsResource   = "nodes/stats"

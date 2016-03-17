@@ -103,7 +103,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 	s := spec.Strategy
 
-	if s.CustomStrategy == nil && s.ExternalStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
+	if s.CustomStrategy == nil && s.JenkinsPipelineStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, or dockerfile"))
 	}
 
@@ -112,7 +112,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 			&spec.Source,
 			s.CustomStrategy != nil,
 			s.DockerStrategy != nil,
-			s.ExternalStrategy != nil && s.ExternalStrategy.JenkinsPipeline != nil && len(s.ExternalStrategy.JenkinsPipeline.Jenkinsfile) == 0,
+			s.JenkinsPipelineStrategy != nil && len(s.JenkinsPipelineStrategy.Jenkinsfile) == 0,
 			fldPath.Child("source"))...,
 	)
 
@@ -394,7 +394,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	if strategy.CustomStrategy != nil {
 		strategyCount++
 	}
-	if strategy.ExternalStrategy != nil {
+	if strategy.JenkinsPipelineStrategy != nil {
 		strategyCount++
 	}
 	if strategyCount != 1 {
@@ -410,8 +410,8 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	if strategy.CustomStrategy != nil {
 		allErrs = append(allErrs, validateCustomStrategy(strategy.CustomStrategy, fldPath.Child("customStrategy"))...)
 	}
-	if strategy.ExternalStrategy != nil {
-		allErrs = append(allErrs, validateExternalStrategy(strategy.ExternalStrategy, fldPath.Child("externalStrategy"))...)
+	if strategy.JenkinsPipelineStrategy != nil {
+		allErrs = append(allErrs, validateJenkinsPipelineStrategy(strategy.JenkinsPipelineStrategy, fldPath.Child("jenkinsPipelineStrategy"))...)
 	}
 
 	return allErrs
@@ -462,23 +462,7 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *fie
 	return allErrs
 }
 
-func validateExternalStrategy(strategy *buildapi.ExternalBuildStrategy, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	strategyCount := 0
-	if strategy.JenkinsPipeline != nil {
-		strategyCount++
-	}
-	if strategyCount != 1 {
-		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of jenkinsPipelineStrategy"))
-	}
-
-	if strategy.JenkinsPipeline != nil {
-		allErrs = append(allErrs, validateJenkinsPipelineStrategy(strategy.JenkinsPipeline, fldPath.Child("jenkinsPipelineStrategy"))...)
-	}
-	return allErrs
-}
-
-func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineStrategy, fldPath *field.Path) field.ErrorList {
+func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineBuildStrategy, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(strategy.JenkinsfilePath) != 0 && len(strategy.Jenkinsfile) != 0 {
 		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of jenkinsfilePath, or jenkinsfile"))
