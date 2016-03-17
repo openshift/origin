@@ -12,6 +12,16 @@ angular.module('openshiftConsole')
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     };
   })
+  .filter('startCase', function () {
+    return function(str) {
+      if (!str) {
+        return str;
+      }
+
+      // https://lodash.com/docs#startCase
+      return _.startCase(str);
+    };
+  })
   .filter('capitalize', function() {
     return function(input) {
       return _.capitalize(input);
