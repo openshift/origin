@@ -15,6 +15,7 @@ source "${OS_ROOT}/hack/lib/log.sh"
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
+os::util::environment::setup_time_vars
 
 function cleanup()
 {
