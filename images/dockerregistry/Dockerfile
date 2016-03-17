@@ -6,7 +6,9 @@
 #
 FROM openshift/origin-base
 
-RUN yum install -y tree findutils epel-release && \
+RUN INSTALL_PKGS="tree findutils epel-release" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
 
 # The registry doesn't require a privileged user.
