@@ -26,12 +26,6 @@
       "value": "password"
     },
     {
-      "name": "JENKINS_IMAGE",
-      "displayName": "Jenkins Image",
-      "description": "Jenkins Docker image to use.",
-      "value": "openshift/jenkins-1-centos7"
-    },
-    {
       "name": "JENKINS_REPO_URL",
       "displayName": "Jenkins URL",
       "description": "The repository to use to customize the Jenkins server.",
@@ -48,6 +42,12 @@
       "displayName": "Jenkins Reference",
       "description": "The git ref or tag to use for customization.",
       "value": "master"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
     }
   ],
   "objects": [
@@ -147,8 +147,9 @@
           "type": "Source",
           "sourceStrategy": {
             "from": {
-              "kind": "DockerImage",
-              "name": "${JENKINS_IMAGE}"
+                "kind": "ImageStreamTag",
+                "name": "jenkins:latest",
+                "namespace": "${NAMESPACE}"
             }
           }
         },
