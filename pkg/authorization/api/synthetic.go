@@ -5,7 +5,7 @@ const (
 	DockerBuildResource          = "builds/docker"
 	SourceBuildResource          = "builds/source"
 	CustomBuildResource          = "builds/custom"
-	JenkinsPipelineBuildResource = "builds/jenkinsPipeline"
+	JenkinsPipelineBuildResource = "builds/jenkinspipeline"
 
 	NodeMetricsResource = "nodes/metrics"
 	NodeStatsResource   = "nodes/stats"

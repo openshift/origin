@@ -398,7 +398,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 		strategyCount++
 	}
 	if strategyCount != 1 {
-		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, dockerStrategy, or externalStrategy"))
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, dockerStrategy, or jenkinsPipelineStrategy"))
 	}
 
 	if strategy.SourceStrategy != nil {
