@@ -41,10 +41,11 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
-var AdmissionPlugins = []string{"NamespaceLifecycle", "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
+var AdmissionPlugins = []string{"NamespaceLifecycle", "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, serviceadmit.ExternalIPPluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -132,6 +133,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	plugins := []admission.Interface{}
 	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
 		switch pluginName {
+		case serviceadmit.ExternalIPPluginName:
+			// this needs to be moved upstream to be part of core config
+			reject, admit, err := serviceadmit.ParseCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
+			if err != nil {
+				// should have been caught with validation
+				return nil, err
+			}
+			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
 			saAdmitter := saadmit.NewServiceAccount(internalclientset.FromUnversionedClient(kubeClient))
