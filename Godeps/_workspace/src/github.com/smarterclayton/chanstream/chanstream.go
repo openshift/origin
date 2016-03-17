@@ -153,7 +153,7 @@ func ListenChan(name string) (*ChanListener, error) {
 	listener := new(ChanListener)
 	listener.name = name
 	// The listen backlog we support.. fairly arbitrary
-	listener.connect = make(chan *chanConnect, 32)
+	listener.connect = make(chan *chanConnect, 64)
 	// Register listener on the service point
 	listeners.lst[name] = listener
 	return listener, nil
