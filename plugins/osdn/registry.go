@@ -22,7 +22,6 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -39,6 +38,39 @@ type Registry struct {
 
 	// These are only set if SetBaseEndpointsHandler() has been called
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
+}
+
+type EventType string
+
+const (
+	Added    EventType = "ADDED"
+	Deleted  EventType = "DELETED"
+	Modified EventType = "MODIFIED"
+)
+
+type HostSubnetEvent struct {
+	Type       EventType
+	HostSubnet *osapi.HostSubnet
+}
+
+type NodeEvent struct {
+	Type EventType
+	Node *kapi.Node
+}
+
+type NetNamespaceEvent struct {
+	Type         EventType
+	NetNamespace *osapi.NetNamespace
+}
+
+type NamespaceEvent struct {
+	Type      EventType
+	Namespace *kapi.Namespace
+}
+
+type ServiceEvent struct {
+	Type    EventType
+	Service *kapi.Service
 }
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
@@ -77,7 +109,7 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) erro
 	return err
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.HostSubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("HostSubnet", ready, start)
 
 	checkCondition := true
@@ -90,9 +122,9 @@ func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.HostSubnetEvent,
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			receiver <- &osdnapi.HostSubnetEvent{Type: osdnapi.Added, HostSubnet: hs}
+			receiver <- &HostSubnetEvent{Type: Added, HostSubnet: hs}
 		case watch.Deleted:
-			receiver <- &osdnapi.HostSubnetEvent{Type: osdnapi.Deleted, HostSubnet: hs}
+			receiver <- &HostSubnetEvent{Type: Deleted, HostSubnet: hs}
 		}
 	}
 }
@@ -195,7 +227,7 @@ func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
 	return nodeAddressMap, nil
 }
 
-func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("Node", ready, start)
 
 	nodeAddressMap, err := registry.getNodeAddressMap()
@@ -223,17 +255,17 @@ func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready c
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node}
+			receiver <- &NodeEvent{Type: Added, Node: node}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 		case watch.Modified:
 			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
 			if ok && oldNodeIP != nodeIP {
 				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node}
+				receiver <- &NodeEvent{Type: Added, Node: node}
 				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 			}
 		case watch.Deleted:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: node}
+			receiver <- &NodeEvent{Type: Deleted, Node: node}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
@@ -332,7 +364,7 @@ func (registry *Registry) GetNamespaces() ([]kapi.Namespace, string, error) {
 	return namespaceList.Items, namespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("Namespace", ready, start)
 
 	checkCondition := true
@@ -345,16 +377,16 @@ func (registry *Registry) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEven
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Namespace: ns}
+			receiver <- &NamespaceEvent{Type: Added, Namespace: ns}
 		case watch.Deleted:
-			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Namespace: ns}
+			receiver <- &NamespaceEvent{Type: Deleted, Namespace: ns}
 		case watch.Modified:
 			// Ignore, we don't need to update SDN in case of namespace updates
 		}
 	}
 }
 
-func (registry *Registry) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("NetNamespace", ready, start)
 
 	checkCondition := true
@@ -367,9 +399,9 @@ func (registry *Registry) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespa
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, NetNamespace: netns}
+			receiver <- &NetNamespaceEvent{Type: Added, NetNamespace: netns}
 		case watch.Deleted:
-			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, NetNamespace: netns}
+			receiver <- &NetNamespaceEvent{Type: Deleted, NetNamespace: netns}
 		}
 	}
 }
@@ -426,7 +458,7 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, string,
 	return servList, kServList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("Service", ready, start)
 
 	checkCondition := true
@@ -444,11 +476,11 @@ func (registry *Registry) WatchServices(receiver chan<- *osdnapi.ServiceEvent, r
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Added, Service: serv}
+			receiver <- &ServiceEvent{Type: Added, Service: serv}
 		case watch.Deleted:
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: serv}
+			receiver <- &ServiceEvent{Type: Deleted, Service: serv}
 		case watch.Modified:
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Modified, Service: serv}
+			receiver <- &ServiceEvent{Type: Modified, Service: serv}
 		}
 	}
 }

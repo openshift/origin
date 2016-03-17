@@ -8,7 +8,6 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -169,13 +168,13 @@ func (oc *OsdnController) initSelfSubnet() error {
 // Only run on the master
 func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	nodeEvent := make(chan *api.NodeEvent)
+	nodeEvent := make(chan *NodeEvent)
 	go oc.Registry.WatchNodes(nodeEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nodeEvent:
 			switch ev.Type {
-			case api.Added:
+			case Added:
 				nodeIP, nodeErr := GetNodeIP(ev.Node)
 				if nodeErr == nil {
 					nodeErr = oc.validateNode(nodeIP)
@@ -207,7 +206,7 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 						}
 					}
 				}
-			case api.Deleted:
+			case Deleted:
 				oc.deleteNode(ev.Node.Name)
 			}
 		case <-oc.sig:
@@ -221,20 +220,20 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 // Only run on the nodes
 func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	clusterEvent := make(chan *api.HostSubnetEvent)
+	clusterEvent := make(chan *HostSubnetEvent)
 	go oc.Registry.WatchSubnets(clusterEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:
 			switch ev.Type {
-			case api.Added:
+			case Added:
 				if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
 					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
 					continue
 				}
 				// add openflow rules
 				oc.pluginHooks.AddOFRules(ev.HostSubnet.HostIP, ev.HostSubnet.Subnet, oc.localIP)
-			case api.Deleted:
+			case Deleted:
 				// delete openflow rules meant for the node
 				oc.pluginHooks.DelOFRules(ev.HostSubnet.HostIP, oc.localIP)
 			}

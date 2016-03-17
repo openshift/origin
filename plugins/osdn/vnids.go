@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -147,20 +146,20 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 }
 
 func watchNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
-	nsevent := make(chan *api.NamespaceEvent)
+	nsevent := make(chan *NamespaceEvent)
 	stop := make(chan bool)
 	go oc.Registry.WatchNamespaces(nsevent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nsevent:
 			switch ev.Type {
-			case api.Added:
+			case Added:
 				err := oc.assignVNID(ev.Namespace.Name)
 				if err != nil {
 					log.Errorf("Error assigning Net ID: %v", err)
 					continue
 				}
-			case api.Deleted:
+			case Deleted:
 				err := oc.revokeVNID(ev.Namespace.Name)
 				if err != nil {
 					log.Errorf("Error revoking Net ID: %v", err)
@@ -248,7 +247,7 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID, oldNetID uin
 
 func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	netNsEvent := make(chan *api.NetNamespaceEvent)
+	netNsEvent := make(chan *NetNamespaceEvent)
 	go oc.Registry.WatchNetNamespaces(netNsEvent, ready, start, stop)
 	for {
 		select {
@@ -258,7 +257,7 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 				log.Errorf("Error fetching Net ID for namespace: %s, skipped netNsEvent: %v", ev.NetNamespace.NetName, ev)
 			}
 			switch ev.Type {
-			case api.Added:
+			case Added:
 				// Skip this event if the old and new network ids are same
 				if oldNetID == ev.NetNamespace.NetID {
 					continue
@@ -268,7 +267,7 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 				if err != nil {
 					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
 				}
-			case api.Deleted:
+			case Deleted:
 				err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID, oldNetID)
 				if err != nil {
 					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
@@ -285,7 +284,7 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 
 func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	svcevent := make(chan *api.ServiceEvent)
+	svcevent := make(chan *ServiceEvent)
 	go oc.Registry.WatchServices(svcevent, ready, start, stop)
 	for {
 		select {
@@ -295,17 +294,17 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
 			}
 			switch ev.Type {
-			case api.Added:
+			case Added:
 				oc.services[string(ev.Service.UID)] = ev.Service
 				for _, port := range ev.Service.Spec.Ports {
 					oc.pluginHooks.AddServiceOFRules(netid, ev.Service.Spec.ClusterIP, port.Protocol, port.Port)
 				}
-			case api.Deleted:
+			case Deleted:
 				delete(oc.services, string(ev.Service.UID))
 				for _, port := range ev.Service.Spec.Ports {
 					oc.pluginHooks.DelServiceOFRules(netid, ev.Service.Spec.ClusterIP, port.Protocol, port.Port)
 				}
-			case api.Modified:
+			case Modified:
 				oldsvc, exists := oc.services[string(ev.Service.UID)]
 				if exists && len(oldsvc.Spec.Ports) == len(ev.Service.Spec.Ports) {
 					same := true
