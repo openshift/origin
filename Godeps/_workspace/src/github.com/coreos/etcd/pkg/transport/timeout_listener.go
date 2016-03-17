@@ -28,17 +28,21 @@ func NewTimeoutListener(addr string, scheme string, tlscfg *tls.Config, rdtimeou
 	if err != nil {
 		return nil, err
 	}
-	return &rwTimeoutListener{
-		Listener:   ln,
-		rdtimeoutd: rdtimeoutd,
-		wtimeoutd:  wtimeoutd,
-	}, nil
+	return NewTimeoutListenerWrapper(ln, rdtimeoutd, wtimeoutd), nil
 }
 
 type rwTimeoutListener struct {
 	net.Listener
 	wtimeoutd  time.Duration
 	rdtimeoutd time.Duration
+}
+
+func NewTimeoutListenerWrapper(listener net.Listener, rdtimeoutd, wtimeoutd time.Duration) net.Listener {
+	return &rwTimeoutListener{
+		Listener:   listener,
+		rdtimeoutd: rdtimeoutd,
+		wtimeoutd:  wtimeoutd,
+	}
 }
 
 func (rwln *rwTimeoutListener) Accept() (net.Conn, error) {

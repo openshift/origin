@@ -72,12 +72,13 @@ func (l *tlsKeepaliveListener) Accept() (c net.Conn, err error) {
 	if err != nil {
 		return
 	}
-	kac := c.(keepAliveConn)
-	// detection time: tcp_keepalive_time + tcp_keepalive_probes + tcp_keepalive_intvl
-	// default on linux:  30 + 8 * 30
-	// default on osx:    30 + 8 * 75
-	kac.SetKeepAlive(true)
-	kac.SetKeepAlivePeriod(30 * time.Second)
+	if kac, ok := c.(keepAliveConn); ok {
+		// detection time: tcp_keepalive_time + tcp_keepalive_probes + tcp_keepalive_intvl
+		// default on linux:  30 + 8 * 30
+		// default on osx:    30 + 8 * 75
+		kac.SetKeepAlive(true)
+		kac.SetKeepAlivePeriod(30 * time.Second)
+	}
 	c = tls.Server(c, l.config)
 	return
 }
