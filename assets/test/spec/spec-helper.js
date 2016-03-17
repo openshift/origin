@@ -16,7 +16,7 @@
     this.join = function() {return "";};
     this.$get = function() {return new Mocked();};
   });
-  
+
   $provide.factory("HawtioNav", function(){
     return {add: function() {}};
   });
@@ -26,7 +26,7 @@
       add: function() {}
     };
   });
-  
+
 }));
 
 // Make sure a base location exists in the generated test html
@@ -37,6 +37,6 @@
  angular.module('openshiftConsole').config(function(AuthServiceProvider) {
    AuthServiceProvider.UserStore('MemoryUserStore');
  });
- 
+
  //load the module
 beforeEach(module('openshiftConsole'));

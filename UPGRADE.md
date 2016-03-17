@@ -49,10 +49,10 @@ New Fields:
   1.  allowHostPorts - defaults to false.  You may wish to change this to true on any privileged SCCs or
   [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints)
   which will set this field to true for the privileged SCC and false for the restricted SCC.
-  1.  fsGroup - if the strategy type is unset this field will default to RunAsAny.  For more information 
+  1.  fsGroup - if the strategy type is unset this field will default to RunAsAny.  For more information
    about using fsGroup with annotations please see [annotation
   configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).
-  1.  supplementalGroups - if the strategy type is unset this field will default to RunAsAny.  For more information 
+  1.  supplementalGroups - if the strategy type is unset this field will default to RunAsAny.  For more information
   about using supplementalGroups with annotations please see [annotation
   configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).
   1.  priority - defaults to nil for existing SCCs.  Please refer to the
@@ -84,9 +84,9 @@ references:
 
 ## Origin 1.2.x / OSE 3.2.x
 
-1.  Field names in `yaml` and `json` files will now follow strict rules for case sensitivity.  
+1.  Field names in `yaml` and `json` files will now follow strict rules for case sensitivity.
   Incorrectly cased field names will now be rejected.  Please ensure all `yaml` and `json` files
-  conform to the naming conventions defined in [REST API](https://docs.openshift.org/latest/rest_api/index.html) 
+  conform to the naming conventions defined in [REST API](https://docs.openshift.org/latest/rest_api/index.html)
 
 1.  The existing docker registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
   Upgrade your docker registry image to make auto-provisioning work again.

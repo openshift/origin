@@ -113,6 +113,6 @@ module.exports = function(config) {
         {type: 'json', dir:'test/coverage/'},
         {type: 'text-summary', dir:'test/coverage/'}
       ]
-    }    
+    }
   });
 };

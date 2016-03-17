@@ -104,7 +104,7 @@ angular.module('openshiftConsole')
             );
           }
 
-          DataService.list("persistentvolumeclaims", context, 
+          DataService.list("persistentvolumeclaims", context,
             function(pvcs) {
               $scope.pvcs = orderByDisplayName(pvcs.by("metadata.name"));
               if ($scope.pvcs.length) {
@@ -148,7 +148,7 @@ angular.module('openshiftConsole')
                   }
                 }
               }
-            }          
+            }
           }
           $scope.isVolumeMountPathUsed = false;
           return false;
@@ -225,7 +225,7 @@ angular.module('openshiftConsole')
             }
 
             if (mountPath) {
-              // if we want to mount, check if the mount path is unique in this pod template 
+              // if we want to mount, check if the mount path is unique in this pod template
               if (isVolumeMountPathUsed(name, mountPath, podTemplate)) {
                 $scope.disableInputs = false;
                 return;
