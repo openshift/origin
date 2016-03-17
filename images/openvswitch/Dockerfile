@@ -14,8 +14,10 @@ ADD https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/max
 # base images land
 RUN yum swap -y -- remove systemd-container\* -- install systemd systemd-libs
 
-RUN yum install -y openvswitch \
-    && yum clean all
+RUN INSTALL_PKGS="openvswitch" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all
 
 ADD  scripts/* /usr/local/bin/
 RUN chmod +x /usr/local/bin/*
