@@ -609,6 +609,10 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 			}
 			spec.Volumes = append(spec.Volumes[:i], spec.Volumes[i+1:]...)
 			break
+		} else {
+			if opts.Overwrite {
+				return fmt.Errorf("volume '%s' doesn't exist. Don't use --overwrite for non-existent volume", v.Name)
+			}
 		}
 	}
 

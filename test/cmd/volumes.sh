@@ -32,6 +32,7 @@ os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vo
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --name=vol3 -o yaml' 'name: vol3'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add --name=dummyvol --overwrite' "volume dummyvol doesn't exist."
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
 os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
