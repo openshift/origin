@@ -13,8 +13,8 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/pkg/ovs"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 )
 
@@ -372,7 +372,7 @@ func generateCookie(ip string) string {
 	return hex.EncodeToString(net.ParseIP(ip).To4())
 }
 
-func (plugin *ovsPlugin) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+func (plugin *ovsPlugin) AddServiceOFRules(netID uint, IP string, protocol kapi.Protocol, port int) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -388,7 +388,7 @@ func (plugin *ovsPlugin) AddServiceOFRules(netID uint, IP string, protocol api.S
 	return err
 }
 
-func (plugin *ovsPlugin) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+func (plugin *ovsPlugin) DelServiceOFRules(netID uint, IP string, protocol kapi.Protocol, port int) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -404,11 +404,11 @@ func (plugin *ovsPlugin) DelServiceOFRules(netID uint, IP string, protocol api.S
 	return err
 }
 
-func generateBaseServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
+func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string {
 	return fmt.Sprintf("table=4, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
 }
 
-func generateAddServiceRule(netID uint, IP string, protocol api.ServiceProtocol, port uint) string {
+func generateAddServiceRule(netID uint, IP string, protocol kapi.Protocol, port int) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
 	if netID == 0 {
 		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)
@@ -417,6 +417,6 @@ func generateAddServiceRule(netID uint, IP string, protocol api.ServiceProtocol,
 	}
 }
 
-func generateDelServiceRule(IP string, protocol api.ServiceProtocol, port uint) string {
+func generateDelServiceRule(IP string, protocol kapi.Protocol, port int) string {
 	return generateBaseServiceRule(IP, protocol, port)
 }

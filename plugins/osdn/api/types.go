@@ -1,6 +1,9 @@
 package api
 
 import (
+	osapi "github.com/openshift/origin/pkg/sdn/api"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 )
@@ -13,73 +16,29 @@ const (
 	Modified EventType = "MODIFIED"
 )
 
-type Subnet struct {
-	NodeIP     string
-	SubnetCIDR string
-}
-
-type SubnetEvent struct {
-	Type     EventType
-	NodeName string
-	Subnet   Subnet
-}
-
-type Node struct {
-	Name string
-	IP   string
+type HostSubnetEvent struct {
+	Type       EventType
+	HostSubnet *osapi.HostSubnet
 }
 
 type NodeEvent struct {
 	Type EventType
-	Node Node
-}
-
-type NetNamespace struct {
-	Name  string
-	NetID uint
+	Node *kapi.Node
 }
 
 type NetNamespaceEvent struct {
-	Type  EventType
-	Name  string
-	NetID uint
+	Type         EventType
+	NetNamespace *osapi.NetNamespace
 }
 
 type NamespaceEvent struct {
-	Type EventType
-	Name string
-}
-
-type ServiceProtocol string
-
-const (
-	TCP ServiceProtocol = "TCP"
-	UDP ServiceProtocol = "UDP"
-)
-
-type ServicePort struct {
-	Protocol ServiceProtocol
-	Port     uint
-}
-
-type Service struct {
-	Name      string
-	Namespace string
-	UID       string
-	IP        string
-	Ports     []ServicePort
+	Type      EventType
+	Namespace *kapi.Namespace
 }
 
 type ServiceEvent struct {
 	Type    EventType
-	Service Service
-}
-
-type Pod struct {
-	Name        string
-	Namespace   string
-	ContainerID string
-	Annotations map[string]string
+	Service *kapi.Service
 }
 
 type OsdnPlugin interface {

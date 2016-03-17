@@ -26,7 +26,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	originapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 type Registry struct {
@@ -49,44 +49,35 @@ func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	}
 }
 
-func (registry *Registry) GetSubnets() ([]osdnapi.Subnet, string, error) {
+func (registry *Registry) GetSubnets() ([]osapi.HostSubnet, string, error) {
 	hostSubnetList, err := registry.oClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
-	// convert HostSubnet to osdnapi.Subnet
-	subList := make([]osdnapi.Subnet, 0, len(hostSubnetList.Items))
-	for _, subnet := range hostSubnetList.Items {
-		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetCIDR: subnet.Subnet})
-	}
-	return subList, hostSubnetList.ListMeta.ResourceVersion, nil
+	return hostSubnetList.Items, hostSubnetList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
-	hs, err := registry.oClient.HostSubnets().Get(nodeName)
-	if err != nil {
-		return nil, err
-	}
-	return &osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}, nil
+func (registry *Registry) GetSubnet(nodeName string) (*osapi.HostSubnet, error) {
+	return registry.oClient.HostSubnets().Get(nodeName)
 }
 
 func (registry *Registry) DeleteSubnet(nodeName string) error {
 	return registry.oClient.HostSubnets().Delete(nodeName)
 }
 
-func (registry *Registry) CreateSubnet(nodeName string, sub *osdnapi.Subnet) error {
-	hs := &originapi.HostSubnet{
+func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) error {
+	hs := &osapi.HostSubnet{
 		TypeMeta:   unversioned.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
 		Host:       nodeName,
-		HostIP:     sub.NodeIP,
-		Subnet:     sub.SubnetCIDR,
+		HostIP:     nodeIP,
+		Subnet:     subnetCIDR,
 	}
 	_, err := registry.oClient.HostSubnets().Create(hs)
 	return err
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.HostSubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	eventQueue, startVersion := registry.createAndRunEventQueue("HostSubnet", ready, start)
 
 	checkCondition := true
@@ -95,47 +86,29 @@ func (registry *Registry) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, rea
 		if err != nil {
 			return err
 		}
-		hs := obj.(*originapi.HostSubnet)
+		hs := obj.(*osapi.HostSubnet)
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}}
+			receiver <- &osdnapi.HostSubnetEvent{Type: osdnapi.Added, HostSubnet: hs}
 		case watch.Deleted:
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}}
+			receiver <- &osdnapi.HostSubnetEvent{Type: osdnapi.Deleted, HostSubnet: hs}
 		}
 	}
 }
 
-func newSDNPod(kPod *kapi.Pod) osdnapi.Pod {
-	containerID := ""
-	if len(kPod.Status.ContainerStatuses) > 0 {
-		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
-		if parts := strings.Split(kPod.Status.ContainerStatuses[0].ContainerID, "://"); len(parts) > 1 {
-			containerID = parts[1]
-		}
-	}
-	return osdnapi.Pod{
-		Name:        kPod.ObjectMeta.Name,
-		Namespace:   kPod.ObjectMeta.Namespace,
-		ContainerID: containerID,
-		Annotations: kPod.ObjectMeta.Annotations,
-	}
-}
-
-func (registry *Registry) GetPods() ([]osdnapi.Pod, string, error) {
-	kPodList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
+func (registry *Registry) GetPods() ([]kapi.Pod, string, error) {
+	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
 
-	oPodList := make([]osdnapi.Pod, 0, len(kPodList.Items))
-	for _, kPod := range kPodList.Items {
-		if kPod.Status.PodIP != "" {
-			registry.namespaceOfPodIP[kPod.Status.PodIP] = kPod.ObjectMeta.Namespace
+	for _, pod := range podList.Items {
+		if pod.Status.PodIP != "" {
+			registry.namespaceOfPodIP[pod.Status.PodIP] = pod.ObjectMeta.Namespace
 		}
-		oPodList = append(oPodList, newSDNPod(&kPod))
 	}
-	return oPodList, kPodList.ListMeta.ResourceVersion, nil
+	return podList.Items, podList.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) WatchPods(ready chan<- bool, start <-chan string, stop <-chan bool) error {
@@ -147,18 +120,18 @@ func (registry *Registry) WatchPods(ready chan<- bool, start <-chan string, stop
 		if err != nil {
 			return err
 		}
-		kPod := obj.(*kapi.Pod)
+		pod := obj.(*kapi.Pod)
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			registry.namespaceOfPodIP[kPod.Status.PodIP] = kPod.ObjectMeta.Namespace
+			registry.namespaceOfPodIP[pod.Status.PodIP] = pod.ObjectMeta.Namespace
 		case watch.Deleted:
-			delete(registry.namespaceOfPodIP, kPod.Status.PodIP)
+			delete(registry.namespaceOfPodIP, pod.Status.PodIP)
 		}
 	}
 }
 
-func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]osdnapi.Pod, error) {
+func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
 	opts := kapi.ListOptions{
 		LabelSelector: labels.Everything(),
@@ -169,17 +142,17 @@ func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]osdnapi.
 		return nil, err
 	}
 
-	// Filter running pods and convert kapi.Pod to osdnapi.Pod
-	pods := make([]osdnapi.Pod, 0, len(podList.Items))
+	// Filter running pods
+	pods := make([]kapi.Pod, 0, len(podList.Items))
 	for _, pod := range podList.Items {
 		if pod.Status.Phase == kapi.PodRunning {
-			pods = append(pods, newSDNPod(&pod))
+			pods = append(pods, pod)
 		}
 	}
 	return pods, nil
 }
 
-func (registry *Registry) GetPod(nodeName, namespace, podName string) (*osdnapi.Pod, error) {
+func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
 	opts := kapi.ListOptions{
 		LabelSelector: labels.Everything(),
@@ -192,33 +165,19 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*osdnapi.
 
 	for _, pod := range podList.Items {
 		if pod.ObjectMeta.Name == podName {
-			pod := newSDNPod(&pod)
 			return &pod, nil
 		}
 	}
 	return nil, nil
 }
 
-func (registry *Registry) GetNodes() ([]osdnapi.Node, string, error) {
-	knodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
+func (registry *Registry) GetNodes() ([]kapi.Node, string, error) {
+	nodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
 
-	nodes := make([]osdnapi.Node, 0, len(knodes.Items))
-	for _, node := range knodes.Items {
-		var nodeIP string
-		if len(node.Status.Addresses) > 0 {
-			nodeIP = node.Status.Addresses[0].Address
-		} else {
-			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
-			if err != nil {
-				return nil, "", err
-			}
-		}
-		nodes = append(nodes, osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP})
-	}
-	return nodes, knodes.ListMeta.ResourceVersion, nil
+	return nodes.Items, nodes.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
@@ -264,17 +223,17 @@ func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready c
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP}}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 		case watch.Modified:
 			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
 			if ok && oldNodeIP != nodeIP {
 				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP}}
+				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node}
 				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 			}
 		case watch.Deleted:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: osdnapi.Node{Name: node.ObjectMeta.Name}}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: node}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
@@ -293,7 +252,7 @@ func (registry *Registry) UpdateClusterNetwork(clusterNetwork *net.IPNet, subnet
 }
 
 func (registry *Registry) CreateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
-	cn := &originapi.ClusterNetwork{
+	cn := &osapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
 		Network:          clusterNetwork.String(),
@@ -365,16 +324,12 @@ func (registry *Registry) GetServicesNetwork() (*net.IPNet, error) {
 	return registry.serviceNetwork, nil
 }
 
-func (registry *Registry) GetNamespaces() ([]string, string, error) {
+func (registry *Registry) GetNamespaces() ([]kapi.Namespace, string, error) {
 	namespaceList, err := registry.kClient.Namespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
-	namespaces := make([]string, 0, len(namespaceList.Items))
-	for _, ns := range namespaceList.Items {
-		namespaces = append(namespaces, ns.Name)
-	}
-	return namespaces, namespaceList.ListMeta.ResourceVersion, nil
+	return namespaceList.Items, namespaceList.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
@@ -390,9 +345,9 @@ func (registry *Registry) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEven
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Name: ns.ObjectMeta.Name}
+			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Namespace: ns}
 		case watch.Deleted:
-			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Name: ns.ObjectMeta.Name}
+			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Namespace: ns}
 		case watch.Modified:
 			// Ignore, we don't need to update SDN in case of namespace updates
 		}
@@ -408,40 +363,31 @@ func (registry *Registry) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespa
 		if err != nil {
 			return err
 		}
-		netns := obj.(*originapi.NetNamespace)
+		netns := obj.(*osapi.NetNamespace)
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
+			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, NetNamespace: netns}
 		case watch.Deleted:
-			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
+			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, NetNamespace: netns}
 		}
 	}
 }
 
-func (registry *Registry) GetNetNamespaces() ([]osdnapi.NetNamespace, string, error) {
+func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, string, error) {
 	netNamespaceList, err := registry.oClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
-	// convert originapi.NetNamespace to osdnapi.NetNamespace
-	nsList := make([]osdnapi.NetNamespace, 0, len(netNamespaceList.Items))
-	for _, netns := range netNamespaceList.Items {
-		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
-	}
-	return nsList, netNamespaceList.ListMeta.ResourceVersion, nil
+	return netNamespaceList.Items, netNamespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (registry *Registry) GetNetNamespace(name string) (osdnapi.NetNamespace, error) {
-	netns, err := registry.oClient.NetNamespaces().Get(name)
-	if err != nil {
-		return osdnapi.NetNamespace{}, err
-	}
-	return osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID}, nil
+func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, error) {
+	return registry.oClient.NetNamespaces().Get(name)
 }
 
 func (registry *Registry) WriteNetNamespace(name string, id uint) error {
-	netns := &originapi.NetNamespace{
+	netns := &osapi.NetNamespace{
 		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 		NetName:    name,
@@ -455,29 +401,29 @@ func (registry *Registry) DeleteNetNamespace(name string) error {
 	return registry.oClient.NetNamespaces().Delete(name)
 }
 
-func (registry *Registry) GetServicesForNamespace(namespace string) ([]osdnapi.Service, error) {
+func (registry *Registry) GetServicesForNamespace(namespace string) ([]kapi.Service, error) {
 	services, _, err := registry.getServices(namespace)
 	return services, err
 }
 
-func (registry *Registry) GetServices() ([]osdnapi.Service, string, error) {
+func (registry *Registry) GetServices() ([]kapi.Service, string, error) {
 	return registry.getServices(kapi.NamespaceAll)
 }
 
-func (registry *Registry) getServices(namespace string) ([]osdnapi.Service, string, error) {
+func (registry *Registry) getServices(namespace string) ([]kapi.Service, string, error) {
 	kServList, err := registry.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return nil, "", err
 	}
 
-	oServList := make([]osdnapi.Service, 0, len(kServList.Items))
-	for _, kService := range kServList.Items {
-		if !kapi.IsServiceIPSet(&kService) {
+	servList := make([]kapi.Service, 0, len(kServList.Items))
+	for _, service := range kServList.Items {
+		if !kapi.IsServiceIPSet(&service) {
 			continue
 		}
-		oServList = append(oServList, newSDNService(&kService))
+		servList = append(servList, service)
 	}
-	return oServList, kServList.ListMeta.ResourceVersion, nil
+	return servList, kServList.ListMeta.ResourceVersion, nil
 }
 
 func (registry *Registry) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
@@ -489,39 +435,21 @@ func (registry *Registry) WatchServices(receiver chan<- *osdnapi.ServiceEvent, r
 		if err != nil {
 			return err
 		}
-		kServ := obj.(*kapi.Service)
+		serv := obj.(*kapi.Service)
 
 		// Ignore headless services
-		if !kapi.IsServiceIPSet(kServ) {
+		if !kapi.IsServiceIPSet(serv) {
 			continue
 		}
 
 		switch eventType {
 		case watch.Added:
-			oServ := newSDNService(kServ)
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Added, Service: oServ}
+			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Added, Service: serv}
 		case watch.Deleted:
-			oServ := newSDNService(kServ)
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: oServ}
+			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: serv}
 		case watch.Modified:
-			oServ := newSDNService(kServ)
-			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Modified, Service: oServ}
+			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Modified, Service: serv}
 		}
-	}
-}
-
-func newSDNService(kServ *kapi.Service) osdnapi.Service {
-	ports := make([]osdnapi.ServicePort, len(kServ.Spec.Ports))
-	for i, port := range kServ.Spec.Ports {
-		ports[i] = osdnapi.ServicePort{osdnapi.ServiceProtocol(port.Protocol), uint(port.Port)}
-	}
-
-	return osdnapi.Service{
-		Name:      kServ.ObjectMeta.Name,
-		Namespace: kServ.ObjectMeta.Namespace,
-		UID:       string(kServ.ObjectMeta.UID),
-		IP:        kServ.Spec.ClusterIP,
-		Ports:     ports,
 	}
 }
 
@@ -532,7 +460,7 @@ func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueu
 	var expectedType interface{}
 	switch strings.ToLower(resourceName) {
 	case "hostsubnet":
-		expectedType = &originapi.HostSubnet{}
+		expectedType = &osapi.HostSubnet{}
 		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
 			return registry.oClient.HostSubnets().List(options)
 		}
@@ -556,7 +484,7 @@ func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueu
 			return registry.kClient.Namespaces().Watch(options)
 		}
 	case "netnamespace":
-		expectedType = &originapi.NetNamespace{}
+		expectedType = &osapi.NetNamespace{}
 		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
 			return registry.oClient.NetNamespaces().List(options)
 		}

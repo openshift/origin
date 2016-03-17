@@ -9,8 +9,9 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -28,8 +29,8 @@ type PluginHooks interface {
 	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
 
-	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
-	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+	AddServiceOFRules(netID uint, IP string, protocol kapi.Protocol, port int) error
+	DelServiceOFRules(netID uint, IP string, protocol kapi.Protocol, port int) error
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
@@ -38,7 +39,7 @@ type OsdnController struct {
 	pluginHooks     PluginHooks
 	Registry        *Registry
 	localIP         string
-	localSubnet     *api.Subnet
+	localSubnet     *osapi.HostSubnet
 	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
@@ -46,7 +47,7 @@ type OsdnController struct {
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
-	services        map[string]api.Service
+	services        map[string]*kapi.Service
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
@@ -82,7 +83,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.sig = make(chan struct{})
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
-	oc.services = make(map[string]api.Service)
+	oc.services = make(map[string]*kapi.Service)
 
 	return nil
 }
@@ -119,13 +120,13 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
 	for _, sub := range subnets {
-		subnetIP, _, err := net.ParseCIDR(sub.SubnetCIDR)
+		subnetIP, _, err := net.ParseCIDR(sub.Subnet)
 		if err != nil {
-			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.SubnetCIDR))
+			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
 			continue
 		}
 		if !clusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.SubnetCIDR, clusterNetwork.String()))
+			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, clusterNetwork.String()))
 		}
 	}
 
@@ -135,8 +136,8 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 		return err
 	}
 	for _, svc := range services {
-		if !serviceNetwork.Contains(net.ParseIP(svc.IP)) {
-			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.IP, serviceNetwork.String()))
+		if !serviceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
+			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, serviceNetwork.String()))
 		}
 	}
 
@@ -213,7 +214,7 @@ func (oc *OsdnController) StartNode(mtu uint) error {
 	return nil
 }
 
-func (oc *OsdnController) GetLocalPods(namespace string) ([]api.Pod, error) {
+func (oc *OsdnController) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 	return oc.Registry.GetRunningPods(oc.HostName, namespace)
 }
 
@@ -311,4 +312,22 @@ func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
 	}
 
 	return nil
+}
+
+func GetNodeIP(node *kapi.Node) (string, error) {
+	if len(node.Status.Addresses) > 0 {
+		return node.Status.Addresses[0].Address, nil
+	} else {
+		return netutils.GetNodeIP(node.Name)
+	}
+}
+
+func GetPodContainerID(pod *kapi.Pod) string {
+	if len(pod.Status.ContainerStatuses) > 0 {
+		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
+		if parts := strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://"); len(parts) > 1 {
+			return parts[1]
+		}
+	}
+	return ""
 }

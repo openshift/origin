@@ -78,9 +78,10 @@ func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
 			return err
 		}
 		for _, p := range pods {
-			err = plugin.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(p.ContainerID))
+			containerID := osdn.GetPodContainerID(&p)
+			err = plugin.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
 			if err != nil {
-				glog.Warningf("Could not update pod %q (%s): %s", p.Name, p.ContainerID, err)
+				glog.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}
 		}
 	}
@@ -143,7 +144,7 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 	return rsrc.Value(), nil
 }
 
-func extractBandwidthResources(pod *api.Pod) (ingress, egress int64, err error) {
+func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error) {
 	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
