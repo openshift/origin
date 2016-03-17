@@ -554,8 +554,8 @@ saved copy to include the latest resource version.`
   $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
-func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdEdit(f.Factory, out)
+func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdEdit(f.Factory, out, errout)
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
 	return cmd
