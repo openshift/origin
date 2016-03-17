@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
@@ -33,7 +32,6 @@ func EnableRedirect(registry *registry) error {
 // EnableDelete is a functional option for NewRegistry. It enables deletion on
 // the registry.
 func EnableDelete(registry *registry) error {
-	registry.blobStore.deleteEnabled = true
 	registry.deleteEnabled = true
 	return nil
 }
@@ -42,15 +40,6 @@ func EnableDelete(registry *registry) error {
 // used if the registry is acting as a caching proxy.
 func DisableDigestResumption(registry *registry) error {
 	registry.resumableDigestEnabled = false
-	return nil
-}
-
-// RemoveParentsOnDelete is a functional option for NewRegistry. It causes
-// parent directory of blob's data or link to be deleted as well during Delete.
-// It should be used only with storage drivers providing strong consistency.
-// Must be used together with `EnableDelete`.
-func RemoveParentsOnDelete(registry *registry) error {
-	registry.blobStore.removeParentsOnDelete = true
 	return nil
 }
 
@@ -143,29 +132,6 @@ func (reg *registry) Repository(ctx context.Context, canonicalName string) (dist
 	}, nil
 }
 
-// Blobs returns an instance of the BlobServer for registry's blob access.
-func (reg *registry) Blobs() distribution.BlobService {
-	return reg.blobStore
-}
-
-// RegistryBlobEnumerator returns an instance of BlobEnumerator for given registry object.
-func RegistryBlobEnumerator(ns distribution.Namespace) (distribution.BlobEnumerator, error) {
-	reg, ok := ns.(*registry)
-	if !ok {
-		return nil, fmt.Errorf("cannot instantiate BlobEnumerator with given namespace object (%T)", ns)
-	}
-	return reg.blobStore, nil
-}
-
-// RegistryBlobDeleter returns an instance of BlobDeleter for given registry object.
-func RegistryBlobDeleter(ns distribution.Namespace) (distribution.BlobDeleter, error) {
-	reg, ok := ns.(*registry)
-	if !ok {
-		return nil, fmt.Errorf("cannot instantiate BlobDeleter with given namespace object (%T)", ns)
-	}
-	return reg.blobStore, nil
-}
-
 // repository provides name-scoped access to various services.
 type repository struct {
 	*registry
@@ -189,10 +155,6 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 		manifestRevisionLinkPath,
 		blobLinkPath,
 	}
-	manifestRootPathFns := []blobsRootPathFunc{
-		manifestRevisionsPath,
-		blobsRootPath,
-	}
 
 	ms := &manifestStore{
 		ctx:        ctx,
@@ -206,16 +168,14 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 				repository:    repo,
 				deleteEnabled: repo.registry.deleteEnabled,
 				blobAccessController: &linkedBlobStatter{
-					blobStore:             repo.blobStore,
-					repository:            repo,
-					linkPathFns:           manifestLinkPathFns,
-					removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
+					blobStore:   repo.blobStore,
+					repository:  repo,
+					linkPathFns: manifestLinkPathFns,
 				},
 
 				// TODO(stevvooe): linkPath limits this blob store to only
 				// manifests. This instance cannot be used for blob checks.
 				linkPathFns:            manifestLinkPathFns,
-				blobsRootPathFns:       manifestRootPathFns,
 				resumableDigestEnabled: repo.resumableDigestEnabled,
 			},
 		},
@@ -242,10 +202,9 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 // to a request local.
 func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	var statter distribution.BlobDescriptorService = &linkedBlobStatter{
-		blobStore:             repo.blobStore,
-		repository:            repo,
-		linkPathFns:           []linkPathFunc{blobLinkPath},
-		removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
+		blobStore:   repo.blobStore,
+		repository:  repo,
+		linkPathFns: []linkPathFunc{blobLinkPath},
 	}
 
 	if repo.descriptorCache != nil {
@@ -262,7 +221,6 @@ func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		// TODO(stevvooe): linkPath limits this blob store to only layers.
 		// This instance cannot be used for manifest checks.
 		linkPathFns:            []linkPathFunc{blobLinkPath},
-		blobsRootPathFns:       []blobsRootPathFunc{blobsRootPath},
 		deleteEnabled:          repo.registry.deleteEnabled,
 		resumableDigestEnabled: repo.resumableDigestEnabled,
 	}
