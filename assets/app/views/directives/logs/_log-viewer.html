@@ -6,7 +6,10 @@
   style="margin-bottom: 10px;">
   <div ng-transclude flex><!-- expect start time, end time, status details --></div>
   <div row class="text-right text-xs-left">
-    <a href="" ng-click="goChromeless(options)" style="margin-right: 10px;">
+    <a ng-if="state !== 'empty'"
+       href=""
+       ng-click="goChromeless(options)"
+       style="margin-right: 10px;">
       Open full view of log <i class="fa fa-external-link"></i>
     </a>
     <div ng-if="kibanaAuthUrl">
