@@ -139,6 +139,11 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "index.docker.io/v1")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
 		}
+		// docker 1.9 saves 'docker.io' in config in f23, see https://bugzilla.redhat.com/show_bug.cgi?id=1309739
+		if value == "index.docker.io" {
+			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "docker.io")
+			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "docker.io"})
+		}
 		glog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)
 		return "", ""
 	}
