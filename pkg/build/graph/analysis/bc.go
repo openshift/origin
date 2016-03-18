@@ -49,8 +49,8 @@ bc:
 
 						Severity: osgraph.ErrorSeverity,
 						Key:      MissingOutputImageStreamErr,
-						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but that image stream does not exist.",
-							f.ResourceName(bcNode), f.ResourceName(istNode), f.ResourceName(imageStreamNode)),
+						Message: fmt.Sprintf("%s is pushing to %s, but the image stream for that tag does not exist.",
+							f.ResourceName(bcNode), f.ResourceName(istNode)),
 					})
 
 					continue
@@ -63,8 +63,9 @@ bc:
 
 						Severity: osgraph.ErrorSeverity,
 						Key:      MissingRequiredRegistryErr,
-						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but the administrator has not configured the integrated Docker registry.  (oadm registry)",
-							f.ResourceName(bcNode), f.ResourceName(istNode), f.ResourceName(imageStreamNode)),
+						Message: fmt.Sprintf("%s is pushing to %s, but the administrator has not configured the integrated Docker registry.",
+							f.ResourceName(bcNode), f.ResourceName(istNode)),
+						Suggestion: osgraph.Suggestion("oc adm registry -h"),
 					})
 
 					continue bc

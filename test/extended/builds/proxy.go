@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"fmt"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -26,6 +28,9 @@ var _ = g.Describe("[builds][Slow] the source-to-image build should support prox
 		g.It("should start a build and wait for the build to to fail", func() {
 			g.By("starting the build with --wait and --follow flags")
 			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait").Output()
+			if err != nil {
+				fmt.Fprintln(g.GinkgoWriter, out)
+			}
 			o.Expect(err).To(o.HaveOccurred())
 			g.By("verifying the build sample-app-1 output")
 			// The git ls-remote check should exit the build when the remote

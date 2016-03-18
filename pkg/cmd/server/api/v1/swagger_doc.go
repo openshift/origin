@@ -362,6 +362,15 @@ func (LDAPSyncConfig) SwaggerDoc() map[string]string {
 	return map_LDAPSyncConfig
 }
 
+var map_LocalQuota = map[string]string{
+	"":           "LocalQuota contains options for controlling local volume quota on the node.",
+	"perFSGroup": "FSGroup can be specified to enable a quota on local storage use per unique FSGroup ID. At present this is only implemented for emptyDir volumes, and if the underlying volumeDirectory is on an XFS filesystem.",
+}
+
+func (LocalQuota) SwaggerDoc() map[string]string {
+	return map_LocalQuota
+}
+
 var map_MasterClients = map[string]string{
 	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
 	"openshiftLoopbackKubeConfig":  "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
@@ -406,11 +415,12 @@ func (MasterConfig) SwaggerDoc() map[string]string {
 }
 
 var map_MasterNetworkConfig = map[string]string{
-	"":                   "MasterNetworkConfig to be passed to the compiled in network plugin",
-	"networkPluginName":  "NetworkPluginName is the name of the network plugin to use",
-	"clusterNetworkCIDR": "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
-	"hostSubnetLength":   "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
-	"serviceNetworkCIDR": "ServiceNetwork is the CIDR string to specify the service networks",
+	"":                       "MasterNetworkConfig to be passed to the compiled in network plugin",
+	"networkPluginName":      "NetworkPluginName is the name of the network plugin to use",
+	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
+	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
+	"serviceNetworkCIDR":     "ServiceNetwork is the CIDR string to specify the service networks",
+	"externalIPNetworkCIDRs": "ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
 }
 
 func (MasterNetworkConfig) SwaggerDoc() map[string]string {
@@ -457,6 +467,7 @@ var map_NodeConfig = map[string]string{
 	"kubeletArguments":    "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"proxyArguments":      "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"iptablesSyncPeriod":  "IPTablesSyncPeriod is how often iptable rules are refreshed",
+	"volumeConfig":        "VolumeConfig contains options for configuring volumes on the node.",
 }
 
 func (NodeConfig) SwaggerDoc() map[string]string {
@@ -749,4 +760,13 @@ var map_UserAgentMatchingConfig = map[string]string{
 
 func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
 	return map_UserAgentMatchingConfig
+}
+
+var map_VolumeConfig = map[string]string{
+	"":           "VolumeConfig contains options for configuring volumes on the node.",
+	"localQuota": "LocalQuota contains options for controlling local volume quota on the node.",
+}
+
+func (VolumeConfig) SwaggerDoc() map[string]string {
+	return map_VolumeConfig
 }

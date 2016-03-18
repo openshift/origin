@@ -5820,6 +5820,7 @@ func autoConvert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, 
 		out.FC = nil
 	}
 	// in.AzureFile has no peer in out
+	// in.ConfigMap has no peer in out
 	return nil
 }
 

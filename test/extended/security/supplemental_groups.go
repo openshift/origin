@@ -19,7 +19,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		f = e2e.NewFramework("security-supgroups")
+		f = e2e.NewDefaultFramework("security-supgroups")
 	)
 
 	g.Describe("Ensure supplemental groups propagate to docker", func() {

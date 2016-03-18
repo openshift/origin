@@ -95,7 +95,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "jenkins:latest",
-                "namespace": "openshift"
+                "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
             }
@@ -180,27 +180,33 @@
   "parameters": [
     {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
       "value": "512Mi"
     },
     {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
       "name": "JENKINS_SERVICE_NAME",
-      "displayName": "Jenkins service name",
-      "description": "The name of the OpenShift Service exposed for the Jenkins container",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
       "value": "jenkins"
     },
     {
       "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins password",
-      "description": "Password for the Jenkins user",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins user.",
       "generate": "expression",
       "value": "password"
     },
     {
       "name": "VOLUME_CAPACITY",
-      "displayName": "Volume capacity",
-      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "512Mi",
       "required": true
     }

@@ -78,7 +78,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "postgresql:latest",
-                "namespace": "openshift"
+                "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
             }
@@ -176,44 +176,50 @@
   "parameters": [
     {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
       "value": "512Mi"
     },
     {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
       "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database service name",
-      "description": "The name of the OpenShift Service exposed for the database",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
       "value": "postgresql",
       "required": true
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL user",
-      "description": "Username for PostgreSQL user that will be used for accessing the database",
+      "displayName": "PostgreSQL User",
+      "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
       "required": true
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL password",
-      "description": "Password for the PostgreSQL user",
+      "displayName": "PostgreSQL Password",
+      "description": "Password for the PostgreSQL user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "POSTGRESQL_DATABASE",
-      "displayName": "PostgreSQL database name",
-      "description": "Name of the PostgreSQL database accessed",
+      "displayName": "PostgreSQL Database Name",
+      "description": "Name of the PostgreSQL database accessed.",
       "value": "sampledb",
       "required": true
     },
     {
       "name": "VOLUME_CAPACITY",
-      "displayName": "Volume capacity",
-      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "512Mi",
       "required": true
     }

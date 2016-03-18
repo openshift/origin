@@ -90,6 +90,7 @@
                       name="deploymentConfigName"
                       context="projectContext"
                       options="logOptions"
+                      empty="logEmpty"
                       run="logCanRun">
 
                       <div row cross-axis="center">
@@ -99,7 +100,7 @@
                             <status-icon status="deployment | deploymentStatus"></status-icon>
                             {{deployment | deploymentStatus}}
                           </div>
-                          <div ng-if="deployment.metadata.creationTimestamp">
+                          <div ng-if="deployment.metadata.creationTimestamp && !logEmpty">
                             <div ng-if="(deployment | deploymentStatus) !== 'Deployed'">
                               &mdash; Log from {{deployment.metadata.creationTimestamp  | date : 'short'}}
                             </div>

@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -35,7 +36,7 @@ const (
 )
 
 var _ = Describe("ResourceQuota", func() {
-	f := NewFramework("resourcequota")
+	f := NewDefaultFramework("resourcequota")
 
 	It("should create a ResourceQuota and ensure its status is promptly calculated.", func() {
 		By("Creating a ResourceQuota")
@@ -82,6 +83,50 @@ var _ = Describe("ResourceQuota", func() {
 
 		By("Ensuring resource quota status released usage")
 		usedResources[api.ResourceServices] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should create a ResourceQuota and capture the life of a secret.", func() {
+		By("Discovering how many secrets are in namespace by default")
+		secrets, err := f.Client.Secrets(f.Namespace.Name).List(api.ListOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		defaultSecrets := fmt.Sprintf("%d", len(secrets.Items))
+		hardSecrets := fmt.Sprintf("%d", len(secrets.Items)+1)
+
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota.Spec.Hard[api.ResourceSecrets] = resource.MustParse(hardSecrets)
+		resourceQuota, err = createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceSecrets] = resource.MustParse(defaultSecrets)
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a Secret")
+		secret := newTestSecretForQuota("test-secret")
+		secret, err = f.Client.Secrets(f.Namespace.Name).Create(secret)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures secret creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceSecrets] = resource.MustParse(hardSecrets)
+		// we expect there to be two secrets because each namespace will receive
+		// a service account token secret by default
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a secret")
+		err = f.Client.Secrets(f.Namespace.Name).Delete(secret.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceSecrets] = resource.MustParse(defaultSecrets)
 		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -133,6 +178,41 @@ var _ = Describe("ResourceQuota", func() {
 		usedResources[api.ResourcePods] = resource.MustParse("0")
 		usedResources[api.ResourceCPU] = resource.MustParse("0")
 		usedResources[api.ResourceMemory] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should create a ResourceQuota and capture the life of a configMap.", func() {
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota, err := createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a ConfigMap")
+		configMap := newTestConfigMapForQuota("test-configmap")
+		configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures configMap creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceConfigMaps] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a ConfigMap")
+		err = f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceConfigMaps] = resource.MustParse("0")
 		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -342,6 +422,8 @@ func newTestResourceQuota(name string) *api.ResourceQuota {
 	hard[api.ResourceQuotas] = resource.MustParse("1")
 	hard[api.ResourceCPU] = resource.MustParse("1")
 	hard[api.ResourceMemory] = resource.MustParse("500Mi")
+	hard[api.ResourceConfigMaps] = resource.MustParse("2")
+	hard[api.ResourceSecrets] = resource.MustParse("2")
 	return &api.ResourceQuota{
 		ObjectMeta: api.ObjectMeta{Name: name},
 		Spec:       api.ResourceQuotaSpec{Hard: hard},
@@ -380,6 +462,30 @@ func newTestServiceForQuota(name string) *api.Service {
 				Port:       80,
 				TargetPort: intstr.FromInt(80),
 			}},
+		},
+	}
+}
+
+func newTestConfigMapForQuota(name string) *api.ConfigMap {
+	return &api.ConfigMap{
+		ObjectMeta: api.ObjectMeta{
+			Name: name,
+		},
+		Data: map[string]string{
+			"a": "b",
+		},
+	}
+}
+
+func newTestSecretForQuota(name string) *api.Secret {
+	return &api.Secret{
+		ObjectMeta: api.ObjectMeta{
+			Name: name,
+		},
+		Data: map[string][]byte{
+			"data-1": []byte("value-1\n"),
+			"data-2": []byte("value-2\n"),
+			"data-3": []byte("value-3\n"),
 		},
 	}
 }

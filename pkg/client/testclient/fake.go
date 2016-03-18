@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -35,7 +36,7 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 	}
 
 	fakeClient := &Fake{}
-	fakeClient.AddReactor("*", "*", ktestclient.ObjectReaction(o, kapi.RESTMapper))
+	fakeClient.AddReactor("*", "*", ktestclient.ObjectReaction(o, registered.RESTMapper()))
 
 	return fakeClient
 }

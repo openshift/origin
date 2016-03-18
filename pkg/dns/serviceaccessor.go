@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/watch"
@@ -124,6 +125,6 @@ func (a cachedServiceNamespacer) Delete(name string) error {
 func (a cachedServiceNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) client.ResponseWrapper {
+func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
 	return nil
 }

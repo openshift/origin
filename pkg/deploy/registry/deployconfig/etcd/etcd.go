@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -102,7 +103,7 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		},
 		Status: extensions.ScaleStatus{
 			Replicas: totalReplicas,
-			Selector: deploymentConfig.Spec.Selector,
+			Selector: &unversioned.LabelSelector{MatchLabels: deploymentConfig.Spec.Selector},
 		},
 	}, nil
 }
@@ -136,7 +137,7 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 			Replicas: scale.Spec.Replicas,
 		},
 		Status: extensions.ScaleStatus{
-			Selector: deploymentConfig.Spec.Selector,
+			Selector: &unversioned.LabelSelector{MatchLabels: deploymentConfig.Spec.Selector},
 		},
 	}
 

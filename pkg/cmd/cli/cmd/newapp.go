@@ -17,6 +17,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -286,9 +287,9 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 				}
 			}
 			if triggered {
-				fmt.Fprintf(out, "%sBuild scheduled for %q, use 'oc logs' to track its progress.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sBuild scheduled, use 'oc logs -f bc/%s' to track its progress.\n", indent, t.Name)
 			} else {
-				fmt.Fprintf(out, "%sBuild config %q does not include any automatic triggers, use 'oc start-build' to start a build.\n", indent, t.Name)
+				fmt.Fprintf(out, "%sUse 'oc start-build %s' to start a build.\n", indent, t.Name)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -810,10 +811,10 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 }
 
 type configSecretRetriever struct {
-	config *kclient.Config
+	config *restclient.Config
 }
 
-func newConfigSecretRetriever(config *kclient.Config) newapp.SecretAccessor {
+func newConfigSecretRetriever(config *restclient.Config) newapp.SecretAccessor {
 	return &configSecretRetriever{config}
 }
 

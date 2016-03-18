@@ -114,7 +114,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				cmd.NewCmdGet(fullName, f, out),
 				cmd.NewCmdDescribe(fullName, f, out),
-				cmd.NewCmdEdit(fullName, f, out),
+				cmd.NewCmdEdit(fullName, f, out, errout),
 				set.NewCmdSet(fullName, f, in, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),

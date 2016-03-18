@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -99,7 +99,7 @@ func TestNodeAuth(t *testing.T) {
 	}
 	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
-	kubeletClientConfig := func(config *kclient.Config) *kubeletclient.KubeletClientConfig {
+	kubeletClientConfig := func(config *restclient.Config) *kubeletclient.KubeletClientConfig {
 		return &kubeletclient.KubeletClientConfig{
 			Port:            uint(nodePortInt),
 			EnableHttps:     nodeTLS,

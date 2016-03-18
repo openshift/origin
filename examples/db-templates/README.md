@@ -9,7 +9,7 @@ the Web Console or the CLI.
 The examples can also be tweaked to create new templates.
 
 
-## Ephemeral x Persistent
+## Ephemeral vs Persistent
 
 For each supported database, there are two template files.
 

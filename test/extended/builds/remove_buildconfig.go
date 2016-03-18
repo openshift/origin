@@ -15,7 +15,7 @@ var _ = g.Describe("[builds] remove all builds when build configuration is remov
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("..", "extended", "fixtures", "test-build.json")
-		oc           = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("cli-remove-build", exutil.KubeConfigPath())
 	)
 
 	g.JustBeforeEach(func() {

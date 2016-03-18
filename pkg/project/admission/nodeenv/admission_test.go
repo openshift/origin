@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
+	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"

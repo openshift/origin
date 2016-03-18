@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -20,8 +21,9 @@ import (
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/oom"
+	"k8s.io/kubernetes/pkg/volume"
 
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
@@ -31,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/volume/empty_dir"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -156,7 +159,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
 	if err := cmdflags.Resolve(options.KubeletArguments, server.AddFlags); len(err) > 0 {
-		return nil, errors.NewAggregate(err)
+		return nil, kerrors.NewAggregate(err)
 	}
 
 	proxyconfig, err := buildKubeProxyConfig(options)
@@ -167,6 +170,49 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg, err := kubeletapp.UnsecuredKubeletConfig(server)
 	if err != nil {
 		return nil, err
+	}
+
+	// Replace the standard k8s emptyDir volume plugin with a wrapper version
+	// which offers XFS quota functionality, but only if the node config
+	// specifies an empty dir quota to apply to projects:
+	if options.VolumeConfig.LocalQuota.PerFSGroup != nil {
+		glog.V(2).Info("Replacing empty-dir volume plugin with quota wrapper")
+		wrappedEmptyDirPlugin := false
+
+		quotaApplicator, err := empty_dir.NewQuotaApplicator(options.VolumeDirectory)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a volume spec with emptyDir we can use to search for the
+		// emptyDir plugin with CanSupport:
+		emptyDirSpec := &volume.Spec{
+			Volume: &kapi.Volume{
+				VolumeSource: kapi.VolumeSource{
+					EmptyDir: &kapi.EmptyDirVolumeSource{},
+				},
+			},
+		}
+
+		for idx, plugin := range cfg.VolumePlugins {
+			// Can't really do type checking or use a constant here as they are not exported:
+			if plugin.CanSupport(emptyDirSpec) {
+				wrapper := empty_dir.EmptyDirQuotaPlugin{
+					Wrapped:         plugin,
+					Quota:           *options.VolumeConfig.LocalQuota.PerFSGroup,
+					QuotaApplicator: quotaApplicator,
+				}
+				cfg.VolumePlugins[idx] = &wrapper
+				wrappedEmptyDirPlugin = true
+			}
+		}
+		// Because we can't look for the k8s emptyDir plugin by any means that would
+		// survive a refactor, error out if we couldn't find it:
+		if !wrappedEmptyDirPlugin {
+			return nil, errors.New("unable to wrap emptyDir volume plugin for quota support")
+		}
+	} else {
+		glog.V(2).Info("Skipping replacement of empty-dir volume plugin with quota wrapper, no local fsGroup quota specified")
 	}
 
 	// provide any config overrides
@@ -187,8 +233,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if value := cmdutil.Env("OPENSHIFT_DIND", ""); value == "true" {
 		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
 		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
-		glog.Warningf("Disabling cgroup manipulation of nested docker daemon for docker-in-docker compatibility")
-		cfg.DockerDaemonContainer = ""
 	}
 
 	// Setup auth
@@ -354,7 +398,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 
 	// Resolve cmd flags to add any user overrides
 	if err := cmdflags.Resolve(options.ProxyArguments, proxyconfig.AddFlags); len(err) > 0 {
-		return nil, errors.NewAggregate(err)
+		return nil, kerrors.NewAggregate(err)
 	}
 
 	return proxyconfig, nil

@@ -3,7 +3,9 @@ package imagestreamimage
 import (
 	"testing"
 
-	goetcd "github.com/coreos/go-etcd/etcd"
+	"golang.org/x/net/context"
+
+	etcd "github.com/coreos/etcd/client"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -34,10 +36,10 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*goetcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := goetcd.NewClient(server.ClientURLs.StringSlice())
+	etcdClient := etcd.NewKeysAPI(server.Client)
 
 	imageStorage := imageetcd.NewREST(etcdStorage)
 	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -248,14 +250,22 @@ func TestGet(t *testing.T) {
 		ctx := kapi.NewDefaultContext()
 		if test.repo != nil {
 			ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
-			_, err := client.Create(etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo), 0)
+			_, err := client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo),
+			)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue
 			}
 		}
 		if test.image != nil {
-			_, err := client.Create(etcdtest.AddPrefix("/images/"+test.image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image), 0)
+			_, err := client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/images/"+test.image.Name),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image),
+			)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue

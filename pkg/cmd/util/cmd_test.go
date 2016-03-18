@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestResolveResource(t *testing.T) {
-	mapper := clientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: kapi.RESTMapper}}
+	mapper := clientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: registered.RESTMapper()}}
 
 	tests := []struct {
 		name             string

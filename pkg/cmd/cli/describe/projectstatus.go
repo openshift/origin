@@ -347,6 +347,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		routeanalysis.FindMissingTLSTerminationType,
 		routeanalysis.FindPathBasedPassthroughRoutes,
 		routeanalysis.FindRouteAdmissionFailures,
+		routeanalysis.FindMissingRouter,
 		// We disable this feature by default and we don't have a capability detection for this sort of thing.  Disable this check for now.
 		// kubeanalysis.FindUnmountableSecrets,
 	}

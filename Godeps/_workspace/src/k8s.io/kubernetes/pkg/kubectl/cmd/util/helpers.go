@@ -171,10 +171,15 @@ func StandardErrorMessage(err error) (string, bool) {
 	if debugErr, ok := err.(debugError); ok {
 		glog.V(4).Infof(debugErr.DebugError())
 	}
-	_, isStatus := err.(errors.APIStatus)
+	status, isStatus := err.(errors.APIStatus)
 	switch {
 	case isStatus:
-		return fmt.Sprintf("Error from server: %s", err.Error()), true
+		switch s := status.Status(); {
+		case s.Reason == "Unauthorized":
+			return fmt.Sprintf("error: You must be logged in to the server (%s)", s.Message), true
+		default:
+			return fmt.Sprintf("Error from server: %s", err.Error()), true
+		}
 	case errors.IsUnexpectedObjectError(err):
 		return fmt.Sprintf("Server returned an unexpected response: %s", err.Error()), true
 	}
@@ -336,8 +341,6 @@ func AddApplyAnnotationFlags(cmd *cobra.Command) {
 func AddGeneratorFlags(cmd *cobra.Command, defaultGenerator string) {
 	cmd.Flags().String("generator", defaultGenerator, "The name of the API generator to use.")
 	cmd.Flags().Bool("dry-run", false, "If true, only print the object that would be sent, without sending it.")
-	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|wide|name|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=... See golang template [http://golang.org/pkg/text/template/#pkg-overview] and jsonpath template [http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md].")
-	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 }
 
 func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
@@ -353,7 +356,7 @@ func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
 	return data, nil
 }
 
-// ReadConfigData reads the bytes from the specified filesytem or network
+// ReadConfigData reads the bytes from the specified filesystem or network
 // location or from stdin if location == "-".
 // TODO: replace with resource.Builder
 func ReadConfigData(location string) ([]byte, error) {

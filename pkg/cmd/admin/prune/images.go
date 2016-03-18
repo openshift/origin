@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -411,7 +412,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 	// set the "password" to be the token
 	registryClientConfig.Password = token
 
-	tlsConfig, err := kclient.TLSConfigFor(&registryClientConfig)
+	tlsConfig, err := restclient.TLSConfigFor(&registryClientConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -435,7 +436,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 		TLSClientConfig: tlsConfig,
 	})
 
-	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, transport)
+	wrappedTransport, err := restclient.HTTPWrappersForConfig(&registryClientConfig, transport)
 	if err != nil {
 		return nil, nil, nil, err
 	}

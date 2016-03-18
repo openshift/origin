@@ -9,8 +9,8 @@ import (
 )
 
 var _ = Describe("[networking] network isolation", func() {
-	f1 := e2e.NewFramework("net-isolation1")
-	f2 := e2e.NewFramework("net-isolation2")
+	f1 := e2e.NewDefaultFramework("net-isolation1")
+	f2 := e2e.NewDefaultFramework("net-isolation2")
 
 	Specify("multi-tenant plugins should prevent communication between pods in different namespaces on the same node", func() {
 		skipIfSingleTenant()

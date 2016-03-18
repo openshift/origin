@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,94 +17,110 @@ limitations under the License.
 package unversioned
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
+	api "k8s.io/kubernetes/pkg/api"
+	watch "k8s.io/kubernetes/pkg/watch"
 )
 
+// SecurityContextConstraintsGetter has a method to return a SecurityContextConstraintsInterface.
+// A group's client should implement this interface.
+type SecurityContextConstraintsGetter interface {
+	SecurityContextConstraints() SecurityContextConstraintsInterface
+}
+
+// SecurityContextConstraintsInterface has methods to work with SecurityContextConstraints resources.
 type SecurityContextConstraintsInterface interface {
-	SecurityContextConstraints() SecurityContextConstraintInterface
-}
-
-type SecurityContextConstraintInterface interface {
-	Get(name string) (result *api.SecurityContextConstraints, err error)
-	Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error)
-	List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error)
-	Delete(name string) error
+	Create(*api.SecurityContextConstraints) (*api.SecurityContextConstraints, error)
 	Update(*api.SecurityContextConstraints) (*api.SecurityContextConstraints, error)
+	Delete(name string, options *api.DeleteOptions) error
+	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Get(name string) (*api.SecurityContextConstraints, error)
+	List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error)
 	Watch(opts api.ListOptions) (watch.Interface, error)
+	SecurityContextConstraintsExpansion
 }
 
-// securityContextConstraints implements SecurityContextConstraintInterface
+// securityContextConstraints implements SecurityContextConstraintsInterface
 type securityContextConstraints struct {
 	client *CoreClient
 }
 
-// newSecurityContextConstraints returns a securityContextConstraints object.
+// newSecurityContextConstraints returns a SecurityContextConstraints
 func newSecurityContextConstraints(c *CoreClient) *securityContextConstraints {
-	return &securityContextConstraints{c}
+	return &securityContextConstraints{
+		client: c,
+	}
 }
 
-func (s *securityContextConstraints) Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
-	result := &api.SecurityContextConstraints{}
-	err := s.client.Post().
-		Resource("securityContextConstraints").
-		Body(scc).
+// Create takes the representation of a securityContextConstraints and creates it.  Returns the server's representation of the securityContextConstraints, and an error, if there is any.
+func (c *securityContextConstraints) Create(securityContextConstraints *api.SecurityContextConstraints) (result *api.SecurityContextConstraints, err error) {
+	result = &api.SecurityContextConstraints{}
+	err = c.client.Post().
+		Resource("securitycontextconstraints").
+		Body(securityContextConstraints).
 		Do().
 		Into(result)
-
-	return result, err
+	return
 }
 
-// List returns a list of SecurityContextConstraints matching the selectors.
-func (s *securityContextConstraints) List(opts api.ListOptions) (*api.SecurityContextConstraintsList, error) {
-	result := &api.SecurityContextConstraintsList{}
-
-	err := s.client.Get().
-		Resource("securityContextConstraints").
-		VersionedParams(&opts, api.ParameterCodec).
+// Update takes the representation of a securityContextConstraints and updates it. Returns the server's representation of the securityContextConstraints, and an error, if there is any.
+func (c *securityContextConstraints) Update(securityContextConstraints *api.SecurityContextConstraints) (result *api.SecurityContextConstraints, err error) {
+	result = &api.SecurityContextConstraints{}
+	err = c.client.Put().
+		Resource("securitycontextconstraints").
+		Name(securityContextConstraints.Name).
+		Body(securityContextConstraints).
 		Do().
 		Into(result)
-
-	return result, err
+	return
 }
 
-// Get returns the given SecurityContextConstraints, or an error.
-func (s *securityContextConstraints) Get(name string) (*api.SecurityContextConstraints, error) {
-	result := &api.SecurityContextConstraints{}
-	err := s.client.Get().
-		Resource("securityContextConstraints").
+// Delete takes name of the securityContextConstraints and deletes it. Returns an error if one occurs.
+func (c *securityContextConstraints) Delete(name string, options *api.DeleteOptions) error {
+	return c.client.Delete().
+		Resource("securitycontextconstraints").
 		Name(name).
-		Do().
-		Into(result)
-
-	return result, err
-}
-
-// Watch starts watching for SecurityContextConstraints matching the given selectors.
-func (s *securityContextConstraints) Watch(opts api.ListOptions) (watch.Interface, error) {
-	return s.client.Get().
-		Prefix("watch").
-		Resource("securityContextConstraints").
-		VersionedParams(&opts, api.ParameterCodec).
-		Watch()
-}
-
-func (s *securityContextConstraints) Delete(name string) error {
-	return s.client.Delete().
-		Resource("securityContextConstraints").
-		Name(name).
+		Body(options).
 		Do().
 		Error()
 }
 
-func (s *securityContextConstraints) Update(scc *api.SecurityContextConstraints) (result *api.SecurityContextConstraints, err error) {
+// DeleteCollection deletes a collection of objects.
+func (c *securityContextConstraints) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+	return c.client.Delete().
+		Resource("securitycontextconstraints").
+		VersionedParams(&listOptions, api.ParameterCodec).
+		Body(options).
+		Do().
+		Error()
+}
+
+// Get takes name of the securityContextConstraints, and returns the corresponding securityContextConstraints object, and an error if there is any.
+func (c *securityContextConstraints) Get(name string) (result *api.SecurityContextConstraints, err error) {
 	result = &api.SecurityContextConstraints{}
-	err = s.client.Put().
-		Resource("securityContextConstraints").
-		Name(scc.Name).
-		Body(scc).
+	err = c.client.Get().
+		Resource("securitycontextconstraints").
+		Name(name).
 		Do().
 		Into(result)
-
 	return
+}
+
+// List takes label and field selectors, and returns the list of SecurityContextConstraints that match those selectors.
+func (c *securityContextConstraints) List(opts api.ListOptions) (result *api.SecurityContextConstraintsList, err error) {
+	result = &api.SecurityContextConstraintsList{}
+	err = c.client.Get().
+		Resource("securitycontextconstraints").
+		VersionedParams(&opts, api.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested securityContextConstraints.
+func (c *securityContextConstraints) Watch(opts api.ListOptions) (watch.Interface, error) {
+	return c.client.Get().
+		Prefix("watch").
+		Resource("securitycontextconstraints").
+		VersionedParams(&opts, api.ParameterCodec).
+		Watch()
 }

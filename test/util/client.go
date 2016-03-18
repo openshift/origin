@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -49,7 +50,7 @@ func GetClusterAdminClient(adminKubeConfigFile string) (*client.Client, error) {
 	return osClient, nil
 }
 
-func GetClusterAdminClientConfig(adminKubeConfigFile string) (*kclient.Config, error) {
+func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {
 	_, conf, err := configapi.GetKubeClient(adminKubeConfigFile)
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func GetClusterAdminClientConfig(adminKubeConfigFile string) (*kclient.Config, e
 	return conf, nil
 }
 
-func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, *kclient.Client, *kclient.Config, error) {
+func GetClientForUser(clientConfig restclient.Config, username string) (*client.Client, *kclient.Client, *restclient.Config, error) {
 	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
 	if err != nil {
 		return nil, nil, nil, err
@@ -79,7 +80,7 @@ func GetClientForUser(clientConfig kclient.Config, username string) (*client.Cli
 	return osClient, kubeClient, &userClientConfig, nil
 }
 
-func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig kclient.Config, namespace, name string) (*client.Client, *kclient.Client, *kclient.Config, error) {
+func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig restclient.Config, namespace, name string) (*client.Client, *kclient.Client, *restclient.Config, error) {
 	_, err := adminClient.Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespace}})
 	if err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, nil, err
@@ -95,7 +96,7 @@ func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig kclien
 
 	token := ""
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		selector := fields.OneTermEqualSelector(kclient.SecretType, string(kapi.SecretTypeServiceAccountToken))
+		selector := fields.OneTermEqualSelector(kapi.SecretTypeField, string(kapi.SecretTypeServiceAccountToken))
 		secrets, err := adminClient.Secrets(namespace).List(kapi.ListOptions{FieldSelector: selector})
 		if err != nil {
 			return false, err

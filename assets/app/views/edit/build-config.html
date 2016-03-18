@@ -255,7 +255,12 @@
 
 
                             <div class="multiple-image-source" ng-if="sourceImages.length !== 1">
-                              <label for="imageSourceFrom">Image Source From</label>
+                              <label for="imageSourceFrom">Image Source From<span class="help action-inline">
+                                <a href>
+                                  <i class="pficon pficon-info" style="cursor: help;" aria-hidden="true" data-toggle="tooltip" data-original-title="This Build Config contains more then one Image Source. To edit them use the YAML editor.">
+                                </i>
+                                </a>
+                              </span></label>
                               <div ng-repeat="fromObject in imageSourceFromObjects" class="imageSourceItem">
                                 {{selectTypes[fromObject.kind]}}: {{fromObject | imageObjectRef : buildConfig.metadata.namespace}}
                               </div>

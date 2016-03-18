@@ -81,7 +81,7 @@ Displays the current-context
 [options="nowrap"]
 ----
   # Display the current-context
-  $ oadm config current-context
+  oadm config current-context
 ----
 ====
 
@@ -94,13 +94,13 @@ Sets a cluster entry in kubeconfig
 [options="nowrap"]
 ----
   # Set only the server field on the e2e cluster entry without touching other values.
-  $ oadm config set-cluster e2e --server=https://1.2.3.4
+  oadm config set-cluster e2e --server=https://1.2.3.4
   
   # Embed certificate authority data for the e2e cluster entry
-  $ oadm config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
+  oadm config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
   
   # Disable cert checking for the dev cluster entry
-  $ oadm config set-cluster e2e --insecure-skip-tls-verify=true
+  oadm config set-cluster e2e --insecure-skip-tls-verify=true
 ----
 ====
 
@@ -113,7 +113,7 @@ Sets a context entry in kubeconfig
 [options="nowrap"]
 ----
   # Set the user field on the gce context entry without touching other values
-  $ oadm config set-context gce --user=cluster-admin
+  oadm config set-context gce --user=cluster-admin
 ----
 ====
 
@@ -127,13 +127,13 @@ Sets a user entry in kubeconfig
 ----
   # Set only the "client-key" field on the "cluster-admin"
   # entry, without touching other values:
-  $ oadm config set-credentials cluster-admin --client-key=~/.kube/admin.key
+  oadm config set-credentials cluster-admin --client-key=~/.kube/admin.key
   
   # Set basic auth for the "cluster-admin" entry
-  $ oadm config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
+  oadm config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
   
   # Embed client certificate data in the "cluster-admin" entry
-  $ oadm config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
+  oadm config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
 ----
 ====
 
@@ -146,10 +146,10 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 [options="nowrap"]
 ----
   # Show Merged kubeconfig settings.
-  $ oadm config view
+  oadm config view
   
   # Get the password for the e2e user
-  $ oadm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
+  oadm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
 ====
 

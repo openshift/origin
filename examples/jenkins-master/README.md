@@ -25,6 +25,8 @@ plugin and define the sample job used by the tutorial.
 
 Steps
 ------
+Before you begin, ensure you have created the [default imagestreams](https://docs.openshift.org/latest/install_config/imagestreams_templates.html#creating-image-streams-for-openshift-images) in the openshift namespace.
+
 1. Create new OpenShift project, where the Jenkins server will run:
 ```
 $ oc new-project ci

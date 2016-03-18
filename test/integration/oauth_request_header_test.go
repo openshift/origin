@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
@@ -188,11 +188,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 	}
 
 	// Use the server and CA info, but no client cert info
-	anonConfig := kclient.Config{}
+	anonConfig := restclient.Config{}
 	anonConfig.Host = clientConfig.Host
 	anonConfig.CAFile = clientConfig.CAFile
 	anonConfig.CAData = clientConfig.CAData
-	anonTransport, err := kclient.TransportFor(&anonConfig)
+	anonTransport, err := restclient.TransportFor(&anonConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 	proxyConfig := anonConfig
 	proxyConfig.CertData = clientCert
 	proxyConfig.KeyData = clientKey
-	proxyTransport, err = kclient.TransportFor(&proxyConfig)
+	proxyTransport, err = restclient.TransportFor(&proxyConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

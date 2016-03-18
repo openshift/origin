@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -21,7 +21,7 @@ import (
 
 type FakeClientConfig struct {
 	Raw      clientcmdapi.Config
-	Client   *client.Config
+	Client   *restclient.Config
 	NS       string
 	Explicit bool
 	Err      error
@@ -33,7 +33,7 @@ func (c *FakeClientConfig) RawConfig() (clientcmdapi.Config, error) {
 }
 
 // ClientConfig returns a complete client config
-func (c *FakeClientConfig) ClientConfig() (*client.Config, error) {
+func (c *FakeClientConfig) ClientConfig() (*restclient.Config, error) {
 	return c.Client, c.Err
 }
 

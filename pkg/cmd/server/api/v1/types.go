@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -68,6 +69,23 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig VolumeConfig `json:"volumeConfig"`
+}
+
+// VolumeConfig contains options for configuring volumes on the node.
+type VolumeConfig struct {
+	// LocalQuota contains options for controlling local volume quota on the node.
+	LocalQuota LocalQuota `json:"localQuota"`
+}
+
+// LocalQuota contains options for controlling local volume quota on the node.
+type LocalQuota struct {
+	// FSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
+	// At present this is only implemented for emptyDir volumes, and if the underlying
+	// volumeDirectory is on an XFS filesystem.
+	PerFSGroup *resource.Quantity `json:"perFSGroup"`
 }
 
 // NodeAuthConfig holds authn/authz configuration options
@@ -330,6 +348,11 @@ type MasterNetworkConfig struct {
 	HostSubnetLength uint `json:"hostSubnetLength"`
 	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
 }
 
 // ImageConfig holds the necessary configuration options for building image names for system components

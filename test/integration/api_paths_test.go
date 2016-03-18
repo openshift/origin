@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -38,7 +39,7 @@ func TestRootAPIPaths(t *testing.T) {
 		t.Fatalf("unexpected error getting cluster admin client config: %v", err)
 	}
 
-	transport, err := kclient.TransportFor(clientConfig)
+	transport, err := restclient.TransportFor(clientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error getting transport for client config: %v", err)
 	}
@@ -59,7 +60,7 @@ func TestRootAPIPaths(t *testing.T) {
 	// We need to make sure that any APILevels specified in the config are present in the RootPaths, and that
 	// any not specified are not
 	expectedOpenShiftAPILevels := sets.NewString(masterConfig.APILevels...)
-	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, configapi.APIGroupKube)...)
+	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, kapi.GroupName)...)
 	actualOpenShiftAPILevels := sets.String{}
 	actualKubeAPILevels := sets.String{}
 	for _, route := range broadcastRootPaths.Paths {

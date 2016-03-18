@@ -33,7 +33,7 @@ var url string
 
 // RequireEtcd verifies if the etcd is running and accessible for testing
 func RequireEtcd(t *testing.T) *etcdtest.EtcdTestServer {
-	s := etcdtest.NewEtcdTestClientServer(t)
+	s := etcdtest.NewUnsecuredEtcdTestClientServer(t)
 	url = s.Client.Endpoints()[0]
 	return s
 }

@@ -73,7 +73,7 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 
 	errs := []error{}
 	for i, item := range list.Items {
-		info, err := resourceMapper.InfoForObject(item)
+		info, err := resourceMapper.InfoForObject(item, nil)
 		if err != nil {
 			errs = append(errs, err)
 			if after(info, err) {

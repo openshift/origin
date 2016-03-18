@@ -15,7 +15,7 @@ os::log::install_errexit
   oc delete all,templates --all
   oc delete template/ruby-helloworld-sample -n openshift
   oc delete project test-template-project
-  os::cmd::try_until_failure 'oc get project test-template-project'
+  wait_for_command '! oc get project test-template-project'
   exit 0
 ) &>/dev/null
 
@@ -80,8 +80,8 @@ echo "template data precision: ok"
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift'
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 new="$(mktemp -d)/tempconfig"
-os::cmd::expect_success "oc config view --raw > $new"
-export KUBECONFIG=$new
+os::cmd::expect_success "oc config view --raw > ${new}"
+export KUBECONFIG=${new}
 os::cmd::expect_success 'oc login -u test-user -p password'
 os::cmd::expect_success 'oc new-project test-template-project'
 # make sure the permissions on the new project are set up
