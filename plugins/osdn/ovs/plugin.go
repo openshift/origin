@@ -20,7 +20,6 @@ import (
 type ovsPlugin struct {
 	osdn.OvsController
 
-	MTU         uint
 	multitenant bool
 }
 
@@ -62,8 +61,6 @@ func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnet
 }
 
 func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
-	plugin.MTU = mtu
-
 	networkChanged, err := plugin.SubnetStartNode(mtu)
 	if err != nil {
 		return err
@@ -146,7 +143,7 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 	return rsrc.Value(), nil
 }
 
-func extractBandwidthResources(pod *api.Pod, MTU uint) (ingress, egress int64, err error) {
+func extractBandwidthResources(pod *api.Pod) (ingress, egress int64, err error) {
 	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
@@ -177,7 +174,7 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 	if pod == nil {
 		return fmt.Errorf("failed to retrieve pod %s/%s", namespace, name)
 	}
-	ingress, egress, err := extractBandwidthResources(pod, plugin.MTU)
+	ingress, egress, err := extractBandwidthResources(pod)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod %s/%s ingress/egress quantity: %v", namespace, name, err)
 	}
@@ -194,14 +191,14 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%d", plugin.MTU)).CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 	return err
 }
 
 func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1", "-1").CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
 	return err
 }

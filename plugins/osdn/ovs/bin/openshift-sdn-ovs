@@ -8,7 +8,6 @@ net_container=$2
 tenant_id=$3
 ingress_bw=$4
 egress_bw=$5
-mtu=$6
 
 lockwrap() {
     (
