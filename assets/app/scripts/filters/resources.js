@@ -862,11 +862,11 @@ angular.module('openshiftConsole')
   .filter('podStatus', function() {
     // Return results that match kubernetes/pkg/kubectl/resource_printer.go
     return function(pod) {
-      if (!pod || (!pod.deletionTimestamp && !pod.status)) {
+      if (!pod || (!pod.metadata.deletionTimestamp && !pod.status)) {
         return '';
       }
 
-      if (pod.deletionTimestamp) {
+      if (pod.metadata.deletionTimestamp) {
         return 'Terminating';
       }
 

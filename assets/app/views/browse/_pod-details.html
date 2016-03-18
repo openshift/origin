@@ -3,12 +3,20 @@
     <div class="col-lg-6">
       <h3>Status</h3>
       <dl class="dl-horizontal left">
-        <dt>Phase:</dt>
+        <dt>Status:</dt>
         <dd>
-          <status-icon status="pod.status.phase"></status-icon>
-          {{pod.status.phase}}
-          <span ng-if="pod.status.reason">
-            ({{pod.status.reason}})
+          <status-icon status="pod | podStatus"></status-icon>
+          {{pod | podStatus | sentenceCase}}
+          <span ng-if="pod.metadata.deletionTimestamp">(expires {{pod.metadata.deletionTimestamp | date : 'medium'}})</span>
+        </dd>
+        <dt ng-if-start="pod.metadata.deletionTimestamp && pod.spec.terminationGracePeriodSeconds">Grace Period:</dt>
+        <dd ng-if-end>
+          <!-- Don't show "a few seconds" for small values. -->
+          <span ng-if="pod.spec.terminationGracePeriodSeconds < 60">
+            {{pod.spec.terminationGracePeriodSeconds}} seconds
+          </span>
+          <span ng-if="pod.spec.terminationGracePeriodSeconds >= 60">
+            {{pod.spec.terminationGracePeriodSeconds | humanizeDurationValue : 'seconds'}}
           </span>
         </dd>
         <dt ng-if-start="pod.status.message">Message:</dt>
@@ -21,7 +29,13 @@
         <dd>{{pod.spec.restartPolicy || 'Always'}}</dd>
         <dt ng-if-start="pod.spec.activeDeadlineSeconds">Active Deadline:</dt>
         <dd ng-if-end>
-          {{pod.spec.activeDeadlineSeconds | humanizeDurationValue : 'seconds'}}
+          <!-- Don't show "a few seconds" for small values. -->
+          <span ng-if="pod.spec.activeDeadlineSeconds < 60">
+            {{pod.spec.activeDeadlineSeconds}} seconds
+          </span>
+          <span ng-if="pod.spec.activeDeadlineSeconds >= 60">
+            {{pod.spec.activeDeadlineSeconds | humanizeDurationValue : 'seconds'}}
+          </span>
           <span ng-if="pod.status.phase === 'Running' && pod.status.startTime" class="text-muted">
             (<duration-until-now timestamp="pod.status.startTime"></duration-until-now> elapsed)
           </span>
