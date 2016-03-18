@@ -212,6 +212,10 @@ func TestAdmit(t *testing.T) {
 			config: singleDefaultConfig(),
 			user:   "user1",
 		},
+		{
+			config: nil,
+			user:   "user3",
+		},
 	}
 
 	for _, tc := range tests {
