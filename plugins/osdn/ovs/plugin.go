@@ -162,6 +162,19 @@ func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error)
 	return ingress, egress, nil
 }
 
+func wantsMacvlan(pod *kapi.Pod) (bool, error) {
+	val, found := pod.Annotations["pod.network.openshift.io/assign-macvlan"]
+	if !found || val != "true" {
+		return false, nil
+	}
+	for _, container := range pod.Spec.Containers {
+		if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("Pod has 'pod.network.openshift.io/assign-macvlan' annotation but is not privileged")
+}
+
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
@@ -192,7 +205,12 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr).CombinedOutput()
+	macvlan, err := wantsMacvlan(pod)
+	if err != nil {
+		return err
+	}
+
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 	return err
 }
