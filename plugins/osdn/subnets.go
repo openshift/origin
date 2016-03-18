@@ -130,7 +130,9 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 	subnets := result.([]osapi.HostSubnet)
 	for _, s := range subnets {
-		oc.pluginHooks.AddOFRules(s.HostIP, s.Subnet, oc.localIP)
+		if s.HostIP != oc.localIP {
+			oc.pluginHooks.AddHostSubnetRules(&s)
+		}
 	}
 
 	return networkChanged, nil
@@ -225,17 +227,18 @@ func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	for {
 		select {
 		case ev := <-clusterEvent:
+			if ev.HostSubnet.HostIP == oc.localIP {
+				continue
+			}
 			switch ev.Type {
 			case Added:
 				if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
 					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
 					continue
 				}
-				// add openflow rules
-				oc.pluginHooks.AddOFRules(ev.HostSubnet.HostIP, ev.HostSubnet.Subnet, oc.localIP)
+				oc.pluginHooks.AddHostSubnetRules(ev.HostSubnet)
 			case Deleted:
-				// delete openflow rules meant for the node
-				oc.pluginHooks.DelOFRules(ev.HostSubnet.HostIP, oc.localIP)
+				oc.pluginHooks.DeleteHostSubnetRules(ev.HostSubnet)
 			}
 		case <-oc.sig:
 			stop <- true

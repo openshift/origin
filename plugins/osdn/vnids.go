@@ -202,9 +202,7 @@ func (oc *OsdnController) VnidStartNode() error {
 			return fmt.Errorf("Error fetching Net ID for namespace: %s", svc.Namespace)
 		}
 		oc.services[string(svc.UID)] = &svc
-		for _, port := range svc.Spec.Ports {
-			oc.pluginHooks.AddServiceOFRules(netid, svc.Spec.ClusterIP, port.Protocol, port.Port)
-		}
+		oc.pluginHooks.AddServiceRules(&svc, netid)
 	}
 
 	getPods := func(registry *Registry) (interface{}, string, error) {
@@ -237,10 +235,8 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID, oldNetID uin
 		return err
 	}
 	for _, svc := range services {
-		for _, port := range svc.Spec.Ports {
-			oc.pluginHooks.DelServiceOFRules(oldNetID, svc.Spec.ClusterIP, port.Protocol, port.Port)
-			oc.pluginHooks.AddServiceOFRules(netID, svc.Spec.ClusterIP, port.Protocol, port.Port)
-		}
+		oc.pluginHooks.DeleteServiceRules(&svc, oldNetID)
+		oc.pluginHooks.AddServiceRules(&svc, netID)
 	}
 	return nil
 }
@@ -296,14 +292,10 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 			switch ev.Type {
 			case Added:
 				oc.services[string(ev.Service.UID)] = ev.Service
-				for _, port := range ev.Service.Spec.Ports {
-					oc.pluginHooks.AddServiceOFRules(netid, ev.Service.Spec.ClusterIP, port.Protocol, port.Port)
-				}
+				oc.pluginHooks.AddServiceRules(ev.Service, netid)
 			case Deleted:
 				delete(oc.services, string(ev.Service.UID))
-				for _, port := range ev.Service.Spec.Ports {
-					oc.pluginHooks.DelServiceOFRules(netid, ev.Service.Spec.ClusterIP, port.Protocol, port.Port)
-				}
+				oc.pluginHooks.DeleteServiceRules(ev.Service, netid)
 			case Modified:
 				oldsvc, exists := oc.services[string(ev.Service.UID)]
 				if exists && len(oldsvc.Spec.Ports) == len(ev.Service.Spec.Ports) {
@@ -319,14 +311,10 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 					}
 				}
 				if exists {
-					for _, port := range oldsvc.Spec.Ports {
-						oc.pluginHooks.DelServiceOFRules(netid, oldsvc.Spec.ClusterIP, port.Protocol, port.Port)
-					}
+					oc.pluginHooks.DeleteServiceRules(oldsvc, netid)
 				}
 				oc.services[string(ev.Service.UID)] = ev.Service
-				for _, port := range ev.Service.Spec.Ports {
-					oc.pluginHooks.AddServiceOFRules(netid, ev.Service.Spec.ClusterIP, port.Protocol, port.Port)
-				}
+				oc.pluginHooks.AddServiceRules(ev.Service, netid)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of services.")
