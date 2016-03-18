@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -946,9 +947,9 @@ func TestRouterServiceUnavailable(t *testing.T) {
 		}
 
 		httpClient := &http.Client{
-			Transport: &http.Transport{
+			Transport: knet.SetTransportDefaults(&http.Transport{
 				TLSClientConfig: tlsConfig,
-			},
+			}),
 		}
 		req, err := http.NewRequest("GET", uri, nil)
 		if err != nil {
@@ -1043,9 +1044,9 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 
 	switch protocol {
 	case "http", "https":
-		httpClient := &http.Client{Transport: &http.Transport{
+		httpClient := &http.Client{Transport: knet.SetTransportDefaults(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		},
+		}),
 		}
 		req, err := http.NewRequest("GET", url, nil)
 
@@ -1263,7 +1264,7 @@ func validateServer(server *tr.TestHttpService, t *testing.T) {
 		t.Errorf("Error validating master addr %s : %v", server.MasterHttpAddr, err)
 	}
 
-	secureTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	secureTransport := knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}})
 	secureClient := &http.Client{Transport: secureTransport}
 	_, err = secureClient.Get("https://" + server.PodHttpsAddr)
 

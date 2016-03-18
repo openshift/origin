@@ -10,17 +10,19 @@ import (
 	"strings"
 	"testing"
 
+	knet "k8s.io/kubernetes/pkg/util/net"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirectLocation string) *http.Response {
-	transport := &http.Transport{
+	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-	}
+	})
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Accept", "text/html")
