@@ -19,15 +19,6 @@ import (
 )
 
 func TestRootAPIPaths(t *testing.T) {
-	// ExceptionalExpectedCodes are codes that we expect, but are not http.StatusOK.
-	// These codes are expected because the response from a GET on our root should
-	// expose endpoints for discovery, but will not necessarily expose endpoints that
-	// are supported as written - i.e. versioned endpoints or endpoints that need
-	// context will 404 with the correct credentials and that is OK.
-	ExceptionalExpectedCodes := map[string]int{
-		"/logs/": http.StatusNotFound,
-	}
-
 	testutil.RequireEtcd(t)
 	masterConfig, adminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
@@ -88,11 +79,7 @@ func TestRootAPIPaths(t *testing.T) {
 			t.Errorf("unexpected error issuing GET for path %q: %v", route, err)
 			continue
 		}
-		// Look up expected code if exceptional or default to 200
-		expectedCode, exists := ExceptionalExpectedCodes[route]
-		if !exists {
-			expectedCode = http.StatusOK
-		}
+		expectedCode := http.StatusOK
 		if resp.StatusCode != expectedCode {
 			t.Errorf("incorrect status code for %s endpoint: expected %d, got %d", route, expectedCode, resp.StatusCode)
 		}
