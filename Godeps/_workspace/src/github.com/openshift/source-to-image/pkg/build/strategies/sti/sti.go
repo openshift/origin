@@ -108,7 +108,7 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 	// which would lead to replacing this quick short circuit (so this change is tactical)
 	b.source = overrides.Downloader
 	if b.source == nil && !req.Usage {
-		downloader, sourceURL, err := scm.DownloaderForSource(req.Source)
+		downloader, sourceURL, err := scm.DownloaderForSource(req.Source, req.ForceCopy)
 		if err != nil {
 			return nil, err
 		}
@@ -412,7 +412,6 @@ func (b *STI) Save(config *api.Config) (err error) {
 
 	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
 	err = b.docker.RunContainer(opts)
-
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewSaveArtifactsError(image, e.Output, err)
 	}
@@ -513,8 +512,8 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 		close(injectionComplete)
 	}
 
+	wg := sync.WaitGroup{}
 	if !config.LayeredBuild {
-		wg := sync.WaitGroup{}
 		wg.Add(1)
 		uploadDir := filepath.Join(config.WorkingDir, "upload")
 		// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
@@ -571,6 +570,10 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
 
 	err = b.docker.RunContainer(opts)
+	if util.IsTimeoutError(err) {
+		// Cancel waiting for source input if the container timeouts
+		wg.Done()
+	}
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
 	}

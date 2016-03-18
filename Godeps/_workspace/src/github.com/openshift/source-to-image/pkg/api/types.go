@@ -148,6 +148,11 @@ type Config struct {
 	// (default: false).
 	Quiet bool
 
+	// ForceCopy results in only the file SCM plugin being used (i.e. no `git clone`); allows for empty directories to be included
+	// in resulting image (since git does not support that).
+	// (default: false).
+	ForceCopy bool
+
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
