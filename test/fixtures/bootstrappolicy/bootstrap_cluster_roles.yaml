@@ -1411,6 +1411,25 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: system:gc-controller
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - delete
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: system:hpa-controller
   rules:
   - apiGroups:
