@@ -36,8 +36,8 @@ type UserEventNotification struct {
   unversioned.TypeMeta
   // Name is a User.Name.
   kapi.ObjectMeta
-  // Notifications maps an event type to list of EventNotificationType references. A user
-  // can be notified of an event in multiple ways.
+  // Notifications map an event type to a list of EventNotificationType references. A user
+  // can receive multiple notifications for an event.
   Notifications map[string][]ObjectReference
 }
 
@@ -120,4 +120,3 @@ Users can update their notification preferences via the Origin console, CLI, or 
 ## Comparison With Custom Eventing
 
 TODO: Explain why it's better to rely on native events emitted by Kubernetes/OpenShift rather than synthesizing events on the fly based on watching non-Event API types.
-
