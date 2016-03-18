@@ -17,7 +17,7 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "rails-postgresql-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Exposes and load balances the application pods"
         }
@@ -31,7 +31,7 @@
           }
         ],
         "selector": {
-          "name": "rails-postgresql-example"
+          "name": "${NAME}"
         }
       }
     },
@@ -39,13 +39,13 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "rails-postgresql-example"
+        "name": "${NAME}"
       },
       "spec": {
         "host": "${APPLICATION_DOMAIN}",
         "to": {
           "kind": "Service",
-          "name": "rails-postgresql-example"
+          "name": "${NAME}"
         }
       }
     },
@@ -53,7 +53,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "rails-postgresql-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Keeps track of changes in the application image"
         }
@@ -63,7 +63,7 @@
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "rails-postgresql-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Defines how to build the application"
         }
@@ -82,7 +82,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "namespace": "openshift",
+              "namespace": "${NAMESPACE}",
               "name": "ruby:2.2"
             }
           }
@@ -90,7 +90,7 @@
         "output": {
           "to": {
             "kind": "ImageStreamTag",
-            "name": "rails-postgresql-example:latest"
+            "name": "${NAME}:latest"
           }
         },
         "triggers": [
@@ -116,7 +116,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "rails-postgresql-example",
+        "name": "${NAME}",
         "annotations": {
           "description": "Defines how to deploy the application server"
         }
@@ -131,7 +131,7 @@
                 "command": [
                   "./migrate-database.sh"
                 ],
-                "containerName": "rails-postgresql-example"
+                "containerName": "${NAME}"
               }
             }
           }
@@ -146,7 +146,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "rails-postgresql-example:latest"
+                "name": "${NAME}:latest"
               }
             }
           },
@@ -156,13 +156,13 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "rails-postgresql-example"
+          "name": "${NAME}"
         },
         "template": {
           "metadata": {
-            "name": "rails-postgresql-example",
+            "name": "${NAME}",
             "labels": {
-              "name": "rails-postgresql-example"
+              "name": "${NAME}"
             }
           },
           "spec": {
@@ -293,7 +293,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "namespace": "openshift",
+                "namespace": "${NAMESPACE}",
                 "name": "postgresql:9.4"
               }
             }
@@ -373,107 +373,114 @@
   ],
   "parameters": [
     {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "rails-postgresql-example"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the Rails container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the Rails container can use.",
       "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the PostgreSQL container can use",
+      "displayName": "Memory Limit (PostgreSQL)",
+      "description": "Maximum amount of memory the PostgreSQL container can use.",
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
-      "displayName": "Source repository URL",
-      "description": "The URL of the repository with your application source code",
+      "displayName": "Git Repository URL",
+      "description": "The URL of the repository with your application source code.",
       "value": "https://github.com/openshift/rails-ex.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
-      "displayName": "Source repository reference",
-      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch"
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
     },
     {
       "name": "CONTEXT_DIR",
-      "displayName": "Context directory",
-      "description": "Set this to the relative path to your project if it is not in the root of your repository"
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
     },
     {
       "name": "APPLICATION_DOMAIN",
-      "displayName": "Application hostname",
+      "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to the Rails service, if left blank a value will be defaulted.",
       "value": ""
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
-      "displayName": "GitHub webhook secret",
-      "description": "A secret string used to configure the GitHub webhook",
+      "displayName": "GitHub Webhook Secret",
+      "description": "A secret string used to configure the GitHub webhook.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
     {
       "name": "SECRET_KEY_BASE",
-      "displayName": "Secret key",
-      "description": "Your secret key for verifying the integrity of signed cookies",
+      "displayName": "Secret Key",
+      "description": "Your secret key for verifying the integrity of signed cookies.",
       "generate": "expression",
       "from": "[a-z0-9]{127}"
     },
     {
       "name": "APPLICATION_USER",
-      "displayName": "Application user name",
-      "description": "The application user that is used within the sample application to authorize access on pages",
+      "displayName": "Application Username",
+      "description": "The application user that is used within the sample application to authorize access on pages.",
       "value": "openshift"
     },
     {
       "name": "APPLICATION_PASSWORD",
-      "displayName": "Application password",
-      "description": "The application password that is used within the sample application to authorize access on pages",
+      "displayName": "Application Password",
+      "description": "The application password that is used within the sample application to authorize access on pages.",
       "value": "secret"
     },
     {
       "name": "RAILS_ENV",
-      "displayName": "Rails environment",
-      "description": "Environment under which the sample application will run. Could be set to production, development or test",
+      "displayName": "Rails Environment",
+      "description": "Environment under which the sample application will run. Could be set to production, development or test.",
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database service name",
-      "description": "Database service name",
+      "displayName": "Database Service Name",
       "value": "postgresql"
     },
     {
       "name": "DATABASE_USER",
-      "displayName": "Database user name",
-      "description": "database username",
+      "displayName": "Database Username",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
       "name": "DATABASE_PASSWORD",
-      "displayName": "Database password",
-      "description": "database password",
+      "displayName": "Database Password",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DATABASE_NAME",
-      "displayName": "Database name",
-      "description": "database name",
+      "displayName": "Database Name",
       "value": "root"
     },
     {
       "name": "POSTGRESQL_MAX_CONNECTIONS",
-      "displayName": "Maximum database connections",
-      "description": "database max connections",
+      "displayName": "Maximum Database Connections",
       "value": "100"
     },
     {
       "name": "POSTGRESQL_SHARED_BUFFERS",
-      "displayName": "Shared buffer amount",
-      "description": "database shared buffers",
+      "displayName": "Shared Buffer Amount",
       "value": "12MB"
     }
   ]

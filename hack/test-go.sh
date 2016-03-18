@@ -80,7 +80,7 @@ fi
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
 test_kube="${TEST_KUBE:-}"
-test_timeout="${TIMEOUT:-60s}"
+test_timeout="${TIMEOUT:-120s}"
 detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
@@ -158,10 +158,16 @@ done
 gotest_flags+=" $*"
 
 # Determine packages to test
+godeps_package_prefix="Godeps/_workspace/src/"
 test_packages=
 if [[ -n "${package_args}" ]]; then
     for package in ${package_args}; do
-        test_packages="${test_packages} ${OS_GO_PACKAGE}/${package}"
+        # If we're trying to recursively test a package under Godeps, strip the Godeps prefix so go test can find the packages correctly
+        if [[ "${package}" == "${godeps_package_prefix}"*"/..." ]]; then
+            test_packages="${test_packages} ${package:${#godeps_package_prefix}}"
+        else
+            test_packages="${test_packages} ${OS_GO_PACKAGE}/${package}"
+        fi
     done
 else
     # If no packages are given to test, we need to generate a list of all packages with unit tests

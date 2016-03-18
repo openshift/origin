@@ -184,7 +184,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/nodejs-010-centos7"
+        "dockerImageRepository": "${NAMESPACE}/nodejs-010-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -322,21 +322,27 @@
   "parameters": [
     {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
       "value": "512Mi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
     },
    {
       "name": "ADMIN_USERNAME",
-      "displayName": "Administrator username",
-      "description": "Username for the administrator of this application",
+      "displayName": "Administrator Username",
+      "description": "Username for the administrator of this application.",
       "generate": "expression",
       "from": "admin[A-Z0-9]{3}"
     },
     {
       "name": "ADMIN_PASSWORD",
-      "displayName": "Administrator password",
-      "description": "Password for the administrator of this application",
+      "displayName": "Administrator Password",
+      "description": "Password for the administrator of this application.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     }

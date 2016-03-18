@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/go-etcd/etcd"
+	"golang.org/x/net/context"
+
+	etcd "github.com/coreos/etcd/client"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -55,10 +57,10 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
-func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := etcd.NewClient(server.ClientURLs.StringSlice())
+	etcdClient := etcd.NewKeysAPI(server.Client)
 
 	imageStorage := imageetcd.NewREST(etcdStorage)
 	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -215,10 +217,18 @@ func TestGetImageStreamTag(t *testing.T) {
 		defer server.Terminate(t)
 
 		if testCase.image != nil {
-			client.Create(etcdtest.AddPrefix("/images/"+testCase.image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/images/"+testCase.image.Name),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image),
+			)
 		}
 		if testCase.repo != nil {
-			client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/default/test"),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+			)
 		}
 
 		obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
@@ -280,8 +290,16 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
-	client.Create(etcdtest.AddPrefix("/images/"+image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image), 0)
-	client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo), 0)
+	client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/images/"+image.Name),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image),
+	)
+	client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/test"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
+	)
 	obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -401,7 +419,11 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		defer server.Terminate(t)
 
 		if testCase.repo != nil {
-			client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/default/test"),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+			)
 		}
 
 		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})

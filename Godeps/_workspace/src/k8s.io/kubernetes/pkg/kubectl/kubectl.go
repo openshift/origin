@@ -18,6 +18,9 @@ limitations under the License.
 package kubectl
 
 import (
+	"errors"
+	"fmt"
+	"path"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -71,7 +74,7 @@ func (m OutputVersionMapper) RESTMapping(gk unversioned.GroupKind, versions ...s
 }
 
 // ShortcutExpander is a RESTMapper that can be used for Kubernetes
-// resources.  It expands the resource first, then invokes the wrapped
+// resources.  It expands the resource first, then invokes the wrapped RESTMapper
 type ShortcutExpander struct {
 	RESTMapper meta.RESTMapper
 }
@@ -94,10 +97,6 @@ func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource)
 	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
 }
 
-func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
-}
-
 func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
 	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
 }
@@ -113,6 +112,8 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 // shortForms is the list of short names to their expanded names
 var shortForms = map[string]string{
 	// Please keep this alphabetized
+	// If you add an entry here, please also take a look at pkg/kubectl/cmd/cmd.go
+	// and add an entry to valid_resources when appropriate.
 	"cs":     "componentstatuses",
 	"ds":     "daemonsets",
 	"ep":     "endpoints",
@@ -129,9 +130,8 @@ var shortForms = map[string]string{
 	"quota":  "resourcequotas",
 	"rc":     "replicationcontrollers",
 	"rs":     "replicasets",
+	"scc":    "securitycontextconstraints",
 	"svc":    "services",
-
-	"scc": "securityContextConstraints",
 }
 
 // expandResourceShortcut will return the expanded version of resource
@@ -141,7 +141,39 @@ func expandResourceShortcut(resource unversioned.GroupVersionResource) unversion
 	if expanded, ok := shortForms[resource.Resource]; ok {
 		// don't change the group or version that's already been specified
 		resource.Resource = expanded
-		return resource
 	}
 	return resource
+}
+
+// parseFileSource parses the source given. Acceptable formats include:
+//
+// 1.  source-path: the basename will become the key name
+// 2.  source-name=source-path: the source-name will become the key name and source-path is the path to the key file
+//
+// Key names cannot include '='.
+func parseFileSource(source string) (keyName, filePath string, err error) {
+	numSeparators := strings.Count(source, "=")
+	switch {
+	case numSeparators == 0:
+		return path.Base(source), source, nil
+	case numSeparators == 1 && strings.HasPrefix(source, "="):
+		return "", "", fmt.Errorf("key name for file path %v missing.", strings.TrimPrefix(source, "="))
+	case numSeparators == 1 && strings.HasSuffix(source, "="):
+		return "", "", fmt.Errorf("file path for key name %v missing.", strings.TrimSuffix(source, "="))
+	case numSeparators > 1:
+		return "", "", errors.New("Key names or file paths cannot contain '='.")
+	default:
+		components := strings.Split(source, "=")
+		return components[0], components[1], nil
+	}
+}
+
+// parseLiteralSource parses the source key=val pair
+func parseLiteralSource(source string) (keyName, value string, err error) {
+	items := strings.Split(source, "=")
+	if len(items) != 2 {
+		return "", "", fmt.Errorf("invalid literal source %v, expected key=value", source)
+	}
+
+	return items[0], items[1], nil
 }

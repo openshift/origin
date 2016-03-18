@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -88,7 +88,7 @@ func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview)
 }
 
 // overrideAuth specifies the token to authenticate the request with.  token == "" is not allowed
-func overrideAuth(token *string, req *client.Request) (*client.Request, error) {
+func overrideAuth(token *string, req *restclient.Request) (*restclient.Request, error) {
 	if token != nil {
 		if len(*token) == 0 {
 			return nil, errors.New("impersonating token may not be empty")

@@ -16,7 +16,10 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/capabilities"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -531,38 +534,45 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {
-		_, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
+		_, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
-		_, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
+		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
-		hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
+		_, hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
-		_, recyclerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
+		_, _, recyclerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume recycler controller: %v", err)
 		}
 
-		_, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
+		_, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
 		}
 
-		_, provisionerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeProvisionerControllerServiceAccountName)
+		_, _, provisionerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeProvisionerControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume provisioner controller: %v", err)
 		}
 
-		_, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
+		_, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
+
+		namespaceControllerClientConfig, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for namespace controller: %v", err)
+		}
+		namespaceControllerClientSet := internalclientset.FromUnversionedClient(namespaceControllerKubeClient)
+		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
 
 		// called by admission control
 		kc.RunResourceQuotaManager()
@@ -572,13 +582,25 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
-		if len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, configapi.APIGroupExtensions)) > 0 {
+
+		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
+
+		// TODO: enable this check once the job controller can use the batch API if the extensions API is disabled
+		// batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
+		if extensionsEnabled /*|| batchEnabled*/ {
 			kc.RunJobController(jobClient)
+		}
+		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
+		// autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
+		if extensionsEnabled /*|| autoscalingEnabled*/ {
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+		}
+		if extensionsEnabled {
 			kc.RunDaemonSetsController(daemonSetClient)
 		}
+
 		kc.RunEndpointController()
-		kc.RunNamespaceController()
+		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeClaimBinder(binderClient)
 		kc.RunPersistentVolumeProvisioner(provisionerClient)
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)

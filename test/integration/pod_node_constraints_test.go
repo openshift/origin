@@ -188,7 +188,7 @@ func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]s
 	rs := &extensions.ReplicaSet{}
 	rs.Name = "testrs"
 	rs.Spec.Replicas = 1
-	rs.Spec.Template = &kapi.PodTemplateSpec{}
+	rs.Spec.Template = kapi.PodTemplateSpec{}
 	rs.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	rs.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	rs.Spec.Selector = &unversioned.LabelSelector{
@@ -203,9 +203,8 @@ func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) 
 	job.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	job.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	job.Spec.Template.Spec.RestartPolicy = kapi.RestartPolicyNever
-	job.Spec.Selector = &unversioned.LabelSelector{
-		MatchLabels: map[string]string{"foo": "bar"},
-	}
+	// Matching selector is now generated automatically
+	// job.Spec.Selector = ...
 	return job
 }
 

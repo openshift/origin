@@ -9,6 +9,8 @@ import (
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/jenkins"
 	_ "github.com/openshift/origin/test/extended/jobs"
+	_ "github.com/openshift/origin/test/extended/localquota"
+	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
 
@@ -21,5 +23,5 @@ func init() {
 }
 
 func TestExtended(t *testing.T) {
-	exutil.ExecuteTest(t, "Extended Core")
+	exutil.ExecuteTest(t, "Extended")
 }

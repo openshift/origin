@@ -29,8 +29,10 @@ NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
-  # intra-pod test is currrently broken for origin
+  # Skip tests that require secrets.  Secrets are not supported by
+  # dind without docker >= 1.10.
   "Networking should function for intra-pod"
+  "openshift router"
 
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"
@@ -199,15 +201,13 @@ esac
 
 TEST_EXTRA_ARGS="$@"
 
-os::log::info "Building networking test binary"
-TEST_BINARY="${OS_OUTPUT_BINPATH}/networking.test"
-if [ -f "${TEST_BINARY}" ] &&
-   [ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]; then
+if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
+     [[ -n $(os::build::find-binary extended.test) ]]; then
   os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
 else
-  os::build::setup_env
-  go test -c ./test/extended/networking -o "${TEST_BINARY}"
+  hack/build-go.sh test/extended/extended.test
 fi
+TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
 os::log::info "Starting 'networking' extended tests"
 if [ "${CONFIG_ROOT}" != "" ]; then

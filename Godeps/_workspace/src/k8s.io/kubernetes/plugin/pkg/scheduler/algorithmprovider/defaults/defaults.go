@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
@@ -30,10 +31,6 @@ import (
 
 	"github.com/golang/glog"
 )
-
-// Amazon reccomends having no more that 40 volumes attached to an instance,
-// and at least one of those is for the system root volume.
-const DefaultMaxEBSVolumes = 39
 
 // GCE instances can have up to 16 PD volumes attached.
 const DefaultMaxGCEPDVolumes = 16
@@ -68,7 +65,7 @@ func init() {
 		"ServiceSpreadingPriority",
 		factory.PriorityConfigFactory{
 			Function: func(args factory.PluginFactoryArgs) algorithm.PriorityFunction {
-				return priorities.NewSelectorSpreadPriority(args.PodLister, args.ServiceLister, algorithm.EmptyControllerLister{})
+				return priorities.NewSelectorSpreadPriority(args.PodLister, args.ServiceLister, algorithm.EmptyControllerLister{}, algorithm.EmptyReplicaSetLister{})
 			},
 			Weight: 1,
 		},
@@ -76,6 +73,10 @@ func init() {
 	// PodFitsPorts has been replaced by PodFitsHostPorts for better user understanding.
 	// For backwards compatibility with 1.0, PodFitsPorts is regitered as well.
 	factory.RegisterFitPredicate("PodFitsPorts", predicates.PodFitsHostPorts)
+	// ImageLocalityPriority prioritizes nodes based on locality of images requested by a pod. Nodes with larger size
+	// of already-installed packages required by the pod will be preferred over nodes with no already-installed
+	// packages required by the pod or a small total size of already-installed packages required by the pod.
+	factory.RegisterPriorityFunction("ImageLocalityPriority", priorities.ImageLocalityPriority, 1)
 }
 
 func defaultPredicates() sets.String {
@@ -113,7 +114,7 @@ func defaultPredicates() sets.String {
 			"MaxEBSVolumeCount",
 			func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
 				// TODO: allow for generically parameterized scheduler predicates, because this is a bit ugly
-				maxVols := getMaxVols(DefaultMaxEBSVolumes)
+				maxVols := getMaxVols(aws.DefaultMaxEBSVolumes)
 				return predicates.NewMaxPDVolumeCountPredicate(predicates.EBSVolumeFilter, maxVols, args.PVInfo, args.PVCInfo)
 			},
 		),
@@ -141,7 +142,7 @@ func defaultPriorities() sets.String {
 			"SelectorSpreadPriority",
 			factory.PriorityConfigFactory{
 				Function: func(args factory.PluginFactoryArgs) algorithm.PriorityFunction {
-					return priorities.NewSelectorSpreadPriority(args.PodLister, args.ServiceLister, args.ControllerLister)
+					return priorities.NewSelectorSpreadPriority(args.PodLister, args.ServiceLister, args.ControllerLister, args.ReplicaSetLister)
 				},
 				Weight: 1,
 			},

@@ -196,6 +196,63 @@ func IsAncestor(commit1, commit2, repoDir string) (bool, error) {
 	return true, nil
 }
 
+func CommitDate(commit, repoDir string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return "", err
+	}
+
+	if stdout, stderr, err := run("git", "fetch", "origin"); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+
+	if stdout, stderr, err := run("git", "show", "-s", "--format=%ci", commit); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	} else {
+		return strings.TrimSpace(stdout), nil
+	}
+}
+
+func Checkout(commit, repoDir string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return err
+	}
+
+	if stdout, stderr, err := run("git", "checkout", commit); err != nil {
+		return fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+	return nil
+}
+
+func CurrentRev(repoDir string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return "", err
+	}
+
+	if stdout, stderr, err := run("git", "rev-parse", "HEAD"); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	} else {
+		return strings.TrimSpace(stdout), nil
+	}
+}
+
 func filesInCommit(sha string) ([]File, error) {
 	files := []File{}
 	stdout, _, err := run("git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha)

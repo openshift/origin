@@ -28,7 +28,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	fake_cloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/volume"
+	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -92,10 +92,10 @@ func makeTestClaim() *api.PersistentVolumeClaim {
 	}
 }
 
-func makeTestController() (*PersistentVolumeProvisionerController, *mockControllerClient, *volume.FakeVolumePlugin) {
+func makeTestController() (*PersistentVolumeProvisionerController, *mockControllerClient, *volumetest.FakeVolumePlugin) {
 	mockClient := &mockControllerClient{}
-	mockVolumePlugin := &volume.FakeVolumePlugin{}
-	controller, _ := NewPersistentVolumeProvisionerController(mockClient, 1*time.Second, nil, mockVolumePlugin, &fake_cloud.FakeCloud{})
+	mockVolumePlugin := &volumetest.FakeVolumePlugin{}
+	controller, _ := NewPersistentVolumeProvisionerController(mockClient, 1*time.Second, "fake-kubernetes", nil, mockVolumePlugin, &fake_cloud.FakeCloud{})
 	return controller, mockClient, mockVolumePlugin
 }
 

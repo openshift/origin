@@ -37,7 +37,7 @@ var _ = g.Describe("[job] openshift can execute jobs", func() {
 			o.Expect(logs).Should(o.Equal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068"))
 
 			g.By("checking job status")
-			jobs, err := oc.KubeREST().Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie("app=pi")})
+			jobs, err := oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie("app=pi")})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(len(jobs.Items)).Should(o.Equal(1))

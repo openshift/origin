@@ -17,6 +17,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -57,7 +58,7 @@ func init() {
 	)
 
 	secureTransport = http.DefaultTransport
-	insecureTransport, err = kclient.TransportFor(&kclient.Config{Insecure: true})
+	insecureTransport, err = restclient.TransportFor(&restclient.Config{Insecure: true})
 	if err != nil {
 		panic(fmt.Sprintf("Unable to configure a default transport for importing insecure images: %v", err))
 	}

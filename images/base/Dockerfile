@@ -13,5 +13,5 @@ FROM centos:centos7
 RUN yum swap -y -- remove systemd-container\* -- install systemd systemd-libs
 
 RUN yum install -y which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
-    socat ethtool device-mapper iptables && \
+    socat ethtool device-mapper iptables e2fsprogs xfsprogs && \
     yum clean all

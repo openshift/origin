@@ -27,7 +27,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	gcecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/keymutex"
 	"k8s.io/kubernetes/pkg/util/runtime"
@@ -128,13 +127,15 @@ func (util *GCEDiskUtil) DeleteVolume(d *gcePersistentDiskDeleter) error {
 	return nil
 }
 
-func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (volumeID string, volumeSizeGB int, err error) {
+// CreateVolume creates a GCE PD.
+// Returns: volumeID, volumeSizeGB, labels, error
+func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (string, int, map[string]string, error) {
 	cloud, err := getCloudProvider()
 	if err != nil {
-		return "", 0, err
+		return "", 0, nil, err
 	}
 
-	name := fmt.Sprintf("kube-dynamic-%s", util.NewUUID())
+	name := volume.GenerateVolumeName(c.options.ClusterName, c.options.PVName, 63) // GCE PD name can have up to 63 characters
 	requestBytes := c.options.Capacity.Value()
 	// GCE works with gigabytes, convert to GiB with rounding up
 	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
@@ -144,16 +145,23 @@ func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (volum
 	zone, err := cloud.GetZone()
 	if err != nil {
 		glog.V(2).Infof("error getting zone information from GCE: %v", err)
-		return "", 0, err
+		return "", 0, nil, err
 	}
 
 	err = cloud.CreateDisk(name, zone.FailureDomain, int64(requestGB), *c.options.CloudTags)
 	if err != nil {
 		glog.V(2).Infof("Error creating GCE PD volume: %v", err)
-		return "", 0, err
+		return "", 0, nil, err
 	}
 	glog.V(2).Infof("Successfully created GCE PD volume %s", name)
-	return name, int(requestGB), nil
+
+	labels, err := cloud.GetAutoLabelsForPD(name)
+	if err != nil {
+		// We don't really want to leak the volume here...
+		glog.Errorf("error getting labels for volume %q: %v", name, err)
+	}
+
+	return name, int(requestGB), labels, nil
 }
 
 // Attaches the specified persistent disk device to node, verifies that it is attached, and retries if it fails.

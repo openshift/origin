@@ -88,7 +88,7 @@ func NewTokensController(cl clientset.Interface, options TokensControllerOptions
 		cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc},
 	)
 
-	tokenSelector := fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeServiceAccountToken)})
+	tokenSelector := fields.SelectorFromSet(map[string]string{api.SecretTypeField: string(api.SecretTypeServiceAccountToken)})
 	e.secrets, e.secretController = framework.NewIndexerInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
@@ -415,11 +415,6 @@ func (e *TokensController) deleteSecret(secret *api.Secret) error {
 // removeSecretReferenceIfNeeded updates the given ServiceAccount to remove a reference to the given secretName if needed.
 // Returns whether an update was performed, and any error that occurred
 func (e *TokensController) removeSecretReferenceIfNeeded(serviceAccount *api.ServiceAccount, secretName string) error {
-	// See if the account even referenced the secret
-	if !getSecretReferences(serviceAccount).Has(secretName) {
-		return nil
-	}
-
 	// We don't want to update the cache's copy of the service account
 	// so remove the secret from a freshly retrieved copy of the service account
 	serviceAccounts := e.client.Core().ServiceAccounts(serviceAccount.Namespace)

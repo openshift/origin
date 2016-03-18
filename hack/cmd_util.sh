@@ -231,8 +231,8 @@ function os::cmd::internal::describe_call() {
 	echo "${full_name}"
 }
 
-# os::cmd::internal::determine_caller determines the file and line number of the function call to
-# the outer os::cmd wrapper function
+# os::cmd::internal::determine_caller determines the file relative to the OpenShift Origin root directory
+# and line number of the function call to the outer os::cmd wrapper function
 function os::cmd::internal::determine_caller() {
 	local call_depth=
 	local len_sources="${#BASH_SOURCE[@]}"
@@ -244,6 +244,13 @@ function os::cmd::internal::determine_caller() {
 	done
 
 	local caller_file="${BASH_SOURCE[${call_depth}]}"
+	if which realpath >&/dev/null; then
+		# if the caller has `realpath`, we can use it to make our file names cleaner by
+		# trimming the absolute file path up to `...openshift/origin/` and showing only
+		# the relative path from the Origin root directory
+		caller_file="$( realpath "${caller_file}" )"
+		caller_file="${caller_file//*openshift\/origin\/}"
+	fi
 	local caller_line="${BASH_LINENO[${call_depth}-1]}"
 	echo "${caller_file}:${caller_line}"
 }

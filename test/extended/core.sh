@@ -51,6 +51,15 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   os::util::environment::use_sudo
   reset_tmp_dir
 
+  # If the current system has the XFS volume dir mount point we configure
+  # in the test images, assume to use it which will allow the local storage
+  # quota tests to pass.
+  if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
+    export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
+  else
+    echo "[WARN] /mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
+  fi
+
   os::log::start_system_logger
 
   # when selinux is enforcing, the volume dir selinux label needs to be
@@ -62,6 +71,14 @@ if [[ -z ${TEST_ONLY+x} ]]; then
          sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
   fi
   configure_os_server
+
+  # Similar to above check, if the XFS volume dir mount point exists enable
+  # local storage quota in node-config.yaml so these tests can pass:
+  if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
+    sed -i 's/perFSGroup: null/perFSGroup: 256Mi/' $NODE_CONFIG_DIR/node-config.yaml
+  fi
+  echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
+
   start_os_server
 
   export KUBECONFIG="${ADMIN_KUBECONFIG}"

@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	proxy "k8s.io/kubernetes/pkg/proxy"
@@ -237,7 +238,7 @@ var defaultCadvisorInterface cadvisor.Interface = nil
 
 // SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
 func SetFakeCadvisorInterfaceForIntegrationTest() {
-	defaultCadvisorInterface = &cadvisor.Fake{}
+	defaultCadvisorInterface = &cadvisortesting.Fake{}
 }
 
 // defaultContainerManagerInterface holds the overridden default interface

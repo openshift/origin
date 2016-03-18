@@ -50,7 +50,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
-			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("origin-base", "latest")
+			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("origin-base", "custom")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 		})

@@ -1,6 +1,7 @@
 package rsync
 
 import (
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
@@ -13,7 +14,7 @@ type portForwarder struct {
 	Namespace string
 	PodName   string
 	Client    *kclient.Client
-	Config    *kclient.Config
+	Config    *restclient.Config
 }
 
 // ensure that portForwarder implements the forwarder interface

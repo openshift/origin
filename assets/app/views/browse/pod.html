@@ -103,6 +103,7 @@
                       name="pod.metadata.name"
                       context="projectContext"
                       options="logOptions"
+                      empty="logEmpty"
                       run="logCanRun">
 
                       <div row mobile="column" tablet="column">
@@ -111,7 +112,7 @@
                           <status-icon status="containerStateReason || containerStatusKey"></status-icon>
                           <span class="space-after">{{containerStateReason || containerStatusKey | sentenceCase}}</span>
                         </div>
-                        <div ng-if="containerStartTime">
+                        <div ng-if="containerStartTime && !logEmpty">
                           &mdash;
                           <span ng-if="lasStatusKey">
                             Last {{lasStatusKey}} log

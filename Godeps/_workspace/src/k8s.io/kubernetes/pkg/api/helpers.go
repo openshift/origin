@@ -127,6 +127,16 @@ func IsStandardContainerResourceName(str string) bool {
 	return standardContainerResources.Has(str)
 }
 
+var standardLimitRangeTypes = sets.NewString(
+	string(LimitTypePod),
+	string(LimitTypeContainer),
+)
+
+// IsStandardLimitRangeType returns true if the type is Pod or Container
+func IsStandardLimitRangeType(str string) bool {
+	return standardLimitRangeTypes.Has(str)
+}
+
 var standardQuotaResources = sets.NewString(
 	string(ResourceCPU),
 	string(ResourceMemory),
@@ -140,6 +150,7 @@ var standardQuotaResources = sets.NewString(
 	string(ResourceReplicationControllers),
 	string(ResourceSecrets),
 	string(ResourcePersistentVolumeClaims),
+	string(ResourceConfigMaps),
 )
 
 // IsStandardQuotaResourceName returns true if the resource is known to
@@ -160,6 +171,7 @@ var standardResources = sets.NewString(
 	string(ResourceServices),
 	string(ResourceReplicationControllers),
 	string(ResourceSecrets),
+	string(ResourceConfigMaps),
 	string(ResourcePersistentVolumeClaims),
 	string(ResourceStorage),
 )
@@ -175,6 +187,7 @@ var integerResources = sets.NewString(
 	string(ResourceServices),
 	string(ResourceReplicationControllers),
 	string(ResourceSecrets),
+	string(ResourceConfigMaps),
 	string(ResourcePersistentVolumeClaims),
 )
 

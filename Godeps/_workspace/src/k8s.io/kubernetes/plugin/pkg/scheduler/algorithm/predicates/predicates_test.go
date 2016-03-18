@@ -18,11 +18,13 @@ package predicates
 
 import (
 	"fmt"
+	"os/exec"
 	"reflect"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/util/codeinspector"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -881,41 +883,42 @@ func TestPodFitsSelector(t *testing.T) {
 			fits: true,
 			test: "Pod with multiple NodeSelectorTerms ORed in affinity, matches the node's labels and will schedule onto the node",
 		},
-		{
-			pod: &api.Pod{
-				ObjectMeta: api.ObjectMeta{
-					Annotations: map[string]string{
-						api.AffinityAnnotationKey: `
-						{"nodeAffinity": {
-							"requiredDuringSchedulingRequiredDuringExecution": {
-								"nodeSelectorTerms": [{
-									"matchExpressions": [{
-										"key": "foo",
-										"operator": "In",
-										"values": ["bar", "value2"]
-									}]
-								}]
-							},
-							"requiredDuringSchedulingIgnoredDuringExecution": {
-								"nodeSelectorTerms": [{
-									"matchExpressions": [{
-										"key": "foo",
-										"operator": "NotIn",
-										"values": ["bar", "value2"]
-									}]
-								}]
-							}
-						}}`,
-					},
-				},
-			},
-			labels: map[string]string{
-				"foo": "bar",
-			},
-			fits: false,
-			test: "Pod with an Affinity both requiredDuringSchedulingRequiredDuringExecution and " +
-				"requiredDuringSchedulingIgnoredDuringExecution indicated that don't match node's labels and won't schedule onto the node",
-		},
+		// TODO: Uncomment this test when implement RequiredDuringSchedulingRequiredDuringExecution
+		//		{
+		//			pod: &api.Pod{
+		//				ObjectMeta: api.ObjectMeta{
+		//					Annotations: map[string]string{
+		//						api.AffinityAnnotationKey: `
+		//						{"nodeAffinity": {
+		//							"requiredDuringSchedulingRequiredDuringExecution": {
+		//								"nodeSelectorTerms": [{
+		//									"matchExpressions": [{
+		//										"key": "foo",
+		//										"operator": "In",
+		//										"values": ["bar", "value2"]
+		//									}]
+		//								}]
+		//							},
+		//							"requiredDuringSchedulingIgnoredDuringExecution": {
+		//								"nodeSelectorTerms": [{
+		//									"matchExpressions": [{
+		//										"key": "foo",
+		//										"operator": "NotIn",
+		//										"values": ["bar", "value2"]
+		//									}]
+		//								}]
+		//							}
+		//						}}`,
+		//					},
+		//				},
+		//			},
+		//			labels: map[string]string{
+		//				"foo": "bar",
+		//			},
+		//			fits: false,
+		//			test: "Pod with an Affinity both requiredDuringSchedulingRequiredDuringExecution and " +
+		//				"requiredDuringSchedulingIgnoredDuringExecution indicated that don't match node's labels and won't schedule onto the node",
+		//		},
 		{
 			pod: &api.Pod{
 				ObjectMeta: api.ObjectMeta{
@@ -1404,6 +1407,51 @@ func TestEBSVolumeCountConflicts(t *testing.T) {
 
 		if fits != test.fits {
 			t.Errorf("%s: expected %v, got %v", test.test, test.fits, fits)
+		}
+	}
+}
+
+func TestPredicatesRegistered(t *testing.T) {
+	var functionNames []string
+
+	// Files and directories which predicates may be referenced
+	targetFiles := []string{
+		"./../../algorithmprovider/defaults/defaults.go", // Default algorithm
+		"./../../factory/plugins.go",                     // Registered in init()
+		"./../../../../../pkg/",                          // kubernetes/pkg, often used by kubelet or controller
+	}
+
+	// List all golang source files under ./predicates/, excluding test files and sub-directories.
+	files, err := codeinspector.GetSourceCodeFiles(".")
+
+	if err != nil {
+		t.Errorf("unexpected error: %v when listing files in current directory", err)
+	}
+
+	// Get all public predicates in files.
+	for _, filePath := range files {
+		functions, err := codeinspector.GetPublicFunctions(filePath)
+		if err == nil {
+			functionNames = append(functionNames, functions...)
+		} else {
+			t.Errorf("unexpected error when parsing %s", filePath)
+		}
+	}
+
+	// Check if all public predicates are referenced in target files.
+	for _, functionName := range functionNames {
+		args := []string{"-rl", functionName}
+		args = append(args, targetFiles...)
+
+		err := exec.Command("grep", args...).Run()
+		if err != nil {
+			switch err.Error() {
+			case "exit status 2":
+				t.Errorf("unexpected error when checking %s", functionName)
+			case "exit status 1":
+				t.Errorf("predicate %s is implemented as public but seems not registered or used in any other place",
+					functionName)
+			}
 		}
 	}
 }

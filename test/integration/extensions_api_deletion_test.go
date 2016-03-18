@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -68,7 +67,6 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	job := expapi.Job{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-job"},
 		Spec: expapi.JobSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			Template: kapi.PodTemplateSpec{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 				Spec: kapi.PodSpec{

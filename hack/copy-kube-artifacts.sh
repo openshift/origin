@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o errexit
 set -o nounset
@@ -23,29 +23,32 @@ fi
 # Copy special files.
 rsync -av \
   --exclude='examples/blog-logging/diagrams/***' \
+  --exclude='pkg/ui/data/swagger/datafile.go' \
   --include-from=- \
+  --include='*/' \
   --exclude='*' \
+  --prune-empty-dirs \
   $KUBE_ROOT/ $KUBE_GODEP_ROOT <<EOF
-test/e2e/**/*.yaml
-test/e2e/**/*.json
-api/swagger-spec/v1.json
-cmd/integration/**.json
-cmd/integration/**.yaml
-docs/admin/**.json
-docs/admin/**.yaml
-docs/user-guide/**/*.json
-docs/user-guide/**/*.yaml
-docs/user-guide/simple-yaml.md
-docs/user-guide/walkthrough/README.md
-examples/***
-pkg/api/**/*.json
-pkg/api/**/*.yaml
-pkg/client/testdata/myCA.cer
-pkg/client/testdata/myCA.key
-pkg/client/testdata/mycertvalid.cer
-pkg/client/testdata/mycertvalid.key
-pkg/client/testdata/mycertvalid.req
-cmd/libs/***
-third_party/golang/***
-README.md
+/api/swagger-spec/*.json
+/cmd/integration/***
+/cmd/kube-apiserver/***
+/cmd/kube-controller-manager/***
+/cmd/kube-proxy/***
+/cmd/kubectl/***
+/cmd/kubelet/***
+/cmd/libs/***
+/docs/admin/**.json
+/docs/admin/**.yaml
+/docs/user-guide/**.json
+/docs/user-guide/**.yaml
+/docs/user-guide/simple-yaml.md
+/docs/user-guide/walkthrough/README.md
+/examples/***
+/pkg/***
+/plugin/***
+/test/e2e/***
+/test/fixtures/***
+/test/integration/***
+/third_party/golang/***
+/README.md
 EOF

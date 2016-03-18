@@ -102,6 +102,24 @@ items:
     - list
     - watch
   - apiGroups:
+    - autoscaling
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - extensions
     attributeRestrictions: null
     resources:
@@ -146,7 +164,36 @@ items:
     creationTimestamp: null
     name: admin
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - endpoints
+    - persistentvolumeclaims
+    - pods
+    - pods/attach
+    - pods/exec
+    - pods/log
+    - pods/portforward
+    - pods/proxy
+    - replicationcontrollers
+    - replicationcontrollers/scale
+    - secrets
+    - serviceaccounts
+    - services
+    - services/proxy
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -160,13 +207,11 @@ items:
     - builds/docker
     - builds/log
     - builds/source
-    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
     - deployments
-    - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
     - imagestreamimports
@@ -176,26 +221,43 @@ items:
     - imagestreamtags
     - localresourceaccessreviews
     - localsubjectaccessreviews
-    - persistentvolumeclaims
-    - pods
-    - pods/attach
-    - pods/exec
-    - pods/log
-    - pods/portforward
-    - pods/proxy
     - processedtemplates
     - projects
-    - replicationcontrollers
     - resourceaccessreviews
     - rolebindings
     - roles
     - routes
-    - secrets
-    - serviceaccounts
-    - services
     - subjectaccessreviews
     - templateconfigs
     - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - autoscaling
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
     verbs:
     - create
     - delete
@@ -274,7 +336,36 @@ items:
     creationTimestamp: null
     name: edit
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - endpoints
+    - persistentvolumeclaims
+    - pods
+    - pods/attach
+    - pods/exec
+    - pods/log
+    - pods/portforward
+    - pods/proxy
+    - replicationcontrollers
+    - replicationcontrollers/scale
+    - secrets
+    - serviceaccounts
+    - services
+    - services/proxy
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -288,13 +379,11 @@ items:
     - builds/docker
     - builds/log
     - builds/source
-    - configmaps
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
     - deployments
-    - endpoints
     - generatedeploymentconfigs
     - imagestreamimages
     - imagestreamimports
@@ -302,21 +391,38 @@ items:
     - imagestreams
     - imagestreams/secrets
     - imagestreamtags
-    - persistentvolumeclaims
-    - pods
-    - pods/attach
-    - pods/exec
-    - pods/log
-    - pods/portforward
-    - pods/proxy
     - processedtemplates
-    - replicationcontrollers
     - routes
-    - secrets
-    - serviceaccounts
-    - services
     - templateconfigs
     - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - autoscaling
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
     verbs:
     - create
     - delete
@@ -444,6 +550,24 @@ items:
     - list
     - watch
   - apiGroups:
+    - autoscaling
+    attributeRestrictions: null
+    resources:
+    - horizontalpodautoscalers
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - extensions
     attributeRestrictions: null
     resources:
@@ -518,21 +642,13 @@ items:
     attributeRestrictions: null
     nonResourceURLs:
     - /api
-    - /api/
-    - /api/v1
-    - /api/v1/
+    - /api/*
     - /apis
-    - /apis/
-    - /apis/extensions
-    - /apis/extensions/
-    - /apis/extensions/v1beta1
-    - /apis/extensions/v1beta1/
+    - /apis/*
     - /healthz
     - /healthz/*
     - /oapi
-    - /oapi/
-    - /oapi/v1
-    - /oapi/v1/
+    - /oapi/*
     - /osapi
     - /osapi/
     - /version
@@ -780,6 +896,7 @@ items:
     resources:
     - nodes/log
     - nodes/metrics
+    - nodes/proxy
     - nodes/stats
     verbs:
     - '*'
@@ -993,6 +1110,27 @@ items:
     - buildconfigs/webhooks
     verbs:
     - create
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:discovery
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - /api
+    - /api/*
+    - /apis
+    - /apis/*
+    - /oapi
+    - /oapi/*
+    - /osapi
+    - /osapi/
+    - /version
+    resources: []
+    verbs:
     - get
 - apiVersion: v1
   kind: ClusterRole
@@ -1277,14 +1415,17 @@ items:
   rules:
   - apiGroups:
     - extensions
+    - autoscaling
     attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     verbs:
     - get
     - list
+    - watch
   - apiGroups:
     - extensions
+    - autoscaling
     attributeRestrictions: null
     resources:
     - horizontalpodautoscalers/status
@@ -1292,6 +1433,7 @@ items:
     - update
   - apiGroups:
     - extensions
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers/scale
@@ -1335,6 +1477,7 @@ items:
   rules:
   - apiGroups:
     - extensions
+    - batch
     attributeRestrictions: null
     resources:
     - jobs
@@ -1343,6 +1486,7 @@ items:
     - watch
   - apiGroups:
     - extensions
+    - batch
     attributeRestrictions: null
     resources:
     - jobs/status
@@ -1370,6 +1514,40 @@ items:
     - create
     - patch
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:namespace-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces/finalize
+    - namespaces/status
+    verbs:
+    - update
+  - apiGroups:
+    - '*'
+    attributeRestrictions: null
+    resources:
+    - '*'
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:

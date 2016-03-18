@@ -13,7 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -33,7 +33,7 @@ type DebugOptions struct {
 	Attach kcmd.AttachOptions
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
-	LogsForObject func(object, options runtime.Object) (*kclient.Request, error)
+	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
 
 	NoStdin    bool
 	ForceTTY   bool

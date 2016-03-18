@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -50,7 +50,7 @@ func (args KubeConnectionArgs) Validate() error {
 	return nil
 }
 
-func (args KubeConnectionArgs) GetExternalKubernetesClientConfig() (*client.Config, bool, error) {
+func (args KubeConnectionArgs) GetExternalKubernetesClientConfig() (*restclient.Config, bool, error) {
 	if len(args.ClientConfigLoadingRules.ExplicitPath) == 0 || args.ClientConfig == nil {
 		return nil, false, nil
 	}

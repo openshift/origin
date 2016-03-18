@@ -267,7 +267,7 @@ func (o TagOptions) Validate() error {
 	}
 
 	if o.deleteTag && o.aliasTag {
-		return errors.New("--alias and --delete may not both be specified")
+		return errors.New("--alias and --delete may not be both specified")
 	}
 
 	// Validate source tag based on --delete usage.
@@ -312,7 +312,7 @@ func (o TagOptions) RunTag() error {
 	for i, destNameAndTag := range o.destNameAndTag {
 		destName, destTag, ok := imageapi.SplitImageStreamTag(destNameAndTag)
 		if !ok {
-			return fmt.Errorf("%q must be of the form <namespace>/<stream_name>:<tag>", destNameAndTag)
+			return fmt.Errorf("%q must be of the form <stream_name>:<tag>", destNameAndTag)
 		}
 
 		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
@@ -326,6 +326,7 @@ func (o TagOptions) RunTag() error {
 				if o.deleteTag {
 					// Nothing to do here, continue to the next dest tag
 					// if there is any.
+					fmt.Fprintf(o.out, "Image stream %q does not exist.\n", destName)
 					return nil
 				}
 

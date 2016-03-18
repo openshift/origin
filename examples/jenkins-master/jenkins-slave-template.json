@@ -15,38 +15,39 @@
   },
   "parameters": [
     {
+      "name": "IMAGE_NAME",
+      "displayName": "Image Name",
+      "description": "The name of an image to convert.",
+      "value": "centos/ruby-22-centos7",
+      "required": true
+    },
+    {
       "name": "IMAGE_STREAM_NAME",
-      "description": "The name of an image stream to convert",
+      "displayName": "ImageStream Name",
+      "description": "The name of the imagestream to create for the newly built slave image.",
       "value": "ruby-22-centos7",
       "required": true
     },
     {
       "name": "SLAVE_REPO_URL",
-      "description": "Git repository with Dockerfile and slave entrypoint",
+      "displayName": "Repository URL",
+      "description": "Git repository with Dockerfile and slave entrypoint.",
       "value": "git://github.com/openshift/origin"
     },
     {
       "name": "SLAVE_REPO_CONTEXTDIR",
-      "description": "The sub-directory inside the repository",
+      "displayName": "Context Directory",
+      "description": "The sub-directory inside the repository.",
       "value": "examples/jenkins-master/slave"
     },
     {
       "name": "SLAVE_REPO_REF",
-      "description": "The git ref or tag to use for customization",
+      "displayName": "Git Reference",
+      "description": "The git ref or tag to use for customization.",
       "value": "master"
     }
   ],
   "objects": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${IMAGE_STREAM_NAME}"
-      },
-      "spec": {
-        "dockerImageRepository": "openshift/${IMAGE_STREAM_NAME}"
-      }
-    },
     {
       "kind": "ImageStream",
       "apiVersion": "v1",
@@ -66,9 +67,9 @@
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${IMAGE_STREAM_NAME}-slave",
+        "name": "${IMAGE_STREAM_NAME}-jenkins-slave",
         "annotations": {
-          "description": "Modifies the ${IMAGE_STREAM_NAME} to run as Jenkins slave"
+          "description": "Modifies the ${IMAGE_NAME} to run as Jenkins slave"
         },
         "labels": {
           "name": "${IMAGE_STREAM_NAME}-slave"
@@ -76,10 +77,6 @@
       },
       "spec": {
         "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          },
           {
             "type": "ConfigChange"
           }
@@ -96,8 +93,8 @@
           "type": "Docker",
           "dockerStrategy": {
             "from": {
-              "kind": "ImageStreamTag",
-              "name": "${IMAGE_STREAM_NAME}:latest"
+              "kind": "DockerImage",
+              "name": "${IMAGE_NAME}"
             }
           }
         },

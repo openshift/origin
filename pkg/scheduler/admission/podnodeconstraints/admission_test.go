@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -195,6 +196,12 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 			prefix:        "Job",
 		},
 		{
+			resource:      job,
+			kind:          batch.Kind("Job"),
+			groupresource: batch.Resource("jobs"),
+			prefix:        "Job",
+		},
+		{
 			resource:      deploymentConfig,
 			kind:          deployapi.Kind("DeploymentConfig"),
 			groupresource: deployapi.Resource("deploymentconfigs"),
@@ -334,7 +341,7 @@ func deployment(setNodeSelector bool) runtime.Object {
 
 func replicaSet(setNodeSelector bool) runtime.Object {
 	rs := &extensions.ReplicaSet{}
-	rs.Spec.Template = podTemplateSpec(setNodeSelector)
+	rs.Spec.Template = *podTemplateSpec(setNodeSelector)
 	return rs
 }
 

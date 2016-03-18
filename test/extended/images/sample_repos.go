@@ -79,7 +79,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 
 	g.Describe("[images][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
-			"rails",
+			"rails-postgresql",
 			"https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json",
 			"rails-postgresql-example",
 			"rails-postgresql-example",
@@ -91,7 +91,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 
 	g.Describe("[images][python] test python images with django-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
-			"django",
+			"django-psql",
 			"https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.json",
 			"django-psql-example",
 			"django-psql-example",
@@ -103,7 +103,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 
 	g.Describe("[images][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
-			"nodejs",
+			"nodejs-mongodb",
 			"https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json",
 			"nodejs-mongodb-example",
 			"nodejs-mongodb-example",
@@ -115,7 +115,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 
 	var _ = g.Describe("[images][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
-			"cakephp",
+			"cakephp-mysql",
 			"https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json",
 			"cakephp-mysql-example",
 			"cakephp-mysql-example",
@@ -127,7 +127,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 
 	var _ = g.Describe("[images][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
 		SampleRepoConfig{
-			"dancer",
+			"dancer-mysql",
 			"https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
 			"dancer-mysql-example",
 			"dancer-mysql-example",

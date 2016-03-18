@@ -1,6 +1,7 @@
 package api
 
 import (
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -38,11 +39,24 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube                   = ""
-	APIGroupExtensions             = "extensions"
+	APIGroupKube        = ""
+	APIGroupExtensions  = "extensions"
+	APIGroupAutoscaling = "autoscaling"
+	APIGroupBatch       = "batch"
+
+	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:       {"v1"},
-		APIGroupExtensions: {"v1beta1"},
+		APIGroupKube:        {"v1"},
+		APIGroupExtensions:  {"v1beta1"},
+		APIGroupAutoscaling: {"v1"},
+		APIGroupBatch:       {"v1"},
+	}
+	// Map of group names to known, but disallowed REST API versions
+	KubeAPIGroupsToDeadVersions = map[string][]string{
+		APIGroupKube:        {"v1beta3"},
+		APIGroupExtensions:  {},
+		APIGroupAutoscaling: {},
+		APIGroupBatch:       {},
 	}
 	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 
@@ -116,6 +130,23 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig VolumeConfig
+}
+
+// VolumeConfig contains options for configuring volumes on the node.
+type VolumeConfig struct {
+	// LocalQuota contains options for controlling local volume quota on the node.
+	LocalQuota LocalQuota
+}
+
+// LocalQuota contains options for controlling local volume quota on the node.
+type LocalQuota struct {
+	// PerFSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
+	// At present this is only implemented for emptyDir volumes, and if the underlying
+	// volumeDirectory is on an XFS filesystem.
+	PerFSGroup *resource.Quantity
 }
 
 // NodeNetworkConfig provides network options for the node
@@ -357,6 +388,11 @@ type MasterNetworkConfig struct {
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
 	ServiceNetworkCIDR string
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
 }
 
 type ImageConfig struct {

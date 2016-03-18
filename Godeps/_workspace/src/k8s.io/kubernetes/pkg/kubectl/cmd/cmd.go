@@ -110,12 +110,17 @@ __custom_func() {
     esac
 }
 `
+
+	// If you add a resource to this list, please also take a look at pkg/kubectl/kubectl.go
+	// and add a short forms entry in expandResourceShortcut() when appropriate.
 	valid_resources = `Valid resource types include:
    * buildconfigs (aka 'bc')
    * builds
    * componentstatuses (aka 'cs')
+   * configmaps
    * daemonsets (aka 'ds')
    * deploymentconfigs (aka 'dc')
+   * deployments
    * events (aka 'ev')
    * endpoints (aka 'ep')
    * horizontalpodautoscalers (aka 'hpa')
@@ -126,8 +131,8 @@ __custom_func() {
    * groups
    * jobs
    * limitranges (aka 'limits')
-   * namespaces (aka 'ns')
    * nodes (aka 'no')
+   * namespaces (aka 'ns')
    * pods (aka 'po')
    * persistentvolumes (aka 'pv')
    * persistentvolumeclaims (aka 'pvc')
@@ -141,6 +146,7 @@ __custom_func() {
    * routes
    * secrets
    * serviceaccounts
+   * services (aka 'svc')
    * users
 `
 )
@@ -170,7 +176,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdReplace(f, out))
 	cmds.AddCommand(NewCmdPatch(f, out))
 	cmds.AddCommand(NewCmdDelete(f, out))
-	cmds.AddCommand(NewCmdEdit(f, out))
+	cmds.AddCommand(NewCmdEdit(f, out, err))
 	cmds.AddCommand(NewCmdApply(f, out))
 
 	cmds.AddCommand(NewCmdNamespace(out))

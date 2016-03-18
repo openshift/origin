@@ -264,7 +264,8 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 			stream := <-streamCh
 			io.Copy(stream, stream)
 		}))
-		//defer server.Close()
+		// TODO: Uncomment when fix #19254
+		// defer server.Close()
 
 		serverURL, err := url.Parse(server.URL)
 		if err != nil {
@@ -279,13 +280,17 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 
 		var proxierCalled bool
 		var proxyCalledWithHost string
-		var proxyCalledWithAuth string
+		var proxyCalledWithAuth bool
+		var proxyCalledWithAuthHeader string
 		if testCase.proxyServerFunc != nil {
 			proxyHandler := goproxy.NewProxyHttpServer()
 
 			proxyHandler.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
 				proxyCalledWithHost = host
-				proxyCalledWithAuth = ctx.Req.Header.Get("Proxy-Authorization")
+
+				proxyAuthHeaderName := "Proxy-Authorization"
+				_, proxyCalledWithAuth = ctx.Req.Header[proxyAuthHeaderName]
+				proxyCalledWithAuthHeader = ctx.Req.Header.Get(proxyAuthHeaderName)
 				return goproxy.OkConnect, host
 			})
 
@@ -297,12 +302,11 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 				if err != nil {
 					return nil, err
 				}
-				if testCase.proxyAuth != nil {
-					proxyURL.User = testCase.proxyAuth
-				}
+				proxyURL.User = testCase.proxyAuth
 				return proxyURL, nil
 			}
-			//defer proxy.Close()
+			// TODO: Uncomment when fix #19254
+			// defer proxy.Close()
 		}
 
 		client := &http.Client{Transport: spdyTransport}
@@ -357,14 +361,18 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 			if proxyCalledWithHost != serverURL.Host {
 				t.Fatalf("%s: Expected to see a call to the proxy for backend %q, got %q", k, serverURL.Host, proxyCalledWithHost)
 			}
-			var expectedProxyAuth string
-			if testCase.proxyAuth != nil {
-				encodedCredentials := base64.StdEncoding.EncodeToString([]byte(testCase.proxyAuth.String()))
-				expectedProxyAuth = "Basic " + encodedCredentials
-			}
-			if proxyCalledWithAuth != expectedProxyAuth {
-				t.Fatalf("%s: Expected to see a call to the proxy with credentials %q, got %q", k, testCase.proxyAuth, proxyCalledWithAuth)
-			}
+		}
+
+		var expectedProxyAuth string
+		if testCase.proxyAuth != nil {
+			encodedCredentials := base64.StdEncoding.EncodeToString([]byte(testCase.proxyAuth.String()))
+			expectedProxyAuth = "Basic " + encodedCredentials
+		}
+		if len(expectedProxyAuth) == 0 && proxyCalledWithAuth {
+			t.Fatalf("%s: Proxy authorization unexpected, got %q", k, proxyCalledWithAuthHeader)
+		}
+		if proxyCalledWithAuthHeader != expectedProxyAuth {
+			t.Fatalf("%s: Expected to see a call to the proxy with credentials %q, got %q", k, testCase.proxyAuth, proxyCalledWithAuthHeader)
 		}
 	}
 }

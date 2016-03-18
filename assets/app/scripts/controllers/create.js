@@ -144,7 +144,7 @@ angular.module('openshiftConsole')
       var builders = $scope.filteredBuildersByCategory[category] || [],
         templates = $scope.filteredTemplatesByCategory[category] || [];
 
-      return Math.max(builders.length, $scope.itemLimit) + Math.max(templates.length, $scope.itemLimit);
+      return Math.min(builders.length, $scope.itemLimit) + Math.min(templates.length, $scope.itemLimit);
     }
 
     // Keep the more important categories at the top of each column, but try to

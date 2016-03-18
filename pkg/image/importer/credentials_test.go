@@ -42,7 +42,7 @@ func (k *mockKeyring) Lookup(image string) ([]docker.AuthConfiguration, bool) {
 func TestHubFallback(t *testing.T) {
 	k := &mockKeyring{}
 	basicCredentialsFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"})
-	if !reflect.DeepEqual([]string{"auth.docker.io/token", "index.docker.io/v1"}, k.calls) {
+	if !reflect.DeepEqual([]string{"auth.docker.io/token", "index.docker.io"}, k.calls) {
 		t.Errorf("unexpected calls: %v", k.calls)
 	}
 }
