@@ -4,20 +4,20 @@ config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
 old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
-readonly max_retries=30
 
 function waitForHAProxyToStartListening() {
   local port=${STATS_PORT:-"1936"}
   local retries=0
 
+  if ! which lsof &> /dev/null ; then
+    echo "lsof was not found - please check the haproxy-router image." >&2
+    return 1
+  fi
+
   echo " - Checking if HAProxy is listening on port $port ..."
   while ! lsof -n -P -p $(< $pid_file) | grep ":${port} (LISTEN)" &> /dev/null ; do
     sleep 0.2
     retries=$((retries + 1))
-    if [ $retries -ge $max_retries ]; then
-      echo " - Exceeded $max_retries retries waiting for HAProxy to start listening on port $port"
-      return
-    fi
   done
 
   echo " - HAProxy listening on port $port : $retries retry attempt(s)."
