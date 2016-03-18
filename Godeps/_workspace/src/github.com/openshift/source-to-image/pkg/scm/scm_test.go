@@ -44,7 +44,7 @@ func TestDownloaderForSource(t *testing.T) {
 	}
 
 	for s, expected := range tc {
-		r, filePathUpdate, err := DownloaderForSource(s)
+		r, filePathUpdate, err := DownloaderForSource(s, false)
 		if err != nil {
 			if expected != "error" {
 				t.Errorf("Unexpected error %q for %q, expected %q", err, s, expected)
@@ -69,7 +69,7 @@ func TestDownloaderForSourceOnRelativeGit(t *testing.T) {
 	gitLocalDir := createLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
 	os.Chdir(gitLocalDir)
-	r, s, err := DownloaderForSource(".")
+	r, s, err := DownloaderForSource(".", false)
 	if err != nil {
 		t.Errorf("Unexpected error %q for %q, expected %q", err, ".", "git.Clone")
 	}
@@ -78,5 +78,21 @@ func TestDownloaderForSourceOnRelativeGit(t *testing.T) {
 	}
 	if reflect.TypeOf(r).String() != "*git.Clone" {
 		t.Errorf("Expected %q for %q, got %q", "*git.Clone", ".", reflect.TypeOf(r).String())
+	}
+}
+
+func TestDownloaderForceCopy(t *testing.T) {
+	gitLocalDir := createLocalGitDirectory(t)
+	defer os.RemoveAll(gitLocalDir)
+	os.Chdir(gitLocalDir)
+	r, s, err := DownloaderForSource(".", true)
+	if err != nil {
+		t.Errorf("Unexpected error %q for %q, expected %q", err, ".", "*file.File")
+	}
+	if !strings.HasPrefix(s, "file://") {
+		t.Errorf("Expected source to have 'file://' prefix, it is %q", s)
+	}
+	if reflect.TypeOf(r).String() != "*file.File" {
+		t.Errorf("Expected %q for %q, got %q", "*file.File", ".", reflect.TypeOf(r).String())
 	}
 }
