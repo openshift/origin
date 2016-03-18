@@ -31,12 +31,12 @@ type EventNotificationType struct {
 }
 
 // ClusterEventNotification specifies which event notification types are supported
-// for a givent even type within the cluster. There should only be one ClusterEventNotification
+// for a given event type within the cluster. There should only be one ClusterEventNotification
 // document in the cluster.
 type ClusterEventNotification struct {
   unversioned.TypeMeta
   kapi.ObjectMeta
-	
+
   // SupportedNotifications maps event types to supported notification types.
   SupportedNotifications map[string][]string
 }
