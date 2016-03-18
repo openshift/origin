@@ -56,7 +56,7 @@ TODO: Write me.
 
 Two notification providers are implemented as applications in the Origin cluster: one for email notification and one for SMS notification, both via third-party services. Each provider lives in its own namespace within the cluster.
 
-In namespace *N*, users `alice` and `bob` want email for `Pod:PodFailed` events, while user `jane` wants both email and text notifications for `DeploymentConfig:Failed`.
+In namespace *project*, users `alice` and `bob` want email for `Pod:PodFailed` events, while user `jane` wants both email and text notifications for `DeploymentConfig:Failed`.
 
 The following resources express this cluster configuration:
 
@@ -72,6 +72,7 @@ name: sms
 description: SMS notification.
 
 kind: UserEventNotification
+namespace: project
 name: alice
 notifications:
   "Pod:PodFailed":
@@ -80,6 +81,7 @@ notifications:
     name: email
 
 kind: UserEventNotification
+namespace: project
 name: bob
 notifications:
   "Pod:PodFailed":
@@ -88,6 +90,7 @@ notifications:
     name: email
 
 kind: UserEventNotification
+namespace: project
 name: jane
 notifications:
   "Pod:PodFailed":
@@ -120,3 +123,4 @@ Users can update their notification preferences via the Origin console, CLI, or 
 ## Comparison With Custom Eventing
 
 TODO: Explain why it's better to rely on native events emitted by Kubernetes/OpenShift rather than synthesizing events on the fly based on watching non-Event API types.
+
