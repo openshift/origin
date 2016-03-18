@@ -1,0 +1,62 @@
+From 09f688578bdcf43783db8607da5b4f049d69c3c9 Mon Sep 17 00:00:00 2001
+From: Michal Minar <miminar@redhat.com>
+Date: Wed, 24 Feb 2016 14:28:15 +0100
+Subject: [PATCH 10/10] UPSTREAM: docker/distribution: 1474: Defined
+ ErrAccessDenied error
+
+Middleware code may perform additional checks on blobs written. Allow it
+to return access denied errors that will result in 403 Forbidden.
+
+Signed-off-by: Michal Minar <miminar@redhat.com>
+---
+ Godeps/_workspace/src/github.com/docker/distribution/errors.go        | 4 ++++
+ .../github.com/docker/distribution/registry/handlers/blobupload.go    | 2 ++
+ .../src/github.com/docker/distribution/registry/handlers/images.go    | 4 ++++
+ 3 files changed, 10 insertions(+)
+
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/errors.go b/Godeps/_workspace/src/github.com/docker/distribution/errors.go
+index 7bf720e..f4c2603 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/errors.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/errors.go
+@@ -8,6 +8,10 @@ import (
+ 	"github.com/docker/distribution/digest"
+ )
+ 
++// ErrAccessDenied is returned when an access to a requested resource is
++// denied.
++var ErrAccessDenied = errors.New("access denied")
++
+ // ErrManifestNotModified is returned when a conditional manifest GetByTag
+ // returns nil due to the client indicating it has the latest version
+ var ErrManifestNotModified = errors.New("manifest not modified")
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
+index d3ff3ca..9cf6f6d 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
+@@ -241,6 +241,8 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
+ 			buh.Errors = append(buh.Errors, v2.ErrorCodeDigestInvalid.WithDetail(err))
+ 		default:
+ 			switch err {
++			case distribution.ErrAccessDenied:
++				buh.Errors = append(buh.Errors, errcode.ErrorCodeDenied)
+ 			case distribution.ErrUnsupported:
+ 				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnsupported)
+ 			case distribution.ErrBlobInvalidLength, distribution.ErrBlobDigestUnsupported:
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/images.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/images.go
+index d30fce2..3720c7b 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/images.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/images.go
+@@ -163,6 +163,10 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
+ 			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnsupported)
+ 			return
+ 		}
++		if err == distribution.ErrAccessDenied {
++			imh.Errors = append(imh.Errors, errcode.ErrorCodeDenied)
++			return
++		}
+ 		switch err := err.(type) {
+ 		case distribution.ErrManifestVerification:
+ 			for _, verificationError := range err {
+-- 
+2.5.0
+

@@ -1,0 +1,30 @@
+From b9f368171614ed3c0629fc04166dbff972a4f149 Mon Sep 17 00:00:00 2001
+From: deads2k <deads@redhat.com>
+Date: Fri, 12 Feb 2016 10:53:50 -0500
+Subject: [PATCH 03/10] UPSTREAM: coreos/etcd: 4503: expose error details for
+ normal stringify
+
+---
+ .../_workspace/src/github.com/coreos/etcd/client/cluster_error.go   | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/Godeps/_workspace/src/github.com/coreos/etcd/client/cluster_error.go b/Godeps/_workspace/src/github.com/coreos/etcd/client/cluster_error.go
+index 957ed46..512f5dc 100644
+--- a/Godeps/_workspace/src/github.com/coreos/etcd/client/cluster_error.go
++++ b/Godeps/_workspace/src/github.com/coreos/etcd/client/cluster_error.go
+@@ -21,7 +21,11 @@ type ClusterError struct {
+ }
+ 
+ func (ce *ClusterError) Error() string {
+-	return ErrClusterUnavailable.Error()
++	s := ce.Detail()
++	if len(s) > 0 {
++		return s
++	}
++	return "ClusterError without any details"
+ }
+ 
+ func (ce *ClusterError) Detail() string {
+-- 
+2.5.0
+

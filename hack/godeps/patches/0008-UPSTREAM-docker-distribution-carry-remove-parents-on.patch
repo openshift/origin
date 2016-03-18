@@ -1,0 +1,30 @@
+From 79a32793dc08ce55b262bd3c9bf3b1fbfff66c3e Mon Sep 17 00:00:00 2001
+From: Michal Minar <miminar@redhat.com>
+Date: Wed, 9 Dec 2015 13:14:54 +0100
+Subject: [PATCH 08/10] UPSTREAM: docker/distribution: <carry>: remove parents
+ on delete
+
+Automatically remove parent directories when removing links or blob
+data files.
+
+Signed-off-by: Michal Minar <miminar@redhat.com>
+---
+ .../src/github.com/docker/distribution/registry/handlers/app.go         | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
+index 133544a..6a5a9c4 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
+@@ -158,7 +158,7 @@ func NewApp(ctx context.Context, configuration *configuration.Configuration) *Ap
+ 		e, ok := d["enabled"]
+ 		if ok {
+ 			if deleteEnabled, ok := e.(bool); ok && deleteEnabled {
+-				options = append(options, storage.EnableDelete)
++				options = append(options, storage.EnableDelete, storage.RemoveParentsOnDelete)
+ 			}
+ 		}
+ 	}
+-- 
+2.5.0
+

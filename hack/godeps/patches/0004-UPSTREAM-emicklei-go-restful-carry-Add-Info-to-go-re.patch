@@ -1,0 +1,25 @@
+From 63df83b6b0f9471941971b56e9cc9fa190924ba6 Mon Sep 17 00:00:00 2001
+From: Clayton Coleman <ccoleman@redhat.com>
+Date: Tue, 2 Jun 2015 10:45:17 -0400
+Subject: [PATCH 04/10] UPSTREAM: emicklei/go-restful: <carry>: Add "Info" to
+ go-restful ApiDecl
+
+---
+ Godeps/_workspace/src/github.com/emicklei/go-restful/swagger/swagger.go | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Godeps/_workspace/src/github.com/emicklei/go-restful/swagger/swagger.go b/Godeps/_workspace/src/github.com/emicklei/go-restful/swagger/swagger.go
+index 967b671..9c40833 100644
+--- a/Godeps/_workspace/src/github.com/emicklei/go-restful/swagger/swagger.go
++++ b/Godeps/_workspace/src/github.com/emicklei/go-restful/swagger/swagger.go
+@@ -118,6 +118,7 @@ type ApiDeclaration struct {
+ 	ApiVersion     string          `json:"apiVersion"`
+ 	BasePath       string          `json:"basePath"`
+ 	ResourcePath   string          `json:"resourcePath"` // must start with /
++	Info           Info            `json:"info"`
+ 	Apis           []Api           `json:"apis,omitempty"`
+ 	Models         ModelList       `json:"models,omitempty"`
+ 	Produces       []string        `json:"produces,omitempty"`
+-- 
+2.5.0
+

@@ -1,0 +1,1170 @@
+From f7c9685cbc902e8e549c8c0197faa7e3cc13623f Mon Sep 17 00:00:00 2001
+From: Michal Minar <miminar@redhat.com>
+Date: Fri, 11 Dec 2015 14:31:17 +0100
+Subject: [PATCH 05/10] UPSTREAM: docker/distribution: 1050: Exported API
+ functions needed for pruning
+
+Signed-off-by: Michal Minar <miminar@redhat.com>
+---
+ .../src/github.com/docker/distribution/blobs.go    |  11 +-
+ .../src/github.com/docker/distribution/registry.go |  13 ++
+ .../distribution/registry/client/repository.go     |  16 +++
+ .../distribution/registry/proxy/proxyblobstore.go  |   4 +
+ .../registry/proxy/proxymanifeststore.go           |   4 +
+ .../distribution/registry/proxy/proxyregistry.go   |   5 +
+ .../distribution/registry/storage/blobstore.go     |  73 ++++++++++-
+ .../distribution/registry/storage/catalog.go       |  11 +-
+ .../registry/storage/linkedblobstore.go            |  90 ++++++++++---
+ .../distribution/registry/storage/manifeststore.go |  32 +++++
+ .../docker/distribution/registry/storage/paths.go  |  78 ++++++++---
+ .../distribution/registry/storage/purgeuploads.go  |   2 +-
+ .../distribution/registry/storage/registry.go      |  54 +++++++-
+ .../distribution/registry/storage/revisionstore.go |   5 +
+ .../registry/storage/signaturestore.go             |  37 +++++-
+ .../docker/distribution/registry/storage/walk.go   | 142 ++++++++++++++++++++-
+ 16 files changed, 516 insertions(+), 61 deletions(-)
+
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/blobs.go b/Godeps/_workspace/src/github.com/docker/distribution/blobs.go
+index 2087d0f..63d4505 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/blobs.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/blobs.go
+@@ -75,6 +75,14 @@ type BlobDeleter interface {
+ 	Delete(ctx context.Context, dgst digest.Digest) error
+ }
+ 
++// BlobEnumerator allows to list blobs in storage.
++type BlobEnumerator interface {
++	// Enumerate calls ingester callback for each digest found in a blob store
++	// until the callback returns an error or the blob store is processed.
++	// io.EOF will be returned if all the digests are handled.
++	Enumerate(ctx context.Context, ingester func(digest.Digest) error) error
++}
++
+ // BlobDescriptorService manages metadata about a blob by digest. Most
+ // implementations will not expose such an interface explicitly. Such mappings
+ // should be maintained by interacting with the BlobIngester. Hence, this is
+@@ -194,9 +202,10 @@ type BlobService interface {
+ }
+ 
+ // BlobStore represent the entire suite of blob related operations. Such an
+-// implementation can access, read, write, delete and serve blobs.
++// implementation can access, enumerate, read, write, delete and serve blobs.
+ type BlobStore interface {
+ 	BlobService
+ 	BlobServer
++	BlobEnumerator
+ 	BlobDeleter
+ }
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry.go b/Godeps/_workspace/src/github.com/docker/distribution/registry.go
+index 001776f..9316567 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry.go
+@@ -41,6 +41,9 @@ type Namespace interface {
+ 	// which were filled.  'last' contains an offset in the catalog, and 'err' will be
+ 	// set to io.EOF if there are no more entries to obtain.
+ 	Repositories(ctx context.Context, repos []string, last string) (n int, err error)
++
++	// Blobs returns a reference to registry's blob service.
++	Blobs() BlobService
+ }
+ 
+ // ManifestServiceOption is a function argument for Manifest Service methods
+@@ -78,6 +81,9 @@ type ManifestService interface {
+ 	// Get retrieves the identified by the digest, if it exists.
+ 	Get(dgst digest.Digest) (*schema1.SignedManifest, error)
+ 
++	// Enumerate returns an array of manifest revisions in repository.
++	Enumerate() ([]digest.Digest, error)
++
+ 	// Delete removes the manifest, if it exists.
+ 	Delete(dgst digest.Digest) error
+ 
+@@ -115,6 +121,13 @@ type SignatureService interface {
+ 	// Get retrieves all of the signature blobs for the specified digest.
+ 	Get(dgst digest.Digest) ([][]byte, error)
+ 
++	// Enumerate retrieves all signature digests for given manifest revision,
++	// if it exists.
++	Enumerate(dgst digest.Digest) ([]digest.Digest, error)
++
+ 	// Put stores the signature for the provided digest.
+ 	Put(dgst digest.Digest, signatures ...[]byte) error
++
++	// Delete removes all signature links of particular manifest revision.
++	Delete(revision digest.Digest) error
+ }
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/client/repository.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/client/repository.go
+index bb10ece..1c06e5a 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/client/repository.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/client/repository.go
+@@ -175,10 +175,18 @@ func (s *signatures) Get(dgst digest.Digest) ([][]byte, error) {
+ 	return m.Signatures()
+ }
+ 
++func (s *signatures) Enumerate(dgst digest.Digest) ([]digest.Digest, error) {
++	return nil, distribution.ErrUnsupported
++}
++
+ func (s *signatures) Put(dgst digest.Digest, signatures ...[]byte) error {
+ 	panic("not implemented")
+ }
+ 
++func (s *signatures) Delete(revision digest.Digest) error {
++	return distribution.ErrUnsupported
++}
++
+ type manifests struct {
+ 	name   string
+ 	ub     *v2.URLBuilder
+@@ -300,6 +308,10 @@ func (ms *manifests) GetByTag(tag string, options ...distribution.ManifestServic
+ 	return nil, handleErrorResponse(resp)
+ }
+ 
++func (ms *manifests) Enumerate() ([]digest.Digest, error) {
++	return nil, distribution.ErrUnsupported
++}
++
+ func (ms *manifests) Put(m *schema1.SignedManifest) error {
+ 	manifestURL, err := ms.ub.BuildManifestURL(ms.name, m.Tag)
+ 	if err != nil {
+@@ -468,6 +480,10 @@ func (bs *blobs) Delete(ctx context.Context, dgst digest.Digest) error {
+ 	return bs.statter.Clear(ctx, dgst)
+ }
+ 
++func (bs *blobs) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
++	return distribution.ErrUnsupported
++}
++
+ type blobStatter struct {
+ 	name   string
+ 	ub     *v2.URLBuilder
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyblobstore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyblobstore.go
+index 976dc8d..741e2ad 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyblobstore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyblobstore.go
+@@ -177,6 +177,10 @@ func (pbs *proxyBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte,
+ 	return nil, distribution.ErrUnsupported
+ }
+ 
++func (pbs *proxyBlobStore) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
++	return distribution.ErrUnsupported
++}
++
+ func (pbs *proxyBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
+ 	return distribution.ErrUnsupported
+ }
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxymanifeststore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxymanifeststore.go
+index 610d695..5e14e8a 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxymanifeststore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxymanifeststore.go
+@@ -152,3 +152,7 @@ func (pms proxyManifestStore) Put(manifest *schema1.SignedManifest) error {
+ func (pms proxyManifestStore) Delete(dgst digest.Digest) error {
+ 	return distribution.ErrUnsupported
+ }
++
++func (pms proxyManifestStore) Enumerate() ([]digest.Digest, error) {
++	return nil, distribution.ErrUnsupported
++}
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyregistry.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyregistry.go
+index 8a5f5ef..af1e7c9 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyregistry.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/proxy/proxyregistry.go
+@@ -111,6 +111,11 @@ func (pr *proxyingRegistry) Repository(ctx context.Context, name string) (distri
+ 	}, nil
+ }
+ 
++// Blobs returns a blob service for local blob store.
++func (pr *proxyingRegistry) Blobs() distribution.BlobService {
++	return pr.embedded.Blobs()
++}
++
+ // proxiedRepository uses proxying blob and manifest services to serve content
+ // locally, or pulling it through from a remote and caching it locally if it doesn't
+ // already exist
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/blobstore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/blobstore.go
+index f6a8ac4..ede644a 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/blobstore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/blobstore.go
+@@ -1,6 +1,9 @@
+ package storage
+ 
+ import (
++	"io"
++	"path"
++
+ 	"github.com/docker/distribution"
+ 	"github.com/docker/distribution/context"
+ 	"github.com/docker/distribution/digest"
+@@ -12,11 +15,17 @@ import (
+ // intentionally a leaky abstraction, providing utility methods that support
+ // creating and traversing backend links.
+ type blobStore struct {
+-	driver  driver.StorageDriver
+-	statter distribution.BlobStatter
++	driver        driver.StorageDriver
++	statter       distribution.BlobDescriptorService
++	deleteEnabled bool
++	// Causes directory containing blob's data to be removed recursively upon
++	// Delete.
++	removeParentsOnDelete bool
+ }
+ 
+-var _ distribution.BlobProvider = &blobStore{}
++var _ distribution.BlobService = &blobStore{}
++var _ distribution.BlobEnumerator = &blobStore{}
++var _ distribution.BlobDeleter = &blobStore{}
+ 
+ // Get implements the BlobReadService.Get call.
+ func (bs *blobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+@@ -90,6 +99,64 @@ func (bs *blobStore) Put(ctx context.Context, mediaType string, p []byte) (distr
+ 	}, bs.driver.PutContent(ctx, bp, p)
+ }
+ 
++func (bs *blobStore) Enumerate(ctx context.Context, ingest func(digest.Digest) error) error {
++	context.GetLogger(ctx).Debug("(*blobStore).Enumerate")
++	rootPath := path.Join(storagePathRoot, storagePathVersion, "blobs")
++
++	walkFn, err := makeBlobStoreWalkFunc(rootPath, true, ingest)
++	if err != nil {
++		return err
++	}
++
++	err = Walk(ctx, bs.driver, rootPath, walkFn)
++	if err != nil {
++		switch err.(type) {
++		case driver.PathNotFoundError:
++			return io.EOF
++		}
++		if err == ErrFinishedWalk {
++			return nil
++		}
++		return err
++	}
++
++	return io.EOF
++}
++
++func (bs *blobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
++	return nil, distribution.ErrUnsupported
++}
++
++func (bs *blobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
++	return nil, distribution.ErrUnsupported
++}
++
++func (bs *blobStore) Delete(ctx context.Context, dgst digest.Digest) error {
++	var (
++		blobPath string
++		err      error
++	)
++	if !bs.deleteEnabled {
++		return distribution.ErrUnsupported
++	}
++
++	if bs.removeParentsOnDelete {
++		blobPath, err = pathFor(blobPathSpec{digest: dgst})
++	} else {
++		blobPath, err = pathFor(blobDataPathSpec{digest: dgst})
++	}
++	if err != nil {
++		return err
++	}
++
++	context.GetLogger(ctx).Infof("Deleting blob path: %s", blobPath)
++	return bs.driver.Delete(ctx, blobPath)
++}
++
++func (bs *blobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
++	return bs.statter.Stat(ctx, dgst)
++}
++
+ // path returns the canonical path for the blob identified by digest. The blob
+ // may or may not exist.
+ func (bs *blobStore) path(dgst digest.Digest) (string, error) {
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/catalog.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/catalog.go
+index 481489f..7d0f84e 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/catalog.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/catalog.go
+@@ -10,11 +10,6 @@ import (
+ 	"github.com/docker/distribution/registry/storage/driver"
+ )
+ 
+-// ErrFinishedWalk is used when the called walk function no longer wants
+-// to accept any more values.  This is used for pagination when the
+-// required number of repos have been found.
+-var ErrFinishedWalk = errors.New("finished walk")
+-
+ // Returns a list, or partial list, of repositories in the registry.
+ // Because it's a quite expensive operation, it should only be used when building up
+ // an initial set of repositories.
+@@ -30,15 +25,15 @@ func (reg *registry) Repositories(ctx context.Context, repos []string, last stri
+ 		return 0, err
+ 	}
+ 
+-	err = Walk(ctx, reg.blobStore.driver, root, func(fileInfo driver.FileInfo) error {
++	err = WalkSortedChildren(ctx, reg.blobStore.driver, root, func(fileInfo driver.FileInfo) error {
+ 		filePath := fileInfo.Path()
+ 
+ 		// lop the base path off
+ 		repoPath := filePath[len(root)+1:]
+ 
+ 		_, file := path.Split(repoPath)
+-		if file == "_layers" {
+-			repoPath = strings.TrimSuffix(repoPath, "/_layers")
++		if file == layersDirectory {
++			repoPath = strings.TrimSuffix(repoPath, "/"+layersDirectory)
+ 			if repoPath > last {
+ 				foundRepos = append(foundRepos, repoPath)
+ 			}
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/linkedblobstore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/linkedblobstore.go
+index f01088b..b55c753 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/linkedblobstore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/linkedblobstore.go
+@@ -1,7 +1,9 @@
+ package storage
+ 
+ import (
++	"io"
+ 	"net/http"
++	"path"
+ 	"time"
+ 
+ 	"github.com/docker/distribution"
+@@ -15,6 +17,10 @@ import (
+ // repository name and digest.
+ type linkPathFunc func(name string, dgst digest.Digest) (string, error)
+ 
++// blobsRootPathFunc describes a function that can resolve a root directory of
++// blob links based on the repository name.
++type blobsRootPathFunc func(name string) (string, error)
++
+ // linkedBlobStore provides a full BlobService that namespaces the blobs to a
+ // given repository. Effectively, it manages the links in a given repository
+ // that grant access to the global blob store.
+@@ -34,6 +40,10 @@ type linkedBlobStore struct {
+ 	// removed an the blob links folder should be merged. The first entry is
+ 	// treated as the "canonical" link location and will be used for writes.
+ 	linkPathFns []linkPathFunc
++
++	// blobsRootPathFns functions the same way for blob root directories as
++	// linkPathFns for blob links.
++	blobsRootPathFns []blobsRootPathFunc
+ }
+ 
+ var _ distribution.BlobStore = &linkedBlobStore{}
+@@ -99,7 +109,7 @@ func (lbs *linkedBlobStore) Put(ctx context.Context, mediaType string, p []byte)
+ 
+ // Writer begins a blob write session, returning a handle.
+ func (lbs *linkedBlobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
+-	context.GetLogger(ctx).Debug("(*linkedBlobStore).Writer")
++	context.GetLogger(ctx).Debug("(*linkedBlobStore).Create")
+ 
+ 	uuid := uuid.Generate().String()
+ 	startedAt := time.Now().UTC()
+@@ -170,22 +180,12 @@ func (lbs *linkedBlobStore) Resume(ctx context.Context, id string) (distribution
+ }
+ 
+ func (lbs *linkedBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
++	context.GetLogger(ctx).Debug("(*linkedBlobStore).Delete")
+ 	if !lbs.deleteEnabled {
+ 		return distribution.ErrUnsupported
+ 	}
+ 
+-	// Ensure the blob is available for deletion
+-	_, err := lbs.blobAccessController.Stat(ctx, dgst)
+-	if err != nil {
+-		return err
+-	}
+-
+-	err = lbs.blobAccessController.Clear(ctx, dgst)
+-	if err != nil {
+-		return err
+-	}
+-
+-	return nil
++	return lbs.blobAccessController.Clear(ctx, dgst)
+ }
+ 
+ // newBlobUpload allocates a new upload controller with the given state.
+@@ -241,6 +241,42 @@ func (lbs *linkedBlobStore) linkBlob(ctx context.Context, canonical distribution
+ 	return nil
+ }
+ 
++func (lbs *linkedBlobStore) Enumerate(ctx context.Context, ingest func(digest.Digest) error) error {
++	context.GetLogger(ctx).Debug("(*linkedBlobStore).Enumerate")
++	allProcessed := true
++
++	for _, pathFn := range lbs.blobsRootPathFns {
++		rootPath, err := pathFn(lbs.repository.Name())
++		if err != nil {
++			return err
++		}
++
++		walkFn, err := makeBlobStoreWalkFunc(rootPath, false, ingest)
++		if err != nil {
++			return err
++		}
++
++		err = WalkSortedChildren(ctx, lbs.driver, rootPath, walkFn)
++		if err != nil {
++			switch err.(type) {
++			case driver.PathNotFoundError:
++			default:
++				if err != ErrFinishedWalk {
++					return err
++				}
++				// ErrFinishedWalk meens caller don't want us to continue
++				allProcessed = false
++			}
++		}
++	}
++
++	if allProcessed {
++		return io.EOF
++	}
++
++	return nil
++}
++
+ type linkedBlobStatter struct {
+ 	*blobStore
+ 	repository distribution.Repository
+@@ -252,6 +288,10 @@ type linkedBlobStatter struct {
+ 	// removed an the blob links folder should be merged. The first entry is
+ 	// treated as the "canonical" link location and will be used for writes.
+ 	linkPathFns []linkPathFunc
++
++	// Causes directory containing blob's data to be removed recursively upon
++	// Clear.
++	removeParentsOnDelete bool
+ }
+ 
+ var _ distribution.BlobDescriptorService = &linkedBlobStatter{}
+@@ -269,6 +309,7 @@ func (lbs *linkedBlobStatter) Stat(ctx context.Context, dgst digest.Digest) (dis
+ 		target, err = lbs.resolveWithLinkFunc(ctx, dgst, linkPathFn)
+ 
+ 		if err == nil {
++			resolveErr = nil
+ 			break // success!
+ 		}
+ 
+@@ -296,6 +337,9 @@ func (lbs *linkedBlobStatter) Stat(ctx context.Context, dgst digest.Digest) (dis
+ }
+ 
+ func (lbs *linkedBlobStatter) Clear(ctx context.Context, dgst digest.Digest) (err error) {
++	// return ErrBlobUnknown if none of the paths exist
++	resolveErr := distribution.ErrBlobUnknown
++
+ 	// clear any possible existence of a link described in linkPathFns
+ 	for _, linkPathFn := range lbs.linkPathFns {
+ 		blobLinkPath, err := linkPathFn(lbs.repository.Name(), dgst)
+@@ -303,7 +347,11 @@ func (lbs *linkedBlobStatter) Clear(ctx context.Context, dgst digest.Digest) (er
+ 			return err
+ 		}
+ 
+-		err = lbs.blobStore.driver.Delete(ctx, blobLinkPath)
++		pth := blobLinkPath
++		if lbs.removeParentsOnDelete {
++			pth = path.Dir(blobLinkPath)
++		}
++		err = lbs.blobStore.driver.Delete(ctx, pth)
+ 		if err != nil {
+ 			switch err := err.(type) {
+ 			case driver.PathNotFoundError:
+@@ -312,9 +360,10 @@ func (lbs *linkedBlobStatter) Clear(ctx context.Context, dgst digest.Digest) (er
+ 				return err
+ 			}
+ 		}
++		resolveErr = nil
+ 	}
+ 
+-	return nil
++	return resolveErr
+ }
+ 
+ // resolveTargetWithFunc allows us to read a link to a resource with different
+@@ -339,7 +388,18 @@ func blobLinkPath(name string, dgst digest.Digest) (string, error) {
+ 	return pathFor(layerLinkPathSpec{name: name, digest: dgst})
+ }
+ 
++// blobsRootPath provides the path to the root of blob links, also known as
++// layers.
++func blobsRootPath(name string) (string, error) {
++	return pathFor(layersPathSpec{name: name})
++}
++
+ // manifestRevisionLinkPath provides the path to the manifest revision link.
+ func manifestRevisionLinkPath(name string, dgst digest.Digest) (string, error) {
+ 	return pathFor(manifestRevisionLinkPathSpec{name: name, revision: dgst})
+ }
++
++// manifestRevisionsPath provides the path to the manifest revisions directory.
++func manifestRevisionsPath(name string) (string, error) {
++	return pathFor(manifestRevisionsPathSpec{name: name})
++}
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/manifeststore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/manifeststore.go
+index 024c8e4..2230980 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/manifeststore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/manifeststore.go
+@@ -2,6 +2,7 @@ package storage
+ 
+ import (
+ 	"fmt"
++	"io"
+ 
+ 	"github.com/docker/distribution"
+ 	"github.com/docker/distribution/context"
+@@ -17,6 +18,7 @@ type manifestStore struct {
+ 	tagStore                   *tagStore
+ 	ctx                        context.Context
+ 	skipDependencyVerification bool
++	enumerateAllDigests        bool
+ }
+ 
+ var _ distribution.ManifestService = &manifestStore{}
+@@ -51,6 +53,16 @@ func SkipLayerVerification(ms distribution.ManifestService) error {
+ 	return fmt.Errorf("skip layer verification only valid for manifestStore")
+ }
+ 
++// EnumerateAllDigests causes Enumerate method to include all the digests found
++// without checking whether they exist and belong to manifest revisions or not.
++func EnumerateAllDigests(ms distribution.ManifestService) error {
++	if ms, ok := ms.(*manifestStore); ok {
++		ms.enumerateAllDigests = true
++		return nil
++	}
++	return fmt.Errorf("enumerate all digests only valid for manifeststore")
++}
++
+ func (ms *manifestStore) Put(manifest *schema1.SignedManifest) error {
+ 	context.GetLogger(ms.ctx).Debug("(*manifestStore).Put")
+ 
+@@ -101,6 +113,26 @@ func (ms *manifestStore) GetByTag(tag string, options ...distribution.ManifestSe
+ 	return ms.revisionStore.get(ms.ctx, dgst)
+ }
+ 
++// Enumerate retuns an array of digests of all manifest revisions in repository.
++// Returned digests may not be resolvable to actual data.
++func (ms *manifestStore) Enumerate() ([]digest.Digest, error) {
++	context.GetLogger(ms.ctx).Debug("(*manifestStore).Enumerate")
++	dgsts, err := ms.revisionStore.enumerate()
++	if err != nil && err != io.EOF {
++		return nil, err
++	}
++	if ms.enumerateAllDigests {
++		return dgsts, nil
++	}
++	res := make([]digest.Digest, 0, len(dgsts))
++	for _, dgst := range dgsts {
++		if _, err := ms.Get(dgst); err == nil {
++			res = append(res, dgst)
++		}
++	}
++	return res, nil
++}
++
+ // verifyManifest ensures that the manifest content is valid from the
+ // perspective of the registry. It ensures that the signature is valid for the
+ // enclosed payload. As a policy, the registry only tries to store valid
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/paths.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/paths.go
+index e90a199..c6a11d2 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/paths.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/paths.go
+@@ -16,6 +16,12 @@ const (
+ 	// storage path root would configurable for all drivers through this
+ 	// package. In reality, we've found it simpler to do this on a per driver
+ 	// basis.
++
++	layersDirectory    = "_layers"
++	manifestsDirectory = "_manifests"
++	uploadsDirectory   = "_uploads"
++
++	multilevelHexPrefixLength = 2
+ )
+ 
+ // pathFor maps paths based on "object names" and their ids. The "object
+@@ -42,7 +48,7 @@ const (
+ // 						data
+ // 						startedat
+ // 						hashstates/<algorithm>/<offset>
+-//			-> blob/<algorithm>
++//			-> blobs/<algorithm>
+ //				<split directory content addressable storage>
+ //
+ // The storage backend layout is broken up into a content-addressable blob
+@@ -74,6 +80,7 @@ const (
+ //
+ //	Manifests:
+ //
++// 	manifestRevisionsPathSpec:     <root>/v2/repositories/<name>/_manifests/revisions/
+ // 	manifestRevisionPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/
+ // 	manifestRevisionLinkPathSpec:  <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/link
+ // 	manifestSignaturesPathSpec:    <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/signatures/
+@@ -90,6 +97,7 @@ const (
+ //
+ // 	Blobs:
+ //
++// 	layersPathSpec:               <root>/v2/repositories/<name>/_layers/
+ // 	layerLinkPathSpec:            <root>/v2/repositories/<name>/_layers/<algorithm>/<hex digest>/link
+ //
+ //	Uploads:
+@@ -125,13 +133,20 @@ func pathFor(spec pathSpec) (string, error) {
+ 
+ 	switch v := spec.(type) {
+ 
++	case manifestRevisionsPathSpec:
++
++		return path.Join(append(repoPrefix, v.name, manifestsDirectory, "revisions")...), nil
+ 	case manifestRevisionPathSpec:
++		revisionsPrefix, err := pathFor(manifestRevisionsPathSpec{name: v.name})
++		if err != nil {
++			return "", err
++		}
+ 		components, err := digestPathComponents(v.revision, false)
+ 		if err != nil {
+ 			return "", err
+ 		}
+ 
+-		return path.Join(append(append(repoPrefix, v.name, "_manifests", "revisions"), components...)...), nil
++		return path.Join(append([]string{revisionsPrefix}, components...)...), nil
+ 	case manifestRevisionLinkPathSpec:
+ 		root, err := pathFor(manifestRevisionPathSpec{
+ 			name:     v.name,
+@@ -171,7 +186,7 @@ func pathFor(spec pathSpec) (string, error) {
+ 
+ 		return path.Join(root, path.Join(append(signatureComponents, "link")...)), nil
+ 	case manifestTagsPathSpec:
+-		return path.Join(append(repoPrefix, v.name, "_manifests", "tags")...), nil
++		return path.Join(append(repoPrefix, v.name, manifestsDirectory, "tags")...), nil
+ 	case manifestTagPathSpec:
+ 		root, err := pathFor(manifestTagsPathSpec{
+ 			name: v.name,
+@@ -232,40 +247,54 @@ func pathFor(spec pathSpec) (string, error) {
+ 		}
+ 
+ 		return path.Join(root, path.Join(components...)), nil
++	case layersPathSpec:
++
++		return path.Join(append(repoPrefix, v.name, layersDirectory)...), nil
+ 	case layerLinkPathSpec:
++		layersPrefix, err := pathFor(layersPathSpec{name: v.name})
++		if err != nil {
++			return "", err
++		}
+ 		components, err := digestPathComponents(v.digest, false)
+ 		if err != nil {
+ 			return "", err
+ 		}
++		components = append(components, "link")
+ 
+ 		// TODO(stevvooe): Right now, all blobs are linked under "_layers". If
+ 		// we have future migrations, we may want to rename this to "_blobs".
+ 		// A migration strategy would simply leave existing items in place and
+ 		// write the new paths, commit a file then delete the old files.
+ 
+-		blobLinkPathComponents := append(repoPrefix, v.name, "_layers")
+-
+-		return path.Join(path.Join(append(blobLinkPathComponents, components...)...), "link"), nil
+-	case blobDataPathSpec:
++		return path.Join(append([]string{layersPrefix}, components...)...), nil
++	case blobPathSpec:
+ 		components, err := digestPathComponents(v.digest, true)
+ 		if err != nil {
+ 			return "", err
+ 		}
+ 
+-		components = append(components, "data")
+ 		blobPathPrefix := append(rootPrefix, "blobs")
++
+ 		return path.Join(append(blobPathPrefix, components...)...), nil
++	case blobDataPathSpec:
++		blobPathPrefix, err := pathFor(blobPathSpec{
++			digest: v.digest,
++		})
++		if err != nil {
++			return "", err
++		}
+ 
++		return path.Join(blobPathPrefix, "data"), nil
+ 	case uploadDataPathSpec:
+-		return path.Join(append(repoPrefix, v.name, "_uploads", v.id, "data")...), nil
++		return path.Join(append(repoPrefix, v.name, uploadsDirectory, v.id, "data")...), nil
+ 	case uploadStartedAtPathSpec:
+-		return path.Join(append(repoPrefix, v.name, "_uploads", v.id, "startedat")...), nil
++		return path.Join(append(repoPrefix, v.name, uploadsDirectory, v.id, "startedat")...), nil
+ 	case uploadHashStatePathSpec:
+ 		offset := fmt.Sprintf("%d", v.offset)
+ 		if v.list {
+ 			offset = "" // Limit to the prefix for listing offsets.
+ 		}
+-		return path.Join(append(repoPrefix, v.name, "_uploads", v.id, "hashstates", string(v.alg), offset)...), nil
++		return path.Join(append(repoPrefix, v.name, uploadsDirectory, v.id, "hashstates", string(v.alg), offset)...), nil
+ 	case repositoriesRootPathSpec:
+ 		return path.Join(repoPrefix...), nil
+ 	default:
+@@ -281,6 +310,14 @@ type pathSpec interface {
+ 	pathSpec()
+ }
+ 
++// manifestRevisionsPathSpec describes the components of the directory path for
++// a root of repository revisions.
++type manifestRevisionsPathSpec struct {
++	name string
++}
++
++func (manifestRevisionsPathSpec) pathSpec() {}
++
+ // manifestRevisionPathSpec describes the components of the directory path for
+ // a manifest revision.
+ type manifestRevisionPathSpec struct {
+@@ -376,6 +413,13 @@ type manifestTagIndexEntryLinkPathSpec struct {
+ 
+ func (manifestTagIndexEntryLinkPathSpec) pathSpec() {}
+ 
++// layersPathSpec describes the root directory of repository layer links.
++type layersPathSpec struct {
++	name string
++}
++
++func (layersPathSpec) pathSpec() {}
++
+ // blobLinkPathSpec specifies a path for a blob link, which is a file with a
+ // blob id. The blob link will contain a content addressable blob id reference
+ // into the blob store. The format of the contents is as follows:
+@@ -405,12 +449,12 @@ var blobAlgorithmReplacer = strings.NewReplacer(
+ 	";", "/",
+ )
+ 
+-// // blobPathSpec contains the path for the registry global blob store.
+-// type blobPathSpec struct {
+-// 	digest digest.Digest
+-// }
++// blobPathSpec contains the path for the registry global blob store.
++type blobPathSpec struct {
++	digest digest.Digest
++}
+ 
+-// func (blobPathSpec) pathSpec() {}
++func (blobPathSpec) pathSpec() {}
+ 
+ // blobDataPathSpec contains the path for the registry global blob store. For
+ // now, this contains layer data, exclusively.
+@@ -489,7 +533,7 @@ func digestPathComponents(dgst digest.Digest, multilevel bool) ([]string, error)
+ 	var suffix []string
+ 
+ 	if multilevel {
+-		suffix = append(suffix, hex[:2])
++		suffix = append(suffix, hex[:multilevelHexPrefixLength])
+ 	}
+ 
+ 	suffix = append(suffix, hex)
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/purgeuploads.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/purgeuploads.go
+index 7576b18..f3f6b7f 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/purgeuploads.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/purgeuploads.go
+@@ -72,7 +72,7 @@ func getOutstandingUploads(ctx context.Context, driver storageDriver.StorageDriv
+ 		_, file := path.Split(filePath)
+ 		if file[0] == '_' {
+ 			// Reserved directory
+-			inUploadDir = (file == "_uploads")
++			inUploadDir = (file == uploadsDirectory)
+ 
+ 			if fileInfo.IsDir() && !inUploadDir {
+ 				return ErrSkipDir
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/registry.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/registry.go
+index 5ef06d5..a6316f9 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/registry.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/registry.go
+@@ -1,6 +1,7 @@
+ package storage
+ 
+ import (
++	"fmt"
+ 	"github.com/docker/distribution"
+ 	"github.com/docker/distribution/context"
+ 	"github.com/docker/distribution/reference"
+@@ -32,6 +33,7 @@ func EnableRedirect(registry *registry) error {
+ // EnableDelete is a functional option for NewRegistry. It enables deletion on
+ // the registry.
+ func EnableDelete(registry *registry) error {
++	registry.blobStore.deleteEnabled = true
+ 	registry.deleteEnabled = true
+ 	return nil
+ }
+@@ -43,6 +45,15 @@ func DisableDigestResumption(registry *registry) error {
+ 	return nil
+ }
+ 
++// RemoveParentsOnDelete is a functional option for NewRegistry. It causes
++// parent directory of blob's data or link to be deleted as well during Delete.
++// It should be used only with storage drivers providing strong consistency.
++// Must be used together with `EnableDelete`.
++func RemoveParentsOnDelete(registry *registry) error {
++	registry.blobStore.removeParentsOnDelete = true
++	return nil
++}
++
+ // BlobDescriptorCacheProvider returns a functional option for
+ // NewRegistry. It creates a cached blob statter for use by the
+ // registry.
+@@ -132,6 +143,29 @@ func (reg *registry) Repository(ctx context.Context, canonicalName string) (dist
+ 	}, nil
+ }
+ 
++// Blobs returns an instance of the BlobServer for registry's blob access.
++func (reg *registry) Blobs() distribution.BlobService {
++	return reg.blobStore
++}
++
++// RegistryBlobEnumerator returns an instance of BlobEnumerator for given registry object.
++func RegistryBlobEnumerator(ns distribution.Namespace) (distribution.BlobEnumerator, error) {
++	reg, ok := ns.(*registry)
++	if !ok {
++		return nil, fmt.Errorf("cannot instantiate BlobEnumerator with given namespace object (%T)", ns)
++	}
++	return reg.blobStore, nil
++}
++
++// RegistryBlobDeleter returns an instance of BlobDeleter for given registry object.
++func RegistryBlobDeleter(ns distribution.Namespace) (distribution.BlobDeleter, error) {
++	reg, ok := ns.(*registry)
++	if !ok {
++		return nil, fmt.Errorf("cannot instantiate BlobDeleter with given namespace object (%T)", ns)
++	}
++	return reg.blobStore, nil
++}
++
+ // repository provides name-scoped access to various services.
+ type repository struct {
+ 	*registry
+@@ -155,6 +189,10 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
+ 		manifestRevisionLinkPath,
+ 		blobLinkPath,
+ 	}
++	manifestRootPathFns := []blobsRootPathFunc{
++		manifestRevisionsPath,
++		blobsRootPath,
++	}
+ 
+ 	ms := &manifestStore{
+ 		ctx:        ctx,
+@@ -168,14 +206,16 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
+ 				repository:    repo,
+ 				deleteEnabled: repo.registry.deleteEnabled,
+ 				blobAccessController: &linkedBlobStatter{
+-					blobStore:   repo.blobStore,
+-					repository:  repo,
+-					linkPathFns: manifestLinkPathFns,
++					blobStore:             repo.blobStore,
++					repository:            repo,
++					linkPathFns:           manifestLinkPathFns,
++					removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
+ 				},
+ 
+ 				// TODO(stevvooe): linkPath limits this blob store to only
+ 				// manifests. This instance cannot be used for blob checks.
+ 				linkPathFns:            manifestLinkPathFns,
++				blobsRootPathFns:       manifestRootPathFns,
+ 				resumableDigestEnabled: repo.resumableDigestEnabled,
+ 			},
+ 		},
+@@ -202,9 +242,10 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
+ // to a request local.
+ func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
+ 	var statter distribution.BlobDescriptorService = &linkedBlobStatter{
+-		blobStore:   repo.blobStore,
+-		repository:  repo,
+-		linkPathFns: []linkPathFunc{blobLinkPath},
++		blobStore:             repo.blobStore,
++		repository:            repo,
++		linkPathFns:           []linkPathFunc{blobLinkPath},
++		removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
+ 	}
+ 
+ 	if repo.descriptorCache != nil {
+@@ -221,6 +262,7 @@ func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
+ 		// TODO(stevvooe): linkPath limits this blob store to only layers.
+ 		// This instance cannot be used for manifest checks.
+ 		linkPathFns:            []linkPathFunc{blobLinkPath},
++		blobsRootPathFns:       []blobsRootPathFunc{blobsRootPath},
+ 		deleteEnabled:          repo.registry.deleteEnabled,
+ 		resumableDigestEnabled: repo.resumableDigestEnabled,
+ 	}
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/revisionstore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/revisionstore.go
+index ed2d5dd..421c5dc 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/revisionstore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/revisionstore.go
+@@ -106,6 +106,11 @@ func (rs *revisionStore) put(ctx context.Context, sm *schema1.SignedManifest) (d
+ 	return revision, nil
+ }
+ 
++// enumerate returns an array of digests of all found manifest revisions.
++func (rs *revisionStore) enumerate() ([]digest.Digest, error) {
++	return enumerateAllBlobs(rs.blobStore, rs.ctx)
++}
++
+ func (rs *revisionStore) delete(ctx context.Context, revision digest.Digest) error {
+ 	return rs.blobStore.Delete(ctx, revision)
+ }
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/signaturestore.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/signaturestore.go
+index f5888f6..cbeedd3 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/signaturestore.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/signaturestore.go
+@@ -105,6 +105,11 @@ loop:
+ 	return signatures, err
+ }
+ 
++// Enumerate returns an array of digests of manifest signatures.
++func (s *signatureStore) Enumerate(manifestReference digest.Digest) ([]digest.Digest, error) {
++	return enumerateAllBlobs(s.linkedBlobStore(s.ctx, manifestReference), s.ctx)
++}
++
+ func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {
+ 	bs := s.linkedBlobStore(s.ctx, dgst)
+ 	for _, signature := range signatures {
+@@ -115,6 +120,21 @@ func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {
+ 	return nil
+ }
+ 
++// Delete removes all signature links of given manifest revision.
++func (s *signatureStore) Delete(revision digest.Digest) error {
++	dgsts, err := s.Enumerate(revision)
++	if err != nil {
++		return err
++	}
++	lbs := s.linkedBlobStore(s.ctx, revision)
++	for _, dgst := range dgsts {
++		if err = lbs.Delete(s.ctx, dgst); err != nil {
++			return err
++		}
++	}
++	return nil
++}
++
+ // linkedBlobStore returns the namedBlobStore of the signatures for the
+ // manifest with the given digest. Effectively, each signature link path
+ // layout is a unique linked blob store.
+@@ -125,7 +145,12 @@ func (s *signatureStore) linkedBlobStore(ctx context.Context, revision digest.Di
+ 			revision:  revision,
+ 			signature: dgst,
+ 		})
+-
++	}
++	linkRootPath := func(name string) (string, error) {
++		return pathFor(manifestSignaturesPathSpec{
++			name:     name,
++			revision: revision,
++		})
+ 	}
+ 
+ 	return &linkedBlobStore{
+@@ -133,10 +158,12 @@ func (s *signatureStore) linkedBlobStore(ctx context.Context, revision digest.Di
+ 		repository: s.repository,
+ 		blobStore:  s.blobStore,
+ 		blobAccessController: &linkedBlobStatter{
+-			blobStore:   s.blobStore,
+-			repository:  s.repository,
+-			linkPathFns: []linkPathFunc{linkpath},
++			blobStore:             s.blobStore,
++			repository:            s.repository,
++			linkPathFns:           []linkPathFunc{linkpath},
++			removeParentsOnDelete: true,
+ 		},
+-		linkPathFns: []linkPathFunc{linkpath},
++		linkPathFns:      []linkPathFunc{linkpath},
++		blobsRootPathFns: []blobsRootPathFunc{linkRootPath},
+ 	}
+ }
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/walk.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/walk.go
+index d979796..e6d9a89 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/walk.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/walk.go
+@@ -3,31 +3,62 @@ package storage
+ import (
+ 	"errors"
+ 	"fmt"
++	"regexp"
+ 	"sort"
++	"strings"
+ 
++	"github.com/docker/distribution"
+ 	"github.com/docker/distribution/context"
++	"github.com/docker/distribution/digest"
+ 	storageDriver "github.com/docker/distribution/registry/storage/driver"
+ )
+ 
++var (
++	reTarsumPrefix = regexp.MustCompile(`^tarsum(?:/(\w+))?`)
++	reDigestPath   = regexp.MustCompile(fmt.Sprintf(`^([^/]+)/(?:\w{%d}/)?(\w+)$`, multilevelHexPrefixLength))
++)
++
+ // ErrSkipDir is used as a return value from onFileFunc to indicate that
+ // the directory named in the call is to be skipped. It is not returned
+ // as an error by any function.
+ var ErrSkipDir = errors.New("skip this directory")
+ 
++// ErrFinishedWalk is used when the called walk function no longer wants
++// to accept any more values.  This is used for pagination when the
++// required number of items have been found.
++var ErrFinishedWalk = errors.New("finished walk")
++
+ // WalkFn is called once per file by Walk
+ // If the returned error is ErrSkipDir and fileInfo refers
+ // to a directory, the directory will not be entered and Walk
+ // will continue the traversal.  Otherwise Walk will return
+ type WalkFn func(fileInfo storageDriver.FileInfo) error
+ 
+-// Walk traverses a filesystem defined within driver, starting
+-// from the given path, calling f on each file
+-func Walk(ctx context.Context, driver storageDriver.StorageDriver, from string, f WalkFn) error {
++// WalkChildrenFilter transforms a list of directory children during a
++// walk before before it's recursively traversed.
++type WalkChildrenFilter func([]string) []string
++
++// walkChildrenSortedFilter causes Walk to process entries in a lexicographical
++// order.
++func walkChildrenSortedFilter(children []string) []string {
++	sort.Stable(sort.StringSlice(children))
++	return children
++}
++
++// walkChildrenNoFilter is an identity filter for directory children.
++func walkChildrenNoFilter(children []string) []string {
++	return children
++}
++
++// WalkWithChildrenFilter traverses a filesystem defined within driver,
++// starting from the given path, calling f on each file. Given filter will be
++// called on a list of directory children before being recursively processed.
++func WalkWithChildrenFilter(ctx context.Context, driver storageDriver.StorageDriver, from string, filter WalkChildrenFilter, f WalkFn) error {
+ 	children, err := driver.List(ctx, from)
+ 	if err != nil {
+ 		return err
+ 	}
+-	sort.Stable(sort.StringSlice(children))
++	filter(children)
+ 	for _, child := range children {
+ 		// TODO(stevvooe): Calling driver.Stat for every entry is quite
+ 		// expensive when running against backends with a slow Stat
+@@ -44,7 +75,7 @@ func Walk(ctx context.Context, driver storageDriver.StorageDriver, from string,
+ 		}
+ 
+ 		if fileInfo.IsDir() && !skipDir {
+-			if err := Walk(ctx, driver, child, f); err != nil {
++			if err := WalkWithChildrenFilter(ctx, driver, child, filter, f); err != nil {
+ 				return err
+ 			}
+ 		}
+@@ -52,8 +83,109 @@ func Walk(ctx context.Context, driver storageDriver.StorageDriver, from string,
+ 	return nil
+ }
+ 
++// Walk traverses a filesystem defined within driver, starting
++// from the given path, calling f on each file.
++func Walk(ctx context.Context, driver storageDriver.StorageDriver, from string, f WalkFn) error {
++	return WalkWithChildrenFilter(ctx, driver, from, walkChildrenNoFilter, f)
++}
++
++// WalkSortedChildren traverses a filesystem defined within driver, starting
++// from the given path, calling f on each file in lexicographical order.
++func WalkSortedChildren(ctx context.Context, driver storageDriver.StorageDriver, from string, f WalkFn) error {
++	return WalkWithChildrenFilter(ctx, driver, from, walkChildrenSortedFilter, f)
++}
++
+ // pushError formats an error type given a path and an error
+ // and pushes it to a slice of errors
+ func pushError(errors []error, path string, err error) []error {
+ 	return append(errors, fmt.Errorf("%s: %s", path, err))
+ }
++
++// makeBlobStoreWalkFunc returns a function for walking a blob store at
++// particular rootPath. The returned function calls a given ingest callback on
++// each digest found. The blob store is expected to have following layout:
++//
++//     if multilevel is true:
++//       <rootPath>/<alg>/<prefix>/<digest>
++//       <rootPath>/tarsum/<version>/<alg>/<prefix>/<digest>
++//     otherwise:
++//       <rootPath>/<alg>/<digest>
++//       <rootPath>/tarsum/<version>/<alg>/<digest>
++func makeBlobStoreWalkFunc(rootPath string, multilevel bool, ingest func(digest.Digest) error) (WalkFn, error) {
++	var (
++		// number of slashes in a path to a full digest directory under a rootPath
++		blobRefPathSepCount       int
++		blobTarsumRefPathSepCount int
++	)
++
++	if multilevel {
++		// <alg>/<prefix>/<digest>
++		blobRefPathSepCount = 2
++		// tarsum/<version>/<alg>/<prefix>/<digest>
++		blobTarsumRefPathSepCount = 4
++	} else {
++		// <alg>/<digest>
++		blobRefPathSepCount = 1
++		// tarsum/<version>/<alg>/<digest>
++		blobTarsumRefPathSepCount = 3
++	}
++
++	return func(fi storageDriver.FileInfo) error {
++		if !fi.IsDir() {
++			// ignore files
++			return nil
++		}
++
++		// trim <from>/ prefix
++		pth := strings.TrimPrefix(strings.TrimPrefix(fi.Path(), rootPath), "/")
++		sepCount := strings.Count(pth, "/")
++
++		if sepCount < blobRefPathSepCount {
++			// don't bother finding digests in a too short path
++			return nil
++		}
++
++		alg := ""
++		tarsumParts := reTarsumPrefix.FindStringSubmatch(pth)
++		isTarsum := len(tarsumParts) > 0
++		if sepCount > blobTarsumRefPathSepCount || (!isTarsum && sepCount > blobRefPathSepCount) {
++			// too many path components
++			return ErrSkipDir
++		}
++
++		if len(tarsumParts) > 0 {
++			alg = "tarsum." + tarsumParts[1] + "+"
++			// trim "tarsum/<version>/" prefix from path
++			pth = strings.TrimPrefix(pth[len(tarsumParts[0]):], "/")
++		}
++
++		digestParts := reDigestPath.FindStringSubmatch(pth)
++		if len(digestParts) > 0 {
++			alg += digestParts[1]
++			dgstHex := digestParts[2]
++			dgst := digest.NewDigestFromHex(alg, dgstHex)
++			// append only valid digests
++			if err := dgst.Validate(); err == nil {
++				err := ingest(dgst)
++				if err != nil {
++					return ErrFinishedWalk
++				}
++			}
++			return ErrSkipDir
++		}
++
++		return nil
++	}, nil
++}
++
++// enumerateAllBlobs is a utility function that returns all the blob digests
++// found in given blob store. It should be used with care because of memory and
++// time complexity.
++func enumerateAllBlobs(be distribution.BlobEnumerator, ctx context.Context) ([]digest.Digest, error) {
++	res := []digest.Digest{}
++	err := be.Enumerate(ctx, func(dgst digest.Digest) error {
++		res = append(res, dgst)
++		return nil
++	})
++	return res, err
++}
+-- 
+2.5.0
+

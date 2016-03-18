@@ -1,0 +1,110 @@
+From ceb632159bab3b49d067dc2232b06b8faecfb1ea Mon Sep 17 00:00:00 2001
+From: Clayton Coleman <ccoleman@redhat.com>
+Date: Fri, 24 Jul 2015 17:47:23 -0400
+Subject: [PATCH 02/10] UPSTREAM: 211: Allow listen only ipv4
+
+---
+ .../skynetservices/skydns/server/config.go         | 11 ++++++++++
+ .../skynetservices/skydns/server/server.go         | 25 ++++++++++++++++------
+ 2 files changed, 30 insertions(+), 6 deletions(-)
+
+diff --git a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/config.go b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/config.go
+index 2b6792d..676588e 100644
+--- a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/config.go
++++ b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/config.go
+@@ -25,6 +25,8 @@ const (
+ type Config struct {
+ 	// The ip:port SkyDNS should be listening on for incoming DNS requests.
+ 	DnsAddr string `json:"dns_addr,omitempty"`
++	// The network used to bind DNS - can be 'ip' (both ipv4 and ipv6), 'ipv4', or 'ipv6', defaults to 'ip'
++	BindNetwork string `json:"bind_network,omitempty"`
+ 	// bind to port(s) activated by systemd. If set to true, this overrides DnsAddr.
+ 	Systemd bool `json:"systemd,omitempty"`
+ 	// The domain SkyDNS is authoritative for, defaults to skydns.local.
+@@ -80,6 +82,9 @@ func SetDefaults(config *Config) error {
+ 	if config.DnsAddr == "" {
+ 		config.DnsAddr = "127.0.0.1:53"
+ 	}
++	if config.BindNetwork == "" {
++		config.BindNetwork = "ip"
++	}
+ 	if config.Domain == "" {
+ 		config.Domain = "skydns.local."
+ 	}
+@@ -111,6 +116,12 @@ func SetDefaults(config *Config) error {
+ 		config.Ndots = 2
+ 	}
+ 
++	switch config.BindNetwork {
++	case "ip", "ipv4", "ipv6":
++	default:
++		return fmt.Errorf("%s is not an accepted value for BindNetwork", config.BindNetwork)
++	}
++
+ 	if len(config.Nameservers) == 0 {
+ 		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+ 		if !os.IsNotExist(err) {
+diff --git a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
+index 6d312f4..f26aab1 100644
+--- a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
++++ b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
+@@ -72,8 +72,21 @@ func (g FirstBackend) ReverseRecord(name string) (record *msg.Service, err error
+ 	return nil, lastError
+ }
+ 
++func bindNetworks(bindNetwork string) (tcp, udp string) {
++	tcpNetwork, udpNetwork := "tcp", "udp"
++	switch bindNetwork {
++	case "ipv4":
++		tcpNetwork, udpNetwork = "tcp4", "udp4"
++	case "ipv6":
++		tcpNetwork, udpNetwork = "tcp6", "udp6"
++	}
++	return tcpNetwork, udpNetwork
++}
++
+ // New returns a new SkyDNS server.
+ func New(backend Backend, config *Config) *server {
++	tcpNetwork, udpNetwork := bindNetworks(config.BindNetwork)
++
+ 	return &server{
+ 		backend: backend,
+ 		config:  config,
+@@ -81,8 +94,8 @@ func New(backend Backend, config *Config) *server {
+ 		group:        new(sync.WaitGroup),
+ 		scache:       cache.New(config.SCache, 0),
+ 		rcache:       cache.New(config.RCache, config.RCacheTtl),
+-		dnsUDPclient: &dns.Client{Net: "udp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+-		dnsTCPclient: &dns.Client{Net: "tcp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
++		dnsUDPclient: &dns.Client{Net: udpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
++		dnsTCPclient: &dns.Client{Net: tcpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+ 	}
+ }
+ 
+@@ -102,19 +115,19 @@ func (s *server) Run() error {
+ 	s.group.Add(1)
+ 	go func() {
+ 		defer s.group.Done()
+-		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
++		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsTCPclient.Net, mux); err != nil {
+ 			log.Fatalf("skydns: %s", err)
+ 		}
+ 	}()
+-	dnsReadyMsg(s.config.DnsAddr, "tcp")
++	dnsReadyMsg(s.config.DnsAddr, s.dnsTCPclient.Net)
+ 	s.group.Add(1)
+ 	go func() {
+ 		defer s.group.Done()
+-		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
++		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsUDPclient.Net, mux); err != nil {
+ 			log.Fatalf("skydns: %s", err)
+ 		}
+ 	}()
+-	dnsReadyMsg(s.config.DnsAddr, "udp")
++	dnsReadyMsg(s.config.DnsAddr, s.dnsUDPclient.Net)
+ 
+ 	s.group.Wait()
+ 	return nil
+-- 
+2.5.0
+

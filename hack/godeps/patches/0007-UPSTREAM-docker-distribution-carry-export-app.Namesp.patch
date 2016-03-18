@@ -1,0 +1,32 @@
+From 395ae9f479ea525cdec374fdd23e3e1981c81316 Mon Sep 17 00:00:00 2001
+From: Michal Minar <miminar@redhat.com>
+Date: Mon, 19 Oct 2015 08:59:03 +0200
+Subject: [PATCH 07/10] UPSTREAM: docker/distribution: <carry>: export
+ app.Namespace
+
+Remove this commit once the admin routes are gone.
+
+Signed-off-by: Michal Minar <miminar@redhat.com>
+---
+ .../src/github.com/docker/distribution/registry/handlers/app.go      | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
+index 23f5ead..133544a 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/app.go
+@@ -356,6 +356,11 @@ func (app *App) register(routeName string, dispatch dispatchFunc) {
+ 	app.RegisterRoute(app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
+ }
+ 
++// Namespace returns a namespace instance representing application's registry storage.
++func (app *App) Namespace() distribution.Namespace {
++	return app.registry
++}
++
+ func (app *App) RegisterRoute(route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
+ 	// TODO(stevvooe): This odd dispatcher/route registration is by-product of
+ 	// some limitations in the gorilla/mux router. We are using it to keep
+-- 
+2.5.0
+

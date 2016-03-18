@@ -1,0 +1,109 @@
+From 3460d79d91f961ea235ced5176e29239dd186388 Mon Sep 17 00:00:00 2001
+From: Clayton Coleman <ccoleman@redhat.com>
+Date: Sun, 8 Mar 2015 23:03:50 -0400
+Subject: [PATCH 01/10] UPSTREAM: Disable systemd activation for DNS
+
+Need to work with go-systemd to see if we can abstract the syscall.CloseOnExec
+which is not supported on windows.
+---
+ .../skynetservices/skydns/server/server.go         | 68 +++++-----------------
+ 1 file changed, 15 insertions(+), 53 deletions(-)
+
+diff --git a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
+index d0222ad..6d312f4 100644
+--- a/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
++++ b/Godeps/_workspace/src/github.com/skynetservices/skydns/server/server.go
+@@ -6,6 +6,7 @@ package server
+ 
+ import (
+ 	"fmt"
++	"log"
+ 	"math"
+ 	"net"
+ 	"strconv"
+@@ -14,7 +15,6 @@ import (
+ 	"time"
+ 
+ 	"github.com/coreos/go-etcd/etcd"
+-	"github.com/coreos/go-systemd/activation"
+ 	"github.com/miekg/dns"
+ 	"github.com/skynetservices/skydns/cache"
+ 	"github.com/skynetservices/skydns/msg"
+@@ -99,60 +99,22 @@ func (s *server) Run() error {
+ 		}
+ 	}
+ 
+-	if s.config.Systemd {
+-		packetConns, err := activation.PacketConns(false)
+-		if err != nil {
+-			return err
++	s.group.Add(1)
++	go func() {
++		defer s.group.Done()
++		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
++			log.Fatalf("skydns: %s", err)
+ 		}
+-		listeners, err := activation.Listeners(true)
+-		if err != nil {
+-			return err
+-		}
+-		if len(packetConns) == 0 && len(listeners) == 0 {
+-			return fmt.Errorf("no UDP or TCP sockets supplied by systemd")
+-		}
+-		for _, p := range packetConns {
+-			if u, ok := p.(*net.UDPConn); ok {
+-				s.group.Add(1)
+-				go func() {
+-					defer s.group.Done()
+-					if err := dns.ActivateAndServe(nil, u, mux); err != nil {
+-						fatalf("%s", err)
+-					}
+-				}()
+-				dnsReadyMsg(u.LocalAddr().String(), "udp")
+-			}
+-		}
+-		for _, l := range listeners {
+-			if t, ok := l.(*net.TCPListener); ok {
+-				s.group.Add(1)
+-				go func() {
+-					defer s.group.Done()
+-					if err := dns.ActivateAndServe(t, nil, mux); err != nil {
+-						fatalf("%s", err)
+-					}
+-				}()
+-				dnsReadyMsg(t.Addr().String(), "tcp")
+-			}
++	}()
++	dnsReadyMsg(s.config.DnsAddr, "tcp")
++	s.group.Add(1)
++	go func() {
++		defer s.group.Done()
++		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
++			log.Fatalf("skydns: %s", err)
+ 		}
+-	} else {
+-		s.group.Add(1)
+-		go func() {
+-			defer s.group.Done()
+-			if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+-				fatalf("%s", err)
+-			}
+-		}()
+-		dnsReadyMsg(s.config.DnsAddr, "tcp")
+-		s.group.Add(1)
+-		go func() {
+-			defer s.group.Done()
+-			if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+-				fatalf("%s", err)
+-			}
+-		}()
+-		dnsReadyMsg(s.config.DnsAddr, "udp")
+-	}
++	}()
++	dnsReadyMsg(s.config.DnsAddr, "udp")
+ 
+ 	s.group.Wait()
+ 	return nil
+-- 
+2.5.0
+

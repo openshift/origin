@@ -1,0 +1,41 @@
+From a2104716a93acfdbb230e8b6a703c9541e8564ae Mon Sep 17 00:00:00 2001
+From: Michal Minar <miminar@redhat.com>
+Date: Wed, 24 Feb 2016 14:27:32 +0100
+Subject: [PATCH 09/10] UPSTREAM: docker/distribution: 1473: Commit uploaded
+ blob with size
+
+Needed for image quota check.
+
+Signed-off-by: Michal Minar <miminar@redhat.com>
+---
+ .../docker/distribution/registry/handlers/blobupload.go        | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
+index 1bd33d3..d3ff3ca 100644
+--- a/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
++++ b/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/blobupload.go
+@@ -221,12 +221,18 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
+ 		return
+ 	}
+ 
++	size := buh.State.Offset
++	if offset, err := buh.Upload.Seek(0, os.SEEK_CUR); err == nil {
++		size = offset
++	}
++
+ 	desc, err := buh.Upload.Commit(buh, distribution.Descriptor{
+ 		Digest: dgst,
++		Size:   size,
+ 
+ 		// TODO(stevvooe): This isn't wildly important yet, but we should
+-		// really set the length and mediatype. For now, we can let the
+-		// backend take care of this.
++		// really set the mediatype. For now, we can let the backend take care
++		// of this.
+ 	})
+ 
+ 	if err != nil {
+-- 
+2.5.0
+
