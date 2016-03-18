@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9ca84e008f688106d6ad148d128c856448886c1a
+%global commit 5f818640ca1292e068b1fb90eb0390ddcb8448c8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.3-44-g9ca84e0 -X github.com/openshift/origin/pkg/version.commitFromGit 9ca84e0 -X k8s.io/kubernetes/pkg/version.gitCommit 91d3e75 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-origin-41-g91d3e75
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.4-89-g5f81864 -X github.com/openshift/origin/pkg/version.commitFromGit 5f81864 -X k8s.io/kubernetes/pkg/version.gitCommit 4a3f9c5 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.4
+Version:        3.2.0.5
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,82 @@ fi
 
 
 %changelog
+* Fri Mar 18 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.5
+- Don't show chromeless log link if log not available (spadgett@redhat.com)
+- UPSTREAM: 21373: kubelet: reading cloudinfo from cadvisor (deads@redhat.com)
+- fix typo in db template readme (bparees@redhat.com)
+- oc: more status fixes (mkargaki@redhat.com)
+- Don't autofocus catalog filter input (spadgett@redhat.com)
+- Add e2fsprogs to base image (sdodson@redhat.com)
+- Bump kubernetes-container-terminal to 0.0.11 (spadgett@redhat.com)
+- oc: plumb error writer in oc edit (mkargaki@redhat.com)
+- UPSTREAM: 22634: kubectl: print errors that wont be reloaded in the editor
+  (mkargaki@redhat.com)
+- Include all extended tests in a single binary (marun@redhat.com)
+- Update swagger spec (jliggitt@redhat.com)
+- bump(k8s.io/kubernetes): 4a3f9c5b19c7ff804cbc1bf37a15c044ca5d2353
+  (jliggitt@redhat.com)
+- bump(github.com/google/cadvisor): 546a3771589bdb356777c646c6eca24914fdd48b
+  (jliggitt@redhat.com)
+- add debug when extended build tests fail (bparees@redhat.com)
+- clean up jenkins master/slave parameters (bparees@redhat.com)
+- Web console: fix problem balancing create flow columns (spadgett@redhat.com)
+- Tooltip for multiple ImageSources in BC editor (jhadvig@redhat.com)
+- fix two broken extended tests (bparees@redhat.com)
+- Bug fix so that table-mobile will word-wrap: break-word (rhamilto@redhat.com)
+- Add preliminary quota support for emptyDir volumes on XFS.
+  (dgoodwin@redhat.com)
+- Bump unit test timeout (jliggitt@redhat.com)
+- updated tmpdir for e2e-docker (skuznets@redhat.com)
+- Load environment files in containerized systemd units (sdodson@redhat.com)
+- Interesting changes for rebase (jliggitt@redhat.com)
+- Extended test namespace creation fixes (jliggitt@redhat.com)
+- Mechanical changes for rebase (jliggitt@redhat.com)
+- fix credential lookup for authenticated image stream import
+  (jliggitt@redhat.com)
+- Generated docs, conversions, copies, completions (jliggitt@redhat.com)
+- UPSTREAM: <carry>: Allow overriding default generators for run
+  (jliggitt@redhat.com)
+- UPSTREAM: 22921: Fix job selector validation and tests (jliggitt@redhat.com)
+- UPSTREAM: 22919: Allow starting test etcd with http (jliggitt@redhat.com)
+- Stack definition lists only at narrower widths (spadgett@redhat.com)
+- Disable externalIP by default (ccoleman@redhat.com)
+- oc: warn about missing stream when deleting a tag (mkargaki@redhat.com)
+- implemented miscellaneous iprovements for test-cmd (skuznets@redhat.com)
+- Handle env vars that use valueFrom (jhadvig@redhat.com)
+- UPSTREAM: 22917: Decrease verbosity of namespace controller trace logging
+  (jliggitt@redhat.com)
+- UPSTREAM: 22916: Correctly identify namespace subresources in GetRequestInfo
+  (jliggitt@redhat.com)
+- UPSTREAM: 22914: Move TestRuntimeCache into runtime_cache.go file
+  (jliggitt@redhat.com)
+- UPSTREAM: 22913: register internal types with scheme for reference unit test
+  (jliggitt@redhat.com)
+- UPSTREAM: 22910: Decrease parallelism in deletecollection test, lengthen test
+  etcd certs (jliggitt@redhat.com)
+- UPSTREAM: 22875: Tolerate multiple registered versions in a single group
+  (jliggitt@redhat.com)
+- UPSTREAM: 22877: mark filename flags for completions (ffranz@redhat.com)
+- UPSTREAM: 22929: Test relative timestamps using UTC (jliggitt@redhat.com)
+- UPSTREAM: 22746: add user-agent defaulting for discovery (deads@redhat.com)
+- bump(github.com/Sirupsen/logrus): aaf92c95712104318fc35409745f1533aa5ff327
+  (jliggitt@redhat.com)
+- bump(github.com/hashicorp/golang-lru):
+  a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4 (jliggitt@redhat.com)
+- bump(bitbucket.org/ww/goautoneg): 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+  (jliggitt@redhat.com)
+- bump(k8s.io/kubernetes): 148dd34ab0e7daeb82582d6ea8e840c15a24e745
+  (jliggitt@redhat.com)
+- Update copy-kube-artifacts script (jliggitt@redhat.com)
+- Allow recursive unit testing packages under godeps (jliggitt@redhat.com)
+- Update godepchecker to print commit dates, allow checking out commits
+  (jliggitt@redhat.com)
+- Ensure errors are reported back in the container logs. (smitram@gmail.com)
+- UPSTREAM: 22999: Display a better login message (ccoleman@redhat.com)
+- oc: better new-app suggestions (mkargaki@redhat.com)
+- parameterize IS namespace (gmontero@redhat.com)
+- place tmp secret files in tmpdir (skuznets@redhat.com)
+
 * Wed Mar 16 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.4
 - Update ose build scripts (tdawson@redhat.com)
 - move-upstream should use UPSTREAM_REPO_LOCATION like cherry-pick
