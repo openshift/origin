@@ -38,7 +38,6 @@ done
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
 reload_status=0
-DROP_SYN_DURING_RESTART=1
 installed_iptables=0
 if [ -n "$old_pids" ]; then
   if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 1 ]]; then
