@@ -19,6 +19,11 @@ import (
 )
 
 const (
+	// rule versioning; increment each time flow rules change
+	VERSION        = 1
+	VERSION_TABLE  = "table=253"
+	VERSION_ACTION = "actions=note:"
+
 	BR       = "br0"
 	LBR      = "lbr0"
 	TUN      = "tun0"
@@ -33,6 +38,18 @@ type FlowController struct {
 
 func NewFlowController(multitenant bool) *FlowController {
 	return &FlowController{multitenant}
+}
+
+func getPluginVersion(multitenant bool) []string {
+	if VERSION > 254 {
+		panic("Version too large!")
+	}
+	version := fmt.Sprintf("%02X", VERSION)
+	if multitenant {
+		return []string{"01", version}
+	}
+	// single-tenant
+	return []string{"00", version}
 }
 
 func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
@@ -63,11 +80,20 @@ func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 	}
 	found = false
 	for _, flow := range flows {
-		if !strings.Contains(flow, "table=3") {
+		if !strings.Contains(flow, VERSION_TABLE) {
 			continue
 		}
-		if (multitenant && strings.Contains(flow, "NXM_NX_TUN_ID")) ||
-			(!multitenant && strings.Contains(flow, "goto_table:9")) {
+		idx := strings.Index(flow, VERSION_ACTION)
+		if idx < 0 {
+			continue
+		}
+
+		// OVS note action format hex bytes separated by '.'; first
+		// byte is plugin type (multi-tenant/single-tenant) and second
+		// byte is flow rule version
+		expected := getPluginVersion(multitenant)
+		existing := strings.Split(flow[idx+len(VERSION_ACTION):], ".")
+		if len(existing) >= 2 && existing[0] == expected[0] && existing[1] == expected[1] {
 			found = true
 			break
 		}
@@ -292,6 +318,15 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	err = sysctl.SetSysctl(fmt.Sprintf("net/ipv4/conf/%s/forwarding", TUN), 1)
 	if err != nil {
 		return false, fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
+	}
+
+	// Table 253: rule version; note action is hex bytes separated by '.'
+	otx = ovs.NewTransaction(BR)
+	pluginVersion := getPluginVersion(c.multitenant)
+	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
+	err = otx.EndTransaction()
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil
