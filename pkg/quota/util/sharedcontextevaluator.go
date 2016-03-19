@@ -29,6 +29,7 @@ func NewSharedContextEvaluator(
 	name string,
 	groupKind unversioned.GroupKind,
 	operationResources map[admission.Operation][]kapi.ResourceName,
+	matchedResourceNames []kapi.ResourceName,
 	matchesScopeFunc generic.MatchesScopeFunc,
 	getFuncByNamespace generic.GetFuncByNamespace,
 	listFuncByNamespace generic.ListFuncByNamespace,
@@ -40,13 +41,10 @@ func NewSharedContextEvaluator(
 	for _, resourceNames := range operationResources {
 		rnSet.Insert(quota.ToSet(resourceNames).List()...)
 	}
-	matchedResourceNames := make([]kapi.ResourceName, 0, len(rnSet))
-	for resourceName := range rnSet {
-		matchedResourceNames = append(matchedResourceNames, kapi.ResourceName(resourceName))
-	}
 
 	return &SharedContextEvaluator{
 		GenericEvaluator: &generic.GenericEvaluator{
+			Name:                       name,
 			InternalGroupKind:          groupKind,
 			InternalOperationResources: operationResources,
 			MatchedResourceNames:       matchedResourceNames,

@@ -58,7 +58,7 @@ var _ distribution.BlobStore = &quotaRestrictedBlobStore{}
 func (bs *quotaRestrictedBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobStore).Put: starting")
 
-	if err := admitBlobWrite(ctx, bs.repo, int64(len(p))); err != nil {
+	if err := admitBlobWrite(ctx, bs.repo); err != nil {
 		context.GetLogger(ctx).Error(err.Error())
 		return distribution.Descriptor{}, err
 	}
@@ -111,7 +111,7 @@ type quotaRestrictedBlobWriter struct {
 func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional distribution.Descriptor) (canonical distribution.Descriptor, err error) {
 	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobWriter).Commit: starting")
 
-	if err := admitBlobWrite(ctx, bw.repo, provisional.Size); err != nil {
+	if err := admitBlobWrite(ctx, bw.repo); err != nil {
 		context.GetLogger(ctx).Error(err.Error())
 		return distribution.Descriptor{}, err
 	}
@@ -120,12 +120,9 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 	return can, err
 }
 
-// admitBlobWrite checks whether the blob of given size does not exceed image quota, if set. Returns
+// admitBlobWrite checks whether the blob does not exceed image quota, if set. Returns
 // ErrAccessDenied error if the quota is exceeded.
-func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
-	if size < 1 {
-		return nil
-	}
+func admitBlobWrite(ctx context.Context, repo *repository) error {
 	rqs, err := repo.quotaClient.ResourceQuotas(repo.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
@@ -137,9 +134,8 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 	}
 
 	usage := kapi.ResourceList{
-		imageapi.ResourceProjectImagesSize: *resource.NewQuantity(size, resource.BinarySI),
-		imageapi.ResourceImageStreamSize:   *resource.NewQuantity(size, resource.BinarySI),
-		imageapi.ResourceImageSize:         *resource.NewQuantity(size, resource.BinarySI),
+		// we are about to tag a single image to an image stream
+		imageapi.ResourceImages: *resource.NewQuantity(1, resource.DecimalSI),
 	}
 	resources := quota.ResourceNames(usage)
 
