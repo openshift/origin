@@ -11,7 +11,7 @@ set -o pipefail
 readonly OS_ROOT=$(
   unset CDPATH
   os_root=$(dirname "${BASH_SOURCE}")/..
-  
+
   cd "${os_root}"
   os_root=`pwd`
   if [ -h "${os_root}" ]; then
@@ -683,11 +683,10 @@ os::build::ldflag() {
   local val=${2}
 
   GO_VERSION=($(go version))
-
-  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
-    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key} ${val}"
+  if [[ -n $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
+    echo "-X ${key} ${val}"
   else
-    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key}=${val}"
+    echo "-X ${key}=${val}"
   fi
 }
 
@@ -704,19 +703,12 @@ os::build::ldflags() {
 
   declare -a ldflags=()
 
-  ldflags+=($(os::build::ldflag "majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "commitFromGit" "${OS_GIT_COMMIT}"))
-
-  GO_VERSION=($(go version))
-  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
-  else
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit=${KUBE_GIT_COMMIT}")
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion=${KUBE_GIT_VERSION}")
-  fi
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"
