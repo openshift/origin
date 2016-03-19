@@ -72,7 +72,7 @@ verify: build
 #   make test-unit
 #   make test-unit WHAT=pkg/build GOFLAGS=-v
 test-unit:
-	TEST_KUBE=true GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS) 
+	TEST_KUBE=true GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: test-unit
 
 # Run integration tests. Compiles its own tests, cannot be run
@@ -146,7 +146,7 @@ clean:
 # Example:
 #   make release
 release: clean
-	hack/build-release.sh
+	OS_ONLY_BUILD_PLATFORMS="linux/amd64" hack/build-release.sh
 	hack/build-images.sh
 	hack/extract-release.sh
 .PHONY: release

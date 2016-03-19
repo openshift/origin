@@ -152,6 +152,86 @@ os::build::host_platform_friendly() {
   fi
 }
 
+# os::build::setup_env will check that the `go` commands is available in
+# ${PATH}. If not running on Travis, it will also check that the Go version is
+# good enough for the Kubernetes build.
+#
+# Output Vars:
+#   export GOPATH - A modified GOPATH to our created tree along with extra
+#     stuff.
+#   export GOBIN - This is actively unset if already set as we want binaries
+#     placed in a predictable place.
+os::build::setup_env() {
+  if [[ -z "$(which go)" ]]; then
+    cat <<EOF
+
+Can't find 'go' in PATH, please fix and retry.
+See http://golang.org/doc/install for installation instructions.
+
+EOF
+    exit 2
+  fi
+
+  if [[ -z "$(which sha256sum)" ]]; then
+    sha256sum() {
+      return 0
+    }
+  fi
+
+  # Travis continuous build uses a head go release that doesn't report
+  # a version number, so we skip this check on Travis.  It's unnecessary
+  # there anyway.
+  if [[ "${TRAVIS:-}" != "true" ]]; then
+    local go_version
+    go_version=($(go version))
+    if [[ "${go_version[2]}" < "go1.4" ]]; then
+      cat <<EOF
+
+Detected Go version: ${go_version[*]}.
+Origin builds require Go version 1.4 or greater.
+
+EOF
+      exit 2
+    fi
+  fi
+
+  unset GOBIN
+
+  # use the regular gopath for building
+  if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
+    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    export OS_TARGET_BIN=${OS_GOPATH}/bin
+    return
+  fi
+
+  # create a local GOPATH in _output
+  GOPATH="${OS_OUTPUT}/go"
+  OS_TARGET_BIN=${GOPATH}/bin
+  local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
+  local go_pkg_basedir=$(dirname "${go_pkg_dir}")
+
+  mkdir -p "${go_pkg_basedir}"
+  rm -f "${go_pkg_dir}"
+
+  # TODO: This symlink should be relative.
+  ln -s "${OS_ROOT}" "${go_pkg_dir}"
+
+  # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
+  if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
+    GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
+    # TODO: needs to handle multiple directories
+    OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
+  fi
+  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
+  # is defined.
+  if [[ -z ${OS_NO_GODEPS:-} ]]; then
+    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
+    OS_TARGET_BIN=${OS_ROOT}/Godeps/_workspace/bin
+  fi
+  export GOPATH
+  export OS_TARGET_BIN
+}
+
 # Build static binary targets.
 #
 # Input:
@@ -264,87 +344,6 @@ os::build::export_targets() {
   if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("$(os::build::host_platform)")
   fi
-}
-
-# os::build::setup_env will check that the `go` commands is available in
-# ${PATH}. If not running on Travis, it will also check that the Go version is
-# good enough for the Kubernetes build.
-#
-# Output Vars:
-#   export GOPATH - A modified GOPATH to our created tree along with extra
-#     stuff.
-#   export GOBIN - This is actively unset if already set as we want binaries
-#     placed in a predictable place.
-os::build::setup_env() {
-  if [[ -z "$(which go)" ]]; then
-    cat <<EOF
-
-Can't find 'go' in PATH, please fix and retry.
-See http://golang.org/doc/install for installation instructions.
-
-EOF
-    exit 2
-  fi
-
-  if [[ -z "$(which sha256sum)" ]]; then
-    sha256sum() {
-      return 0
-    }
-  fi
-
-  # Travis continuous build uses a head go release that doesn't report
-  # a version number, so we skip this check on Travis.  It's unnecessary
-  # there anyway.
-  if [[ "${TRAVIS:-}" != "true" ]]; then
-    local go_version
-    go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.4" ]]; then
-      cat <<EOF
-
-Detected go version: ${go_version[*]}.
-OpenShift and Kubernetes requires go version 1.4 or greater.
-Please install Go version 1.4 or later.
-
-EOF
-      exit 2
-    fi
-  fi
-
-  unset GOBIN
-
-  # use the regular gopath for building
-  if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
-    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
-    export OS_TARGET_BIN=${OS_GOPATH}/bin
-    return
-  fi
-
-  # create a local GOPATH in _output
-  GOPATH="${OS_OUTPUT}/go"
-  OS_TARGET_BIN=${GOPATH}/bin
-  local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
-  local go_pkg_basedir=$(dirname "${go_pkg_dir}")
-
-  mkdir -p "${go_pkg_basedir}"
-  rm -f "${go_pkg_dir}"
-
-  # TODO: This symlink should be relative.
-  ln -s "${OS_ROOT}" "${go_pkg_dir}"
-
-  # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
-  if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
-    GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
-    # TODO: needs to handle multiple directories
-    OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
-  fi
-  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
-  # is defined.
-  if [[ -z ${OS_NO_GODEPS:-} ]]; then
-    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
-    OS_TARGET_BIN=${OS_ROOT}/Godeps/_workspace/bin
-  fi
-  export GOPATH
-  export OS_TARGET_BIN
 }
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
@@ -472,7 +471,11 @@ os::build::archive_tar() {
   echo "++ Creating ${archive_name}"
   pushd "${release_binpath}" &> /dev/null
   find . -type f -exec sha256sum {} \;
-  tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
+  if [[ -n "$(which bsdtar)" ]]; then
+    bsdtar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -s ",^\.,${base_name}," $@
+  else
+    tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
+  fi
   popd &>/dev/null
 }
 
