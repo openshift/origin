@@ -36,7 +36,7 @@ func (p *fakePlugin) HandleNamespaces(namespaces sets.String) error {
 }
 
 func TestStatusNoOp(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
@@ -118,7 +118,7 @@ func TestStatusResetsHost(t *testing.T) {
 }
 
 func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
@@ -167,7 +167,7 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 }
 
 func TestStatusBackoffOnConflict(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
@@ -217,7 +217,7 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 }
 
 func TestStatusRecordRejection(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake(&routeapi.Route{})
@@ -248,7 +248,7 @@ func TestStatusRecordRejection(t *testing.T) {
 }
 
 func TestStatusRecordRejectionNoChange(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
@@ -285,7 +285,7 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 }
 
 func TestStatusRecordRejectionWithStatus(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
@@ -332,7 +332,7 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 }
 
 func TestStatusRecordRejectionConflict(t *testing.T) {
-	now := unversioned.Now()
+	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
