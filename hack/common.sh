@@ -204,26 +204,40 @@ os::build::build_binaries() {
       fi
     done
 
+    local host_platform=$(os::build::host_platform)
     local platform
     for platform in "${platforms[@]}"; do
-      os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
+      mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
+
+      # output directly to the desired location
+      if [[ $platform == $host_platform ]]; then
+        export GOBIN="${OS_OUTPUT_BINPATH}/${platform}"
+      else
+        unset GOBIN
+      fi
+
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
-        go install "${goflags[@]:+${goflags[@]}}" \
-            -ldflags "${version_ldflags}" \
-            "${nonstatics[@]}"
+        GOOS=${platform%/*} GOARCH=${platform##*/} go install \
+          "${goflags[@]:+${goflags[@]}}" \
+          -ldflags "${version_ldflags}" \
+          "${nonstatics[@]}"
+
+        # GOBIN is not supported on cross-compile in Go 1.5+ - move to the correct target
+        if [[ $platform != $host_platform ]]; then
+          local platform_src="/${platform//\//_}"
+          mv "${OS_TARGET_BIN}/${platform_src}/"* "${OS_OUTPUT_BINPATH}/${platform}/"
+        fi
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
-        mkdir -p "${GOBIN}/${platform}"
-        local outfile="${GOBIN}/${platform}/$(basename ${test})"
-        go test -c -o "${outfile}" \
+        local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
+        GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+          -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "$(dirname ${test})"
       done
-
-      os::build::unset_platform_envs "${platform}"
     done
   )
 }
@@ -250,25 +264,6 @@ os::build::export_targets() {
   if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("$(os::build::host_platform)")
   fi
-}
-
-# Takes the platform name ($1) and sets the appropriate golang env variables
-# for that platform.
-os::build::set_platform_envs() {
-  [[ -n ${1-} ]] || {
-    echo "!!! Internal error.  No platform set in os::build::set_platform_envs"
-    exit 1
-  }
-
-  export GOOS=${platform%/*}
-  export GOARCH=${platform##*/}
-}
-
-# Takes the platform name ($1) and resets the appropriate golang env variables
-# for that platform.
-os::build::unset_platform_envs() {
-  unset GOOS
-  unset GOARCH
 }
 
 # os::build::setup_env will check that the `go` commands is available in
@@ -314,16 +309,19 @@ EOF
       exit 2
     fi
   fi
-  export GOBIN="${OS_OUTPUT_BINPATH}"
+
+  unset GOBIN
 
   # use the regular gopath for building
   if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
     export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    export OS_TARGET_BIN=${OS_GOPATH}/bin
     return
   fi
 
   # create a local GOPATH in _output
   GOPATH="${OS_OUTPUT}/go"
+  OS_TARGET_BIN=${GOPATH}/bin
   local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
   local go_pkg_basedir=$(dirname "${go_pkg_dir}")
 
@@ -336,13 +334,17 @@ EOF
   # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
   if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
     GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
+    # TODO: needs to handle multiple directories
+    OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
   fi
   # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
   # is defined.
   if [[ -z ${OS_NO_GODEPS:-} ]]; then
     GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
+    OS_TARGET_BIN=${OS_ROOT}/Godeps/_workspace/bin
   fi
   export GOPATH
+  export OS_TARGET_BIN
 }
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
@@ -373,17 +375,11 @@ os::build::place_bins() {
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
-      if [[ $platform == $host_platform ]]; then
-        platform_src=""
-      fi
 
       # Skip this directory if the platform has no binaries.
-      local full_binpath_src="${OS_OUTPUT_BINPATH}${platform_src}"
-      if [[ ! -d "${full_binpath_src}" ]]; then
+      if [[ ! -d "${OS_OUTPUT_BINPATH}/${platform}" ]]; then
         continue
       fi
-
-      mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
 
       # Create an array of binaries to release. Append .exe variants if the platform is windows.
       local -a binaries=()
@@ -393,14 +389,6 @@ os::build::place_bins() {
           binaries+=("${binary}.exe")
         else
           binaries+=("${binary}")
-        fi
-      done
-
-      # Move the specified release binaries to the shared binary output directory.
-      for binary in "${binaries[@]}"; do
-        path="${full_binpath_src}/${binary}"
-        if [[ -f "${path}" ]]; then
-          mv "${path}" "${OS_OUTPUT_BINPATH}/${platform}/"
         fi
       done
 
