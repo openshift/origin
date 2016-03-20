@@ -53,23 +53,22 @@ func (r *pullthroughBlobStore) Stat(ctx context.Context, dgst digest.Digest) (di
 		return distribution.Descriptor{}, err
 	}
 
-	var localRegistry string
+	var localRef *imageapi.DockerImageReference
 	if local, err := imageapi.ParseDockerImageReference(is.Status.DockerImageRepository); err == nil {
-		// TODO: normalize further?
-		localRegistry = local.Registry
+		localRef = &local
 	}
 
 	retriever := r.repo.importContext()
 	cached := r.repo.cachedLayers.RepositoriesForDigest(dgst)
 
 	// look at the first level of tagged repositories first
-	search := identifyCandidateRepositories(is, localRegistry, true)
+	search := identifyCandidateRepositories(is, localRef, true)
 	if desc, err := r.findCandidateRepository(ctx, search, cached, dgst, retriever); err == nil {
 		return desc, nil
 	}
 
 	// look at all other repositories tagged by the server
-	secondary := identifyCandidateRepositories(is, localRegistry, false)
+	secondary := identifyCandidateRepositories(is, localRef, false)
 	for k := range search {
 		delete(secondary, k)
 	}
@@ -169,7 +168,7 @@ func (r *pullthroughBlobStore) findCandidateRepository(ctx context.Context, sear
 }
 
 // identifyCandidateRepositories returns a map of remote repositories referenced by this image stream.
-func identifyCandidateRepositories(is *imageapi.ImageStream, localRegistry string, primary bool) map[string]*imageapi.DockerImageReference {
+func identifyCandidateRepositories(is *imageapi.ImageStream, localRef *imageapi.DockerImageReference, primary bool) map[string]*imageapi.DockerImageReference {
 	// identify the canonical location of referenced registries to search
 	search := make(map[string]*imageapi.DockerImageReference)
 	for _, tagEvent := range is.Status.Tags {
@@ -190,11 +189,13 @@ func identifyCandidateRepositories(is *imageapi.ImageStream, localRegistry strin
 			if err != nil {
 				continue
 			}
+
 			// skip anything that matches the innate registry
 			// TODO: there may be a better way to make this determination
-			if len(localRegistry) != 0 && localRegistry == ref.Registry {
+			if localRef != nil && localRef.Registry == ref.Registry && localRef.Namespace == ref.Namespace && localRef.Name == ref.Name {
 				continue
 			}
+
 			ref = ref.DockerClientDefaults()
 			search[ref.AsRepository().Exact()] = &ref
 		}
