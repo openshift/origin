@@ -344,6 +344,11 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 				if len(from) == 0 {
 					from = stream.Spec.DockerImageRepository
 				}
+				// if the from is still empty this means there's no such tag defined
+				// nor we can't create any from .spec.dockerImageRepository
+				if len(from) == 0 {
+					return nil, nil, fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
+				}
 				existing = &imageapi.TagReference{
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
