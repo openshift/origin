@@ -429,7 +429,7 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	if len(strategy.DockerfilePath) != 0 {
 		cleaned := path.Clean(strategy.DockerfilePath)
 		switch {
-		case strings.HasPrefix(cleaned, "/"):
+		case filepath.IsAbs(cleaned):
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not be an absolute path"))
 		case strings.HasPrefix(cleaned, ".."):
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not start with .."))
@@ -470,7 +470,7 @@ func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineBuildStra
 	if len(strategy.JenkinsfilePath) != 0 {
 		cleaned := path.Clean(strategy.JenkinsfilePath)
 		switch {
-		case strings.HasPrefix(cleaned, "/"):
+		case filepath.IsAbs(cleaned):
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not be an absolute path"))
 		case strings.HasPrefix(cleaned, ".."):
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not start with .."))
