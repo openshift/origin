@@ -129,7 +129,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 }
 
 func buildStrategyTypes() []string {
-	return []string{"source", "docker", "custom"}
+	return []string{"source", "docker", "custom", "jenkinspipeline"}
 }
 
 func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
@@ -220,7 +220,7 @@ func removeBuildStrategyPrivileges(t *testing.T, clusterRoleInterface client.Clu
 	}
 
 	for i := range role.Rules {
-		role.Rules[i].Resources.Delete(authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource)
+		role.Rules[i].Resources.Delete(authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, authorizationapi.JenkinsPipelineBuildResource)
 	}
 	if _, err := clusterRoleInterface.Update(role); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -239,6 +239,8 @@ func strategyForType(strategy string) buildapi.BuildStrategy {
 	case "source":
 		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
 		buildStrategy.SourceStrategy.From.Name = "builderimage:latest"
+	case "jenkinspipeline":
+		buildStrategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
 	}
 	return buildStrategy
 }

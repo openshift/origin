@@ -1016,10 +1016,10 @@ func TestValidateStrategy(t *testing.T) {
 			t:    field.ErrorTypeInvalid,
 			path: "",
 			strategy: &buildapi.BuildStrategy{
-				SourceStrategy:   &buildapi.SourceBuildStrategy{},
-				DockerStrategy:   &buildapi.DockerBuildStrategy{},
-				CustomStrategy:   &buildapi.CustomBuildStrategy{},
-				ExternalStrategy: &buildapi.ExternalBuildStrategy{},
+				SourceStrategy:          &buildapi.SourceBuildStrategy{},
+				DockerStrategy:          &buildapi.DockerBuildStrategy{},
+				CustomStrategy:          &buildapi.CustomBuildStrategy{},
+				JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
 			},
 		},
 	}
@@ -1438,7 +1438,7 @@ func TestValidateBuildSpec(t *testing.T) {
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy",
 			&buildapi.BuildSpec{
 				Strategy: buildapi.BuildStrategy{
-					JenkinsPipeline: &buildapi.JenkinsPipelineBuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
 						Jenkinsfile:     "a",
 						JenkinsfilePath: "b",
 					},

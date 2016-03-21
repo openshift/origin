@@ -2,8 +2,9 @@ package factory
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"time"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -368,6 +369,8 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 		pod, err = f.SourceBuildStrategy.CreateBuildPod(build)
 	case build.Spec.Strategy.CustomStrategy != nil:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
+	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s", build.Namespace, build.Name)
 	}
