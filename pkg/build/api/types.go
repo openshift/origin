@@ -431,11 +431,12 @@ type SourceBuildStrategy struct {
 // JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
 type JenkinsPipelineBuildStrategy struct {
 	// JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline
-	// relative to the root of the source repository.
-	JenkinsfilePath string `json:"jenkinsfilePath,omitempty"`
+	// relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are
+	// both not specified, this defaults to Jenkinsfile in the root of the specified git repo.
+	JenkinsfilePath string
 
 	// Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition.
-	Jenkinsfile string `json:"jenkinsfile,omitempty"`
+	Jenkinsfile string
 
 	// Env contains additional environment variables you want to pass to the external builder.
 	Env []kapi.EnvVar
