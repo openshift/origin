@@ -17933,7 +17933,7 @@
     "properties": {
      "jenkinsfilePath": {
       "type": "string",
-      "description": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository."
+      "description": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath \u0026 Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo."
      },
      "jenkinsfile": {
       "type": "string",
