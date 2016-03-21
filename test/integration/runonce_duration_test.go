@@ -10,7 +10,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	kubemaster "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	pluginapi "github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -68,8 +67,6 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	plugins := append([]string{"RunOnceDuration"}, kubemaster.AdmissionPlugins...)
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = plugins
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"RunOnceDuration": {
 			Configuration: pluginConfig,
