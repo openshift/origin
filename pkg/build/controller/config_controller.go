@@ -6,11 +6,15 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/client"
+	osclient "github.com/openshift/origin/pkg/client"
 )
 
 // ConfigControllerFatalError represents a fatal error while generating a build.
@@ -33,10 +37,31 @@ func IsFatal(err error) bool {
 
 type BuildConfigController struct {
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+
+	KubeClient kclient.Interface
+	Client     osclient.Interface
 }
 
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
 	glog.V(4).Infof("Handling BuildConfig %s/%s", bc.Namespace, bc.Name)
+
+	if strategy := bc.Spec.Strategy.JenkinsPipelineStrategy; strategy != nil {
+		glog.V(4).Infof("Detected Jenkins pipeline strategy in %s/%s build configuration", bc.Namespace, bc.Name)
+		if _, err := c.KubeClient.Services(bc.Namespace).Get(buildapi.JenkinsDefaultServiceName); err == nil {
+			glog.V(4).Infof("The jenkins service %q already exists in project %q", buildapi.JenkinsDefaultServiceName, bc.Namespace)
+			return nil
+		}
+		glog.V(3).Infof("Adding new Jenkins service %q to the project %q", buildapi.JenkinsDefaultServiceName, bc.Namespace)
+		kc, ok := c.KubeClient.(*kclient.Client)
+		if !ok {
+			return fmt.Errorf("unable to get kubernetes client from %v", c.KubeClient)
+		}
+		oc, ok := c.Client.(*client.Client)
+		if !ok {
+			return fmt.Errorf("unable to get openshift client from %v", c.KubeClient)
+		}
+		return buildutil.NewJenkinsPipelineTemplate(bc.Namespace, kc, oc).Process().Instantiate()
+	}
 
 	hasChangeTrigger := false
 	for _, trigger := range bc.Spec.Triggers {

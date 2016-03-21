@@ -307,6 +307,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
+	KubeClient              kclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -319,6 +320,8 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		KubeClient:              factory.KubeClient,
+		Client:                  factory.Client,
 	}
 
 	return &controller.RetryController{
