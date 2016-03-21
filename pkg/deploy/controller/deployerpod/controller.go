@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -27,6 +28,9 @@ type DeployerPodController struct {
 
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
+
+	// recorder is used to record events.
+	recorder record.EventRecorder
 }
 
 // transientError is an error which will be retried indefinitely.
@@ -99,6 +103,20 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	case kapi.PodSucceeded:
 		nextStatus = deployapi.DeploymentStatusComplete
 
+		config, decodeErr := c.decodeConfig(deployment)
+		// If the deployment was cancelled just prior to the deployer pod succeeding
+		// then we need to remove the cancel annotations from the complete deployment
+		// and emit an event letting users know their cancellation failed.
+		if deployutil.IsDeploymentCancelled(deployment) {
+			delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
+			delete(deployment.Annotations, deployapi.DeploymentStatusReasonAnnotation)
+
+			if decodeErr == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCancellation", "Deployment %q succeeded before cancel recorded", deployutil.LabelForDeployment(deployment))
+			} else {
+				c.recorder.Event(deployment, kapi.EventTypeWarning, "FailedCancellation", "Succeeded before cancel recorded")
+			}
+		}
 		// Sync the internal replica annotation with the target so that we can
 		// distinguish deployer updates from other scaling events.
 		deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = deployment.Annotations[deployapi.DesiredReplicasAnnotation]
@@ -107,7 +125,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		}
 
 		// reset the size of any test container, since we are the ones updating the RC
-		if config, err := c.decodeConfig(deployment); err == nil && config.Spec.Test {
+		if decodeErr == nil && config.Spec.Test {
 			deployment.Spec.Replicas = 0
 		}
 	case kapi.PodFailed:
