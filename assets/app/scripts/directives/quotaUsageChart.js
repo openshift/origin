@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('quotaUsageChart', function($filter, Logger) {
+  .directive('quotaUsageChart', function($filter, ChartsService) {
     return {
       restrict: 'E',
       scope: {
@@ -20,28 +20,10 @@ angular.module('openshiftConsole')
         var usageValue = $filter('usageValue');
         var usageWithUnits = $filter('usageWithUnits');
         var amountAndUnit = $filter('amountAndUnit');
-        function updateCenterText() {
-          var donutChartTitle = d3.select(element[0]).select('text.c3-chart-arcs-title');
-          if (!donutChartTitle) {
-            Logger.warn("Can't select donut title element");
-            return;
-          }
 
+        function updateCenterText() {
           var replaceText = _.spread(function(amount, unit) {
-            // Replace donut title content.
-            donutChartTitle.selectAll('*').remove();
-            donutChartTitle
-              .insert('tspan')
-              .text(amount)
-              .classed('pod-count donut-title-big-pf', true)
-              .attr('dy', 0)
-              .attr('x', 0);
-            donutChartTitle
-              .insert('tspan')
-              .text(unit)
-              .classed('donut-title-small-pf', true)
-              .attr('dy', 20)
-              .attr('x', 0);
+            ChartsService.updateDonutCenterText(element[0], amount, unit);
           });
           replaceText(amountAndUnit($scope.total, $scope.type, true));
         }

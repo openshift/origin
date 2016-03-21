@@ -1,11 +1,11 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('podStatusChart', function($timeout, hashSizeFilter, isTroubledPodFilter, numContainersReadyFilter, Logger) {
-    // Make sure our charts always have unique IDs even if the same deployment
-    // or monopod is shown on the overview more than once.
-    var lastId = 0;
-
+  .directive('podStatusChart', function($timeout,
+                                        hashSizeFilter,
+                                        isTroubledPodFilter,
+                                        numContainersReadyFilter,
+                                        ChartsService) {
     return {
       restrict: 'E',
       scope: {
@@ -19,28 +19,17 @@ angular.module('openshiftConsole')
         // The phases to show (in order).
         var phases = ["Running", "Not Ready", "Warning", "Failed", "Pending", "Succeeded", "Unknown"];
 
-        lastId++;
-        $scope.chartId = 'pods-donut-chart-' + lastId;
+        $scope.chartId = _.uniqueId('pods-donut-chart-');
 
         function updateCenterText() {
-          var donutChartTitle = d3.select(element[0]).select('text.c3-chart-arcs-title'),
-            total = hashSizeFilter($scope.pods),
-            smallText;
-          if (!donutChartTitle) {
-            Logger.warn("Can't select donut title element");
-            return;
-          }
-
+          var total = hashSizeFilter($scope.pods), smallText;
           if (!angular.isNumber($scope.desired) || $scope.desired === total) {
             smallText = (total === 1) ? "pod" : "pods";
           } else {
             smallText = "scaling to " + $scope.desired + "...";
           }
 
-          // Replace donut title content.
-          donutChartTitle.selectAll('*').remove();
-          donutChartTitle.insert('tspan').text(total).classed('pod-count donut-title-big-pf', true).attr('dy', 0).attr('x', 0);
-          donutChartTitle.insert('tspan').text(smallText).classed('donut-title-small-pf', true).attr('dy', 20).attr('x', 0);
+          ChartsService.updateDonutCenterText(element[0], total, smallText);
         }
 
         // c3.js config for the pods donut chart
