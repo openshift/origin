@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5f818640ca1292e068b1fb90eb0390ddcb8448c8
+%global commit 6ec0369cdcf45051c84d2fedaeb18dff4313e46f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.4-89-g5f81864 -X github.com/openshift/origin/pkg/version.commitFromGit 5f81864 -X k8s.io/kubernetes/pkg/version.gitCommit 4a3f9c5 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.5-48-g6ec0369 -X github.com/openshift/origin/pkg/version.commitFromGit 6ec0369 -X k8s.io/kubernetes/pkg/version.gitCommit 4a3f9c5 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.5
+Version:        3.2.0.6
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,44 @@ fi
 
 
 %changelog
+* Mon Mar 21 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.6
+- Bug 1318537 - Add warning when trying to import non-existing tag
+  (maszulik@redhat.com)
+- Bug 1310062 - Fallback to http if status code is not 2xx/3xx when deleting
+  layers. (maszulik@redhat.com)
+- Log the reload output for admins in the router logs (ccoleman@redhat.com)
+- Set terminal max-width to 100%% for mobile (spadgett@redhat.com)
+- Hide the java link if the container is not ready (slewis@fusesource.com)
+- Support limit quotas and scopes in UI (spadgett@redhat.com)
+- Add test for patch+conflicts (jliggitt@redhat.com)
+- Removed the stray line that unconditionally forced on the SYN eater.
+  (bbennett@redhat.com)
+- Remove large, unnecessary margin from bottom of create forms
+  (spadgett@redhat.com)
+- Use smaller log font size for mobile (spadgett@redhat.com)
+- UPSTREAM: 23145: Use versioned object when computing patch
+  (jliggitt@redhat.com)
+- Handle new volume source types on web console (ffranz@redhat.com)
+- Show consistent pod status in web console as CLI (spadgett@redhat.com)
+- PVCs should not be editable once bound (ffranz@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  625b58aa422549df9338fdaced1b9444d2313a15 (rhcarvalho@gmail.com)
+- bump(github.com/openshift/openshift-sdn):
+  72d9ab84f4bf650d1922174e6a90bd06018003b4 (dcbw@redhat.com)
+- Reworked image quota (miminar@redhat.com)
+- Fix certificate display on mobile (spadgett@redhat.com)
+- Include container ID in glog message (rhcarvalho@gmail.com)
+- Ignore default security context constraints when running on kube
+  (decarr@redhat.com)
+- use transport defaults (deads@redhat.com)
+- UPSTREAM: 23003: support CIDRs in NO_PROXY (deads@redhat.com)
+- UPSTREAM: 22852: Set a missing namespace on objects to admit
+  (miminar@redhat.com)
+- Handle fallback to docker.io for 1.9 docker, which uses docker.io in
+  .docker/config.json (maszulik@redhat.com)
+- Revert "platformmanagement_public_425 - add quota information to oc describe
+  is" (miminar@redhat.com)
+
 * Fri Mar 18 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.5
 - Don't show chromeless log link if log not available (spadgett@redhat.com)
 - UPSTREAM: 21373: kubelet: reading cloudinfo from cadvisor (deads@redhat.com)
