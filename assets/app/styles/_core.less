@@ -294,11 +294,16 @@
       }
     }
   }
-  .metrics-chart {
-    // The utilization chart floats some elements, so this is needed for proper padding.
-    clear: both;
-    max-width: 800px;
-    padding-top: 5px;
+  .metrics-donut,
+  .metrics-sparkline {
+    margin-top: 20px;
+  }
+
+  // Avoid overlapping tick text at mobile.
+  @media (max-width: 500px) {
+    .metrics-sparkline .c3-axis-x .tick {
+      display: none;
+    }
   }
 }
 

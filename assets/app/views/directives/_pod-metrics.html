@@ -27,7 +27,7 @@
     </div>
 
     <div ng-if="!loaded">Loading...</div>
-    <div ng-if="loaded && (chartDataByMetric | hashSize) === 0 && !metricsError">No metrics to display.</div>
+    <div ng-if="loaded && (usageByMetric | hashSize) === 0 && !metricsError">No metrics to display.</div>
 
     <div ng-if="metricsError" class="empty-state-message text-center">
       <h2>
@@ -49,29 +49,35 @@
       </p>
     </div>
 
-    <div ng-repeat="metric in metrics" ng-if="chartDataByMetric[metric.id] && !metricsError" class="metrics-chart">
+    <div ng-repeat="metric in metrics" ng-if="usageByMetric[metric.id] && !metricsError">
       <h3>{{metric.label}}</h3>
-      <!-- Show a utilization chart if there is a limit -->
-      <div ng-if="chartDataByMetric[metric.id].total"
-           pf-utilization-chart
-           chart-id="metric.chartId"
-           config="utilizationConfigByMetric[metric.id]"
-           donut-config="donutConfigByMetric[metric.id]"
-           sparkline-config="sparklineConfigByMetric[metric.id]"
-           chart-data="chartDataByMetric[metric.id]"
-           sparkline-chart-height="100"
-           show-sparkline-x-axis="true"
-           show-sparkline-y-axis="true">
+
+      <!-- Show a summary of usage above the charts like the patternfly utilization card. -->
+      <!-- Reuse the utilization card styles, but only here. -->
+      <div ng-if="usageByMetric[metric.id].total" class="utilization-chart-pf">
+        <div ng-if="usageByMetric[metric.id].total" class="current-values">
+          <h1 class="available-count pull-left">
+            {{usageByMetric[metric.id].available}}
+          </h1>
+          <div class="available-text pull-left">
+            <div>Available of</div>
+            <div>{{usageByMetric[metric.id].total}} {{metric.units}}</div>
+          </div>
+        </div>
       </div>
-      <!-- Show a sparkline if there is no limit. -->
-      <div ng-if="!chartDataByMetric[metric.id].total"
-           pf-sparkline-chart
-           chart-id="metric.chartId"
-           config="sparklineConfigByMetric[metric.id]"
-           chart-height="150"
-           chart-data="chartDataByMetric[metric.id]"
-           show-x-axis="true"
-           show-y-axis="true">
+
+      <!-- Clear floats so top margin works on the charts below. -->
+      <div style="clear: both;"></div>
+
+      <!-- Donut -->
+      <div ng-if="usageByMetric[metric.id].total"
+           ng-attr-id="{{metric.chartPrefix + uniqueID}}-donut"
+           class="metrics-donut">
+      </div>
+
+      <!-- Sparkline -->
+      <div ng-attr-id="{{metric.chartPrefix + uniqueID}}-sparkline"
+           class="metrics-sparkline">
       </div>
     </div>
   </div>
