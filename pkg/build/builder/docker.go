@@ -57,6 +57,9 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	if d.build.Spec.Source.Git == nil && d.build.Spec.Source.Binary == nil && d.build.Spec.Source.Dockerfile == nil && d.build.Spec.Source.Images == nil {
+		return fmt.Errorf("must provide a value for at least one of source, binary, images, or dockerfile")
+	}
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 

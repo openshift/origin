@@ -440,3 +440,82 @@ func TestDescribePostCommitHook(t *testing.T) {
 		}
 	}
 }
+
+func TestDescribeBuildSpec(t *testing.T) {
+	tests := []struct {
+		spec buildapi.BuildSpec
+		want string
+	}{
+		{
+			spec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+			want: "URL",
+		},
+		{
+			spec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "myimage:tag",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+			want: "Empty Source",
+		},
+		{
+			spec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					CustomStrategy: &buildapi.CustomBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "myimage:tag",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+			want: "Empty Source",
+		},
+	}
+	for _, tt := range tests {
+		var b bytes.Buffer
+		out := tabwriter.NewWriter(&b, 0, 8, 0, '\t', 0)
+		describeBuildSpec(tt.spec, out)
+		if err := out.Flush(); err != nil {
+			t.Fatalf("%+v: flush error: %v", tt.spec, err)
+		}
+		if got := b.String(); !strings.Contains(got, tt.want) {
+			t.Errorf("describeBuildSpec(%+v, out) = %q, should contain %q", tt.spec, got, tt.want)
+		}
+	}
+}

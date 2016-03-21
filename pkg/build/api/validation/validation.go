@@ -103,8 +103,8 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 	s := spec.Strategy
 
-	if s.CustomStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, or dockerfile"))
+	if s.DockerStrategy != nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil && spec.Source.Images == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, images, or dockerfile"))
 	}
 
 	allErrs = append(allErrs, validateSource(&spec.Source, s.CustomStrategy != nil, s.DockerStrategy != nil, fldPath.Child("source"))...)

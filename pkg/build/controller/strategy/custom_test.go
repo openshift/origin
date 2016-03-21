@@ -21,7 +21,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
-	expectedBad := mockCustomBuild(false)
+	expectedBad := mockCustomBuild(false, false)
 	expectedBad.Spec.Strategy.CustomStrategy.From = kapi.ObjectReference{
 		Kind: "DockerImage",
 		Name: "",
@@ -30,7 +30,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected error when Image is empty, got nothing")
 	}
 
-	expected := mockCustomBuild(false)
+	expected := mockCustomBuild(false, false)
 	actual, err := strategy.CreateBuildPod(expected)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -97,7 +97,7 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
-	expected := mockCustomBuild(true)
+	expected := mockCustomBuild(true, false)
 	actual, fperr := strategy.CreateBuildPod(expected)
 	if fperr != nil {
 		t.Fatalf("Unexpected error: %v", fperr)
@@ -108,6 +108,18 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 	}
 }
 
+func TestEmptySource(t *testing.T) {
+	strategy := CustomBuildStrategy{
+		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+	}
+
+	expected := mockCustomBuild(false, true)
+	_, fperr := strategy.CreateBuildPod(expected)
+	if fperr != nil {
+		t.Fatalf("Unexpected error: %v", fperr)
+	}
+}
+
 func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 	strategy := CustomBuildStrategy{
 		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
@@ -115,7 +127,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 
 	for _, version := range registered.GroupOrDie(buildapi.GroupName).GroupVersions {
 		// Create new Build specification and modify Spec API version
-		build := mockCustomBuild(false)
+		build := mockCustomBuild(false, false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)
 
 		pod, err := strategy.CreateBuildPod(build)
@@ -138,8 +150,19 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 	}
 }
 
-func mockCustomBuild(forcePull bool) *buildapi.Build {
+func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 	timeout := int64(60)
+	src := buildapi.BuildSource{}
+	if !emptySource {
+		src = buildapi.BuildSource{
+			Git: &buildapi.GitBuildSource{
+				URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+				Ref: "master",
+			},
+			ContextDir:   "foo",
+			SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
+		}
+	}
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "customBuild",
@@ -151,14 +174,7 @@ func mockCustomBuild(forcePull bool) *buildapi.Build {
 			Revision: &buildapi.SourceRevision{
 				Git: &buildapi.GitSourceRevision{},
 			},
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
-					Ref: "master",
-				},
-				ContextDir:   "foo",
-				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
-			},
+			Source: src,
 			Strategy: buildapi.BuildStrategy{
 				CustomStrategy: &buildapi.CustomBuildStrategy{
 					From: kapi.ObjectReference{

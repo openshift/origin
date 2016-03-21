@@ -138,6 +138,8 @@ const (
 	BuildSourceBinary BuildSourceType = "Binary"
 	// BuildSourceImage indicates the build will accept an image as input
 	BuildSourceImage BuildSourceType = "Image"
+	// BuildSourceNone indicates the build has no predefined input (only valid for Source and Custom Strategies)
+	BuildSourceNone BuildSourceType = "None"
 )
 
 // BuildSource is the SCM used for the build.

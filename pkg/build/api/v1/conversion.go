@@ -177,6 +177,10 @@ func Convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *Build
 		out.Type = BuildSourceBinary
 	case in.Dockerfile != nil:
 		out.Type = BuildSourceDockerfile
+	case len(in.Images) > 0:
+		out.Type = BuildSourceImage
+	default:
+		out.Type = BuildSourceNone
 	}
 	return nil
 }
