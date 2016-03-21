@@ -5,7 +5,7 @@
     'alert-success': alert.type === 'success',
     'alert-info': !alert.type || alert.type === 'info'
   }">
-    <button ng-click="alert.hidden = true" type="button" class="close">
+    <button ng-if="!hideCloseButton" ng-click="alert.hidden = true" type="button" class="close">
       <span class="pficon pficon-close" aria-hidden="true"></span>
       <span class="sr-only">Close</span>
     </button>
