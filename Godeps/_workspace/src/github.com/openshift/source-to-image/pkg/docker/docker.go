@@ -6,7 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
+	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
+	"github.com/openshift/source-to-image/pkg/util"
 )
 
 const (
@@ -44,6 +45,10 @@ const (
 	DefaultDestination = "/tmp"
 	// DefaultTag is the image tag, being applied if none is specified.
 	DefaultTag = "latest"
+
+	// DefaultDockerTimeout specifies a timeout for Docker API calls. When this
+	// timeout is reached, certain Docker API calls might error out.
+	DefaultDockerTimeout = 10 * time.Second
 )
 
 // Docker is the interface between STI and the Docker client
@@ -77,7 +82,7 @@ type Client interface {
 	InspectImage(name string) (*docker.Image, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error)
-	AttachToContainer(opts docker.AttachToContainerOptions) error
+	AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error)
 	StartContainer(id string, hostConfig *docker.HostConfig) error
 	WaitContainer(id string) (int, error)
 	UploadToContainer(id string, opts docker.UploadToContainerOptions) error
@@ -124,6 +129,66 @@ type RunContainerOptions struct {
 	User             string
 	CGroupLimits     *api.CGroupLimits
 	CapDrop          []string
+}
+
+// asDockerConfig converts a RunContainerOptions into a Config understood by the
+// go-dockerclient library.
+func (rco RunContainerOptions) asDockerConfig() docker.Config {
+	return docker.Config{
+		Image:        getImageName(rco.Image),
+		User:         rco.User,
+		Env:          rco.Env,
+		OpenStdin:    rco.Stdin != nil,
+		StdinOnce:    rco.Stdin != nil,
+		AttachStdout: rco.Stdout != nil,
+	}
+}
+
+// asDockerHostConfig converts a RunContainerOptions into a HostConfig
+// understood by the go-dockerclient library.
+func (rco RunContainerOptions) asDockerHostConfig() docker.HostConfig {
+	hostConfig := docker.HostConfig{
+		CapDrop:         rco.CapDrop,
+		PublishAllPorts: rco.TargetImage,
+		NetworkMode:     rco.NetworkMode,
+	}
+	if rco.CGroupLimits != nil {
+		hostConfig.Memory = rco.CGroupLimits.MemoryLimitBytes
+		hostConfig.MemorySwap = rco.CGroupLimits.MemorySwap
+		hostConfig.CPUShares = rco.CGroupLimits.CPUShares
+		hostConfig.CPUQuota = rco.CGroupLimits.CPUQuota
+		hostConfig.CPUPeriod = rco.CGroupLimits.CPUPeriod
+	}
+	return hostConfig
+}
+
+// asDockerCreateContainerOptions converts a RunContainerOptions into a
+// CreateContainerOptions understood by the go-dockerclient library.
+func (rco RunContainerOptions) asDockerCreateContainerOptions() docker.CreateContainerOptions {
+	config := rco.asDockerConfig()
+	hostConfig := rco.asDockerHostConfig()
+	return docker.CreateContainerOptions{
+		Name:       "",
+		Config:     &config,
+		HostConfig: &hostConfig,
+	}
+}
+
+// asDockerAttachToContainerOptions converts a RunContainerOptions into a
+// AttachToContainerOptions understood by the go-dockerclient library.
+func (rco RunContainerOptions) asDockerAttachToContainerOptions() docker.AttachToContainerOptions {
+	return docker.AttachToContainerOptions{
+		InputStream:  rco.Stdin,
+		OutputStream: rco.Stdout,
+		ErrorStream:  rco.Stderr,
+
+		Stdin:  rco.Stdin != nil,
+		Stdout: rco.Stdout != nil,
+		Stderr: rco.Stderr != nil,
+
+		Logs:   rco.Stdout != nil,
+		Stream: rco.Stdout != nil,
+	}
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -435,10 +500,9 @@ func getDestination(image *docker.Image) string {
 }
 
 // this funtion simply abstracts out the tar related processing that was originally inline in RunContainer()
-func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetadata *docker.Image) (docker.Config, string) {
-	tarDestination := ""
+func runContainerTar(opts RunContainerOptions, imageMetadata *docker.Image) (cmd []string, tarDestination string) {
 	if opts.TargetImage {
-		return config, tarDestination
+		return
 	}
 
 	// base directory for all STI commands
@@ -468,7 +532,7 @@ func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetada
 
 	// NOTE: We use path.Join instead of filepath.Join to avoid converting the
 	// path to UNC (Windows) format as we always run this inside container.
-	cmd := []string{path.Join(commandBaseDir, string(opts.Command))}
+	cmd = []string{path.Join(commandBaseDir, string(opts.Command))}
 	// when calling assemble script with Stdin parameter set (the tar file)
 	// we need to first untar the whole archive and only then call the assemble script
 	if opts.Stdin != nil && (opts.Command == api.Assemble || opts.Command == api.Usage) {
@@ -477,9 +541,8 @@ func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetada
 			cmd = []string{"/bin/sh", "-c", opts.CommandOverrides(strings.Join(cmd[2:], " "))}
 		}
 	}
-	glog.V(5).Infof("Running %q command in container ...", strings.Join(cmd, " "))
-	config.Cmd = cmd
-	return config, tarDestination
+	glog.V(5).Infof("Setting %q command for container ...", strings.Join(cmd, " "))
+	return cmd, tarDestination
 }
 
 // this funtion simply abstracts out the running of the newly produced image when the --run=true option is provided
@@ -502,72 +565,24 @@ func runContainerDockerRun(container *docker.Container, d *stiDocker, image stri
 	glog.Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's glog output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
 
 	signalChan := make(chan os.Signal, 1)
-	cleanupDone := make(chan bool)
 	signal.Notify(signalChan, os.Interrupt)
-	go func() {
-		for signal := range signalChan {
-			glog.V(2).Infof("\nReceived signal '%s', stopping services...\n", signal)
-			cleanupDone <- true
-		}
-	}()
-	<-cleanupDone
+
+	// Block until user sends SIGINT.
+	signal := <-signalChan
+	glog.V(2).Infof("\nReceived signal '%s', stopping services...\n", signal)
 }
 
-// this funtion simply abstracts out the first phase of attaching to the container that was originally in line with the RunContainer() method
-func runContainerAttach(attached chan struct{}, container *docker.Container, opts RunContainerOptions, d *stiDocker) *sync.WaitGroup {
-	attachOpts := docker.AttachToContainerOptions{
-		Container: container.ID,
-		Success:   attached,
-		Stream:    true,
-	}
-	if opts.Stdin != nil {
-		attachOpts.InputStream = opts.Stdin
-		attachOpts.Stdin = true
-	}
-	if opts.Stdout != nil {
-		attachOpts.OutputStream = opts.Stdout
-		attachOpts.Stdout = true
-	}
-	if opts.Stderr != nil {
-		attachOpts.ErrorStream = opts.Stderr
-		attachOpts.Stderr = true
-	}
+// RunContainer creates and starts a container using the image specified in opts
+// with the ability to stream input and/or output.
+func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
+	createOpts := opts.asDockerCreateContainerOptions()
 
-	wg := sync.WaitGroup{}
-	go func() {
-		wg.Add(1)
-		defer wg.Done()
-		if err := d.client.AttachToContainer(attachOpts); err != nil {
-			glog.Errorf("Unable to attach container with %v", attachOpts)
-		}
-	}()
-	return &wg
-}
-
-// this funtion simply abstracts out the waiting on the container hosting the builder function that was originally in line with the RunContainer() method
-func runContainerWait(wg *sync.WaitGroup, d *stiDocker, container *docker.Container) error {
-	glog.V(2).Infof("Waiting for container")
-	exitCode, err := d.client.WaitContainer(container.ID)
-	glog.V(2).Infof("Container wait returns with %d and %v\n", exitCode, err)
-
-	wg.Wait()
-	if err != nil {
-		return err
-	}
-
-	glog.V(2).Infof("Container exited")
-	if exitCode != 0 {
-		return errors.NewContainerError(container.Name, exitCode, "")
-	}
-	return nil
-}
-
-// RunContainer creates and starts a container using the image specified in the options with the ability
-// to stream input or output
-func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	// get info about the specified image
-	image := getImageName(opts.Image)
-	var imageMetadata *docker.Image
+	image := createOpts.Config.Image
+	var (
+		imageMetadata *docker.Image
+		err           error
+	)
 	if opts.PullImage {
 		imageMetadata, err = d.CheckAndPullImage(image)
 	} else {
@@ -578,82 +593,95 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		return err
 	}
 
-	config := docker.Config{
-		Image: image,
-		User:  opts.User,
-	}
+	cmd, tarDestination := runContainerTar(opts, imageMetadata)
+	createOpts.Config.Cmd = cmd
 
-	config, tarDestination := runContainerTar(opts, config, imageMetadata)
-
-	if opts.Env != nil {
-		config.Env = opts.Env
-	}
-	if opts.Stdin != nil {
-		config.OpenStdin = true
-		config.StdinOnce = true
-	}
-	if opts.Stdout != nil {
-		config.AttachStdout = true
-	}
-
-	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
-	ccopts.HostConfig = &docker.HostConfig{}
-	if opts.TargetImage {
-		ccopts.HostConfig.PublishAllPorts = true
-		ccopts.HostConfig.NetworkMode = opts.NetworkMode
-	} else if opts.NetworkMode != "" {
-		ccopts.HostConfig.NetworkMode = opts.NetworkMode
-	}
-
-	if opts.CGroupLimits != nil {
-		ccopts.HostConfig.Memory = opts.CGroupLimits.MemoryLimitBytes
-		ccopts.HostConfig.MemorySwap = opts.CGroupLimits.MemorySwap
-		ccopts.HostConfig.CPUShares = opts.CGroupLimits.CPUShares
-		ccopts.HostConfig.CPUQuota = opts.CGroupLimits.CPUQuota
-		ccopts.HostConfig.CPUPeriod = opts.CGroupLimits.CPUPeriod
-	}
-	ccopts.HostConfig.CapDrop = opts.CapDrop
-	glog.V(2).Infof("Creating container %s using config: %+v, hostconfig: %+v", ccopts.Name, ccopts.Config, ccopts.HostConfig)
-	container, err := d.client.CreateContainer(ccopts)
-	if err != nil {
+	// Create a new container.
+	glog.V(2).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, createOpts.Config, createOpts.HostConfig)
+	var container *docker.Container
+	if err := util.TimeoutAfter(DefaultDockerTimeout, func() error {
+		var createErr error
+		container, createErr = d.client.CreateContainer(createOpts)
+		return createErr
+	}); err != nil {
 		return err
 	}
-	defer d.RemoveContainer(container.ID)
 
-	glog.V(2).Infof("Attaching to container")
-	// creating / piping the channels in runContainerAttach lead to unintended hangs
-	attached := make(chan struct{})
-	wg := runContainerAttach(attached, container, opts, d)
-	attached <- <-attached
+	containerName := containerNameOrID(container)
 
-	glog.V(2).Infof("Starting container")
-	if err = d.client.StartContainer(container.ID, nil); err != nil {
+	// Container was created, so we defer its removal.
+	defer func() {
+		glog.V(4).Infof("Removing container %q ...", containerName)
+		if err := d.RemoveContainer(container.ID); err != nil {
+			glog.Warningf("Failed to remove container %q: %v", containerName, err)
+		} else {
+			glog.V(4).Infof("Removed container %q", containerName)
+		}
+	}()
+
+	// Attach to the container.
+	glog.V(2).Infof("Attaching to container %q ...", containerName)
+	attachOpts := opts.asDockerAttachToContainerOptions()
+	attachOpts.Container = container.ID
+	if _, err = d.client.AttachToContainerNonBlocking(attachOpts); err != nil {
+		glog.Errorf("Unable to attach to container %q with options %+v: %v", containerName, attachOpts, err)
 		return err
 	}
+
+	// Start the container.
+	glog.V(2).Infof("Starting container %q ...", containerName)
+	if err := util.TimeoutAfter(DefaultDockerTimeout, func() error {
+		return d.client.StartContainer(container.ID, nil)
+	}); err != nil {
+		return err
+	}
+
+	// Run OnStart hook if defined.
 	if opts.OnStart != nil {
 		if err = opts.OnStart(container.ID); err != nil {
 			return err
 		}
 	}
 
+	// We either block waiting for a user-originated SIGINT, or wait for the
+	// container to terminate. When TargetImage is true, we're dealing with
+	// an invocation of `s2i build ... --run` so this will, e.g., run a web
+	// server and block until the user interrupts it. The other case is seen
+	// when running the assemble script or other commands that are meant to
+	// terminate in a finite amount of time.
 	if opts.TargetImage {
-
 		runContainerDockerRun(container, d, image)
-
 	} else {
-		werr := runContainerWait(wg, d, container)
-		if werr != nil {
-			return werr
+		// Return an error if the exit code of the container is
+		// non-zero.
+		glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
+		exitCode, err := d.client.WaitContainer(container.ID)
+		if err != nil {
+			return fmt.Errorf("waiting for container %q to stop: %v", containerName, err)
+		}
+		if exitCode != 0 {
+			return errors.NewContainerError(container.Name, exitCode, "")
 		}
 	}
 
+	// Run PostExec hook if defined.
 	if opts.PostExec != nil {
 		glog.V(2).Infof("Invoking postExecution function")
 		if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {
 			return err
 		}
 	}
+
 	return nil
+}
+
+// containerName returns the name of a container or its ID if the name is empty.
+// Useful for identifying a container in logs.
+func containerNameOrID(c *docker.Container) string {
+	if c.Name != "" {
+		return c.Name
+	}
+	return c.ID
 }
 
 // GetImageID retrieves the ID of the image identified by name

@@ -55,7 +55,7 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 
 	downloader := overrides.Downloader
 	if downloader == nil {
-		d, sourceURL, err := scm.DownloaderForSource(config.Source)
+		d, sourceURL, err := scm.DownloaderForSource(config.Source, config.ForceCopy)
 		if err != nil {
 			return nil, err
 		}

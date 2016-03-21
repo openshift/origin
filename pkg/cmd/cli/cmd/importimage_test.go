@@ -114,6 +114,24 @@ func TestCreateImageImport(t *testing.T) {
 				},
 			},
 		},
+		{
+			// 5: import latest from image stream which has only tags specified and no latest
+			name: "testis:latest",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"nonlatest": {
+							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+						},
+					},
+				},
+			},
+			err: "does not exist on the image stream",
+		},
 	}
 
 	for idx, test := range testCases {

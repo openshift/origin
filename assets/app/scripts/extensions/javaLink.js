@@ -52,6 +52,13 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
       if (!pod || !pod.status || pod.status.phase !== 'Running') {
         return;
       }
+      var containerStatuses = pod.status.containerStatuses;
+      var containerStatus = _.find(containerStatuses, function(status) {
+        return status.name === container.name;
+      });
+      if (!containerStatus || !containerStatus.ready) {
+        return;
+      }
       var podName = pod.metadata.name;
       var namespace = pod.metadata.namespace;
       $scope.jolokiaUrl = ProxyPod(namespace, podName, jolokiaPort.containerPort).segment('jolokia/').toString();

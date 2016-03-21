@@ -28,7 +28,7 @@
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
                    data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
-                  <li>
+                  <li ng-if="!pvc.spec.volumeName">
                     <edit-link
                       resource="pvc"
                       kind="PersistentVolumeClaim"
@@ -47,7 +47,7 @@
               </div>
             </h1>
             <labels labels="pvc.metadata.labels" clickable="true" kind="storage" project-name="{{pvc.metadata.namespace}}" limit="3"></labels>
-          </div><!-- /deployment -->          
+          </div><!-- /deployment -->
         </div>
       </div><!-- /middle-header-->
       <div class="middle-content">

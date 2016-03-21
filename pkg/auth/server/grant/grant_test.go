@@ -12,6 +12,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
@@ -352,7 +353,7 @@ func TestGrant(t *testing.T) {
 }
 
 func postForm(url string, body url.Values) (resp *http.Response, err error) {
-	tr := &http.Transport{}
+	tr := knet.SetTransportDefaults(&http.Transport{})
 	req, err := http.NewRequest("POST", url, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
@@ -362,7 +363,7 @@ func postForm(url string, body url.Values) (resp *http.Response, err error) {
 }
 
 func getURL(url string) (resp *http.Response, err error) {
-	tr := &http.Transport{}
+	tr := knet.SetTransportDefaults(&http.Transport{})
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

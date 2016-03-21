@@ -779,16 +779,8 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .filter('humanizeKind', function () {
-    return function(kind) {
-      if (!kind) {
-        return kind;
-      }
-
-      // ReplicationController -> Replication Controller
-      // https://lodash.com/docs#startCase
-      return _.startCase(kind);
-    };
+  .filter('humanizeKind', function (startCaseFilter) {
+    return startCaseFilter;
   })
   .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
@@ -862,11 +854,11 @@ angular.module('openshiftConsole')
   .filter('podStatus', function() {
     // Return results that match kubernetes/pkg/kubectl/resource_printer.go
     return function(pod) {
-      if (!pod || (!pod.deletionTimestamp && !pod.status)) {
+      if (!pod || (!pod.metadata.deletionTimestamp && !pod.status)) {
         return '';
       }
 
-      if (pod.deletionTimestamp) {
+      if (pod.metadata.deletionTimestamp) {
         return 'Terminating';
       }
 

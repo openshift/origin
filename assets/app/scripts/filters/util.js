@@ -98,12 +98,16 @@ angular.module('openshiftConsole')
     return function(unit, type, singular) {
       switch(type) {
       case "memory":
+      case "limits.memory":
+      case "requests.memory":
       case "storage":
         if (!unit) {
           return unit;
         }
         return unit + "B";
       case "cpu":
+      case "limits.cpu":
+      case "requests.cpu":
         if (unit === "m") {
           unit = "milli";
         }
