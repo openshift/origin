@@ -139,6 +139,7 @@ excluded_tests=(
   "should provide Internet connection for containers" # Needs recursive DNS
   PersistentVolume           # https://github.com/openshift/origin/pull/6884 for recycler
   "mount an API token into pods" # We add 6 secrets, not 1
+  "ServiceAccounts should ensure a single API token exists" # We create lots of secrets
   "Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
   "should test kube-proxy"   # needs 2 nodes
   "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
