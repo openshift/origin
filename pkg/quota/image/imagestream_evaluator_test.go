@@ -17,17 +17,15 @@ import (
 
 var (
 	expectedResources = []kapi.ResourceName{
-		imageapi.ResourceProjectImagesSize,
-		imageapi.ResourceImageStreamSize,
-		imageapi.ResourceImageSize,
+		imageapi.ResourceImages,
 	}
 )
 
 func TestImageStreamEvaluatorUsage(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		is           imageapi.ImageStream
-		expectedSize int64
+		name           string
+		is             imageapi.ImageStream
+		expectedImages int64
 	}{
 		{
 			"empty image stream",
@@ -61,11 +59,46 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			128,
+			1,
 		},
 
 		{
-			"image stream with two references with shared layer",
+			"image stream with spec filled",
+			imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"new": {
+							Name: "new",
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamImage",
+								Namespace: "shared",
+								Name:      fmt.Sprintf("is@%s", miscImageDigest),
+							},
+						},
+					},
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
+						"latest": {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+									Image:                baseImageWith1LayerDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+			1, // spec isn't taken into account
+		},
+
+		{
+			"image stream with two images under one tag",
 			imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "test",
@@ -88,11 +121,11 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			240, // 128 (twice) + 112 (once)
+			2,
 		},
 
 		{
-			"image stream with two tags with shared layer",
+			"image stream with two tags",
 			imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "test",
@@ -119,11 +152,11 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			310, // 128 (twice) + 112 (twice) + 70 (once)
+			2,
 		},
 
 		{
-			"image stream with two items without a shared layer",
+			"image stream with the same image under different tag",
 			imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "test",
@@ -137,35 +170,26 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 									DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/noshared@%s", childImageWith2LayersDigest),
 									Image:                childImageWith2LayersDigest,
 								},
+							},
+						},
+						"foo": {
+							Items: []imageapi.TagEvent{
 								{
-									DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/noshared@%s", miscImageDigest),
-									Image:                miscImageDigest,
+									DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/noshared@%s", childImageWith2LayersDigest),
+									Image:                childImageWith2LayersDigest,
 								},
 							},
 						},
 					},
 				},
 			},
-			808, // 128 (once) + 126 (once) + 554 (once)
+			1,
 		},
 	} {
 
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			switch a := action.(type) {
-			case ktestclient.GetAction:
-				if a.GetName() != tc.is.Name {
-					err := fmt.Errorf("image stream %s not found", a.GetName())
-					t.Errorf(err.Error())
-					return true, nil, err
-				}
-
-				t.Logf("imagestream get handler: returning image stream %s/%s", tc.is.Namespace, tc.is.Name)
-				return true, &tc.is, nil
-			}
-			return false, nil, nil
-		})
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.is.Namespace, tc.is))
+		fakeClient.AddReactor("get", "imagestreams", getFakeImageStreamGetHandler(t, tc.is))
+		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.is))
 
 		evaluator := NewImageStreamEvaluator(fakeClient)
 
@@ -181,6 +205,9 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 		}
 
 		masked := kquota.Mask(usage, expectedResources)
+		expectedUsage := kapi.ResourceList{
+			imageapi.ResourceImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		}
 
 		if len(masked) != len(expectedResources) {
 			for k := range usage {
@@ -196,11 +223,7 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 			}
 		}
 
-		for rname, expectedValue := range map[kapi.ResourceName]resource.Quantity{
-			imageapi.ResourceImageSize:         *resource.NewQuantity(0, resource.BinarySI),
-			imageapi.ResourceImageStreamSize:   *resource.NewQuantity(0, resource.BinarySI),
-			imageapi.ResourceProjectImagesSize: *resource.NewQuantity(tc.expectedSize, resource.BinarySI),
-		} {
+		for rname, expectedValue := range expectedUsage {
 			if v, exists := masked[rname]; exists {
 				if v.Cmp(expectedValue) != 0 {
 					t.Errorf("[%s]: got unexpected usage for %q: %s != %s", tc.name, rname, v.String(), expectedValue.String())
@@ -212,10 +235,10 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 
 func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		iss          []imageapi.ImageStream
-		namespace    string
-		expectedSize int64
+		name           string
+		iss            []imageapi.ImageStream
+		namespace      string
+		expectedImages int64
 	}{
 		{
 			"no image stream",
@@ -247,11 +270,11 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 				},
 			},
 			"test",
-			128,
+			1,
 		},
 
 		{
-			"image stream with two references with shared layer",
+			"image stream with two references under one tag",
 			[]imageapi.ImageStream{
 				{
 					ObjectMeta: kapi.ObjectMeta{
@@ -277,11 +300,11 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 				},
 			},
 			"test",
-			240, // 128 (twice) + 112 (once)
+			2,
 		},
 
 		{
-			"two image streams with shared layer",
+			"two images in two image streams",
 			[]imageapi.ImageStream{
 				{
 					ObjectMeta: kapi.ObjectMeta{
@@ -321,7 +344,7 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 				},
 			},
 			"test",
-			368, // 128*2 + 112 (once)
+			2,
 		},
 
 		{
@@ -365,27 +388,64 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 				},
 			},
 			"test",
-			254, // 128 + 126
+			1,
+		},
+
+		{
+			"same image in two different image streams",
+			[]imageapi.ImageStream{
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace: "test",
+						Name:      "is1",
+					},
+					Status: imageapi.ImageStreamStatus{
+						Tags: map[string]imageapi.TagEventList{
+							"latest": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is1@%s", childImageWith2LayersDigest),
+										Image:                childImageWith2LayersDigest,
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace: "test",
+						Name:      "is2",
+					},
+					Status: imageapi.ImageStreamStatus{
+						Tags: map[string]imageapi.TagEventList{
+							"latest": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
+										Image:                miscImageDigest,
+									},
+								},
+							},
+							"foo": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", childImageWith2LayersDigest),
+										Image:                childImageWith2LayersDigest,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"test",
+			2,
 		},
 	} {
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			switch a := action.(type) {
-			case ktestclient.ListAction:
-				res := &imageapi.ImageStreamList{
-					Items: []imageapi.ImageStream{},
-				}
-				for _, is := range tc.iss {
-					if is.Namespace == a.GetNamespace() {
-						res.Items = append(res.Items, is)
-					}
-				}
-
-				return true, res, nil
-			}
-			return false, nil, nil
-		})
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.namespace, tc.iss...))
+		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.iss...))
 
 		evaluator := NewImageStreamEvaluator(fakeClient)
 
@@ -400,6 +460,9 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 		}
 
 		masked := kquota.Mask(stats.Used, expectedResources)
+		expectedUsage := kapi.ResourceList{
+			imageapi.ResourceImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		}
 
 		if len(masked) != len(expectedResources) {
 			for k := range stats.Used {
@@ -415,11 +478,7 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 			}
 		}
 
-		for rname, expectedValue := range map[kapi.ResourceName]resource.Quantity{
-			imageapi.ResourceImageSize:         *resource.NewQuantity(0, resource.BinarySI),
-			imageapi.ResourceImageStreamSize:   *resource.NewQuantity(0, resource.BinarySI),
-			imageapi.ResourceProjectImagesSize: *resource.NewQuantity(tc.expectedSize, resource.BinarySI),
-		} {
+		for rname, expectedValue := range expectedUsage {
 			if v, exists := masked[rname]; exists {
 				if v.Cmp(expectedValue) != 0 {
 					t.Errorf("[%s]: got unexpected usage for %q: %s != %s", tc.name, rname, v.String(), expectedValue.String())
@@ -429,24 +488,504 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 	}
 }
 
-func getFakeImageStreamImageGetHandler(t *testing.T, namespace string, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+func TestImageStreamAdmissionEvaluatorUsage(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		oldSpec        *imageapi.ImageStreamSpec
+		oldStatus      *imageapi.ImageStreamStatus
+		newSpec        *imageapi.ImageStreamSpec
+		newStatus      *imageapi.ImageStreamStatus
+		expectedImages int64
+	}{
+		{
+			name:           "empty image stream",
+			oldStatus:      nil,
+			newStatus:      &imageapi.ImageStreamStatus{},
+			expectedImages: 0,
+		},
+
+		{
+			name:      "new image stream with one image",
+			oldStatus: nil,
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			expectedImages: 1,
+		},
+
+		{
+			name: "no change",
+			oldSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"new": {
+						Name: "new",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", miscImageDigest),
+						},
+					},
+				},
+			},
+			oldStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"new": {
+						Name: "new",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", miscImageDigest),
+						},
+					},
+				},
+			},
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			// misc image is already present in common is
+			expectedImages: 1,
+		},
+
+		{
+			name: "adding two new tags",
+			oldStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+					"foo": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", childImageWith2LayersDigest),
+								Image:                childImageWith2LayersDigest,
+							},
+						},
+					},
+					"bar": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", baseImageWith2LayersDigest),
+								Image:                baseImageWith2LayersDigest,
+							},
+						},
+					},
+				},
+			},
+			expectedImages: 3,
+		},
+
+		{
+			name: "adding an item and deleting the other tag",
+			oldStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"foo": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", miscImageDigest),
+								Image:                miscImageDigest,
+							},
+						},
+					},
+					"bar": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", baseImageWith2LayersDigest),
+								Image:                baseImageWith2LayersDigest,
+							},
+						},
+					},
+				},
+			},
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"foo": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", childImageWith3LayersDigest),
+								Image:                childImageWith3LayersDigest,
+							},
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/sharedlayer@%s", miscImageDigest),
+								Image:                miscImageDigest,
+							},
+						},
+					},
+				},
+			},
+			// misc image is already present in common is
+			expectedImages: 1,
+		},
+
+		{
+			name: "adding a tag to spec",
+			oldStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"new": {
+						Name: "new",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", baseImageWith2LayersDigest),
+						},
+					},
+				},
+			},
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith1LayerDigest),
+								Image:                baseImageWith1LayerDigest,
+							},
+						},
+					},
+				},
+			},
+			expectedImages: 2,
+		},
+
+		{
+			name: "adding a tag to status already present in spec",
+			oldSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"latest": {
+						Name: "new",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", childImageWith2LayersDigest),
+						},
+					},
+				},
+			},
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"latest": {
+						Name: "new",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", childImageWith2LayersDigest),
+						},
+					},
+				},
+			},
+			newStatus: &imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", baseImageWith2LayersDigest),
+								Image:                childImageWith2LayersDigest,
+							},
+						},
+					},
+				},
+			},
+			expectedImages: 1,
+		},
+
+		{
+			name: "refer to image in another namespace already present",
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"misc": {
+						Name: "misc",
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamImage",
+							Namespace: "shared",
+							Name:      fmt.Sprintf("is@%s", miscImageDigest),
+						},
+					},
+				},
+			},
+			expectedImages: 0,
+		},
+
+		{
+			name: "refer to imagestreamimage in the same namespace",
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"commonisi": {
+						Name: "commonisi",
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamImage",
+							Name: fmt.Sprintf("common@%s", miscImageDigest),
+						},
+					},
+				},
+			},
+			expectedImages: 0,
+		},
+
+		{
+			name: "refer to imagestreamtag in the same namespace",
+			newSpec: &imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					"commonist": {
+						Name: "commonist",
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "common:misc",
+						},
+					},
+				},
+			},
+			expectedImages: 0,
+		},
+	} {
+
+		var newIS, oldIS *imageapi.ImageStream
+
+		if tc.oldStatus != nil || tc.oldSpec != nil {
+			oldIS = &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+			}
+			if tc.oldSpec != nil {
+				oldIS.Spec = *tc.oldSpec
+			}
+			if tc.oldStatus != nil {
+				oldIS.Status = *tc.oldStatus
+			}
+		}
+
+		if tc.newStatus != nil || tc.newSpec != nil {
+			newIS = &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+			}
+			if tc.newSpec != nil {
+				newIS.Spec = *tc.newSpec
+			}
+			if tc.newStatus != nil {
+				newIS.Status = *tc.newStatus
+			}
+		}
+
+		commonIS := imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: "test",
+				Name:      "common",
+			},
+			Status: imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"misc": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/common@%s", miscImageDigest),
+								Image:                miscImageDigest,
+							},
+						},
+					},
+				},
+			},
+		}
+		iss := []imageapi.ImageStream{commonIS}
+		if oldIS != nil {
+			iss = append(iss, *oldIS)
+		}
+
+		fakeClient := &testclient.Fake{}
+		fakeClient.AddReactor("get", "imagestreams", getFakeImageStreamGetHandler(t, iss...))
+		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, iss...))
+		fakeClient.AddReactor("get", "images", getFakeImageGetHandler(t, "test"))
+
+		evaluator := NewImageStreamAdmissionEvaluator(fakeClient)
+
+		usage := evaluator.Usage(newIS)
+
+		if len(usage) != len(expectedResources) {
+			t.Errorf("[%s]: got unexpected number of computed resources: %d != %d", tc.name, len(usage), len(expectedResources))
+		}
+
+		expectedUsage := kapi.ResourceList{
+			imageapi.ResourceImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		}
+
+		masked := kquota.Mask(usage, expectedResources)
+		if len(masked) != len(expectedUsage) {
+			for k := range usage {
+				if _, exists := masked[k]; !exists {
+					t.Errorf("[%s]: got unexpected resource %q from Usage() method", tc.name, k)
+				}
+			}
+
+			for k := range expectedUsage {
+				if _, exists := masked[k]; !exists {
+					t.Errorf("[%s]: expected resource %q not computed", tc.name, k)
+				}
+			}
+		}
+
+		for rname, expectedValue := range expectedUsage {
+			if v, exists := masked[rname]; exists {
+				if v.Cmp(expectedValue) != 0 {
+					t.Errorf("[%s]: got unexpected usage for %q: %s != %s", tc.name, rname, v.String(), expectedValue.String())
+				}
+			}
+		}
+	}
+}
+
+func getFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+	sharedISs := []imageapi.ImageStream{*getSharedImageStream("shared", "is")}
+	allISs := append(sharedISs, iss...)
+
+	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case ktestclient.ListAction:
+			res := &imageapi.ImageStreamList{
+				Items: []imageapi.ImageStream{},
+			}
+			for _, is := range allISs {
+				if is.Namespace == a.GetNamespace() {
+					res.Items = append(res.Items, is)
+				}
+			}
+
+			t.Logf("imagestream list handler: returning %d image streams from namespace %s", len(res.Items), a.GetNamespace())
+
+			return true, res, nil
+		}
+		return false, nil, nil
+	}
+}
+
+func getFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+	sharedISs := []imageapi.ImageStream{*getSharedImageStream("shared", "is")}
+	allISs := append(sharedISs, iss...)
+
 	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
 		case ktestclient.GetAction:
-			if a.GetNamespace() != namespace {
-				err := fmt.Errorf("namespace %q not found", a.GetNamespace())
-				t.Error(err.Error())
-				return true, nil, err
+			for _, is := range allISs {
+				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
+					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
+					return true, &is, nil
+				}
 			}
-			for _, is := range iss {
-				if !strings.HasPrefix(a.GetName(), is.Name+"@") {
+
+			err := fmt.Errorf("image stream %s/%s not found", a.GetNamespace(), a.GetName())
+			t.Errorf(err.Error())
+			return true, nil, err
+		}
+		return false, nil, nil
+	}
+}
+
+func getSharedImageStream(namespace, name string) *imageapi.ImageStream {
+	tevList := imageapi.TagEventList{}
+	for _, imgName := range []string{
+		baseImageWith1LayerDigest,
+		baseImageWith2LayersDigest,
+		childImageWith2LayersDigest,
+		childImageWith3LayersDigest,
+		miscImageDigest,
+	} {
+		tevList.Items = append(tevList.Items,
+			imageapi.TagEvent{
+				DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is@%s", imgName),
+				Image:                imgName,
+			})
+	}
+
+	sharedIS := imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{
+				"latest": tevList,
+			},
+		},
+	}
+
+	return &sharedIS
+}
+
+func getFakeImageStreamImageGetHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+	sharedIS := getSharedImageStream("shared", "is")
+
+	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case ktestclient.GetAction:
+			imageStreams := append([]imageapi.ImageStream{*sharedIS}, iss...)
+			for _, is := range imageStreams {
+				if (a.GetNamespace() != is.Namespace || !strings.HasPrefix(a.GetName(), is.Name+"@")) && (is.Namespace != "shared" || a.GetName() != "shared") {
 					continue
 				}
-				name := strings.TrimPrefix(a.GetName(), is.Name+"@")
+				nameParts := strings.SplitN(a.GetName(), "@", 2)
+				name := nameParts[1]
 
 				res := &imageapi.ImageStreamImage{
 					ObjectMeta: kapi.ObjectMeta{
-						Namespace: namespace,
+						Namespace: a.GetNamespace(),
 						Name:      a.GetName(),
 					},
 					Image: imageapi.Image{
@@ -454,7 +993,7 @@ func getFakeImageStreamImageGetHandler(t *testing.T, namespace string, iss ...im
 							Name:        name,
 							Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 						},
-						DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", namespace, a.GetName()),
+						DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", a.GetNamespace(), a.GetName()),
 					},
 				}
 
@@ -482,6 +1021,44 @@ func getFakeImageStreamImageGetHandler(t *testing.T, namespace string, iss ...im
 			err := fmt.Errorf("imagestreamimage %q not found", a.GetName())
 			t.Error(err.Error())
 			return true, nil, err
+		}
+		return false, nil, nil
+	}
+}
+
+func getFakeImageGetHandler(t *testing.T, namespace string) ktestclient.ReactionFunc {
+	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case ktestclient.GetAction:
+			name := a.GetName()
+
+			res := imageapi.Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        name,
+					Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+				},
+				DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", namespace, a.GetName()),
+			}
+
+			switch name {
+			case baseImageWith1LayerDigest:
+				res.DockerImageManifest = baseImageWith1Layer
+			case baseImageWith2LayersDigest:
+				res.DockerImageManifest = baseImageWith2Layers
+			case childImageWith2LayersDigest:
+				res.DockerImageManifest = childImageWith2Layers
+			case childImageWith3LayersDigest:
+				res.DockerImageManifest = childImageWith3Layers
+			case miscImageDigest:
+				res.DockerImageManifest = miscImage
+			default:
+				err := fmt.Errorf("image %q not found", name)
+				t.Error(err.Error())
+				return true, nil, err
+			}
+
+			t.Logf("images get handler: returning %q", res.Name)
+			return true, &res, nil
 		}
 		return false, nil, nil
 	}

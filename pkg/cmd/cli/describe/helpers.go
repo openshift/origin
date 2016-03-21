@@ -11,15 +11,12 @@ import (
 	"github.com/docker/docker/pkg/units"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	imagequota "github.com/openshift/origin/pkg/quota/image"
 )
 
 const emptyString = "<none>"
@@ -303,54 +300,4 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			fmt.Fprintf(out, "  ! tag is insecure and can be imported over HTTP or self-signed HTTPS\n")
 		}
 	}
-}
-
-func formatImageStreamQuota(out *tabwriter.Writer, c client.Interface, kc kclient.Interface, stream *imageapi.ImageStream) {
-	quotas, err := kc.ResourceQuotas(stream.Namespace).List(api.ListOptions{})
-	if err != nil {
-		return
-	}
-
-	var limit *resource.Quantity
-	for _, item := range quotas.Items {
-		// search for smallest ImageStream quota
-		if value, ok := item.Spec.Hard[imageapi.ResourceImageStreamSize]; ok {
-			if limit == nil || limit.Cmp(value) > 0 {
-				limit = &value
-			}
-		}
-	}
-	if limit != nil {
-		quantity := imagequota.GetImageStreamSize(c, stream, make(map[string]*imageapi.Image))
-		scale := mega
-		if quantity.Value() >= (1<<giga.scale) || limit.Value() >= (1<<giga.scale) {
-			scale = giga
-		}
-		formatString(out, "Quota Usage", fmt.Sprintf("%s / %s",
-			formatQuantity(quantity, scale), formatQuantity(limit, scale)))
-	}
-}
-
-type scale struct {
-	scale uint64
-	unit  string
-}
-
-var (
-	mega = scale{20, "MiB"}
-	giga = scale{30, "GiB"}
-)
-
-// formatQuantity prints quantity according to passed scale. Manual scaling was
-// done here to make sure we print correct binary values for quantity.
-func formatQuantity(quantity *resource.Quantity, scale scale) string {
-	integer := quantity.Value() >> scale.scale
-	// fraction is the reminder of a division shifted by one order of magnitude
-	fraction := (quantity.Value() % (1 << scale.scale)) >> (scale.scale - 10)
-	// additionally we present only 2 digits after dot, so divide by 10
-	fraction = fraction / 10
-	if fraction > 0 {
-		return fmt.Sprintf("%d.%02d%s", integer, fraction, scale.unit)
-	}
-	return fmt.Sprintf("%d%s", integer, scale.unit)
 }

@@ -1,11 +1,6 @@
 package test
 
-import (
-	"sync"
-	"time"
-
-	"github.com/fsouza/go-dockerclient"
-)
+import "github.com/fsouza/go-dockerclient"
 
 // FakeDockerClient provides a Fake client for Docker testing
 type FakeDockerClient struct {
@@ -31,7 +26,6 @@ type FakeDockerClient struct {
 	PullImageAuth            docker.AuthConfiguration
 	CreateContainerOpts      docker.CreateContainerOptions
 	AttachToContainerOpts    []docker.AttachToContainerOptions
-	AttachToContainerSleep   time.Duration
 	StartContainerID         string
 	StartContainerHostConfig *docker.HostConfig
 	WaitContainerID          string
@@ -39,8 +33,6 @@ type FakeDockerClient struct {
 	CommitContainerOpts      docker.CommitContainerOptions
 	CopyFromContainerOpts    docker.CopyFromContainerOptions
 	BuildImageOpts           docker.BuildImageOptions
-
-	mutex sync.Mutex
 }
 
 // RemoveImage removes an image from the fake client
@@ -83,21 +75,6 @@ func (d *FakeDockerClient) PullImage(opts docker.PullImageOptions, auth docker.A
 func (d *FakeDockerClient) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
 	d.CreateContainerOpts = opts
 	return d.Container, d.CreateContainerErr
-}
-
-// AttachToContainer attaches to a fake container
-func (d *FakeDockerClient) AttachToContainer(opts docker.AttachToContainerOptions) error {
-	d.mutex.Lock()
-	d.AttachToContainerOpts = append(d.AttachToContainerOpts, opts)
-	if opts.Success != nil {
-		opts.Success <- struct{}{}
-		<-opts.Success
-	}
-	d.mutex.Unlock()
-	if d.AttachToContainerSleep != 0 {
-		time.Sleep(d.AttachToContainerSleep)
-	}
-	return d.AttachToContainerErr
 }
 
 // StartContainer starts the fake container
@@ -143,4 +120,18 @@ func (d *FakeDockerClient) BuildImage(opts docker.BuildImageOptions) error {
 
 func (d *FakeDockerClient) InspectContainer(id string) (*docker.Container, error) {
 	return nil, d.BuildImageErr
+}
+
+func (d *FakeDockerClient) AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error) {
+	return fakeCloseWait{}, nil
+}
+
+type fakeCloseWait struct{}
+
+func (cw fakeCloseWait) Close() error {
+	return nil
+}
+
+func (cw fakeCloseWait) Wait() error {
+	return nil
 }

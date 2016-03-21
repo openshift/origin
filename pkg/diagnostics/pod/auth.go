@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 const (
@@ -135,7 +136,7 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 		Timeout: time.Second * 2,
 	}
 	secClient := noSecClient
-	secClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}
+	secClient.Transport = knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}})
 	if secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r); secError == nil {
 		return // made the request successfully enough to diagnose
 	} else if strings.Contains(secError.Error(), "tls: oversized record received") {

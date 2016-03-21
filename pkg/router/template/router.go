@@ -303,9 +303,11 @@ func (r *templateRouter) writeCertificates(cfg *ServiceAliasConfig) error {
 // reloadRouter executes the router's reload script.
 func (r *templateRouter) reloadRouter() error {
 	cmd := exec.Command(r.reloadScriptPath)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error reloading router: %v\n---\n%s", err, string(out))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error reloading router: %v\n%s", err, out)
 	}
+	glog.Infof("Router reloaded:\n%s", out)
 	return nil
 }
 

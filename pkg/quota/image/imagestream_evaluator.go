@@ -3,28 +3,30 @@ package image
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
-// NewImageStreamEvaluator computes resource usage of ImageStreams. Instantiating this is necessary for image
-// resource quota admission controller to properly work on ImageStreamMapping objects. Project image size
-// usage must be evaluated in quota's usage status before a CREATE operation on ImageStreamMapping can be
-// allowed.
+const (
+	imageStreamEvaluatorName          = "Evaluator.ImageStream.Controller"
+	imageStreamAdmissionEvaluatorName = "Evaluator.ImageStream.Admission"
+)
+
+// NewImageStreamEvaluator computes resource usage of ImageStreams. Instantiating this is necessary for
+// resource quota admission controller to properly work on image stream related objects.
 func NewImageStreamEvaluator(osClient osclient.Interface) kquota.Evaluator {
 	computeResources := []kapi.ResourceName{
-		imageapi.ResourceProjectImagesSize,
-		//  Used values need to be set on resource quota before admission controller can handle requests.
-		//  Therefor we return following resources as well. Even though we evaluate them always to 0.
-		imageapi.ResourceImageStreamSize,
-		imageapi.ResourceImageSize,
+		imageapi.ResourceImages,
 	}
 
 	matchesScopeFunc := func(kapi.ResourceQuotaScope, runtime.Object) bool { return true }
@@ -36,17 +38,31 @@ func NewImageStreamEvaluator(osClient osclient.Interface) kquota.Evaluator {
 	}
 
 	return quotautil.NewSharedContextEvaluator(
-		"ImageStream evaluator",
+		imageStreamEvaluatorName,
 		kapi.Kind("ImageStream"),
-		map[admission.Operation][]kapi.ResourceName{
-			admission.Create: computeResources,
-			admission.Update: computeResources,
-		},
+		nil,
+		computeResources,
 		matchesScopeFunc,
 		getFuncByNamespace,
 		listFuncByNamespace,
 		imageStreamConstraintsFunc,
 		makeImageStreamUsageComputerFactory(osClient))
+}
+
+// NewImageStreamAdmissionEvaluator computes resource usage of ImageStreams in the context of admission
+// plugin.
+func NewImageStreamAdmissionEvaluator(osClient osclient.Interface) kquota.Evaluator {
+	evaluator := NewImageStreamEvaluator(osClient)
+	isEval := evaluator.(*quotautil.SharedContextEvaluator)
+	isEval.Name = imageStreamAdmissionEvaluatorName
+	isEval.InternalOperationResources = map[admission.Operation][]kapi.ResourceName{
+		admission.Create: isEval.MatchedResourceNames,
+		admission.Update: isEval.MatchedResourceNames,
+	}
+	isEval.UsageComputerFactory = makeImageStreamUsageComputerForAdmissionFactory(osClient)
+	// admission plugin should not attempt to list us
+	isEval.ListFuncByNamespace = nil
+	return isEval
 }
 
 // imageStreamConstraintsFunc checks that given object is an image stream
@@ -62,33 +78,60 @@ func imageStreamConstraintsFunc(required []kapi.ResourceName, object runtime.Obj
 func makeImageStreamUsageComputerFactory(osClient osclient.Interface) quotautil.UsageComputerFactory {
 	return func() quotautil.UsageComputer {
 		return &imageStreamUsageComputer{
-			osClient:   osClient,
-			imageCache: make(map[string]*imageapi.Image),
+			GenericImageStreamUsageComputer: *NewGenericImageStreamUsageComputer(osClient, false, true),
+			processedImages:                 sets.NewString(),
 		}
 	}
 }
 
 // imageStreamUsageComputer is a context object for use in SharedContextEvaluator.
 type imageStreamUsageComputer struct {
-	osClient osclient.Interface
-	// imageCache maps image name to a an image object. It holds only images
-	// stored in the registry to avoid multiple fetches of the same object.
-	imageCache map[string]*imageapi.Image
+	GenericImageStreamUsageComputer
+	processedImages sets.String
 }
 
-// Usage returns a usage for an image stream. The only resource computed is
-// ResourceProjectImagesSize which is the only resource scoped to a namespace.
+// Usage returns a usage for an image stream.
 func (c *imageStreamUsageComputer) Usage(object runtime.Object) kapi.ResourceList {
 	is, ok := object.(*imageapi.ImageStream)
 	if !ok {
 		return kapi.ResourceList{}
 	}
 
-	res := map[kapi.ResourceName]resource.Quantity{
-		imageapi.ResourceProjectImagesSize: *GetImageStreamSize(c.osClient, is, c.imageCache),
-		imageapi.ResourceImageStreamSize:   *resource.NewQuantity(0, resource.BinarySI),
-		imageapi.ResourceImageSize:         *resource.NewQuantity(0, resource.BinarySI),
+	images := c.GetImageStreamUsage(is, c.processedImages)
+	return kapi.ResourceList{
+		imageapi.ResourceImages: *images,
+	}
+}
+
+// makeImageStreamUsageComputerForAdmissionFactory returns an object used during computation of image quota
+// across all repositories in a namespace in a context of admission plugin.
+func makeImageStreamUsageComputerForAdmissionFactory(osClient osclient.Interface) quotautil.UsageComputerFactory {
+	return func() quotautil.UsageComputer {
+		return &imageStreamUsageComputerForAdmission{
+			GenericImageStreamUsageComputer: *NewGenericImageStreamUsageComputer(osClient, true, false),
+		}
+	}
+}
+
+// imageStreamUsageComputerForAdmission is a context object for use in SharedContextEvaluator
+type imageStreamUsageComputerForAdmission struct {
+	GenericImageStreamUsageComputer
+}
+
+// Usage returns a usage for an image stream.
+func (c *imageStreamUsageComputerForAdmission) Usage(object runtime.Object) kapi.ResourceList {
+	is, ok := object.(*imageapi.ImageStream)
+	if !ok {
+		return kapi.ResourceList{}
 	}
 
-	return res
+	_, imagesIncrement, err := c.GetProjectImagesUsageIncrement(is.Namespace, is, nil)
+	if err != nil {
+		glog.Errorf("Failed to compute project images size increment in namespace %q: %v", is.Namespace, err)
+		return kapi.ResourceList{}
+	}
+
+	return map[kapi.ResourceName]resource.Quantity{
+		imageapi.ResourceImages: *imagesIncrement,
+	}
 }

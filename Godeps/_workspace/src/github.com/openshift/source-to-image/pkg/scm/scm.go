@@ -13,7 +13,7 @@ import (
 
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.
-func DownloaderForSource(s string) (build.Downloader, string, error) {
+func DownloaderForSource(s string, forceCopy bool) (build.Downloader, string, error) {
 	glog.V(4).Infof("DownloadForSource %s", s)
 
 	details, mods := git.ParseFile(s)
@@ -35,7 +35,7 @@ func DownloaderForSource(s string) (build.Downloader, string, error) {
 		}
 	}
 
-	if details.FileExists && details.UseCopy {
+	if details.FileExists && (details.UseCopy || forceCopy) {
 		return &file.File{util.NewFileSystem()}, s, nil
 	}
 
