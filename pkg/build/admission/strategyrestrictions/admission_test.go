@@ -141,7 +141,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:             "allowed external build",
-			object:           testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			object:           testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
 			reviewResponse:   reviewResponse(true, ""),
@@ -151,7 +151,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:             "allowed external build clone",
 			object:           testBuildRequest("buildname"),
-			responseObject:   testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			responseObject:   testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
 			subResource:      "clone",
