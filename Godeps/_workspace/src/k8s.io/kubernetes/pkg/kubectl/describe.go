@@ -626,7 +626,7 @@ func describePod(pod *api.Pod, events *api.EventList) (string, error) {
 		fmt.Fprintf(out, "IP:\t%s\n", pod.Status.PodIP)
 		fmt.Fprintf(out, "Controllers:\t%s\n", printControllers(pod.Annotations))
 		fmt.Fprintf(out, "Containers:\n")
-		DescribeContainers(pod.Spec.Containers, pod.Status.ContainerStatuses, EnvValueRetriever(pod), out)
+		describeContainers(pod.Spec.Containers, pod.Status.ContainerStatuses, EnvValueRetriever(pod), out)
 		if len(pod.Status.Conditions) > 0 {
 			fmt.Fprint(out, "Conditions:\n  Type\tStatus\n")
 			for _, c := range pod.Status.Conditions {
@@ -635,7 +635,7 @@ func describePod(pod *api.Pod, events *api.EventList) (string, error) {
 					c.Status)
 			}
 		}
-		describeVolumes(pod.Spec.Volumes, out)
+		describeVolumes(pod.Spec.Volumes, out, "")
 		if events != nil {
 			DescribeEvents(events, out)
 		}
@@ -655,12 +655,12 @@ func printControllers(annotation map[string]string) string {
 	return "<none>"
 }
 
-func describeVolumes(volumes []api.Volume, out io.Writer) {
+func describeVolumes(volumes []api.Volume, out io.Writer, space string) {
 	if volumes == nil || len(volumes) == 0 {
-		fmt.Fprint(out, "No volumes.\n")
+		fmt.Fprintf(out, "%sNo volumes.\n", space)
 		return
 	}
-	fmt.Fprint(out, "Volumes:\n")
+	fmt.Fprintf(out, "%sVolumes:\n", space)
 	for _, volume := range volumes {
 		fmt.Fprintf(out, "  %v:\n", volume.Name)
 		switch {
@@ -879,8 +879,8 @@ func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string) (strin
 	})
 }
 
-// DescribeContainers is exported for consumers in other API groups that have container templates
-func DescribeContainers(containers []api.Container, containerStatuses []api.ContainerStatus, resolverFn EnvVarResolverFunc, out io.Writer) {
+// describeContainers is exported for consumers in other API groups that have container templates
+func describeContainers(containers []api.Container, containerStatuses []api.ContainerStatus, resolverFn EnvVarResolverFunc, out io.Writer) {
 	statuses := map[string]api.ContainerStatus{}
 	for _, status := range containerStatuses {
 		statuses[status.Name] = status
@@ -1096,7 +1096,7 @@ func describeReplicationController(controller *api.ReplicationController, events
 		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.Status.Replicas, controller.Spec.Replicas)
 		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
 		if controller.Spec.Template != nil {
-			describeVolumes(controller.Spec.Template.Spec.Volumes, out)
+			describeVolumes(controller.Spec.Template.Spec.Volumes, out, "")
 		}
 		if events != nil {
 			DescribeEvents(events, out)
@@ -1105,18 +1105,21 @@ func describeReplicationController(controller *api.ReplicationController, events
 	})
 }
 
-func DescribePodTemplate(template *api.PodTemplateSpec) (string, error) {
-	return tabbedString(func(out io.Writer) error {
-		if template == nil {
-			fmt.Fprintf(out, "<unset>")
-			return nil
-		}
-		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(template.Labels))
-		fmt.Fprintf(out, "Annotations:\t%s\n", labels.FormatLabels(template.Annotations))
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&template.Spec))
-		describeVolumes(template.Spec.Volumes, out)
-		return nil
-	})
+func DescribePodTemplate(template *api.PodTemplateSpec, out io.Writer) {
+	if template == nil {
+		fmt.Fprintf(out, "  <unset>")
+		return
+	}
+	fmt.Fprintf(out, "  Labels:\t%s\n", labels.FormatLabels(template.Labels))
+	if len(template.Annotations) > 0 {
+		fmt.Fprintf(out, "  Annotations:\t%s\n", labels.FormatLabels(template.Annotations))
+	}
+	if len(template.Spec.ServiceAccountName) > 0 {
+		fmt.Fprintf(out, "  Service Account:\t%s\n", template.Spec.ServiceAccountName)
+	}
+	fmt.Fprintf(out, "  Containers:\n")
+	describeContainers(template.Spec.Containers, nil, nil, out)
+	describeVolumes(template.Spec.Volumes, out, "  ")
 }
 
 // ReplicaSetDescriber generates information about a ReplicaSet and the pods it has created.
@@ -1157,7 +1160,7 @@ func describeReplicaSet(rs *extensions.ReplicaSet, events *api.EventList, runnin
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(rs.Labels))
 		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", rs.Status.Replicas, rs.Spec.Replicas)
 		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
-		describeVolumes(rs.Spec.Template.Spec.Volumes, out)
+		describeVolumes(rs.Spec.Template.Spec.Volumes, out, "")
 		if events != nil {
 			DescribeEvents(events, out)
 		}
@@ -1202,7 +1205,7 @@ func describeJob(job *extensions.Job, events *api.EventList) (string, error) {
 		}
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(job.Labels))
 		fmt.Fprintf(out, "Pods Statuses:\t%d Running / %d Succeeded / %d Failed\n", job.Status.Active, job.Status.Succeeded, job.Status.Failed)
-		describeVolumes(job.Spec.Template.Spec.Volumes, out)
+		describeVolumes(job.Spec.Template.Spec.Volumes, out, "")
 		if events != nil {
 			DescribeEvents(events, out)
 		}
