@@ -138,13 +138,15 @@ func (c *builderConfig) execute(b builder) error {
 	}
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
-	cgLimits, err := bld.GetCGroupLimits()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
-	}
-	glog.V(2).Infof("Running build with cgroup limits: %#v", *cgLimits)
+	/*
+		cgLimits, err := bld.GetCGroupLimits()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
+		}
+		glog.V(2).Infof("Running build with cgroup limits: %#v", *cgLimits)
+	*/
 
-	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient, cgLimits); err != nil {
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient, nil); err != nil {
 		return fmt.Errorf("build error: %v", err)
 	}
 
