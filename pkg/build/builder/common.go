@@ -144,12 +144,11 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		args = append([]string{script, command[0]}, args...)
 	}
 
-	/*
-		limits, err := GetCGroupLimits()
-		if err != nil {
-			return fmt.Errorf("read cgroup limits: %v", err)
-		}
-	*/
+	limits, err := GetCGroupLimits()
+	if err != nil {
+		return fmt.Errorf("read cgroup limits: %v", err)
+	}
+
 	return dockerRun(client, docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
@@ -158,14 +157,12 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 			Cmd:        args,
 		},
 		HostConfig: &docker.HostConfig{
-		// Limit container's resource allocation.
-		/*
+			// Limit container's resource allocation.
 			CPUShares:  limits.CPUShares,
 			CPUPeriod:  limits.CPUPeriod,
 			CPUQuota:   limits.CPUQuota,
 			Memory:     limits.MemoryLimitBytes,
 			MemorySwap: limits.MemorySwap,
-		*/
 		},
 	}, docker.LogsOptions{
 		// Stream logs to stdout and stderr.
