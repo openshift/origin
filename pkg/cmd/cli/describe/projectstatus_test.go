@@ -166,7 +166,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"bc/ruby-hello-world is pushing to istag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
+				"bc/ruby-hello-world is pushing to istag/ruby-hello-world:latest, but the administrator has not configured the integrated Docker registry.",
 			},
 		},
 		"bare-bc-can-push": {
@@ -256,7 +256,7 @@ func TestProjectStatus(t *testing.T) {
 				"deployment #1 deployed less than a second ago",
 				"test deployment #2 running for 7 seconds - 2/1 pods",
 				"test deployment #1 deployed 8 seconds ago",
-				"* bc/ruby-sample-build is pushing to istag/origin-ruby-sample:latest that is using is/origin-ruby-sample, but that image stream does not exist.",
+				"* bc/ruby-sample-build is pushing to istag/origin-ruby-sample:latest, but the image stream for that tag does not exist.",
 				"* The image trigger for dc/frontend will have no effect because is/origin-ruby-sample does not exist",
 				"* route/frontend was not accepted by router \"other\":  (HostAlreadyClaimed)",
 				"* dc/database has no readiness probe to verify pods are ready to accept traffic or ensure deployment is successful.",

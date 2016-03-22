@@ -24,6 +24,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	knet "k8s.io/kubernetes/pkg/util/net"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -36,10 +38,6 @@ const (
 	defaultRouterImage = "openshift/origin-haproxy-router"
 
 	tcWaitSeconds = 1
-	tcRetries     = 3
-
-	dockerWaitSeconds = 1
-	dockerRetries     = 3
 
 	statsPort     = 1936
 	statsUser     = "admin"
@@ -80,7 +78,7 @@ func TestRouter(t *testing.T) {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
 
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
 	if err != nil {
@@ -353,18 +351,9 @@ func TestRouter(t *testing.T) {
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-		// Give the router some time to finish processing events before we connect.
-		time.Sleep(time.Second * 5)
-
 		// Now verify the route with an HTTP client.
-		resp, err := getRouteWithRetries(t, tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse)
-
-		if err != nil {
-			t.Errorf("Unable to verify response: %v", err)
-		}
-
-		if resp != tc.expectedResponse {
-			t.Errorf("TC %s failed! Response body %q did not match expected %q", tc.name, resp, tc.expectedResponse)
+		if err := waitForRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse); err != nil {
+			t.Errorf("TC %s failed: %v", tc.name, err)
 
 			// The following is related to the workaround above, q.v.
 			if getRouterImage() != defaultRouterImage {
@@ -383,9 +372,6 @@ func TestRouter(t *testing.T) {
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 	}
-
-	// Give the router some time to finish processing events before we kill it.
-	time.Sleep(time.Second * 5)
 }
 
 // TestRouterPathSpecificity tests that the router is matching routes from most specific to least when using
@@ -425,7 +411,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
 	if err != nil {
@@ -475,10 +461,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
+
 	//ensure you can curl path but not main host
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
+	if _, err := getRoute(routeAddress, "www.example.com", "http", nil, ""); err != ErrUnavailable {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	//create newer, conflicting path based route
@@ -511,9 +500,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 	}
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
-		t.Errorf("unexpected response: %q", response)
+
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	//create host based route
@@ -534,13 +523,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
+
 	//ensure you can curl path and host
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
-	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	//delete path based route
@@ -561,18 +550,18 @@ func TestRouterPathSpecificity(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
+
 	// Ensure you can still curl path and host.  The host-based route should now
 	// handle requests to / as well as requests to /test (or any other path).
 	// Note, however, that the host-based route and the host-based route use the
 	// same service, and that that service varies its response in accordance with
 	// the path, so we still get the tr.HelloPodPath response when we request
 	// /test even though we request using routeAddress.
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
-	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	// create newer, conflicting host based route that is ignored
@@ -593,12 +582,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
-		t.Errorf("unexpected response: %q", response)
+
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
-	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	//create old, conflicting host based route which should take over the route
@@ -619,12 +608,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
-	time.Sleep(time.Second * tcWaitSeconds)
-	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodAlternate); !valid {
-		t.Errorf("unexpected response: %q", response)
+
+	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodAlternate); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
-	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPodAlternate); !valid {
-		t.Errorf("unexpected response: %q", response)
+	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPodAlternate); err != nil {
+		t.Fatalf("unexpected response: %q", err)
 	}
 
 	// Clean up the host-based route and endpoint.
@@ -655,8 +644,6 @@ func TestRouterPathSpecificity(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-
-	time.Sleep(time.Second * 5)
 }
 
 // TestRouterDuplications ensures that the router implementation is keying correctly and resolving routes that may be
@@ -680,7 +667,7 @@ func TestRouterDuplications(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
 	if err != nil {
@@ -737,22 +724,12 @@ func TestRouterDuplications(t *testing.T) {
 
 	routeAddress := getRouteAddress()
 
-	var examplePass, example2Pass bool
-	var exampleResp, example2Resp string
-	for i := 0; i < tcRetries; i++ {
-		//ensure you can curl both
-		examplePass, exampleResp = isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod)
-		example2Pass, example2Resp = isValidRoute(routeAddress, "www.example2.com", "http", tr.HelloPod)
+	//ensure you can curl both
+	err1 := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod)
+	err2 := waitForRoute(routeAddress, "www.example2.com", "http", nil, tr.HelloPod)
 
-		if examplePass && example2Pass {
-			break
-		}
-		//not valid yet, give it some more time before failing
-		time.Sleep(time.Second * tcWaitSeconds)
-	}
-
-	if !examplePass || !example2Pass {
-		t.Errorf("Unable to validate both routes in a duplicate service scenario.  Resp 1: %s, Resp 2: %s", exampleResp, example2Resp)
+	if err1 != nil || err2 != nil {
+		t.Errorf("Unable to validate both routes in a duplicate service scenario.  Resp 1: %s, Resp 2: %s", err1, err2)
 	}
 
 	// Clean up the endpoint and routes.
@@ -799,8 +776,6 @@ func TestRouterDuplications(t *testing.T) {
 		},
 	}
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointCleanupEvent)
-
-	time.Sleep(time.Second * 5)
 }
 
 // TestRouterStatsPort tests that the router is listening on and
@@ -824,7 +799,7 @@ func TestRouterStatsPort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
@@ -833,14 +808,8 @@ func TestRouterStatsPort(t *testing.T) {
 	auth := fmt.Sprintf("Basic: %s", base64.StdEncoding.EncodeToString([]byte(creds)))
 	headers := map[string]string{"Authorization": auth}
 
-	resp, err := getRouteWithRetries(t, statsHostPort, statsHostPort, "http", headers, "")
-
-	if err != nil {
-		t.Errorf("Unable to verify response: %v", err)
-	}
-
-	if len(resp) < 1 {
-		t.Errorf("TestRouterStatsPort failed! No Response body.")
+	if err := waitForRoute(statsHostPort, statsHostPort, "http", headers, ""); err != ErrUnauthenticated {
+		t.Fatalf("Unable to verify response: %v", err)
 	}
 }
 
@@ -884,7 +853,7 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test with %q error starting container %s : %v", tc.name, getRouterImage(), err)
 		}
-		defer cleanUp(dockerCli, routerId)
+		defer cleanUp(t, dockerCli, routerId)
 
 		host := "127.0.0.1"
 		port := tc.port
@@ -892,18 +861,10 @@ func TestRouterHealthzEndpoint(t *testing.T) {
 			port = statsPort
 		}
 
-		waitForRouterToBecomeAvailable(host, port)
-
 		hostAndPort := fmt.Sprintf("%s:%d", host, port)
 		uri := fmt.Sprintf("%s/healthz", hostAndPort)
-		resp, err := getRouteWithRetries(t, uri, hostAndPort, "http", nil, "")
-
-		if err != nil {
+		if err := waitForRoute(uri, hostAndPort, "http", nil, ""); err != nil {
 			t.Errorf("Test with %q unable to verify response: %v", tc.name, err)
-		}
-
-		if len(resp) < 1 {
-			t.Errorf("TestRouterHealthzEndpoint with %q failed! No Response body.", tc.name)
 		}
 	}
 }
@@ -929,7 +890,7 @@ func TestRouterServiceUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
@@ -946,9 +907,9 @@ func TestRouterServiceUnavailable(t *testing.T) {
 		}
 
 		httpClient := &http.Client{
-			Transport: &http.Transport{
+			Transport: knet.SetTransportDefaults(&http.Transport{
 				TLSClientConfig: tlsConfig,
-			},
+			}),
 		}
 		req, err := http.NewRequest("GET", uri, nil)
 		if err != nil {
@@ -992,23 +953,6 @@ func TestRouterServiceUnavailable(t *testing.T) {
 	}
 }
 
-// isValidRoute ensures that the route can be retrieved and matches the expected output
-func isValidRoute(url, host, scheme, expected string) (valid bool, response string) {
-	resp, err := getRouteWithRetries(nil, url, host, scheme, nil, expected)
-	if err != nil {
-		return false, err.Error()
-	}
-	return resp == expected, resp
-}
-
-// validateRoute is a helper that will set the unit test error.  It delegates to isValidRoute which can be used
-// if you need to check the response/status manually
-func validateRoute(url, host, scheme, expected string, t *testing.T) {
-	if valid, response := isValidRoute(url, host, scheme, expected); !valid {
-		t.Errorf("Unexepected response, wanted: %q but got: %q", expected, response)
-	}
-}
-
 func getEndpoint(hostport string) (kapi.EndpointSubset, error) {
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
@@ -1020,6 +964,11 @@ func getEndpoint(hostport string) (kapi.EndpointSubset, error) {
 	}
 	return kapi.EndpointSubset{Addresses: []kapi.EndpointAddress{{IP: host}}, Ports: []kapi.EndpointPort{{Port: portNum}}}, nil
 }
+
+var (
+	ErrUnavailable     = fmt.Errorf("endpoint not available")
+	ErrUnauthenticated = fmt.Errorf("endpoint requires authentication")
+)
 
 // getRoute is a utility function for making the web request to a route.
 // Protocol is one of http, https, ws, or wss.  If the protocol is https or wss,
@@ -1043,9 +992,9 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 
 	switch protocol {
 	case "http", "https":
-		httpClient := &http.Client{Transport: &http.Transport{
+		httpClient := &http.Client{Transport: knet.SetTransportDefaults(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		},
+		}),
 		}
 		req, err := http.NewRequest("GET", url, nil)
 
@@ -1063,6 +1012,14 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 			return "", err
 		}
 		defer resp.Body.Close()
+		switch {
+		case resp.StatusCode == 503:
+			return "", ErrUnavailable
+		case resp.StatusCode == 401:
+			return "", ErrUnauthenticated
+		case resp.StatusCode >= 400:
+			return "", fmt.Errorf("GET of %s returned: %d", url, resp.StatusCode)
+		}
 		respBody, err := ioutil.ReadAll(resp.Body)
 		return string(respBody), err
 
@@ -1082,6 +1039,12 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 
 		ws, err := websocket.DialConfig(wsConfig)
 		if err != nil {
+			if derr, ok := err.(*websocket.DialError); ok {
+				if derr.Err == websocket.ErrBadStatus {
+					// a better websocket library would know the difference here
+					return "", ErrUnavailable
+				}
+			}
 			return "", err
 		}
 
@@ -1102,28 +1065,29 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 	return "", errors.New("Unrecognized protocol in getRoute")
 }
 
-// getRouteWithRetries is an utility wrapper around getRoutes to retry errors (allows the router some startup time).
-func getRouteWithRetries(t *testing.T, routerUrl string, hostName string, protocol string, headers map[string]string, expectedResponse string) (response string, err error) {
-	for i := 0; i < tcRetries; i++ {
-		// Wait for router to pick up configs.
-		time.Sleep(time.Second * tcWaitSeconds)
-
-		// Now verify the route with an HTTP client.
+// waitForRoute loops until the client returns the expected response or an error was encountered.
+func waitForRoute(routerUrl string, hostName string, protocol string, headers map[string]string, expectedResponse string) error {
+	var lastErr error
+	err := wait.Poll(time.Millisecond*100, 30*time.Second, func() (bool, error) {
+		lastErr = nil
 		resp, err := getRoute(routerUrl, hostName, protocol, headers, expectedResponse)
-
-		if err != nil {
-			if i != (tcRetries - 1) {
-				if t != nil {
-					t.Logf("error: %v, attempt #%v, retrying ...", err, i+1)
-				}
-				continue
+		if err == nil {
+			if len(expectedResponse) > 0 && resp != expectedResponse {
+				lastErr = fmt.Errorf("expected %q but got %q from %s://%s", expectedResponse, resp, protocol, hostName)
+				return false, nil
 			}
+			return true, nil
 		}
-
-		return resp, err
+		if err == ErrUnavailable || strings.Contains(err.Error(), "connection refused") ||
+			strings.Contains(err.Error(), "use of closed network connection") {
+			return false, nil
+		}
+		return false, err
+	})
+	if err == wait.ErrWaitTimeout && lastErr != nil {
+		err = lastErr
 	}
-
-	return getRoute(routerUrl, hostName, protocol, headers, expectedResponse)
+	return err
 }
 
 // eventString marshals the event into a string
@@ -1223,28 +1187,16 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		return "", err
 	}
 
-	running := false
-
 	//wait for it to start
-	for i := 0; i < dockerRetries; i++ {
-		time.Sleep(time.Second * dockerWaitSeconds)
-
+	if err := wait.Poll(time.Millisecond*100, time.Second*30, func() (bool, error) {
 		c, err := dockerCli.InspectContainer(container.ID)
-
 		if err != nil {
-			return "", err
+			return false, err
 		}
-
-		if c.State.Running {
-			running = true
-			break
-		}
+		return c.State.Running, nil
+	}); err != nil {
+		return "", err
 	}
-
-	if !running {
-		return "", errors.New("Container did not start after 3 tries!")
-	}
-
 	return container.ID, nil
 }
 
@@ -1263,7 +1215,7 @@ func validateServer(server *tr.TestHttpService, t *testing.T) {
 		t.Errorf("Error validating master addr %s : %v", server.MasterHttpAddr, err)
 	}
 
-	secureTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	secureTransport := knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}})
 	secureClient := &http.Client{Transport: secureTransport}
 	_, err = secureClient.Get("https://" + server.PodHttpsAddr)
 
@@ -1273,8 +1225,17 @@ func validateServer(server *tr.TestHttpService, t *testing.T) {
 }
 
 // cleanUp stops and removes the deployed router
-func cleanUp(dockerCli *dockerClient.Client, routerId string) {
+func cleanUp(t *testing.T, dockerCli *dockerClient.Client, routerId string) {
 	dockerCli.StopContainer(routerId, 5)
+	if t.Failed() {
+		dockerCli.Logs(dockerClient.LogsOptions{
+			Container:    routerId,
+			OutputStream: os.Stdout,
+			ErrorStream:  os.Stderr,
+			Stdout:       true,
+			Stderr:       true,
+		})
+	}
 
 	dockerCli.RemoveContainer(dockerClient.RemoveContainerOptions{
 		ID:    routerId,
@@ -1380,7 +1341,7 @@ func TestRouterReloadCoalesce(t *testing.T) {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
 
-	defer cleanUp(dockerCli, routerId)
+	defer cleanUp(t, dockerCli, routerId)
 
 	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
 	if err != nil {
@@ -1397,9 +1358,6 @@ func TestRouterReloadCoalesce(t *testing.T) {
 
 	routeAddress := getRouteAddress()
 
-	//  Wait for the router to come up + reload interval to elapse.
-	time.Sleep(time.Second * 10)
-
 	routeAlias := "www.example.test"
 	serviceName := "example"
 	endpoints := []kapi.EndpointSubset{httpEndpoint}
@@ -1411,40 +1369,18 @@ func TestRouterReloadCoalesce(t *testing.T) {
 
 		// Send the add events.
 		generateTestEvents(fakeMasterAndPod, false, serviceName, routeName, routeAlias, endpoints)
-		time.Sleep(time.Second * tcWaitSeconds)
 	}
 
 	// Wait for the last routeAlias to become available.
-	ttl := reloadInterval * 2
-	for i := 0; i < ttl; i++ {
-		// Wait for router to pick up configs.
-		time.Sleep(time.Second * tcWaitSeconds)
-
-		// Now verify the route with an HTTP client.
-		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
-		if err == nil {
-			if resp == tr.HelloPod {
-				break
-			}
-		}
-
-		if i != ttl-1 {
-			continue
-		}
-		t.Errorf("Unable to verify response: %v", err)
+	if err := waitForRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != nil {
+		t.Fatal(err)
 	}
 
 	// And ensure all the coalesce route aliases are available.
 	for i := 1; i <= numRoutes; i++ {
 		routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
-		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
-		if err != nil {
-			t.Errorf("Unable to verify response for %q: %v", routeAlias, err)
-		}
-
-		if resp != tr.HelloPod {
-			t.Errorf("Route %s failed! Response body %q did not match expected %q", routeAlias, resp, tr.HelloPod)
-
+		if err := waitForRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != nil {
+			t.Fatalf("Unable to verify response for %q: %v", routeAlias, err)
 		}
 	}
 
@@ -1454,43 +1390,24 @@ func TestRouterReloadCoalesce(t *testing.T) {
 
 		// Send the cleanup events.
 		generateTestEvents(fakeMasterAndPod, true, serviceName, routeName, routeAlias, endpoints)
-		time.Sleep(time.Second * tcWaitSeconds)
 	}
 
 	// Wait for the first routeAlias to become unavailable.
 	routeAlias = "www.example-coalesce-1.test"
-	ttl = reloadInterval * 2
-	for i := 0; i < ttl; i++ {
-		// Wait for router to pick up configs.
-		time.Sleep(time.Second * tcWaitSeconds)
-
-		// Now verify the route with an HTTP client.
-		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
-		if err != nil {
-			t.Errorf("Unable to verify response for %q: %v", routeAlias, err)
+	if err := wait.Poll(time.Millisecond*100, time.Duration(reloadInterval)*2*time.Second, func() (bool, error) {
+		if _, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != nil {
+			return true, nil
 		}
-
-		if resp == tr.HelloPod {
-			if i != ttl-1 {
-				continue
-			}
-		}
+		return false, nil
+	}); err != nil {
+		t.Fatalf("Route did not become unavailable: %v", err)
 	}
 
 	// And ensure all the route aliases are gone.
 	for i := 1; i <= numRoutes; i++ {
 		routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
-		resp, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod)
-		if err != nil {
+		if _, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != ErrUnavailable {
 			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, err)
-		}
-
-		if resp == tr.HelloPod {
-			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, resp)
-		}
-
-		if !strings.Contains(resp, "503 Service Unavailable") {
-			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, resp)
 		}
 	}
 }
@@ -1498,18 +1415,7 @@ func TestRouterReloadCoalesce(t *testing.T) {
 // waitForRouterToBecomeAvailable checks for the router start up and waits
 // till it becomes available.
 func waitForRouterToBecomeAvailable(host string, port int) {
-	time.Sleep(time.Second * 5)
-
 	hostAndPort := fmt.Sprintf("%s:%d", host, port)
 	uri := fmt.Sprintf("%s/healthz", hostAndPort)
-
-	for i := 0; i < 10; i++ {
-		_, err := getRouteWithRetries(nil, uri, hostAndPort, "http", nil, "")
-
-		if err != nil {
-			time.Sleep(time.Second * tcWaitSeconds)
-		} else {
-			break
-		}
-	}
+	waitForRoute(uri, hostAndPort, "http", nil, "")
 }

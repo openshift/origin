@@ -1,10 +1,12 @@
 package prune
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
@@ -12,6 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -734,6 +737,23 @@ func TestDeletingImagePruner(t *testing.T) {
 		if !imageClient.Actions()[0].Matches("delete", "images") {
 			t.Errorf("%s: expected action %s, got %v", name, "delete-images", imageClient.Actions()[0])
 		}
+	}
+}
+
+func TestDeletingLayerPruner(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	var actions []string
+	client := fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+		actions = append(actions, req.Method+":"+req.URL.String())
+		return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
+	})
+	layerPruner := NewDeletingLayerPruner()
+	layerPruner.PruneLayer(client, "registry1", "repo", "layer1")
+
+	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1",
+		"DELETE:http://registry1/v2/repo/blobs/layer1"}) {
+		t.Errorf("Unexpected actions %v", actions)
 	}
 }
 

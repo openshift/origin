@@ -1,4 +1,6 @@
-#!/bin/bash -xu
+#!/bin/bash
+
+set -o nounset
 
 config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
@@ -11,7 +13,7 @@ function waitForHAProxyToStartListening() {
   local retries=0
 
   echo " - Checking if HAProxy is listening on port $port ..."
-  while ! lsof -n -P -p $(< $pid_file) | grep ":${port} (LISTEN)" &> /dev/null ; do
+  while ! lsof -nPp $(< $pid_file) | grep ":${port} (LISTEN)" &> /dev/null ; do
     sleep 0.2
     retries=$((retries + 1))
     if [ $retries -ge $max_retries ]; then
@@ -38,7 +40,6 @@ done
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
 reload_status=0
-DROP_SYN_DURING_RESTART=1
 installed_iptables=0
 if [ -n "$old_pids" ]; then
   if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 1 ]]; then

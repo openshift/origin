@@ -15,6 +15,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -27,6 +28,7 @@ import (
 
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -123,8 +125,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
 
-	// declare the OpenShift defaults from config
+	// Defaults are tested in TestKubeletDefaults
 	server := kubeletoptions.NewKubeletServer()
+	// Adjust defaults
 	server.Config = path
 	server.RootDirectory = options.VolumeDirectory
 	server.NodeIP = options.NodeIP
@@ -133,9 +136,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.RegisterNode = true
 	server.Address = kubeAddressStr
 	server.Port = uint(kubePort)
-	server.ReadOnlyPort = 0 // no read only access
-	server.CAdvisorPort = 0 // no unsecured cadvisor access
-	server.HealthzPort = 0  // no unsecured healthz access
+	server.ReadOnlyPort = 0        // no read only access
+	server.CAdvisorPort = 0        // no unsecured cadvisor access
+	server.HealthzPort = 0         // no unsecured healthz access
+	server.HealthzBindAddress = "" // no unsecured healthz access
 	server.ClusterDNS = options.DNSIP
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
@@ -147,6 +151,13 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 110
+
+	switch server.NetworkPluginName {
+	case ovs.SingleTenantPluginName(), ovs.MultiTenantPluginName():
+		// set defaults for openshift-sdn
+		server.HairpinMode = componentconfig.HairpinNone
+		server.ConfigureCBR0 = false
+	}
 
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile

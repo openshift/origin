@@ -45,7 +45,7 @@ import (
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
-var AdmissionPlugins = []string{"NamespaceLifecycle", "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, serviceadmit.ExternalIPPluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
+var AdmissionPlugins = []string{"RunOnceDuration", "NamespaceLifecycle", "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, serviceadmit.ExternalIPPluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -96,11 +96,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
 	}
 
+	// Defaults are tested in TestAPIServerDefaults
 	server := apiserveroptions.NewAPIServer()
+	// Adjust defaults
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
 	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
+	server.EnableLogsSupport = false // don't expose server logs
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
@@ -113,8 +116,13 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		server.AdmissionControl = strings.Join(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride, ",")
 	}
 
+	// Defaults are tested in TestCMServerDefaults
 	cmserver := cmapp.NewCMServer()
+	// Adjust defaults
+	cmserver.Address = "" // no healthz endpoint
+	cmserver.Port = 0     // no healthz endpoint
 	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
+
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors

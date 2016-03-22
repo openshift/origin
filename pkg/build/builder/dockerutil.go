@@ -173,8 +173,8 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 	}
 
 	// Stream container logs.
-	glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
 	logsOpts.Container = c.ID
+	glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
 	if err := client.Logs(logsOpts); err != nil {
 		return fmt.Errorf("streaming logs of %q: %v", containerName, err)
 	}

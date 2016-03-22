@@ -1,10 +1,6 @@
 package docker
 
-import (
-	"sync"
-
-	dockerclient "github.com/fsouza/go-dockerclient"
-)
+import dockerclient "github.com/fsouza/go-dockerclient"
 
 // FakeDocker provides a fake docker interface
 type FakeDocker struct {
@@ -43,8 +39,6 @@ type FakeDocker struct {
 	IsOnBuildImage               string
 	Labels                       map[string]string
 	LabelsError                  error
-
-	mutex sync.Mutex
 }
 
 // IsImageInLocalRegistry checks if the image exists in the fake local registry

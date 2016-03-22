@@ -29,14 +29,17 @@ import (
 func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler) http.Handler {
 	// TODO once we have a MuxHelper we will not need to hardcode this list of paths
 	rootPaths := []string{"/api",
+		"/apis",
 		"/controllers",
 		"/healthz",
 		"/healthz/ping",
 		"/healthz/ready",
-		"/logs/",
 		"/metrics",
 		"/oapi",
 		"/swaggerapi/"}
+
+	// This is for legacy clients
+	// Discovery of new API groups is done with a request to /apis
 	for _, path := range kubeAPIVersions {
 		rootPaths = append(rootPaths, "/api/"+path)
 	}

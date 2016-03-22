@@ -59,7 +59,7 @@
   // this is toggled in JS
   .log-scroll-top.affix.target-logger-node {
     position: fixed;
-    right: 42px;
+    right: 45px;
     top: 60px !important;
   }
 
@@ -71,7 +71,10 @@
     right: 0;
   }
   .log-view-output {
-    font-size: 12px;
+    font-size: 11px;
+    @media (min-width: @screen-sm-min) {
+      font-size: 12px;
+    }
     padding: 30px 0 30px;
     .ellipsis-loader {
       // Give space between log output and loader
@@ -122,6 +125,7 @@
   vertical-align: top;
   white-space: nowrap;
   width: 60px;
+  color: #72767b;
 }
 .log-line-text {
   padding: 0 10px;
