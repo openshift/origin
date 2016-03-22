@@ -116,6 +116,13 @@ echo "groups: ok"
 os::cmd::expect_success 'oadm policy who-can get pods'
 os::cmd::expect_success 'oadm policy who-can get pods -n default'
 os::cmd::expect_success 'oadm policy who-can get pods --all-namespaces'
+# check to make sure that the resource arg conforms to resource rules
+os::cmd::expect_success_and_text 'oadm policy who-can get Pod' "Resource:  pods"
+os::cmd::expect_success_and_text 'oadm policy who-can get PodASDF' "Resource:  PodASDF"
+os::cmd::expect_success_and_text 'oadm policy who-can get hpa.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
+os::cmd::expect_success_and_text 'oadm policy who-can get hpa.v1.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
+os::cmd::expect_success_and_text 'oadm policy who-can get hpa.extensions -n default' "Resource:  horizontalpodautoscalers.extensions"
+os::cmd::expect_success_and_text 'oadm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.extensions"
 
 os::cmd::expect_success 'oadm policy add-role-to-group cluster-admin system:unauthenticated'
 os::cmd::expect_success 'oadm policy add-role-to-user cluster-admin system:no-user'
