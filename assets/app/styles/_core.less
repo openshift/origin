@@ -720,7 +720,7 @@ select:invalid {
 }
 
 .attention-message {
-  background-color: lighten(@brand-primary, 20%);
+  background-color: lighten(@brand-primary, 50%);
   border: 1px solid darken(@brand-primary, 10%);
   position: absolute;
   top: 20%;
@@ -730,6 +730,10 @@ select:invalid {
   min-width: 85%;
   h1,p {
     text-align: center;
+  }
+  p {
+    max-width: 70em;
+    margin: auto;
   }
 }
 
