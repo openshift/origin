@@ -73,6 +73,12 @@ func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
 	}
+	// math.MaxInt64 seems to give cgroups trouble, this value is
+	// still 92 terabytes, so it ought to be sufficiently large for
+	// our purposes.
+	if byteLimit > 92233720368547 {
+		byteLimit = 92233720368547
+	}
 
 	// different docker versions seem to use different cgroup directories,
 	// check for all of them.
