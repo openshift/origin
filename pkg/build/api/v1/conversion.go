@@ -177,6 +177,8 @@ func convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *Build
 		out.Type = BuildSourceBinary
 	case in.Dockerfile != nil:
 		out.Type = BuildSourceDockerfile
+	case in.Jenkinsfile != nil:
+		out.Type = BuildSourceJenkinsfile
 	}
 	return nil
 }

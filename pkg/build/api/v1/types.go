@@ -138,6 +138,8 @@ const (
 	BuildSourceBinary BuildSourceType = "Binary"
 	// BuildSourceImage indicates the build will accept an image as input
 	BuildSourceImage BuildSourceType = "Image"
+	// BuildSourceJenkinsfile uses a Jenkinsfile as the source of the Jenkins pipeline
+	BuildSourceJenkinsfile BuildSourceType = "Jenkinsfile"
 )
 
 // BuildSource is the SCM used for the build.
