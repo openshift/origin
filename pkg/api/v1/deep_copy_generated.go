@@ -1006,6 +1006,12 @@ func deepCopy_v1_BuildSource(in apiv1.BuildSource, out *apiv1.BuildSource, c *co
 	} else {
 		out.Dockerfile = nil
 	}
+	if in.Jenkinsfile != nil {
+		out.Jenkinsfile = new(string)
+		*out.Jenkinsfile = *in.Jenkinsfile
+	} else {
+		out.Jenkinsfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(apiv1.GitBuildSource)
 		if err := deepCopy_v1_GitBuildSource(*in.Git, out.Git, c); err != nil {
@@ -1346,19 +1352,6 @@ func deepCopy_v1_ImageSourcePath(in apiv1.ImageSourcePath, out *apiv1.ImageSourc
 
 func deepCopy_v1_JenkinsPipelineBuildStrategy(in apiv1.JenkinsPipelineBuildStrategy, out *apiv1.JenkinsPipelineBuildStrategy, c *conversion.Cloner) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
-	out.Jenkinsfile = in.Jenkinsfile
-	if in.Env != nil {
-		out.Env = make([]pkgapiv1.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
-				return err
-			} else {
-				out.Env[i] = newVal.(pkgapiv1.EnvVar)
-			}
-		}
-	} else {
-		out.Env = nil
-	}
 	return nil
 }
 

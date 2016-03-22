@@ -17492,6 +17492,9 @@
       "type": "string",
       "description": "Dockerfile is the raw contents of a Dockerfile which should be built. When this option is specified, the FROM may be modified based on your strategy base image and additional ENV stanzas from your strategy environment will be added after the FROM, but before the rest of your Dockerfile stanzas. The Dockerfile source type may be used with other options like git - in those cases the Git repo will have any innate Dockerfile replaced in the context dir."
      },
+     "jenkinsfile": {
+      "type": "string"
+     },
      "git": {
       "$ref": "v1.GitBuildSource",
       "description": "Git contains optional information about git build source"
@@ -17934,17 +17937,6 @@
      "jenkinsfilePath": {
       "type": "string",
       "description": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath \u0026 Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo."
-     },
-     "jenkinsfile": {
-      "type": "string",
-      "description": "Jenkinsfile is the raw contents of a Jenkinsfile containing the pipeline definition."
-     },
-     "env": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.EnvVar"
-      },
-      "description": "Env contains additional environment variables you want to pass to the Jenkins Pipeline."
      }
     }
    },
