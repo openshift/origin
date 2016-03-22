@@ -40,9 +40,8 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 		return admission.NewForbidden(a, err)
 	}
 
-	// create a synthentic admission attribute to check SCC admission status for this pod
-	// clear the SA name, so that any permissions MUST be based on your user's power, not the SAs power.
-	pod.Spec.ServiceAccountName = ""
+	// TODO, if we want to actually limit who can use which service account, then we'll need to add logic here to make sure that
+	// we're allowed to use the SA the pod is using.  Otherwise, user-A creates pod and user-B (who can't use the SA) can exec into it.
 	createAttributes := admission.NewAttributesRecord(pod, kapi.Kind("Pod"), a.GetNamespace(), a.GetName(), a.GetResource(), a.GetSubresource(), admission.Create, a.GetUserInfo())
 	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
 		return admission.NewForbidden(a, err)
