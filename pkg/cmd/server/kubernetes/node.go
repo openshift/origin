@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -27,9 +28,12 @@ import (
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sysctl"
+	"k8s.io/kubernetes/pkg/volume"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/volume/emptydir"
 )
 
 type commandExecutor interface {
@@ -192,6 +196,52 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 		}
 	}
 	return rootDirectory, nil
+}
+
+// EnsureLocalQuota checks if the node config specifies a local storage
+// perFSGroup quota, and if so will test that the volumeDirectory is on a
+// filesystem suitable for quota enforcement. If checks pass the k8s emptyDir
+// volume plugin will be replaced with a wrapper version which adds quota
+// functionality.
+func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
+	if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
+		return
+	}
+	glog.V(4).Info("Replacing empty-dir volume plugin with quota wrapper")
+	wrappedEmptyDirPlugin := false
+
+	quotaApplicator, err := emptydir.NewQuotaApplicator(nodeConfig.VolumeDirectory)
+	if err != nil {
+		glog.Fatalf("Could not set up local quota, %s", err)
+	}
+
+	// Create a volume spec with emptyDir we can use to search for the
+	// emptyDir plugin with CanSupport:
+	emptyDirSpec := &volume.Spec{
+		Volume: &kapi.Volume{
+			VolumeSource: kapi.VolumeSource{
+				EmptyDir: &kapi.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
+	for idx, plugin := range c.KubeletConfig.VolumePlugins {
+		// Can't really do type checking or use a constant here as they are not exported:
+		if plugin.CanSupport(emptyDirSpec) {
+			wrapper := emptydir.EmptyDirQuotaPlugin{
+				Wrapped:         plugin,
+				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
+				QuotaApplicator: quotaApplicator,
+			}
+			c.KubeletConfig.VolumePlugins[idx] = &wrapper
+			wrappedEmptyDirPlugin = true
+		}
+	}
+	// Because we can't look for the k8s emptyDir plugin by any means that would
+	// survive a refactor, error out if we couldn't find it:
+	if !wrappedEmptyDirPlugin {
+		glog.Fatal(errors.New("No plugin handling EmptyDir was found, unable to apply local quotas"))
+	}
 }
 
 // RunKubelet starts the Kubelet.
