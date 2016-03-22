@@ -790,8 +790,10 @@ angular.module('openshiftConsole')
 
       var nameFormatMap = {
         'configmaps': 'Config Maps',
+        'cpu': 'CPU (Request)',
         'limits.cpu': 'CPU (Limit)',
         'limits.memory': 'Memory (Limit)',
+        'memory': 'Memory (Request)',
         'openshift.io/imagesize': 'Image Size',
         'openshift.io/imagestreamsize': 'Image Stream Size',
         'openshift.io/projectimagessize': 'Project Image Size',
