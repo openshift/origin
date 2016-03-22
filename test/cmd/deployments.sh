@@ -24,6 +24,7 @@ os::cmd::expect_success 'oc get dc'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
 os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig/test-deployment-config'
+os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
 
 # Patch a nil list

@@ -12,8 +12,19 @@ source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
 
+platforms=( "${OS_CROSS_COMPILE_PLATFORMS[@]}" )
+if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
+  filtered=()
+  for platform in ${platforms[@]}; do
+    if [[ "${platform}" =~ "${OS_ONLY_BUILD_PLATFORMS}" ]]; then
+      filtered+=("${platform}")
+    fi
+  done
+  platforms=("${filtered[@]}")
+fi
+
 # Build the primary client/server for all platforms
-OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
+OS_BUILD_PLATFORMS=("${platforms[@]}")
 os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
 # Build image binaries for a subset of platforms. Image binaries are currently
@@ -24,7 +35,7 @@ os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH
 
 # Make the primary client/server release.
 OS_RELEASE_ARCHIVE="openshift-origin"
-OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
+OS_BUILD_PLATFORMS=("${platforms[@]}")
 os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
 
 # Make the image binaries release.
