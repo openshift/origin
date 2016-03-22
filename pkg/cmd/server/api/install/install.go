@@ -15,6 +15,7 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration/api/install"
 	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api/install"
+	_ "github.com/openshift/origin/pkg/util/admission/bindmount/api/install"
 )
 
 const importPrefix = "github.com/openshift/origin/pkg/cmd/server/api"

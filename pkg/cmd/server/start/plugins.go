@@ -14,6 +14,7 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
 	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	_ "github.com/openshift/origin/pkg/security/admission"
+	_ "github.com/openshift/origin/pkg/util/admission/bindmount"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/alwayspullimages"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/exec"
