@@ -17493,7 +17493,8 @@
       "description": "Dockerfile is the raw contents of a Dockerfile which should be built. When this option is specified, the FROM may be modified based on your strategy base image and additional ENV stanzas from your strategy environment will be added after the FROM, but before the rest of your Dockerfile stanzas. The Dockerfile source type may be used with other options like git - in those cases the Git repo will have any innate Dockerfile replaced in the context dir."
      },
      "jenkinsfile": {
-      "type": "string"
+      "type": "string",
+      "description": "Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build."
      },
      "git": {
       "$ref": "v1.GitBuildSource",
