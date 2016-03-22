@@ -5068,6 +5068,33 @@ func Convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStor
 	return autoConvert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in, out, s)
 }
 
+func autoConvert_api_Capabilities_To_v1beta3_Capabilities(in *api.Capabilities, out *apiv1beta3.Capabilities, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.Capabilities))(in)
+	}
+	if in.Add != nil {
+		out.Add = make([]apiv1beta3.Capability, len(in.Add))
+		for i := range in.Add {
+			out.Add[i] = apiv1beta3.Capability(in.Add[i])
+		}
+	} else {
+		out.Add = nil
+	}
+	if in.Drop != nil {
+		out.Drop = make([]apiv1beta3.Capability, len(in.Drop))
+		for i := range in.Drop {
+			out.Drop[i] = apiv1beta3.Capability(in.Drop[i])
+		}
+	} else {
+		out.Drop = nil
+	}
+	return nil
+}
+
+func Convert_api_Capabilities_To_v1beta3_Capabilities(in *api.Capabilities, out *apiv1beta3.Capabilities, s conversion.Scope) error {
+	return autoConvert_api_Capabilities_To_v1beta3_Capabilities(in, out, s)
+}
+
 func autoConvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource(in *api.CinderVolumeSource, out *apiv1beta3.CinderVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.CinderVolumeSource))(in)
@@ -5463,6 +5490,51 @@ func Convert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeCl
 	return autoConvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in, out, s)
 }
 
+func autoConvert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in *api.PodSecurityContext, out *apiv1beta3.PodSecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.PodSecurityContext))(in)
+	}
+	// in.HostNetwork has no peer in out
+	// in.HostPID has no peer in out
+	// in.HostIPC has no peer in out
+	// unable to generate simple pointer conversion for api.SELinuxOptions -> v1beta3.SELinuxOptions
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(apiv1beta3.SELinuxOptions)
+		if err := Convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	if in.SupplementalGroups != nil {
+		out.SupplementalGroups = make([]int64, len(in.SupplementalGroups))
+		for i := range in.SupplementalGroups {
+			out.SupplementalGroups[i] = in.SupplementalGroups[i]
+		}
+	} else {
+		out.SupplementalGroups = nil
+	}
+	if in.FSGroup != nil {
+		out.FSGroup = new(int64)
+		*out.FSGroup = *in.FSGroup
+	} else {
+		out.FSGroup = nil
+	}
+	return nil
+}
+
 func autoConvert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *apiv1beta3.PodSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PodSpec))(in)
@@ -5513,7 +5585,8 @@ func autoConvert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *apiv1beta3
 	// in.NodeName has no peer in out
 	// unable to generate simple pointer conversion for api.PodSecurityContext -> v1beta3.PodSecurityContext
 	if in.SecurityContext != nil {
-		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
+		out.SecurityContext = new(apiv1beta3.PodSecurityContext)
+		if err := apiv1beta3.Convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	} else {
@@ -5616,6 +5689,21 @@ func autoConvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *ap
 
 func Convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in *api.ResourceRequirements, out *apiv1beta3.ResourceRequirements, s conversion.Scope) error {
 	return autoConvert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(in, out, s)
+}
+
+func autoConvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *api.SELinuxOptions, out *apiv1beta3.SELinuxOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.SELinuxOptions))(in)
+	}
+	out.User = in.User
+	out.Role = in.Role
+	out.Type = in.Type
+	out.Level = in.Level
+	return nil
+}
+
+func Convert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in *api.SELinuxOptions, out *apiv1beta3.SELinuxOptions, s conversion.Scope) error {
+	return autoConvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions(in, out, s)
 }
 
 func autoConvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in *api.SecretVolumeSource, out *apiv1beta3.SecretVolumeSource, s conversion.Scope) error {
@@ -5837,6 +5925,33 @@ func autoConvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlock
 
 func Convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *apiv1beta3.AWSElasticBlockStoreVolumeSource, out *api.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	return autoConvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in, out, s)
+}
+
+func autoConvert_v1beta3_Capabilities_To_api_Capabilities(in *apiv1beta3.Capabilities, out *api.Capabilities, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.Capabilities))(in)
+	}
+	if in.Add != nil {
+		out.Add = make([]api.Capability, len(in.Add))
+		for i := range in.Add {
+			out.Add[i] = api.Capability(in.Add[i])
+		}
+	} else {
+		out.Add = nil
+	}
+	if in.Drop != nil {
+		out.Drop = make([]api.Capability, len(in.Drop))
+		for i := range in.Drop {
+			out.Drop[i] = api.Capability(in.Drop[i])
+		}
+	} else {
+		out.Drop = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_Capabilities_To_api_Capabilities(in *apiv1beta3.Capabilities, out *api.Capabilities, s conversion.Scope) error {
+	return autoConvert_v1beta3_Capabilities_To_api_Capabilities(in, out, s)
 }
 
 func autoConvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource(in *apiv1beta3.CinderVolumeSource, out *api.CinderVolumeSource, s conversion.Scope) error {
@@ -6236,6 +6351,48 @@ func Convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeCl
 	return autoConvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in, out, s)
 }
 
+func autoConvert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in *apiv1beta3.PodSecurityContext, out *api.PodSecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.PodSecurityContext))(in)
+	}
+	// unable to generate simple pointer conversion for v1beta3.SELinuxOptions -> api.SELinuxOptions
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(api.SELinuxOptions)
+		if err := Convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	if in.SupplementalGroups != nil {
+		out.SupplementalGroups = make([]int64, len(in.SupplementalGroups))
+		for i := range in.SupplementalGroups {
+			out.SupplementalGroups[i] = in.SupplementalGroups[i]
+		}
+	} else {
+		out.SupplementalGroups = nil
+	}
+	if in.FSGroup != nil {
+		out.FSGroup = new(int64)
+		*out.FSGroup = *in.FSGroup
+	} else {
+		out.FSGroup = nil
+	}
+	return nil
+}
+
 func autoConvert_v1beta3_PodSpec_To_api_PodSpec(in *apiv1beta3.PodSpec, out *api.PodSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1beta3.PodSpec))(in)
@@ -6289,7 +6446,8 @@ func autoConvert_v1beta3_PodSpec_To_api_PodSpec(in *apiv1beta3.PodSpec, out *api
 	// in.HostIPC has no peer in out
 	// unable to generate simple pointer conversion for v1beta3.PodSecurityContext -> api.PodSecurityContext
 	if in.SecurityContext != nil {
-		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+		if err := apiv1beta3.Convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	} else {
@@ -6392,6 +6550,21 @@ func autoConvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *ap
 
 func Convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *apiv1beta3.ResourceRequirements, out *api.ResourceRequirements, s conversion.Scope) error {
 	return autoConvert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in, out, s)
+}
+
+func autoConvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *apiv1beta3.SELinuxOptions, out *api.SELinuxOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.SELinuxOptions))(in)
+	}
+	out.User = in.User
+	out.Role = in.Role
+	out.Type = in.Type
+	out.Level = in.Level
+	return nil
+}
+
+func Convert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in *apiv1beta3.SELinuxOptions, out *api.SELinuxOptions, s conversion.Scope) error {
+	return autoConvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions(in, out, s)
 }
 
 func autoConvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in *apiv1beta3.SecretVolumeSource, out *api.SecretVolumeSource, s conversion.Scope) error {
@@ -6618,6 +6791,7 @@ func init() {
 		autoConvert_api_BuildStrategy_To_v1beta3_BuildStrategy,
 		autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
 		autoConvert_api_Build_To_v1beta3_Build,
+		autoConvert_api_Capabilities_To_v1beta3_Capabilities,
 		autoConvert_api_CinderVolumeSource_To_v1beta3_CinderVolumeSource,
 		autoConvert_api_ClusterNetworkList_To_v1beta3_ClusterNetworkList,
 		autoConvert_api_ClusterNetwork_To_v1beta3_ClusterNetwork,
@@ -6692,6 +6866,7 @@ func init() {
 		autoConvert_api_ObjectReference_To_v1beta3_ObjectReference,
 		autoConvert_api_Parameter_To_v1beta3_Parameter,
 		autoConvert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource,
+		autoConvert_api_PodSecurityContext_To_v1beta3_PodSecurityContext,
 		autoConvert_api_PodSpec_To_v1beta3_PodSpec,
 		autoConvert_api_PodTemplateSpec_To_v1beta3_PodTemplateSpec,
 		autoConvert_api_PolicyBindingList_To_v1beta3_PolicyBindingList,
@@ -6720,6 +6895,7 @@ func init() {
 		autoConvert_api_RouteSpec_To_v1beta3_RouteSpec,
 		autoConvert_api_RouteStatus_To_v1beta3_RouteStatus,
 		autoConvert_api_Route_To_v1beta3_Route,
+		autoConvert_api_SELinuxOptions_To_v1beta3_SELinuxOptions,
 		autoConvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource,
 		autoConvert_api_SecretSpec_To_v1beta3_SecretSpec,
 		autoConvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
@@ -6758,6 +6934,7 @@ func init() {
 		autoConvert_v1beta3_BuildStrategy_To_api_BuildStrategy,
 		autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		autoConvert_v1beta3_Build_To_api_Build,
+		autoConvert_v1beta3_Capabilities_To_api_Capabilities,
 		autoConvert_v1beta3_CinderVolumeSource_To_api_CinderVolumeSource,
 		autoConvert_v1beta3_ClusterNetworkList_To_api_ClusterNetworkList,
 		autoConvert_v1beta3_ClusterNetwork_To_api_ClusterNetwork,
@@ -6833,6 +7010,7 @@ func init() {
 		autoConvert_v1beta3_ObjectReference_To_api_ObjectReference,
 		autoConvert_v1beta3_Parameter_To_api_Parameter,
 		autoConvert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource,
+		autoConvert_v1beta3_PodSecurityContext_To_api_PodSecurityContext,
 		autoConvert_v1beta3_PodSpec_To_api_PodSpec,
 		autoConvert_v1beta3_PodTemplateSpec_To_api_PodTemplateSpec,
 		autoConvert_v1beta3_PolicyBindingList_To_api_PolicyBindingList,
@@ -6861,6 +7039,7 @@ func init() {
 		autoConvert_v1beta3_RouteSpec_To_api_RouteSpec,
 		autoConvert_v1beta3_RouteStatus_To_api_RouteStatus,
 		autoConvert_v1beta3_Route_To_api_Route,
+		autoConvert_v1beta3_SELinuxOptions_To_api_SELinuxOptions,
 		autoConvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource,
 		autoConvert_v1beta3_SecretSpec_To_api_SecretSpec,
 		autoConvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
