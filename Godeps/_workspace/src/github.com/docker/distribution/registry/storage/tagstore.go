@@ -68,23 +68,7 @@ func (ts *tagStore) exists(tag string) (bool, error) {
 // tag tags the digest with the given tag, updating the the store to point at
 // the current tag. The digest must point to a manifest.
 func (ts *tagStore) tag(tag string, revision digest.Digest) error {
-	currentPath, err := pathFor(manifestTagCurrentPathSpec{
-		name: ts.repository.Name(),
-		tag:  tag,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	nbs := ts.linkedBlobStore(ts.ctx, tag)
-	// Link into the index
-	if err := nbs.linkBlob(ts.ctx, distribution.Descriptor{Digest: revision}); err != nil {
-		return err
-	}
-
-	// Overwrite the current link
-	return ts.blobStore.link(ts.ctx, currentPath, revision)
+	return nil
 }
 
 // resolve the current revision for name and tag.

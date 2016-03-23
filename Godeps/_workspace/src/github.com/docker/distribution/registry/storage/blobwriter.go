@@ -64,10 +64,6 @@ func (bw *blobWriter) Commit(ctx context.Context, desc distribution.Descriptor) 
 		return distribution.Descriptor{}, err
 	}
 
-	if err := bw.blobStore.linkBlob(ctx, canonical, desc.Digest); err != nil {
-		return distribution.Descriptor{}, err
-	}
-
 	if err := bw.removeResources(ctx); err != nil {
 		return distribution.Descriptor{}, err
 	}
