@@ -50,7 +50,7 @@ type PodSpecSelfSubjectReview struct {
 	Status PodSpecReviewStatus `json:"status,omitempty"`
 }
 
-type PodSpecSubjectReviewSpec struct {
+type PodSpecSelfSubjectReviewSpec struct {
 	// Spec is the PodSpec to check.
 	PodSpec kapi.PodSpec
 
