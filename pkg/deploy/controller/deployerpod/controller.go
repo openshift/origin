@@ -2,6 +2,7 @@ package deployerpod
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/golang/glog"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -20,6 +22,7 @@ import (
 // Use the DeployerPodControllerFactory to create this controller.
 type DeployerPodController struct {
 	store   cache.Store
+	client  osclient.Interface
 	kClient kclient.Interface
 
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
@@ -94,14 +97,8 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 			nextStatus = deployapi.DeploymentStatusRunning
 		}
 	case kapi.PodSucceeded:
-		// Detect failure based on the container state
 		nextStatus = deployapi.DeploymentStatusComplete
-		for _, info := range pod.Status.ContainerStatuses {
-			if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
-				nextStatus = deployapi.DeploymentStatusFailed
-				break
-			}
-		}
+
 		// Sync the internal replica annotation with the target so that we can
 		// distinguish deployer updates from other scaling events.
 		deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = deployment.Annotations[deployapi.DesiredReplicasAnnotation]
@@ -131,6 +128,27 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 			return fmt.Errorf("couldn't update Deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
+
+		// If the deployment was canceled, trigger a reconcilation of its deployment config
+		// so that the latest complete deployment can immediately rollback in place of the
+		// canceled deployment.
+		if nextStatus == deployapi.DeploymentStatusFailed && deployutil.IsDeploymentCancelled(deployment) {
+			// If we are unable to get the deployment config, then the deploymentconfig controller will
+			// perform its duties once the resync interval forces the deploymentconfig to be reconciled.
+			name := deployutil.DeploymentConfigNameFor(deployment)
+			kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+				config, err := c.client.DeploymentConfigs(deployment.Namespace).Get(name)
+				if err != nil {
+					return err
+				}
+				if config.Annotations == nil {
+					config.Annotations = make(map[string]string)
+				}
+				config.Annotations[deployapi.DeploymentCancelledAnnotation] = strconv.Itoa(config.Status.LatestVersion)
+				_, err = c.client.DeploymentConfigs(config.Namespace).Update(config)
+				return err
+			})
+		}
 	}
 
 	return nil

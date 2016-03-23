@@ -10,11 +10,64 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+func okPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	return &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
+			Labels: map[string]string{
+				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
+			},
+			Annotations: map[string]string{
+				deployapi.DeploymentAnnotation: deployment.Name,
+			},
+		},
+		Status: kapi.PodStatus{
+			ContainerStatuses: []kapi.ContainerStatus{
+				{},
+			},
+		},
+	}
+}
+
+func succeededPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
+	p.Status.Phase = kapi.PodSucceeded
+	return p
+}
+
+func failedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
+	p.Status.Phase = kapi.PodFailed
+	p.Status.ContainerStatuses = []kapi.ContainerStatus{
+		{
+			State: kapi.ContainerState{
+				Terminated: &kapi.ContainerStateTerminated{
+					ExitCode: 1,
+				},
+			},
+		},
+	}
+	return p
+}
+
+func terminatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
+	p.Status.Phase = kapi.PodFailed
+	return p
+}
+
+func runningPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
+	p.Status.Phase = kapi.PodRunning
+	return p
+}
 
 // TestHandle_uncorrelatedPod ensures that pods uncorrelated with a deployment
 // are ignored.
@@ -355,54 +408,63 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 	}
 }
 
-func okPod(deployment *kapi.ReplicationController) *kapi.Pod {
-	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
-			Labels: map[string]string{
-				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
-			},
-			Annotations: map[string]string{
-				deployapi.DeploymentAnnotation: deployment.Name,
-			},
+// TestHandle_canceledDeploymentTrigger ensures that a canceled deployment
+// will trigger a reconcilation of its deploymentconfig (via an annotation
+// update) so that rolling back can happen on the spot and not rely on the
+// deploymentconfig cache resync interval.
+func TestHandle_canceledDeploymentTriggerTest(t *testing.T) {
+	var (
+		updatedDeployment *kapi.ReplicationController
+		updatedConfig     *deployapi.DeploymentConfig
+	)
+
+	initial := deploytest.OkDeploymentConfig(1)
+	// Canceled deployment
+	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(initial), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+	fake := &testclient.Fake{}
+	fake.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		config := initial
+		return true, config, nil
+	})
+	fake.PrependReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+		updatedConfig = updated
+		return true, updated, nil
+	})
+
+	controller := &DeployerPodController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 		},
-		Status: kapi.PodStatus{
-			ContainerStatuses: []kapi.ContainerStatus{
-				{},
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		client:  fake,
+		kClient: kFake,
 	}
-}
 
-func succeededPod(deployment *kapi.ReplicationController) *kapi.Pod {
-	p := okPod(deployment)
-	p.Status.Phase = kapi.PodSucceeded
-	return p
-}
-
-func failedPod(deployment *kapi.ReplicationController) *kapi.Pod {
-	p := okPod(deployment)
-	p.Status.Phase = kapi.PodFailed
-	p.Status.ContainerStatuses = []kapi.ContainerStatus{
-		{
-			State: kapi.ContainerState{
-				Terminated: &kapi.ContainerStateTerminated{
-					ExitCode: 1,
-				},
-			},
-		},
+	err := controller.Handle(terminatedPod(deployment))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	return p
-}
 
-func terminatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
-	p := okPod(deployment)
-	p.Status.Phase = kapi.PodFailed
-	return p
-}
+	if updatedDeployment == nil {
+		t.Fatalf("expected deployment update")
+	}
 
-func runningPod(deployment *kapi.ReplicationController) *kapi.Pod {
-	p := okPod(deployment)
-	p.Status.Phase = kapi.PodRunning
-	return p
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Fatalf("expected updated deployment status %s, got %s", e, a)
+	}
+
+	if updatedConfig == nil {
+		t.Fatalf("expected config update")
+	}
 }
