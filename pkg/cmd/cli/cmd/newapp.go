@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/MakeNowJust/heredoc/dot"
+	"github.com/MakeNowJust/heredoc"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -613,7 +613,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
 			groups.Add(
 				"explicit-access-installer",
-				D(`
+				heredoc.Doc(`
 					WARNING: This will allow the pod to create and manage resources within your namespace -
 					ensure you trust the image with those permissions before you continue.
 
@@ -625,7 +625,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		} else {
 			groups.Add(
 				"explicit-access-you",
-				D(`
+				heredoc.Doc(`
 					WARNING: This will allow the pod to act as you across the entire cluster - ensure you
 					trust the image with those permissions before you continue.
 
@@ -639,7 +639,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 	case newapp.ErrNoMatch:
 		groups.Add(
 			"no-matches",
-			Df(`
+			heredoc.Docf(`
 				The '%[1]s' command will match arguments to the following types:
 
 				  1. Images tagged into image streams in the current project or the 'openshift' project
@@ -664,7 +664,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		}
 		groups.Add(
 			"multiple-matches",
-			Df(`
+			heredoc.Docf(`
 					The argument %[1]q could apply to the following Docker images or OpenShift image streams:
 
 					%[2]s`, t.Value, buf.String(),
@@ -680,7 +680,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 
 		groups.Add(
 			"partial-match",
-			Df(`
+			heredoc.Docf(`
 					The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
 
 					%[2]s`, t.Value, buf.String(),
@@ -694,7 +694,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		fmt.Fprintf(buf, "  Use --allow-missing-imagestream-tags to use this image stream\n\n")
 		groups.Add(
 			"no-tags",
-			Df(`
+			heredoc.Docf(`
 					The image stream %[1]q exists, but it has no tags.
 
 					%[2]s`, t.Match.Name, buf.String(),

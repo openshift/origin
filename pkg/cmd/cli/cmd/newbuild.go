@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	. "github.com/MakeNowJust/heredoc/dot"
+	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -242,7 +242,7 @@ func transformBuildError(err error, c *cobra.Command, fullName string, groups er
 	case newapp.ErrNoMatch:
 		groups.Add(
 			"no-matches",
-			Df(`
+			heredoc.Docf(`
 				The '%[1]s' command will match arguments to the following types:
 
 				  1. Images tagged into image streams in the current project or the 'openshift' project
