@@ -651,22 +651,6 @@ abbr[data-original-title], abbr[title] {
   dd {
     &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
   }
-  // FIXME: We should just set @dl-horizontal-breakpoint when we upgrade Bootstrap to 3.3.6.
-  // We want the definition list to display side-by-side after a smaller breakpoint than @screen-sm-min.
-  // Temporarily use the same styles as in
-  //   https://github.com/twbs/bootstrap/blob/5ea03fa259ccac4c7ea72f0a19b57f77957fe55d/less/type.less#L214-L225
-  @media (min-width: 415px) {
-    dt {
-      float: left;
-      width: (@dl-horizontal-offset - 20);
-      clear: left;
-      text-align: right;
-      .text-overflow();
-    }
-    dd {
-      margin-left: @dl-horizontal-offset;
-    }
-  }
 }
 
 .gutter-top-bottom {
