@@ -29,7 +29,12 @@
     }" ng-model="model" class="editor yaml-mode"></div>
   </div>
   <div class="modal-footer">
-      <button class="btn btn-lg btn-primary" type="button" ng-click="save()">Save</button>
-      <button class="btn btn-lg btn-default" type="button" ng-click="cancel()">Cancel</button>
+      <button class="btn btn-lg btn-primary"
+              type="button"
+              ng-click="save()"
+              ng-disabled="!modified">Save</button>
+      <button class="btn btn-lg btn-default"
+              type="button"
+              ng-click="cancel()">Cancel</button>
   </div>
 </div>

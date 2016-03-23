@@ -29,16 +29,25 @@ angular.module('openshiftConsole')
     // 2 - Number of space characters used to indent code
     $scope.model = YAML.stringify(resource, 8, 2);
 
+    var onChange = _.throttle(function() {
+      $scope.$eval(function() {
+        $scope.modified = true;
+      });
+    }, 1000);
+
     $scope.aceLoaded = function(editor) {
       var session = editor.getSession();
       session.setOption('tabSize', 2);
       session.setOption('useSoftTabs', true);
+
+      editor.getSession().on('change', onChange);
 
       // Resize the editor based on window height.
       var updateEditorHeight = function() {
         var headerHeight = $('.modal-resource-edit .modal-header').outerHeight();
         var footerHeight = $('.modal-resource-edit .modal-footer').outerHeight();
         var availableHeight = window.innerHeight - headerHeight - footerHeight;
+
 
         // Use 80% of available height. min-height set in CSS.
         var editorHeight = Math.floor(availableHeight * 0.80);
@@ -62,6 +71,7 @@ angular.module('openshiftConsole')
     };
 
     $scope.save = function() {
+      $scope.modified = false;
       var updatedResource;
       try {
         updatedResource = YAML.parse($scope.model);
@@ -81,7 +91,7 @@ angular.module('openshiftConsole')
         };
         return;
       }
-      
+
       var groupVersion = APIService.objectToResourceGroupVersion(resource);
       var updatedGroupVersion = APIService.objectToResourceGroupVersion(updatedResource);
       if (!updatedGroupVersion) {
