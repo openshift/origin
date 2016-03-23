@@ -54,7 +54,7 @@
 
       <!-- Show a summary of usage above the charts like the patternfly utilization card. -->
       <!-- Reuse the utilization card styles, but only here. -->
-      <div ng-if="usageByMetric[metric.id].total" class="utilization-chart-pf">
+      <div ng-if="usageByMetric[metric.id].total" class="utilization-trend-chart-pf">
         <div ng-if="usageByMetric[metric.id].total" class="current-values">
           <h1 class="available-count pull-left">
             {{usageByMetric[metric.id].available}}
