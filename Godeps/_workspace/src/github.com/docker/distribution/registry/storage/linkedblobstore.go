@@ -104,7 +104,7 @@ func (lbs *linkedBlobStore) Put(ctx context.Context, mediaType string, p []byte)
 	// returned by Put above. Note that we should allow updates for a given
 	// repository.
 
-	return desc, lbs.linkBlob(ctx, desc)
+	return desc, nil
 }
 
 // Writer begins a blob write session, returning a handle.
@@ -297,43 +297,7 @@ type linkedBlobStatter struct {
 var _ distribution.BlobDescriptorService = &linkedBlobStatter{}
 
 func (lbs *linkedBlobStatter) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
-	var (
-		resolveErr error
-		target     digest.Digest
-	)
-
-	// try the many link path functions until we get success or an error that
-	// is not PathNotFoundError.
-	for _, linkPathFn := range lbs.linkPathFns {
-		var err error
-		target, err = lbs.resolveWithLinkFunc(ctx, dgst, linkPathFn)
-
-		if err == nil {
-			resolveErr = nil
-			break // success!
-		}
-
-		switch err := err.(type) {
-		case driver.PathNotFoundError:
-			resolveErr = distribution.ErrBlobUnknown // move to the next linkPathFn, saving the error
-		default:
-			return distribution.Descriptor{}, err
-		}
-	}
-
-	if resolveErr != nil {
-		return distribution.Descriptor{}, resolveErr
-	}
-
-	if target != dgst {
-		// Track when we are doing cross-digest domain lookups. ie, tarsum to sha256.
-		context.GetLogger(ctx).Warnf("looking up blob with canonical target: %v -> %v", dgst, target)
-	}
-
-	// TODO(stevvooe): Look up repository local mediatype and replace that on
-	// the returned descriptor.
-
-	return lbs.blobStore.statter.Stat(ctx, target)
+	return lbs.blobStore.statter.Stat(ctx, dgst)
 }
 
 func (lbs *linkedBlobStatter) Clear(ctx context.Context, dgst digest.Digest) (err error) {
