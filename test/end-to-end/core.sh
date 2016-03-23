@@ -293,9 +293,6 @@ os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --temp
 echo "[INFO] Validating privileged pod exec"
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 os::cmd::expect_success 'oc policy add-role-to-user admin e2e-default-admin'
-# login as a user that can't run privileged pods
-os::cmd::expect_success 'oc login -u e2e-default-admin -p pass'
-os::cmd::expect_failure_and_text "oc exec -n default -tip ${router_pod} ls" 'unable to validate against any security context constraint'
 # system:admin should be able to exec into it
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success "oc exec -n default -tip ${router_pod} ls"
