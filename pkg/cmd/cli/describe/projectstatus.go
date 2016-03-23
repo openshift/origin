@@ -152,6 +152,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByImages.List()...)
 
+	standalonePods, coveredByPods := graphview.AllPods(g, coveredNodes)
+	coveredNodes.Insert(coveredByPods.List()...)
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
 		if allNamespaces {
@@ -216,6 +219,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		for _, standaloneRC := range standaloneRCs {
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRCInServiceGroup(f, standaloneRC.RC)...)
+		}
+
+		monopods, err := filterBoringPods(standalonePods)
+		if err != nil {
+			return err
+		}
+		for _, monopod := range monopods {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeMonopod(f, monopod.Pod)...)
 		}
 
 		allMarkers := osgraph.Markers{}
@@ -493,6 +505,16 @@ func describeRCInServiceGroup(f formatter, rcNode *kubegraph.ReplicationControll
 }
 
 func describePodInServiceGroup(f formatter, podNode *kubegraph.PodNode) []string {
+	images := []string{}
+	for _, container := range podNode.Pod.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("%s runs %s", f.ResourceName(podNode), strings.Join(images, ", "))}
+	return lines
+}
+
+func describeMonopod(f formatter, podNode *kubegraph.PodNode) []string {
 	images := []string{}
 	for _, container := range podNode.Pod.Spec.Containers {
 		images = append(images, container.Image)
@@ -1042,6 +1064,30 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		}
 		return " ports " + strings.Join(pairs, ", ")
 	}
+}
+
+func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
+	monopods := []graphview.Pod{}
+
+	for _, pod := range pods {
+		actualPod, ok := pod.Pod.Object().(*kapi.Pod)
+		if !ok {
+			continue
+		}
+		meta, err := kapi.ObjectMetaFor(actualPod)
+		if err != nil {
+			return nil, err
+		}
+		_, isDeployerPod := meta.Labels[deployapi.DeployerPodForDeploymentLabel]
+		_, isBuilderPod := meta.Annotations[buildapi.BuildAnnotation]
+		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
+		if isDeployerPod || isBuilderPod || isFinished {
+			continue
+		}
+		monopods = append(monopods, pod)
+	}
+
+	return monopods, nil
 }
 
 // GraphLoader is a stateful interface that provides methods for building the nodes of a graph

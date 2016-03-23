@@ -93,7 +93,6 @@ the shell.`
 func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &DebugOptions{
 		Timeout: 30 * time.Second,
-		Command: []string{"/bin/sh"},
 		Attach: kcmd.AttachOptions{
 			In:    in,
 			Out:   out,
@@ -173,6 +172,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		o.Attach.Stdin = false
 	default:
 		o.Attach.TTY = term.IsTerminal(in)
+		glog.V(4).Infof("Defaulting TTY to %t", o.Attach.TTY)
 	}
 	if o.NoStdin {
 		o.Attach.TTY = false
@@ -181,6 +181,10 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 
 	if o.Annotations == nil {
 		o.Annotations = make(map[string]string)
+	}
+
+	if len(o.Command) == 0 {
+		o.Command = []string{"/bin/sh"}
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()

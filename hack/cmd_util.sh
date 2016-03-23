@@ -134,24 +134,24 @@ function os::cmd::try_until_text() {
 
 # Functions in the os::cmd::internal namespace are discouraged from being used outside of os::cmd
 
-# In order to harvest stderr and stdout at the same time into different buckets, we need to stick them into files 
+# In order to harvest stderr and stdout at the same time into different buckets, we need to stick them into files
 # in an intermediate step
 BASETMPDIR="${TMPDIR:-"/tmp"}/openshift"
 os_cmd_internal_tmpdir="${BASETMPDIR}/test-cmd"
 os_cmd_internal_tmpout="${os_cmd_internal_tmpdir}/tmp_stdout.log"
 os_cmd_internal_tmperr="${os_cmd_internal_tmpdir}/tmp_stderr.log"
 
-# os::cmd::internal::expect_exit_code_run_grep runs the provided test command and expects a specific 
-# exit code from that command as well as the success of a specified `grep` invocation. Output from the 
+# os::cmd::internal::expect_exit_code_run_grep runs the provided test command and expects a specific
+# exit code from that command as well as the success of a specified `grep` invocation. Output from the
 # command to be tested is suppressed unless either `VERBOSE=1` or the test fails. This function bypasses
-# any error exiting settings or traps set by upstream callers by masking the return code of the command 
+# any error exiting settings or traps set by upstream callers by masking the return code of the command
 # with the return code of setting the result variable on failure.
 function os::cmd::internal::expect_exit_code_run_grep() {
 	local cmd=$1
 	# default expected cmd code to 0 for success
 	local cmd_eval_func=${2:-os::cmd::internal::success_func}
-	# default to nothing 
-	local grep_args=${3:-} 
+	# default to nothing
+	local grep_args=${3:-}
 	# default expected test code to 0 for success
 	local test_eval_func=${4:-os::cmd::internal::success_func}
 
@@ -168,7 +168,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	local test_result=0
 	if [[ -n "${grep_args}" ]]; then
 		test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${grep_args}"'; echo $? )
-		
+
 	fi
 	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
@@ -189,21 +189,21 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 		return 0
 	else
 		local cause=$(os::cmd::internal::assemble_causes "${cmd_succeeded}" "${test_succeeded}")
-		
+
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
 		os::text::print_red "$(os::cmd::internal::print_results)"
 		return 1
 	fi
 }
 
-# os::cmd::internal::init_tempdir initializes the temporary directory 
+# os::cmd::internal::init_tempdir initializes the temporary directory
 function os::cmd::internal::init_tempdir() {
 	mkdir -p "${os_cmd_internal_tmpdir}"
 	rm -f "${os_cmd_internal_tmpdir}"/tmp_std{out,err}.log
 }
 
 # os::cmd::internal::describe_call determines the file:line of the latest function call made
-# from outside of this file in the call stack, and the name of the function being called from 
+# from outside of this file in the call stack, and the name of the function being called from
 # that line, returning a string describing the call
 function os::cmd::internal::describe_call() {
 	local cmd=$1
@@ -293,7 +293,7 @@ function os::cmd::internal::run_collecting_output() {
 	local result=${result:-0} # if we haven't set result yet, the command succeeded
 
 	return "${result}"
-} 
+}
 
 # os::cmd::internal::success_func determines if the input exit code denotes success
 # this function returns 0 for false and 1 for true to be compatible with arithmetic tests
@@ -335,18 +335,18 @@ function os::cmd::internal::get_results() {
 # using a timeline format, where consecutive output lines that are the same are condensed into one line
 # with a counter
 function os::cmd::internal::print_try_until_results() {
-	if grep -vq $'\x1e' "${os_cmd_internal_tmpout}"; then 
+	if grep -vq $'\x1e' "${os_cmd_internal_tmpout}"; then
 		echo "Standard output from the command:"
 		os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
-	else 
-		echo "There was no output from the command."                                      																																																																																																																
-	fi	
+	else
+		echo "There was no output from the command."
+	fi
 
-	if grep -vq $'\x1e' "${os_cmd_internal_tmperr}"; then 
+	if grep -vq $'\x1e' "${os_cmd_internal_tmperr}"; then
 		echo "Standard error from the command:"
 		os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
-	else 
-		echo "There was no error output from the command."                                      																																																																																																																
+	else
+		echo "There was no error output from the command."
 	fi
 }
 
@@ -365,19 +365,19 @@ function os::cmd::internal::compress_output() {
 
 # os::cmd::internal::print_results pretty-prints the stderr and stdout files
 function os::cmd::internal::print_results() {
-	if [[ -s "${os_cmd_internal_tmpout}" ]]; then 
+	if [[ -s "${os_cmd_internal_tmpout}" ]]; then
 		echo "Standard output from the command:"
 		cat "${os_cmd_internal_tmpout}"
-	else 
-		echo "There was no output from the command."                                      																																																																																																																
-	fi	
+	else
+		echo "There was no output from the command."
+	fi
 
-	if [[ -s "${os_cmd_internal_tmperr}" ]]; then 
+	if [[ -s "${os_cmd_internal_tmperr}" ]]; then
 		echo "Standard error from the command:"
 		cat "${os_cmd_internal_tmperr}"
-	else 
-		echo "There was no error output from the command."                                      																																																																																																																
-	fi	
+	else
+		echo "There was no error output from the command."
+	fi
 }
 
 # os::cmd::internal::assemble_causes determines from the two input booleans which part of the test
@@ -399,7 +399,7 @@ function os::cmd::internal::assemble_causes() {
 }
 
 
-# os::cmd::internal::run_until_exit_code runs the provided command until the exit code test given 
+# os::cmd::internal::run_until_exit_code runs the provided command until the exit code test given
 # succeeds or the timeout given runs out. Output from the command to be tested is suppressed unless
 # either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
 # set by upstream callers by masking the return code of the command with the return code of setting
@@ -416,12 +416,12 @@ function os::cmd::internal::run_until_exit_code() {
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	echo "Running ${description}..."
-	
+
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))
 	local cmd_succeeded=0
-	while [ $(date +%s000) -lt $deadline ]; do	
+	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
 		if (( cmd_succeeded )); then
@@ -471,12 +471,12 @@ function os::cmd::internal::run_until_text() {
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	echo "Running ${description}..."
-	
+
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
-	
+
 	local deadline=$(( $(date +%s000) + $duration ))
 	local test_succeeded=0
-	while [ $(date +%s000) -lt $deadline ]; do	
+	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		local test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"'; echo $? )
 		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )

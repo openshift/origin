@@ -24,8 +24,9 @@ var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
 			g.By("creating a new app")
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
-			g.By("expecting the mongodb service get endpoints")
-			o.Expect(oc.KubeFramework().WaitForAnEndpoint("mongodb")).Should(o.Succeed())
+			g.By("waiting for the deployment to complete")
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mongodb")
+			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting the mongodb pod is running")
 			podNames, err := exutil.WaitForPods(
@@ -39,22 +40,10 @@ var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
 			o.Expect(podNames).Should(o.HaveLen(1))
 
 			g.By("expecting the mongodb service is answering for ping")
-			mongo := db.NewMongoDB(podNames[0], "")
-
-			for times := 0; times < 10; times++ {
-				ok, err := mongo.IsReady(oc)
-				if ok {
-					break
-				}
-
-				if times == 10 {
-					o.Expect(err).ShouldNot(o.HaveOccurred())
-					o.Expect(ok).Should(o.BeTrue())
-					break
-				}
-
-				time.Sleep(1 * time.Second)
-			}
+			mongo := db.NewMongoDB(podNames[0])
+			ok, err := mongo.IsReady(oc)
+			o.Expect(err).ShouldNot(o.HaveOccurred())
+			o.Expect(ok).Should(o.BeTrue())
 
 			g.By("expecting that we can insert a new record")
 			result, err := mongo.Query(oc, `db.foo.save({ "status": "passed" })`)

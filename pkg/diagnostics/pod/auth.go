@@ -137,14 +137,18 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 	}
 	secClient := noSecClient
 	secClient.Transport = knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}})
-	if secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r); secError == nil {
+	secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r)
+	if secError == nil {
 		return // made the request successfully enough to diagnose
-	} else if strings.Contains(secError.Error(), "tls: oversized record received") {
+	}
+	switch {
+	case strings.Contains(secError.Error(), "tls: oversized record received"),
+		strings.Contains(secError.Error(), "server gave HTTP response to HTTPS"):
 		r.Debug("DP1015", "docker-registry not secured; falling back to cleartext connection")
 		if nosecError := processRegistryRequest(&noSecClient, fmt.Sprintf("http://%s:%s/v2/", registryHostname, registryPort), token, r); nosecError != nil {
 			r.Error("DP1013", nosecError, fmt.Sprintf("Unexpected error authenticating to the integrated registry:\n(%T) %[1]v", nosecError))
 		}
-	} else {
+	default:
 		r.Error("DP1013", secError, fmt.Sprintf("Unexpected error authenticating to the integrated registry:\n(%T) %[1]v", secError))
 	}
 }

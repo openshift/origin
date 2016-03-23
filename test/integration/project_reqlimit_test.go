@@ -26,7 +26,6 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"OriginNamespaceLifecycle", "BuildByStrategy", "ProjectRequestLimit"}
 	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"ProjectRequestLimit": {
 			Configuration: pluginConfig,

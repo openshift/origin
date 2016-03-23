@@ -24,7 +24,8 @@
             </a>
           </div>
           <div ng-show="!task.hasErrors || expanded">
-            <alerts alerts="task.alerts"></alerts>
+            <!-- Don't show a close button for each alert since we have one above for all tasks. -->
+            <alerts alerts="task.alerts" hide-close-button="true"></alerts>
           </div>
       </div>
     </div>
