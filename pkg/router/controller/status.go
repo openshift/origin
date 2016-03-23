@@ -45,8 +45,14 @@ func NewStatusAdmitter(plugin router.Plugin, client client.RoutesNamespacer, nam
 	}
 }
 
+// Return a time truncated to the second to ensure that in-memory and
+// serialized timestamps can be safely compared.
+func getRfc3339Timestamp() unversioned.Time {
+	return unversioned.Now().Rfc3339Copy()
+}
+
 // nowFn allows the package to be tested
-var nowFn = unversioned.Now
+var nowFn = getRfc3339Timestamp
 
 // findOrCreateIngress loops through the router status ingress array looking for an entry
 // that matches name. If there is no entry in the array, it creates one and appends it
