@@ -44,11 +44,6 @@ const (
 	statsPassword = "e2e"
 )
 
-// init ensures docker exists for this test
-func init() {
-	testutil.RequireDocker()
-}
-
 // TestRouter is the table based test for routers.  It will initialize a fake master/client and expect to deploy
 // a router image in docker.  It then sends watch events through the simulator and makes http client requests that
 // should go through the deployed router and return data from the client simulator.

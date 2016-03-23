@@ -1,13 +1,9 @@
 package util
 
 import (
-	"os"
-
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 )
-
-const defaultDockerEndpoint = "unix:///var/run/docker.sock"
 
 // RequireDocker ensures that a new docker client can be created and that a ListImages command can be run on the client
 // or it fails with glog.Fatal
@@ -29,11 +25,5 @@ func RequireDocker() {
 // newDockerClient creates a docker client using the env var DOCKER_ENDPOINT or, if not supplied, uses the default
 // docker endpoint /var/run/docker.sock
 func NewDockerClient() (*dockerClient.Client, error) {
-	endpoint := os.Getenv("DOCKER_ENDPOINT")
-
-	if len(endpoint) == 0 {
-		endpoint = defaultDockerEndpoint
-	}
-
-	return dockerClient.NewClient(endpoint)
+	return dockerClient.NewClientFromEnv()
 }
