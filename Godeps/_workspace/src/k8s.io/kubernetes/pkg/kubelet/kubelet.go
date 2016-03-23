@@ -1104,11 +1104,6 @@ func (kl *Kubelet) initialNodeStatus() (*api.Node, error) {
 		}
 	} else {
 		node.Spec.ExternalID = kl.hostname
-		// If no cloud provider is defined - use the one detected by cadvisor
-		info, err := kl.GetCachedMachineInfo()
-		if err == nil {
-			kl.updateCloudProviderFromMachineInfo(node, info)
-		}
 	}
 	if err := kl.setNodeStatus(node); err != nil {
 		return nil, err
@@ -2868,17 +2863,6 @@ func (kl *Kubelet) setNodeAddress(node *api.Node) error {
 		}
 	}
 	return nil
-}
-
-func (kl *Kubelet) updateCloudProviderFromMachineInfo(
-	node *api.Node,
-	info *cadvisorapi.MachineInfo) {
-
-	if info.CloudProvider != cadvisorapi.UnknownProvider &&
-		info.CloudProvider != cadvisorapi.Baremetal {
-		node.Spec.ProviderID = strings.ToLower(string(info.CloudProvider)) +
-			":////" + string(info.InstanceID)
-	}
 }
 
 func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
