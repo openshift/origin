@@ -13,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
@@ -286,17 +287,21 @@ func (c *NodeConfig) RunProxy() {
 	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
 
-	exec := kexec.New()
+	execer := kexec.New()
 	dbus := utildbus.New()
-	iptInterface := utiliptables.New(exec, dbus, protocol)
+	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
 	var endpointsHandler pconfig.EndpointsConfigHandler
 
 	switch c.ProxyConfig.Mode {
-	case "iptables":
+	case componentconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
-		proxierIptables, err := iptables.NewProxier(iptInterface, exec, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, *c.ProxyConfig.IPTablesMasqueradeBit)
+		if c.ProxyConfig.IPTablesMasqueradeBit == nil {
+			// IPTablesMasqueradeBit must be specified or defaulted.
+			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
+		}
+		proxierIptables, err := iptables.NewProxier(iptInterface, execer, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, *c.ProxyConfig.IPTablesMasqueradeBit)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -307,13 +312,24 @@ func (c *NodeConfig) RunProxy() {
 		proxier = proxierIptables
 		endpointsHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
-		glog.V(0).Info("Tearing down userspace rules. Errors here are acceptable.")
+		glog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
-	case "userspace":
+	case componentconfig.ProxyModeUserspace:
 		glog.V(0).Info("Using userspace Proxier.")
+		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
+		// our config.EndpointsConfigHandler.
 		loadBalancer := userspace.NewLoadBalancerRR()
+		// set EndpointsConfigHandler to our loadBalancer
 		endpointsHandler = loadBalancer
-		proxierUserspace, err := userspace.NewProxier(loadBalancer, bindAddr, iptInterface, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration)
+
+		proxierUserspace, err := userspace.NewProxier(
+			loadBalancer,
+			bindAddr,
+			iptInterface,
+			*portRange,
+			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.UDPIdleTimeout.Duration,
+		)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -323,7 +339,7 @@ func (c *NodeConfig) RunProxy() {
 		}
 		proxier = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
-		glog.V(0).Info("Tearing down pure-iptables proxy rules. Errors here are acceptable.")
+		glog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
 	default:
 		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.Mode)
@@ -336,7 +352,9 @@ func (c *NodeConfig) RunProxy() {
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig()
 	serviceConfig.RegisterHandler(proxier)
+
 	endpointsConfig := pconfig.NewEndpointsConfig()
+	// customized handling registration that inserts a filter if needed
 	if c.FilteringEndpointsHandler == nil {
 		endpointsConfig.RegisterHandler(endpointsHandler)
 	} else {

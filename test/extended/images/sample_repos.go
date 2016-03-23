@@ -55,7 +55,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				}
 
 				g.By("expecting the deployment to be complete")
-				err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
+				err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the service is available")

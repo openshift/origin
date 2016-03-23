@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6ec0369cdcf45051c84d2fedaeb18dff4313e46f
+%global commit b04d0cb06fc47a04efa83038c5edcd9bc26b098a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.5-48-g6ec0369 -X github.com/openshift/origin/pkg/version.commitFromGit 6ec0369 -X k8s.io/kubernetes/pkg/version.gitCommit 4a3f9c5 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.6-53-gb04d0cb -X github.com/openshift/origin/pkg/version.commitFromGit b04d0cb -X k8s.io/kubernetes/pkg/version.gitCommit b04d0cb -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.6
+Version:        3.2.0.7
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,45 @@ fi
 
 
 %changelog
+* Wed Mar 23 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.7
+- Ensure ingress host matches route host (marun@redhat.com)
+- Enable extensions storage for batch/autoscaling (jliggitt@redhat.com)
+- Add navbar-utility-mobile to error.html Fixes
+  https://github.com/openshift/origin/issues/8198 (sgoodwin@redhat.com)
+- Add /dev to node volumes (sdodson@redhat.com)
+- Install e2fsprogs and xfsprogs into base image (sdodson@redhat.com)
+- oc debug is not defaulting to TTY (ccoleman@redhat.com)
+- UPSTREAM: revert: d54ed4e: 21373: kubelet: reading cloudinfo from cadvisor
+  (deads@redhat.com)
+- temporarily disable cgroup limits on builds (bparees@redhat.com)
+- test/extended/images/mongodb_replica: add tests for mongodb replication
+  (vsemushi@redhat.com)
+- oc status must show monopods (ffranz@redhat.com)
+- Integration tests should use docker.ClientFromEnv() (ccoleman@redhat.com)
+- Move upstream (ccoleman@redhat.com)
+- hack/test-cmd.sh races against deployment controller (ccoleman@redhat.com)
+- make who-can use resource arg format (deads@redhat.com)
+- Bug in Kube API version group ordering (ccoleman@redhat.com)
+- Fix precision displaying percentages in quota chart tooltip
+  (spadgett@redhat.com)
+- updated artifacts to contain docker log and exlucde etcd data dir
+  (skuznets@redhat.com)
+- Mount /var/log into node container (sdodson@redhat.com)
+- Hide extra close buttons for task lists (spadgett@redhat.com)
+- Test refactor (ccoleman@redhat.com)
+- Disable failing upstream test (ccoleman@redhat.com)
+- In the release target, only build linux/amd64 (ccoleman@redhat.com)
+- Pod diagnostic check is not correct in go 1.6 (ccoleman@redhat.com)
+- Update Dockerfile for origin-release to use Go 1.6 (ccoleman@redhat.com)
+- Update build-go.sh to deal with Go 1.6 (ccoleman@redhat.com)
+- Suppress Go 1.6 error on -X flag (ccoleman@redhat.com)
+- Add RunOnceDuration and ProjectRequestLimit plugins to default plugin chains
+  (cewong@redhat.com)
+- Add kube component config tests, disable /logs on master, update kube-proxy
+  init (jliggitt@redhat.com)
+- Adjust -webkit-scrollbar width and log-scroll-top affixed position. Fixes
+  https://github.com/openshift/origin/issues/7963 (sgoodwin@redhat.com)
+
 * Mon Mar 21 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.6
 - Bug 1318537 - Add warning when trying to import non-existing tag
   (maszulik@redhat.com)

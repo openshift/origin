@@ -55,8 +55,13 @@ angular.module('openshiftConsole')
           $scope.width = 175;
         }
 
-        // https://github.com/mbostock/d3/wiki/Formatting
-        var percentage = d3.format(".2p");
+        var percentage = function(value) {
+          if (!value) {
+            return "0%";
+          }
+
+          return (Number(value) * 100).toFixed(1) + "%";
+        };
 
         // Chart configuration, see http://c3js.org/reference.html
         $scope.chartID = _.uniqueId('quota-usage-chart-');

@@ -61,6 +61,9 @@ var _ = oadmission.Validator(&projectRequestLimit{})
 
 // Admit ensures that only a configured number of projects can be requested by a particular user.
 func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
+	if o.config == nil {
+		return nil
+	}
 	if a.GetResource() != projectapi.Resource("projectrequests") {
 		return nil
 	}

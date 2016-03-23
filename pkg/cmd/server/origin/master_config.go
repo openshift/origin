@@ -175,7 +175,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
+	admissionControlPluginNames := []string{"ProjectRequestLimit", "OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
