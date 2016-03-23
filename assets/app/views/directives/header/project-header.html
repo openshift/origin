@@ -3,7 +3,7 @@
     <a class="navbar-home" href="./"><span class="fa-fw pficon pficon-home" aria-hidden="true"></span> <span class="visible-xlg-inline-block"> Projects</span></a>
   </div>
   <div class="nav navbar-project-menu">
-    <div row hawtio-extension name="nav-system-status-mobile">
+    <div row>
       <!-- mobile nav menu -->
       <div row flex class="navbar-flex-btn toggle-menu">
         <button type="button" class="navbar-toggle project-action-btn ng-isolate-scope" data-toggle="collapse" data-target=".navbar-collapse-1">
@@ -24,6 +24,13 @@
           <i class="fa fa-plus visible-xs-inline-block"></i><span class="hidden-xs">Add to project</span>
         </a>
       </div>
+
+      <div row
+        extension-point
+        extension-name="nav-system-status-mobile"
+        extension-types="dom"
+        class="navbar-flex-btn"></div>
+
     </div>
   </div> <!-- /navbar-project-menu -->
   <navbar-utility class="hidden-xs"></navbar-utility>

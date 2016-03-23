@@ -37,7 +37,8 @@
     "clipboard": "1.5.8",
     "pathseg": "1.0.2",
     "ansi_up": "1.3.0",
-    "pathseg": "1.0.2"
+    "pathseg": "1.0.2",
+	  "angular-extension-registry": "1.2.6"
   },
   "devDependencies": {
     "angular-mocks": "1.3.8",
