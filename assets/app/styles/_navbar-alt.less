@@ -114,7 +114,10 @@
     cursor: pointer;
     line-height: 1;
     max-height: (@navbar-pf-alt-height - @navbar-pf-alt-border-width); // to keep Firefox from oversizing icons
-    padding: 21px 14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: @navbar-padding-vertical;
+    padding-bottom: @navbar-padding-vertical;
     position: relative;
     color: @navbar-pf-alt-color;
     margin-right: 0;
@@ -122,11 +125,11 @@
     .username, .status-issue {
       display: inline-block;
       font-weight: 300;
+      line-height: 1;
       max-width: 100px;
       padding: 0 2px;
       position: relative;
       top: -2px;
-      vertical-align: bottom;
     }
     &:hover, &:focus {
       background-color: transparent;
@@ -146,7 +149,6 @@
       height: 12px;
     }
     .status-icon {
-      font-size: 18px;
       padding-right: 2px;
     }
   }
@@ -158,6 +160,13 @@
         color: @navbar-pf-alt-active-color;
       }
     }
+  }
+}
+
+@media (min-width: @screen-sm-min) {
+  .navbar-pf-alt .nav-item-iconic {
+    display: block;
+    padding: 21px 14px;
   }
 }
 
