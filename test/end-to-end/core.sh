@@ -27,7 +27,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
-  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  DB_IP=$(oc get -n $1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
@@ -35,7 +35,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
-  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n $1 --template="{{ .spec.portalIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
   wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -89,7 +89,7 @@ wait_for_registry
 oc logs rc/docker-registry-1 > /dev/null
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --template="{{ .spec.portalIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
@@ -287,7 +287,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+os::cmd::try_until_text "oc get endpoints router --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 echo "[INFO] Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
