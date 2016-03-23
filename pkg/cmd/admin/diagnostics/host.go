@@ -36,26 +36,20 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, er
 	diagnostics := []types.Diagnostic{}
 	systemdUnits := systemddiags.GetSystemdUnits(o.Logger)
 	for _, diagnosticName := range requestedDiagnostics {
+		var d types.Diagnostic
 		switch diagnosticName {
 		case systemddiags.AnalyzeLogsName:
-			diagnostics = append(diagnostics, systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits})
-
+			d = systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits}
 		case systemddiags.UnitStatusName:
-			diagnostics = append(diagnostics, systemddiags.UnitStatus{SystemdUnits: systemdUnits})
-
+			d = systemddiags.UnitStatus{SystemdUnits: systemdUnits}
 		case hostdiags.MasterConfigCheckName:
-			if len(o.MasterConfigLocation) > 0 {
-				diagnostics = append(diagnostics, hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation})
-			}
-
+			d = hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation}
 		case hostdiags.NodeConfigCheckName:
-			if len(o.NodeConfigLocation) > 0 {
-				diagnostics = append(diagnostics, hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation})
-			}
-
+			d = hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation}
 		default:
 			return diagnostics, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
+		diagnostics = append(diagnostics, d)
 	}
 
 	return diagnostics, true, nil

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -25,22 +24,17 @@ func (d MasterConfigCheck) Description() string {
 }
 func (d MasterConfigCheck) CanRun() (bool, error) {
 	if len(d.MasterConfigFile) == 0 {
-		return false, errors.New("must have master config file")
+		return false, errors.New("No master config file was detected")
 	}
 
 	return true, nil
 }
 func (d MasterConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterConfigCheckName)
-
-	r.Debug("DH0001", fmt.Sprintf("Looking for master config file at '%s'", d.MasterConfigFile))
-	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(d.MasterConfigFile)
+	masterConfig, err := GetMasterConfig(r, d.MasterConfigFile)
 	if err != nil {
-		r.Error("DH0002", err, fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", d.MasterConfigFile, err))
 		return r
 	}
-
-	r.Info("DH0003", fmt.Sprintf("Found a master config file: %[1]s", d.MasterConfigFile))
 
 	results := configvalidation.ValidateMasterConfig(masterConfig, nil)
 	if len(results.Errors) > 0 {
