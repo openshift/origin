@@ -331,7 +331,7 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 		input.Argument = fmt.Sprintf("--template=%q", input.From)
 		input.Searcher = c.TemplateSearcher
 		if c.TemplateSearcher != nil {
-			input.Resolver = app.HighestScoreResolver{Searcher: c.TemplateSearcher}
+			input.Resolver = app.HighestUniqueScoreResolver{Searcher: c.TemplateSearcher}
 		}
 		return input
 	})

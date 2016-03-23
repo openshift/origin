@@ -665,7 +665,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		groups.Add(
 			"multiple-matches",
 			heredoc.Docf(`
-					The argument %[1]q could apply to the following Docker images or OpenShift image streams:
+					The argument %[1]q could apply to the following Docker images, OpenShift image streams, or templates:
 
 					%[2]s`, t.Value, buf.String(),
 			),
@@ -681,7 +681,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		groups.Add(
 			"partial-match",
 			heredoc.Docf(`
-					The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
+					The argument %[1]q only partially matched the following Docker image, OpenShift image stream, or template:
 
 					%[2]s`, t.Value, buf.String(),
 			),
