@@ -71,7 +71,10 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, wrapLimit)
+	lrActions := &wrappedLimitRangerActions{
+		internalLimitRangerActions: &limitranger.DefaultLimitRangerActions{},
+	}
+	limitRanger, err := limitranger.NewLimitRanger(client, lrActions)
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +84,6 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 		config:      internal,
 		LimitRanger: limitRanger,
 	}, nil
-}
-
-func wrapLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	limitranger.Limit(limitRange, resourceName, obj)
-	// always return success so that all defaults will be applied.
-	// validation will occur after the overrides.
-	return nil
 }
 
 func (a *clusterResourceOverridePlugin) SetProjectCache(projectCache *cache.ProjectCache) {
@@ -121,7 +117,7 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
-	if a.config == nil || attr.GetResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
+	if a.config == nil || !internalSupportsAttributes(attr) {
 		return nil // not applicable
 	}
 	pod, ok := attr.GetObject().(*kapi.Pod)
@@ -179,4 +175,40 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 func multiply(x *inf.Dec, y *inf.Dec) *inf.Dec {
 	return inf.NewDec(0, 0).Mul(x, y)
+}
+
+// wrappedLimitRangerActions wraps the default LimitRangerActions.
+type wrappedLimitRangerActions struct {
+	internalLimitRangerActions limitranger.LimitRangerActions
+}
+
+// wrappedLimitRangerActions implements the LimitRangerActions interface
+var _ limitranger.LimitRangerActions = &wrappedLimitRangerActions{}
+
+// Limit is a pluggable function to enforce limits on the object.  This wraps the default
+// implementation to always return success so that all defaults will be applied.  Validation will
+// occur after the overrides.  Implements the LimitRangerActions interface.
+func (lr *wrappedLimitRangerActions) Limit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
+	lr.internalLimitRangerActions.Limit(limitRange, kind, obj)
+	return nil
+}
+
+// SupportsLimit provides a check to see if the limitRange is applicable.
+// Implements the LimitRangerActions interface.
+func (lr *wrappedLimitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
+	return lr.internalLimitRangerActions.SupportsLimit(limitRange)
+}
+
+// SupportsAttributes is a helper that returns true if the resource is supported by the plugin.
+// Implements the LimitRangerActions interface.
+func (lr *wrappedLimitRangerActions) SupportsAttributes(attr admission.Attributes) bool {
+	return internalSupportsAttributes(attr)
+}
+
+// internalSupportsAttributes is factored out for usage outside the actions object.
+func internalSupportsAttributes(attr admission.Attributes) bool {
+	if attr.GetResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
+		return false // not applicable
+	}
+	return true
 }

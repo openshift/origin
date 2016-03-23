@@ -111,13 +111,13 @@ func (c *imageStreamTagUsageComputer) Usage(object runtime.Object) kapi.Resource
 		return res
 	}
 
-	ref, err := c.getImageReferenceForObjectReference(ist.Namespace, ist.Tag.From)
+	ref, err := c.GetImageReferenceForObjectReference(ist.Namespace, ist.Tag.From)
 	if err != nil {
 		glog.Errorf("failed to get source docker image reference for istag %s/%s: %v", ist.Namespace, nameParts[0], err)
 		return res
 	}
 
-	img, err := c.getImage(ref.ID)
+	img, err := c.GetImage(ref.ID)
 	if err != nil {
 		glog.Errorf("failed to get an image %s: %v", ref.ID, err)
 		return res

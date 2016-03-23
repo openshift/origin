@@ -33,6 +33,10 @@ const (
 
 	// ResourceImages represents a number of images in a project.
 	ResourceImages kapi.ResourceName = "openshift.io/images"
+
+	// Limit that applies to images.  Used with a max["storage"] LimitRangeItem to set
+	// the maximum size of an image.
+	LimitTypeImageSize kapi.LimitType = "openshift.io/imagesize"
 )
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.

@@ -857,6 +857,12 @@ items:
     - resourcequotas
     verbs:
     - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - limitranges
+    verbs:
+    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:

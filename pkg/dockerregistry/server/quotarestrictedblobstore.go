@@ -42,6 +42,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/quota"
 
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -58,7 +59,7 @@ var _ distribution.BlobStore = &quotaRestrictedBlobStore{}
 func (bs *quotaRestrictedBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobStore).Put: starting")
 
-	if err := admitBlobWrite(ctx, bs.repo); err != nil {
+	if err := admitBlobWrite(ctx, bs.repo, int64(len(p))); err != nil {
 		context.GetLogger(ctx).Error(err.Error())
 		return distribution.Descriptor{}, err
 	}
@@ -111,7 +112,7 @@ type quotaRestrictedBlobWriter struct {
 func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional distribution.Descriptor) (canonical distribution.Descriptor, err error) {
 	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobWriter).Commit: starting")
 
-	if err := admitBlobWrite(ctx, bw.repo); err != nil {
+	if err := admitBlobWrite(ctx, bw.repo, provisional.Size); err != nil {
 		context.GetLogger(ctx).Error(err.Error())
 		return distribution.Descriptor{}, err
 	}
@@ -122,7 +123,48 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 
 // admitBlobWrite checks whether the blob does not exceed image quota, if set. Returns
 // ErrAccessDenied error if the quota is exceeded.
-func admitBlobWrite(ctx context.Context, repo *repository) error {
+func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
+	if size < 1 {
+		return nil
+	}
+
+	if err := admitLimitRanges(ctx, repo, size); err != nil {
+		return err
+	}
+
+	if err := admitQuotas(ctx, repo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// admitLimitRanges checks the blob against any established limit ranges.
+func admitLimitRanges(ctx context.Context, repo *repository, size int64) error {
+	limitranges, err := repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		if kerrors.IsForbidden(err) {
+			context.GetLogger(ctx).Warnf("Cannot list limitranges because of outdated cluster roles: %v", err)
+			return nil
+		}
+		context.GetLogger(ctx).Errorf("Failed to list limitranges: %v", err)
+		return err
+	}
+
+	for _, limitrange := range limitranges.Items {
+		for _, limit := range limitrange.Spec.Limits {
+			if err := imageadmission.AdmitImage(size, limit); err != nil {
+				context.GetLogger(ctx).Errorf("Refusing to write blob exceeding limit range: %s", err.Error())
+				return distribution.ErrAccessDenied
+			}
+		}
+	}
+
+	return nil
+}
+
+// admitQuotas checks the blob against any established quotas.
+func admitQuotas(ctx context.Context, repo *repository) error {
 	rqs, err := repo.quotaClient.ResourceQuotas(repo.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
@@ -155,6 +197,5 @@ func admitBlobWrite(ctx context.Context, repo *repository) error {
 			return distribution.ErrAccessDenied
 		}
 	}
-
 	return nil
 }
