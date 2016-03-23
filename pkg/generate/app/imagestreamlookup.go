@@ -312,12 +312,17 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 
 		imageData := imageStream.Image
 		matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+		description := fmt.Sprintf("Image stream %q in project %q", stream.Name, stream.Namespace)
+		if len(tag) > 0 {
+			matchName = fmt.Sprintf("%s:%s", matchName, tag)
+			description = fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, tag, stream.Namespace)
+		}
 		glog.V(5).Infof("ImageStreamAnnotationSearcher match found: %s for %s with score %f", matchName, value, score)
 		match := &ComponentMatch{
 			Value:       value,
 			Name:        fmt.Sprintf("%s", matchName),
 			Argument:    fmt.Sprintf("--image-stream=%q", matchName),
-			Description: fmt.Sprintf("Image stream %s in project %s", stream.Name, stream.Namespace),
+			Description: description,
 			Score:       score,
 
 			ImageStream: stream,

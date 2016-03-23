@@ -320,7 +320,10 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 		input.Argument = fmt.Sprintf("--image-stream=%q", input.From)
 		input.Searcher = c.ImageStreamSearcher
 		if c.ImageStreamSearcher != nil {
-			input.Resolver = app.FirstMatchResolver{Searcher: c.ImageStreamSearcher}
+			resolver := app.PerfectMatchWeightedResolver{
+				app.WeightedResolver{Searcher: c.ImageStreamSearcher},
+			}
+			input.Resolver = resolver
 		}
 		return input
 	})
