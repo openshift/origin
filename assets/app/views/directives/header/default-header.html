@@ -1,5 +1,5 @@
 <nav class="navbar navbar-pf-alt" role="navigation">
-  <div row hawtio-extension name="nav-system-status-mobile">
+  <div row>
     <div class="navbar-header">
       <!-- mobile nav menu -->
       <div row flex class="navbar-flex-btn toggle-menu">
@@ -17,6 +17,13 @@
     </div>
     <!-- system status message at mobile -->
 
-    <navbar-utility class="collapse navbar-collapse"></navbar-utility>  
+    <navbar-utility class="collapse navbar-collapse"></navbar-utility>
+
+    <div row
+      extension-point
+      extension-name="nav-system-status-mobile"
+      extension-types="dom"
+      class="navbar-flex-btn"></div>
+
   </div>
 </nav>

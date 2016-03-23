@@ -1,25 +1,33 @@
 <ul class="nav navbar-nav navbar-right navbar-iconic">
-  <li hawtio-extension name="nav-system-status"></li>
+  <li
+    extension-point
+    extension-name="nav-system-status"
+    extension-types="dom"></li>
+
   <li uib-dropdown>
-    <a uib-dropdown-toggle class="nav-item-iconic" id="dropdownMenu1">
+    <a uib-dropdown-toggle class="nav-item-iconic" id="dropdownMenu1" href="">
       <span title="Help" class="fa pficon-help" aria-hidden="true"></span>
       <span class="sr-only">Help</span>
       <span class="caret" aria-hidden="true"></span>
     </a>
-    <ul class="uib-dropdown-menu" aria-labelledby="dropdownMenu1" hawtio-extension name="nav-help-dropdown">
-      <li><a href="https://docs.openshift.org/latest/welcome/index.html">Documentation</a></li>
-      <li><a href="about">About</a></li>
-    </ul>
+    <ul
+      class="uib-dropdown-menu" aria-labelledby="dropdownMenu1"
+      extension-point
+      extension-name="nav-help-dropdown"
+      extension-types="dom html"><!-- extension points generated here --></ul>
   </li>
+
   <li uib-dropdown ng-cloak ng-if="user">
     <a href="" uib-dropdown-toggle id="user-dropdown" class="nav-item-iconic">
       <span class="pf-icon pficon-user" aria-hidden="true"></span>
       <span class="username truncate">{{user.fullName || user.metadata.name}}</span> <span class="caret" aria-hidden="true"></span>
     </a>
-    <ul class="uib-dropdown-menu" aria-labelledby="user-dropdown" hawtio-extension name="nav-user-dropdown">
-      <li>
-        <a href="logout">Log out</a>
-      </li>
-    </ul>
+
+    <ul
+      class="uib-dropdown-menu"
+      aria-labelledby="user-dropdown"
+      extension-point
+      extension-name="nav-user-dropdown"
+      extension-types="dom html"><!-- extension points generated here --></ul>
   </li>
 </ul>
