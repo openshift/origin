@@ -1,0 +1,51 @@
+// Spacing utility classes
+// creates:
+//  .pad-sm, .pad-md, .pad-lg, etc
+//  .mar-sm, .mar-md, .mar-lg, etc
+//  .pad-left-sm, .mar-left-sm, etc
+//
+@nil: none 0 e('!important');
+// @auto 0 auto; is built into the fn below
+@xs: xs 3px e('');
+@sm: sm 5px e('');
+@md: md 10px e('');
+@lg: lg 15px e('');
+@xl: xl 20px e('');
+@xxl: xxl 30px e('');
+
+@sizes: @nil, @xs, @sm, @md, @lg, @xl, @xxl;
+@sides: top, right, bottom, left;
+
+.spacer-side(@list, @size, @px, @mod, @i:1) when (@i <= length(@list)) {
+  @side: extract(@list, @i);
+  .pad-@{side}-@{size} {
+    padding-@{side}: @px @mod;
+  }
+  .mar-@{side}-@{size} {
+    margin-@{side}: @px @mod;
+  }
+  .spacer-side(@list, @size, @px, @mod, @i+1);
+}
+
+.spacers(@list, @i:1) when (@i <= length(@list)) {
+  @item: extract(@list, @i);
+  @key: extract(@item, 1);
+  @val: extract(@item, 2);
+  @mod: extract(@item, 3);
+  .pad-auto-@{key} {
+    padding: 0 auto;
+  }
+  .mar-auto-@{key} {
+    margin: 0 auto;
+  }
+  .pad-@{key} {
+    padding: @val @val * 1.5;
+  }
+  .mar-@{key} {
+    margin: @val @val * 1.5;
+  }
+  .spacer-side(@sides, @key, @val, @mod);
+  .spacers(@list, @i+1);
+}
+
+.spacers(@sizes);
