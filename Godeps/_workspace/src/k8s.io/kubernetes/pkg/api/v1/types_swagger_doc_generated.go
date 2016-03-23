@@ -1524,6 +1524,7 @@ var map_SecurityContextConstraints = map[string]string{
 	"runAsUser":                "RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.",
 	"supplementalGroups":       "SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
 	"fsGroup":                  "FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.",
+	"readOnlyRootFilesystem":   "ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file system.  If the container specifically requests to run with a non-read only root file system the SCC should deny the pod. If set to false the container may run with a read only root file system if it wishes but it will not be forced to.",
 	"users":                    "The users who have permissions to use this security context constraints",
 	"groups":                   "The groups that have permission to use this security context constraints",
 }

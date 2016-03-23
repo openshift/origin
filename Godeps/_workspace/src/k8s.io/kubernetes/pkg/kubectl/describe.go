@@ -494,6 +494,7 @@ func describeSecurityContextConstraints(scc *api.SecurityContextConstraints) (st
 		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
 		fmt.Fprintf(out, "  Allow Host PID:\t%t\n", scc.AllowHostPID)
 		fmt.Fprintf(out, "  Allow Host IPC:\t%t\n", scc.AllowHostIPC)
+		fmt.Fprintf(out, "  Read Only Root Filesystem:\t%t\n", scc.ReadOnlyRootFilesystem)
 
 		fmt.Fprintf(out, "  Run As User Strategy: %s\t\n", string(scc.RunAsUser.Type))
 		uid := ""
