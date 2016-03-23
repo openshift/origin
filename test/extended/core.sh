@@ -79,6 +79,10 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   fi
   echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
+  # This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
+  os::util::sed 's/\(controllerArguments:\ \)null/\1\n    terminated-pod-gc-threshold: ["100"]/' \
+    ${MASTER_CONFIG_DIR}/master-config.yaml
+
   start_os_server
 
   export KUBECONFIG="${ADMIN_KUBECONFIG}"
