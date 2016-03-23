@@ -1,7 +1,17 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $uibModal, $timeout, $filter, LabelFilter, DeploymentsService, Navigate, hashSizeFilter, isDeploymentFilter) {
+  .directive('overviewDeployment', function($filter,
+                                            $location,
+                                            $timeout,
+                                            $uibModal,
+                                            DeploymentsService,
+                                            HPAService,
+                                            LabelFilter,
+                                            MetricsService,
+                                            Navigate,
+                                            hashSizeFilter,
+                                            isDeploymentFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -12,6 +22,9 @@ angular.module('openshiftConsole')
         deploymentConfigDifferentService: '=',
         deploymentConfig: '=',
         scalable: '=',
+        hpa: '=?',
+        limitRanges: '=',
+        project: '=',
 
         // Nested podTemplate fields
         imagesByDockerReference: '=',
@@ -25,9 +38,27 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_overview-deployment.html',
       controller: function($scope) {
+        // Warn if metrics aren't configured when autoscaling a deployment.
+        MetricsService.isAvailable().then(function(available) {
+          $scope.metricsWarning = !available;
+        });
+
         $scope.$watch("rc.spec.replicas", function() {
           $scope.desiredReplicas = null;
         });
+
+        var checkCPURequest = function() {
+          if (!_.size($scope.hpa)) {
+            delete $scope.cpuRequestWarning;
+            return;
+          }
+
+          var containers = _.get($scope, 'rc.spec.template.spec.containers');
+          $scope.cpuRequestWarning = !HPAService.hasCPURequest(containers, $scope.limitRanges, $scope.project);
+        };
+
+        $scope.$watchGroup(['limitRanges', 'hpa', 'project'], checkCPURequest);
+        $scope.$watch('rc.spec.template.spec.containers', checkCPURequest, true);
 
         // Debounce scaling so multiple clicks within 500 milliseconds only result in one request.
         var scale = _.debounce(function () {

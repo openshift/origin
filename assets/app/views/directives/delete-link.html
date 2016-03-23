@@ -3,4 +3,4 @@
    role="button"
    ng-attr-aria-disabled="{{disableDelete ? 'true' : undefined}}"
    ng-class="{ 'disabled-link': disableDelete }"
- >Delete</a>
+>{{label || 'Delete'}}</a>

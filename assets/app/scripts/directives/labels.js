@@ -24,7 +24,7 @@ angular.module('openshiftConsole')
               var selector = {};
               selector[key] = value;
               LabelFilter.setLabelSelector(new LabelSelector(selector, true));
-            }, 1);            
+            }, 1);
           }
         };
       }
@@ -36,7 +36,11 @@ angular.module('openshiftConsole')
       scope: {
         labels: "=",
         expand: "=?",
-        canToggle: "=?"
+        canToggle: "=?",
+        // Delete policy for osc-key-values (default: "added")
+        deletePolicy: "@?",
+        // Optional help text to show with the label controls
+        helpText: "@?"
       },
       templateUrl: 'views/directives/label-editor.html',
       link: function(scope, element, attrs) {

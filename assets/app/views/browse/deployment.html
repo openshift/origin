@@ -50,7 +50,8 @@
                         resource-name="{{deployment.metadata.name}}"
                         project-name="{{deployment.metadata.namespace}}"
                         alerts="alerts"
-                        disable-delete="!!deployment.status.replicas">
+                        disable-delete="!!deployment.status.replicas"
+                        hpa-list="hpaForRC">
                       </delete-link>
                     </li>
                   </ul>

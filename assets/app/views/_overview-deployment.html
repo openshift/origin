@@ -8,6 +8,7 @@
   deploymentConfigMissing          - Boolean. Optional.
   deploymentConfigDifferentService - Boolean. Optional.
   deploymentConfig                 - Object. Required for scaling deployments.
+  hpa                              - Object. Optional.
 
   imagesByDockerReference - map[dockerReference][]Image. Optional.
   builds                  - map[buildId]build. Optional.
@@ -106,7 +107,7 @@
           </a>
         </div>
 
-        <div column class="scaling-controls">
+        <div column class="scaling-controls" ng-if="!hpa">
           <!-- spacer -->
           <div flex></div>
           <div column>
@@ -139,6 +140,47 @@
 
         <!-- spacer -->
         <div flex class="visible-xs-block"></div>
+      </div>
+      <div ng-if="hpa.length" class="hpa-details">
+        Autoscaled:
+        <span class="nowrap">min: {{hpa[0].spec.minReplicas || 1}},</span>
+        <span class="nowrap">
+          max: {{hpa[0].spec.maxReplicas}}
+          <span
+              ng-if="hpa.length > 1"
+              data-toggle="popover"
+              data-trigger="hover"
+              data-content="More than one autoscaler is scaling this resource This is not recommended because they might compete with each other."
+              class="pficon pficon-warning-triangle-o hpa-warning"
+              aria-hidden="true">
+          </span>
+          <span ng-if="cpuRequestWarning" class="hpa-warning">
+            <span
+                ng-if="'cpu' | isRequestCalculated : project"
+                data-toggle="popover"
+                data-trigger="hover"
+                data-content="This deployment does not have any containers with a CPU limit set. Autoscaling will not work without a CPU limit."
+                class="pficon pficon-warning-triangle-o hpa-warning"
+                aria-hidden="true">
+            </span>
+            <span
+                ng-if="!('cpu' | isRequestCalculated : project)"
+                data-toggle="popover"
+                data-trigger="hover"
+                data-content="This deployment does not have any containers with a CPU request set. Autoscaling will not work without a CPU request."
+                class="pficon pficon-warning-triangle-o hpa-warning"
+                aria-hidden="true">
+            </span>
+          </span>
+          <span
+              ng-if="metricsWarning"
+              data-toggle="popover"
+              data-trigger="hover"
+              data-content="Metrics might not be configured by your cluster administrator. Metrics are required for autoscaling."
+              class="pficon pficon-warning-triangle-o hpa-warning"
+              aria-hidden="true">
+          </span>
+        </span>
       </div>
     </div>
 

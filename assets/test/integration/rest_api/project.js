@@ -50,7 +50,7 @@ var attachBuilderImageToSource = function(projectName, builderImageName) {
 var createFromSource = function(projectName, builderImageName, appName) {
   var uri = '/project/' + projectName + '/create/fromimage';
   h.waitForUri(uri);
-  expect(element(by.css('.create-from-image h1')).getText()).toEqual(builderImageName);
+  expect(element(by.css('.osc-form h1')).getText()).toEqual(builderImageName);
   expect(element(by.cssContainingText('h2', "Name")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Routing")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Deployment Configuration")).isPresent()).toBe(true);
@@ -66,7 +66,7 @@ var createFromSource = function(projectName, builderImageName, appName) {
 var createFromTemplate = function(projectName, templateName, parameterNames, labelNames) {
   var uri = '/project/' + projectName + '/create/fromtemplate';
   h.waitForUri(uri);
-  expect(element(by.css('.create-from-template h1')).getText()).toEqual(templateName);
+  expect(element(by.css('.osc-form h1')).getText()).toEqual(templateName);
   expect(element(by.cssContainingText('h2', "Images")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Parameters")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Labels")).isPresent()).toBe(true);

@@ -1,0 +1,42 @@
+<dl class="dl-horizontal left" style="margin-bottom: 10px;">
+  <dt ng-if-start="showScaleTarget && hpa.spec.scaleRef.kind && hpa.spec.scaleRef.name">{{hpa.spec.scaleRef.kind | humanizeKind}}:</dt>
+  <dd ng-if-end>
+    <a ng-href="{{hpa.spec.scaleRef.name | navigateResourceURL : hpa.spec.scaleRef.kind : hpa.metadata.namespace}}">{{hpa.spec.scaleRef.name}}</a>
+  </dd>
+  <dt>Min Pods:</dt>
+  <dd>{{hpa.spec.minReplicas || 1}}</dd>
+  <dt>Max Pods:</dt>
+  <dd>{{hpa.spec.maxReplicas}}</dd>
+  <dt ng-if-start="hpa.spec.cpuUtilization.targetPercentage">
+      CPU
+      <span ng-if="'cpu' | isRequestCalculated : project">Limit</span>
+      <span ng-if="!('cpu' | isRequestCalculated : project)">Request</span>
+      Target:
+  </dt>
+  <dd ng-if-end>{{hpa.spec.cpuUtilization.targetPercentage | hpaCPUPercent : project}}%</dd>
+  <dt>
+    Current Usage:
+  </dt>
+  <dd ng-if="hpa.status.currentCPUUtilizationPercentage | isNil">
+    <em>Not available</em>
+  </dd>
+  <dd ng-if="!(hpa.status.currentCPUUtilizationPercentage | isNil)">
+    {{hpa.status.currentCPUUtilizationPercentage | hpaCPUPercent : project}}%
+  </dd>
+  <dt ng-if-start="hpa.status.lastScaleTime">Last Scaled:</dt>
+  <dd ng-if-end><relative-timestamp timestamp="hpa.status.lastScaleTime"></relative-timestamp></dd>
+</dl>
+
+<!-- HPA actions -->
+<a ng-href="project/{{hpa.metadata.namespace}}/edit/autoscaler?kind=HorizontalPodAutoscaler&group=extensions&name={{hpa.metadata.name}}"
+   role="button">Edit</a>
+<span class="action-divider">|</span>
+<delete-link
+    kind="HorizontalPodAutoscaler"
+    group="extensions"
+    resource-name="{{hpa.metadata.name}}"
+    project-name="{{hpa.metadata.namespace}}"
+    label="Remove"
+    alerts="alerts"
+    stay-on-current-page="true">
+</delete-link>

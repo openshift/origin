@@ -12,7 +12,7 @@
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div class="row">
               <div class="col-md-12">
-                <div class="create-from-image">
+                <div class="osc-form">
                   <div class="row">
                     <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
                       <span class="fa fa-cubes"></span>
@@ -252,21 +252,64 @@
                               expand="true"
                               can-toggle="false"
                               >
-                              <div ng-hide="$parent.expand">
-                                <div>
-                                  <label>Replicas: </label>
-                                  <span>{{scaling.replicas}}</span>
+                              <div class="form-group">
+                                <label for="scale-type">Strategy</label>
+                                <select ng-model="scaling.autoscale"
+                                        ng-options="option.value as option.label for option in scaling.autoscaleOptions"
+                                        id="scale-type"
+                                        class="form-control"
+                                        aria-describedby="scale-type-help">
+                                </select>
+                                <div class="help-block" id="scale-type-help">
+                                  Scale replicas manually or automatically based on CPU usage.
+                                </div>
+                                <div class="learn-more-block">
+                                  <a href="{{'pod_autoscaling' | helpLink}}" target="_blank">Learn more <i class="fa fa-external-link" aria-hidden> </i></a>
+                                </div>
+                                <div class="has-warning" ng-if="metricsWarning && scaling.autoscale">
+                                  <span class="help-block">
+                                    CPU metrics might not be available. In order to use horizontal pod autoscalers,
+                                    your cluster administrator must have properly configured cluster metrics.
+                                  </span>
                                 </div>
                               </div>
-                              <div ng-show="$parent.expand">
-                                <label class="number">
-                                  Replicas:
-                                  <input type="number" class="input-number" min="0" name="replicas" ng-model="scaling.replicas" required ng-pattern="/^\-?\d+$/">
-                                </label>
-                                <div class="has-error" ng-show="form.replicas.$invalid">
-                                  <span class="help-block">Replicas must be an integer value greater than or equal to 0</span>
+                              <div class="form-group" ng-if="!scaling.autoscale">
+                                <label class="number">Replicas</label>
+                                <input type="number"
+                                       class="form-control"
+                                       min="0"
+                                       name="replicas"
+                                       ng-model="scaling.replicas"
+                                       ng-required="!scaling.autoscale"
+                                       ng-disabled="scaling.autoscale"
+                                       ng-pattern="/^\d+$/"
+                                       aria-describedby="replicas-help">
+                                <div id="replicas-help">
+                                  <span class="help-block">The number of instances of your image.</span>
+                                </div>
+                                <div class="has-error" ng-show="form.replicas.$dirty && form.replicas.$invalid">
+                                  <span class="help-block">Replicas must be an integer value greater than or equal to 0.</span>
                                 </div>
                               </div>
+
+                              <osc-autoscaling
+                                  ng-if="scaling.autoscale"
+                                  model="scaling"
+                                  project="project">
+                              </osc-autoscaling>
+
+                              <div class="has-warning" ng-if="showCPURequestWarning">
+                                <span class="help-block">
+                                  You should configure resource limits below for autoscaling.
+                                  Autoscaling will not work without a CPU
+                                  <span ng-if="'cpu' | isRequestCalculated : project">limit.</span>
+                                  <span ng-if="!('cpu' | isRequestCalculated : project)">request.</span>
+                                  <span ng-if="'cpu' | isLimitCalculated : project">
+                                    The CPU limit will be automatically calculated from the container memory limit.
+                                  </span>
+                                </span>
+                              </div>
+
                             </osc-form-section>
 
                             <!-- /scaling -->
@@ -301,7 +344,12 @@
 
                             <!-- /limits -->
 
-                            <label-editor labels="labels" expand="true" can-toggle="false"></label-editor>
+                            <label-editor
+                                labels="labels"
+                                expand="true"
+                                can-toggle="false"
+                                help-text="Each label is applied to each created resource.">
+                            </label-editor>
                           </div>
                           <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
                             <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
@@ -318,7 +366,7 @@
                       </fieldset>
                     </div>
                   </div><!-- /row -->
-                </div><!-- /create-from-image -->
+                </div><!-- /osc-form -->
               </div><!-- /col-* -->
             </div><!-- /row -->
           </div><!-- /container -->

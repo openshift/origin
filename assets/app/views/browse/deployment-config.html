@@ -43,8 +43,18 @@
                          role="button">Attach Storage</a>
                     </li>
                     <li>
-                      <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
+                      <a ng-href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
                         role="button">Set Resource Limits</a>
+                    </li>
+                    <li ng-if="(autoscalers | hashSize) === 0">
+                      <!-- Create a new HPA. -->
+                      <a ng-href="project/{{projectName}}/edit/autoscaler?kind=DeploymentConfig&name={{deploymentConfig.metadata.name}}"
+                         role="button">Add Autoscaler</a>
+                    </li>
+                    <li ng-repeat="hpa in autoscalers | limitTo : 1">
+                      <!-- Edit an existing HPA. -->
+                      <a ng-href="project/{{projectName}}/edit/autoscaler?kind=HorizontalPodAutoscaler&group=extensions&name={{hpa.metadata.name}}"
+                        role="button">Edit Autoscaler</a>
                     </li>
                     <li>
                       <edit-link
@@ -58,7 +68,8 @@
                         kind="DeploymentConfig"
                         resource-name="{{deploymentConfig.metadata.name}}"
                         project-name="{{deploymentConfig.metadata.namespace}}"
-                        alerts="alerts">
+                        alerts="alerts"
+                        hpa-list="autoscalers">
                       </delete-link>
                     </li>
                   </ul>
@@ -106,7 +117,10 @@
                             <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
                             <dt>Replicas:</dt>
                             <dd>
-                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
+                              <replicas spec="deploymentConfig.spec.replicas"
+                                        disable-scaling="(autoscalers | hashSize) > 0"
+                                        scale-fn="scale(replicas)"></replicas>
+                              <span ng-if="(autoscalers | hashSize) > 0">(autoscaled)</span>
                             </dd>
                             <dt>Pod template:</dt>
                             <dd>&nbsp;</dd>
@@ -122,6 +136,58 @@
                           </p>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
+
+                        <!-- Autoscaling -->
+                        <div class="col-lg-6">
+                          <h3>Autoscaling</h3>
+
+                          <!-- Warning: metrics not configured -->
+                          <div ng-if="metricsWarning && (autoscalers | hashSize) > 0" class="alert alert-warning">
+                            <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                            <span class="sr-only">Warning:</span>
+                            Metrics might not be configured by your cluster administrator. Metrics are required for autoscaling.
+                          </div>
+
+                          <!-- Warning: CPU request not set -->
+                          <div ng-if="!hasCPURequest && (autoscalers | hashSize) > 0" class="alert alert-warning">
+                            <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                            <span class="sr-only">Warning:</span>
+                            This deployment config does not have any containers with a CPU
+                            <span ng-if="'cpu' | isRequestCalculated : project">limit</span>
+                            <span ng-if="!('cpu' | isRequestCalculated : project)">request</span>
+                            set. Autoscaling will not work without a CPU
+                            <span ng-if="'cpu' | isRequestCalculated : project">limit.</span>
+                            <span ng-if="!('cpu' | isRequestCalculated : project)">request.</span>
+                            <span ng-if="'cpu' | isLimitCalculated : project">
+                              The CPU limit will be automatically calculated from the container memory limit.
+                            </span>
+                            <a ng-href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
+                               role="button">Set resource
+                              <span ng-if="!('cpu' | isRequestCalculated : project)">requests and</span> limits</a>
+                          </div>
+
+                          <!-- Warning: multiple autoscalers -->
+                          <div ng-if="(autoscalers | hashSize) > 1" class="alert alert-warning">
+                            <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                            <span class="sr-only">Warning:</span>
+                            More than one autoscaler is scaling this resource.  This is not
+                            recommended because they might compete with each other. Consider
+                            removing all but one autoscaler.
+                          </div>
+
+                          <!-- Create autoscaler -->
+                          <div ng-if="(autoscalers | hashSize) === 0">
+                            <a ng-href="project/{{projectName}}/edit/autoscaler?kind=DeploymentConfig&name={{deploymentConfig.metadata.name}}"
+                               role="button">Add autoscaler</a>
+                          </div>
+
+                          <!-- HPA details -->
+                          <div ng-repeat="hpa in autoscalers">
+                            <h3 ng-if="(autoscalers | hashSize) > 1">{{hpa.metadata.name}}</h3>
+                            <hpa hpa="hpa" project="project" show-scale-target="false" alerts="alerts"></hpa>
+                          </div>
+                        </div>
+
                         <div class="col-lg-6">
                           <h3>Triggers</h3>
                           <dl class="dl-horizontal left">

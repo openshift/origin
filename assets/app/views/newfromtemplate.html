@@ -12,7 +12,7 @@
             <div class="row">
               <div class="col-md-12">
                 <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
-                <div class="create-from-template">
+                <div class="osc-form">
                   <div class="row">
                     <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
                       <span class="fa fa-cubes"></span>
@@ -31,7 +31,12 @@
                         </div>
                         <form name="templateForm">
                           <template-options parameters="template.parameters" expand="true" can-toggle="false"></template-options>
-                          <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
+                          <label-editor
+                              labels="template.labels"
+                              expand="true"
+                              can-toggle="false"
+                              help-text="Each label is applied to each created resource.">
+                          </label-editor>
                           <alerts alerts="alerts"></alerts>
                           <div class="buttons gutter-top-bottom">
                             <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
@@ -44,7 +49,7 @@
                   <div ng-hide="template">
                     {{ emptyMessage }}
                   </div>
-                </div><!-- /create-from-template -->
+                </div><!-- /osc-form -->
               </div><!-- /col-* -->
             </div>
           </div>
