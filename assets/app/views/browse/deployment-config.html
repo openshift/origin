@@ -82,6 +82,12 @@
                         <div class="col-lg-6">
                           <h3>Configuration</h3>
                           <dl class="dl-horizontal left">
+                            <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
+                            <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
+                            <dt>Replicas:</dt>
+                            <dd>
+                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
+                            </dd>
                             <div ng-if="deploymentConfig.spec.strategy.type">
                                 <dt>Strategy:</dt>
                                 <dd>{{deploymentConfig.spec.strategy.type}}</dd>
@@ -101,22 +107,12 @@
                             <!-- TODO: Surface the parameters for the recreate and custom strategies -->
                           </dl>
                           <h3>Template</h3>
-                          <dl class="dl-horizontal left">
-                            <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
-                            <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
-                            <dt>Replicas:</dt>
-                            <dd>
-                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
-                            </dd>
-                            <dt>Pod template:</dt>
-                            <dd>&nbsp;</dd>
-                            <pod-template
-                                  pod-template="deploymentConfig.spec.template"
-                                  images-by-docker-reference="imagesByDockerReference"
-                                  builds="builds"
-                                  detailed="true"></pod-template>
-                          </dl>
-                          <h4 style="margin-top: 20px;">Volumes</h4>
+                          <pod-template
+                              pod-template="deploymentConfig.spec.template"
+                              images-by-docker-reference="imagesByDockerReference"
+                              builds="builds"
+                              detailed="true"></pod-template>
+                          <h4>Volumes</h4>
                           <p ng-if="!deploymentConfig.spec.template.spec.volumes.length">
                             <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
                           </p>

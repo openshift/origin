@@ -83,16 +83,20 @@
   </div>
 </div>
 <annotations annotations="deployment.metadata.annotations"></annotations>
-<div class="deployment-detail">
-  <span>Pod template:</span>
-  <pod-template
-    pod-template="deployment.spec.template"
-    images-by-docker-reference="imagesByDockerReference"
-    builds="builds"
-    detailed="true"></pod-template>
-  <h4 style="margin-top: 20px;">Volumes</h4>
-  <p ng-if="!deployment.spec.template.spec.volumes.length">
-    <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
-  </p>
-  <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
+<div class="row">
+  <div class="col-lg-6">
+    <div class="deployment-detail">
+      <h3>Template</h3>
+      <pod-template
+        pod-template="deployment.spec.template"
+        images-by-docker-reference="imagesByDockerReference"
+        builds="builds"
+        detailed="true"></pod-template>
+      <h4>Volumes</h4>
+      <p ng-if="!deployment.spec.template.spec.volumes.length">
+        <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
+      </p>
+      <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
+    </div>
+  </div>
 </div>

@@ -3,8 +3,7 @@
 // --------------------------------------------------
 
 .components {
-  border-left: 3px solid #ccc;
-  border-left-style: dotted;
+  border-left: 3px dotted #ccc;
   margin-bottom: 30px;
   &:last-child {
     margin-bottom: 10px; // reduce margin since the .container-fluid parent already has bottom margin
@@ -160,24 +159,45 @@
   }
 }
 
-.pod-template-block {
-  border-radius: 3px;
+.pod-block {
   margin-bottom: 10px;
-  margin-right: 10px;
+}
+
+.pod-template-block {
+  + .pod-template-block {
+    margin-top: 15px;
+  }
+  .component-label {
+    font-size: @component-label;
+    padding: 0 10px 4px 0;
+    text-transform: uppercase;
+  }
   .pod-template {
-    border: 1px dotted @border-color-light-grey;
-    border-radius: @border-radius-md;
-    max-width: 600px;
-    padding: 5px 10px;
     // so that .word-break() on children works
     [flex] {
       min-width: 0;
     }
-    h4 {
-      margin: 5px 0;
+    [row] {
+      border-left: 3px solid @gray-lighter;
+      padding: 2px 0 0 2px;
+    }
+    .fa,
+    .pficon,
+    span[data-icon] {
+      color: #888;
+    }
+    .hash {
+      font-family: @font-family-monospace;
+      font-size: (@font-size-base - 1);
     }
     .pod-template-build {
       .word-break();
+    }
+    .pod-template-key {
+      font-weight: bold;
+      .components & {
+        font-weight: 600;
+      }
     }
   }
 }
@@ -185,6 +205,13 @@
 // so that .word-break() on children works
 .pod-template-column {
   min-width: 0;
+}
+
+.pod-template-container {
+  margin: 0 0 20px;
+  .components & {
+    margin-bottom: 0;
+  }
 }
 
 .pod-container-terminal {
@@ -266,7 +293,7 @@
 .pod-block {
   .overview-pods {
     margin-right: 10px;
-    min-width: 190px;
+    min-width: 200px;
     .scaling-controls {
       font-size: 24px;
       a {

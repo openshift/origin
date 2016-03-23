@@ -68,7 +68,7 @@
         detailed="true">
       </pod-template>
       <div ng-if="pod.spec.volumes.length">
-        <h4 style="margin-top: 20px;">Volumes</h4>
+        <h4>Volumes</h4>
         <p ng-if="(pod | annotation:'deploymentConfig') && !pod.spec.volumes.length">
           <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}">Attach storage and redeploy</a>
         </p>
