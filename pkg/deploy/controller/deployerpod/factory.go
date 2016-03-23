@@ -57,35 +57,10 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(podLW, &kapi.Pod{}, podQueue, 2*time.Minute).Run()
 
 	podController := &DeployerPodController{
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				// Try to use the cache first. Trust hits and return them.
-				example := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
-				cached, exists, err := deploymentStore.Get(example)
-				if err == nil && exists {
-					return cached.(*kapi.ReplicationController), nil
-				}
-				// Double-check with the master for cache misses/errors, since those
-				// are rare and API calls are expensive but more reliable.
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
-			},
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				opts := kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)}
-				return factory.KubeClient.ReplicationControllers(namespace).List(opts)
-			},
-		},
-		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
-			opts := kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(name)}
-			return factory.KubeClient.Pods(namespace).List(opts)
-		},
+		store:   deploymentStore,
+		kClient: factory.KubeClient,
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
-		},
-		deletePod: func(namespace, name string) error {
-			return factory.KubeClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0))
 		},
 	}
 

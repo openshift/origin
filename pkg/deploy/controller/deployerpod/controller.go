@@ -7,6 +7,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -17,14 +19,11 @@ import (
 //
 // Use the DeployerPodControllerFactory to create this controller.
 type DeployerPodController struct {
-	// deploymentClient provides access to deployments.
-	deploymentClient deploymentClient
-	// deployerPodsFor returns all deployer pods for the named deployment.
-	deployerPodsFor func(namespace, name string) (*kapi.PodList, error)
+	store   cache.Store
+	kClient kclient.Interface
+
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
-	// deletePod deletes a pod.
-	deletePod func(namespace, name string) error
 }
 
 // transientError is an error which will be retried indefinitely.
@@ -45,7 +44,17 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		return nil
 	}
 
-	deployment, err := c.deploymentClient.getDeployment(pod.Namespace, deploymentName)
+	deployment := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: pod.Namespace, Name: deploymentName}}
+	cached, exists, err := c.store.Get(deployment)
+	if err == nil && exists {
+		// Try to use the cache first. Trust hits and return them.
+		deployment = cached.(*kapi.ReplicationController)
+	} else {
+		// Double-check with the master for cache misses/errors, since those
+		// are rare and API calls are expensive but more reliable.
+		deployment, err = c.kClient.ReplicationControllers(pod.Namespace).Get(deploymentName)
+	}
+
 	// If the deployment for this pod has disappeared, we should clean up this
 	// and any other deployer pods, then bail out.
 	if err != nil {
@@ -54,14 +63,15 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 			return fmt.Errorf("couldn't get deployment %s/%s which owns deployer pod %s/%s", pod.Namespace, deploymentName, pod.Name, pod.Namespace)
 		}
 		// Find all the deployer pods for the deployment (including this one).
-		deployers, err := c.deployerPodsFor(pod.Namespace, deploymentName)
+		opts := kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName)}
+		deployers, err := c.kClient.Pods(pod.Namespace).List(opts)
 		if err != nil {
 			// Retry.
 			return fmt.Errorf("couldn't get deployer pods for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
 		// Delete all deployers.
 		for _, deployer := range deployers.Items {
-			err := c.deletePod(deployer.Namespace, deployer.Name)
+			err := c.kClient.Pods(deployer.Namespace).Delete(deployer.Name, kapi.NewDeleteOptions(0))
 			if err != nil {
 				if !kerrors.IsNotFound(err) {
 					// TODO: Should this fire an event?
@@ -114,7 +124,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 
 	if currentStatus != nextStatus {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
-		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
+		if _, err := c.kClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
 			if kerrors.IsNotFound(err) {
 				return nil
 			}
@@ -124,32 +134,4 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	}
 
 	return nil
-}
-
-// deploymentClient abstracts access to deployments.
-type deploymentClient interface {
-	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
-	updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	// listDeploymentsForConfig should return deployments associated with the
-	// provided config.
-	listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error)
-}
-
-// deploymentClientImpl is a pluggable deploymentControllerDeploymentClient.
-type deploymentClientImpl struct {
-	getDeploymentFunc            func(namespace, name string) (*kapi.ReplicationController, error)
-	updateDeploymentFunc         func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	listDeploymentsForConfigFunc func(namespace, configName string) (*kapi.ReplicationControllerList, error)
-}
-
-func (i *deploymentClientImpl) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return i.getDeploymentFunc(namespace, name)
-}
-
-func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return i.updateDeploymentFunc(namespace, deployment)
-}
-
-func (i *deploymentClientImpl) listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-	return i.listDeploymentsForConfigFunc(namespace, configName)
 }

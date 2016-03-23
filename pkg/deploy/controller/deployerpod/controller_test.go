@@ -5,6 +5,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -16,12 +19,11 @@ import (
 // TestHandle_uncorrelatedPod ensures that pods uncorrelated with a deployment
 // are ignored.
 func TestHandle_uncorrelatedPod(t *testing.T) {
+	kFake := &ktestclient.Fake{}
 	controller := &DeployerPodController{
-		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected deployment update")
-				return nil, nil
-			},
+		kClient: kFake,
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		},
 	}
 
@@ -29,10 +31,13 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	pod := runningPod(deployment)
 	pod.Annotations = make(map[string]string)
-	err := controller.Handle(pod)
 
+	err := controller.Handle(pod)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(kFake.Actions()) > 0 {
+		t.Fatalf("unexpected actions: %v", kFake.Actions())
 	}
 }
 
@@ -40,40 +45,38 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 // existent deployment results in all deployer pods being deleted.
 func TestHandle_orphanedPod(t *testing.T) {
 	deleted := sets.NewString()
+
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(ktestclient.GetAction).GetName()
+		return true, nil, kerrors.NewNotFound(kapi.Resource("ReplicationController"), name)
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		t.Fatalf("Unexpected deployment update")
+		return true, nil, nil
+	})
+	kFake.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		mkpod := func(suffix string) kapi.Pod {
+			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			p := okPod(deployment)
+			p.Name = p.Name + suffix
+			return *p
+		}
+		return true, &kapi.PodList{Items: []kapi.Pod{mkpod(""), mkpod("-prehook"), mkpod("-posthook")}}, nil
+	})
+	kFake.PrependReactor("delete", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(ktestclient.DeleteAction).GetName()
+		deleted.Insert(name)
+		return true, nil, nil
+	})
+
 	controller := &DeployerPodController{
-		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				t.Fatalf("Unexpected deployment update")
-				return nil, nil
-			},
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound(kapi.Resource("ReplicationController"), name)
-			},
-		},
-		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
-			mkpod := func(suffix string) kapi.Pod {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-				p := okPod(deployment)
-				p.Name = p.Name + suffix
-				return *p
-			}
-			return &kapi.PodList{
-				Items: []kapi.Pod{
-					mkpod(""),
-					mkpod("-prehook"),
-					mkpod("-posthook"),
-				},
-			}, nil
-		},
-		deletePod: func(namespace, name string) error {
-			deleted.Insert(name)
-			return nil
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	err := controller.Handle(runningPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,20 +94,21 @@ func TestHandle_runningPod(t *testing.T) {
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusPending)
 	var updatedDeployment *kapi.ReplicationController
 
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+
 	controller := &DeployerPodController{
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				updatedDeployment = deployment
-				return deployment, nil
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	err := controller.Handle(runningPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -126,23 +130,24 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
 
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+
 	controller := &DeployerPodController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 		},
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				updatedDeployment = deployment
-				return deployment, nil
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	err := controller.Handle(succeededPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,23 +172,24 @@ func TestHandle_podTerminatedOkTest(t *testing.T) {
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
 
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+
 	controller := &DeployerPodController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 		},
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				updatedDeployment = deployment
-				return deployment, nil
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	err := controller.Handle(succeededPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -211,26 +217,24 @@ func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 	// this also tests that the error is just logged and not result in a failure
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+
 	controller := &DeployerPodController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 		},
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				updatedDeployment = deployment
-				return deployment, nil
-			},
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{*deployment}}, nil
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	err := controller.Handle(terminatedPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -258,26 +262,24 @@ func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
 	// this also tests that the error is just logged and not result in a failure
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
+	kFake := &ktestclient.Fake{}
+	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = deployment
+		return true, deployment, nil
+	})
+
 	controller := &DeployerPodController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 		},
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				updatedDeployment = deployment
-				return deployment, nil
-			},
-			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{*deployment}}, nil
-			},
-		},
+		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+		kClient: kFake,
 	}
 
 	err := controller.Handle(terminatedPod(deployment))
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -320,22 +322,21 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 		var updatedDeployment *kapi.ReplicationController
 		deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "1"
 
+		kFake := &ktestclient.Fake{}
+		kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, deployment, nil
+		})
+		kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			updatedDeployment = deployment
+			return true, deployment, nil
+		})
+
 		controller := &DeployerPodController{
 			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
 			},
-			deploymentClient: &deploymentClientImpl{
-				getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-					return deployment, nil
-				},
-				updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-					updatedDeployment = deployment
-					return deployment, nil
-				},
-				listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-					return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{*deployment}}, nil
-				},
-			},
+			store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
+			kClient: kFake,
 		}
 
 		if err := controller.Handle(test.pod); err != nil {
@@ -358,6 +359,9 @@ func okPod(deployment *kapi.ReplicationController) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
+			Labels: map[string]string{
+				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
+			},
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
