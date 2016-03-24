@@ -13,6 +13,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
 
 source "${OS_ROOT}/hack/lib/util/environment.sh"
@@ -98,51 +99,43 @@ oc login ${MASTER_ADDR} -u pull-secrets-user -p password --certificate-authority
 
 # create a new project and push a busybox image in there
 oc new-project image-ns
-oc delete all --all
-IMAGE_NS_TOKEN=`oc get sa/builder --template='{{range .secrets}}{{ .name }} {{end}}' | xargs -n 1 oc get secret --template='{{ if .data.token }}{{ .data.token }}{{end}}' | base64 -d -`
-docker login -u imagensbuilder -p ${IMAGE_NS_TOKEN} -e fake@example.org ${DOCKER_REGISTRY}
-oc tag --source=docker busybox:latest image-ns/busybox:latest
-oc import-image busybox
-docker pull busybox
-docker tag -f docker.io/busybox:latest ${DOCKER_REGISTRY}/image-ns/busybox:latest
-docker push ${DOCKER_REGISTRY}/image-ns/busybox:latest
-docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
+os::cmd::expect_success "oc delete all --all"
+IMAGE_NS_TOKEN=$(oc sa get-token builder)
+os::cmd::expect_success "docker login -u imagensbuilder -p ${IMAGE_NS_TOKEN} -e fake@example.org ${DOCKER_REGISTRY}"
+os::cmd::expect_success "oc import-image busybox:latest --confirm"
+os::cmd::expect_success "docker pull busybox"
+os::cmd::expect_success "docker tag -f docker.io/busybox:latest ${DOCKER_REGISTRY}/image-ns/busybox:latest"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/image-ns/busybox:latest"
+os::cmd::expect_success "docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest"
 
 
 DOCKER_CONFIG_JSON=${HOME}/.docker/config.json
 oc new-project dc-ns
-oc delete all --all
-oc delete secrets --all
-oc secrets new image-ns-pull .dockerconfigjson=${DOCKER_CONFIG_JSON}
-oc secrets new-dockercfg image-ns-pull-old --docker-email=fake@example.org --docker-username=imagensbuilder --docker-server=${DOCKER_REGISTRY} --docker-password=${IMAGE_NS_TOKEN}
+os::cmd::expect_success "oc delete all --all"
+os::cmd::expect_success "oc delete secrets --all"
+os::cmd::expect_success "oc secrets new image-ns-pull .dockerconfigjson=${DOCKER_CONFIG_JSON}"
+os::cmd::expect_success "oc secrets new-dockercfg image-ns-pull-old --docker-email=fake@example.org --docker-username=imagensbuilder --docker-server=${DOCKER_REGISTRY} --docker-password=${IMAGE_NS_TOKEN}"
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-no-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
-wait_for_command "oc describe pod/no-pull-pod | grep 'Back-off pulling image'" 30*TIME_SEC
-oc delete pods --all
+os::cmd::expect_success "oc process -f test/extended/fixtures/image-pull-secrets/pod-with-no-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - "
+os::cmd::try_until_text "oc describe pod/no-pull-pod" 'Back-off pulling image'
+os::cmd::expect_success "oc delete pods --all"
 
-# TODO remove sleeps once jsonpath stops panicing.  The code still works without the sleep, it just looks nasty
+os::cmd::expect_success "oc process -f test/extended/fixtures/image-pull-secrets/pod-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - "
+os::cmd::try_until_text 'oc get pods/new-pull-pod -o jsonpath={.status.containerStatuses[0].imageID}' 'docker'
+os::cmd::expect_success "oc delete pods --all"
+os::cmd::expect_success "docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest"
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
-sleep 1
-wait_for_command "oc get pods/new-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}' | grep 'docker'" 30*TIME_SEC
-oc delete pods --all
-docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
+os::cmd::expect_success "oc process -f test/extended/fixtures/image-pull-secrets/pod-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - "
+os::cmd::try_until_text 'oc get pods/old-pull-pod -o jsonpath={.status.containerStatuses[0].imageID}' 'docker'
+os::cmd::expect_success "oc delete pods --all"
+os::cmd::expect_success "docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest"
 
+os::cmd::expect_success "oc process -f test/extended/fixtures/image-pull-secrets/dc-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - "
+os::cmd::try_until_text 'oc get pods/my-dc-old-1-hook-pre -o jsonpath={.status.containerStatuses[0].imageID}' 'docker'
+os::cmd::expect_success "oc delete all --all"
+os::cmd::expect_success "docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest"
 
-oc process -f test/extended/fixtures/image-pull-secrets/pod-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
-sleep 1
-wait_for_command "oc get pods/old-pull-pod -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
-oc delete pods --all
-docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
-
-oc process -f test/extended/fixtures/image-pull-secrets/dc-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
-sleep 4
-wait_for_command "oc get pods/my-dc-old-1-prehook -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
-oc delete all --all
-docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
-
-oc process -f test/extended/fixtures/image-pull-secrets/dc-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - 
-sleep 4
-wait_for_command "oc get pods/my-dc-1-prehook -o jsonpath={.status.containerStatuses[0].imageID} | grep 'docker'" 30*TIME_SEC
-oc delete all --all
-docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest
+os::cmd::expect_success "oc process -f test/extended/fixtures/image-pull-secrets/dc-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${DOCKER_REGISTRY} | oc create -f - "
+os::cmd::try_until_text 'oc get pods/my-dc-1-hook-pre -o jsonpath={.status.containerStatuses[0].imageID}' 'docker'
+os::cmd::expect_success "oc delete all --all"
+os::cmd::expect_success "docker rmi -f ${DOCKER_REGISTRY}/image-ns/busybox:latest"
