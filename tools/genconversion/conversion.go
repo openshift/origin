@@ -29,7 +29,7 @@ import (
 var (
 	functionDest = flag.StringP("funcDest", "f", "-", "Output for conversion functions; '-' means stdout")
 	group        = flag.StringP("group", "g", "", "Group for conversion.")
-	version      = flag.StringP("version", "v", "v1beta3", "Version for conversion.")
+	version      = flag.StringP("version", "v", "v1", "Version for conversion.")
 )
 
 func main() {
