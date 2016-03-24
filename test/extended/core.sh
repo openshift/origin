@@ -123,9 +123,11 @@ excluded_tests=(
   "Cluster level logging" # Not installed yet
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
+  Ubernetes               # Can't set zone labels today
   kube-ui                 # Not installed by default
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
   "\[Feature:Deployment\]" # Not enabled yet
+  "^Extended.Deployment\s" # Not enabled yet
   "paused deployment should be ignored by the controller" # Not enabled yet
   "deployment should create new pods" # Not enabled yet
   Ingress                 # Not enabled yet
