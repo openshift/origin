@@ -4,48 +4,43 @@
 This proposes a design for integrating [APIMan](http://www.apiman.io/) with OpenShift in order to provide  micro-services governance for API service providers.
 
 ## Motivation
-Providers of services may have the need to control who and how their services are consumed.  This may be realized as policies defined by providers to control a service
-in any number of ways (e.g security, throttling/quota, billing and metrics)<sup>[1](#r1)</sup>. 
+Providers of services may have the need to control who and how their services are consumed.  This will be realized as policies defined by providers to control their service in any number of ways (e.g security, throttling/quota, billing and metrics)<sup>[1](#r1)</sup>. 
 
 ## Constraints and Assumptions
 ### Authentication
-The OAuth token identifying a user in OpenShift will be utilized by APIMan to associate service policy to their identity.  This will ensure a user's identity is 
-ubiquitous across the cluster when interacting with OpenShift and the APIMan management console.
+The OAuth token identifying a user in OpenShift will be utilized by APIMan to associate service policy to their identity.  This will ensure a user's identity is ubiquitous across the cluster when interacting with OpenShift and the APIMan management console.
 
 ### Deployment
 #### Communication
-APIMan Components (e.g. gateway, management interface) integrated with the cluster will utilize mutual TLS for internal communication.
+APIMan components (e.g. gateway, management interface) integrated with the cluster will utilize mutual TLS for internal communication.
 
 #### Storage
-APIMan is capable of using several backends (e.g. ElasticSearch, Postgresql) to store configuration, policy, and metrics.  The initial integration will utilize an ElasticSearch cluster dedicated to APIMan.  The ElasticSearch image will be shared with aggregated logging.  The [ACL plugin](https://github.com/fabric8io/openshift-elasticsearch-plugin)<sup>[2](#r2)</sup> that is deployed
-as part of aggregated logging will be disabled in the APIMan ElasticSearch deployment. Additionally, the ElasicSearch index management<sup>[3](#r3)</sup>  will be modified so that it will not cull APIMan data.
+APIMan is capable of using several backends (e.g. ElasticSearch, Postgresql) to store configuration, policy, and metrics.  The initial integration will utilize an ElasticSearch cluster dedicated to APIMan.  The ElasticSearch image will be shared with aggregated logging.  The [ACL plugin](https://github.com/fabric8io/openshift-elasticsearch-plugin)<sup>[2](#r2)</sup> that is deployed as part of aggregated logging will be disabled in the APIMan ElasticSearch deployment. Additionally, the ElasicSearch index management<sup>[3](#r3)</sup>  will be modified so that it will not cull APIMan data.
 
 
-Cluster administrators can configure APIMan to use an alternate, off cluster ElasticSearch instance if desired.  Some organizations may have an existing instance of ElasticSearch cluster that already defines
-policy, and administrators may desire to use it instead of the one provided with aggregated logging.
+Cluster administrators can configure APIMan to use an alternate, off cluster ElasticSearch instance if desired.  Some organizations may have an existing instance of ElasticSearch cluster that already defines policy, and administrators may desire to use it instead of the one provided with aggregated logging.
 
 ## Use Cases
-* **UC01** As an API provider, I want to navigate from the OpenShift web console to the policy management interface, so I can define my service policies.
-* **UC02** As an API provider, I want to explicitly expose my service when navigating to the policy management interface, so that it is consumable according to my policies.  
+* **UC01** As an API provider, I want to navigate from the OpenShift web console to the APIMan management interface, so I can define my service policies.
+* **UC02** As an API provider, I want to explicitly expose my service when navigating to the APIMan  management interface, so that it is consumable according to my policies.  
 * **UC03** As a cluster administrator, I want a gateway to route API traffic only, so that it manages traffic based on a service's policies.
 * **UC04** As a cluster administrator, I want to deploy APIMan such that it has no dependencies on other integrated infrastructure components (e.g. ElasticSearch for logging).
 * **UC05** As an API consumer, I want to configure my services to consume other services.
 
 ## Specification
 
-API services will be scoped to OpenShift projects. Projects will have one-to-one relationship to an APIMan namespace (formally organization). APIMan will utilize namespace
-to organize policies for a service.
+API services will be scoped to OpenShift projects. Projects will have one-to-one relationship to an APIMan namespace (formally organization). APIMan will utilize namespace to organize policies for a service.
 
 ### Deployment Scenario - APIMan Gateway Fronted by a Router
 
-The primary deployment scenario is to deploy APIMan components as shown in **Figure 1**.  APIMan will be deployed as a cluster level service for managing API service end points. APIMan will be deployed with a dedicated ElasticSearch cluster for storage.  Communication between APIMan and ElasticSearch will make use of mutual TLS similiar to aggregated logging.  An APIMan deployer will handle installation of APIMan components including certificate and password generation as needed.
+The primary deployment scenario is to deploy APIMan components as shown in **Figure 1**.  APIMan will be deployed as a cluster level service for managing API service end points.  APIMan will be deployed with a dedicated ElasticSearch cluster for storage.  Communication between APIMan and ElasticSearch will make use of mutual TLS similiar to aggregated logging.  An APIMan deployer will handle installation of APIMan components including certificate and password generation as needed.
 
 
 **Figure 1 - APIMan Deployment Diagram**
 
 ![APIMan Deployment Diagram](apiman_deployment_diagram.png "Figure 1")
 
-The APIMan gateway is deployed in conjunction with a supported OpenShift router.  A typical request to a managed endpoint is initially routed to the gateway and then further routed by the gateway to the targeted service.  This flow can be seen in **Figure 2** where the APIMan gateway relies upon the service proxy to find pods.  This scenario will most likely negate features provided by the router such as affinity, dynamic reloading, route scaling, etc.  This deployment scenario was chosen as it is the simplest to implement given current time constraints and APIMan's current feature set.     
+The APIMan gateway is deployed in conjunction with a supported OpenShift router.  A typical request to a managed endpoint is initially routed to the gateway and then further routed by the gateway to the targeted service.  This flow can be seen in **Figure 2** where the APIMan gateway relies upon the service proxy to find pods.  This deployment scenario was chosen as it is the simplest to implement given current time constraints and APIMan's current feature set.     
 
 **Figure 2 - Managed Service Request Flow with APIMan Gateway and Router**
 
@@ -66,63 +61,64 @@ Services intended to be managed and exposed as API Endpoints will be annotated<s
       api.service.kubernetes.io/description-path: cxfcdi/swagger.json
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
-Additionally, services that should be managed by APIMan will be further annotated identifying who is managing the service.  The proposed annotation is:
+Additionally, services will be further annotated identifying who is managing the service.  The proposed annotation is:
 ```
   openshift.io/service-managed-by: apiman
 ```
-
-Service providers will need to explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
+Service providers will explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
 
 ### OpenShift CLI Modifications
-Modifications to the openshift client binary are a stretch goal for the initial integration.  It will be updated to allow a user to:
-* Expose an API endpoint.  
-Exposing the service will update the service annotation as described by the service annotation section.  Proposed usage syntax:<p>
-``` oc set api-service SERVICENAME ```<p>
+The following changes are stretch goals for the initial release.  The OpenShift client binary will be updated to allow a user to:
 
-  with override options and their defaults:
+ * Expose a service as an API endpoint
+ * Hide an API endpoint.  
+
+Executing the command will update the service's annotations as described in the service annotation section.  Proposed syntax:
+
+``` oc set api-service SERVICENAME ```
+
+  with override options and the defaults:
   
 ```  
     --protocol               REST
     --scheme                 https
-    --path                   <SERVICENAME>
-    --description-path       <SERVICENAME>/swagger.json
+    --path                   ""
+    --description-path       swagger.json
     --description-language   SwaggerJSON
 ```
-  Exposing a service as an API endpoint will additionally create a named route for the service that has the same route host as that of API Gateway.  The output of the command should return a route to the service.
+  Identifying a service as an API endpoint will additionally create a named route for the service that has the same route host as that of API Gateway.  The output of the command should return a route to the service.
 
+Hiding an API endpoint will remove the annotations from a service.  The change will additionally cause APIMan to remove this service endpoint.  Possible usage syntax:
 
-* Hide an API endpoint.  
-Hiding an API endpoint will remove the annotations from a service.  The change will additionally cause APIMan to remove this service endpoint.  Possible usage syntax:<p>
 ```oc unset api-service SERVICENAME```
 
-### Origin Web Console UI extension
-A custom extension<sup>[6](#r6)</sup> will be created and hooked into the web console to support API endpoints.  The extension
-will allow a user to navigate to the APIMan management interface to:
+### OpenShift Web Console UI Extension
+A custom extension<sup>[6](#r6)</sup> will be created and deployed with the OpenShift web console to support API endpoints.  The extension will allow a user to navigate to the APIMan management interface to:
+
 * Manage an API endpoint
 * Expose an annotated service as a new API endpoint
 
-The extension will provide the following details to the APIMan gateway:
+The extension will provide the following details to the APIMan management interface:
+
 * Service name
 * Service namespace
 * User's Oauth token
 * Back link to the openshift web console
 
-Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will
-utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for
-security reasons to not add the token as a query parameter.  
+Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for security reasons to not add the token as a query parameter.  
 
-### API Services Gateway
-The APIMan gateway will be deployed as a cluster-wide infrastructure component to handle services exposed as API endpoints.  Internal and external clients can use the gateway to access APIs.  Admins can configure the cluster to limit direct access to services and require consumers of API endpoints to utilize the gateway by deploying the multi-tenant SDN plugin.  This plugin controls service to service communication between projects and would force traffic through the gateway.  A route will be created as a well known endpoint to the APIMan gateway through which all API services traffic will flow.
+### APIMan Gateway
+The APIMan gateway will be deployed as a cluster-wide infrastructure component to handle services exposed as API endpoints.  Internal and external clients will use the gateway to access APIs.  Admins can configure the cluster to limit direct access to services and require consumers of API endpoints to utilize the gateway by deploying the multi-tenant SDN plugin.  This plugin controls service to service communication between projects and will force traffic through the gateway.  A route will be created as a well known endpoint to the APIMan gateway through which all API services traffic will flow.
 
 #### Service Consumption & Authentication
-The details of service authentication and consumption depend upon the type (i.e public, contracted) of published service and the policies associated with it. Users of a public service need to only full-fill the policies associated with the service.  Users of contracted services will provide an APIMan generated API token with their request.  These are fundamental features of APIMan and are described here to provide a basic understanding of consuming APIMan controlled services.  Additional information can be found in the [APIMan](http://www.apiman.io/) documentation.
+The details of service authentication and consumption depend upon the type (i.e public, contracted) of published service and the policies associated with it. Users of a public service need to only full-fill the policies associated with the service in order to use the endpoint.  Users of contracted services will submit an APIMan generated token with their request.  These are fundamental features of APIMan and are described here to provide a basic understanding of consuming APIMan controlled services.  Additional information can be found in the [APIMan](http://www.apiman.io/) documentation.
 
 ## Concerns
 ### Scalability
-There is a concern that utilizing ElasticSearch for storage is not as well understood as other options.  Additionally, performance testing will need to be conducted to confirm the impact of adding a second, small ElasticSearch cluster to the infrastructure.  An alternative solution is to deploy a different storage engine such as Postgresql which is better understood, has a smaller resource footprint but introduces scaling challenges.  APIMan also generates some metrics data which affects its storage requirements; metrics could be off-loaded to the existing origin metrics<sup>[9](#r9)</sup> solution.  There is an existing RFE to investigate this change.
+There is a concern that utilizing ElasticSearch for storage is not as well understood as other options (e.g Postgresql).  Additionally, performance testing will need to be conducted to confirm the impact of adding a second, small ElasticSearch cluster to the infrastructure.  An alternative solution is to deploy a different storage engine which is better understood, has a smaller resource footprint but introduces scaling challenges.  APIMan can also generate metrics data which impacts its storage requirements; metrics could be off-loaded to the existing origin metrics<sup>[9](#r9)</sup> solution.  There is an existing RFE to investigate this change.  APIMan will initially be deployed with metrics disabled to minimize its storage requirements.
 
 ### Certificates
-This proposal provides a deployer component to handle CA and client certificates similiar to what is provided as with origin metrics and aggregated logging.
+This proposal provides a deployer component to handle CA and client certificates similiar to what is provided as with origin metrics and aggregated logging.  The same concerns that affect aggregated logging and metrics apply to APIMan: certificate expiration, certificate generation, etc.
 
 ### APIMan Behind a Router
 We need to better understand and document how placing the APIMan gateway behind a router will affect the network characteristics of requests to a managed endpoint.  Further investigation is required to understand things such as session affinity, dynamic reloading, route scaling, etc.
