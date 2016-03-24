@@ -331,7 +331,8 @@
                     "value": "custom_value1"
                   }
                 ],
-                "containerName": "ruby-helloworld-database"
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
               }
             },
             "mid": {
@@ -346,7 +347,8 @@
                     "value": "custom_value2"
                   }
                 ],
-                "containerName": "ruby-helloworld-database"
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
               }
             },
             "post": {
@@ -361,7 +363,8 @@
                     "value": "custom_value2"
                   }
                 ],
-                "containerName": "ruby-helloworld-database"
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
               }
             }
           },
