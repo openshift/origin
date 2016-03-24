@@ -283,6 +283,47 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestDeleteDir(t *testing.T) {
+	obj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	server := etcdtesting.NewEtcdTestClientServer(t)
+	defer server.Terminate(t)
+	helper := newEtcdHelper(server.Client, testapi.Default.Codec(), etcdtest.PathPrefix())
+	returnedObj := &api.Pod{}
+	err := helper.Create(context.TODO(), "/parent/key", obj, returnedObj, 5)
+	if err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+	_, err = runtime.Encode(testapi.Default.Codec(), obj)
+	if err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+
+	// Directory /parent should now exist and be non-empty; deleting it should fail
+	err = helper.DeleteDir(context.TODO(), "/parent", "Pod")
+	if err == nil {
+		t.Error("Expected error when deleting non-empty directory /parent")
+	}
+
+	// Delete the object and make sure we get the same one back
+	err = helper.Delete(context.TODO(), "/parent/key", returnedObj)
+	if err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+	_, err = runtime.Encode(testapi.Default.Codec(), returnedObj)
+	if err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+	if obj.Name != returnedObj.Name {
+		t.Errorf("Wanted %v, got %v", obj.Name, returnedObj.Name)
+	}
+
+	// Directory /parent is now empty, so we should be able to delete it
+	err = helper.DeleteDir(context.TODO(), "/parent", "Pod")
+	if err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+}
+
 func TestCreateNilOutParam(t *testing.T) {
 	obj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	server := etcdtesting.NewEtcdTestClientServer(t)
