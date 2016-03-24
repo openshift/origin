@@ -9,7 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -94,7 +93,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 func (d *MasterNode) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 
-	nodes, err := d.KubeClient.Nodes().List(kapi.ListOptions{LabelSelector: labels.Nothing()})
+	nodes, err := d.KubeClient.Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		r.Error("DClu3002", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r
