@@ -27,7 +27,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
-  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  DB_IP=$(oc get -n $1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
@@ -35,7 +35,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
-  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n $1 --template="{{ .spec.portalIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
   wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -89,7 +89,7 @@ wait_for_registry
 oc logs rc/docker-registry-1 > /dev/null
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --template="{{ .spec.portalIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
@@ -127,6 +127,48 @@ echo "[INFO] Pushed ruby-22-centos7"
 # verify remote images can be pulled directly from the local registry
 oc import-image --confirm --from=mysql:latest mysql:pullthrough
 docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
+
+# verify we can pull from tagged image (using tag)
+echo "[INFO] Removing ruby-22-centos7 images before next pull"
+imageid=$(docker images | grep centos/ruby-22-centos7 | awk '{ print $3 }')
+
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to the same image stream and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7:latest ruby-22-centos7:new-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-tag"
+echo "[INFO] The same image stream pull successful"
+
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to cross repository and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
+echo "[INFO] Cross repository pull successful"
+
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/ruby-22-centos7:latest cross:namespace-pull -n custom"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+echo "[INFO] Cross namespace pull successful"
+
+# verify we can pull from tagged image (using imageid)
+tagid=$(oc get istag ruby-22-centos7:latest --template={{.image.metadata.name}})
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to the same image stream and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} ruby-22-centos7:new-id-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-id-tag"
+echo "[INFO] The same image stream pull successful"
+
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross repository and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} cross:repo-pull-id"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
+echo "[INFO] Cross repository pull successful"
+
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/ruby-22-centos7@${tagid} cross:namespace-pull-id -n custom"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+echo "[INFO] Cross namespace pull successful"
 
 # check to make sure an image-pusher can push an image
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'
@@ -287,7 +329,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+os::cmd::try_until_text "oc get endpoints router --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"

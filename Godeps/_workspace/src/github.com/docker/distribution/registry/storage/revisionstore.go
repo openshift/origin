@@ -88,11 +88,6 @@ func (rs *revisionStore) put(ctx context.Context, sm *schema1.SignedManifest) (d
 		return distribution.Descriptor{}, err
 	}
 
-	// Link the revision into the repository.
-	if err := rs.blobStore.linkBlob(ctx, revision); err != nil {
-		return distribution.Descriptor{}, err
-	}
-
 	// Grab each json signature and store them.
 	signatures, err := sm.Signatures()
 	if err != nil {
