@@ -37,7 +37,23 @@
 
     <div ng-view></div>
 
-    <noscript class="attention-message"><h1>To use OpenShift, please enable JavaScript.</h1></noscript>
+    <noscript>
+      <nav class="navbar navbar-pf-alt" role="navigation">
+        <div row>
+          <div class="navbar-header">
+            <a class="navbar-brand" id="openshift-logo" href="./">
+              <div id="header-logo"></div>
+            </a>
+          </div>
+        </div>
+      </nav>
+      <div class="attention-message">
+        <h1>JavaScript Required</h1>
+        <p>The OpenShift web console requires JavaScript to provide a rich interactive experience. Please
+        enable JavaScript to continue. If you do not wish to enable JavaScript or are unable to do so,
+        you may use the command-line tools to manage your projects and applications instead.</p>
+      </div>
+    </noscript>
 
     <script src="config.js"></script>
 
