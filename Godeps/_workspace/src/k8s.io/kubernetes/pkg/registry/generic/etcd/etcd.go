@@ -534,10 +534,20 @@ func (e *Etcd) DeleteCollection(ctx api.Context, options *api.DeleteOptions, lis
 		}()
 	}
 	wg.Wait()
+
 	select {
 	case err := <-errs:
 		return nil, err
 	default:
+		anyLabels := listOptions.LabelSelector == nil || listOptions.LabelSelector.Empty()
+		anyFields := listOptions.FieldSelector == nil || listOptions.FieldSelector.Empty()
+
+		if anyLabels && anyFields && api.NamespaceValue(ctx) != "" {
+			// Try to delete the directory, which will only succeed if the directory is empty.
+			// We can ignore errors since the cost of an empty directory is relatively small.
+			e.Storage.DeleteDir(ctx, e.KeyRootFunc(ctx))
+		}
+
 		return listObj, nil
 	}
 }
