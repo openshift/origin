@@ -18,7 +18,7 @@
                 </div>
                 <form name="form" ng-submit="save()" class="osc-form" ng-show="targetKind && targetName">
                   <h1>
-                    Autoscale {{targetKind | humanizeKind}} {{targetName}}</span>
+                    Autoscale {{targetKind | humanizeKind}} {{targetName}}
                   </h1>
                   <div class="help-block">
                     Scale replicas automatically based on CPU usage.
@@ -59,7 +59,6 @@
                       <button
                           type="submit"
                           class="btn btn-primary btn-lg"
-                          type="submit"
                           ng-disabled="form.$invalid || form.$pristine">
                         Save
                       </button>
