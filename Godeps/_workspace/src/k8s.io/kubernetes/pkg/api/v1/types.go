@@ -3018,6 +3018,9 @@ type SecurityContextConstraints struct {
 	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
+	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
+	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.
+	Volumes []FSType `json:"volumes"`
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
 	// AllowHostPorts determines if the policy allows host ports in the containers.
@@ -3046,6 +3049,32 @@ type SecurityContextConstraints struct {
 	// The groups that have permission to use this security context constraints
 	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints"`
 }
+
+// FS Type gives strong typing to different file systems that are used by volumes.
+type FSType string
+
+var (
+	FSTypeAzureFile             FSType = "azureFile"
+	FSTypeFlocker               FSType = "flocker"
+	FSTypeFlexVolume            FSType = "flexVolume"
+	FSTypeHostPath              FSType = "hostPath"
+	FSTypeEmptyDir              FSType = "emptyDir"
+	FSTypeGCEPersistentDisk     FSType = "gcePersistentDisk"
+	FSTypeAWSElasticBlockStore  FSType = "awsElasticBlockStore"
+	FSTypeGitRepo               FSType = "gitRepo"
+	FSTypeSecret                FSType = "secret"
+	FSTypeNFS                   FSType = "nfs"
+	FSTypeISCSI                 FSType = "iscsi"
+	FSTypeGlusterfs             FSType = "glusterfs"
+	FSTypePersistentVolumeClaim FSType = "persistentVolumeClaim"
+	FSTypeRBD                   FSType = "rbd"
+	FSTypeCinder                FSType = "cinder"
+	FSTypeCephFS                FSType = "cephFS"
+	FSTypeDownwardAPI           FSType = "downwardAPI"
+	FSTypeFC                    FSType = "fc"
+	FSTypeConfigMap             FSType = "configMap"
+	FSTypeAll                   FSType = "*"
+)
 
 // SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
 type SELinuxContextStrategyOptions struct {

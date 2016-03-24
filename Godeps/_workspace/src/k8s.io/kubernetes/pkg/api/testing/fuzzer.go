@@ -443,6 +443,29 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
 			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
 			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+
+			// when fuzzing the volume types ensure it is set to avoid the defaulter's expansion.
+			// Do not use FSTypeAll or host dir setting to steer clear of defaulting mechanics
+			// which are covered in specific unit tests.
+			volumeTypes := []api.FSType{api.FSTypeAWSElasticBlockStore,
+				api.FSTypeAzureFile,
+				api.FSTypeCephFS,
+				api.FSTypeCinder,
+				api.FSTypeDownwardAPI,
+				api.FSTypeEmptyDir,
+				api.FSTypeFC,
+				api.FSTypeFlexVolume,
+				api.FSTypeFlocker,
+				api.FSTypeGCEPersistentDisk,
+				api.FSTypeGitRepo,
+				api.FSTypeGlusterfs,
+				api.FSTypeISCSI,
+				api.FSTypeNFS,
+				api.FSTypePersistentVolumeClaim,
+				api.FSTypeRBD,
+				api.FSTypeSecret}
+			scc.Volumes = []api.FSType{volumeTypes[c.Rand.Intn(len(volumeTypes))]}
+
 		},
 	)
 	return f
