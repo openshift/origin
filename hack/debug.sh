@@ -269,6 +269,10 @@ do_node () {
     echo_and_eval  brctl show                              &> $lognode/bridges
     echo_and_eval  ovs-ofctl -O OpenFlow13 dump-flows br0  &> $lognode/flows
     echo_and_eval  ovs-ofctl -O OpenFlow13 show br0        &> $lognode/ovs-show
+    echo_and_eval  systemctl cat docker.service            &> $lognode/docker-unit-file
+    echo_and_eval  cat `systemctl cat docker.service | grep EnvironmentFile.\*openshift-sdn | awk -F=- '{print $2}'` \
+                                                           &> $lognode/docker-network-file
+
 
     # Iterate over all pods on this node, and log some data about them.
     # Remember the name, address, namespace, and pid of the first pod we find on
