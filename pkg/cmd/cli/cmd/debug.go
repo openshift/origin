@@ -525,7 +525,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	pod.ResourceVersion = ""
 	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
 	// TODO: shorten segments, make incrementing?
-	pod.Name = fmt.Sprintf("debug-%s", pod.Name)
+	pod.Name = fmt.Sprintf("%s-debug", pod.Name)
 	pod.Status = kapi.PodStatus{}
 	pod.UID = ""
 	pod.CreationTimestamp = unversioned.Time{}
