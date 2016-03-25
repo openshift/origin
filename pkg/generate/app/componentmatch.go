@@ -18,6 +18,9 @@ type ComponentMatch struct {
 	Insecure    bool
 	LocalOnly   bool
 	NoTagsFound bool
+	// this match represents a scratch image, there is no
+	// actual image/pullspec.
+	Virtual bool
 
 	// The source of the match. Generally only a single source is
 	// available.
