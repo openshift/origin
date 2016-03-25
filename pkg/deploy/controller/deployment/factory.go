@@ -96,7 +96,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
-		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer"}),
+		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployment-controller"}),
 	}
 
 	return &controller.RetryController{
