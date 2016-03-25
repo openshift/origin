@@ -227,7 +227,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 }
 
 // AddArguments converts command line arguments into the appropriate bucket based on what they look like
-func (c *AppConfig) AddArguments(args []string) []string {
+func (c *AppConfig) CompleteArguments(args []string) []string {
 	unknown := []string{}
 	for _, s := range args {
 		switch {

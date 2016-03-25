@@ -133,7 +133,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
 		appCfg.KubeClient = ktestclient.NewSimpleFake()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
-		appCfg.AddArguments([]string{c.templateName})
+		appCfg.CompleteArguments([]string{c.templateName})
 		appCfg.TemplateParameters = []string{}
 		for k, v := range c.parms {
 			appCfg.TemplateParameters = append(appCfg.TemplateParameters, fmt.Sprintf("%v=%v", k, v))

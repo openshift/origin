@@ -11,12 +11,11 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
@@ -80,10 +79,24 @@ on the Docker Hub.
 `
 )
 
+type NewBuildOptions struct {
+	Config *newcmd.AppConfig
+
+	CommandPath string
+	CommandName string
+
+	Out, ErrOut   io.Writer
+	Output        string
+	PrintObject   func(obj runtime.Object) error
+	LogsForObject LogsForObjectFunc
+}
+
 // NewCmdNewBuild implements the OpenShift cli new-build command
 func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
+	config.AddEnvironmentToBuild = true
+	options := &NewBuildOptions{Config: config}
 
 	cmd := &cobra.Command{
 		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
@@ -92,13 +105,8 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 		Example:    fmt.Sprintf(newBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
-			mapper, typer := f.Object()
-			config.Mapper = mapper
-			config.Typer = typer
-			config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
-
-			config.AddEnvironmentToBuild = true
-			err := RunNewBuild(fullName, f, out, in, c, args, config)
+			kcmdutil.CheckErr(options.Complete(fullName, f, c, args, out, in))
+			err := options.Run()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -132,29 +140,50 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	return cmd
 }
 
-// RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
-func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Reader, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	output := kcmdutil.GetFlagString(c, "output")
-	shortOutput := output == "name"
+// Complete sets any default behavior for the command
+func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer, in io.Reader) error {
+	o.Out = out
+	o.ErrOut = c.Out()
+	o.Output = kcmdutil.GetFlagString(c, "output")
+	// Only output="" should print descriptions of intermediate steps. Everything
+	// else should print only some specific output (json, yaml, go-template, ...)
+	if len(o.Output) == 0 {
+		o.Config.Out = o.Out
+	} else {
+		o.Config.Out = ioutil.Discard
+	}
+	o.Config.ErrOut = o.ErrOut
 
-	if config.Dockerfile == "-" {
+	o.CommandPath = c.CommandPath()
+	o.CommandName = fullName
+	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, out)
+	o.LogsForObject = f.LogsForObject
+	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+		return err
+	}
+	if o.Config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
 		if err != nil {
 			return err
 		}
-		config.Dockerfile = string(data)
+		o.Config.Dockerfile = string(data)
 	}
-
-	if err := setupAppConfig(f, out, c, args, config); err != nil {
+	if err := setAppConfigLabels(c, o.Config); err != nil {
 		return err
 	}
+	return nil
+}
 
-	if err := setAppConfigLabels(c, config); err != nil {
-		return err
-	}
+// Run contains all the necessary functionality for the OpenShift cli new-build command
+func (o *NewBuildOptions) Run() error {
+	config := o.Config
+	out := o.Out
+	output := o.Output
+	shortOutput := output == "name"
+
 	result, err := config.Run()
 	if err != nil {
-		return handleBuildError(c, err, fullName)
+		return handleBuildError(err, o.CommandName, o.CommandPath)
 	}
 
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
@@ -173,12 +202,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	case shortOutput:
 		indent = ""
 	case len(output) != 0:
-		result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
-		if err != nil {
-			return err
-		}
-
-		return f.Factory.PrintObject(c, result.List, out)
+		return o.PrintObject(result.List)
 	default:
 		if len(config.Labels) > 0 {
 			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
@@ -191,8 +215,8 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		return nil
 	}
 
-	mapper, _ := f.Object()
-	if err := createObjects(f, configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent), result); err != nil {
+	afterFn := configcmd.NewPrintNameOrErrorAfterIndent(config.Mapper, shortOutput, "created", out, config.ErrOut, indent)
+	if err := createObjects(config, afterFn, result); err != nil {
 		return err
 	}
 
@@ -206,7 +230,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 && t.Spec.Source.Binary == nil {
 				fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
-				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, fullName, t.Name)
+				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, o.CommandName, t.Name)
 			}
 		}
 	}
@@ -214,7 +238,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	return nil
 }
 
-func handleBuildError(c *cobra.Command, err error, fullName string) error {
+func handleBuildError(err error, fullName, commandPath string) error {
 	if err == nil {
 		return nil
 	}
@@ -224,7 +248,7 @@ func handleBuildError(c *cobra.Command, err error, fullName string) error {
 	}
 	groups := errorGroups{}
 	for _, err := range errs {
-		transformBuildError(err, c, fullName, groups)
+		transformBuildError(err, fullName, commandPath, groups)
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
@@ -237,7 +261,7 @@ func handleBuildError(c *cobra.Command, err error, fullName string) error {
 	return fmt.Errorf(buf.String())
 }
 
-func transformBuildError(err error, c *cobra.Command, fullName string, groups errorGroups) {
+func transformBuildError(err error, fullName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
 		groups.Add(
@@ -252,12 +276,12 @@ func transformBuildError(err error, c *cobra.Command, fullName string, groups er
 
 				--allow-missing-images can be used to force the use of an image that was not matched
 
-				See '%[1]s -h' for examples.`, c.CommandPath(),
+				See '%[1]s -h' for examples.`, commandPath,
 			),
 			t,
 			t.Errs...,
 		)
 		return
 	}
-	transformError(err, c, fullName, groups)
+	transformError(err, fullName, commandPath, groups)
 }

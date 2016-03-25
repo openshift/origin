@@ -31,7 +31,6 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -119,24 +118,33 @@ To search templates, image streams, and Docker images that match the arguments p
 `
 )
 
+type NewAppOptions struct {
+	Config *newcmd.AppConfig
+
+	CommandPath string
+	CommandName string
+
+	Out, ErrOut   io.Writer
+	Output        string
+	PrintObject   func(obj runtime.Object) error
+	LogsForObject LogsForObjectFunc
+}
+
 // NewCmdNewApplication implements the OpenShift cli new-app command
-func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewApplication(commandName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
+	options := &NewAppOptions{Config: config}
 
 	cmd := &cobra.Command{
 		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
 		Short:      "Create a new application",
-		Long:       fmt.Sprintf(newAppLong, fullName),
-		Example:    fmt.Sprintf(newAppExample, fullName),
+		Long:       fmt.Sprintf(newAppLong, commandName),
+		Example:    fmt.Sprintf(newAppExample, commandName),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			mapper, typer := f.Object()
-			config.Mapper = mapper
-			config.Typer = typer
-			config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
-
-			err := RunNewApplication(fullName, f, out, c, args, config)
+			kcmdutil.CheckErr(options.Complete(commandName, f, c, args, out))
+			err := options.Run()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -181,37 +189,55 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	return cmd
 }
 
-// RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
-func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	output := kcmdutil.GetFlagString(c, "output")
-	shortOutput := output == "name"
+// Complete sets any default behavior for the command
+func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+	o.Out = out
+	o.ErrOut = c.Out()
+	o.Output = kcmdutil.GetFlagString(c, "output")
+	// Only output="" should print descriptions of intermediate steps. Everything
+	// else should print only some specific output (json, yaml, go-template, ...)
+	if len(o.Output) == 0 {
+		o.Config.Out = o.Out
+	} else {
+		o.Config.Out = ioutil.Discard
+	}
+	o.Config.ErrOut = o.ErrOut
 
-	if err := setupAppConfig(f, out, c, args, config); err != nil {
+	o.CommandPath = c.CommandPath()
+	o.CommandName = commandName
+	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, out)
+	o.LogsForObject = f.LogsForObject
+	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err
 	}
+	if err := setAppConfigLabels(c, o.Config); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Run contains all the necessary functionality for the OpenShift cli new-app command
+func (o *NewAppOptions) Run() error {
+	config := o.Config
+	out := o.Out
+	output := o.Output
+	shortOutput := output == "name"
 
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
-			return handleRunError(c, err, fullName)
+			return handleRunError(err, o.CommandName, o.CommandPath)
 		}
 
 		if len(output) != 0 {
-			result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
-			if err != nil {
-				return err
-			}
-
-			return f.Factory.PrintObject(c, result.List, out)
+			return o.PrintObject(result.List)
 		}
 
-		return printHumanReadableQueryResult(result, out, fullName)
+		return printHumanReadableQueryResult(result, out, o.CommandName)
 	}
-	if err := setAppConfigLabels(c, config); err != nil {
-		return err
-	}
+
 	result, err := config.Run()
-	if err := handleRunError(c, err, fullName); err != nil {
+	if err := handleRunError(err, o.CommandName, o.CommandPath); err != nil {
 		return err
 	}
 
@@ -232,12 +258,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	case shortOutput:
 		indent = ""
 	case len(output) != 0:
-		result.List.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(c, result.List.Items)
-		if err != nil {
-			return err
-		}
-
-		return f.Factory.PrintObject(c, result.List, out)
+		return o.PrintObject(result.List)
 	case !result.GeneratedJobs:
 		if len(config.Labels) > 0 {
 			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
@@ -250,18 +271,17 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return nil
 	}
 
-	mapper, _ := f.Object()
 	var afterFn configcmd.AfterFunc
 	switch {
 	// only print success if we don't have installables
 	case !result.GeneratedJobs:
-		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(mapper, shortOutput, "created", out, c.Out(), indent)
+		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(config.Mapper, shortOutput, "created", out, config.ErrOut, indent)
 	default:
-		afterFn = configcmd.NewPrintErrorAfter(mapper, c.Out())
+		afterFn = configcmd.NewPrintErrorAfter(config.Mapper, config.ErrOut)
 		afterFn = configcmd.HaltOnError(afterFn)
 	}
 
-	if err := createObjects(f, afterFn, result); err != nil {
+	if err := createObjects(config, afterFn, result); err != nil {
 		return err
 	}
 
@@ -308,34 +328,30 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 
 	switch {
 	case len(installing) == 1:
-		// TODO: should get this set on the config or up above
-		_, kclient, err := f.Clients()
-		if err != nil {
-			return err
-		}
 		jobInput := installing[0].Annotations[newcmd.GeneratedForJobFor]
-		return followInstallation(f, jobInput, installing[0], kclient, out)
+		return followInstallation(config, jobInput, installing[0], o.LogsForObject)
 	case len(installing) > 1:
 		for i := range installing {
-			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, fullName, installing[i].Name)
+			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.CommandName, installing[i].Name)
 		}
 	case len(result.List.Items) > 0:
-		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, fullName, StatusRecommendedName)
+		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, o.CommandName, StatusRecommendedName)
 	}
 	return nil
 }
 
-func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclient kclient.Interface, out io.Writer) error {
-	fmt.Fprintf(out, "--> Installing ...\n")
+type LogsForObjectFunc func(object, options runtime.Object) (*restclient.Request, error)
+
+func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, logsForObjectFn LogsForObjectFunc) error {
+	fmt.Fprintf(config.Out, "--> Installing ...\n")
 
 	// we cannot retrieve logs until the pod is out of pending
 	// TODO: move this to the server side
-	podClient := kclient.Pods(pod.Namespace)
-	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, kclient.Secrets(pod.Namespace))); err != nil {
+	podClient := config.KubeClient.Pods(pod.Namespace)
+	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, config.KubeClient.Secrets(pod.Namespace))); err != nil {
 		return err
 	}
 
-	mapper, typer := f.Object()
 	opts := &kcmd.LogsOptions{
 		Namespace:   pod.Namespace,
 		ResourceArg: pod.Name,
@@ -343,16 +359,16 @@ func followInstallation(f *clientcmd.Factory, input string, pod *kapi.Pod, kclie
 			Follow:    true,
 			Container: pod.Spec.Containers[0].Name,
 		},
-		Mapper:        mapper,
-		Typer:         typer,
-		ClientMapper:  resource.ClientMapperFunc(f.ClientForMapping),
-		LogsForObject: f.LogsForObject,
-		Out:           out,
+		Mapper:        config.Mapper,
+		Typer:         config.Typer,
+		ClientMapper:  config.ClientMapper,
+		LogsForObject: logsForObjectFn,
+		Out:           config.Out,
 	}
 	_, logErr := opts.RunLogs()
 
 	// status of the pod may take tens of seconds to propagate
-	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, out)); err != nil {
+	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, config.Out)); err != nil {
 		if err == wait.ErrWaitTimeout {
 			if logErr != nil {
 				// output the log error if one occurred
@@ -441,7 +457,18 @@ func getDockerClient() (*docker.Client, error) {
 	return nil, err
 }
 
-func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.Command, args []string) error {
+	mapper, typer := f.Object()
+	if config.Mapper == nil {
+		config.Mapper = mapper
+	}
+	if config.Typer == nil {
+		config.Typer = typer
+	}
+	if config.ClientMapper == nil {
+		config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
+	}
+
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -455,16 +482,6 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	dockerClient, _ := getDockerClient()
 	config.SetOpenShiftClient(osclient, namespace, dockerClient)
 
-	// Only output="" should print descriptions of intermediate steps. Everything
-	// else should print only some specific output (json, yaml, go-template, ...)
-	output := kcmdutil.GetFlagString(c, "output")
-	if len(output) == 0 {
-		config.Out = out
-	} else {
-		config.Out = ioutil.Discard
-	}
-	config.ErrOut = c.Out()
-
 	if config.AllowSecretUse {
 		cfg, err := f.OpenShiftClientConfig.ClientConfig()
 		if err != nil {
@@ -473,7 +490,7 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 		config.SecretAccessor = newConfigSecretRetriever(cfg)
 	}
 
-	unknown := config.AddArguments(args)
+	unknown := config.CompleteArguments(args)
 	if len(unknown) != 0 {
 		return kcmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
@@ -552,12 +569,11 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newcmd.AppResult) error {
-	mapper, typer := f.Factory.Object()
+func createObjects(config *newcmd.AppConfig, after configcmd.AfterFunc, result *newcmd.AppResult) error {
 	bulk := configcmd.Bulk{
-		Mapper:            mapper,
-		Typer:             typer,
-		RESTClientFactory: f.Factory.ClientForMapping,
+		Mapper:            config.Mapper,
+		Typer:             config.Typer,
+		RESTClientFactory: config.ClientMapper.ClientForMapping,
 
 		After: after,
 		// Retry is used to support previous versions of the API server that will
@@ -570,7 +586,7 @@ func createObjects(f *clientcmd.Factory, after configcmd.AfterFunc, result *newc
 	return nil
 }
 
-func handleRunError(c *cobra.Command, err error, fullName string) error {
+func handleRunError(err error, commandName, commandPath string) error {
 	if err == nil {
 		return nil
 	}
@@ -580,7 +596,7 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 	}
 	groups := errorGroups{}
 	for _, err := range errs {
-		transformError(err, c, fullName, groups)
+		transformError(err, commandName, commandPath, groups)
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
@@ -607,7 +623,7 @@ func (g errorGroups) Add(group string, suggestion string, err error, errs ...err
 	g[group] = all
 }
 
-func transformError(err error, c *cobra.Command, fullName string, groups errorGroups) {
+func transformError(err error, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
@@ -650,7 +666,7 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 
 				--allow-missing-images can be used to point to an image that does not exist yet.
 
-				See '%[1]s -h' for examples.`, c.CommandPath(),
+				See '%[1]s -h' for examples.`, commandPath,
 			),
 			t,
 			t.Errs...,
@@ -710,13 +726,18 @@ func transformError(err error, c *cobra.Command, fullName string, groups errorGr
 		groups.Add("", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
 	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
-		groups.Add("", "", kcmdutil.UsageError(c, newAppNoInput, fullName))
+		groups.Add("", "", usageError(commandPath, newAppNoInput, commandName))
 	default:
 		groups.Add("", "", err)
 	}
 }
 
-func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullName string) error {
+func usageError(commandPath, format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	return fmt.Errorf("%s\nSee '%s -h' for help and examples.", msg, commandPath)
+}
+
+func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, commandName string) error {
 	if len(r.Matches) == 0 {
 		return fmt.Errorf("no matches found")
 	}

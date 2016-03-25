@@ -98,8 +98,8 @@ func TestNewAppAddArguments(t *testing.T) {
 	}
 
 	for n, c := range tests {
-		a := cmd.AppConfig{}
-		unknown := a.AddArguments(c.args)
+		a := &cmd.AppConfig{}
+		unknown := a.CompleteArguments(c.args)
 		if !reflect.DeepEqual(a.Environment, c.env) {
 			t.Errorf("%s: Different env variables. Expected: %v, Actual: %v", n, c.env, a.Environment)
 		}
