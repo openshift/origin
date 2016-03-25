@@ -271,7 +271,6 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
-    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -283,6 +282,15 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups: null
     attributeRestrictions: null
@@ -436,7 +444,6 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
-    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -448,6 +455,15 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups: null
     attributeRestrictions: null
