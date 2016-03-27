@@ -32,7 +32,9 @@ func TestValidate(t *testing.T) {
 	}{
 		"components": {
 			cfg: AppConfig{
-				Components: []string{"one", "two", "three/four"},
+				ComponentInputs: ComponentInputs{
+					Components: []string{"one", "two", "three/four"},
+				},
 			},
 			componentValues:     []string{"one", "two", "three/four"},
 			sourceRepoLocations: []string{},
@@ -41,7 +43,9 @@ func TestValidate(t *testing.T) {
 		},
 		"envs": {
 			cfg: AppConfig{
-				Environment: []string{"one=first", "two=second", "three=third"},
+				GenerationInputs: GenerationInputs{
+					Environment: []string{"one=first", "two=second", "three=third"},
+				},
 			},
 			componentValues:     []string{},
 			sourceRepoLocations: []string{},
@@ -50,7 +54,9 @@ func TestValidate(t *testing.T) {
 		},
 		"component+source": {
 			cfg: AppConfig{
-				Components: []string{"one~https://server/repo.git"},
+				ComponentInputs: ComponentInputs{
+					Components: []string{"one~https://server/repo.git"},
+				},
 			},
 			componentValues:     []string{"one"},
 			sourceRepoLocations: []string{"https://server/repo.git"},
@@ -59,7 +65,9 @@ func TestValidate(t *testing.T) {
 		},
 		"components+source": {
 			cfg: AppConfig{
-				Components: []string{"mysql+ruby~git://github.com/namespace/repo.git"},
+				ComponentInputs: ComponentInputs{
+					Components: []string{"mysql+ruby~git://github.com/namespace/repo.git"},
+				},
 			},
 			componentValues:     []string{"mysql", "ruby"},
 			sourceRepoLocations: []string{"git://github.com/namespace/repo.git"},
@@ -68,8 +76,12 @@ func TestValidate(t *testing.T) {
 		},
 		"components+parms": {
 			cfg: AppConfig{
-				Components:         []string{"ruby-helloworld-sample"},
-				TemplateParameters: []string{"one=first", "two=second"},
+				ComponentInputs: ComponentInputs{
+					Components: []string{"ruby-helloworld-sample"},
+				},
+				GenerationInputs: GenerationInputs{
+					TemplateParameters: []string{"one=first", "two=second"},
+				},
 			},
 			componentValues:     []string{"ruby-helloworld-sample"},
 			sourceRepoLocations: []string{},
@@ -81,11 +93,23 @@ func TestValidate(t *testing.T) {
 		},
 	}
 	for n, c := range tests {
-		c.cfg.RefBuilder = &app.ReferenceBuilder{}
-		cr, _, env, parms, err := c.cfg.validate()
+		b := &app.ReferenceBuilder{}
+		env, parms, err := c.cfg.validate()
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
+			continue
 		}
+
+		if err := AddComponentInputsToRefBuilder(b, &c.cfg.Resolvers, &c.cfg.ComponentInputs, &c.cfg.GenerationInputs); err != nil {
+			t.Errorf("%s: Unexpected error: %v", n, err)
+			continue
+		}
+		cr, _, errs := b.Result()
+		if len(errs) > 0 {
+			t.Errorf("%s: Unexpected error: %v", n, errs)
+			continue
+		}
+
 		compValues := []string{}
 		for _, r := range cr {
 			compValues = append(compValues, r.Input().Value)
@@ -129,23 +153,32 @@ func TestBuildTemplates(t *testing.T) {
 	for n, c := range tests {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
-		appCfg.RefBuilder = &app.ReferenceBuilder{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
 		appCfg.KubeClient = ktestclient.NewSimpleFake()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
-		appCfg.CompleteArguments([]string{c.templateName})
+		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = []string{}
 		for k, v := range c.parms {
 			appCfg.TemplateParameters = append(appCfg.TemplateParameters, fmt.Sprintf("%v=%v", k, v))
 		}
 
-		components, _, _, parms, err := appCfg.validate()
+		_, parms, err := appCfg.validate()
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
+			continue
 		}
-		err = Resolve(components)
+
+		resolved, err := Resolve(&appCfg.Resolvers, &appCfg.ComponentInputs, &appCfg.GenerationInputs)
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
+			continue
+		}
+		components := resolved.Components
+
+		err = components.Resolve()
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", n, err)
+			continue
 		}
 		_, err = appCfg.buildTemplates(components, app.Environment(parms))
 		if err != nil {
@@ -279,7 +312,7 @@ func TestEnsureHasSource(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		err := test.cfg.ensureHasSource(test.components, test.repositories)
+		err := EnsureHasSource(test.components, test.repositories, &test.cfg.GenerationInputs)
 		if err != nil {
 			if !strings.Contains(err.Error(), test.expectedErr) {
 				t.Errorf("%s: Invalid error: Expected %s, got %v", test.name, test.expectedErr, err)

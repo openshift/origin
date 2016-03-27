@@ -490,7 +490,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 		config.SecretAccessor = newConfigSecretRetriever(cfg)
 	}
 
-	unknown := config.CompleteArguments(args)
+	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
 		return kcmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
