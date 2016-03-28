@@ -159,6 +159,15 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	buildTag := randomBuildTag(s.build.Namespace, s.build.Name)
+	scriptDownloadProxyConfig, err := scriptProxyConfig(s.build)
+	if err != nil {
+		return err
+	}
+	if scriptDownloadProxyConfig != nil {
+		glog.V(2).Infof("Using HTTP proxy %v and HTTPS proxy %v for script download",
+			scriptDownloadProxyConfig.HTTPProxy,
+			scriptDownloadProxyConfig.HTTPSProxy)
+	}
 
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
@@ -175,11 +184,12 @@ func (s *S2IBuilder) Build() error {
 		Environment:       buildEnvVars(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:       sourceURI.String(),
-		Tag:          buildTag,
-		ContextDir:   s.build.Spec.Source.ContextDir,
-		CGroupLimits: s.cgLimits,
-		Injections:   injections,
+		Source:                    sourceURI.String(),
+		Tag:                       buildTag,
+		ContextDir:                s.build.Spec.Source.ContextDir,
+		CGroupLimits:              s.cgLimits,
+		Injections:                injections,
+		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
@@ -340,4 +350,40 @@ func buildEnvVars(build *api.Build) map[string]string {
 		envVars[item.Key] = item.Value
 	}
 	return envVars
+}
+
+// scriptProxyConfig determines a proxy configuration for downloading
+// scripts from a URL. For now, it uses environment variables passed in
+// the strategy's environment. There is no preference given to either lowercase
+// or uppercase form of the variable.
+func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
+	httpProxy := ""
+	httpsProxy := ""
+	for _, env := range build.Spec.Strategy.SourceStrategy.Env {
+		switch env.Name {
+		case "HTTP_PROXY", "http_proxy":
+			httpProxy = env.Value
+		case "HTTPS_PROXY", "https_proxy":
+			httpsProxy = env.Value
+		}
+	}
+	if len(httpProxy) == 0 && len(httpsProxy) == 0 {
+		return nil, nil
+	}
+	config := &s2iapi.ProxyConfig{}
+	if len(httpProxy) > 0 {
+		proxyURL, err := url.Parse(httpProxy)
+		if err != nil {
+			return nil, err
+		}
+		config.HTTPProxy = proxyURL
+	}
+	if len(httpsProxy) > 0 {
+		proxyURL, err := url.Parse(httpsProxy)
+		if err != nil {
+			return nil, err
+		}
+		config.HTTPSProxy = proxyURL
+	}
+	return config, nil
 }
