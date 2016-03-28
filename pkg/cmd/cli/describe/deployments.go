@@ -14,7 +14,6 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	qosutil "k8s.io/kubernetes/pkg/kubelet/qos/util"
 	"k8s.io/kubernetes/pkg/labels"
 
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -134,11 +133,9 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			formatString(out, "Latest Version", strconv.Itoa(deploymentConfig.Status.LatestVersion))
 		}
 
-		printTriggers(deploymentConfig.Spec.Triggers, out)
-
-		formatString(out, "Strategy", deploymentConfig.Spec.Strategy.Type)
-		printStrategy(deploymentConfig.Spec.Strategy, out)
 		printDeploymentConfigSpec(deploymentConfig.Spec, out)
+		fmt.Fprintln(out)
+
 		if deploymentConfig.Status.Details != nil && len(deploymentConfig.Status.Details.Message) > 0 {
 			fmt.Fprintf(out, "Warning:\t%s\n", deploymentConfig.Status.Details.Message)
 		}
@@ -168,6 +165,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 		}
 
 		if events != nil {
+			fmt.Fprintln(out)
 			kctl.DescribeEvents(events, out)
 		}
 		return nil
@@ -248,80 +246,29 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Wr
 	formatString(w, "Triggers", desc)
 }
 
-func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w io.Writer) error {
-	fmt.Fprint(w, "Template:\n")
+func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w *tabwriter.Writer) error {
+	// Selector
+	formatString(w, "Selector", formatLabels(spec.Selector))
 
+	// Replicas
+	test := ""
 	if spec.Test {
-		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d (test, will be scaled down between deployments)\n",
-			formatLabels(spec.Selector),
-			spec.Replicas)
-	} else {
-		fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
-			formatLabels(spec.Selector),
-			spec.Replicas)
+		test = " (test, will be scaled down between deployments)"
 	}
+	formatString(w, "Replicas", fmt.Sprintf("%d%s", spec.Replicas, test))
 
-	fmt.Fprintf(w, "  Containers:\n")
-	describeContainers(spec.Template.Spec, w)
+	// Triggers
+	printTriggers(spec.Triggers, w)
+
+	// Strategy
+	formatString(w, "Strategy", spec.Strategy.Type)
+	printStrategy(spec.Strategy, w)
+
+	// Pod template
+	fmt.Fprintf(w, "Template:\n")
+	kctl.DescribePodTemplate(spec.Template, w)
 
 	return nil
-}
-
-// TODO: Reuse this from upstream once kubernetes/issues/21551 is fixed.
-func describeContainers(spec kapi.PodSpec, w io.Writer) {
-	for _, container := range spec.Containers {
-		fmt.Fprintf(w, "  %v:\n", container.Name)
-		fmt.Fprintf(w, "    Image:\t%s\n", container.Image)
-
-		if len(container.Command) > 0 {
-			fmt.Fprintf(w, "    Command:\n")
-			for _, c := range container.Command {
-				fmt.Fprintf(w, "      %s\n", c)
-			}
-		}
-		if len(container.Args) > 0 {
-			fmt.Fprintf(w, "    Args:\n")
-			for _, arg := range container.Args {
-				fmt.Fprintf(w, "      %s\n", arg)
-			}
-		}
-
-		resourceToQoS := qosutil.GetQoS(&container)
-		if len(resourceToQoS) > 0 {
-			fmt.Fprintf(w, "    QoS Tier:\n")
-		}
-		for resource, qos := range resourceToQoS {
-			fmt.Fprintf(w, "      %s:\t%s\n", resource, qos)
-		}
-
-		if len(container.Resources.Limits) > 0 {
-			fmt.Fprintf(w, "    Limits:\n")
-		}
-		for name, quantity := range container.Resources.Limits {
-			fmt.Fprintf(w, "      %s:\t%s\n", name, quantity.String())
-		}
-
-		if len(container.Resources.Requests) > 0 {
-			fmt.Fprintf(w, "    Requests:\n")
-		}
-		for name, quantity := range container.Resources.Requests {
-			fmt.Fprintf(w, "      %s:\t%s\n", name, quantity.String())
-		}
-
-		if container.LivenessProbe != nil {
-			probe := kctl.DescribeProbe(container.LivenessProbe)
-			fmt.Fprintf(w, "    Liveness:\t%s\n", probe)
-		}
-		if container.ReadinessProbe != nil {
-			probe := kctl.DescribeProbe(container.ReadinessProbe)
-			fmt.Fprintf(w, "    Readiness:\t%s\n", probe)
-		}
-
-		fmt.Fprintf(w, "    Environment Variables:\n")
-		for _, e := range container.Env {
-			fmt.Fprintf(w, "      %s:\t%s\n", e.Name, e.Value)
-		}
-	}
 }
 
 func printDeploymentRc(deployment *kapi.ReplicationController, client deploymentDescriberClient, w io.Writer, header string, verbose bool) error {

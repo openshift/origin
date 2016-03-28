@@ -181,6 +181,13 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 	}
 	sc.Capabilities = caps
 
+	// if the SCC requires a read only root filesystem and the container has not made a specific
+	// request then default ReadOnlyRootFilesystem to true.
+	if s.scc.ReadOnlyRootFilesystem && sc.ReadOnlyRootFilesystem == nil {
+		readOnlyRootFS := true
+		sc.ReadOnlyRootFilesystem = &readOnlyRootFS
+	}
+
 	return sc, nil
 }
 
@@ -269,6 +276,14 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	if !s.scc.AllowHostIPC && pod.Spec.SecurityContext.HostIPC {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), pod.Spec.SecurityContext.HostIPC, "Host IPC is not allowed to be used"))
+	}
+
+	if s.scc.ReadOnlyRootFilesystem {
+		if sc.ReadOnlyRootFilesystem == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), sc.ReadOnlyRootFilesystem, "ReadOnlyRootFilesystem may not be nil and must be set to true"))
+		} else if !*sc.ReadOnlyRootFilesystem {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), *sc.ReadOnlyRootFilesystem, "ReadOnlyRootFilesystem must be set to true"))
+		}
 	}
 
 	return allErrs

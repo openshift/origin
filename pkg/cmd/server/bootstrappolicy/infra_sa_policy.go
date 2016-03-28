@@ -42,6 +42,9 @@ const (
 
 	InfraPersistentVolumeProvisionerControllerServiceAccountName = "pv-provisioner-controller"
 	PersistentVolumeProvisionerControllerRoleName                = "system:pv-provisioner-controller"
+
+	InfraGCControllerServiceAccountName = "gc-controller"
+	GCControllerRoleName                = "system:gc-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -529,6 +532,32 @@ func init() {
 					APIGroups: []string{"*"},
 					Verbs:     sets.NewString("get", "list", "delete", "deletecollection"),
 					Resources: sets.NewString("*"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraGCControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: GCControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// GCController.podStore.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// GCController.deletePod
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("delete"),
+					Resources: sets.NewString("pods"),
 				},
 			},
 		},

@@ -214,9 +214,9 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		// when user specify the --value
 		if cmd.Flag("value").Changed {
 			values := kcmdutil.GetFlagStringSlice(cmd, "value")
-			injectUserVars(values, out, obj)
+			injectUserVars(values, cmd, obj)
 		}
-		injectUserVars(valueArgs, out, obj)
+		injectUserVars(valueArgs, cmd, obj)
 
 		resultObj, err := client.TemplateConfigs(namespace).Create(obj)
 		if err != nil {
@@ -271,11 +271,11 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values []string, out io.Writer, t *templateapi.Template) {
+func injectUserVars(values []string, cmd *cobra.Command, t *templateapi.Template) {
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {
-			fmt.Fprintf(out, "invalid parameter assignment in %q: %q\n", t.Name, keypair)
+			fmt.Fprintf(cmd.Out(), "invalid parameter assignment in %q: %q\n", t.Name, keypair)
 			continue
 		}
 		if v := template.GetParameterByName(t, p[0]); v != nil {
@@ -283,7 +283,7 @@ func injectUserVars(values []string, out io.Writer, t *templateapi.Template) {
 			v.Generate = ""
 			template.AddParameter(t, *v)
 		} else {
-			fmt.Fprintf(out, "unknown parameter name %q\n", p[0])
+			fmt.Fprintf(cmd.Out(), "unknown parameter name %q\n", p[0])
 		}
 	}
 }

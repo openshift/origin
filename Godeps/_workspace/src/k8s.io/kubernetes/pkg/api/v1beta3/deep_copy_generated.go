@@ -2085,6 +2085,7 @@ func deepCopy_v1beta3_SecurityContextConstraints(in SecurityContextConstraints, 
 	} else {
 		out.RequiredDropCapabilities = nil
 	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {

@@ -6,24 +6,40 @@ config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
 old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
-readonly max_retries=30
+readonly max_wait_time=30
+readonly timeout_opts="-m 1 --connect-timeout 1"
+readonly numeric_re='^[0-9]+$'
 
-function waitForHAProxyToStartListening() {
+function haproxyHealthCheck() {
+  local wait_time=${MAX_RELOAD_WAIT_TIME:-$max_wait_time}
   local port=${STATS_PORT:-"1936"}
   local retries=0
+  local start_ts=$(date +"%s")
 
-  echo " - Checking if HAProxy is listening on port $port ..."
-  while ! lsof -nPp $(< $pid_file) | grep ":${port} (LISTEN)" &> /dev/null ; do
-    sleep 0.2
-    retries=$((retries + 1))
-    if [ $retries -ge $max_retries ]; then
-      echo " - Exceeded $max_retries retries waiting for HAProxy to start listening on port $port"
-      return
+  if ! [[ $wait_time =~ $numeric_re ]]; then
+    echo " - Invalid max reload wait time, using default $max_wait_time ..."
+    wait_time=$max_wait_time
+  fi
+
+  local end_ts=$((start_ts + wait_time))
+
+  echo " - Checking HAProxy /healthz on port $port ..."
+  while true; do
+    local httpcode=$(curl $timeout_opts -s -o /dev/null -I -w "%{http_code}" http://localhost:${port}/healthz)
+
+    if [ "$httpcode" == "200" ]; then
+      echo " - HAProxy port $port health check ok : $retries retry attempt(s)."
+      return 0
     fi
-  done
 
-  echo " - HAProxy listening on port $port : $retries retry attempt(s)."
-  return 0
+    if [ $(date +"%s") -ge $end_ts ]; then
+      echo " - Exceeded max wait time ($wait_time) in HAProxy health check - $retries retry attempt(s)."
+      return 1
+    fi
+
+    sleep 0.5
+    retries=$((retries + 1))
+  done
 }
 
 
@@ -97,4 +113,4 @@ else
 fi
 
 [ $reload_status -ne 0 ] && exit $reload_status
-waitForHAProxyToStartListening
+haproxyHealthCheck

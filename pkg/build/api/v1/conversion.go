@@ -212,12 +212,14 @@ func convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
+		func(source *BuildSource) {
+			if (source != nil) && (source.Type == BuildSourceBinary) && (source.Binary == nil) {
+				source.Binary = &BinaryBuildSource{}
+			}
+		},
 		func(strategy *BuildStrategy) {
-			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
-				//  initialize DockerStrategy to a default state if it's not set.
-				if strategy.DockerStrategy == nil {
-					strategy.DockerStrategy = &DockerBuildStrategy{}
-				}
+			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) && (strategy.DockerStrategy == nil) {
+				strategy.DockerStrategy = &DockerBuildStrategy{}
 			}
 		},
 		func(obj *SourceBuildStrategy) {

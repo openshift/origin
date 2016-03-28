@@ -26,11 +26,11 @@ var _ = g.Describe("[builds] build have source revision metadata", func() {
 	g.Describe("started build", func() {
 		g.It("should contain source revision information", func() {
 			g.By("starting the build with --wait flag")
-			out, err := oc.Run("start-build").Args("sample-build", "--wait").Output()
+			err := oc.Run("start-build").Args("sample-build", "--wait").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get(out)
+			g.By(fmt.Sprintf("verifying the build %q status", "sample-build-1"))
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Spec.Revision).NotTo(o.BeNil())
 			o.Expect(build.Spec.Revision.Git).NotTo(o.BeNil())

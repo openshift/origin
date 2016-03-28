@@ -150,7 +150,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	} else {
 		if len(inputMeta.ResourceVersion) > 0 && inputMeta.ResourceVersion != stream.ResourceVersion {
-			glog.V(4).Infof("DEBUG: mismatch between requested UID %s and located UID %s", inputMeta.UID, stream.UID)
+			glog.V(4).Infof("DEBUG: mismatch between requested ResourceVersion %s and located ResourceVersion %s", inputMeta.ResourceVersion, stream.ResourceVersion)
 			return nil, kapierrors.NewConflict(api.Resource("imagestream"), inputMeta.Name, fmt.Errorf("the image stream was updated from %q to %q", inputMeta.ResourceVersion, stream.ResourceVersion))
 		}
 		if len(inputMeta.UID) > 0 && inputMeta.UID != stream.UID {

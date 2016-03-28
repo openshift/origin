@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/MakeNowJust/heredoc/dot"
+	"github.com/MakeNowJust/heredoc"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -44,7 +44,7 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, secur
 				var suggestion string
 				switch {
 				case containerIsNonRoot(pod, containerStatus.Name):
-					suggestion = Df(`
+					suggestion = heredoc.Docf(`
 						The container is starting and exiting repeatedly. This usually means the container is unable
 						to start, misconfigured, or limited by security restrictions. Check the container logs with
 
@@ -57,7 +57,7 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, secur
 						  %s
 						`, logsCommandName, pod.Name, containerStatus.Name, fmt.Sprintf(securityPolicyCommandPattern, pod.Namespace, pod.Spec.ServiceAccountName))
 				default:
-					suggestion = Df(`
+					suggestion = heredoc.Docf(`
 						The container is starting and exiting repeatedly. This usually means the container is unable
 						to start, misconfigured, or limited by security restrictions. Check the container logs with
 

@@ -44,7 +44,7 @@ angular.module('openshiftConsole')
                                   description = 'The project ' + context.projectName + ' does not exist or you are not authorized to view it.';
                                   type = 'access_denied';
                                 } else if (e.status === 404) {
-                                  description = 'The project " + context.projectName + " does not exist.';
+                                  description = 'The project ' + context.projectName + ' does not exist.';
                                   type = 'not_found';
                                 }
                                 $location

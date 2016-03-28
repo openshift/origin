@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b04d0cb06fc47a04efa83038c5edcd9bc26b098a
+%global commit b15cf48b661f91ddd96dd4af715ee8b9fdfc80a4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.6-53-gb04d0cb -X github.com/openshift/origin/pkg/version.commitFromGit b04d0cb -X k8s.io/kubernetes/pkg/version.gitCommit b04d0cb -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.7-75-gb15cf48 -X github.com/openshift/origin/pkg/version.commitFromGit b15cf48 -X k8s.io/kubernetes/pkg/version.gitCommit b15cf48 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.7
+Version:        3.2.0.8
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,64 @@ fi
 
 
 %changelog
+* Mon Mar 28 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.8
+- E2e deployments filter is incorrect (ccoleman@redhat.com)
+- Reorder the debug pod name (ccoleman@redhat.com)
+- use a first class field definition to identify scratch images
+  (bparees@redhat.com)
+- Remove project admin/edit ability to create daemonsets (jliggitt@redhat.com)
+- Bug 1314270: force dc reconcilation on canceled deployments
+  (mkargaki@redhat.com)
+- controller: refactor deployer controller interfaces (mkargaki@redhat.com)
+- cli: oc process should print errors to stderr (stefw@redhat.com)
+- use emptydir for sample-app volumes (bparees@redhat.com)
+- fix extended cmd.sh to handle faster importer (deads@redhat.com)
+- #7976 : Initialize Binary source to an empty default state if type but no
+  value set (for API v1) (roland@jolokia.org)
+- Atomic registry quickstart image (aweiteka@redhat.com)
+- Fix bug where router reload fails to run lsof - insufficient permissions with
+  the hostnetwork scc. Reduce the lsof requirement since we now check for error
+  codes [non zero means bind errors] and have a healthz check as a sanity
+  check. Plus fixes as per @smarterclayton review comments. (smitram@gmail.com)
+- Include branded header within <noscript> message. (sgoodwin@redhat.com)
+- Better error message when JavaScript is disabled (jawnsy@redhat.com)
+- Simplify synthetic skips so that no special chars are needed Isolate the
+  package skipping into a single function. (jay@apache.org)
+- Fix new-app template search with multiple matches (cewong@redhat.com)
+- UPSTREAM: <carry>: Suppress aggressive output of warning
+  (ccoleman@redhat.com)
+- hardcode build name to expect instead of getting it from start-build output
+  (bparees@redhat.com)
+- New skips in extended tests (ccoleman@redhat.com)
+- removed binary etcd store from test-cmd artfacts (skuznets@redhat.com)
+- Fix resolver used for --image-stream param, annotation searcher output
+  (cewong@redhat.com)
+- UPSTREAM: 23065: Remove gce provider requirements from garbage collector test
+  (tiwillia@redhat.com)
+- Bindata change for error with quotes on project 404 (jforrest@redhat.com)
+- Fixed error with quotes (jlam@snaplogic.com)
+- Escape ANSI color codes in web console logs (spadgett@redhat.com)
+- refactor to not use dot imports for heredoc (skuznets@redhat.com)
+- Bug 1320335: Fix quoting for mysql probes (mfojtik@redhat.com)
+- Add client utilities for iSCSI and Ceph. (jsafrane@redhat.com)
+- loosen exec to allow SA checks for privileges (deads@redhat.com)
+- Allow perFSGroup local quota in config on first node start.
+  (dgoodwin@redhat.com)
+- use a max value of 92233720368547 for cgroup values (bparees@redhat.com)
+- Revert "temporarily disable cgroup limits on builds" (bparees@redhat.com)
+- update generated code and docs (pweil@redhat.com)
+- UPSTREAM: 22857: partial - ensure DetermineEffectiveSC retains the container
+  setting for readonlyrootfs (pweil@redhat.com)
+- UPSTREAM: <carry>: v1beta3 scc - read only root file system support
+  (pweil@redhat.com)
+- UPSTREAM: <carry>: scc - read only root file system support
+  (pweil@redhat.com)
+- UPSTREAM: 23279: kubectl: enhance podtemplate describer (mkargaki@redhat.com)
+- oc: add volume info on the dc describer (mkargaki@redhat.com)
+- remove dead cancel code (bparees@redhat.com)
+- Enable the pod garbage collector (tiwillia@redhat.com)
+- pkg: cmd: cli: cmd: startbuild: close response body (runcom@redhat.com)
+
 * Wed Mar 23 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.7
 - Ensure ingress host matches route host (marun@redhat.com)
 - Enable extensions storage for batch/autoscaling (jliggitt@redhat.com)

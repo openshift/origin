@@ -2086,6 +2086,7 @@ func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraint
 	} else {
 		out.RequiredDropCapabilities = nil
 	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {
@@ -4350,6 +4351,7 @@ func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraint
 	} else {
 		out.RequiredDropCapabilities = nil
 	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {

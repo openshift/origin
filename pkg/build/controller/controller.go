@@ -112,15 +112,6 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 // the change cannot occur. When returning nil, be sure to set build.Status and optionally
 // build.Message.
 func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
-	// If a cancelling event was triggered for the build, update build status.
-	if build.Status.Cancelled {
-		glog.V(4).Infof("Cancelling build %s/%s.", build.Namespace, build.Name)
-		build.Status.Phase = buildapi.BuildPhaseCancelled
-		build.Status.Reason = ""
-		build.Status.Message = ""
-		return nil
-	}
-
 	// Set the output Docker image reference.
 	ref, err := bc.resolveOutputDockerImageReference(build)
 	if err != nil {
