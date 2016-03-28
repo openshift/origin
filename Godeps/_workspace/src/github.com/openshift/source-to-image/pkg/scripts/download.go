@@ -28,8 +28,8 @@ type downloader struct {
 }
 
 // NewDownloader creates an instance of the default Downloader implementation
-func NewDownloader() Downloader {
-	httpReader := NewHTTPReader()
+func NewDownloader(proxyConfig *api.ProxyConfig) Downloader {
+	httpReader := NewHTTPReader(proxyConfig)
 	return &downloader{
 		schemeReaders: map[string]schemeReader{
 			"http":  httpReader,
@@ -82,8 +82,23 @@ type HttpURLReader struct {
 }
 
 // NewHTTPReader creates an instance of the HttpURLReader
-func NewHTTPReader() schemeReader {
-	return &HttpURLReader{Get: http.Get}
+func NewHTTPReader(proxyConfig *api.ProxyConfig) schemeReader {
+	getFunc := http.Get
+	if proxyConfig != nil {
+		transport := &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				if proxyConfig.HTTPSProxy != nil && req.URL.Scheme == "https" {
+					return proxyConfig.HTTPSProxy, nil
+				}
+				return proxyConfig.HTTPProxy, nil
+			},
+		}
+		client := &http.Client{
+			Transport: transport,
+		}
+		getFunc = client.Get
+	}
+	return &HttpURLReader{Get: getFunc}
 }
 
 // Read produces an io.Reader from an http(s) URL.

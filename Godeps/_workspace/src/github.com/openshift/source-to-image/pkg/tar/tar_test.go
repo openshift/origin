@@ -74,7 +74,7 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc, links []link
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		t.Fatalf("Cannot open tar file to verify: %s, %v\n", filename, err)
+		t.Fatalf("Cannot open tar file %q: %v", filename, err)
 	}
 	tr := tar.NewReader(file)
 	for {
@@ -83,38 +83,38 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc, links []link
 			break
 		}
 		if err != nil {
-			t.Fatalf("Error reading tar %s: %v\n", filename, err)
+			t.Fatalf("Error reading tar %q: %v", filename, err)
 		}
 		finfo := hdr.FileInfo()
 		if fd, ok := filesToVerify[hdr.Name]; ok {
 			delete(filesToVerify, hdr.Name)
 			if finfo.Mode().Perm() != fd.mode {
-				t.Errorf("File %s from tar %s does not match expected mode. Expected: %v, actual: %v\n",
+				t.Errorf("File %q from tar %q does not match expected mode. Expected: %v, actual: %v",
 					hdr.Name, filename, fd.mode, finfo.Mode().Perm())
 			}
 			if !fd.modifiedDate.IsZero() && finfo.ModTime().UTC() != fd.modifiedDate {
-				t.Errorf("File %s from tar %s does not match expected modified date. Expected: %v, actual: %v\n",
+				t.Errorf("File %q from tar %q does not match expected modified date. Expected: %v, actual: %v",
 					hdr.Name, filename, fd.modifiedDate, finfo.ModTime().UTC())
 			}
 			fileBytes, err := ioutil.ReadAll(tr)
 			if err != nil {
-				t.Fatalf("Error reading tar %s: %v\n", filename, err)
+				t.Fatalf("Error reading tar %q: %v", filename, err)
 			}
 			fileContent := string(fileBytes)
 			if fileContent != fd.content {
-				t.Errorf("Content for file %s in tar %s doesn't match expected value. Expected: %s, Actual: %s",
+				t.Errorf("Content for file %q in tar %q doesn't match expected value. Expected: %q, Actual: %q",
 					finfo.Name(), filename, fd.content, fileContent)
 			}
 		} else if ld, ok := linksToVerify[hdr.Name]; ok {
 			delete(linksToVerify, hdr.Name)
 			if finfo.Mode()&os.ModeSymlink == 0 {
-				t.Errorf("Incorrect link %s", finfo.Name())
+				t.Errorf("Incorrect link %q", finfo.Name())
 			}
 			if hdr.Linkname != ld.fileName {
-				t.Errorf("Incorrect link location. Expected: %s, Actual %s", ld.fileName, hdr.Linkname)
+				t.Errorf("Incorrect link location. Expected: %q, Actual %q", ld.fileName, hdr.Linkname)
 			}
 		} else {
-			t.Errorf("Cannot find file %s from tar in files to verify.\n", hdr.Name)
+			t.Errorf("Cannot find file %q from tar in files to verify.", hdr.Name)
 		}
 	}
 
@@ -258,12 +258,12 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 			relpath := path[len(dir)+1:]
 			if fd, ok := filesToVerify[relpath]; ok {
 				if info.Mode() != fd.mode {
-					t.Errorf("File mode is not equal for %q. Expected: %v, Actual: %v\n",
+					t.Errorf("File mode is not equal for %q. Expected: %v, Actual: %v",
 						relpath, fd.mode, info.Mode())
 				}
 				// TODO: check modification time for symlinks when extractLink() will support it
 				if info.ModTime().UTC() != fd.modifiedDate && !isSymLink(fd.mode) {
-					t.Errorf("File modified date is not equal for %q. Expected: %v, Actual: %v\n",
+					t.Errorf("File modified date is not equal for %q. Expected: %v, Actual: %v",
 						relpath, fd.modifiedDate, info.ModTime())
 				}
 				contentBytes, err := ioutil.ReadFile(path)
@@ -273,7 +273,7 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 				}
 				content := string(contentBytes)
 				if content != fd.content {
-					t.Errorf("File content is not equal for %q. Expected: %s, Actual: %s\n",
+					t.Errorf("File content is not equal for %q. Expected: %q, Actual: %q",
 						relpath, fd.content, content)
 				}
 				if isSymLink(fd.mode) {
@@ -283,7 +283,7 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 						return err
 					}
 					if target != fd.target {
-						msg := "Symbolic link %q points to wrong path. Expected: %s, Actual: %s\n"
+						msg := "Symbolic link %q points to wrong path. Expected: %q, Actual: %q"
 						t.Errorf(msg, fd.name, fd.target, target)
 					}
 				}
@@ -309,7 +309,7 @@ func TestExtractTarStream(t *testing.T) {
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")
 	if err != nil {
-		t.Fatalf("Cannot create temp directory: %v\n", err)
+		t.Fatalf("Cannot create temp directory: %v", err)
 	}
 	defer os.RemoveAll(destDir)
 	wg := sync.WaitGroup{}
@@ -335,7 +335,7 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")
 	if err != nil {
-		t.Fatalf("Cannot create temp directory: %v\n", err)
+		t.Fatalf("Cannot create temp directory: %v", err)
 	}
 	defer os.RemoveAll(destDir)
 	wg := sync.WaitGroup{}
@@ -355,6 +355,6 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	wg.Wait()
 	err = <-extractError
 	if e, ok := err.(errors.Error); err == nil || (ok && e.ErrorCode != errors.TarTimeoutError) {
-		t.Errorf("Did not get the expected timeout error. err = %v\n", err)
+		t.Errorf("Did not get the expected timeout error. err = %v", err)
 	}
 }

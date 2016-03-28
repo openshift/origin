@@ -91,7 +91,7 @@ func TestInstallOptionalFromURL(t *testing.T) {
 			}
 		}
 		if !validURL {
-			t.Errorf("the script %q was downloaded from invalid URL (%+v), s, urls")
+			t.Errorf("the script %q was downloaded from invalid URL (%+v)", s, urls)
 		}
 	}
 }
@@ -141,7 +141,7 @@ func TestInstallRequiredFromDocker(t *testing.T) {
 			}
 		}
 		if !validURL {
-			t.Errorf("the script %q was downloaded from invalid URL (%+v), s, urls")
+			t.Errorf("the script %q was downloaded from invalid URL (%+v)", s, urls)
 		}
 	}
 }
@@ -176,7 +176,7 @@ func TestInstallRequiredFromSource(t *testing.T) {
 			}
 		}
 		if !validResultURL {
-			t.Errorf("expected %q has result URL "+sourcesRootAbbrev+".s2i/bin/script>, got %#v", s, result)
+			t.Errorf("expected %q has result URL %s.s2i/bin/script, got %#v", s, sourcesRootAbbrev, result)
 		}
 		chmodCalled := false
 		fs := config.fs.(*test.FakeFileSystem)
@@ -262,7 +262,7 @@ func TestInstallRequiredFromInvalidURL(t *testing.T) {
 
 func TestNewInstaller(t *testing.T) {
 	docker := &dockerpkg.FakeDocker{DefaultURLResult: "image://docker"}
-	inst := NewInstaller("test-image", "http://foo.bar", docker, dockerClient.AuthConfiguration{})
+	inst := NewInstaller("test-image", "http://foo.bar", nil, docker, dockerClient.AuthConfiguration{})
 	sources := inst.(*DefaultScriptSourceManager).sources
 	firstHandler, ok := sources[0].(*UrlScriptHandler)
 	if !ok {

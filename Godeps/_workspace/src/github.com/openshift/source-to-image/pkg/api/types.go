@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -183,6 +184,15 @@ type Config struct {
 
 	// DropCapabilities contains a list of capabilities to drop when executing containers
 	DropCapabilities []string
+
+	// ScriptDownloadProxyConfig optionally specifies the http and https proxy
+	// to use when downloading scripts
+	ScriptDownloadProxyConfig *ProxyConfig
+}
+
+type ProxyConfig struct {
+	HTTPProxy  *url.URL
+	HTTPSProxy *url.URL
 }
 
 type CGroupLimits struct {
