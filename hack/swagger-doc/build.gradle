@@ -5,7 +5,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'io.github.robwin:swagger2markup:0.6.0'
+        classpath 'io.github.robwin:swagger2markup:0.9.2'
     }
 }
 
