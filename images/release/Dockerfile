@@ -15,7 +15,10 @@ ENV VERSION=1.6 \
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    yum install -y gcc zip hg && yum clean all && \
+    INSTALL_PKGS="gcc zip mercurial" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
     go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint && \
     touch /os-build-image
