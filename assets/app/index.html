@@ -27,7 +27,7 @@
     <link rel="stylesheet" type="text/css" href="styles/main.css">
     <!-- endbuild -->
     <link rel="stylesheet" type="text/css" href="styles/extensions.css">
-     <style type="text/css">
+    <style type="text/css">
 
 
     </style>
@@ -134,6 +134,7 @@
     <script src="scripts/templates.js"></script>
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
+
         <script src="scripts/constants.js"></script>
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
@@ -240,9 +241,11 @@
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>
         <script src="scripts/filters/strings.js"></script>
-        <script src="scripts/extensions/javaLink.js"></script>
         <script src="scripts/directives/affix.js"></script>
         <script src="scripts/services/logLinks.js"></script>
+
+        <!-- add bundled extensions here -->
+        <script src="scripts/extensions/javalink/javaLink.js"></script>
         <!-- endbuild -->
 
     <!-- Load any extensions last. -->
