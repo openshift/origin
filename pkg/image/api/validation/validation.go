@@ -192,7 +192,7 @@ func ValidateImageStreamTagReference(tagRef api.TagReference, fldPath *field.Pat
 	var errs field.ErrorList
 	if tagRef.From != nil {
 		if len(tagRef.From.Name) == 0 {
-			errs = append(errs, field.Required(fldPath.Child("from", "name"), "name is required"))
+			errs = append(errs, field.Required(fldPath.Child("from", "name"), ""))
 		}
 		switch tagRef.From.Kind {
 		case "DockerImage":
@@ -324,7 +324,7 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 		switch from.Kind {
 		case "DockerImage":
 			if len(spec.From.Name) == 0 {
-				errs = append(errs, field.Required(repoPath.Child("from", "name"), ""))
+				errs = append(errs, field.Required(repoPath.Child("from", "name"), "Docker image references require a name"))
 			} else {
 				if ref, err := api.ParseDockerImageReference(from.Name); err != nil {
 					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))
