@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/generator"
@@ -144,27 +145,47 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	request.Binary = &buildapi.BinaryBuildSource{
 		AsFile: h.options.AsFile,
 	}
-	build, err := h.r.Generator.Instantiate(h.ctx, request)
-	if err != nil {
-		glog.Infof("failed to instantiate: %#v", request)
+
+	var build *buildapi.Build
+	start := time.Now()
+	if err := wait.Poll(time.Second, h.r.Timeout, func() (bool, error) {
+		result, err := h.r.Generator.Instantiate(h.ctx, request)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				if s, ok := err.(errors.APIStatus); ok {
+					if s.Status().Kind == "imagestreamtags" {
+						return false, nil
+					}
+				}
+			}
+			glog.V(2).Infof("failed to instantiate: %#v", request)
+			return false, err
+		}
+		build = result
+		return true, nil
+	}); err != nil {
 		return nil, err
 	}
+	remaining := h.r.Timeout - time.Now().Sub(start)
 
-	latest, ok, err := registry.WaitForRunningBuild(h.r.Watcher, h.ctx, build, h.r.Timeout)
+	latest, ok, err := registry.WaitForRunningBuild(h.r.Watcher, h.ctx, build, remaining)
 	if err != nil {
-		switch latest.Status.Phase {
-		case buildapi.BuildPhaseError:
+		switch {
+		case latest.Status.Phase == buildapi.BuildPhaseError:
 			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
-		case buildapi.BuildPhaseCancelled:
+		case latest.Status.Phase == buildapi.BuildPhaseCancelled:
 			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
+		case err == registry.ErrBuildDeleted:
+			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
+		default:
+			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
 		}
-		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
 	}
 	if !ok {
 		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
 	}
 	if latest.Status.Phase != buildapi.BuildPhaseRunning {
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is no longer running, cannot upload file: %s", build.Name, build.Status.Phase))
+		return nil, errors.NewBadRequest(fmt.Sprintf("cannot upload file to build %s with status %s", build.Name, latest.Status.Phase))
 	}
 
 	// The container should be the default build container, so setting it to blank
