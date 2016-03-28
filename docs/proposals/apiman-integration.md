@@ -63,9 +63,9 @@ Services intended to be managed and exposed as API Endpoints will be annotated<s
 ```
 Additionally, services will be further annotated identifying who is managing the service.  The proposed annotation is:
 ```
-  openshift.io/service-managed-by: apiman
+  api.service.openshift.io/api-manager: apiman
 ```
-Service providers will explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
+The initial implementation will support the value 'apiman' where other implementations may provide a value as needed.  Service providers will explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
 
 ### OpenShift CLI Modifications
 The following changes are stretch goals for the initial release.  The OpenShift client binary will be updated to allow a user to:
