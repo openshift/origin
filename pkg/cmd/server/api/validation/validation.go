@@ -76,13 +76,18 @@ func ValidateHostPort(value string, fldPath *field.Path) field.ErrorList {
 func ValidateCertInfo(certInfo api.CertInfo, required bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if required || len(certInfo.CertFile) > 0 || len(certInfo.KeyFile) > 0 {
+	if required {
 		if len(certInfo.CertFile) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), ""))
+			allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), "The certificate file must be provided for this request"))
 		}
 		if len(certInfo.KeyFile) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("keyFile"), ""))
+			allErrs = append(allErrs, field.Required(fldPath.Child("keyFile"), "The certificate key must be provided for this request"))
 		}
+	}
+
+	if (len(certInfo.CertFile) > 0 && len(certInfo.KeyFile) == 0) || (len(certInfo.CertFile) == 0 && len(certInfo.KeyFile) > 0) {
+		allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), "Both the certificate file and the certificate key must be provided together or not at all"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("keyFile"), "Both the certificate file and the certificate key must be provided together or not at all"))
 	}
 
 	if len(certInfo.CertFile) > 0 {
