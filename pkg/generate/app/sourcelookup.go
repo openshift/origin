@@ -232,28 +232,31 @@ func (r *SourceRepository) LocalPath() (string, error) {
 }
 
 // RemoteURL returns the remote URL of the source repository
-func (r *SourceRepository) RemoteURL() (*url.URL, error) {
+func (r *SourceRepository) RemoteURL() (*url.URL, bool, error) {
 	if r.remoteURL != nil {
-		return r.remoteURL, nil
+		return r.remoteURL, true, nil
 	}
 	switch r.url.Scheme {
 	case "file":
 		gitRepo := git.NewRepository()
-		remote, _, err := gitRepo.GetOriginURL(r.url.Path)
+		remote, ok, err := gitRepo.GetOriginURL(r.url.Path)
 		if err != nil {
-			return nil, err
+			return nil, false, err
+		}
+		if !ok {
+			return nil, ok, nil
 		}
 		ref := gitRepo.GetRef(r.url.Path)
 		if len(ref) > 0 {
 			remote = fmt.Sprintf("%s#%s", remote, ref)
 		}
 		if r.remoteURL, err = url.Parse(remote); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	default:
 		r.remoteURL = &r.url
 	}
-	return r.remoteURL, nil
+	return r.remoteURL, true, nil
 }
 
 // SetContextDir sets the context directory to use for the source repository
@@ -467,12 +470,16 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		source.DockerfileContents = repo.Info().Dockerfile.Contents()
 	}
 	if !repo.ignoreRepository {
-		remoteURL, err := repo.RemoteURL()
+		remoteURL, ok, err := repo.RemoteURL()
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
 		}
-		source.URL = remoteURL
-		source.Ref = remoteURL.Fragment
+		if ok {
+			source.URL = remoteURL
+			source.Ref = remoteURL.Fragment
+		} else {
+			source.Binary = true
+		}
 		source.ContextDir = repo.ContextDir()
 	}
 

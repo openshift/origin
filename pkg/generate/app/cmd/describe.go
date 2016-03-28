@@ -144,14 +144,19 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		} else {
 			strategy = "source"
 		}
+		noSource := false
 		var source string
 		switch s := pipeline.Build.Source; {
 		case s.Binary:
+			noSource = true
 			source = "binary input"
 		case len(s.DockerfileContents) > 0:
 			source = "a predefined Dockerfile"
-		case s.URL != nil:
+		case s.URL != nil && len(s.URL.Host) > 0:
 			source = fmt.Sprintf("source code from %s", s.URL)
+		case s.URL != nil:
+			noSource = true
+			source = "uploaded code"
 		default:
 			source = "<unknown>"
 		}
@@ -167,8 +172,12 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      * The resulting image will be pushed to %s %q\n", to.Kind, to.Name)
 			}
 		}
-		if len(trackedImage) > 0 && !pipeline.Build.Source.Binary {
-			fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
+		if len(trackedImage) > 0 {
+			if noSource {
+				fmt.Fprintf(out, "      * Use 'start-build --from-dir=DIR' to trigger a new build\n")
+			} else {
+				fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
+			}
 		}
 	}
 	if pipeline.Deployment != nil {
