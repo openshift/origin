@@ -361,6 +361,7 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 		}
 
 		// TODO(ramr):  need to handle redirect case for F5.
+                // TODO(cw-aleks): Add go code for InsecureTerminationPolicy
 		if tls.Termination == routeapi.TLSTerminationEdge &&
 			tls.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow {
 			glog.V(4).Infof("Allowing insecure route %s for pool %s, hostname %s, pathname %s...",

@@ -662,6 +662,7 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		insecurePolicy := ""
 		if route.Spec.TLS != nil {
 			tlsTerm = string(route.Spec.TLS.Termination)
+                        // TODO: Add go code like if InsecureEdgeTerminationPolicy or InsecureTerminationPolicy
 			insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
 		}
 		formatString(out, "TLS Termination", tlsTerm)

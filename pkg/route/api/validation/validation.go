@@ -122,6 +122,7 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 		result = append(result, field.NotSupported(fldPath.Child("termination"), tls.Termination, validValues))
 	}
 
+        // TODO: Add go code
 	if err := validateInsecureEdgeTerminationPolicy(tls, fldPath.Child("insecureEdgeTerminationPolicy")); err != nil {
 		result = append(result, err)
 	}
@@ -150,6 +151,7 @@ func validateNoDoubleEscapes(tls *routeapi.TLSConfig) field.ErrorList {
 	return allErrs
 }
 
+// TODO: Add go code
 // validateInsecureEdgeTerminationPolicy tests fields for different types of
 // insecure options. Called by validateTLS.
 func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *field.Path) *field.Error {

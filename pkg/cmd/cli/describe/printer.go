@@ -431,6 +431,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	insecurePolicy := ""
 	if route.Spec.TLS != nil {
 		tlsTerm = string(route.Spec.TLS.Termination)
+                // TODO: Add go code like if InsecureEdgeTerminationPolicy or InsecureTerminationPolicy
 		insecurePolicy = string(route.Spec.TLS.InsecureEdgeTerminationPolicy)
 	}
 	if opts.WithNamespace {
