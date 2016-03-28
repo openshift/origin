@@ -641,6 +641,28 @@ function wait_for_registry {
 }
 
 
+function install_heapster {
+	echo "[INFO] Installing Heapster"
+
+	# set up the deployer service account
+	echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"metrics-deployer"},"secrets":[{"name": "metrics-deployer"}]}' | oc create -f - --config="${ADMIN_KUBECONFIG}" -n openshift-infra
+	oadm policy add-role-to-user edit system:serviceaccount:openshift-infra:metrics-deployer --config="${ADMIN_KUBECONFIG}" -n openshift-infra
+	oc secrets new metrics-deployer nothing=/dev/null -n openshift-infra --config="${ADMIN_KUBECONFIG}"
+
+	# give privileges to the to-be-created heapster service account
+	oadm policy add-cluster-role-to-user cluster-reader system:serviceaccount:openshift-infra:heapster --config="${ADMIN_KUBECONFIG}"
+
+	DEPLOYER_TEMPLATE=${1?"Must specify path to metrics deployer template to deploy Heapster"}
+
+	# this works with the standard formats, but won't work when the format is not PREFIX-${component}:${version}
+	IMAGE_PREFIX=${USE_IMAGES/\$\{component\}*/}
+	IMAGE_VERSION="latest"  # currently only latest exists
+
+	# launch the heapster-only metrics deployer
+	oc process -n openshift-infra -f ${DEPLOYER_TEMPLATE} -v IMAGE_PREFIX=${IMAGE_PREFIX} -v IMAGE_VERSION=${IMAGE_VERSION} | oc create -f - -n openshift-infra --config="${ADMIN_KUBECONFIG}"
+}
+
+
 # Wait for builds to start
 # $1 namespace
 function os::build:wait_for_start() {
