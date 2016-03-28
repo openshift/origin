@@ -489,7 +489,7 @@ func describeSecurityContextConstraints(scc *api.SecurityContextConstraints) (st
 		fmt.Fprintf(out, "  Default Add Capabilities:\t%s\n", capsToString(scc.DefaultAddCapabilities))
 		fmt.Fprintf(out, "  Required Drop Capabilities:\t%s\n", capsToString(scc.RequiredDropCapabilities))
 		fmt.Fprintf(out, "  Allowed Capabilities:\t%s\n", capsToString(scc.AllowedCapabilities))
-		fmt.Fprintf(out, "  Allow Host Dir Volumes:\t%t\n", scc.AllowHostDirVolumePlugin)
+		fmt.Fprintf(out, "  Allowed Volume Types:\t%s\n", fsTypeToString(scc.Volumes))
 		fmt.Fprintf(out, "  Allow Host Network:\t%t\n", scc.AllowHostNetwork)
 		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
 		fmt.Fprintf(out, "  Allow Host PID:\t%t\n", scc.AllowHostPID)
@@ -543,6 +543,14 @@ func stringOrNone(s string) string {
 		return s
 	}
 	return "<none>"
+}
+
+func fsTypeToString(volumes []api.FSType) string {
+	strVolumes := []string{}
+	for _, v := range volumes {
+		strVolumes = append(strVolumes, string(v))
+	}
+	return stringOrNone(strings.Join(strVolumes, ","))
 }
 
 func idRangeToString(ranges []api.IDRange) string {

@@ -17,11 +17,13 @@ limitations under the License.
 package securitycontextconstraints
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
@@ -353,7 +355,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failHostDirSCC": {
 			pod:           failHostDirPod,
 			scc:           defaultSCC(),
-			expectedError: "Host Volumes are not allowed to be used",
+			expectedError: "hostPath volumes are not allowed to be used",
 		},
 		"failHostPortSCC": {
 			pod:           failHostPortPod,
@@ -548,7 +550,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	}
 
 	hostDirSCC := defaultSCC()
-	hostDirSCC.AllowHostDirVolumePlugin = true
+	hostDirSCC.Volumes = []api.FSType{api.FSTypeHostPath}
 	hostDirPod := defaultPod()
 	hostDirPod.Spec.Volumes = []api.Volume{
 		{
@@ -747,5 +749,67 @@ func defaultPod() *api.Pod {
 				},
 			},
 		},
+	}
+}
+
+// TestValidateAllowedVolumes will test that for every field of VolumeSource we can create
+// a pod with that type of volume and deny it, accept it explicitly, or accept it with
+// the FSTypeAll wildcard.
+func TestValidateAllowedVolumes(t *testing.T) {
+	val := reflect.ValueOf(api.VolumeSource{})
+
+	for i := 0; i < val.NumField(); i++ {
+		// reflectively create the volume source
+		fieldVal := val.Type().Field(i)
+
+		volumeSource := api.VolumeSource{}
+		volumeSourceVolume := reflect.New(fieldVal.Type.Elem())
+
+		reflect.ValueOf(&volumeSource).Elem().FieldByName(fieldVal.Name).Set(volumeSourceVolume)
+		volume := api.Volume{VolumeSource: volumeSource}
+
+		// sanity check before moving on
+		fsType, err := sccutil.GetVolumeFSType(volume)
+		if err != nil {
+			t.Errorf("error getting FSType for %s: %s", fieldVal.Name, err.Error())
+			continue
+		}
+
+		// add the volume to the pod
+		pod := defaultPod()
+		pod.Spec.Volumes = []api.Volume{volume}
+
+		// create an SCC that allows no volumes
+		scc := defaultSCC()
+
+		provider, err := NewSimpleProvider(scc)
+		if err != nil {
+			t.Errorf("error creating provider for %s: %s", fieldVal.Name, err.Error())
+			continue
+		}
+
+		// expect a denial for this SCC and test the error message to ensure it's related to the volumesource
+		errs := provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 1 {
+			t.Errorf("expected exactly 1 error for %s but got %v", fieldVal.Name, errs)
+		} else {
+			if !strings.Contains(errs.ToAggregate().Error(), fmt.Sprintf("%s volumes are not allowed to be used", fsType)) {
+				t.Errorf("did not find the expected error, received: %v", errs)
+			}
+		}
+
+		// now add the fstype directly to the scc and it should validate
+		scc.Volumes = []api.FSType{fsType}
+		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 0 {
+			t.Errorf("directly allowing volume expected no errors for %s but got %v", fieldVal.Name, errs)
+		}
+
+		// now change the scc to allow any volumes and the pod should still validate
+		scc.Volumes = []api.FSType{api.FSTypeAll}
+		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 0 {
+			t.Errorf("wildcard volume expected no errors for %s but got %v", fieldVal.Name, errs)
+		}
 	}
 }

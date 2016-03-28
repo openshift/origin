@@ -2567,8 +2567,9 @@ type SecurityContextConstraints struct {
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	AllowedCapabilities []Capability
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool
+	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
+	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.
+	Volumes []FSType
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool
 	// AllowHostPorts determines if the policy allows host ports in the containers.
@@ -2597,6 +2598,32 @@ type SecurityContextConstraints struct {
 	// The groups that have permission to use this security context constraints
 	Groups []string
 }
+
+// FS Type gives strong typing to different file systems that are used by volumes.
+type FSType string
+
+var (
+	FSTypeAzureFile             FSType = "azureFile"
+	FSTypeFlocker               FSType = "flocker"
+	FSTypeFlexVolume            FSType = "flexVolume"
+	FSTypeHostPath              FSType = "hostPath"
+	FSTypeEmptyDir              FSType = "emptyDir"
+	FSTypeGCEPersistentDisk     FSType = "gcePersistentDisk"
+	FSTypeAWSElasticBlockStore  FSType = "awsElasticBlockStore"
+	FSTypeGitRepo               FSType = "gitRepo"
+	FSTypeSecret                FSType = "secret"
+	FSTypeNFS                   FSType = "nfs"
+	FSTypeISCSI                 FSType = "iscsi"
+	FSTypeGlusterfs             FSType = "glusterfs"
+	FSTypePersistentVolumeClaim FSType = "persistentVolumeClaim"
+	FSTypeRBD                   FSType = "rbd"
+	FSTypeCinder                FSType = "cinder"
+	FSTypeCephFS                FSType = "cephFS"
+	FSTypeDownwardAPI           FSType = "downwardAPI"
+	FSTypeFC                    FSType = "fc"
+	FSTypeConfigMap             FSType = "configMap"
+	FSTypeAll                   FSType = "*"
+)
 
 // SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
 type SELinuxContextStrategyOptions struct {

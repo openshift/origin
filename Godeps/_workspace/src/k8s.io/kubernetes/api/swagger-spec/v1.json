@@ -18952,6 +18952,7 @@
      "requiredDropCapabilities",
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
+     "volumes",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -19004,6 +19005,13 @@
       "type": "boolean",
       "description": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin"
      },
+     "volumes": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.FSType"
+      },
+      "description": "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'."
+     },
      "allowHostNetwork": {
       "type": "boolean",
       "description": "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec."
@@ -19055,6 +19063,10 @@
       "description": "The groups that have permission to use this security context constraints"
      }
     }
+   },
+   "v1.FSType": {
+    "id": "v1.FSType",
+    "properties": {}
    },
    "v1.SELinuxContextStrategyOptions": {
     "id": "v1.SELinuxContextStrategyOptions",

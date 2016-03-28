@@ -18956,6 +18956,7 @@
      "requiredDropCapabilities",
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
+     "volumes",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -19008,6 +19009,12 @@
       "type": "boolean",
       "description": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin"
      },
+     "volumes": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.FSType"
+      }
+     },
      "allowHostNetwork": {
       "type": "boolean",
       "description": "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec."
@@ -19059,6 +19066,10 @@
       "description": "The groups that have permission to use this security context constraints"
      }
     }
+   },
+   "v1.FSType": {
+    "id": "v1.FSType",
+    "properties": {}
    },
    "v1.SELinuxContextStrategyOptions": {
     "id": "v1.SELinuxContextStrategyOptions",
