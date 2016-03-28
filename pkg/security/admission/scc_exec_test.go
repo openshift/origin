@@ -110,10 +110,5 @@ func TestExecAdmit(t *testing.T) {
 			t.Errorf("%s: no actions found", k)
 		}
 
-		if v.shouldHaveClientAction {
-			if len(v.pod.Spec.ServiceAccountName) != 0 {
-				t.Errorf("%s: sa name should have been cleared: %v", k, v.pod.Spec.ServiceAccountName)
-			}
-		}
 	}
 }

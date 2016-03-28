@@ -1,4 +1,4 @@
-package empty_dir
+package emptydir
 
 import (
 	"k8s.io/kubernetes/pkg/api"

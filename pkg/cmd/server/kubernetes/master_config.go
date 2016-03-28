@@ -18,7 +18,6 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -205,20 +204,20 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		storageVersions[configapi.APIGroupKube] = options.EtcdStorageConfig.KubernetesStorageVersion
 	}
 
-	// TODO: also need to enable this if batch or autoscaling is enabled and doesn't have a storage version set
-	enabledExtensionsVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupExtensions)
-	if len(enabledExtensionsVersions) > 0 {
-		groupMeta, err := registered.Group(configapi.APIGroupExtensions)
-		if err != nil {
-			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
-		}
-		// TODO expose storage version options for api groups
-		databaseStorage, err := NewEtcdStorage(etcdClient, groupMeta.GroupVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+	// enable this if extensions API is enabled (or batch or autoscaling, since they persist to extensions/v1beta1 for now)
+	// TODO: replace this with a loop over configured storage versions
+	extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupExtensions)) > 0
+	batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupBatch)) > 0
+	autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupAutoscaling)) > 0
+	if extensionsEnabled || autoscalingEnabled || batchEnabled {
+		// TODO: replace this with a configured storage version for extensions once configuration exposes this
+		extensionsStorageVersion := unversioned.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"}
+		databaseStorage, err := NewEtcdStorage(etcdClient, extensionsStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
 		}
 		storageDestinations.AddAPIGroup(configapi.APIGroupExtensions, databaseStorage)
-		storageVersions[configapi.APIGroupExtensions] = unversioned.GroupVersion{Group: extensions.GroupName, Version: enabledExtensionsVersions[0]}.String()
+		storageVersions[configapi.APIGroupExtensions] = extensionsStorageVersion.String()
 	}
 
 	// Preserve previous behavior of using the first non-loopback address

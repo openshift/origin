@@ -554,6 +554,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	switch {
 	case resp.StatusCode == 301 || resp.StatusCode == 302:
 		// TODO: follow redirect and display output

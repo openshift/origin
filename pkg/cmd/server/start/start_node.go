@@ -301,6 +301,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.EnsureKubeletAccess()
 		config.EnsureVolumeDir()
 		config.EnsureDocker(docker.NewHelper())
+		config.EnsureLocalQuota(nodeConfig) // must be performed after EnsureVolumeDir
 	}
 
 	// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,

@@ -1,0 +1,18 @@
+[Unit]
+Description=Atomic Registry origin master
+Documentation=https://github.com/openshift/origin
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+EnvironmentFile=/etc/sysconfig/atomic-openshift-master
+# this fails unless it exists. necessary for cleanup?
+ExecStartPre=-/usr/bin/docker rm -f origin-master
+ExecStart=/usr/bin/docker run --restart=no --rm --privileged --net=host --pid=host --name origin-master -v /:/rootfs:ro -v /dev:/dev -v /var/run:/var/run:rw -v /var/lib/kubelet/:/var/lib/kubelet:rw -e CONFIG_FILE=${CONFIG_FILE} -e OPTIONS=${OPTIONS} -e HOST=/rootfs -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /lib/modules:/lib/modules -v /etc/origin/openvswitch:/etc/openvswitch -v /etc/origin/sdn:/etc/openshift-sdn -v /etc/systemd/system:/host-etc/systemd/system -v /etc/origin/:/etc/origin/ -v /var/lib/origin:/var/lib/origin -e KUBECONFIG=/etc/origin/master/admin.kubeconfig openshift/origin start --master-config /etc/origin/master/master-config.yaml --node-config=/etc/origin/node/node-config.yaml --latest-images=true
+ExecStartPost=/usr/bin/sleep 10
+ExecStop=/usr/bin/docker stop origin-master
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

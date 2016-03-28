@@ -2395,6 +2395,7 @@ func deepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 	if err := deepCopy_v1_FSGroupStrategyOptions(in.FSGroup, &out.FSGroup, c); err != nil {
 		return err
 	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	if in.Users != nil {
 		out.Users = make([]string, len(in.Users))
 		for i := range in.Users {

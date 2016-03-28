@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -24,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/oom"
-	"k8s.io/kubernetes/pkg/volume"
 
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
@@ -35,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/volume/empty_dir"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -181,49 +178,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg, err := kubeletapp.UnsecuredKubeletConfig(server)
 	if err != nil {
 		return nil, err
-	}
-
-	// Replace the standard k8s emptyDir volume plugin with a wrapper version
-	// which offers XFS quota functionality, but only if the node config
-	// specifies an empty dir quota to apply to projects:
-	if options.VolumeConfig.LocalQuota.PerFSGroup != nil {
-		glog.V(2).Info("Replacing empty-dir volume plugin with quota wrapper")
-		wrappedEmptyDirPlugin := false
-
-		quotaApplicator, err := empty_dir.NewQuotaApplicator(options.VolumeDirectory)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create a volume spec with emptyDir we can use to search for the
-		// emptyDir plugin with CanSupport:
-		emptyDirSpec := &volume.Spec{
-			Volume: &kapi.Volume{
-				VolumeSource: kapi.VolumeSource{
-					EmptyDir: &kapi.EmptyDirVolumeSource{},
-				},
-			},
-		}
-
-		for idx, plugin := range cfg.VolumePlugins {
-			// Can't really do type checking or use a constant here as they are not exported:
-			if plugin.CanSupport(emptyDirSpec) {
-				wrapper := empty_dir.EmptyDirQuotaPlugin{
-					Wrapped:         plugin,
-					Quota:           *options.VolumeConfig.LocalQuota.PerFSGroup,
-					QuotaApplicator: quotaApplicator,
-				}
-				cfg.VolumePlugins[idx] = &wrapper
-				wrappedEmptyDirPlugin = true
-			}
-		}
-		// Because we can't look for the k8s emptyDir plugin by any means that would
-		// survive a refactor, error out if we couldn't find it:
-		if !wrappedEmptyDirPlugin {
-			return nil, errors.New("unable to wrap emptyDir volume plugin for quota support")
-		}
-	} else {
-		glog.V(2).Info("Skipping replacement of empty-dir volume plugin with quota wrapper, no local fsGroup quota specified")
 	}
 
 	// provide any config overrides

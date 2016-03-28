@@ -65,10 +65,18 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	config.KeyData = []byte{}
 	config.BearerToken = ""
 
+	kubeUserAgent := ""
+	openshiftUserAgent := ""
+
+	// they specified, don't mess with it
 	if len(config.UserAgent) > 0 {
-		config.UserAgent += " "
+		kubeUserAgent = config.UserAgent
+		openshiftUserAgent = config.UserAgent
+
+	} else {
+		kubeUserAgent = fmt.Sprintf("%s system:serviceaccount:%s:%s", restclient.DefaultKubernetesUserAgent(), namespace, name)
+		openshiftUserAgent = fmt.Sprintf("%s system:serviceaccount:%s:%s", client.DefaultOpenShiftUserAgent(), namespace, name)
 	}
-	config.UserAgent += fmt.Sprintf("system:serviceaccount:%s:%s", namespace, name)
 
 	// For now, just initialize the token once
 	// TODO: refetch the token if the client encounters 401 errors
@@ -78,11 +86,13 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	}
 	config.BearerToken = token
 
+	config.UserAgent = openshiftUserAgent
 	c, err := client.New(&config)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	config.UserAgent = kubeUserAgent
 	kc, err := kclient.New(&config)
 	if err != nil {
 		return nil, nil, nil, err

@@ -15,8 +15,9 @@ MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 
 ADD https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo /etc/yum.repos.d/
 RUN INSTALL_PKGS="libmnl libnetfilter_conntrack openvswitch \
-      libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
-      binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus" && \
+    libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
+    ceph-common iscsi-initiator-utils" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all

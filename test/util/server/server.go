@@ -37,11 +37,10 @@ import (
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
 
-// RequireServer verifies if the etcd, docker and the OpenShift server are
-// available and you can successfully connected to them.
+// RequireServer verifies if the etcd and the OpenShift server are
+// available and you can successfully connect to them.
 func RequireServer(t *testing.T) {
 	util.RequireEtcd(t)
-	util.RequireDocker()
 	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
 	}
