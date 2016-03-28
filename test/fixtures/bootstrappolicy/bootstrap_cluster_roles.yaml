@@ -271,7 +271,6 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
-    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -283,6 +282,15 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups: null
     attributeRestrictions: null
@@ -436,7 +444,6 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
-    - daemonsets
     - horizontalpodautoscalers
     - jobs
     - replicationcontrollers/scale
@@ -448,6 +455,15 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups: null
     attributeRestrictions: null
@@ -1407,6 +1423,27 @@ items:
     - create
     - patch
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:gc-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - delete
 - apiVersion: v1
   kind: ClusterRole
   metadata:

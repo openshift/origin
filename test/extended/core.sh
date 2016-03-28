@@ -79,6 +79,10 @@ if [[ -z ${TEST_ONLY+x} ]]; then
   fi
   echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
+  # This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
+  os::util::sed 's/\(controllerArguments:\ \)null/\1\n    terminated-pod-gc-threshold: ["100"]/' \
+    ${MASTER_CONFIG_DIR}/master-config.yaml
+
   start_os_server
 
   export KUBECONFIG="${ADMIN_KUBECONFIG}"
@@ -119,9 +123,11 @@ excluded_tests=(
   "Cluster level logging" # Not installed yet
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
+  Ubernetes               # Can't set zone labels today
   kube-ui                 # Not installed by default
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
   "\[Feature:Deployment\]" # Not enabled yet
+  "^Deployment\s" # Not enabled yet
   "paused deployment should be ignored by the controller" # Not enabled yet
   "deployment should create new pods" # Not enabled yet
   Ingress                 # Not enabled yet

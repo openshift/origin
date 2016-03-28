@@ -27,7 +27,12 @@ angular.module('openshiftConsole')
         // this webkit bug with user-select: none;
         //   https://bugs.webkit.org/show_bug.cgi?id=80159
         line.firstChild.setAttribute('data-line-number', lineNumber);
-        line.lastChild.appendChild(document.createTextNode(text));
+
+        // Escape ANSI color codes
+        var escaped = ansi_up.escape_for_html(text);
+        var html = ansi_up.ansi_to_html(escaped);
+        var linkifiedHTML = ansi_up.linkify(html);
+        line.lastChild.innerHTML = linkifiedHTML;
 
         return line;
       };

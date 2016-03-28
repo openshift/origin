@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	gccontroller "k8s.io/kubernetes/pkg/controller/gc"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
@@ -287,6 +288,13 @@ func (c *MasterConfig) RunResourceQuotaManager() {
 		ReplenishmentResyncPeriod: kctrlmgr.ResyncPeriod(c.ControllerManager),
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(c.ControllerManager.ConcurrentResourceQuotaSyncs, utilwait.NeverStop)
+}
+
+func (c *MasterConfig) RunGCController(client *client.Client) {
+	if c.ControllerManager.TerminatedPodGCThreshold > 0 {
+		gcController := gccontroller.New(internalclientset.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager), c.ControllerManager.TerminatedPodGCThreshold)
+		go gcController.Run(utilwait.NeverStop)
+	}
 }
 
 // RunNodeController starts the node controller

@@ -16,7 +16,8 @@ MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 ADD https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo /etc/yum.repos.d/
 RUN yum install -y libmnl libnetfilter_conntrack openvswitch \
     libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
-    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus && \
+    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
+    ceph-common iscsi-initiator-utils && \
     yum clean all
 
 RUN mkdir -p \

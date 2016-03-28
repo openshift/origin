@@ -24,6 +24,14 @@ function cleanup()
     set +e
     kill_all_processes
 
+    echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
+    set_curl_args 0 1
+    curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+    echo
+
+    # we keep a JSON dump of etcd data so we do not need to keep the binary store
+    rm -rf "${ETCD_DATA_DIR}"
+
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
         echo

@@ -112,11 +112,19 @@ func ExecuteTest(t *testing.T, suite string) {
 	}
 }
 
-func isOriginTest() bool {
-	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FileName, "/origin/test/")
+// TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.
+// isPackage determines wether the test is in a package.  Ideally would be implemented in ginkgo.
+func isPackage(pkg string) bool {
+	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FileName, pkg)
 }
+
+// TODO: For both is*Test functions, use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228
+func isOriginTest() bool {
+	return isPackage("/origin/test/")
+}
+
 func isKubernetesE2ETest() bool {
-	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FileName, "/kubernetes/test/e2e/")
+	return isPackage("/kubernetes/test/e2e/")
 }
 
 // Holds custom namespace creation functions so we can customize per-test
@@ -172,12 +180,12 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 func checkSuiteSkips() {
 	switch {
 	case isOriginTest():
-		if strings.Contains(config.GinkgoConfig.SkipString, "[Origin]") {
-			ginkgo.Skip("skipping [Origin] tests")
+		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Origin") {
+			ginkgo.Skip("skipping all openshift/origin tests")
 		}
 	case isKubernetesE2ETest():
-		if strings.Contains(config.GinkgoConfig.SkipString, "[Kubernetes]") {
-			ginkgo.Skip("skipping [Kubernetes] tests")
+		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Kubernetes") {
+			ginkgo.Skip("skipping all k8s.io/kubernetes tests")
 		}
 	}
 }
