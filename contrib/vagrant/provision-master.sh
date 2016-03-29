@@ -35,7 +35,7 @@ os::provision::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
 if [ "${SDN_NODE}" = "true" ]; then
   os::provision::start-node-service "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
 
-  # Disable scheduling for the sdn node - it's purpose is only to ensure
+  # Disable scheduling for the sdn node - its purpose is only to ensure
   # pod network connectivity on the master.
   #
   # This will be performed separately for dind to allow as much time
