@@ -7,7 +7,7 @@
 FROM centos:centos7
 
 RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
-      socat ethtool device-mapper iptables tree findutils nc e2fsprogs xfsprogs lsof" && \
+      socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
