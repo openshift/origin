@@ -41,6 +41,8 @@ func TestDownloaderForSource(t *testing.T) {
 		"file://" + localDir:   "file.File",
 		"foo://github.com/bar": "error",
 		"./foo":                "error",
+		// Empty source string
+		"": "empty.Noop",
 	}
 
 	for s, expected := range tc {

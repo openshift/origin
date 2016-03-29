@@ -10,9 +10,6 @@ import (
 // ValidateConfig returns a list of error from validation.
 func ValidateConfig(config *api.Config) []ValidationError {
 	allErrs := []ValidationError{}
-	if len(config.Source) == 0 {
-		allErrs = append(allErrs, NewFieldRequired("source"))
-	}
 	if len(config.BuilderImage) == 0 {
 		allErrs = append(allErrs, NewFieldRequired("builderImage"))
 	}

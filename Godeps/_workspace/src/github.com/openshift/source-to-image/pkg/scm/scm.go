@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/build"
+	"github.com/openshift/source-to-image/pkg/scm/empty"
 	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -15,6 +16,10 @@ import (
 // the sources from the repository.
 func DownloaderForSource(s string, forceCopy bool) (build.Downloader, string, error) {
 	glog.V(4).Infof("DownloadForSource %s", s)
+
+	if len(s) == 0 {
+		return &empty.Noop{}, s, nil
+	}
 
 	details, mods := git.ParseFile(s)
 	glog.V(4).Infof("return from ParseFile file exists %v proto specified %v use copy %v", details.FileExists, details.ProtoSpecified, details.UseCopy)

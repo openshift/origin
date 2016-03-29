@@ -172,14 +172,14 @@ func (m *DefaultScriptSourceManager) Add(s ScriptHandler) {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
+func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
 	m := DefaultScriptSourceManager{
 		Image:      image,
 		ScriptsURL: scriptsURL,
 		dockerAuth: auth,
 		docker:     docker,
 		fs:         util.NewFileSystem(),
-		download:   NewDownloader(),
+		download:   NewDownloader(proxyConfig),
 	}
 	// Order is important here, first we try to get the scripts from provided URL,
 	// then we look into sources and check for .s2i/bin scripts.
