@@ -76,6 +76,8 @@ type templateRouter struct {
 	rateLimitedCommitStopChannel chan struct{}
 	// lock is a mutex used to prevent concurrent router reloads.
 	lock sync.Mutex
+	// the router should only reload when the value is false
+	skipCommit bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -215,7 +217,11 @@ func (r *templateRouter) readState() error {
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
 func (r *templateRouter) Commit() {
-	r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+	if r.skipCommit {
+		glog.V(4).Infof("Skipping router commit until last sync has been processed")
+	} else {
+		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+	}
 }
 
 // commitAndReload refreshes the backend and persists the router state.
@@ -609,6 +615,15 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 		return false
 	}
 	return false
+}
+
+// SetSkipCommit indicates to the router whether requests to
+// commit/reload should be skipped.
+func (r *templateRouter) SetSkipCommit(skipCommit bool) {
+	if r.skipCommit != skipCommit {
+		glog.V(4).Infof("Updating skip commit to: %s", skipCommit)
+		r.skipCommit = skipCommit
+	}
 }
 
 // hasRequiredEdgeCerts ensures that at least a host certificate and key are provided.

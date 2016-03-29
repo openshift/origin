@@ -212,6 +212,10 @@ func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
+func (p *UniqueHost) SetLastSyncProcessed(processed bool) error {
+	return p.plugin.SetLastSyncProcessed(processed)
+}
+
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
