@@ -282,6 +282,12 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
             "containers": [
               {
                 "name": "mongodb",
@@ -289,6 +295,12 @@
                 "ports": [
                   {
                     "containerPort": 27017
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mongodb/data"
                   }
                 ],
                 "env": [

@@ -133,6 +133,14 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
             "containers": [
               {
                 "name": "discovery",
@@ -144,6 +152,12 @@
                   {
                     "containerPort": 2379,
                     "protocol": "TCP"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/etcd"
                   }
                 ],
                 "resources": {},
@@ -191,6 +205,14 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
             "containers": [
               {
                 "name": "member",
@@ -229,6 +251,12 @@
                   {
                     "name": "ETCDCTL_PEERS",
                     "value": "http://etcd:2379"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/etcd"
                   }
                 ],
                 "resources": {},

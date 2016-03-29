@@ -143,6 +143,7 @@ items:
             name: git
         volumes:
         - name: git
+          emptyDir: {}
     triggers:
     - type: ConfigChange
 
