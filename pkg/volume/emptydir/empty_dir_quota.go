@@ -76,7 +76,7 @@ type emptyDirQuotaBuilder struct {
 	quotaApplicator QuotaApplicator
 }
 
-// Must implement SetUp as well, otherwise the internal Builder.SetUp calls it's
+// Must implement SetUp as well, otherwise the internal Builder.SetUp calls its
 // own SetUpAt method, not the one we need.
 
 func (edq *emptyDirQuotaBuilder) SetUp(fsGroup *int64) error {

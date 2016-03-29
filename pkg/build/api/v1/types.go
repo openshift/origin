@@ -83,7 +83,7 @@ type BuildStatus struct {
 	Duration time.Duration `json:"duration,omitempty"`
 
 	// OutputDockerImageReference contains a reference to the Docker image that
-	// will be built by this build. It's value is computed from
+	// will be built by this build. Its value is computed from
 	// Build.Spec.Output.To, and should include the registry address, so that
 	// it can be used to push and pull the image.
 	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty"`

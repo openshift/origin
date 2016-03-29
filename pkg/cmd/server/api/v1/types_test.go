@@ -662,7 +662,7 @@ func TestMasterConfig(t *testing.T) {
 					Configuration: &AdmissionPluginTestConfig{},
 				},
 			},
-			PluginOrderOverride: []string{"plugin"}, // explicitly set this field because the it's omitempty
+			PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
 		},
 	}
 	serializedConfig, err := writeYAML(config)
