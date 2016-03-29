@@ -101,15 +101,7 @@ func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Ma
 					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
 					if _, ok := imageStream.Status.Tags[tagNode.ImageTag()]; !ok {
 
-						markers = append(markers, osgraph.Marker{
-							Node: bcNode,
-							RelatedNodes: []graph.Node{bcInputNode,
-								imageStreamNode},
-							Severity:   osgraph.WarningSeverity,
-							Key:        MissingImageStreamTagWarning,
-							Message:    fmt.Sprintf("%s builds from %s, but the image stream tag does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
-							Suggestion: osgraph.Suggestion(fmt.Sprintf("examine analysis of build config outputs from this command and see if they build %s", f.ResourceName(bcInputNode))),
-						})
+						markers = append(markers, getImageStreamTagMarker(g, f, bcInputNode, imageStreamNode, tagNode, bcNode))
 
 					}
 
@@ -122,18 +114,10 @@ func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Ma
 
 					imageNode, _ := bcInputNode.(*imagegraph.ImageStreamImageNode)
 					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
-					found, imageID, suggestion := validImageStreamImage(imageNode, imageStream)
+					found, imageID := validImageStreamImage(imageNode, imageStream)
 					if !found {
 
-						markers = append(markers, osgraph.Marker{
-							Node: bcNode,
-							RelatedNodes: []graph.Node{bcInputNode,
-								imageStreamNode},
-							Severity:   osgraph.WarningSeverity,
-							Key:        MissingImageStreamImageWarning,
-							Message:    fmt.Sprintf("%s builds from %s, but the image stream image does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
-							Suggestion: osgraph.Suggestion(fmt.Sprintf(suggestion, imageID, f.ResourceName(imageStreamNode))),
-						})
+						markers = append(markers, getImageStreamImageMarker(g, f, bcNode, bcInputNode, imageStreamNode, imageNode, imageStream, imageID))
 
 					}
 
@@ -238,25 +222,54 @@ func FindPendingTags(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	return markers
 }
 
-// validImageStreamImage will cycle through the imageStream.Status.Tags.[]TagEvent.DockerImageReference and  determine whether an image with the hexadecimal image id
-// associated with an ImageStreamImage reference in fact exists in a given ImageStream; on return, this method returns a true if does exist, and as well as the hexadecimal image
-// id from the ImageStreamImage, as well as the appropriate message to add to the marker if the image was not found
-func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream) (bool, string, string) {
-	dockerImageReference, err := imageapi.ParseDockerImageReference(imageNode.Name)
-	if err == nil {
-		for _, tagEventList := range imageStream.Status.Tags {
-			for _, tagEvent := range tagEventList.Items {
-				if strings.Contains(tagEvent.DockerImageReference, dockerImageReference.ID) {
-					return true, dockerImageReference.ID, ""
-				}
-			}
-		}
+// getImageStreamTagMarker will return the appropriate marker for when a BuildConfig is missing its input ImageStreamTag
+func getImageStreamTagMarker(g osgraph.Graph, f osgraph.Namer, bcInputNode graph.Node, imageStreamNode graph.Node, tagNode *imagegraph.ImageStreamTagNode, bcNode graph.Node) osgraph.Marker {
+	return osgraph.Marker{
+		Node: bcNode,
+		RelatedNodes: []graph.Node{bcInputNode,
+			imageStreamNode},
+		Severity:   osgraph.WarningSeverity,
+		Key:        MissingImageStreamImageWarning,
+		Message:    fmt.Sprintf("%s builds from %s, but the image stream tag does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
+		Suggestion: getImageStreamTagSuggestion(g, f, tagNode),
 	}
+}
 
+// getImageStreamTagSuggestion will return the appropriate marker Suggestion for when a BuildConfig is missing its input ImageStreamTag;  in particular,
+// it will determine whether or not another BuildConfig can produce the aforementioned ImageStreamTag
+func getImageStreamTagSuggestion(g osgraph.Graph, f osgraph.Namer, tagNode *imagegraph.ImageStreamTagNode) osgraph.Suggestion {
+	bcs := []string{}
+	for _, bcNode := range g.PredecessorNodesByEdgeKind(tagNode, buildedges.BuildOutputEdgeKind) {
+		bcs = append(bcs, f.ResourceName(bcNode))
+	}
+	if len(bcs) == 1 {
+		return osgraph.Suggestion(fmt.Sprintf("oc start-build %s", bcs[0]))
+	}
+	if len(bcs) > 0 {
+		return osgraph.Suggestion(fmt.Sprintf("`oc start-build` with one of these: %s.", strings.Join(bcs[:], ",")))
+	}
+	return osgraph.Suggestion(fmt.Sprintf("%s needs to be imported.", f.ResourceName(tagNode)))
+}
+
+// getImageStreamImageMarker will return the appropriate marker for when a BuildConfig is missing its input ImageStreamImage
+func getImageStreamImageMarker(g osgraph.Graph, f osgraph.Namer, bcNode graph.Node, bcInputNode graph.Node, imageStreamNode graph.Node, imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream, imageID string) osgraph.Marker {
+	return osgraph.Marker{
+		Node: bcNode,
+		RelatedNodes: []graph.Node{bcInputNode,
+			imageStreamNode},
+		Severity:   osgraph.WarningSeverity,
+		Key:        MissingImageStreamImageWarning,
+		Message:    fmt.Sprintf("%s builds from %s, but the image stream image does not exist.", f.ResourceName(bcNode), f.ResourceName(bcInputNode)),
+		Suggestion: getImageStreamImageSuggestion(imageID, imageStream),
+	}
+}
+
+// getImageStreamImageSuggestion will return the appropriate marker Suggestion for when a BuildConfig is missing its input ImageStreamImage
+func getImageStreamImageSuggestion(imageID string, imageStream *imageapi.ImageStream) osgraph.Suggestion {
 	// check the images stream to see if any import images are in flight or have failed
 	annotation, ok := imageStream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
 	if !ok {
-		return false, dockerImageReference.ID, "import the image with hexadecimal ID %s into the image stream %s"
+		return osgraph.Suggestion(fmt.Sprintf("`oc import-image %s --from=` where `--from` specifies an image with hexadecimal ID %s", imageStream.GetName(), imageID))
 	}
 
 	if checkTime, err := time.Parse(time.RFC3339, annotation); err == nil {
@@ -267,16 +280,34 @@ func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStre
 		compareTime := checkTime.Add(5 * time.Minute)
 		currentTime, _ := time.Parse(time.RFC3339, unversioned.Now().UTC().Format(time.RFC3339))
 		if compareTime.Before(currentTime) {
-			return false, dockerImageReference.ID, "import the image with hexadecimal ID %s into the image stream %s"
+			return osgraph.Suggestion(fmt.Sprintf("`oc import-image %s --from=` where `--from` specifies an image with hexadecimal ID %s", imageStream.GetName(), imageID))
 		}
 
-		return false, dockerImageReference.ID, "a import of the image with hexadecimal ID %s into the image stream %s could be in progress; check again after a couple of minutes"
+		return osgraph.Suggestion(fmt.Sprintf("`oc import-image %s --from=` with hexadecimal ID %s possibly in progress", imageStream.GetName(), imageID))
 
 	}
-	return false, dockerImageReference.ID, "an error occurred importing the image with hexadecimal ID %s into the image stream %s; inspect the images stream annotations for details"
+	return osgraph.Suggestion(fmt.Sprintf("Possible error occurred with `oc import-image %s --from=` with hexadecimal ID %s; inspect images stream annotations", imageStream.GetName(), imageID))
 }
 
-// buildPointsToTag returns the buildConfig that points to the provided imageStreamTag.
+// validImageStreamImage will cycle through the imageStream.Status.Tags.[]TagEvent.DockerImageReference and  determine whether an image with the hexadecimal image id
+// associated with an ImageStreamImage reference in fact exists in a given ImageStream; on return, this method returns a true if does exist, and as well as the hexadecimal image
+// id from the ImageStreamImage
+func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream) (bool, string) {
+	dockerImageReference, err := imageapi.ParseDockerImageReference(imageNode.Name)
+	if err == nil {
+		for _, tagEventList := range imageStream.Status.Tags {
+			for _, tagEvent := range tagEventList.Items {
+				if strings.Contains(tagEvent.DockerImageReference, dockerImageReference.ID) {
+					return true, dockerImageReference.ID
+				}
+			}
+		}
+		return false, dockerImageReference.ID
+	}
+	return false, ""
+}
+
+// buildPointsToTag returns the first buildConfig that points to the provided imageStreamTag.
 func buildPointsToTag(g osgraph.Graph, istag graph.Node) (*buildgraph.BuildConfigNode, bool) {
 	for _, bcNode := range g.PredecessorNodesByEdgeKind(istag, buildedges.BuildOutputEdgeKind) {
 		return bcNode.(*buildgraph.BuildConfigNode), true
