@@ -42,6 +42,13 @@ type EventQueue struct {
 	keyFn  kcache.KeyFunc
 	events map[string]watch.EventType
 	queue  []string
+	// Tracks the last key added to the queue by the most recent call
+	// to Replace().  A reflector replaces the queue contents on a
+	// re-list by calling Replace() and the compression algorithm does
+	// not apply to those items, so a non-empty key is valid until the
+	// item it refers to is explicitly deleted from the store or the
+	// event is read via Pop().
+	lastReplaceKey string
 }
 
 // EventQueue implements kcache.Store
@@ -282,6 +289,13 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 		eventType := eq.events[key]
 		delete(eq.events, key)
 
+		// Track the last replace key immediately after the store
+		// state has been changed to prevent subsequent errors from
+		// leaving a stale key.
+		if eq.lastReplaceKey != "" && eq.lastReplaceKey == key {
+			eq.lastReplaceKey = ""
+		}
+
 		obj, exists, err := eq.store.GetByKey(key) // Should always succeed
 		if err != nil {
 			return watch.Error, nil, err
@@ -324,9 +338,21 @@ func (eq *EventQueue) Replace(objects []interface{}, resourceVersion string) err
 	}
 
 	if len(eq.queue) > 0 {
+		eq.lastReplaceKey = eq.queue[len(eq.queue)-1]
 		eq.cond.Broadcast()
+	} else {
+		eq.lastReplaceKey = ""
 	}
 	return nil
+}
+
+// ListConsumed indicates whether the items queued by a List/Relist
+// operation have been consumed.
+func (eq *EventQueue) ListConsumed() bool {
+	eq.lock.Lock()
+	defer eq.lock.Unlock()
+
+	return eq.lastReplaceKey == ""
 }
 
 // NewEventQueue returns a new EventQueue.
