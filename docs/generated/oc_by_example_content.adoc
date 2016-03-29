@@ -1533,6 +1533,12 @@ Start a shell session in a pod
 
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
   $ oc rsh foo cat /etc/resolv.conf
+
+  # See the configuration of your internal registry
+  $ oc rsh dc/docker-registry cat config.yml
+
+  # Open a shell session on the container named 'index' inside a pod of your job
+  # oc rsh -c index job/sheduled
 ----
 ====
 

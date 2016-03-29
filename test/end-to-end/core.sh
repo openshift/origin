@@ -90,7 +90,10 @@ echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
 
 # check to make sure that logs for rc works
-oc logs rc/docker-registry-1 > /dev/null
+os::cmd::expect_success "oc logs rc/docker-registry-1 > /dev/null"
+# check that we can get a remote shell to a dc or rc
+os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "5000"
+os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -263,7 +266,7 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
 os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
-os::cmd::expect_success_and_text "oc rsh ${frontend_pod} id -u" '1000'
+os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 # Test retrieving application logs from dc
 oc logs dc/frontend | grep "Connecting to production database"

@@ -18,14 +18,16 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -41,6 +43,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
@@ -391,45 +394,16 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kAttachablePodForObjectFunc := w.Factory.AttachablePodForObject
 	w.AttachablePodForObject = func(object runtime.Object) (*api.Pod, error) {
-		oc, kc, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
-			var err error
-			var pods *api.PodList
-			for pods == nil || len(pods.Items) == 0 {
-				if t.Status.LatestVersion == 0 {
-					time.Sleep(2 * time.Second)
-				}
-				if t, err = oc.DeploymentConfigs(t.Namespace).Get(t.Name); err != nil {
-					return nil, err
-				}
-				latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
-				deployment, err := kc.ReplicationControllers(t.Namespace).Get(latestDeploymentName)
-				if err != nil {
-					if kerrors.IsNotFound(err) {
-						continue
-					}
-					return nil, err
-				}
-				pods, err = kc.Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
-				if err != nil {
-					return nil, err
-				}
-				if len(pods.Items) == 0 {
-					time.Sleep(2 * time.Second)
-				}
+			_, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
 			}
-			var oldestPod *api.Pod
-			for i := range pods.Items {
-				pod := &pods.Items[i]
-				if oldestPod == nil || pod.CreationTimestamp.Before(oldestPod.CreationTimestamp) {
-					oldestPod = pod
-				}
-			}
-			return oldestPod, nil
+			selector := labels.SelectorFromSet(t.Spec.Selector)
+			f := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+			pod, _, err := cmdutil.GetFirstPod(kc, t.Namespace, selector, 1*time.Minute, f)
+			return pod, err
 		default:
 			return kAttachablePodForObjectFunc(object)
 		}
@@ -576,6 +550,90 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 		}
 		return nil, err
 	}
+}
+
+func (f *Factory) PodForResource(resource string, timeout time.Duration) (string, error) {
+	sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+	namespace, _, err := f.DefaultNamespace()
+	if err != nil {
+		return "", err
+	}
+	oc, kc, err := f.Clients()
+	if err != nil {
+		return "", err
+	}
+	mapper, _ := f.Object(false)
+	resourceType, name, err := util.ResolveResource(api.Resource("pods"), resource, mapper)
+	if err != nil {
+		return "", err
+	}
+
+	switch resourceType {
+	case api.Resource("pods"):
+		return name, nil
+	case api.Resource("replicationcontrollers"):
+		rc, err := kc.ReplicationControllers(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector := labels.SelectorFromSet(rc.Spec.Selector)
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case deployapi.Resource("deploymentconfigs"):
+		dc, err := oc.DeploymentConfigs(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector := labels.SelectorFromSet(dc.Spec.Selector)
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("daemonsets"):
+		ds, err := kc.Extensions().DaemonSets(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector, err := unversioned.LabelSelectorAsSelector(ds.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("jobs"):
+		job, err := kc.Extensions().Jobs(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		return podNameForJob(job, kc, timeout, sortBy)
+	case batch.Resource("jobs"):
+		job, err := kc.Batch().Jobs(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		return podNameForJob(job, kc, timeout, sortBy)
+	default:
+		return "", fmt.Errorf("remote shell for %s is not supported", resourceType)
+	}
+}
+
+func podNameForJob(job *extensions.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
+	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+	pod, _, err := cmdutil.GetFirstPod(kc, job.Namespace, selector, timeout, sortBy)
+	if err != nil {
+		return "", err
+	}
+	return pod.Name, nil
 }
 
 // Clients returns an OpenShift and Kubernetes client.
