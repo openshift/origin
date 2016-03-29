@@ -56,7 +56,8 @@ func doTest(bldPrefix, bldName, debugStr string, same bool, oc *exutil.CLI) {
 	// reset corrupted tagging for next test
 	exutil.ResetImage(resetData)
 	// dump tags/hexids for debug
-	exutil.DumpAndReturnTagging(tags)
+	_, err := exutil.DumpAndReturnTagging(tags)
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 /*
@@ -118,7 +119,8 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 
 		// dump the image textual tags and hex ids out for debug
 		tags = []string{fullImageName + ":latest", corruptor + ":latest"}
-		hexIDs := exutil.DumpAndReturnTagging(tags)
+		hexIDs, err := exutil.DumpAndReturnTagging(tags)
+		o.Expect(err).NotTo(o.HaveOccurred())
 		resetData = map[string]string{fullImageName: hexIDs[0], corruptor: hexIDs[1]}
 
 	})
