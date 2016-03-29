@@ -1284,12 +1284,6 @@ func autoConvert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out
 	} else {
 		out.Dockerfile = nil
 	}
-	if in.Jenkinsfile != nil {
-		out.Jenkinsfile = new(string)
-		*out.Jenkinsfile = *in.Jenkinsfile
-	} else {
-		out.Jenkinsfile = nil
-	}
 	// unable to generate simple pointer conversion for api.GitBuildSource -> v1.GitBuildSource
 	if in.Git != nil {
 		out.Git = new(v1.GitBuildSource)
@@ -1688,6 +1682,7 @@ func autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStra
 		defaulting.(func(*buildapi.JenkinsPipelineBuildStrategy))(in)
 	}
 	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
 	return nil
 }
 
@@ -2149,12 +2144,6 @@ func autoConvert_v1_BuildSource_To_api_BuildSource(in *v1.BuildSource, out *buil
 	} else {
 		out.Dockerfile = nil
 	}
-	if in.Jenkinsfile != nil {
-		out.Jenkinsfile = new(string)
-		*out.Jenkinsfile = *in.Jenkinsfile
-	} else {
-		out.Jenkinsfile = nil
-	}
 	// unable to generate simple pointer conversion for v1.GitBuildSource -> api.GitBuildSource
 	if in.Git != nil {
 		out.Git = new(buildapi.GitBuildSource)
@@ -2554,6 +2543,7 @@ func autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStra
 		defaulting.(func(*v1.JenkinsPipelineBuildStrategy))(in)
 	}
 	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
 	return nil
 }
 

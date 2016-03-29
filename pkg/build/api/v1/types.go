@@ -138,8 +138,6 @@ const (
 	BuildSourceBinary BuildSourceType = "Binary"
 	// BuildSourceImage indicates the build will accept an image as input
 	BuildSourceImage BuildSourceType = "Image"
-	// BuildSourceJenkinsfile uses a Jenkinsfile as the source of the Jenkins pipeline
-	BuildSourceJenkinsfile BuildSourceType = "Jenkinsfile"
 )
 
 // BuildSource is the SCM used for the build.
@@ -163,9 +161,6 @@ type BuildSource struct {
 	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
 	// dir.
 	Dockerfile *string `json:"dockerfile,omitempty"`
-
-	// Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
-	Jenkinsfile *string `json:"jenkinsfile,omitempty"`
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty"`
@@ -419,6 +414,9 @@ type JenkinsPipelineBuildStrategy struct {
 	// relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are
 	// both not specified, this defaults to Jenkinsfile in the root of the specified git repo.
 	JenkinsfilePath string `json:"jenkinsfilePath,omitempty"`
+
+	// Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	Jenkinsfile string `json:"jenkinsfile,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook

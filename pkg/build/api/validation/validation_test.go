@@ -661,7 +661,6 @@ func TestValidateBuildRequest(t *testing.T) {
 
 func TestValidateSource(t *testing.T) {
 	dockerfile := "FROM something"
-	jenkinsfile := "pipeline"
 	invalidProxyAddress := "some!@#$%^&*()url"
 	errorCases := []struct {
 		t        field.ErrorType
@@ -967,23 +966,6 @@ func TestValidateSource(t *testing.T) {
 					},
 				},
 			},
-		},
-		// 22
-		{
-			source: &buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "https://example.com/repo.git",
-				},
-				Jenkinsfile: &jenkinsfile,
-			},
-			ok: true,
-		},
-		// 23
-		{
-			source: &buildapi.BuildSource{
-				Jenkinsfile: &jenkinsfile,
-			},
-			ok: true,
 		},
 	}
 	for i, tc := range errorCases {
@@ -1453,7 +1435,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		},
 		// 18
 		{
-			string(field.ErrorTypeInvalid) + "source",
+			string(field.ErrorTypeInvalid) + "source.git",
 			&buildapi.BuildSpec{
 				Strategy: buildapi.BuildStrategy{
 					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
@@ -1462,7 +1444,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		},
 		// 19
 		{
-			string(field.ErrorTypeInvalid) + "source",
+			string(field.ErrorTypeInvalid) + "source.git",
 			&buildapi.BuildSpec{
 				Strategy: buildapi.BuildStrategy{
 					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
@@ -1507,31 +1489,33 @@ func TestValidateBuildSpec(t *testing.T) {
 		},
 		// 22
 		{
-			string(field.ErrorTypeInvalid) + "source.jenkinsfile",
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
 			&buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
-					Jenkinsfile: &longString,
 				},
 				Strategy: buildapi.BuildStrategy{
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						Jenkinsfile: longString,
+					},
 				},
 			},
 		},
 		// 23
 		{
-			string(field.ErrorTypeInvalid) + "source.jenkinsfile",
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
 			&buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
-					Jenkinsfile: &longString,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						Jenkinsfile: longString,
+					},
 				},
 			},
 		},
@@ -1746,6 +1730,48 @@ func TestValidateDockerfilePath(t *testing.T) {
 		}
 		if test.strategy.DockerfilePath != test.expectedDockerfilePath {
 			t.Errorf("Test[%d] Unexpected DockerfilePath: %v (expected: %s)", count, test.strategy.DockerfilePath, test.expectedDockerfilePath)
+		}
+	}
+}
+
+func TestValidateJenkinsfilePath(t *testing.T) {
+	tests := []struct {
+		strategy                *buildapi.JenkinsPipelineBuildStrategy
+		expectedJenkinsfilePath string
+	}{
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: ".",
+			},
+			expectedJenkinsfilePath: "",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/..",
+			},
+			expectedJenkinsfilePath: "",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/../somedockerfile",
+			},
+			expectedJenkinsfilePath: "somedockerfile",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/somedockerfile",
+			},
+			expectedJenkinsfilePath: "somedir/somedockerfile",
+		},
+	}
+
+	for count, test := range tests {
+		errors := validateJenkinsPipelineStrategy(test.strategy, nil)
+		if len(errors) != 0 {
+			t.Errorf("Test[%d] Unexpected validation error: %v", count, errors)
+		}
+		if test.strategy.JenkinsfilePath != test.expectedJenkinsfilePath {
+			t.Errorf("Test[%d] Unexpected JenkinsfilePath: %v (expected: %s)", count, test.strategy.JenkinsfilePath, test.expectedJenkinsfilePath)
 		}
 	}
 }

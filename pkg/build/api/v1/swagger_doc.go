@@ -157,7 +157,6 @@ var map_BuildSource = map[string]string{
 	"type":         "Type of build input to accept",
 	"binary":       "Binary builds accept a binary as their input. The binary is generally assumed to be a tar, gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build context and an optional Dockerfile may be specified to override any Dockerfile in the build context. For Source builds, this is assumed to be an archive as described above. For Source and Docker builds, if binary.asFile is set the build will receive a directory with a single file. contextDir may be used when an archive is provided. Custom builds will receive this binary as input on STDIN.",
 	"dockerfile":   "Dockerfile is the raw contents of a Dockerfile which should be built. When this option is specified, the FROM may be modified based on your strategy base image and additional ENV stanzas from your strategy environment will be added after the FROM, but before the rest of your Dockerfile stanzas. The Dockerfile source type may be used with other options like git - in those cases the Git repo will have any innate Dockerfile replaced in the context dir.",
-	"jenkinsfile":  "Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
 	"git":          "Git contains optional information about git build source",
 	"images":       "Images describes a set of images to be used to provide source for the build",
 	"contextDir":   "ContextDir specifies the sub-directory where the source code for the application exists. This allows to have buildable sources in directory other than root of repository.",
@@ -332,6 +331,7 @@ func (ImageSourcePath) SwaggerDoc() map[string]string {
 var map_JenkinsPipelineBuildStrategy = map[string]string{
 	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
 	"jenkinsfilePath": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo.",
+	"jenkinsfile":     "Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
 }
 
 func (JenkinsPipelineBuildStrategy) SwaggerDoc() map[string]string {

@@ -985,12 +985,6 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 	} else {
 		out.Dockerfile = nil
 	}
-	if in.Jenkinsfile != nil {
-		out.Jenkinsfile = new(string)
-		*out.Jenkinsfile = *in.Jenkinsfile
-	} else {
-		out.Jenkinsfile = nil
-	}
 	if in.Git != nil {
 		out.Git = new(buildapi.GitBuildSource)
 		if err := deepCopy_api_GitBuildSource(*in.Git, out.Git, c); err != nil {
@@ -1330,6 +1324,7 @@ func deepCopy_api_ImageSourcePath(in buildapi.ImageSourcePath, out *buildapi.Ima
 
 func deepCopy_api_JenkinsPipelineBuildStrategy(in buildapi.JenkinsPipelineBuildStrategy, out *buildapi.JenkinsPipelineBuildStrategy, c *conversion.Cloner) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
 	return nil
 }
 

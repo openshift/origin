@@ -1227,10 +1227,10 @@ func autoConvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	} else {
 		out.Dockerfile = nil
 	}
-	// in.Jenkinsfile has no peer in out
 	// unable to generate simple pointer conversion for api.GitBuildSource -> v1beta3.GitBuildSource
 	if in.Git != nil {
-		if err := s.Convert(&in.Git, &out.Git, 0); err != nil {
+		out.Git = new(v1beta3.GitBuildSource)
+		if err := Convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in.Git, out.Git, s); err != nil {
 			return err
 		}
 	} else {
@@ -1239,7 +1239,7 @@ func autoConvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	if in.Images != nil {
 		out.Images = make([]v1beta3.ImageSource, len(in.Images))
 		for i := range in.Images {
-			if err := s.Convert(&in.Images[i], &out.Images[i], 0); err != nil {
+			if err := Convert_api_ImageSource_To_v1beta3_ImageSource(&in.Images[i], &out.Images[i], s); err != nil {
 				return err
 			}
 		}
@@ -1259,7 +1259,7 @@ func autoConvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 	if in.Secrets != nil {
 		out.Secrets = make([]v1beta3.SecretBuildSource, len(in.Secrets))
 		for i := range in.Secrets {
-			if err := s.Convert(&in.Secrets[i], &out.Secrets[i], 0); err != nil {
+			if err := Convert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
 				return err
 			}
 		}
@@ -1501,6 +1501,31 @@ func autoConvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buil
 	return nil
 }
 
+func autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *v1beta3.GitBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.GitBuildSource))(in)
+	}
+	out.URI = in.URI
+	out.Ref = in.Ref
+	if in.HTTPProxy != nil {
+		out.HTTPProxy = new(string)
+		*out.HTTPProxy = *in.HTTPProxy
+	} else {
+		out.HTTPProxy = nil
+	}
+	if in.HTTPSProxy != nil {
+		out.HTTPSProxy = new(string)
+		*out.HTTPSProxy = *in.HTTPSProxy
+	} else {
+		out.HTTPSProxy = nil
+	}
+	return nil
+}
+
+func Convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *v1beta3.GitBuildSource, s conversion.Scope) error {
+	return autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in, out, s)
+}
+
 func autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *v1beta3.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitSourceRevision))(in)
@@ -1539,6 +1564,67 @@ func autoConvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *builda
 
 func Convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *v1beta3.ImageChangeTrigger, s conversion.Scope) error {
 	return autoConvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in, out, s)
+}
+
+func autoConvert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *v1beta3.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSource))(in)
+	}
+	if err := Convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]v1beta3.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := Convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	// unable to generate simple pointer conversion for api.LocalObjectReference -> v1beta3.LocalObjectReference
+	if in.PullSecret != nil {
+		out.PullSecret = new(apiv1beta3.LocalObjectReference)
+		if err := Convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func Convert_api_ImageSource_To_v1beta3_ImageSource(in *buildapi.ImageSource, out *v1beta3.ImageSource, s conversion.Scope) error {
+	return autoConvert_api_ImageSource_To_v1beta3_ImageSource(in, out, s)
+}
+
+func autoConvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *v1beta3.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func Convert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in *buildapi.ImageSourcePath, out *v1beta3.ImageSourcePath, s conversion.Scope) error {
+	return autoConvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in *buildapi.SecretBuildSource, out *v1beta3.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.SecretBuildSource))(in)
+	}
+	if err := Convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func Convert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in *buildapi.SecretBuildSource, out *v1beta3.SecretBuildSource, s conversion.Scope) error {
+	return autoConvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource(in, out, s)
 }
 
 func autoConvert_api_SecretSpec_To_v1beta3_SecretSpec(in *buildapi.SecretSpec, out *v1beta3.SecretSpec, s conversion.Scope) error {
@@ -1917,7 +2003,8 @@ func autoConvert_v1beta3_BuildSource_To_api_BuildSource(in *v1beta3.BuildSource,
 	}
 	// unable to generate simple pointer conversion for v1beta3.GitBuildSource -> api.GitBuildSource
 	if in.Git != nil {
-		if err := s.Convert(&in.Git, &out.Git, 0); err != nil {
+		out.Git = new(buildapi.GitBuildSource)
+		if err := Convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in.Git, out.Git, s); err != nil {
 			return err
 		}
 	} else {
@@ -1926,7 +2013,7 @@ func autoConvert_v1beta3_BuildSource_To_api_BuildSource(in *v1beta3.BuildSource,
 	if in.Images != nil {
 		out.Images = make([]buildapi.ImageSource, len(in.Images))
 		for i := range in.Images {
-			if err := s.Convert(&in.Images[i], &out.Images[i], 0); err != nil {
+			if err := Convert_v1beta3_ImageSource_To_api_ImageSource(&in.Images[i], &out.Images[i], s); err != nil {
 				return err
 			}
 		}
@@ -1946,7 +2033,7 @@ func autoConvert_v1beta3_BuildSource_To_api_BuildSource(in *v1beta3.BuildSource,
 	if in.Secrets != nil {
 		out.Secrets = make([]buildapi.SecretBuildSource, len(in.Secrets))
 		for i := range in.Secrets {
-			if err := s.Convert(&in.Secrets[i], &out.Secrets[i], 0); err != nil {
+			if err := Convert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(&in.Secrets[i], &out.Secrets[i], s); err != nil {
 				return err
 			}
 		}
@@ -2188,6 +2275,31 @@ func autoConvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *v1be
 	return nil
 }
 
+func autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *v1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GitBuildSource))(in)
+	}
+	out.URI = in.URI
+	out.Ref = in.Ref
+	if in.HTTPProxy != nil {
+		out.HTTPProxy = new(string)
+		*out.HTTPProxy = *in.HTTPProxy
+	} else {
+		out.HTTPProxy = nil
+	}
+	if in.HTTPSProxy != nil {
+		out.HTTPSProxy = new(string)
+		*out.HTTPSProxy = *in.HTTPSProxy
+	} else {
+		out.HTTPSProxy = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *v1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
+	return autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in, out, s)
+}
+
 func autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *v1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.GitSourceRevision))(in)
@@ -2226,6 +2338,67 @@ func autoConvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *v1beta
 
 func Convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *v1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	return autoConvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in, out, s)
+}
+
+func autoConvert_v1beta3_ImageSource_To_api_ImageSource(in *v1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ImageSource))(in)
+	}
+	if err := Convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+		return err
+	}
+	if in.Paths != nil {
+		out.Paths = make([]buildapi.ImageSourcePath, len(in.Paths))
+		for i := range in.Paths {
+			if err := Convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(&in.Paths[i], &out.Paths[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Paths = nil
+	}
+	// unable to generate simple pointer conversion for v1beta3.LocalObjectReference -> api.LocalObjectReference
+	if in.PullSecret != nil {
+		out.PullSecret = new(api.LocalObjectReference)
+		if err := Convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
+			return err
+		}
+	} else {
+		out.PullSecret = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_ImageSource_To_api_ImageSource(in *v1beta3.ImageSource, out *buildapi.ImageSource, s conversion.Scope) error {
+	return autoConvert_v1beta3_ImageSource_To_api_ImageSource(in, out, s)
+}
+
+func autoConvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *v1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ImageSourcePath))(in)
+	}
+	out.SourcePath = in.SourcePath
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func Convert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in *v1beta3.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
+	return autoConvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in *v1beta3.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.SecretBuildSource))(in)
+	}
+	if err := Convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+		return err
+	}
+	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func Convert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in *v1beta3.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
+	return autoConvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource(in, out, s)
 }
 
 func autoConvert_v1beta3_SecretSpec_To_api_SecretSpec(in *v1beta3.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
@@ -6477,6 +6650,7 @@ func init() {
 		autoConvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource,
 		autoConvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource,
 		autoConvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource,
+		autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource,
 		autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision,
 		autoConvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource,
 		autoConvert_api_GroupList_To_v1beta3_GroupList,
@@ -6488,6 +6662,8 @@ func init() {
 		autoConvert_api_Identity_To_v1beta3_Identity,
 		autoConvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger,
 		autoConvert_api_ImageList_To_v1beta3_ImageList,
+		autoConvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath,
+		autoConvert_api_ImageSource_To_v1beta3_ImageSource,
 		autoConvert_api_ImageStreamImage_To_v1beta3_ImageStreamImage,
 		autoConvert_api_ImageStreamList_To_v1beta3_ImageStreamList,
 		autoConvert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping,
@@ -6545,6 +6721,7 @@ func init() {
 		autoConvert_api_RouteSpec_To_v1beta3_RouteSpec,
 		autoConvert_api_RouteStatus_To_v1beta3_RouteStatus,
 		autoConvert_api_Route_To_v1beta3_Route,
+		autoConvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource,
 		autoConvert_api_SecretSpec_To_v1beta3_SecretSpec,
 		autoConvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
 		autoConvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
@@ -6614,6 +6791,7 @@ func init() {
 		autoConvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource,
 		autoConvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource,
 		autoConvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource,
+		autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource,
 		autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision,
 		autoConvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource,
 		autoConvert_v1beta3_GroupList_To_api_GroupList,
@@ -6625,6 +6803,8 @@ func init() {
 		autoConvert_v1beta3_Identity_To_api_Identity,
 		autoConvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		autoConvert_v1beta3_ImageList_To_api_ImageList,
+		autoConvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath,
+		autoConvert_v1beta3_ImageSource_To_api_ImageSource,
 		autoConvert_v1beta3_ImageStreamImage_To_api_ImageStreamImage,
 		autoConvert_v1beta3_ImageStreamList_To_api_ImageStreamList,
 		autoConvert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping,
@@ -6682,6 +6862,7 @@ func init() {
 		autoConvert_v1beta3_RouteSpec_To_api_RouteSpec,
 		autoConvert_v1beta3_RouteStatus_To_api_RouteStatus,
 		autoConvert_v1beta3_Route_To_api_Route,
+		autoConvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource,
 		autoConvert_v1beta3_SecretSpec_To_api_SecretSpec,
 		autoConvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
 		autoConvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
