@@ -19,10 +19,18 @@ func TestRunGenerators(t *testing.T) {
 	f := NewFactory(nil)
 
 	// Contains the run generators we expect to see
-	// If new generators appear from upstream, make sure we support the underlying types
-	// If we do (like Job, Pod, etc), add them to the expected list here
-	// If we do not support in oc yet (like upstream Deployments), remove them in our factory's Generators function in factory.go
-	expectedRunGenerators := sets.NewString("job/v1", "job/v1beta1", "run-controller/v1", "run-pod/v1", "run/v1").List()
+	expectedRunGenerators := sets.NewString(
+		// kube generators
+		"run/v1",
+		"run-pod/v1",
+		"deployment/v1beta1",
+		"job/v1",
+		"job/v1beta1",
+
+		// origin generators
+		"run-controller/v1", // legacy alias for run/v1
+		"deploymentconfig/v1",
+	).List()
 
 	runGenerators := sets.StringKeySet(f.Generators("run")).List()
 	if !reflect.DeepEqual(expectedRunGenerators, runGenerators) {
