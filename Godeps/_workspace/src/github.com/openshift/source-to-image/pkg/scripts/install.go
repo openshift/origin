@@ -29,29 +29,41 @@ type ScriptHandler interface {
 	String() string
 }
 
-// UrlScriptHandler handles script download using URL.
-type UrlScriptHandler struct {
+// URLScriptHandler handles script download using URL.
+type URLScriptHandler struct {
 	URL            string
 	DestinationDir string
 	download       Downloader
 	fs             util.FileSystem
+	name           string
 }
 
-const sourcesRootAbbrev = "<source-dir>/"
+const (
+	sourcesRootAbbrev = "<source-dir>/"
+
+	// ScriptURLHandler is the name of the script URL handler
+	ScriptURLHandler = "script URL handler"
+
+	// ImageURLHandler is the name of the image URL handler
+	ImageURLHandler = "image URL handler"
+
+	// SourceHandler is the name of the source script handler
+	SourceHandler = "source handler"
+)
 
 // SetDestinationDir sets the destination where the scripts should be
 // downloaded.
-func (s *UrlScriptHandler) SetDestinationDir(baseDir string) {
+func (s *URLScriptHandler) SetDestinationDir(baseDir string) {
 	s.DestinationDir = filepath.Join(baseDir, api.UploadScripts)
 }
 
 // String implements the String() function.
-func (s *UrlScriptHandler) String() string {
-	return "url handler"
+func (s *URLScriptHandler) String() string {
+	return s.name
 }
 
 // Get parses the provided URL and the script name.
-func (s *UrlScriptHandler) Get(script string) *api.InstallResult {
+func (s *URLScriptHandler) Get(script string) *api.InstallResult {
 	if len(s.URL) == 0 {
 		return nil
 	}
@@ -67,7 +79,7 @@ func (s *UrlScriptHandler) Get(script string) *api.InstallResult {
 }
 
 // Install downloads the script and fix its permissions.
-func (s *UrlScriptHandler) Install(r *api.InstallResult) error {
+func (s *URLScriptHandler) Install(r *api.InstallResult) error {
 	downloadURL, err := url.Parse(r.URL)
 	if err != nil {
 		return err
@@ -116,7 +128,7 @@ func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
 
 // String implements the String() function.
 func (s *SourceScriptHandler) String() string {
-	return "source handler"
+	return SourceHandler
 }
 
 // Install copies the script into upload directory and fix its permissions.
@@ -184,7 +196,7 @@ func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig,
 	// Order is important here, first we try to get the scripts from provided URL,
 	// then we look into sources and check for .s2i/bin scripts.
 	if len(m.ScriptsURL) > 0 {
-		m.Add(&UrlScriptHandler{URL: m.ScriptsURL, download: m.download, fs: m.fs})
+		m.Add(&URLScriptHandler{URL: m.ScriptsURL, download: m.download, fs: m.fs, name: ScriptURLHandler})
 	}
 
 	m.Add(&SourceScriptHandler{fs: m.fs})
@@ -193,7 +205,7 @@ func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig,
 	// docker image itself.
 	defaultURL, err := m.docker.GetScriptsURL(m.Image)
 	if err == nil && defaultURL != "" {
-		m.Add(&UrlScriptHandler{URL: defaultURL, download: m.download, fs: m.fs})
+		m.Add(&URLScriptHandler{URL: defaultURL, download: m.download, fs: m.fs, name: ImageURLHandler})
 	}
 	return &m
 }
@@ -222,14 +234,17 @@ func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir st
 	result := []api.InstallResult{}
 	for _, script := range scripts {
 		installed := false
+		failedSources := []string{}
 		for _, e := range i.sources {
 			detected := false
 			h := e.(ScriptHandler)
 			h.SetDestinationDir(dstDir)
 			if r := h.Get(script); r != nil {
 				if err := h.Install(r); err != nil {
+					failedSources = append(failedSources, h.String())
 					glog.Errorf("script %q found by the %s, but failed to install: %v", script, h, err)
 				} else {
+					r.FailedSources = failedSources
 					result = append(result, *r)
 					installed = true
 					detected = true
@@ -242,8 +257,9 @@ func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir st
 		}
 		if !installed {
 			result = append(result, api.InstallResult{
-				Script: script,
-				Error:  fmt.Errorf("script %q not installed", script),
+				FailedSources: failedSources,
+				Script:        script,
+				Error:         fmt.Errorf("script %q not installed", script),
 			})
 		}
 	}

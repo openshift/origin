@@ -80,7 +80,7 @@ type Config struct {
 	PreserveWorkingDir bool
 
 	// DisableRecursive disables the --recursive option for the git clone that
-	// allows to use the GIT without requiring the git submodule to be called.
+	// allows to use the Git without requiring the git submodule to be called.
 	DisableRecursive bool
 
 	// Source URL describing the location of sources used to build the result image.
@@ -261,15 +261,19 @@ type InstallResult struct {
 
 	// Error describes last error encountered during install operation
 	Error error
+
+	// FailedSources is a list of sources that were attempted but failed
+	// when downloading this script
+	FailedSources []string
 }
 
 // SourceInfo stores information about the source code
 type SourceInfo struct {
-	// Ref represents a commit SHA-1, valid GIT branch name or a GIT tag
+	// Ref represents a commit SHA-1, valid Git branch name or a Git tag
 	// The output image will contain this information as 'io.openshift.build.commit.ref' label.
 	Ref string
 
-	// CommitID represents an arbitrary extended object reference in GIT as SHA-1
+	// CommitID represents an arbitrary extended object reference in Git as SHA-1
 	// The output image will contain this information as 'io.openshift.build.commit.id' label.
 	CommitID string
 

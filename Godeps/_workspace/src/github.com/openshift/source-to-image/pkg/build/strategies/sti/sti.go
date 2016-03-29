@@ -101,7 +101,7 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 		scriptsURL:        map[string]string{},
 	}
 
-	// The sources are downloaded using the GIT downloader.
+	// The sources are downloaded using the Git downloader.
 	// TODO: Add more SCM in future.
 	// TODO: explicit decision made to customize processing for usage specifically vs.
 	// leveraging overrides; also, we ultimately want to simplify s2i usage a good bit,
@@ -217,6 +217,24 @@ func (b *STI) Prepare(config *api.Config) error {
 		return err
 	}
 	optional := b.installer.InstallOptional(b.optionalScripts, config.WorkingDir)
+
+	// If a ScriptsURL was specified, but no scripts were downloaded from it, throw an error
+	if len(config.ScriptsURL) > 0 {
+		failedCount := 0
+		for _, result := range required {
+			if includes(result.FailedSources, scripts.ScriptURLHandler) {
+				failedCount++
+			}
+		}
+		for _, result := range optional {
+			if includes(result.FailedSources, scripts.ScriptURLHandler) {
+				failedCount++
+			}
+		}
+		if failedCount == len(required)+len(optional) {
+			return fmt.Errorf("Could not download any scripts from URL %v", config.ScriptsURL)
+		}
+	}
 
 	for _, r := range append(required, optional...) {
 		if r.Error == nil {
@@ -593,4 +611,13 @@ func isMissingRequirements(text string) bool {
 	tar, _ := regexp.MatchString(`.*tar.*not found`, text)
 	sh, _ := regexp.MatchString(`.*/bin/sh.*no such file or directory`, text)
 	return tar || sh
+}
+
+func includes(arr []string, str string) bool {
+	for _, s := range arr {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
