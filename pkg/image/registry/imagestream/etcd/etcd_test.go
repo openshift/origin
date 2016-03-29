@@ -194,6 +194,10 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
+func (u *fakeUser) GetExtra() map[string][]string {
+	return map[string][]string{}
+}
+
 // func TestCreateImageStreamOK(t *testing.T) {
 // 	_, helper := newStorage(t)
 // 	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})

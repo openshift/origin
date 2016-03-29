@@ -22,6 +22,7 @@ func (g *GroupAdder) AuthenticateRequest(req *http.Request) (user.Info, bool, er
 		Name:   u.GetName(),
 		UID:    u.GetUID(),
 		Groups: append(u.GetGroups(), g.Groups...),
+		Extra:  u.GetExtra(),
 	}, true, nil
 }
 

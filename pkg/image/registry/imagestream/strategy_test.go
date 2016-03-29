@@ -33,6 +33,10 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
+func (u *fakeUser) GetExtra() map[string][]string {
+	return map[string][]string{}
+}
+
 type fakeDefaultRegistry struct {
 	registry string
 }
