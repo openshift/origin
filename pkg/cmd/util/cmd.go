@@ -46,9 +46,9 @@ func GetDisplayFilename(filename string) string {
 
 // ResolveResource returns the resource type and name of the resourceString.
 // If the resource string has no specified type, defaultResource will be returned.
-func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMapper) (string, string, error) {
+func ResolveResource(defaultResource unversioned.GroupResource, resourceString string, mapper meta.RESTMapper) (unversioned.GroupResource, string, error) {
 	if mapper == nil {
-		return "", "", errors.New("mapper cannot be nil")
+		return unversioned.GroupResource{}, "", errors.New("mapper cannot be nil")
 	}
 
 	var name string
@@ -57,25 +57,20 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		partialResource := unversioned.GroupVersionResource{Resource: strings.ToLower(parts[0])}
-		gvrs, err := mapper.ResourcesFor(partialResource)
+		name = parts[1]
+
+		// Allow specifying the group the same way kubectl does, as "resource.group.name"
+		groupResource := unversioned.ParseGroupResource(parts[0])
+		// normalize resource case
+		groupResource.Resource = strings.ToLower(groupResource.Resource)
+
+		gvr, err := mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {
-			return "", "", err
+			return unversioned.GroupResource{}, "", err
 		}
-		if len(gvrs) == 0 {
-			return gvrs[0].Resource, parts[1], nil
-		}
-
-		groupResource := gvrs[0].GroupResource()
-		for _, gvr := range gvrs[1:] {
-			if groupResource != gvr.GroupResource() {
-				return "", "", &meta.AmbiguousResourceError{PartialResource: partialResource, MatchingResources: gvrs}
-			}
-		}
-
-		return gvrs[0].Resource, parts[1], nil
+		return gvr.GroupResource(), name, nil
 	default:
-		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)
+		return unversioned.GroupResource{}, "", fmt.Errorf("invalid resource format: %s", resourceString)
 	}
 
 	return defaultResource, name, nil

@@ -142,22 +142,22 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 
 	var (
 		name     = buildName
-		resource = "builds"
+		resource = buildapi.Resource("builds")
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
 		mapper, _ := f.Object()
-		resource, name, err = cmdutil.ResolveResource("buildconfigs", args[0], mapper)
+		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err
 		}
 		switch resource {
-		case "buildconfigs":
+		case buildapi.Resource("buildconfigs"):
 			// no special handling required
-		case "builds":
+		case buildapi.Resource("builds"):
 			return fmt.Errorf("use --from-build to rerun your builds")
 		default:
-			return fmt.Errorf("invalid resource provided: %s", resource)
+			return fmt.Errorf("invalid resource provided: %v", resource)
 		}
 	}
 	if len(name) == 0 {
@@ -214,16 +214,16 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		if newBuild, err = streamPathToBuild(git, in, cmd.Out(), client.BuildConfigs(namespace), fromDir, fromFile, fromRepo, request); err != nil {
 			return err
 		}
-	case resource == "builds":
+	case resource == buildapi.Resource("builds"):
 		if newBuild, err = client.Builds(namespace).Clone(request); err != nil {
 			return err
 		}
-	case resource == "buildconfigs":
+	case resource == buildapi.Resource("buildconfigs"):
 		if newBuild, err = client.BuildConfigs(namespace).Instantiate(request); err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("invalid resource provided: %s", resource)
+		return fmt.Errorf("invalid resource provided: %v", resource)
 	}
 
 	fmt.Fprintln(out, newBuild.Name)
@@ -291,7 +291,7 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
-func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name, resource, webhookFilter string) error {
+func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name string, resource unversioned.GroupResource, webhookFilter string) error {
 	generic, github := false, false
 	prefix := false
 	switch webhookFilter {
@@ -315,9 +315,9 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name, res
 	}
 
 	switch resource {
-	case "buildconfigs":
+	case buildapi.Resource("buildconfigs"):
 		// no special handling required
-	case "builds":
+	case buildapi.Resource("builds"):
 		build, err := client.Builds(namespace).Get(name)
 		if err != nil {
 			return err
@@ -331,7 +331,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name, res
 		}
 		name = ref.Name
 	default:
-		return fmt.Errorf("invalid resource provided: %s", resource)
+		return fmt.Errorf("invalid resource provided: %v", resource)
 	}
 
 	config, err := client.BuildConfigs(namespace).Get(name)
