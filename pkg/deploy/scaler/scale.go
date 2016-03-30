@@ -58,7 +58,7 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 	return nil
 }
 
-// ScaleSimple does a simple one-shot attempt at scaling - not useful on it's
+// ScaleSimple does a simple one-shot attempt at scaling - not useful on its
 // own, but a necessary building block for Scale
 func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) error {
 	dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)

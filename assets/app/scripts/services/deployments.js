@@ -265,9 +265,8 @@ angular.module("openshiftConsole")
     };
 
     DeploymentsService.prototype.scaleDC = function(dc, replicas) {
-      // TODO: Use the scale subresource when the web console supports API groups.
-      /*
       var scale = {
+        apiVersion: "extensions/v1beta1",
         kind: "Scale",
         metadata: {
           name: dc.metadata.name,
@@ -279,13 +278,6 @@ angular.module("openshiftConsole")
         }
       };
       return DataService.update("deploymentconfigs/scale", dc.metadata.name, scale, {
-        namespace: dc.metadata.namespace
-      });
-     */
-
-      var req = angular.copy(dc);
-      req.spec.replicas = replicas;
-      return DataService.update("deploymentconfigs", dc.metadata.name, req, {
         namespace: dc.metadata.namespace
       });
     };

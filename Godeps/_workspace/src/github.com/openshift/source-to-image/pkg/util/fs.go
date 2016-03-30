@@ -122,7 +122,7 @@ func (h *fs) Copy(source string, dest string) (err error) {
 // CopyContents copies the content of the source directory to a destination
 // directory.
 // If the destination directory does not exists, it will be created.
-// The source directory itself will not be copied, only it's content. If you
+// The source directory itself will not be copied, only its content. If you
 // want this behavior, the destination must include the source directory name.
 func (h *fs) CopyContents(src string, dest string) (err error) {
 	sourceinfo, err := os.Stat(src)

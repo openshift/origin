@@ -31,13 +31,15 @@ func ResetImage(tags map[string]string) {
 }
 
 //DumpAndReturnTagging takes and array of tags and obtains the hex image IDs, dumps them to ginkgo for printing, and then returns them
-func DumpAndReturnTagging(tags []string) []string {
+func DumpAndReturnTagging(tags []string) ([]string, error) {
 	hexIDs, err := GetImageIDForTags(tags)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return nil, err
+	}
 	for i, hexID := range hexIDs {
 		g.By(fmt.Sprintf("tag %s hex id %s ", tags[i], hexID))
 	}
-	return hexIDs
+	return hexIDs, nil
 }
 
 //VerifyImagesSame will take the two supplied image tags and see if they reference the same hexadecimal image ID;  strategy is for debug

@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b15cf48b661f91ddd96dd4af715ee8b9fdfc80a4
+%global commit b07ea74bb0a549373f10c6fa02dc81b4f63c980e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.7-75-gb15cf48 -X github.com/openshift/origin/pkg/version.commitFromGit b15cf48 -X k8s.io/kubernetes/pkg/version.gitCommit b15cf48 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.8-52-gb07ea74 -X github.com/openshift/origin/pkg/version.commitFromGit b07ea74 -X k8s.io/kubernetes/pkg/version.gitCommit b07ea74 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.8
+Version:        3.2.0.9
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,52 @@ fi
 
 
 %changelog
+* Wed Mar 30 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.9
+- Fixed string formatting for glog.Infof in image prunning
+  (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  48e62fd57bebba14e1d0f7a40a15b65dafa5458c (cewong@redhat.com)
+- Fix 8162: project settings layout issues (admin@benjaminapetersen.me)
+- UPSTREAM: 23456: don't sync daemonsets or controllers with selectors that
+  match all pods (jliggitt@redhat.com)
+- UPSTREAM: 23457: Do not track resource usage for host path volumes. They can
+  contain loops. (jliggitt@redhat.com)
+- UPSTREAM: 23325: Fix hairpin mode (jliggitt@redhat.com)
+- UPSTREAM: 23019: Add a rate limiter to the GCE cloudprovider
+  (jliggitt@redhat.com)
+- UPSTREAM: 23141: kubelet: send all recevied pods in one update
+  (jliggitt@redhat.com)
+- UPSTREAM: 23143: Make kubelet default to 10ms for CPU quota if limit < 10m
+  (jliggitt@redhat.com)
+- UPSTREAM: 23034: Fix controller-manager race condition issue which cause
+  endpoints flush during restart (jliggitt@redhat.com)
+- bump inotify watches (jeder@redhat.com)
+- Use scale subresource for DC scaling in web console (spadgett@redhat.com)
+- Fixing typos (dmcphers@redhat.com)
+- Disambiguate origin generators (jliggitt@redhat.com)
+- Add explicit emptyDir volumes where possible (ironcladlou@gmail.com)
+- Resource discovery integration test (jliggitt@redhat.com)
+- UPSTREAM: <carry>: v1beta3: ensure only v1 appears in discovery for legacy
+  API group (jliggitt@redhat.com)
+- Use strategy proxy setting for script download (cewong@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  2c0fc8ae6150b27396dc00907cac128eeda99b09 (cewong@redhat.com)
+- Deployment tests should really be disabled in e2e (ccoleman@redhat.com)
+- fix useragent for SA (deads@redhat.com)
+- Fix e2e test's check for determining that the router is up - wait for the
+  healthz port to respond with success - HTTP status code 200. Still need to
+  check for router pod to be born. (smitram@gmail.com)
+- tweak jenkins job to test unrelased versions of the plugin
+  (gmontero@redhat.com)
+- Fix oadm diagnostic (master-node check for ovs plugin) to retrieve the list
+  of nodes running on the same machine as master. (avagarwa@redhat.com)
+- scc volumes support (pweil@redhat.com)
+- UPSTREAM: <carry>: scc volumes support (pweil@redhat.com)
+- UPSTREAM: <carry>: v1beta3 scc volumes support (pweil@redhat.com)
+- add volume prereq to db template descriptions (bparees@redhat.com)
+- Fix typo (tdawson@redhat.com)
+- Verify yum installed rpms (tdawson@redhat.com)
+
 * Mon Mar 28 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.8
 - E2e deployments filter is incorrect (ccoleman@redhat.com)
 - Reorder the debug pod name (ccoleman@redhat.com)

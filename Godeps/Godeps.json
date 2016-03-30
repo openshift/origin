@@ -922,47 +922,47 @@
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/ignore",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
 			"Comment": "v1.0.5-6-g0278ed9",
-			"Rev": "625b58aa422549df9338fdaced1b9444d2313a15"
+			"Rev": "48e62fd57bebba14e1d0f7a40a15b65dafa5458c"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

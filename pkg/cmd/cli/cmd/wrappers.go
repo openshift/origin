@@ -306,7 +306,7 @@ const (
 	runLong = `Create and run a particular image, possibly replicated
 
 Creates a deployment config to manage the created container(s). You can choose to run in the
-foreground for an interactive container execution.  You may pass 'run-controller/v1' to
+foreground for an interactive container execution.  You may pass 'run/v1' to
 --generator to create a replication controller instead of a deployment config.`
 
 	runExample = `  # Starts a single instance of nginx.
@@ -337,13 +337,13 @@ foreground for an interactive container execution.  You may pass 'run-controller
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: kcmdutil.RunV1GeneratorName, DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
+	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1", DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
 	cmd := kcmd.NewCmdRunWithOptions(f.Factory, opts, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
 	cmd.SuggestFor = []string{"image"}
 	cmd.Flags().Set("generator", "")
-	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
+	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'deploymentconfig/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
 	cmd.Flag("generator").DefValue = ""
 	cmd.Flag("generator").Changed = false
 	return cmd

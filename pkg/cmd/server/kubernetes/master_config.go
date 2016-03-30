@@ -186,7 +186,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		proxyClientCerts = append(proxyClientCerts, clientCert)
 	}
 
-	// TODO you have to know every APIGroup you're enabling or upstream will panic.  It's alternative to panicing is Fataling
+	// TODO you have to know every APIGroup you're enabling or upstream will panic.  Its alternative to panicing is Fataling
 	// It needs a refactor to return errors
 	storageDestinations := genericapiserver.NewStorageDestinations()
 	// storageVersions is a map from API group to allowed versions that must be a version exposed by the REST API or it breaks.

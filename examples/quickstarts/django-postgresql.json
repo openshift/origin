@@ -287,6 +287,12 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
             "containers": [
               {
                 "name": "postgresql",
@@ -308,6 +314,12 @@
                   {
                     "name": "POSTGRESQL_DATABASE",
                     "value": "${DATABASE_NAME}"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/pgsql/data"
                   }
                 ],
                 "readinessProbe": {

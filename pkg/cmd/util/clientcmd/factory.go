@@ -144,8 +144,8 @@ type Factory struct {
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 	generators := map[string]map[string]kubectl.Generator{}
 	generators["run"] = map[string]kubectl.Generator{
-		cmdutil.RunV1GeneratorName: deploygen.BasicDeploymentConfigController{},
-		"run-controller/v1":        kubectl.BasicReplicationController{},
+		"deploymentconfig/v1": deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1":   kubectl.BasicReplicationController{}, // legacy alias for run/v1
 	}
 	generators["expose"] = map[string]kubectl.Generator{
 		"route/v1": routegen.RouteGenerator{},
@@ -289,10 +289,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		ret := map[string]kubectl.Generator{}
 		for k, v := range kubeGenerators {
 			ret[k] = v
-		}
-		// TODO: enable once deployments are supported in origin
-		if cmdName == "run" {
-			delete(ret, cmdutil.DeploymentV1Beta1GeneratorName)
 		}
 		for k, v := range originGenerators {
 			ret[k] = v

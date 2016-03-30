@@ -193,7 +193,7 @@ var map_BuildStatus = map[string]string{
 	"startTimestamp":             "StartTimestamp is a timestamp representing the server time when this Build started running in a Pod. It is represented in RFC3339 form and is in UTC.",
 	"completionTimestamp":        "CompletionTimestamp is a timestamp representing the server time when this Build was finished, whether that build failed or succeeded.  It reflects the time at which the Pod running the Build terminated. It is represented in RFC3339 form and is in UTC.",
 	"duration":                   "Duration contains time.Duration object describing build time.",
-	"outputDockerImageReference": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. It's value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
+	"outputDockerImageReference": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
 	"config":                     "Config is an ObjectReference to the BuildConfig this Build is based on.",
 }
 

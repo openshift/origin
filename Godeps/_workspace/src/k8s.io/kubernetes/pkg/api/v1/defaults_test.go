@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	versioned "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
@@ -720,6 +721,96 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 		}
 		if scc.SupplementalGroups.Type != v.expectedSupGroup {
 			t.Errorf("%s has invalid supplemental group.  Expected: %v got: %v", k, v.expectedSupGroup, scc.SupplementalGroups.Type)
+		}
+	}
+}
+
+func TestDefaultSCCVolumes(t *testing.T) {
+	tests := map[string]struct {
+		scc             *versioned.SecurityContextConstraints
+		expectedVolumes []versioned.FSType
+		expectedHostDir bool
+	}{
+		// this expects the volumes to default to all for an empty volume slice
+		// but since the host dir setting is false it should be all - host dir
+		"old client - default allow* fields, no volumes slice": {
+			scc:             &versioned.SecurityContextConstraints{},
+			expectedVolumes: versioned.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
+			expectedHostDir: false,
+		},
+		// this expects the volumes to default to all for an empty volume slice
+		"old client - set allowHostDir true fields, no volumes slice": {
+			scc: &versioned.SecurityContextConstraints{
+				AllowHostDirVolumePlugin: true,
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeAll},
+			expectedHostDir: true,
+		},
+		"new client - allow* fields set with matching volume slice": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes:                  []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeHostPath},
+				AllowHostDirVolumePlugin: true,
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeHostPath},
+			expectedHostDir: true,
+		},
+		"new client - allow* fields set with mismatch host dir volume slice": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes:                  []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeHostPath},
+				AllowHostDirVolumePlugin: false,
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeEmptyDir},
+			expectedHostDir: false,
+		},
+		"new client - allow* fields set with mismatch FSTypeAll volume slice": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes:                  []versioned.FSType{versioned.FSTypeAll},
+				AllowHostDirVolumePlugin: false,
+			},
+			expectedVolumes: versioned.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
+			expectedHostDir: false,
+		},
+		"new client - allow* fields unset with volume slice": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes: []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeHostPath},
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeEmptyDir},
+			expectedHostDir: false,
+		},
+		"new client - extra volume params retained": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes: []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeHostPath, versioned.FSTypeGitRepo},
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeEmptyDir, versioned.FSTypeGitRepo},
+			expectedHostDir: false,
+		},
+		"new client - empty volume slice, host dir true": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes:                  []versioned.FSType{},
+				AllowHostDirVolumePlugin: true,
+			},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeHostPath},
+			expectedHostDir: true,
+		},
+		"new client - empty volume slice, host dir false": {
+			scc: &versioned.SecurityContextConstraints{
+				Volumes:                  []versioned.FSType{},
+				AllowHostDirVolumePlugin: false,
+			},
+			expectedVolumes: []versioned.FSType{},
+			expectedHostDir: false,
+		},
+	}
+	for k, v := range tests {
+		output := roundTrip(t, runtime.Object(v.scc))
+		scc := output.(*versioned.SecurityContextConstraints)
+
+		if !reflect.DeepEqual(scc.Volumes, v.expectedVolumes) {
+			t.Errorf("%s has invalid volumes.  Expected: %v got: %v", k, v.expectedVolumes, scc.Volumes)
+		}
+
+		if scc.AllowHostDirVolumePlugin != v.expectedHostDir {
+			t.Errorf("%s has invalid host dir.  Expected: %v got: %v", k, v.expectedHostDir, scc.AllowHostDirVolumePlugin)
 		}
 	}
 }

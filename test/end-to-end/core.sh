@@ -288,10 +288,13 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
 os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+echo "[INFO] Waiting for router to start..."
+router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
+healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
+wait_for_url_timed "${healthz_uri}" "[INFO] Router health check says: " $((5*TIME_MIN))
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"
-router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 os::cmd::expect_success 'oc policy add-role-to-user admin e2e-default-admin'
 # system:admin should be able to exec into it
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"

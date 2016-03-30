@@ -233,7 +233,7 @@ func (r DockerImageReference) NameString() string {
 	case len(r.ID) > 0:
 		var ref string
 		if _, err := digest.ParseDigest(r.ID); err == nil {
-			// if it parses as a digest, it's v2 pull by id
+			// if it parses as a digest, its v2 pull by id
 			ref = "@" + r.ID
 		} else {
 			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag

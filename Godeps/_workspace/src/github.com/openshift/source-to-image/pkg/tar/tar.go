@@ -356,13 +356,13 @@ func extractFile(dir string, header *tar.Header, tarReader io.Reader) error {
 	glog.V(3).Infof("Creating %s", path)
 
 	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
 	// The file times need to be modified after it's been closed thus this function
 	// is deferred after the file close (LIFO order for defer)
 	defer os.Chtimes(path, time.Now(), header.FileInfo().ModTime())
 	defer file.Close()
-	if err != nil {
-		return err
-	}
 	glog.V(3).Infof("Extracting/writing %s", path)
 	written, err := io.Copy(file, tarReader)
 	if err != nil {
