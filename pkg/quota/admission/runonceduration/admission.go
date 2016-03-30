@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/util/integer"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -49,7 +50,7 @@ func readConfig(reader io.Reader) (*api.RunOnceDurationConfig, error) {
 // NewRunOnceDuration creates a new RunOnceDuration admission plugin
 func NewRunOnceDuration(config *api.RunOnceDurationConfig) admission.Interface {
 	return &runOnceDuration{
-		Handler: admission.NewHandler(admission.Create, admission.Update),
+		Handler: admission.NewHandler(admission.Create),
 		config:  config,
 	}
 }
@@ -84,13 +85,13 @@ func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
 		return nil
 	}
 
-	appliedProjectOverride, err := a.applyProjectAnnotationOverride(attributes.GetNamespace(), pod)
+	appliedProjectLimit, err := a.applyProjectAnnotationLimit(attributes.GetNamespace(), pod)
 	if err != nil {
 		return admission.NewForbidden(attributes, err)
 	}
 
-	if !appliedProjectOverride && a.config.ActiveDeadlineSecondsOverride != nil {
-		pod.Spec.ActiveDeadlineSeconds = a.config.ActiveDeadlineSecondsOverride
+	if !appliedProjectLimit && a.config.ActiveDeadlineSecondsLimit != nil {
+		pod.Spec.ActiveDeadlineSeconds = int64MinP(a.config.ActiveDeadlineSecondsLimit, pod.Spec.ActiveDeadlineSeconds)
 	}
 	return nil
 }
@@ -106,7 +107,7 @@ func (a *runOnceDuration) Validate() error {
 	return nil
 }
 
-func (a *runOnceDuration) applyProjectAnnotationOverride(namespace string, pod *kapi.Pod) (bool, error) {
+func (a *runOnceDuration) applyProjectAnnotationLimit(namespace string, pod *kapi.Pod) (bool, error) {
 	ns, err := a.cache.GetNamespace(namespace)
 	if err != nil {
 		return false, fmt.Errorf("error looking up pod namespace: %v", err)
@@ -114,14 +115,26 @@ func (a *runOnceDuration) applyProjectAnnotationOverride(namespace string, pod *
 	if ns.Annotations == nil {
 		return false, nil
 	}
-	override, hasOverride := ns.Annotations[api.ActiveDeadlineSecondsOverrideAnnotation]
-	if !hasOverride {
+	limit, hasLimit := ns.Annotations[api.ActiveDeadlineSecondsLimitAnnotation]
+	if !hasLimit {
 		return false, nil
 	}
-	overrideInt64, err := strconv.ParseInt(override, 10, 64)
+	limitInt64, err := strconv.ParseInt(limit, 10, 64)
 	if err != nil {
-		return false, fmt.Errorf("cannot parse the ActiveDeadlineSeconds override (%s) for project %s: %v", override, ns.Name, err)
+		return false, fmt.Errorf("cannot parse the ActiveDeadlineSeconds limit (%s) for project %s: %v", limit, ns.Name, err)
 	}
-	pod.Spec.ActiveDeadlineSeconds = &overrideInt64
+	pod.Spec.ActiveDeadlineSeconds = int64MinP(&limitInt64, pod.Spec.ActiveDeadlineSeconds)
 	return true, nil
+}
+
+func int64MinP(a, b *int64) *int64 {
+	switch {
+	case a == nil:
+		return b
+	case b == nil:
+		return a
+	default:
+		c := integer.Int64Min(*a, *b)
+		return &c
+	}
 }
