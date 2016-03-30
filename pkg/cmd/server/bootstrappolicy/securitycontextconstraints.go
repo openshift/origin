@@ -91,7 +91,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintNonRootDesc,
 				},
 			},
-			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -119,7 +119,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintHostMountAndAnyUIDDesc,
 				},
 			},
-			Volumes: []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes: []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -148,7 +148,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintHostNSDesc,
 				},
 			},
-			Volumes:          []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes:          []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			AllowHostNetwork: true,
 			AllowHostPorts:   true,
 			AllowHostPID:     true,
@@ -180,7 +180,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintRestrictedDesc,
 				},
 			},
-			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -210,7 +210,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 					DescriptionAnnotation: SecurityContextConstraintsAnyUIDDesc,
 				},
 			},
-			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes: []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
@@ -241,7 +241,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			},
 			AllowHostNetwork: true,
 			AllowHostPorts:   true,
-			Volumes:          []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap},
+			Volumes:          []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim},
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
