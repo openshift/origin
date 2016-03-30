@@ -18295,7 +18295,7 @@
      },
      "outputDockerImageReference": {
       "type": "string",
-      "description": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. It's value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
+      "description": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
      },
      "config": {
       "$ref": "v1.ObjectReference",

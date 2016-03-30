@@ -15,7 +15,7 @@ func TestComputeDefinitions(t *testing.T) {
 	diffCaps.AllowedCapabilities = []kapi.Capability{"foo"}
 
 	diffHostDir := goodSCC()
-	diffHostDir.AllowHostDirVolumePlugin = true
+	diffHostDir.Volumes = []kapi.FSType{kapi.FSTypeHostPath}
 
 	diffHostNetwork := goodSCC()
 	diffHostNetwork.AllowHostNetwork = true

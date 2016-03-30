@@ -356,6 +356,12 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
             "containers": [
               {
                 "name": "ruby-helloworld-database",
@@ -378,6 +384,12 @@
                   {
                     "name": "MYSQL_DATABASE",
                     "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql/data"
                   }
                 ],
                 "resources": {

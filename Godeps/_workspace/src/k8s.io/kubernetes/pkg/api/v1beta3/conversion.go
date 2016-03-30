@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) {
@@ -44,6 +45,9 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		convert_v1beta3_ReplicationControllerSpec_To_api_ReplicationControllerSpec,
 		convert_v1beta3_VolumeSource_To_api_VolumeSource,
 		convert_api_VolumeSource_To_v1beta3_VolumeSource,
+
+		convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraints,
+		convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraints,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -914,6 +918,175 @@ func convert_v1beta3_MetadataFile_To_api_DownwardAPIVolumeFile(in *MetadataFile,
 	out.Path = in.Name
 	if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
 		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraints(in *SecurityContextConstraints, out *api.SecurityContextConstraints, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SecurityContextConstraints))(in)
+	}
+
+	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if in.Priority != nil {
+		out.Priority = new(int)
+		*out.Priority = *in.Priority
+	} else {
+		out.Priority = nil
+	}
+	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
+	if in.AllowedCapabilities != nil {
+		out.AllowedCapabilities = make([]api.Capability, len(in.AllowedCapabilities))
+		for i := range in.AllowedCapabilities {
+			out.AllowedCapabilities[i] = api.Capability(in.AllowedCapabilities[i])
+		}
+	} else {
+		out.AllowedCapabilities = nil
+	}
+
+	// for v1beta3 -> api volume conversion we must assume that all volumes were allowed.
+	// the only volume you could turn off is the host path volume so we'll remove that based
+	// on the v1beta3 setting.
+	if !in.AllowHostDirVolumePlugin {
+		for _, v := range sccutil.GetAllFSTypesExcept(string(api.FSTypeHostPath)).List() {
+			out.Volumes = append(out.Volumes, api.FSType(v))
+		}
+	} else {
+		out.Volumes = []api.FSType{api.FSTypeAll}
+	}
+
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
+	if err := convert_v1beta3_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
+		return err
+	}
+	if in.DefaultAddCapabilities != nil {
+		out.DefaultAddCapabilities = make([]api.Capability, len(in.DefaultAddCapabilities))
+		for i := range in.DefaultAddCapabilities {
+			out.DefaultAddCapabilities[i] = api.Capability(in.DefaultAddCapabilities[i])
+		}
+	} else {
+		out.DefaultAddCapabilities = nil
+	}
+	if in.RequiredDropCapabilities != nil {
+		out.RequiredDropCapabilities = make([]api.Capability, len(in.RequiredDropCapabilities))
+		for i := range in.RequiredDropCapabilities {
+			out.RequiredDropCapabilities[i] = api.Capability(in.RequiredDropCapabilities[i])
+		}
+	} else {
+		out.RequiredDropCapabilities = nil
+	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	if in.Groups != nil {
+		out.Groups = make([]string, len(in.Groups))
+		for i := range in.Groups {
+			out.Groups[i] = in.Groups[i]
+		}
+	} else {
+		out.Groups = nil
+	}
+	return nil
+}
+
+func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraints(in *api.SecurityContextConstraints, out *SecurityContextConstraints, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.SecurityContextConstraints))(in)
+	}
+
+	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if in.Priority != nil {
+		out.Priority = new(int)
+		*out.Priority = *in.Priority
+	} else {
+		out.Priority = nil
+	}
+	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
+	if in.AllowedCapabilities != nil {
+		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))
+		for i := range in.AllowedCapabilities {
+			out.AllowedCapabilities[i] = Capability(in.AllowedCapabilities[i])
+		}
+	} else {
+		out.AllowedCapabilities = nil
+	}
+
+	// for api -> v1beta3 we will set the AllowHostdirVolumePlugin based on the existence of
+	// FSTypeAll or FSTypeHostPath in the volumes slice.
+	if sccutil.SCCAllowsAllVolumes(in) || sccutil.SCCAllowsFSType(in, api.FSTypeHostPath) {
+		out.AllowHostDirVolumePlugin = true
+	}
+
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
+	if err := convert_api_SELinuxContextStrategyOptions_To_v1beta3_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
+		return err
+	}
+	if err := convert_api_RunAsUserStrategyOptions_To_v1beta3_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
+		return err
+	}
+	if err := convert_api_FSGroupStrategyOptions_To_v1beta3_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
+		return err
+	}
+	if err := convert_api_SupplementalGroupsStrategyOptions_To_v1beta3_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
+		return err
+	}
+	if in.DefaultAddCapabilities != nil {
+		out.DefaultAddCapabilities = make([]Capability, len(in.DefaultAddCapabilities))
+		for i := range in.DefaultAddCapabilities {
+			out.DefaultAddCapabilities[i] = Capability(in.DefaultAddCapabilities[i])
+		}
+	} else {
+		out.DefaultAddCapabilities = nil
+	}
+	if in.RequiredDropCapabilities != nil {
+		out.RequiredDropCapabilities = make([]Capability, len(in.RequiredDropCapabilities))
+		for i := range in.RequiredDropCapabilities {
+			out.RequiredDropCapabilities[i] = Capability(in.RequiredDropCapabilities[i])
+		}
+	} else {
+		out.RequiredDropCapabilities = nil
+	}
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	if in.Groups != nil {
+		out.Groups = make([]string, len(in.Groups))
+		for i := range in.Groups {
+			out.Groups[i] = in.Groups[i]
+		}
+	} else {
+		out.Groups = nil
 	}
 	return nil
 }

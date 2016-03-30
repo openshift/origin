@@ -45,7 +45,7 @@ func TestIsImageInLocalRegistry(t *testing.T) {
 			t.Errorf("Test - %s: Expected error: %v. Got: %v", test, def.expectedError, err)
 		}
 		if def.docker.InspectImageName[0] != def.expectedImageName {
-			t.Errorf("Docker inspect called with unexpected image name: %s\n",
+			t.Errorf("Docker inspect called with unexpected image name: %s",
 				def.docker.InspectImageName)
 		}
 	}

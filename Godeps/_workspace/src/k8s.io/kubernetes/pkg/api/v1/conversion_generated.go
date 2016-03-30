@@ -3022,7 +3022,14 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 	} else {
 		out.AllowedCapabilities = nil
 	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	if in.Volumes != nil {
+		out.Volumes = make([]FSType, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = FSType(in.Volumes[i])
+		}
+	} else {
+		out.Volumes = nil
+	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -3057,10 +3064,6 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 		out.Groups = nil
 	}
 	return nil
-}
-
-func Convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in *api.SecurityContextConstraints, out *SecurityContextConstraints, s conversion.Scope) error {
-	return autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in, out, s)
 }
 
 func autoConvert_api_SecurityContextConstraintsList_To_v1_SecurityContextConstraintsList(in *api.SecurityContextConstraintsList, out *SecurityContextConstraintsList, s conversion.Scope) error {
@@ -6424,7 +6427,15 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 	} else {
 		out.AllowedCapabilities = nil
 	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	// in.AllowHostDirVolumePlugin has no peer in out
+	if in.Volumes != nil {
+		out.Volumes = make([]api.FSType, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = api.FSType(in.Volumes[i])
+		}
+	} else {
+		out.Volumes = nil
+	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -6459,10 +6470,6 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 		out.Groups = nil
 	}
 	return nil
-}
-
-func Convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in *SecurityContextConstraints, out *api.SecurityContextConstraints, s conversion.Scope) error {
-	return autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in, out, s)
 }
 
 func autoConvert_v1_SecurityContextConstraintsList_To_api_SecurityContextConstraintsList(in *SecurityContextConstraintsList, out *api.SecurityContextConstraintsList, s conversion.Scope) error {

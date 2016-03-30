@@ -5,7 +5,9 @@
 #
 FROM openshift/origin-base
 
-RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
+RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
 
 ADD conf/ /var/lib/openshift/ipfailover/keepalived/conf/

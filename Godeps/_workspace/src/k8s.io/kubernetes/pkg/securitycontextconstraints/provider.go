@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -250,10 +251,19 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
 
-	if !s.scc.AllowHostDirVolumePlugin {
-		for _, v := range pod.Spec.Volumes {
-			if v.HostPath != nil {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumeMounts"), v.Name, "Host Volumes are not allowed to be used"))
+	if len(pod.Spec.Volumes) > 0 && !sccutil.SCCAllowsAllVolumes(s.scc) {
+		allowedVolumes := sccutil.FSTypeToStringSet(s.scc.Volumes)
+		for i, v := range pod.Spec.Volumes {
+			fsType, err := sccutil.GetVolumeFSType(v)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumes").Index(i), string(fsType), err.Error()))
+				continue
+			}
+
+			if !allowedVolumes.Has(string(fsType)) {
+				allErrs = append(allErrs, field.Invalid(
+					fldPath.Child("volumes").Index(i), string(fsType),
+					fmt.Sprintf("%s volumes are not allowed to be used", string(fsType))))
 			}
 		}
 	}

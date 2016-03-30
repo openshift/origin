@@ -314,6 +314,12 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
             "containers": [
               {
                 "name": "postgresql",
@@ -337,6 +343,12 @@
                     "port": 5432
                   }
                 },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/pgsql/data"
+                  }
+                ],
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",

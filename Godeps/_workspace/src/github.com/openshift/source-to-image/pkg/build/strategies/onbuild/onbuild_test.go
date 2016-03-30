@@ -2,7 +2,6 @@ package onbuild
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -48,15 +47,15 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 		t.Errorf("%v", fs.WriteFileError)
 	}
 	if fs.WriteFileName != "upload/src/Dockerfile" {
-		t.Errorf("Expected Dockerfile in 'upload/src/Dockerfile', got %v", fs.WriteFileName)
+		t.Errorf("Expected Dockerfile in 'upload/src/Dockerfile', got %q", fs.WriteFileName)
 	}
 	if !strings.Contains(fs.WriteFileContent, `ENTRYPOINT ["./run"]`) {
-		t.Errorf("The Dockerfile does not set correct entrypoint:\n %s\n", fs.WriteFileContent)
+		t.Errorf("The Dockerfile does not set correct entrypoint, file content:\n%s", fs.WriteFileContent)
 	}
 
 	buf := bytes.NewBuffer([]byte(fs.WriteFileContent))
 	if _, err := parser.Parse(buf); err != nil {
-		t.Errorf("cannot parse new Dockerfile: " + err.Error())
+		t.Errorf("cannot parse new Dockerfile: %v", err)
 	}
 
 }
@@ -102,7 +101,7 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 	}
 	checkDockerfile(fakeFs, t)
 	if !strings.Contains(fakeFs.WriteFileContent, `RUN sh assemble`) {
-		t.Errorf("The Dockerfile does not run assemble:\n%s\n", fakeFs.WriteFileContent)
+		t.Errorf("The Dockerfile does not run assemble, file content:\n%s", fakeFs.WriteFileContent)
 	}
 }
 
@@ -128,5 +127,5 @@ func TestBuild(t *testing.T) {
 		t.Errorf("Expected successfull build, got: %v", result)
 	}
 	checkDockerfile(fakeFs, t)
-	fmt.Printf("result: %v\n", result)
+	t.Logf("result: %v", result)
 }

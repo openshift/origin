@@ -24,11 +24,9 @@ func pointValue(constraint *kapi.SecurityContextConstraints) int {
 	if constraint.AllowPrivilegedContainer {
 		points += 20
 	}
-	// 9 gives us a value slightly higher than an SCC that allows run as any in both strategies since
-	// we're allowing access to the host system
-	if constraint.AllowHostDirVolumePlugin {
-		points += 10
-	}
+
+	// add points based on volume requests
+	points += volumePointValue(constraint)
 
 	// strategies in order of least restrictive to most restrictive
 	switch constraint.SELinuxContext.Type {
@@ -49,4 +47,38 @@ func pointValue(constraint *kapi.SecurityContextConstraints) int {
 		points += 1
 	}
 	return points
+}
+
+// allowsHostPathVolume returns a score based on the volumes allowed by the SCC.
+// Allowing a host volume wil return a score of 10.  Allowance of anything other
+// than kapi.FSTypeSecret, kapi.FSTypeConfigMap, kapi.FSTypeConfigMap, kapi.FSTypeDownwardAPI
+// will result in a score of 5.  If the SCC only allows kapi.FSTypeSecret, kapi.FSTypeConfigMap,
+// kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI it will have a score of 0.
+func volumePointValue(scc *kapi.SecurityContextConstraints) int {
+	hasHostVolume := false
+	hasNonTrivialVolume := false
+	for _, v := range scc.Volumes {
+		switch v {
+		case kapi.FSTypeHostPath, kapi.FSTypeAll:
+			hasHostVolume = true
+			// nothing more to do, this is the max point value
+			break
+		// it is easier to specifically list the trivial volumes and allow the
+		// default case to be non-trivial so we don't have to worry about adding
+		// volumes in the future unless they're trivial.
+		case kapi.FSTypeSecret, kapi.FSTypeConfigMap,
+			kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI:
+			// do nothing
+		default:
+			hasNonTrivialVolume = true
+		}
+	}
+
+	if hasHostVolume {
+		return 10
+	}
+	if hasNonTrivialVolume {
+		return 5
+	}
+	return 0
 }

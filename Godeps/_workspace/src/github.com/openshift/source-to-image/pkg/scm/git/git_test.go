@@ -208,7 +208,7 @@ func TestMungeNoProtocolURL(t *testing.T) {
 	for scenario, test := range tests {
 		uri, err := url.Parse(scenario)
 		if err != nil {
-			t.Errorf("Could not parse url %s", scenario)
+			t.Errorf("Could not parse url %q", scenario)
 		}
 
 		err = gh.MungeNoProtocolURL(scenario, uri)
@@ -230,9 +230,22 @@ func TestMungeNoProtocolURL(t *testing.T) {
 			}
 		}
 		if !equal {
-			t.Errorf("For URL string %s, field by field check for scheme %v opaque %v host %v path %v rawq %v frag %v out user nil %v test user nil %v out scheme  %s out opaque %s out host %s out path %s  out raw query %s out frag %s", scenario,
-				uri.Scheme == test.Scheme, uri.Opaque == test.Opaque, uri.Host == test.Host, uri.Path == test.Path, uri.RawQuery == test.RawQuery,
-				uri.Fragment == test.Fragment, uri.User == nil, test.User == nil, uri.Scheme, uri.Opaque, uri.Host, uri.Path, uri.RawQuery, uri.Fragment)
+			t.Errorf(`URL string %q, field by field check:
+- Scheme: got %v, ok? %v
+- Opaque: got %v, ok? %v
+- Host: got %v, ok? %v
+- Path: got %v, ok? %v
+- RawQuery: got %v, ok? %v
+- Fragment: got %v, ok? %v
+- User: got %v`,
+				scenario,
+				uri.Scheme, uri.Scheme == test.Scheme,
+				uri.Opaque, uri.Opaque == test.Opaque,
+				uri.Host, uri.Host == test.Host,
+				uri.Path, uri.Path == test.Path,
+				uri.RawQuery, uri.RawQuery == test.RawQuery,
+				uri.Fragment, uri.Fragment == test.Fragment,
+				uri.User)
 		}
 	}
 }
@@ -249,13 +262,13 @@ func TestGitClone(t *testing.T) {
 	gh, ch := getGit()
 	err := gh.Clone("source1", "target1", api.CloneConfig{Quiet: true, Recursive: true})
 	if err != nil {
-		t.Errorf("Unexpected error returned from clone: %v\n", err)
+		t.Errorf("Unexpected error returned from clone: %v", err)
 	}
 	if ch.Name != "git" {
-		t.Errorf("Unexpected command name: %s\n", ch.Name)
+		t.Errorf("Unexpected command name: %q", ch.Name)
 	}
 	if !reflect.DeepEqual(ch.Args, []string{"clone", "--quiet", "--recursive", "source1", "target1"}) {
-		t.Errorf("Unexpected command arguments: %#v\n", ch.Args)
+		t.Errorf("Unexpected command arguments: %#v", ch.Args)
 	}
 }
 
@@ -265,7 +278,7 @@ func TestGitCloneError(t *testing.T) {
 	ch.Err = runErr
 	err := gh.Clone("source1", "target1", api.CloneConfig{})
 	if err != runErr {
-		t.Errorf("Unexpected error returned from clone: %v\n", err)
+		t.Errorf("Unexpected error returned from clone: %v", err)
 	}
 }
 
@@ -273,16 +286,16 @@ func TestGitCheckout(t *testing.T) {
 	gh, ch := getGit()
 	err := gh.Checkout("repo1", "ref1")
 	if err != nil {
-		t.Errorf("Unexpected error returned from checkout: %v\n", err)
+		t.Errorf("Unexpected error returned from checkout: %v", err)
 	}
 	if ch.Name != "git" {
-		t.Errorf("Unexpected command name: %s\n", ch.Name)
+		t.Errorf("Unexpected command name: %q", ch.Name)
 	}
 	if !reflect.DeepEqual(ch.Args, []string{"checkout", "ref1"}) {
-		t.Errorf("Unexpected command arguments: %#v\n", ch.Args)
+		t.Errorf("Unexpected command arguments: %#v", ch.Args)
 	}
 	if ch.Opts.Dir != "repo1" {
-		t.Errorf("Unexpected value in exec directory: %s\n", ch.Opts.Dir)
+		t.Errorf("Unexpected value in exec directory: %q", ch.Opts.Dir)
 	}
 }
 
@@ -292,6 +305,6 @@ func TestGitCheckoutError(t *testing.T) {
 	ch.Err = runErr
 	err := gh.Checkout("repo1", "ref1")
 	if err != runErr {
-		t.Errorf("Unexpected error returned from checkout: %v\n", err)
+		t.Errorf("Unexpected error returned from checkout: %v", err)
 	}
 }

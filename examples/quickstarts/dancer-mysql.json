@@ -277,6 +277,12 @@
             }
           },
           "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
             "containers": [
               {
                 "name": "mysql",
@@ -284,6 +290,12 @@
                 "ports": [
                   {
                     "containerPort": 3306
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql/data"
                   }
                 ],
                 "readinessProbe": {

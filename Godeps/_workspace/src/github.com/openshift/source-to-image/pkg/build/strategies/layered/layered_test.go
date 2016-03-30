@@ -61,7 +61,7 @@ func TestBuildOK(t *testing.T) {
 		t.Errorf("Expected LayeredBuild to be true!")
 	}
 	if m, _ := regexp.MatchString(`test/image-\d+`, l.config.BuilderImage); !m {
-		t.Errorf("Expected BuilderImage test/image-withnumbers, but got %s ", l.config.BuilderImage)
+		t.Errorf("Expected BuilderImage test/image-withnumbers, but got %s", l.config.BuilderImage)
 	}
 	// without config.Destination explicitly set, we should get /tmp/scripts for the scripts url
 	// assuming the assemble script we created above is off the working dir

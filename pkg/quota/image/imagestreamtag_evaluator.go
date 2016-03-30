@@ -20,7 +20,7 @@ import (
 
 const imageStreamTagEvaluatorName = "Evaluator.ImageStreamTag"
 
-// NewImageStreamTagEvaluator computes resource usage of ImageStreamsTags. It's sole purpose is to handle
+// NewImageStreamTagEvaluator computes resource usage of ImageStreamsTags. Its sole purpose is to handle
 // UPDATE admission operations on imageStreamTags resource.
 func NewImageStreamTagEvaluator(osClient osclient.Interface) kquota.Evaluator {
 	computeResources := []kapi.ResourceName{

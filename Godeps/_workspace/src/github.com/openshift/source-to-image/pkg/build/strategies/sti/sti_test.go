@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/docker"
 	stierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/ignore"
+	"github.com/openshift/source-to-image/pkg/scm/empty"
 	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/test"
@@ -150,6 +151,23 @@ func TestDefaultSource(t *testing.T) {
 		t.Errorf("Config.Source not set: %v", config.Source)
 	}
 	if _, ok := sti.source.(*file.File); !ok || sti.source == nil {
+		t.Errorf("Source interface not set: %#v", sti.source)
+	}
+}
+
+func TestEmptySource(t *testing.T) {
+	config := &api.Config{
+		Source:       "",
+		DockerConfig: &api.DockerConfig{Endpoint: "unix:///var/run/docker.sock"},
+	}
+	sti, err := New(config, build.Overrides{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Source != "" {
+		t.Errorf("Config.Source unexpectantly changed: %v", config.Source)
+	}
+	if _, ok := sti.source.(*empty.Noop); !ok || sti.source == nil {
 		t.Errorf("Source interface not set: %#v", sti.source)
 	}
 }

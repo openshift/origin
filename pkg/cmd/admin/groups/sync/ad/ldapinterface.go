@@ -150,7 +150,7 @@ func (e *ADLDAPInterface) requiredUserAttributes() []string {
 	return allAttributes.List()
 }
 
-// Exists determines if a group idenified with it's LDAP group UID exists on the LDAP server
+// Exists determines if a group idenified with its LDAP group UID exists on the LDAP server
 func (e *ADLDAPInterface) Exists(ldapGrouUID string) (bool, error) {
 	return groupdetector.NewMemberBasedDetector(e).Exists(ldapGrouUID)
 }

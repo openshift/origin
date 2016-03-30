@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta3_test
 
 import (
+	"reflect"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -25,6 +26,7 @@ import (
 	versioned "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 )
 
 var v1beta3Codec = api.Codecs.LegacyCodec(versioned.SchemeGroupVersion)
@@ -153,4 +155,94 @@ func TestBadSecurityContextConversion(t *testing.T) {
 		}
 	}
 
+}
+
+func TestSCCVolumeConversionsApiToV1Beta3(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
+	tests := map[string]struct {
+		scc                      *api.SecurityContextConstraints
+		allowHostDirVolumePlugin bool
+	}{
+		"empty volumes": {
+			scc: &api.SecurityContextConstraints{},
+			allowHostDirVolumePlugin: false,
+		},
+		"no host dir": {
+			scc: &api.SecurityContextConstraints{
+				Volumes: []api.FSType{api.FSTypeAWSElasticBlockStore},
+			},
+			allowHostDirVolumePlugin: false,
+		},
+		"all volumes": {
+			scc: &api.SecurityContextConstraints{
+				Volumes: []api.FSType{api.FSTypeAll},
+			},
+			allowHostDirVolumePlugin: true,
+		},
+		"host dir": {
+			scc: &api.SecurityContextConstraints{
+				Volumes: []api.FSType{api.FSTypeHostPath},
+			},
+			allowHostDirVolumePlugin: true,
+		},
+	}
+
+	for k, v := range tests {
+		got := versioned.SecurityContextConstraints{}
+		err := api.Scheme.Convert(v.scc, &got)
+
+		if err != nil {
+			t.Errorf("%s received an error during conversion: %v", k, err)
+			continue
+		}
+
+		if got.AllowHostDirVolumePlugin != v.allowHostDirVolumePlugin {
+			t.Errorf("%s expected hostDir to be %t but received %t", k, v.allowHostDirVolumePlugin, got.AllowHostDirVolumePlugin)
+		}
+	}
+}
+
+func TestSCCVolumeConversionsV1Beta3ToApi(t *testing.T) {
+	if !registered.IsAllowedVersion(versioned.SchemeGroupVersion) {
+		return
+	}
+
+	noHostDirVolumes := []api.FSType{}
+	for _, v := range sccutil.GetAllFSTypesExcept(string(api.FSTypeHostPath)).List() {
+		noHostDirVolumes = append(noHostDirVolumes, api.FSType(v))
+	}
+
+	tests := map[string]struct {
+		scc     *versioned.SecurityContextConstraints
+		volumes []api.FSType
+	}{
+		"hostDir false": {
+			scc: &versioned.SecurityContextConstraints{
+				AllowHostDirVolumePlugin: false,
+			},
+			volumes: noHostDirVolumes,
+		},
+		"hostDir true": {
+			scc: &versioned.SecurityContextConstraints{
+				AllowHostDirVolumePlugin: true,
+			},
+			volumes: []api.FSType{api.FSTypeAll},
+		},
+	}
+
+	for k, v := range tests {
+		got := api.SecurityContextConstraints{}
+		err := api.Scheme.Convert(v.scc, &got)
+
+		if err != nil {
+			t.Errorf("%s received an error during conversion: %v", k, err)
+			continue
+		}
+		if !reflect.DeepEqual(got.Volumes, v.volumes) {
+			t.Errorf("%s expected volumes: %v but received: %v", k, v.volumes, got.Volumes)
+		}
+	}
 }
