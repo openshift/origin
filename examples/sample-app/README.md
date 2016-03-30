@@ -144,8 +144,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
           DeploymentConfig "docker-registry" created
           Service "docker-registry" created
 
@@ -404,8 +403,7 @@ the ip address shown below with the correct one for your environment.
     The router by default uses the host network. If you wish to use the container network stack and expose ports, add the --host-network=false option to the oadm router command.
 
 
-        $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-        $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --service-account=router
+        $ oadm router --service-account=router
         DeploymentConfig "router" created
         Service "router" created
 

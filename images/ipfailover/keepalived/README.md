@@ -31,8 +31,7 @@ Pre-requisites/Prep Time
         [ -n "$KUBECONFIG" ] ||  \
            export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
-        oadm router arparp --create --replicas=2  \
-                                   --credentials="${KUBECONFIG}"
+        oadm router arparp --replicas=2
 
 
 3. Wait for the Router pods to get into running state (I'm just sitting
