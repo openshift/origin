@@ -24,7 +24,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
 			}
 			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
-				obj.JenkinsPipelineConfig.ServiceName = "jenkins-ci"
+				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = ControllersAll

@@ -68,6 +68,11 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 	if len(t.Errors()) > 0 {
 		return fmt.Errorf("unable to instantiate Jenkins, processing jenkins template failed")
 	}
+	if !t.hasJenkinsService() {
+		err := fmt.Errorf("template %s/%s does not contain required service %q", t.Config.Namespace, t.Config.TemplateName, t.Config.ServiceName)
+		t.CreateErrors = append(t.CreateErrors, err)
+		return err
+	}
 	counter := 0
 	for _, item := range t.items {
 		var err error
@@ -77,7 +82,7 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 			err = t.kubeClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
 		}
 		if err != nil {
-			t.CreateErrors = append(t.CreateErrors, fmt.Errorf("creating Jenkins compotent %s/%s failed: %v", t.TargetNamespace, item.Resource, err))
+			t.CreateErrors = append(t.CreateErrors, fmt.Errorf("creating Jenkins compotent %s/%s failed: %v", t.Kind, item.Name, err))
 			continue
 		}
 		counter++
@@ -98,10 +103,25 @@ func (t *JenkinsPipelineTemplate) Errors() []error {
 // resourceMapping specify resource metadata informations and JSON for items
 // contained in the Jenkins template.
 type resourceMapping struct {
+	Name     string
 	Kind     string
 	Resource string
 	RawJSON  []byte
 	IsOrigin bool
+}
+
+// hasJenkinsService searches the template items and return true if the expected
+// Jenkins service is contained in template.
+func (t *JenkinsPipelineTemplate) hasJenkinsService() bool {
+	if len(t.Errors()) > 0 {
+		return false
+	}
+	for _, item := range t.items {
+		if item.Name == t.Config.ServiceName && item.Kind == "Service" {
+			return true
+		}
+	}
+	return false
 }
 
 // jenkinsTemplateResourcesToMap converts the input runtime.Object provided by
@@ -109,6 +129,7 @@ type resourceMapping struct {
 func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceMapping, []error) {
 	result := make([]resourceMapping, len(input))
 	var resultErrs []error
+	accessor := meta.NewAccessor()
 	for index, item := range input {
 		rawObj, ok := item.(*runtime.Unknown)
 		if !ok {
@@ -126,7 +147,13 @@ func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceMapping, []e
 			continue
 		}
 		plural, _ := meta.KindToResource(kind)
+		name, err := accessor.Name(obj)
+		if err != nil {
+			resultErrs = append(resultErrs, fmt.Errorf("unknown name %+v ", obj))
+			continue
+		}
 		result[index] = resourceMapping{
+			Name:     name,
 			Kind:     kind.Kind,
 			Resource: plural.Resource,
 			RawJSON:  rawObj.RawJSON,
