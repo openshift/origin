@@ -584,9 +584,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		oc.RunResourceQuotaManager(kc.ControllerManager)
 
 		// no special order
+		podInformer := kc.CreateSharedPodInformer(rcClient)
+
 		kc.RunNodeController()
 		kc.RunScheduler()
-		kc.RunReplicationController(rcClient)
+		kc.RunReplicationController(podInformer, rcClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
@@ -604,12 +606,15 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			kc.RunDaemonSetsController(daemonSetClient)
 		}
 
-		kc.RunEndpointController()
+		kc.RunEndpointController(podInformer)
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeClaimBinder(binderClient)
 		kc.RunPersistentVolumeProvisioner(provisionerClient)
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		kc.RunGCController(gcClient)
+
+		glog.Infof("Starting PodInformer")
+		go podInformer.Run(make(chan struct{}))
 
 		glog.Infof("Started Kubernetes Controllers")
 	} else {

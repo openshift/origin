@@ -14,11 +14,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	extv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	coreunversioned "k8s.io/kubernetes/pkg/client/typed/generated/core/unversioned"
 	extensionsunversioned "k8s.io/kubernetes/pkg/client/typed/generated/extensions/unversioned"
+	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/watch"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
@@ -206,9 +209,27 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 	return nil
 }
 
+func (c *MasterConfig) CreateSharedPodInformer(client *client.Client) framework.SharedInformer {
+	clientset := internalclientset.FromUnversionedClient(client)
+
+	sharedInformer := framework.NewSharedInformer(
+		&cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return clientset.Core().Pods(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return clientset.Core().Pods(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&kapi.Pod{}, kctrlmgr.ResyncPeriod(c.ControllerManager)())
+
+	return sharedInformer
+}
+
 // RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(
+func (c *MasterConfig) RunReplicationController(sharedInformer framework.SharedInformer, client *client.Client) {
+	controllerManager := replicationcontroller.NewReplicationManagerFromSharedInformer(
+		sharedInformer,
 		internalclientset.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicationcontroller.BurstReplicas,
@@ -247,10 +268,9 @@ func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(internalclientset.FromUnversionedClient(c.KubeClient), kctrlmgr.ResyncPeriod(c.ControllerManager))
+func (c *MasterConfig) RunEndpointController(sharedInformer framework.SharedInformer) {
+	endpoints := endpointcontroller.NewEndpointControllerFromSharedInformer(sharedInformer, internalclientset.FromUnversionedClient(c.KubeClient))
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, utilwait.NeverStop)
-
 }
 
 // RunScheduler starts the Kubernetes scheduler
