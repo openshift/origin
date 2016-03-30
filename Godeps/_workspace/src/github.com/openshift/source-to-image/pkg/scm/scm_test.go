@@ -25,7 +25,7 @@ func TestDownloaderForSource(t *testing.T) {
 	defer os.RemoveAll(localDir)
 
 	tc := map[string]string{
-		// Valid GIT clone specs
+		// Valid Git clone specs
 		"git://github.com/bar":       "git.Clone",
 		"https://github.com/bar":     "git.Clone",
 		"git@github.com:foo/bar.git": "git.Clone",
@@ -33,10 +33,10 @@ func TestDownloaderForSource(t *testing.T) {
 		// download)
 		"file://foo/bar": "error",
 		"/foo/bar":       "error",
-		// Local directory with valid GIT repository
+		// Local directory with valid Git repository
 		gitLocalDir:             "git.Clone",
 		"file://" + gitLocalDir: "git.Clone",
-		// Local directory that exists but it is not GIT repository
+		// Local directory that exists but it is not Git repository
 		localDir:               "file.File",
 		"file://" + localDir:   "file.File",
 		"foo://github.com/bar": "error",

@@ -366,7 +366,7 @@ func ParseSSH(source string) (*URLMods, error) {
 }
 
 // isLocalGitRepository checks if the specified directory has .git subdirectory (it
-// is a GIT repository)
+// is a Git repository)
 func isLocalGitRepository(dir string) bool {
 	_, err := os.Stat(fmt.Sprintf("%s/.git", strings.TrimPrefix(dir, "file://")))
 	return !(err != nil && os.IsNotExist(err))

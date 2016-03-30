@@ -3,6 +3,7 @@ package scripts
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -37,11 +38,11 @@ func newFakeInstaller(config *fakeScriptManagerConfig) Installer {
 		fs:         config.fs,
 		download:   config.download,
 	}
-	m.Add(&UrlScriptHandler{URL: m.ScriptsURL, download: m.download, fs: m.fs})
+	m.Add(&URLScriptHandler{URL: m.ScriptsURL, download: m.download, fs: m.fs, name: ScriptURLHandler})
 	m.Add(&SourceScriptHandler{fs: m.fs})
 	defaultURL, err := m.docker.GetScriptsURL(m.Image)
 	if err == nil && defaultURL != "" {
-		m.Add(&UrlScriptHandler{URL: defaultURL, download: m.download, fs: m.fs})
+		m.Add(&URLScriptHandler{URL: defaultURL, download: m.download, fs: m.fs, name: ImageURLHandler})
 	}
 	return &m
 }
@@ -264,18 +265,60 @@ func TestNewInstaller(t *testing.T) {
 	docker := &dockerpkg.FakeDocker{DefaultURLResult: "image://docker"}
 	inst := NewInstaller("test-image", "http://foo.bar", nil, docker, dockerClient.AuthConfiguration{})
 	sources := inst.(*DefaultScriptSourceManager).sources
-	firstHandler, ok := sources[0].(*UrlScriptHandler)
+	firstHandler, ok := sources[0].(*URLScriptHandler)
 	if !ok {
 		t.Errorf("expected first handler to be script url handler, got %#v", inst.(*DefaultScriptSourceManager).sources)
 	}
 	if firstHandler.URL != "http://foo.bar" {
 		t.Errorf("expected first handler to handle the script url, got %+v", firstHandler)
 	}
-	lastHandler, ok := sources[len(sources)-1].(*UrlScriptHandler)
+	lastHandler, ok := sources[len(sources)-1].(*URLScriptHandler)
 	if !ok {
 		t.Errorf("expected last handler to be docker url handler, got %#v", inst.(*DefaultScriptSourceManager).sources)
 	}
 	if lastHandler.URL != "image://docker" {
 		t.Errorf("expected last handler to handle the docker default url, got %+v", lastHandler)
+	}
+}
+
+type fakeSource struct {
+	name   string
+	failOn map[string]struct{}
+}
+
+func (f *fakeSource) Get(script string) *api.InstallResult {
+	return &api.InstallResult{Script: script}
+}
+
+func (f *fakeSource) Install(r *api.InstallResult) error {
+	if _, fail := f.failOn[r.Script]; fail {
+		return fmt.Errorf("error")
+	}
+	return nil
+}
+
+func (f *fakeSource) SetDestinationDir(string) {}
+
+func (f *fakeSource) String() string {
+	return f.name
+}
+
+func TestInstallOptionalFailedSources(t *testing.T) {
+
+	m := DefaultScriptSourceManager{}
+	m.Add(&fakeSource{name: "failing1", failOn: map[string]struct{}{"one": {}, "two": {}, "three": {}}})
+	m.Add(&fakeSource{name: "failing2", failOn: map[string]struct{}{"one": {}, "two": {}, "three": {}}})
+	m.Add(&fakeSource{name: "almostpassing", failOn: map[string]struct{}{"three": {}}})
+
+	expect := map[string][]string{
+		"one":   {"failing1", "failing2"},
+		"two":   {"failing1", "failing2"},
+		"three": {"failing1", "failing2", "almostpassing"},
+	}
+	results := m.InstallOptional([]string{"one", "two", "three"}, "foo")
+	for _, result := range results {
+		if !reflect.DeepEqual(result.FailedSources, expect[result.Script]) {
+			t.Errorf("Did not get expected failed sources: %#v", result)
+		}
 	}
 }
