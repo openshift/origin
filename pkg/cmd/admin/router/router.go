@@ -53,16 +53,16 @@ you have failover protection.`
   $ %[1]s %[2]s --dry-run
 
   # See what the router would look like if created
-  $ %[1]s %[2]s -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
+  $ %[1]s %[2]s -o yaml
 
-  # Create a router if it does not exist
-  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
+  # Create a router with two replicas if it does not exist
+  $ %[1]s %[2]s router-west --replicas=2
 
-  # Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+  # Use a different router image
+  $ %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  $ %[1]s %[2]s router-west --stats-port=0
   `
 
 	secretsVolumeName = "secret-volume"
@@ -267,6 +267,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
+
+	// Deprecate credentials
+	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
 
 	kcmdutil.AddPrinterFlags(cmd)
 
@@ -544,7 +547,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	secretEnv := app.Environment{}
 	switch {
 	case len(cfg.Credentials) == 0 && len(cfg.ServiceAccount) == 0:
-		return fmt.Errorf("router could not be created; you must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
+		return fmt.Errorf("router could not be created; you must specify a service account with --service-account, or a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
 	case len(cfg.Credentials) > 0:
 		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials, Precedence: []string{}}
 		credentials, err := clientConfigLoadingRules.Load()
