@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
@@ -40,6 +41,8 @@ type BuildConfigController struct {
 
 	KubeClient kclient.Interface
 	Client     osclient.Interface
+	// recorder is used to record events.
+	Recorder record.EventRecorder
 }
 
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
@@ -51,6 +54,7 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 			glog.V(4).Infof("The jenkins service %q already exists in project %q", buildapi.JenkinsDefaultServiceName, bc.Namespace)
 			return nil
 		}
+
 		glog.V(3).Infof("Adding new Jenkins service %q to the project %q", buildapi.JenkinsDefaultServiceName, bc.Namespace)
 		kc, ok := c.KubeClient.(*kclient.Client)
 		if !ok {
@@ -60,7 +64,19 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 		if !ok {
 			return fmt.Errorf("unable to get openshift client from %v", c.KubeClient)
 		}
-		return buildutil.NewJenkinsPipelineTemplate(bc.Namespace, kc, oc).Process().Instantiate()
+
+		jenkinsTemplate := buildutil.NewJenkinsPipelineTemplate(bc.Namespace, kc, oc)
+		err := jenkinsTemplate.Process().Instantiate()
+		if err != nil {
+			// Record all processing and creation failures as events.
+			for _, e := range jenkinsTemplate.Errors() {
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "%v", e)
+			}
+			return err
+		}
+
+		c.Recorder.Eventf(bc, kapi.EventTypeNormal, "Success", "Added new Jenkins service %q to project %q", buildapi.JenkinsDefaultServiceName, bc.Namespace)
+		return nil
 	}
 
 	hasChangeTrigger := false

@@ -41,7 +41,8 @@ type JenkinsPipelineTemplate struct {
 	kubeClient      *kclient.Client
 	osClient        *client.Client
 	items           []resourceMapping
-	processErr      error
+	ProcessErrors   []error
+	CreateErrors    []error
 }
 
 // Process processes the Jenkins template. If an error occurs
@@ -51,29 +52,31 @@ func (t *JenkinsPipelineTemplate) Process() *JenkinsPipelineTemplate {
 	}
 	template, err := t.osClient.Templates(t.Namespace).Get(t.Name)
 	if err != nil {
-		t.processErr = err
+		t.ProcessErrors = append(t.ProcessErrors, err)
 		return t
 	}
 	// TODO: All parameters must have defaults here. Should we allow setting
 	// parameters in build strategy?
 	pTemplate, err := t.osClient.TemplateConfigs(t.TargetNamespace).Create(template)
 	if err != nil {
-		t.processErr = err
+		t.ProcessErrors = append(t.ProcessErrors, err)
 		return t
 	}
-	t.items, t.processErr = mapJenkinsTemplateResources(pTemplate.Objects)
-	if t.processErr == nil {
-		glog.V(4).Infof("Processed Jenkins pipeline template %s/%s", pTemplate.Namespace, pTemplate.Namespace)
+	var mappingErrs []error
+	t.items, mappingErrs = mapJenkinsTemplateResources(pTemplate.Objects)
+	if len(mappingErrs) > 0 {
+		t.ProcessErrors = append(t.ProcessErrors, mappingErrs...)
+		return t
 	}
+	glog.V(4).Infof("Processed Jenkins pipeline template %s/%s", pTemplate.Namespace, pTemplate.Namespace)
 	return t
 }
 
 // Instantiate instantiates the Jenkins template in the target namespace.
 func (t *JenkinsPipelineTemplate) Instantiate() error {
-	if t.isProcessError() {
-		return t.processErr
+	if len(t.Errors()) > 0 {
+		return fmt.Errorf("unable to instantiate Jenkins, processing jenkins template failed")
 	}
-	//kc := k.(*kclient.Client)
 	counter := 0
 	for _, item := range t.items {
 		var err error
@@ -83,7 +86,7 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 			err = t.kubeClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
 		}
 		if err != nil {
-			glog.Errorf("Unable to create Jenkins pipeline component %s/%s: %v", t.TargetNamespace, item.Kind, err)
+			t.CreateErrors = append(t.CreateErrors, err)
 			continue
 		}
 		counter++
@@ -96,8 +99,9 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 	return nil
 }
 
-func (t *JenkinsPipelineTemplate) isProcessError() bool {
-	return t.processErr != nil
+// Errors returns the list of processing and creation errors.
+func (t *JenkinsPipelineTemplate) Errors() []error {
+	return append(t.ProcessErrors, t.CreateErrors...)
 }
 
 // resourceMapping specify resource metadata informations and JSON for items
@@ -111,24 +115,24 @@ type resourceMapping struct {
 
 // jenkinsTemplateResourcesToMap converts the input runtime.Object provided by
 // processed Jenkins template into a resource mappings ready for creation.
-func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceMapping, error) {
+func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceMapping, []error) {
 	result := make([]resourceMapping, len(input))
-	var resultErr error
+	var resultErrs []error
 	for index, item := range input {
 		rawObj, ok := item.(*runtime.Unknown)
 		if !ok {
-			resultErr = fmt.Errorf("unable to convert %+v to unknown object", item)
-			break
+			resultErrs = append(resultErrs, fmt.Errorf("unable to convert %+v to unknown object", item))
+			continue
 		}
 		obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), rawObj.RawJSON)
 		if err != nil {
-			resultErr = fmt.Errorf("unable to decode %+v: %v", rawObj.RawJSON, err)
-			break
+			resultErrs = append(resultErrs, fmt.Errorf("unable to decode %q", rawObj.RawJSON))
+			continue
 		}
 		kind, err := kapi.Scheme.ObjectKind(obj)
 		if err != nil {
-			resultErr = fmt.Errorf("unable to get kind from %+v", obj)
-			break
+			resultErrs = append(resultErrs, fmt.Errorf("unknown kind %+v ", obj))
+			continue
 		}
 		plural, _ := meta.KindToResource(kind)
 		result[index] = resourceMapping{
@@ -138,5 +142,5 @@ func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceMapping, err
 			IsOrigin: latest.IsKindInAnyOriginGroup(kind.Kind),
 		}
 	}
-	return result, resultErr
+	return result, resultErrs
 }
