@@ -30,9 +30,6 @@ const (
 	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
 	// executing a Source build
 	DropCapabilities = "DROP_CAPS"
-	// JenkinsDefaultServiceName is the default name of the Jenkins service deployed by
-	// JenkinsPipelineBuildStrategy.
-	JenkinsDefaultServiceName = "ci"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as

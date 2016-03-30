@@ -6,23 +6,17 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-// TODO: Move this into master config.
-const (
-	DefaultJenkinsTemplateName      = "jenkins-ci"
-	DefaultJenkinsTemplateNamespace = "openshift"
-)
-
 // NewJenkinsPipelineTemplate returns a new JenkinsPipelineTemplate.
-func NewJenkinsPipelineTemplate(ns string, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
+func NewJenkinsPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
 	return &JenkinsPipelineTemplate{
-		Name:            DefaultJenkinsTemplateName,
-		Namespace:       DefaultJenkinsTemplateNamespace,
+		Config:          conf,
 		TargetNamespace: ns,
 		kubeClient:      kubeClient,
 		osClient:        osClient,
@@ -33,10 +27,7 @@ func NewJenkinsPipelineTemplate(ns string, kubeClient *kclient.Client, osClient 
 // JenkinsPipelineStrategy template, used to instantiate the Jenkins service in
 // given namespace.
 type JenkinsPipelineTemplate struct {
-	// Name of the Jenkins template to use
-	Name string
-	// Namespace of where the Jenkins template is stored
-	Namespace       string
+	Config          serverapi.JenkinsPipelineConfig
 	TargetNamespace string
 	kubeClient      *kclient.Client
 	osClient        *client.Client
@@ -50,7 +41,7 @@ func (t *JenkinsPipelineTemplate) Process() *JenkinsPipelineTemplate {
 	if len(t.items) > 0 {
 		return t
 	}
-	template, err := t.osClient.Templates(t.Namespace).Get(t.Name)
+	template, err := t.osClient.Templates(t.Config.Namespace).Get(t.Config.TemplateName)
 	if err != nil {
 		t.ProcessErrors = append(t.ProcessErrors, err)
 		return t
@@ -59,7 +50,7 @@ func (t *JenkinsPipelineTemplate) Process() *JenkinsPipelineTemplate {
 	// parameters in build strategy?
 	pTemplate, err := t.osClient.TemplateConfigs(t.TargetNamespace).Create(template)
 	if err != nil {
-		t.ProcessErrors = append(t.ProcessErrors, err)
+		t.ProcessErrors = append(t.ProcessErrors, fmt.Errorf("processing Jenkins template %s/%s failed: %v", t.Config.Namespace, t.Config.TemplateName, err))
 		return t
 	}
 	var mappingErrs []error
@@ -86,7 +77,7 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 			err = t.kubeClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
 		}
 		if err != nil {
-			t.CreateErrors = append(t.CreateErrors, err)
+			t.CreateErrors = append(t.CreateErrors, fmt.Errorf("creating Jenkins compotent %s/%s failed: %v", t.TargetNamespace, item.Resource, err))
 			continue
 		}
 		counter++

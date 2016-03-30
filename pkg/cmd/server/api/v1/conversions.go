@@ -17,6 +17,15 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = internal.DefaultOpenShiftAPILevels
 			}
+			if len(obj.JenkinsPipelineConfig.Namespace) == 0 {
+				obj.JenkinsPipelineConfig.Namespace = "openshift"
+			}
+			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
+				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
+			}
+			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
+				obj.JenkinsPipelineConfig.ServiceName = "jenkins-ci"
+			}
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = ControllersAll
 			}
