@@ -90,7 +90,7 @@ func NewErrorPageTemplateRenderer(templateFile string) (ErrorPageRenderer, error
 }
 
 func (r *errorPageTemplateRenderer) Render(data ErrorData, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
+	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := r.errorPageTemplate.Execute(w, data); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render error page template: %v", err))
