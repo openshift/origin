@@ -92,15 +92,6 @@ func jenkinsJobBytes(filename, namespace string) []byte {
 	return data
 }
 
-func readInCommitID(filename string) string {
-	data, err := ioutil.ReadFile(filename)
-	if err == nil {
-		commitID := string(data)
-		return commitID
-	}
-	return ""
-}
-
 var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
@@ -113,11 +104,7 @@ var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("kick off the build for the jenkins ephermeral and application templates")
-		// the test_openshift_pipeline_plugin job on jenkins will store the commit ID for the given PR in this file
-		// where the jenkins-plugin repo is extracted off of the same parent directory as the origin repo
-		commitIDPath := exutil.FixturePath("..", "..", "..", "jenkins-plugin", "PR-Testing", "commitID")
-		commitID := readInCommitID(commitIDPath)
-		tag := []string{"jenkins-plugin-snapshot-test" + commitID + ":latest"}
+		tag := []string{"openshift/jenkins-plugin-snapshot-test:latest"}
 		hexIDs, err := exutil.DumpAndReturnTagging(tag)
 		var jenkinsEphemeralPath string
 		var testingSnapshot bool
