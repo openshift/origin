@@ -12,6 +12,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -247,6 +248,10 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 		expected.Annotations = mergeMaps(expected.Annotations, actual.Annotations)
 	}
 
+	// sort volumes to remove variants in order
+	sortVolumes(&expected)
+	sortVolumes(&actual)
+
 	// sort users and groups to remove any variants in order when diffing
 	sort.StringSlice(actual.Groups).Sort()
 	sort.StringSlice(actual.Users).Sort()
@@ -267,6 +272,25 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 	}
 
 	return &updated, needsUpdate
+}
+
+// sortVolumes sorts the volume slice of the SCC in place.
+func sortVolumes(scc *kapi.SecurityContextConstraints) {
+	if scc.Volumes == nil || len(scc.Volumes) == 0 {
+		return
+	}
+	volumes := sccutil.FSTypeToStringSet(scc.Volumes).List()
+	sort.StringSlice(volumes).Sort()
+	scc.Volumes = sliceToFSType(volumes)
+}
+
+// sliceToFSType converts a string slice into FStypes.
+func sliceToFSType(s []string) []kapi.FSType {
+	fsTypes := []kapi.FSType{}
+	for _, v := range s {
+		fsTypes = append(fsTypes, kapi.FSType(v))
+	}
+	return fsTypes
 }
 
 func mergeMaps(a, b map[string]string) map[string]string {
