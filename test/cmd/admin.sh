@@ -94,17 +94,6 @@ os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/sec
 os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.file-in-pipe-out.decrypted'"
 os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.decrypted'"
 
-os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
-# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
-# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' '(unassigned|assigned)'
-# os::cmd::expect_success_and_text 'oadm manage-node --evacuate --dry-run' 'hello-openshift'
-# os::cmd::expect_success_and_text 'oadm manage-node --schedulable=false' 'SchedulingDisabled'
-# os::cmd::expect_failure_and_text 'oadm manage-node --evacuate' 'Unable to evacuate'
-# os::cmd::expect_success_and_text 'oadm manage-node --evacuate --force' 'hello-openshift'
-# os::cmd::expect_success_and_text 'oadm manage-node --list-pods' 'hello-openshift'
-os::cmd::expect_success 'oc delete pods hello-openshift'
-echo "manage-node: ok"
-
 os::cmd::expect_success 'oadm groups new group1 foo bar'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
 os::cmd::expect_success 'oadm groups add-users group1 baz'
