@@ -23,30 +23,38 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 # Test running a router
 os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
 os::cmd::expect_failure_and_text 'oadm router --dry-run -o yaml' 'service account "router" is not allowed to access the host network on nodes'
+os::cmd::expect_failure_and_text 'oadm router --dry-run -o yaml' 'name: router'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --stats-port=1937 -o yaml' 'containerPort: 1937'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false -o yaml' 'service account "router" is not allowed to access host ports on nodes'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false -o yaml' 'hostPort: 1936'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false -o yaml' 'hostPort: 1936'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false --stats-port=1937 -o yaml' 'hostPort: 1937'
 os::cmd::expect_failure_and_text 'oadm router --dry-run --service-account=other -o yaml' 'service account "other" is not allowed to access the host network on nodes'
-os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml --credentials=${KUBECONFIG}' 'ServiceAccount'
+os::cmd::expect_failure_and_not_text 'oadm router --dry-run --host-network=false -o yaml --credentials=${KUBECONFIG}' 'ServiceAccount'
 # set ports internally
-os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false -o yaml' 'containerPort: 80'
-os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --ports=80:8080 -o yaml' 'port: 8080'
-os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --ports=80,8443:443 -o yaml' 'targetPort: 8443'
-os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'hostPort'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false -o yaml' 'containerPort: 80'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false --ports=80:8080 -o yaml' 'port: 8080'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false --ports=80,8443:443 -o yaml' 'targetPort: 8443'
+os::cmd::expect_failure_and_text 'oadm router --dry-run --host-network=false -o yaml' 'hostPort'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false -o yaml' 'hostPort'
 # don't use localhost for liveness probe by default
-os::cmd::expect_success_and_not_text "oadm router --dry-run --host-network=false -o yaml" 'host: localhost'
+os::cmd::expect_success_and_not_text "oadm router --dry-run --host-network=false --host-ports=false -o yaml" 'host: localhost'
 # client env vars are optional
-os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'OPENSHIFT_MASTER'
-os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --secrets-as-env -o yaml' 'OPENSHIFT_MASTER'
-os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --secrets-as-env --credentials=${KUBECONFIG} -o yaml' 'OPENSHIFT_MASTER'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false -o yaml' 'OPENSHIFT_MASTER'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false --secrets-as-env -o yaml' 'OPENSHIFT_MASTER'
+os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --host-ports=false --secrets-as-env --credentials=${KUBECONFIG} -o yaml' 'OPENSHIFT_MASTER'
 # mount tls crt as secret
-os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'
-os::cmd::expect_failure_and_text "oadm router --dry-run --host-network=false --default-cert=${KUBECONFIG} -o yaml" 'the default cert must contain a private key'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'value: /etc/pki/tls/private/tls.crt'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.key:'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.crt: '
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'type: kubernetes.io/tls'
+os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'
+os::cmd::expect_failure_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=${KUBECONFIG} -o yaml" 'the default cert must contain a private key'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'value: /etc/pki/tls/private/tls.crt'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.key:'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.crt: '
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'type: kubernetes.io/tls'
 # upgrade the router to have access to host networks
 os::cmd::expect_success "oadm policy add-scc-to-user privileged -z router"
 # uses localhost for probes
 os::cmd::expect_success_and_text "oadm router --dry-run -o yaml" 'host: localhost'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false -o yaml" 'hostPort'
 os::cmd::expect_failure_and_text "oadm router --ports=80,8443:443" 'container port 8443 and host port 443 must be equal'
 
 os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG}" 'image:.*-haproxy-router:'
