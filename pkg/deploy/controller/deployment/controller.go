@@ -149,9 +149,9 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// If the deployment is cancelled, terminate any deployer/hook pods.
 		// NOTE: Do not mark the deployment as Failed just yet.
 		// The deployment will be marked as Failed by the deployer pod controller
-		// when the deployer pod failure state is picked up
-		// Also, it will scale down the failed deployment and scale back up
-		// the last successful completed deployment
+		// when the deployer pod failure state is picked up.
+		// Then, the deployment config controller will scale down the failed deployment
+		// and scale back up the last successful completed deployment.
 		if deployutil.IsDeploymentCancelled(deployment) {
 			deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
 			if err != nil {
