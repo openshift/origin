@@ -21,9 +21,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -73,9 +73,7 @@ base image changes will use the source specified on the build config.
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
-	webhooks := util.StringFlag{}
-	webhooks.Default("none")
-	env := []string{}
+	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
 		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
@@ -84,61 +82,101 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunStartBuild(f, in, out, cmd, env, args, webhooks)
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, in, out, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	cmd.Flags().String("build-loglevel", "", "Specify the log level for the build log output")
-	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set for the build container.")
-	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
+	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
+	cmd.Flags().StringSliceVarP(&o.Env, "env", "e", o.Env, "Specify key value pairs of environment variables to set for the build container.")
+	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
 
-	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
-	cmd.Flags().Bool("wait", false, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+	cmd.Flags().BoolVar(&o.Follow, "follow", o.Follow, "Start a build and watch its logs until it completes or fails")
+	cmd.Flags().BoolVar(&o.WaitForComplete, "wait", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
 
-	cmd.Flags().String("from-file", "", "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
-	cmd.Flags().String("from-dir", "", "A directory to archive and use as the binary input for a build.")
-	cmd.Flags().String("from-repo", "", "The path to a local source code repository to use as the binary input for a build.")
-	cmd.Flags().String("commit", "", "Specify the source code commit identifier the build should use; requires a build based on a Git repository")
+	cmd.Flags().StringVar(&o.FromFile, "from-file", o.FromFile, "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
+	cmd.Flags().StringVar(&o.FromDir, "from-dir", o.FromDir, "A directory to archive and use as the binary input for a build.")
+	cmd.Flags().StringVar(&o.FromRepo, "from-repo", o.FromRepo, "The path to a local source code repository to use as the binary input for a build.")
+	cmd.Flags().StringVar(&o.Commit, "commit", o.Commit, "Specify the source code commit identifier the build should use; requires a build based on a Git repository")
 
-	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
-	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing build config to trigger")
+	cmd.Flags().StringVar(&o.ListWebhooks, "list-webhooks", o.ListWebhooks, "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
+	cmd.Flags().StringVar(&o.FromWebhook, "from-webhook", o.FromWebhook, "Specify a webhook URL for an existing build config to trigger")
 
-	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
-	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
+	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
+	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
 
 	// cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
-// RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
-func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, envParams []string, args []string, webhooks util.StringFlag) error {
-	webhook := kcmdutil.GetFlagString(cmd, "from-webhook")
-	buildName := kcmdutil.GetFlagString(cmd, "from-build")
-	follow := kcmdutil.GetFlagBool(cmd, "follow")
-	commit := kcmdutil.GetFlagString(cmd, "commit")
-	waitForComplete := kcmdutil.GetFlagBool(cmd, "wait")
-	fromFile := kcmdutil.GetFlagString(cmd, "from-file")
-	fromDir := kcmdutil.GetFlagString(cmd, "from-dir")
-	fromRepo := kcmdutil.GetFlagString(cmd, "from-repo")
-	buildLogLevel := kcmdutil.GetFlagString(cmd, "build-loglevel")
+type StartBuildOptions struct {
+	In          io.Reader
+	Out, ErrOut io.Writer
+	Git         git.Repository
+
+	FromBuild    string
+	FromWebhook  string
+	ListWebhooks string
+
+	Commit   string
+	FromFile string
+	FromDir  string
+	FromRepo string
+
+	Env []string
+
+	Follow          bool
+	WaitForComplete bool
+	LogLevel        string
+
+	GitRepository  string
+	GitPostReceive string
+
+	Client       osclient.Interface
+	ClientConfig kclientcmd.ClientConfig
+
+	AsBinary  bool
+	EnvVar    []kapi.EnvVar
+	Name      string
+	Namespace string
+}
+
+func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
+	o.In = in
+	o.Out = out
+	o.ErrOut = cmd.Out()
+	o.Git = git.NewRepository()
+	o.ClientConfig = f.OpenShiftClientConfig
+
+	webhook := o.FromWebhook
+	buildName := o.FromBuild
+	fromFile := o.FromFile
+	fromDir := o.FromDir
+	fromRepo := o.FromRepo
+	buildLogLevel := o.LogLevel
 
 	switch {
 	case len(webhook) > 0:
 		if len(args) > 0 || len(buildName) > 0 || len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0 {
 			return kcmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
-		path := kcmdutil.GetFlagString(cmd, "git-repository")
-		postReceivePath := kcmdutil.GetFlagString(cmd, "git-post-receive")
-		repo := git.NewRepository()
-		return RunStartBuildWebHook(f, out, webhook, path, postReceivePath, repo)
+		return nil
+
 	case len(args) != 1 && len(buildName) == 0:
 		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
 	}
+
+	o.AsBinary = len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0
 
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
+
+	client, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+	o.Client = client
 
 	var (
 		name     = buildName
@@ -155,169 +193,15 @@ func RunStartBuild(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra
 		case buildapi.Resource("buildconfigs"):
 			// no special handling required
 		case buildapi.Resource("builds"):
-			return fmt.Errorf("use --from-build to rerun your builds")
+			if len(o.ListWebhooks) == 0 {
+				return fmt.Errorf("use --from-build to rerun your builds")
+			}
 		default:
 			return fmt.Errorf("invalid resource provided: %v", resource)
 		}
 	}
-	if len(name) == 0 {
-		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
-	}
-
-	if webhooks.Provided() {
-		return RunListBuildWebHooks(f, out, cmd.Out(), name, resource, webhooks.String())
-	}
-
-	client, _, err := f.Clients()
-	if err != nil {
-		return err
-	}
-
-	env, _, err := cmdutil.ParseEnv(envParams, in)
-	if err != nil {
-		return err
-	}
-
-	if len(buildLogLevel) > 0 {
-		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
-	}
-
-	request := &buildapi.BuildRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
-	}
-	if len(env) > 0 {
-		request.Env = env
-	}
-	if len(commit) > 0 {
-		request.Revision = &buildapi.SourceRevision{
-			Git: &buildapi.GitSourceRevision{
-				Commit: commit,
-			},
-		}
-	}
-
-	git := git.NewRepository()
-
-	var newBuild *buildapi.Build
-	switch {
-	case len(args) > 0 && (len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0):
-		request := &buildapi.BinaryBuildRequestOptions{
-			ObjectMeta: kapi.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
-			Commit: commit,
-		}
-		if len(env) > 0 {
-			fmt.Fprintf(cmd.Out(), "WARNING: Specifying environment variables with binary builds is not supported.\n")
-		}
-		if newBuild, err = streamPathToBuild(git, in, cmd.Out(), client.BuildConfigs(namespace), fromDir, fromFile, fromRepo, request); err != nil {
-			return err
-		}
-	case resource == buildapi.Resource("builds"):
-		if newBuild, err = client.Builds(namespace).Clone(request); err != nil {
-			return err
-		}
-	case resource == buildapi.Resource("buildconfigs"):
-		if newBuild, err = client.BuildConfigs(namespace).Instantiate(request); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("invalid resource provided: %v", resource)
-	}
-
-	fmt.Fprintln(out, newBuild.Name)
-	// mapper, typer := f.Object()
-	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
-	// info, err := resourceMapper.InfoForObject(newBuild)
-	// if err != nil {
-	// 	return err
-	// }
-	// shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	// kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "started")
-
-	var (
-		wg      sync.WaitGroup
-		exitErr error
-	)
-
-	// Wait for the build to complete
-	if waitForComplete {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			exitErr = WaitForBuildComplete(client.Builds(namespace), newBuild.Name)
-		}()
-	}
-
-	// Stream the logs from the build
-	if follow {
-		wg.Add(1)
-		go func() {
-			// if --wait option is set, then don't wait for logs to finish streaming
-			// but wait for the build to reach its final state
-			if waitForComplete {
-				wg.Done()
-			} else {
-				defer wg.Done()
-			}
-			opts := buildapi.BuildLogOptions{
-				Follow: true,
-				NoWait: false,
-			}
-			for {
-				rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
-				if err != nil {
-					// if --wait options is set, then retry the connection to build logs
-					// when we hit the timeout.
-					if waitForComplete && errors.IsTimeoutErr(err) {
-						continue
-					}
-					fmt.Fprintf(cmd.Out(), "error getting logs: %v\n", err)
-					return
-				}
-				defer rd.Close()
-				if _, err = io.Copy(out, rd); err != nil {
-					fmt.Fprintf(cmd.Out(), "error streaming logs: %v\n", err)
-				}
-				break
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	return exitErr
-}
-
-// RunListBuildWebHooks prints the webhooks for the provided build config.
-func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name string, resource unversioned.GroupResource, webhookFilter string) error {
-	generic, github := false, false
-	prefix := false
-	switch webhookFilter {
-	case "all":
-		generic, github = true, true
-		prefix = true
-	case "generic":
-		generic = true
-	case "github":
-		github = true
-	default:
-		return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
-	}
-	client, _, err := f.Clients()
-	if err != nil {
-		return err
-	}
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	switch resource {
-	case buildapi.Resource("buildconfigs"):
-		// no special handling required
-	case buildapi.Resource("builds"):
+	// when listing webhooks, allow --from-build to lookup a build config
+	if resource == buildapi.Resource("builds") && len(o.ListWebhooks) > 0 {
 		build, err := client.Builds(namespace).Get(name)
 		if err != nil {
 			return err
@@ -330,11 +214,151 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 			namespace = ref.Namespace
 		}
 		name = ref.Name
-	default:
-		return fmt.Errorf("invalid resource provided: %v", resource)
 	}
 
-	config, err := client.BuildConfigs(namespace).Get(name)
+	if len(name) == 0 {
+		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
+	}
+
+	o.Namespace = namespace
+	o.Name = name
+
+	env, _, err := cmdutil.ParseEnv(o.Env, in)
+	if err != nil {
+		return err
+	}
+	if len(buildLogLevel) > 0 {
+		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+	}
+	o.EnvVar = env
+
+	return nil
+}
+
+// Run contains all the necessary functionality for the OpenShift cli start-build command
+func (o *StartBuildOptions) Run() error {
+	if len(o.FromWebhook) > 0 {
+		return o.RunStartBuildWebHook()
+	}
+	if len(o.ListWebhooks) > 0 {
+		return o.RunListBuildWebHooks()
+	}
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+	}
+	if len(o.EnvVar) > 0 {
+		request.Env = o.EnvVar
+	}
+	if len(o.Commit) > 0 {
+		request.Revision = &buildapi.SourceRevision{
+			Git: &buildapi.GitSourceRevision{
+				Commit: o.Commit,
+			},
+		}
+	}
+
+	var err error
+	var newBuild *buildapi.Build
+	switch {
+	case o.AsBinary:
+		request := &buildapi.BinaryBuildRequestOptions{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      o.Name,
+				Namespace: o.Namespace,
+			},
+			Commit: o.Commit,
+		}
+		if len(o.EnvVar) > 0 {
+			fmt.Fprintf(o.ErrOut, "WARNING: Specifying environment variables with binary builds is not supported.\n")
+		}
+		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.Client.BuildConfigs(o.Namespace), o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
+			return err
+		}
+	case len(o.FromBuild) > 0:
+		if newBuild, err = o.Client.Builds(o.Namespace).Clone(request); err != nil {
+			return err
+		}
+	default:
+		if newBuild, err = o.Client.BuildConfigs(o.Namespace).Instantiate(request); err != nil {
+			return err
+		}
+	}
+
+	// TODO: support -o on this command
+	fmt.Fprintln(o.Out, newBuild.Name)
+
+	var (
+		wg      sync.WaitGroup
+		exitErr error
+	)
+
+	// Wait for the build to complete
+	if o.WaitForComplete {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			exitErr = WaitForBuildComplete(o.Client.Builds(o.Namespace), newBuild.Name)
+		}()
+	}
+
+	// Stream the logs from the build
+	if o.Follow {
+		wg.Add(1)
+		go func() {
+			// if --wait option is set, then don't wait for logs to finish streaming
+			// but wait for the build to reach its final state
+			if o.WaitForComplete {
+				wg.Done()
+			} else {
+				defer wg.Done()
+			}
+			opts := buildapi.BuildLogOptions{
+				Follow: true,
+				NoWait: false,
+			}
+			for {
+				rd, err := o.Client.BuildLogs(o.Namespace).Get(newBuild.Name, opts).Stream()
+				if err != nil {
+					// if --wait options is set, then retry the connection to build logs
+					// when we hit the timeout.
+					if o.WaitForComplete && errors.IsTimeoutErr(err) {
+						continue
+					}
+					fmt.Fprintf(o.ErrOut, "error getting logs: %v\n", err)
+					return
+				}
+				defer rd.Close()
+				if _, err = io.Copy(o.Out, rd); err != nil {
+					fmt.Fprintf(o.ErrOut, "error streaming logs: %v\n", err)
+				}
+				break
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return exitErr
+}
+
+// RunListBuildWebHooks prints the webhooks for the provided build config.
+func (o *StartBuildOptions) RunListBuildWebHooks() error {
+	generic, github := false, false
+	prefix := false
+	switch o.ListWebhooks {
+	case "all":
+		generic, github = true, true
+		prefix = true
+	case "generic":
+		generic = true
+	case "github":
+		github = true
+	default:
+		return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
+	}
+	client := o.Client
+
+	config, err := client.BuildConfigs(o.Namespace).Get(o.Name)
 	if err != nil {
 		return err
 	}
@@ -353,14 +377,14 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 		default:
 			continue
 		}
-		url, err := client.BuildConfigs(namespace).WebHookURL(name, &t)
+		url, err := client.BuildConfigs(o.Namespace).WebHookURL(o.Name, &t)
 		if err != nil {
 			if err != osclient.ErrTriggerIsNotAWebHook {
-				fmt.Fprintf(errOut, "error: unable to get webhook for %s: %v", name, err)
+				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
 		}
-		fmt.Fprintf(out, "%s%s\n", hookType, url.String())
+		fmt.Fprintf(o.Out, "%s%s\n", hookType, url.String())
 	}
 	return nil
 }
@@ -514,13 +538,14 @@ func isArchive(r *bufio.Reader) bool {
 
 // RunStartBuildWebHook tries to trigger the provided webhook. It will attempt to utilize the current client
 // configuration if the webhook has the same URL.
-func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, path, postReceivePath string, repo git.Repository) error {
-	hook, err := url.Parse(webhook)
+func (o *StartBuildOptions) RunStartBuildWebHook() error {
+	repo := o.Git
+	hook, err := url.Parse(o.FromWebhook)
 	if err != nil {
 		return err
 	}
 
-	event, err := hookEventFromPostReceive(repo, path, postReceivePath)
+	event, err := hookEventFromPostReceive(repo, o.GitRepository, o.GitPostReceive)
 	if err != nil {
 		return err
 	}
@@ -538,7 +563,7 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	// when using HTTPS, try to reuse the local config transport if possible to get a client cert
 	// TODO: search all configs
 	if hook.Scheme == "https" {
-		config, err := f.OpenShiftClientConfig.ClientConfig()
+		config, err := o.ClientConfig.ClientConfig()
 		if err == nil {
 			if url, _, err := restclient.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
 				if url.Host == hook.Host && url.Scheme == hook.Scheme {
