@@ -75,13 +75,14 @@ do_master () {
     log_system $logmaster $aos_master_service
 
     # And the master specific stuff
-    echo_and_eval  oc get nodes                     -o yaml               &> $logmaster/nodes
-    echo_and_eval  oc get pods     --all-namespaces -o yaml  | filter_env &> $logmaster/pods
-    echo_and_eval  oc get services --all-namespaces -o yaml               &> $logmaster/services
-    echo_and_eval  oc get routes   --all-namespaces -o yaml               &> $logmaster/aos_routes
-    echo_and_eval  oc get clusternetwork            -o yaml               &> $logmaster/clusternetwork
-    echo_and_eval  oc get hostsubnets               -o yaml               &> $logmaster/hostsubnets
-    echo_and_eval  oc get netnamespaces             -o yaml               &> $logmaster/netnamespaces
+    echo_and_eval  oc get nodes                      -o yaml               &> $logmaster/nodes
+    echo_and_eval  oc get pods      --all-namespaces -o yaml  | filter_env &> $logmaster/pods
+    echo_and_eval  oc get services  --all-namespaces -o yaml               &> $logmaster/services
+    echo_and_eval  oc get endpoints --all-namespaces -o yaml               &> $logmaster/endpoints
+    echo_and_eval  oc get routes    --all-namespaces -o yaml               &> $logmaster/aos_routes
+    echo_and_eval  oc get clusternetwork             -o yaml               &> $logmaster/clusternetwork
+    echo_and_eval  oc get hostsubnets                -o yaml               &> $logmaster/hostsubnets
+    echo_and_eval  oc get netnamespaces              -o yaml               &> $logmaster/netnamespaces
 
     for node in $nodes; do
 	reg_ip=$(oc get node $node --template '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
