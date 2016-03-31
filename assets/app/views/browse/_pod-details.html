@@ -47,6 +47,9 @@
           <dt>State:</dt>
           <dd>
             <kubernetes-object-describe-container-state container-state="containerStatus.state"></kubernetes-object-describe-container-state>
+            <span ng-if="!containerStatus.state.running">
+              &mdash; <a href="" ng-click="debugTerminal(containerStatus.name)">Debug in Terminal</a>
+            </span>
           </dd>
           <dt ng-if="!(containerStatus.lastState | isEmptyObj)">Last State</dt>
           <dd ng-if="!(containerStatus.lastState | isEmptyObj)">
