@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
@@ -30,6 +31,9 @@ type NewProjectOptions struct {
 
 	AdminRole string
 	AdminUser string
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 const newProjectLong = `
@@ -52,6 +56,8 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
+			options.MutationOutputOptions = mutation.NewMutationOutputOptions(f.Factory, cmd, out)
+
 			var err error
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
@@ -72,6 +78,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
 	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'. Specifying \"\" means any node, not default. If unspecified, cluster default node selector will be used.")
+	kcmdutil.AddOutputFlagsForMutation(cmd)
 
 	return cmd
 }
@@ -107,7 +114,9 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		return err
 	}
 
-	fmt.Printf("Created project %v\n", o.ProjectName)
+	if err := o.MutationOutputOptions.PrintSuccess(project, "created"); err != nil {
+		return err
+	}
 
 	errs := []error{}
 	if len(o.AdminUser) != 0 {

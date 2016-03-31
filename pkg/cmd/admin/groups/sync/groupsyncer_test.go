@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -190,7 +191,7 @@ var Group3Members []*ldap.Entry = []*ldap.Entry{Member3, Member4}
 // TestGoodSync ensures that data is exchanged and rearranged correctly during the sync process.
 func TestGoodSync(t *testing.T) {
 	testGroupSyncer, tc := newTestSyncer()
-	_, errs := testGroupSyncer.Sync()
+	errs := testGroupSyncer.Sync()
 	for _, err := range errs {
 		t.Errorf("unexpected sync error: %v", err)
 	}
@@ -202,16 +203,12 @@ func TestListFails(t *testing.T) {
 	testGroupSyncer, _ := newTestSyncer()
 	testGroupSyncer.GroupLister.(*TestGroupLister).err = errors.New("error during listing")
 
-	groups, errs := testGroupSyncer.Sync()
+	errs := testGroupSyncer.Sync()
 	if len(errs) != 1 {
 		t.Errorf("unexpected sync error: %v", errs)
 
 	} else if errs[0] != testGroupSyncer.GroupLister.(*TestGroupLister).err {
 		t.Errorf("unexpected sync error: %v", errs)
-	}
-
-	if groups != nil {
-		t.Errorf("unexpected groups %v", groups)
 	}
 }
 
@@ -219,7 +216,7 @@ func TestMissingLDAPGroupUIDMapping(t *testing.T) {
 	testGroupSyncer, tc := newTestSyncer()
 	testGroupSyncer.GroupLister.(*TestGroupLister).GroupUIDs = append(testGroupSyncer.GroupLister.(*TestGroupLister).GroupUIDs, "ldapgroupwithnouid")
 
-	_, errs := testGroupSyncer.Sync()
+	errs := testGroupSyncer.Sync()
 	if len(errs) != 1 {
 		t.Errorf("unexpected sync error: %v", errs)
 
@@ -333,6 +330,7 @@ func newTestSyncer() (*LDAPGroupSyncer, *testclient.Fake) {
 		Host:                 newTestHost(),
 		Out:                  ioutil.Discard,
 		Err:                  ioutil.Discard,
+		MutationOutputOptions: mutation.NewFakeOptions(),
 	}, tc
 
 }

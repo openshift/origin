@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/spf13/cobra"
+
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/spf13/cobra"
-
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -34,6 +35,9 @@ type NewGroupOptions struct {
 
 	Group string
 	Users []string
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -49,9 +53,13 @@ func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
+			options.MutationOutputOptions = mutation.NewMutationOutputOptions(f.Factory, cmd, out)
+
 			kcmdutil.CheckErr(options.AddGroup())
 		},
 	}
+
+	kcmdutil.AddOutputFlagsForMutation(cmd)
 
 	return cmd
 }
@@ -90,5 +98,11 @@ func (o *NewGroupOptions) AddGroup() error {
 	}
 
 	_, err := o.GroupClient.Create(group)
-	return err
+	if err != nil {
+		return err
+	}
+	if err := o.MutationOutputOptions.PrintSuccess(group, "created"); err != nil {
+		return err
+	}
+	return nil
 }

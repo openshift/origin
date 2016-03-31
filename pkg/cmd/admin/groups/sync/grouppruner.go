@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 )
 
 // GroupPruner runs a prune job on Groups
@@ -33,6 +34,9 @@ type LDAPGroupPruner struct {
 	// Out is used to provide output while the sync job is happening
 	Out io.Writer
 	Err io.Writer
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 var _ GroupPruner = &LDAPGroupPruner{}
@@ -79,7 +83,13 @@ func (s *LDAPGroupPruner) Prune() []error {
 			}
 		}
 
-		fmt.Fprintf(s.Out, "group/%s\n", groupName)
+		// The entire prune operation is not atomic, so we need to output what we do when we do it, so if we encounter
+		// a failure on another group the work we have already done is accounted for.
+		if s.DryRun {
+			s.MutationOutputOptions.PrintSuccessForDescription("Group", groupName, "would be deleted")
+		} else {
+			s.MutationOutputOptions.PrintSuccessForDescription("Group", groupName, "deleted")
+		}
 	}
 
 	return errors

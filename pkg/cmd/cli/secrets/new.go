@@ -15,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	"github.com/spf13/cobra"
 )
 
@@ -67,6 +68,9 @@ type CreateSecretOptions struct {
 	Quiet bool
 
 	AllowUnknownTypes bool
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -82,6 +86,8 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 			if err := options.Complete(args, f); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
+
+			options.MutationOutputOptions = mutation.NewMutationOutputOptions(f.Factory, c, options.Out)
 
 			if err := options.Validate(); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
@@ -177,8 +183,11 @@ func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
 	}
 
 	persistedSecret, err := o.SecretsInterface.Create(secret)
+
 	if err == nil {
-		fmt.Fprintf(o.Out, "secret/%s\n", persistedSecret.Name)
+		if err := o.MutationOutputOptions.PrintSuccess(secret, "created"); err != nil {
+			return nil, err
+		}
 	}
 
 	return persistedSecret, err

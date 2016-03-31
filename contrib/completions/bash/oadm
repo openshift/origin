@@ -188,6 +188,12 @@ _oadm_new-project()
     flags+=("--description=")
     flags+=("--display-name=")
     flags+=("--node-selector=")
+<<<<<<< HEAD
+=======
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--alsologtostderr")
+>>>>>>> unified printing strategy
     flags+=("--api-version=")
     flags+=("--certificate-authority=")
     flags_with_completion+=("--certificate-authority")
@@ -1050,6 +1056,12 @@ _oadm_groups_new()
     flags_with_completion=()
     flags_completion=()
 
+<<<<<<< HEAD
+=======
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--alsologtostderr")
+>>>>>>> unified printing strategy
     flags+=("--api-version=")
     flags+=("--certificate-authority=")
     flags_with_completion+=("--certificate-authority")

@@ -10,6 +10,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	"github.com/spf13/cobra"
 )
 
@@ -48,6 +49,9 @@ type CreateSSHAuthSecretOptions struct {
 	Out io.Writer
 
 	SecretsInterface client.SecretsInterface
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 // NewCmdCreateSSHAuthSecret implements the OpenShift cli secrets new-sshauth subcommand
@@ -65,6 +69,8 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
+
+			o.MutationOutputOptions = mutation.NewMutationOutputOptions(f, c, o.Out)
 
 			if err := o.Validate(); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
@@ -107,7 +113,9 @@ func (o *CreateSSHAuthSecretOptions) CreateSSHAuthSecret() error {
 		return err
 	}
 
-	fmt.Fprintf(o.GetOut(), "secret/%s\n", secret.Name)
+	if err := o.MutationOutputOptions.PrintSuccess(secret, "created"); err != nil {
+		return err
+	}
 	return nil
 }
 

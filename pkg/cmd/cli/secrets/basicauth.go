@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 )
 
 const (
@@ -53,6 +54,9 @@ type CreateBasicAuthSecretOptions struct {
 	Out    io.Writer
 
 	SecretsInterface client.SecretsInterface
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 // NewCmdCreateBasicAuthSecret implements the OpenShift cli secrets new-basicauth subcommand
@@ -71,6 +75,8 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, rea
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
+
+			o.MutationOutputOptions = mutation.NewMutationOutputOptions(f, c, o.Out)
 
 			if err := o.Validate(); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
@@ -114,7 +120,9 @@ func (o *CreateBasicAuthSecretOptions) CreateBasicAuthSecret() error {
 		return err
 	}
 
-	fmt.Fprintf(o.GetOut(), "secret/%s\n", secret.Name)
+	if err := o.MutationOutputOptions.PrintSuccess(secret, "created"); err != nil {
+		return err
+	}
 	return nil
 }
 

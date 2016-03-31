@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	"github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -58,10 +59,11 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:      clusterAdminClient,
-		ProjectName: project,
-		AdminRole:   bootstrappolicy.AdminRoleName,
-		AdminUser:   username,
+		Client:                clusterAdminClient,
+		ProjectName:           project,
+		AdminRole:             bootstrappolicy.AdminRoleName,
+		AdminUser:             username,
+		MutationOutputOptions: mutation.NewFakeOptions(),
 	}
 	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
