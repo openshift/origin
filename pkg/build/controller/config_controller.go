@@ -6,11 +6,17 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/client"
+	osclient "github.com/openshift/origin/pkg/client"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 // ConfigControllerFatalError represents a fatal error while generating a build.
@@ -33,10 +39,51 @@ func IsFatal(err error) bool {
 
 type BuildConfigController struct {
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+
+	KubeClient kclient.Interface
+	Client     osclient.Interface
+
+	JenkinsConfig serverapi.JenkinsPipelineConfig
+
+	// recorder is used to record events.
+	Recorder record.EventRecorder
 }
 
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
 	glog.V(4).Infof("Handling BuildConfig %s/%s", bc.Namespace, bc.Name)
+
+	if strategy := bc.Spec.Strategy.JenkinsPipelineStrategy; strategy != nil {
+		svcName := c.JenkinsConfig.ServiceName
+
+		glog.V(4).Infof("Detected Jenkins pipeline strategy in %s/%s build configuration", bc.Namespace, bc.Name)
+		if _, err := c.KubeClient.Services(bc.Namespace).Get(svcName); err == nil {
+			glog.V(4).Infof("The jenkins service %q already exists in project %q", svcName, bc.Namespace)
+			return nil
+		}
+
+		glog.V(3).Infof("Adding new Jenkins service %q to the project %q", svcName, bc.Namespace)
+		kc, ok := c.KubeClient.(*kclient.Client)
+		if !ok {
+			return fmt.Errorf("unable to get kubernetes client from %v", c.KubeClient)
+		}
+		oc, ok := c.Client.(*client.Client)
+		if !ok {
+			return fmt.Errorf("unable to get openshift client from %v", c.KubeClient)
+		}
+
+		jenkinsTemplate := buildutil.NewJenkinsPipelineTemplate(bc.Namespace, c.JenkinsConfig, kc, oc)
+		err := jenkinsTemplate.Process().Instantiate()
+		if err != nil {
+			// Record all processing and creation failures as events.
+			for _, e := range jenkinsTemplate.Errors() {
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "%v", e)
+			}
+			return err
+		}
+
+		c.Recorder.Eventf(bc, kapi.EventTypeNormal, "Success", "Added new Jenkins service %q to project %q", svcName, bc.Namespace)
+		return nil
+	}
 
 	hasChangeTrigger := false
 	for _, trigger := range bc.Spec.Triggers {
