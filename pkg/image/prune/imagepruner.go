@@ -916,6 +916,12 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		}
 		defer resp.Body.Close()
 
+		// TODO: investigate why we're getting non-existent layers, for now we're logging
+		// them out and continue working
+		if resp.StatusCode == http.StatusNotFound {
+			glog.Warningf("Unable to prune layer %s, returned %v", url, resp.Status)
+			return nil
+		}
 		// non-2xx/3xx response doesn't cause an error, so we need to check for it
 		// manually and return it to caller
 		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
@@ -923,9 +929,11 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		}
 		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted {
 			glog.V(1).Infof("Unexpected status code in response: %d", resp.StatusCode)
-			decoder := json.NewDecoder(resp.Body)
 			var response errcode.Errors
-			decoder.Decode(&response)
+			decoder := json.NewDecoder(resp.Body)
+			if err := decoder.Decode(&response); err != nil {
+				return err
+			}
 			glog.V(1).Infof("Response: %#v", response)
 			return &response
 		}
