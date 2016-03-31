@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -142,11 +142,11 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		Example: fmt.Sprintf(syncExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := options.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
 			err := options.Run(c, f)
@@ -158,7 +158,7 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 					os.Exit(1)
 				}
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -176,7 +176,7 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&typeArg, "type", typeArg, "which groups white- and blacklist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
 	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display results of a dry-run")
 
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
 
@@ -408,12 +408,8 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
-	list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-	if err != nil {
-		return err
-	}
-
-	if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
+	fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, o.Out)
+	if err := fn(list); err != nil {
 		return err
 	}
 

@@ -135,6 +135,8 @@ func NewBinarySourceRepository() *SourceRepository {
 	}
 }
 
+// TODO: this doesn't really match the others - this should likely be a different type of
+// object that is associated with a build or component.
 func NewImageSourceRepository(compRef ComponentReference, from, to string) *SourceRepository {
 	return &SourceRepository{
 		sourceImage:      compRef,

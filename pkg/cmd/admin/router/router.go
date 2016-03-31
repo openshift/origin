@@ -724,12 +724,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	list := &kapi.List{Items: objects}
 
 	if output {
-		list.Items, err = cmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-		if err != nil {
-			return err
-		}
-
-		if err := f.PrintObject(cmd, list, out); err != nil {
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, out)
+		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}
 		return nil
