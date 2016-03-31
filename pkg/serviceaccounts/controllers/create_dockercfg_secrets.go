@@ -105,6 +105,10 @@ func (e *DockercfgController) serviceAccountAdded(obj interface{}) {
 
 	if err := e.createDockercfgSecretIfNeeded(serviceAccount); err != nil {
 		utilruntime.HandleError(err)
+		// TODO: Make this error special in the quota admission plugin
+		if strings.Contains(err.Error(), "Status unknown for quota") {
+			e.serviceAccountController.Requeue(obj)
+		}
 	}
 }
 
@@ -114,6 +118,10 @@ func (e *DockercfgController) serviceAccountUpdated(oldObj interface{}, newObj i
 
 	if err := e.createDockercfgSecretIfNeeded(newServiceAccount); err != nil {
 		utilruntime.HandleError(err)
+		// TODO: Make this error special in the quota admission plugin
+		if strings.Contains(err.Error(), "Status unknown for quota") {
+			e.serviceAccountController.Requeue(newObj)
+		}
 	}
 }
 
