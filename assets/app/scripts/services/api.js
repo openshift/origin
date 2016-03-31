@@ -40,8 +40,7 @@ ResourceGroupVersion.prototype.equals = function(resource, group, version) {
 
 
 angular.module('openshiftConsole')
-.factory('APIService', function(API_CFG, APIS_CFG, Logger) {
-
+.factory('APIService', function(API_CFG, APIS_CFG, Logger, $q, $http, Navigate) {
   // Set the default api versions the console will use if otherwise unspecified
   var defaultVersion = {
     "":           "v1",
@@ -176,13 +175,20 @@ angular.module('openshiftConsole')
   // apiInfo returns the host/port, prefix, group, and version for the given resource,
   // or undefined if the specified resource/group/version is known not to exist.
   var apiInfo = function(resource) {
+    // If API discovery had any failures, calls to api info should redirect to the error page
+    if (APIS_CFG.API_DISCOVERY_ERRORS) {
+      Navigate.toErrorPage("Unable to load details about the server. If the problem continues, please contact your system administrator.", "API_DISCOVERY", true);
+      return;
+    }
+      
     resource = toResourceGroupVersion(resource);
     var primaryResource = resource.primaryResource();
 
-    // API info for resources in an API group can just be derived
-    // TODO: use API discovery to determine available groups, versions, and resources
-    // If this is called before discovery loads, just return the derived data, but if we know from discovery that a group/version/resource is invalid, return undefined.
+    // API info for resources in an API group, if the resource was not found during discovery return undefined
     if (resource.group) {
+      if (!_.get(APIS_CFG, ["groups", resource.group, "versions", resource.version, "resources", primaryResource])) {
+        return undefined;
+      }
       return {
         hostPort: APIS_CFG.hostPort,
         prefix:   APIS_CFG.prefix,
@@ -193,19 +199,15 @@ angular.module('openshiftConsole')
 
     // Resources without an API group could be legacy k8s or origin resources.
     // Scan through resources to determine which this is.
-    var api, prefix;
+    var api;
     for (var apiName in API_CFG) {
       api = API_CFG[apiName];
-      if (!api.resources[primaryResource]) {
-        continue;
-      }
-      prefix = api.prefixes[resource.version];
-      if (!prefix) {
+      if (!_.get(api, ["resources", resource.version, primaryResource])) {
         continue;
       }
       return {
         hostPort: api.hostPort,
-        prefix:   prefix,
+        prefix:   api.prefix,
         version:  resource.version
       };
     }

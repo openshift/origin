@@ -31,7 +31,7 @@ angular.module('openshiftConsole')
                 'Log out <span class="username"><%= userName %></span>',
               '</a>',
             '</li>'
-          ].join(''))({userName: user.fullName || user.metadata.name })
+          ].join(''))({userName: (user ? (user.fullName || user.metadata.name) : "") })
         }];
       }));
   });

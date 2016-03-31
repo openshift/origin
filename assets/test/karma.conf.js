@@ -57,6 +57,7 @@ module.exports = function(config) {
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',
       'test/spec/spec-helper.js',
+      'test/spec/fixtures/api-discovery.js',
       'test/spec/**/*.js'
     ],
 
