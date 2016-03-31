@@ -102,12 +102,12 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd
 
 	mapper, _ := f.Object()
 	for _, resourceString := range args {
-		resource, name, err := osutil.ResolveResource("clusterroles", resourceString, mapper)
+		resource, name, err := osutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if resource != "clusterroles" {
-			return fmt.Errorf("%s is not a valid resource type for this command", resource)
+		if resource != authorizationapi.Resource("clusterroles") {
+			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {
 			return fmt.Errorf("%s did not contain a name", resourceString)
