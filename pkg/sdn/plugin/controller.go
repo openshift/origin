@@ -223,15 +223,17 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	if err != nil {
 		return false, err
 	}
-	err = plugin.ovs.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
+	_ = plugin.ovs.DeletePort(VXLAN)
+	_, err = plugin.ovs.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
 	if err != nil {
 		return false, err
 	}
-	err = plugin.ovs.AddPort(TUN, 2, "type=internal")
+	_ = plugin.ovs.DeletePort(TUN)
+	_, err = plugin.ovs.AddPort(TUN, 2, "type=internal")
 	if err != nil {
 		return false, err
 	}
-	err = plugin.ovs.AddPort(VOVSBR, 3)
+	_, err = plugin.ovs.AddPort(VOVSBR, 3)
 	if err != nil {
 		return false, err
 	}

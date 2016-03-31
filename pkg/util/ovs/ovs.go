@@ -3,6 +3,7 @@ package ovs
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -41,8 +42,18 @@ func (ovsif *Interface) exec(cmd string, args ...string) (string, error) {
 	output, err := ovsif.execer.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		glog.V(5).Infof("Error executing %s: %s", cmd, string(output))
+		return "", err
 	}
-	return string(output), err
+
+	outStr := string(output)
+	if outStr != "" {
+		// If output is a single line, strip the trailing newline
+		nl := strings.Index(outStr, "\n")
+		if nl == len(outStr)-1 {
+			outStr = outStr[:nl]
+		}
+	}
+	return outStr, nil
 }
 
 // AddBridge creates the bridge associated with the interface, optionally setting
@@ -67,20 +78,40 @@ func (ovsif *Interface) DeleteBridge() error {
 
 // AddPort adds an interface to the bridge, requesting the indicated port
 // number, and optionally setting properties on it (as with "ovs-vsctl set
-// Interface ...").
-func (ovsif *Interface) AddPort(port string, ofport uint, properties ...string) error {
-	args := []string{"--if-exists", "del-port", port, "--", "add-port", ovsif.bridge, port, "--", "set", "Interface", port, fmt.Sprintf("ofport_request=%d", ofport)}
-	if len(properties) > 0 {
-		args = append(args, properties...)
+// Interface ..."). Returns the allocated port number (or an error).
+func (ovsif *Interface) AddPort(port string, ofportRequest int, properties ...string) (int, error) {
+	args := []string{"--may-exist", "add-port", ovsif.bridge, port}
+	if ofportRequest > 0 || len(properties) > 0 {
+		args = append(args, "--", "set", "Interface", port)
+		if ofportRequest > 0 {
+			args = append(args, fmt.Sprintf("ofport_request=%d", ofportRequest))
+		}
+		if len(properties) > 0 {
+			args = append(args, properties...)
+		}
 	}
 	_, err := ovsif.exec(OVS_VSCTL, args...)
-	return err
+	if err != nil {
+		return -1, err
+	}
+	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
+	if err != nil {
+		return -1, err
+	}
+	ofport, err := strconv.Atoi(ofportStr)
+	if err != nil {
+		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
+	}
+	if ofportRequest > 0 && ofportRequest != ofport {
+		return -1, fmt.Errorf("Allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
+	}
+	return ofport, nil
 }
 
-// DeletePort removes an interface from the bridge. (It is an error if the
-// interface is not currently a bridge port.)
+// DeletePort removes an interface from the bridge. (It is not an
+// error if the interface is not currently a bridge port.)
 func (ovsif *Interface) DeletePort(port string) error {
-	_, err := ovsif.exec(OVS_VSCTL, "del-port", port)
+	_, err := ovsif.exec(OVS_VSCTL, "--if-exists", "del-port", ovsif.bridge, port)
 	return err
 }
 

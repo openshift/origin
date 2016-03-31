@@ -132,3 +132,66 @@ func TestOVSMissing(t *testing.T) {
 		t.Fatalf("Got wrong error: %v", err)
 	}
 }
+
+func TestAddPort(t *testing.T) {
+	fexec := normalSetup()
+	ovsif, err := New(fexec, "br0")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "1\n", nil)
+	port, err := ovsif.AddPort("veth0", -1)
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if port != 1 {
+		t.Fatalf("Unexpected port number %d", port)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "5\n", nil)
+	port, err = ovsif.AddPort("veth0", 5)
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if port != 5 {
+		t.Fatalf("Unexpected port number %d", port)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 tun0 -- set Interface tun0 type=internal", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface tun0 ofport", "1\n", nil)
+	port, err = ovsif.AddPort("tun0", -1, "type=internal")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if port != 1 {
+		t.Fatalf("Unexpected port number %d", port)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 tun0 -- set Interface tun0 ofport_request=5 type=internal", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface tun0 ofport", "5\n", nil)
+	port, err = ovsif.AddPort("tun0", 5, "type=internal")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if port != 5 {
+		t.Fatalf("Unexpected port number %d", port)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "3\n", nil)
+	_, err = ovsif.AddPort("veth0", 5)
+	if err == nil {
+		t.Fatalf("Unexpectedly failed to get error")
+	}
+	if err.Error() != "Allocated ofport (3) did not match request (5)" {
+		t.Fatalf("Got wrong error: %v", err)
+	}
+	ensureTestResults(t, fexec)
+}
