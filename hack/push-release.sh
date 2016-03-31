@@ -49,6 +49,7 @@ images=(
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
   openshift/origin-f5-router
+  openshift/origin-egress-router
   openshift/origin-recycler
   openshift/origin-gitserver
   openshift/hello-openshift
