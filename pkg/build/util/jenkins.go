@@ -82,7 +82,7 @@ func (t *JenkinsPipelineTemplate) Instantiate() error {
 			err = t.kubeClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
 		}
 		if err != nil {
-			t.CreateErrors = append(t.CreateErrors, fmt.Errorf("creating Jenkins compotent %s/%s failed: %v", t.Kind, item.Name, err))
+			t.CreateErrors = append(t.CreateErrors, fmt.Errorf("creating Jenkins component %s/%s failed: %v", item.Kind, item.Name, err))
 			continue
 		}
 		counter++
