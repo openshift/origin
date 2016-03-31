@@ -64,7 +64,7 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "oc", "osc":
 		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
+	case "oadm", "oscadm":
 		cmd = admin.NewCommandAdmin(basename, basename, out, errout)
 	case "kubectl":
 		cmd = cli.NewCmdKubectl(basename, out)
@@ -157,11 +157,11 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
-	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
+	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oc adm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 
-	// these groups also live under `oadm groups {sync,prune}` and are here only for backwards compatibility
+	// these groups also live under `oc adm groups {sync,prune}` and are here only for backwards compatibility
 	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
 	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
 	return experimental

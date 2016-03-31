@@ -17,7 +17,7 @@ Some verbs support the `-f` flag, which accepts regular file path, URL or `-` fo
 the standard input. For most actions, both JSON and YAML file formats are
 supported.
 
-Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oc_by_example_content.adoc) documents.
+Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oc adm by example](./generated/oc_by_example_content.adoc) documents.
 
 ## Common Flags
 

@@ -69,7 +69,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	for _, changedClusterRoleBinding := range changedClusterRoleBindings {
 		actualClusterRole, err := d.ClusterRoleBindingsClient.ClusterRoleBindings().Get(changedClusterRoleBinding.Name)
 		if kerrs.IsNotFound(err) {
-			r.Error("CRBD1001", nil, fmt.Sprintf("clusterrolebinding/%s is missing.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to create the role binding.", changedClusterRoleBinding.Name))
+			r.Error("CRBD1001", nil, fmt.Sprintf("clusterrolebinding/%s is missing.\n\nUse the `oc adm policy reconcile-cluster-role-bindings` command to create the role binding.", changedClusterRoleBinding.Name))
 			continue
 		}
 		if err != nil {
@@ -80,10 +80,10 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 		switch {
 		case len(missingSubjects) > 0:
 			// Only a warning, because they can remove things like self-provisioner role from system:unauthenticated, and it's not an error
-			r.Warn("CRBD1003", nil, fmt.Sprintf("clusterrolebinding/%s is missing expected subjects.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to update the role binding to include expected subjects.", changedClusterRoleBinding.Name))
+			r.Warn("CRBD1003", nil, fmt.Sprintf("clusterrolebinding/%s is missing expected subjects.\n\nUse the `oc adm policy reconcile-cluster-role-bindings` command to update the role binding to include expected subjects.", changedClusterRoleBinding.Name))
 		case len(extraSubjects) > 0:
 			// Only info, because it is normal to use policy to grant cluster roles to users
-			r.Info("CRBD1004", fmt.Sprintf("clusterrolebinding/%s has more subjects than expected.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to update the role binding to remove extra subjects.", changedClusterRoleBinding.Name))
+			r.Info("CRBD1004", fmt.Sprintf("clusterrolebinding/%s has more subjects than expected.\n\nUse the `oc adm policy reconcile-cluster-role-bindings` command to update the role binding to remove extra subjects.", changedClusterRoleBinding.Name))
 		}
 
 		for _, missingSubject := range missingSubjects {

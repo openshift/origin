@@ -263,7 +263,7 @@ func newF5LTM(cfg f5LTMCfg) (*f5LTM, error) {
 		// https://github.com/kubernetes/kubernetes/issues/4789 "Fine-grained
 		// control of secret data in volume" is resolved.
 
-		// When the oadm command launches the F5 router, oadm copies the SSH private
+		// When the oc adm command launches the F5 router, oc adm copies the SSH private
 		// key to a Secret object and mounts a secrets volume containing the Secret
 		// object into the F5 router's container.  The ssh and scp commands require
 		// that the key file mode prohibit access from any user but the owner.

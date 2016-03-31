@@ -786,6 +786,6 @@ func validateServiceAccount(client *kclient.Client, ns string, serviceAccount st
 		}
 	}
 
-	errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+	errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oc adm policy add-scc-to-user %s -z %s"
 	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 }

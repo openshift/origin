@@ -6,7 +6,7 @@ This document provides information about how to *contribute* to the CLI. For usa
 
 == Getting started
 
-The OpenShift CLI is https://github.com/openshift/origin/releases[distributed as a single binary] that can act as a different tool depending on its name and/or symlinks. So if named as (or have a symlink created with the name) `oc` it will provide higher-level commands generally targeted for end-users; as `oadm` will support administrative tasks; and as `openshift` will expose the all-in-one OpenShift server and related functions.
+The OpenShift CLI is https://github.com/openshift/origin/releases[distributed as a single binary] that can act as a different tool depending on its name and/or symlinks. So if named as (or have a symlink created with the name) `oc` it will provide higher-level commands generally targeted for end-users; as `oc adm` will support administrative tasks; and as `openshift` will expose the all-in-one OpenShift server and related functions.
 
 == Contributing
 
@@ -21,7 +21,7 @@ Commands are organized in the package structure as:
 * https://github.com/openshift/origin/tree/master/pkg/cmd[pkg/cmd]
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/cli[pkg/cmd/cli] - `oc` or `openshift cli`, and `kubectl` commands.
-** https://github.com/openshift/origin/tree/master/pkg/cmd/admin[pkg/cmd/admin] - `oadm` or `openshift admin` command.
+** https://github.com/openshift/origin/tree/master/pkg/cmd/admin[pkg/cmd/admin] - `oc adm` or `openshift admin` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/experimental[pkg/cmd/experimental] - `openshift ex` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.

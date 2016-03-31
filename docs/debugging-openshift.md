@@ -85,7 +85,7 @@ Docker Registry
 
 Most of the v3 flows today assume you are running a docker registry pod.  You should ensure that this local registry is running:
 
-    $ oadm registry --dry-run
+    $ oc adm registry --dry-run
 
 If it's running, you should see this:
 
@@ -97,7 +97,7 @@ If it's not running, you will instead see:
 
 If it's not running, you can launch it via:
 
-    $ oadm registry
+    $ oc adm registry
 
 Insecure Docker Registry
 ------------------------

@@ -447,7 +447,7 @@ func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, ima
 }
 
 // Delete deletes the manifest with digest `dgst`. Note: Image resources
-// in OpenShift are deleted via 'oadm prune images'. This function deletes
+// in OpenShift are deleted via 'oc adm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
 func (r *repository) Delete(dgst digest.Digest) error {
 	ms, err := r.Repository.Manifests(r.ctx)
