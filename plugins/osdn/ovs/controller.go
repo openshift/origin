@@ -380,7 +380,7 @@ func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) {
 	}
 }
 
-func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service, netID uint) {
+func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service) {
 	if !plugin.multitenant {
 		return
 	}
