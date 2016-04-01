@@ -9,8 +9,9 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -22,37 +23,35 @@ import (
 type PluginHooks interface {
 	PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error
 	PluginStartNode(mtu uint) error
+
+	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
+
+	AddHostSubnetRules(subnet *osapi.HostSubnet)
+	DeleteHostSubnetRules(subnet *osapi.HostSubnet)
+
+	AddServiceRules(service *kapi.Service, netID uint)
+	DeleteServiceRules(service *kapi.Service, netID uint)
+
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
 
-type OvsController struct {
+type OsdnController struct {
 	pluginHooks     PluginHooks
 	Registry        *Registry
 	localIP         string
-	localSubnet     *api.Subnet
+	localSubnet     *osapi.HostSubnet
 	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
 	podNetworkReady chan struct{}
-	flowController  FlowController
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
-	services        map[string]api.Service
-}
-
-type FlowController interface {
-	Setup(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
-
-	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
-	DelOFRules(nodeIP, localIP string) error
-
-	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
-	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+	services        map[string]*kapi.Service
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OvsController) BaseInit(registry *Registry, flowController FlowController, pluginHooks PluginHooks, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, hostname string, selfIP string) error {
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -78,19 +77,18 @@ func (oc *OvsController) BaseInit(registry *Registry, flowController FlowControl
 
 	oc.pluginHooks = pluginHooks
 	oc.Registry = registry
-	oc.flowController = flowController
 	oc.localIP = selfIP
 	oc.HostName = hostname
 	oc.VNIDMap = make(map[string]uint)
 	oc.sig = make(chan struct{})
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
-	oc.services = make(map[string]api.Service)
+	oc.services = make(map[string]*kapi.Service)
 
 	return nil
 }
 
-func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
+func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
 	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
 	// This will ensure both the kube/multitenant scripts and master validations use the same name.
 	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
@@ -122,13 +120,13 @@ func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *n
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
 	for _, sub := range subnets {
-		subnetIP, _, err := net.ParseCIDR(sub.SubnetCIDR)
+		subnetIP, _, err := net.ParseCIDR(sub.Subnet)
 		if err != nil {
-			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.SubnetCIDR))
+			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
 			continue
 		}
 		if !clusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.SubnetCIDR, clusterNetwork.String()))
+			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, clusterNetwork.String()))
 		}
 	}
 
@@ -138,15 +136,15 @@ func (oc *OvsController) validateNetworkConfig(clusterNetwork, serviceNetwork *n
 		return err
 	}
 	for _, svc := range services {
-		if !serviceNetwork.Contains(net.ParseIP(svc.IP)) {
-			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.IP, serviceNetwork.String()))
+		if !serviceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
+			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, serviceNetwork.String()))
 		}
 	}
 
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OvsController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
+func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
 	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
@@ -159,7 +157,7 @@ func (oc *OvsController) isClusterNetworkChanged(clusterNetworkCIDR string, host
 	return false, nil
 }
 
-func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
 	hostBitsPerSubnet := int(clusterBitsPerSubnet)
 	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
@@ -187,7 +185,7 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	return nil
 }
 
-func (oc *OvsController) StartNode(mtu uint) error {
+func (oc *OsdnController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
 	clusterNetwork, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
@@ -216,15 +214,15 @@ func (oc *OvsController) StartNode(mtu uint) error {
 	return nil
 }
 
-func (oc *OvsController) GetLocalPods(namespace string) ([]api.Pod, error) {
+func (oc *OsdnController) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 	return oc.Registry.GetRunningPods(oc.HostName, namespace)
 }
 
-func (oc *OvsController) markPodNetworkReady() {
+func (oc *OsdnController) markPodNetworkReady() {
 	close(oc.podNetworkReady)
 }
 
-func (oc *OvsController) WaitForPodNetworkReady() error {
+func (oc *OsdnController) WaitForPodNetworkReady() error {
 	logInterval := 10 * time.Second
 	numIntervals := 12 // timeout: 2 mins
 
@@ -240,7 +238,7 @@ func (oc *OvsController) WaitForPodNetworkReady() error {
 	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }
 
-func (oc *OvsController) Stop() {
+func (oc *OsdnController) Stop() {
 	close(oc.sig)
 }
 
@@ -257,7 +255,7 @@ func waitForWatchReadiness(ready chan bool, resourceName string) {
 	return
 }
 
-type watchWatcher func(oc *OvsController, ready chan<- bool, start <-chan string)
+type watchWatcher func(oc *OsdnController, ready chan<- bool, start <-chan string)
 type watchGetter func(registry *Registry) (interface{}, string, error)
 
 // watchAndGetResource will fetch current items in etcd and watch for any new
@@ -275,7 +273,7 @@ type watchGetter func(registry *Registry) (interface{}, string, error)
 // 6. Initiator: Send version from step-5 to WatchProcess
 // 7. WatchProcess: Ignore any items with version <= start version got from initiator on step-6
 // 8. WatchProcess: Handle new changes
-func (oc *OvsController) watchAndGetResource(resourceName string, watcher watchWatcher, getter watchGetter) (interface{}, error) {
+func (oc *OsdnController) watchAndGetResource(resourceName string, watcher watchWatcher, getter watchGetter) (interface{}, error) {
 	ready := make(chan bool)
 	start := make(chan string)
 
@@ -314,4 +312,22 @@ func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
 	}
 
 	return nil
+}
+
+func GetNodeIP(node *kapi.Node) (string, error) {
+	if len(node.Status.Addresses) > 0 {
+		return node.Status.Addresses[0].Address, nil
+	} else {
+		return netutils.GetNodeIP(node.Name)
+	}
+}
+
+func GetPodContainerID(pod *kapi.Pod) string {
+	if len(pod.Status.ContainerStatuses) > 0 {
+		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
+		if parts := strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://"); len(parts) > 1 {
+			return parts[1]
+		}
+	}
+	return ""
 }
