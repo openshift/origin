@@ -312,8 +312,8 @@ type UserAgentMatchRule struct {
 	// 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
 	// 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
 	// 4. openshit kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
-	// 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
-	// 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 5. oc adm accessing kube resources: oc adm/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 6. oc adm accessing openshift resources: oc adm/v1.1.3 (linux/amd64) openshift/b348c2f
 	// 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
 	// 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
 	Regex string `json:"regex"`

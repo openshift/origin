@@ -16,8 +16,8 @@ const (
 The commands here allow administrators to validate the integrity of configuration files.
 `
 
-	validateDeprecationMessage = `and will be removed. Use "oadm diagnostics" to run configuration validations instead.
-See sub-command help text for specific instructions with "oadm diagnostics".`
+	validateDeprecationMessage = `and will be removed. Use "oc adm diagnostics" to run configuration validations instead.
+See sub-command help text for specific instructions with "oc adm diagnostics".`
 )
 
 func NewCommandValidate(name, fullName string, out io.Writer) *cobra.Command {
