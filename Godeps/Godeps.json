@@ -892,32 +892,32 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/cmd/admin/network",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/exec",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/ipcmd",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/netutils",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/ovs",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins/osdn",
 			"Comment": "v0.1-418-gfccee21",
-			"Rev": "72d9ab84f4bf650d1922174e6a90bd06018003b4"
+			"Rev": "b73d7cff1cea61e4611aa4116772f3dc2c9e4ceb"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",

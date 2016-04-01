@@ -8,10 +8,12 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.Registry.GetSubnets()
 	if err != nil {
@@ -19,8 +21,8 @@ func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnet
 		return err
 	}
 	for _, sub := range subnets {
-		subrange = append(subrange, sub.SubnetCIDR)
-		if err := oc.validateNode(sub.NodeIP); err != nil {
+		subrange = append(subrange, sub.Subnet)
+		if err := oc.validateNode(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
 			log.Errorf("Failed to validate HostSubnet %s: %v", err)
 		}
@@ -40,20 +42,27 @@ func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnet
 	}
 
 	// Make sure each node has a Subnet allocated
-	nodes := result.([]api.Node)
+	nodes := result.([]kapi.Node)
 	for _, node := range nodes {
-		err = oc.validateNode(node.IP)
+		nodeIP, err := GetNodeIP(&node)
+		if err != nil {
+			// Don't error out; just warn so the error can be corrected by admin
+			log.Errorf("Failed to get Node %s IP: %v", node.Name, err)
+			continue
+		}
+
+		err = oc.validateNode(nodeIP)
 		if err != nil {
 			// Don't error out; just warn so the error can be corrected by admin
 			log.Errorf("Failed to validate Node %s: %v", node.Name, err)
 			continue
 		}
-		_, err := oc.Registry.GetSubnet(node.Name)
+		_, err = oc.Registry.GetSubnet(node.Name)
 		if err == nil {
 			// subnet already exists, continue
 			continue
 		}
-		err = oc.addNode(node.Name, node.IP)
+		err = oc.addNode(node.Name, nodeIP)
 		if err != nil {
 			return err
 		}
@@ -61,7 +70,7 @@ func (oc *OvsController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnet
 	return nil
 }
 
-func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
+func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
 		log.Errorf("Error creating network for node %s.", nodeName)
@@ -72,11 +81,7 @@ func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
 		return fmt.Errorf("Invalid node IP")
 	}
 
-	subnet := &api.Subnet{
-		NodeIP:     nodeIP,
-		SubnetCIDR: sn.String(),
-	}
-	err = oc.Registry.CreateSubnet(nodeName, subnet)
+	err = oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
 	if err != nil {
 		log.Errorf("Error writing subnet to etcd for node %s: %v", nodeName, sn)
 		return err
@@ -84,22 +89,22 @@ func (oc *OvsController) addNode(nodeName string, nodeIP string) error {
 	return nil
 }
 
-func (oc *OvsController) deleteNode(nodeName string) error {
+func (oc *OsdnController) deleteNode(nodeName string) error {
 	sub, err := oc.Registry.GetSubnet(nodeName)
 	if err != nil {
 		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
 		return err
 	}
-	_, ipnet, err := net.ParseCIDR(sub.SubnetCIDR)
+	_, ipnet, err := net.ParseCIDR(sub.Subnet)
 	if err != nil {
-		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.SubnetCIDR)
+		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.Subnet)
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
 	return oc.Registry.DeleteSubnet(nodeName)
 }
 
-func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
+func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	err := oc.initSelfSubnet()
 	if err != nil {
 		return false, err
@@ -111,7 +116,7 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 		return false, err
 	}
-	networkChanged, err := oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetwork.String(), servicesNetwork.String(), mtu)
+	networkChanged, err := oc.pluginHooks.SetupSDN(oc.localSubnet.Subnet, clusterNetwork.String(), servicesNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
@@ -123,21 +128,23 @@ func (oc *OvsController) SubnetStartNode(mtu uint) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	subnets := result.([]api.Subnet)
+	subnets := result.([]osapi.HostSubnet)
 	for _, s := range subnets {
-		oc.flowController.AddOFRules(s.NodeIP, s.SubnetCIDR, oc.localIP)
+		if s.HostIP != oc.localIP {
+			oc.pluginHooks.AddHostSubnetRules(&s)
+		}
 	}
 
 	return networkChanged, nil
 }
 
-func (oc *OvsController) initSelfSubnet() error {
+func (oc *OsdnController) initSelfSubnet() error {
 	// timeout: 30 secs
 	retries := 60
 	retryInterval := 500 * time.Millisecond
 
 	var err error
-	var subnet *api.Subnet
+	var subnet *osapi.HostSubnet
 	// Try every retryInterval and bail-out if it exceeds max retries
 	for i := 0; i < retries; i++ {
 		// Get subnet for current node
@@ -152,7 +159,7 @@ func (oc *OvsController) initSelfSubnet() error {
 		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.HostName, err)
 	}
 
-	if err := oc.validateNode(subnet.NodeIP); err != nil {
+	if err := oc.validateNode(subnet.HostIP); err != nil {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
@@ -161,47 +168,47 @@ func (oc *OvsController) initSelfSubnet() error {
 }
 
 // Only run on the master
-func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
+func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	nodeEvent := make(chan *api.NodeEvent)
+	nodeEvent := make(chan *NodeEvent)
 	go oc.Registry.WatchNodes(nodeEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nodeEvent:
 			switch ev.Type {
-			case api.Added:
-				nodeErr := oc.validateNode(ev.Node.IP)
+			case Added:
+				nodeIP, nodeErr := GetNodeIP(ev.Node)
+				if nodeErr == nil {
+					nodeErr = oc.validateNode(nodeIP)
+				}
 
 				sub, err := oc.Registry.GetSubnet(ev.Node.Name)
 				if err != nil {
 					if nodeErr == nil {
 						// subnet does not exist already
-						oc.addNode(ev.Node.Name, ev.Node.IP)
+						oc.addNode(ev.Node.Name, nodeIP)
 					} else {
-						log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, ev.Node.IP, nodeErr)
+						log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
 					}
 				} else {
-					// Current node IP is obtained from event, ev.NodeIP to
-					// avoid cached/stale IP lookup by net.LookupIP()
-					if sub.NodeIP != ev.Node.IP {
+					if sub.HostIP != nodeIP {
 						err = oc.Registry.DeleteSubnet(ev.Node.Name)
 						if err != nil {
-							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.NodeIP)
+							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.HostIP)
 							continue
 						}
 						if nodeErr == nil {
-							sub.NodeIP = ev.Node.IP
-							err = oc.Registry.CreateSubnet(ev.Node.Name, sub)
+							err = oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
 							if err != nil {
-								log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.NodeIP)
+								log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.HostIP)
 								continue
 							}
 						} else {
-							log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, ev.Node.IP, nodeErr)
+							log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
 						}
 					}
 				}
-			case api.Deleted:
+			case Deleted:
 				oc.deleteNode(ev.Node.Name)
 			}
 		case <-oc.sig:
@@ -213,24 +220,25 @@ func watchNodes(oc *OvsController, ready chan<- bool, start <-chan string) {
 }
 
 // Only run on the nodes
-func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
+func watchSubnets(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	stop := make(chan bool)
-	clusterEvent := make(chan *api.SubnetEvent)
+	clusterEvent := make(chan *HostSubnetEvent)
 	go oc.Registry.WatchSubnets(clusterEvent, ready, start, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:
+			if ev.HostSubnet.HostIP == oc.localIP {
+				continue
+			}
 			switch ev.Type {
-			case api.Added:
-				if err := oc.validateNode(ev.Subnet.NodeIP); err != nil {
-					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.Subnet.NodeIP, err)
+			case Added:
+				if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
+					log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
 					continue
 				}
-				// add openflow rules
-				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetCIDR, oc.localIP)
-			case api.Deleted:
-				// delete openflow rules meant for the node
-				oc.flowController.DelOFRules(ev.Subnet.NodeIP, oc.localIP)
+				oc.pluginHooks.AddHostSubnetRules(ev.HostSubnet)
+			case Deleted:
+				oc.pluginHooks.DeleteHostSubnetRules(ev.HostSubnet)
 			}
 		case <-oc.sig:
 			stop <- true
@@ -239,7 +247,7 @@ func watchSubnets(oc *OvsController, ready chan<- bool, start <-chan string) {
 	}
 }
 
-func (oc *OvsController) validateNode(nodeIP string) error {
+func (oc *OsdnController) validateNode(nodeIP string) error {
 	clusterNet, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		return fmt.Errorf("Failed to get Cluster Network address: %v", err)
