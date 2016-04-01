@@ -241,11 +241,15 @@ func (o *NewAppOptions) Run() error {
 		return err
 	}
 
+	// if the user has set the "app" label explicitly on their objects in the template,
+	// we should not return a failure when we can't set it ourselves.
+	ignoreLabelFailure := false
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
 		config.Labels = map[string]string{"app": result.Name}
+		ignoreLabelFailure = true
 	}
 
-	if err := setLabels(config.Labels, result); err != nil {
+	if err := setLabels(config.Labels, result, ignoreLabelFailure); err != nil {
 		return err
 	}
 
@@ -518,10 +522,10 @@ func setAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 	return nil
 }
 
-func setLabels(labels map[string]string, result *newcmd.AppResult) error {
+func setLabels(labels map[string]string, result *newcmd.AppResult, ignoreFailure bool) error {
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)
-		if err != nil {
+		if err != nil && !ignoreFailure {
 			return err
 		}
 	}
