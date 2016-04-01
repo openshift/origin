@@ -33,6 +33,32 @@ var _ = Describe("[networking] network isolation", func() {
 		skipIfMultiTenant()
 		Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
 	})
+
+	// The test framework doesn't allow us to easily make use of the actual "default"
+	// namespace, so we test default namespace behavior by changing either f1's or
+	// f2's NetNamespace to have VNID 0 instead. But this only works under the
+	// multi-tenant plugin since the single-tenant one doesn't create NetNamespaces at
+	// all (and so there's not really any point in even running these tests anyway).
+	Specify("multi-tenant plugins should allow communication from default to non-default namespace on the same node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f2.Namespace)
+		Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow communication from default to non-default namespace on a different node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f2.Namespace)
+		Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow communication from non-default to default namespace on the same node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f1.Namespace)
+		Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow communication from non-default to default namespace on a different node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f1.Namespace)
+		Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
+	})
 })
 
 func checkPodIsolation(f1, f2 *e2e.Framework, numNodes int) error {

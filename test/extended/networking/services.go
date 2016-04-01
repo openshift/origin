@@ -41,6 +41,27 @@ var _ = Describe("[networking] services", func() {
 		err := checkServiceConnectivity(f1, f2, 2)
 		Expect(err).To(HaveOccurred())
 	})
+
+	Specify("multi-tenant plugins should allow connections to services in the default namespace from a pod in another namespaces on the same node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f1.Namespace)
+		Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow connections to services in the default namespace from a pod in another namespace on a different node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f1.Namespace)
+		Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow connections from pods in the default namespace to a service in another namespaces on the same node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f2.Namespace)
+		Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+	})
+	Specify("multi-tenant plugins should allow connections from pods in the default namespace to a service in another namespaces on a different node", func() {
+		skipIfSingleTenant()
+		makeNamespaceGlobal(f2.Namespace)
+		Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+	})
 })
 
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, numNodes int) error {
