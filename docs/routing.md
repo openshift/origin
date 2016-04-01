@@ -51,8 +51,7 @@ To create this service account:
     If running in https mode, ensure oc can authenticate to the master
     [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
-    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ oadm router --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
+    [vagrant@openshiftdev origin]$ oadm router --service-account=router
     [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
@@ -61,7 +60,7 @@ To create this service account:
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ oadm router --credentials="${KUBECONFIG}" --service-account=router
+    [vagrant@openshift-master ~]$ oadm router --service-account=router
 
 
 
@@ -73,9 +72,8 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host ports 80 and 443 since this is what the router uses for traffic
 
-To install the router pod you use the `oadm router` command line, passing the flag `--credentials=<kubeconfig_file>`.
-The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
-environments you can use the `${CONFIG_DIR}/master/openshift-router.kubeconfig` file. Once you run this command you can check the configuration
+To install the router pod you use the `oadm router` command line.
+Once you run this command you can check the configuration
 of the router by running `oc get dc router` to check the deployment status.
 
 `oadm router` offers other options for deploying routers - run `oadm router --help` for more details.

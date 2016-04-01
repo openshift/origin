@@ -111,12 +111,14 @@ const containerNamePrefix = "openshift"
 // containerName creates names for Docker containers launched by a build. It is
 // meant to resemble Kubernetes' pkg/kubelet/dockertools.BuildDockerName.
 func containerName(strategyName, buildName, namespace, containerPurpose string) string {
-	return fmt.Sprintf("%s_%s-build_%s_%s_%s",
+	uid := fmt.Sprintf("%08x", rand.Uint32())
+	return fmt.Sprintf("%s_%s-build_%s_%s_%s_%s",
 		containerNamePrefix,
 		strategyName,
 		buildName,
 		namespace,
-		containerPurpose)
+		containerPurpose,
+		uid)
 }
 
 // execPostCommitHook uses the client to execute a command based on the

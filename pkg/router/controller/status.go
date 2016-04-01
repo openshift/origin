@@ -95,12 +95,18 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 }
 
 // setIngressCondition records the condition on the ingress, returning true if the ingress was changed and
-// false if no modification was made.
+// false if no modification was made (or the only modification would have been to update a time).
 func setIngressCondition(ingress *routeapi.RouteIngress, condition routeapi.RouteIngressCondition) bool {
-	for _, existing := range ingress.Conditions {
+	for i, existing := range ingress.Conditions {
 		// ensures that the comparison is based on the actual value, not the time
 		existing.LastTransitionTime = condition.LastTransitionTime
 		if existing == condition {
+			// This will always be the case if we're receiving an update on the host
+			// value (or the like), since findOrCreateIngress sets that for us.  We
+			// still need to set the last-touched time so that others can tell we've
+			// modified this Ingress value
+			now := nowFn()
+			ingress.Conditions[i].LastTransitionTime = &now
 			return false
 		}
 	}
@@ -131,9 +137,19 @@ func recordIngressConditionFailure(route *routeapi.Route, name string, condition
 		if existing.RouterName != name {
 			continue
 		}
-		existing.Host = route.Spec.Host
+
+		// we've changed things if we either replaced the host value...
+		changed := false
+		if existing.Host != route.Spec.Host {
+			existing.Host = route.Spec.Host
+			changed = true
+		}
+		// ...or replaced the entire condition list
+		// (NB: order matters in this OR -- short circuiting)
+		changed = setIngressCondition(existing, condition) || changed
+
 		lastTouch := ingressConditionTouched(existing)
-		return existing, setIngressCondition(existing, condition), lastTouch
+		return existing, changed, lastTouch
 	}
 	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name, Host: route.Spec.Host})
 	ingress := &route.Status.Ingress[len(route.Status.Ingress)-1]
@@ -148,16 +164,26 @@ func (a *StatusAdmitter) hasIngressBeenTouched(route *routeapi.Route, lastTouch 
 		return false
 	}
 	old, ok := a.expected.Get(route.UID)
+	if ok && old.(time.Time).Before(nowFn().Add(-a.contentionInterval)) {
+		// throw out cache entries from before the contention interval, in case this is no longer valid
+		// (e.g. the previous updater no longer exists due to scale down)
+		glog.V(4).Infof("expired cached last touch of %s", old.(time.Time))
+		a.expected.Remove(route.UID)
+		ok = false
+	}
+
 	if !ok || old.(time.Time).Equal(lastTouch.Time) {
+		glog.V(4).Infof("missing or equal cached last touch")
 		return false
 	}
+	glog.V(4).Infof("different cached last touch of %s", old.(time.Time))
 	return true
 }
 
 // recordIngressTouch tracks whether the ingress record updated succeeded and returns true if the admitter can
 // continue. Conflict errors are treated as no error, but indicate the touch was not successful and the caller
 // should retry.
-func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, err error) (bool, error) {
+func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unversioned.Time, oldTouch *unversioned.Time, err error) (bool, error) {
 	switch {
 	case err == nil:
 		if touch != nil {
@@ -167,12 +193,15 @@ func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unvers
 	// if the router can't write status updates, allow the route to go through
 	case errors.IsForbidden(err):
 		glog.Errorf("Unable to write router status - please ensure you reconcile your system policy or grant this router access to update route status: %v", err)
-		if touch != nil {
-			a.expected.Add(route.UID, touch.Time)
+		if oldTouch != nil {
+			// record oldTouch so that if the problem gets rectified in the future,
+			// we can proceed as normal
+			a.expected.Add(route.UID, oldTouch.Time)
 		}
 		return true, nil
 	case errors.IsConflict(err):
-		a.expected.Add(route.UID, time.Time{})
+		// just follow the normal process, and retry when we receive the update notification due to
+		// the other entity updating the route.
 		return false, nil
 	}
 	return false, err
@@ -183,17 +212,35 @@ func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unvers
 // not be admitted due to a failure, or false if the route can't be admitted at this time.
 func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name string) (bool, error) {
 	ingress, updated := findOrCreateIngress(route, name)
+
+	// keep lastTouch around
+	lastTouch := ingressConditionTouched(ingress)
+
 	if !updated {
 		for i := range ingress.Conditions {
 			cond := &ingress.Conditions[i]
 			if cond.Type == routeapi.RouteAdmitted && cond.Status == kapi.ConditionTrue {
+				// reduce extra round trips during the contention period by remembering this
+				// time, so we don't react later
+				if _, ok := a.expected.Get(route.UID); !ok {
+					a.expected.Add(route.UID, lastTouch.Time)
+				}
 				glog.V(4).Infof("admit: route already admitted")
 				return true, nil
 			}
 		}
 	}
 
-	if a.hasIngressBeenTouched(route, ingressConditionTouched(ingress)) {
+	// this works by keeping a cache of what time we last touched the route.
+	// If the recorded last-touch time matches ours, then we were the ones to do the
+	// last update, and can continue forth.  Additionally, if we have no entry in our
+	// cache, we continue forward anyways.  Since replicas from a new deployment will
+	// have no entry, they will update the last-touch time, and therefore take "ownership"
+	// of updating the route.  In the case of a new route being created during a rolling update,
+	// there will be a race to determine whether the old or new deployment gets to determine,
+	// but this will be corrected on the next event after contentionInterval time.
+
+	if a.hasIngressBeenTouched(route, lastTouch) {
 		glog.V(4).Infof("admit: observed a route update from someone else: route %s/%s has been updated to an inconsistent value, doing nothing", route.Namespace, route.Name)
 		return true, nil
 	}
@@ -204,7 +251,7 @@ func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.
 	})
 	glog.V(4).Infof("admit: admitting route by updating status: %s (%t): %s", route.Name, updated, route.Spec.Host)
 	_, err := oc.Routes(route.Namespace).UpdateStatus(route)
-	return a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
+	return a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, lastTouch, err)
 }
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
@@ -226,7 +273,7 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 	}
 
 	_, err := a.client.Routes(route.Namespace).UpdateStatus(route)
-	_, err = a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, err)
+	_, err = a.recordIngressTouch(route, ingress.Conditions[0].LastTransitionTime, lastTouch, err)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to write route rejection to the status: %v", err))
 	}

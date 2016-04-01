@@ -509,13 +509,13 @@ Install the integrated Docker registry
   $ oadm registry --dry-run
 
   # See what the registry will look like if created
-  $ oadm registry -o json --credentials=/path/to/registry-user.kubeconfig
+  $ oadm registry -o yaml
 
-  # Create a registry if it does not exist with two replicas
-  $ oadm registry --replicas=2 --credentials=/path/to/registry-user.kubeconfig
+  # Create a registry with two replicas if it does not exist
+  $ oadm registry --replicas=2
 
-  # Use a different registry image and see the registry configuration
-  $ oadm registry -o yaml --images=myrepo/docker-registry:mytag --credentials=/path/to/registry-user.kubeconfig
+  # Use a different registry image
+  $ oadm registry --images=myrepo/docker-registry:mytag
 ----
 ====
 
@@ -531,16 +531,16 @@ Install a router
   $ oadm router --dry-run
 
   # See what the router would look like if created
-  $ oadm router -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
+  $ oadm router -o yaml
 
-  # Create a router if it does not exist
-  $ oadm router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
+  # Create a router with two replicas if it does not exist
+  $ oadm router router-west --replicas=2
 
-  # Use a different router image and see the router configuration
-  $ oadm router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+  # Use a different router image
+  $ oadm router region-west --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ oadm router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  $ oadm router router-west --stats-port=0
   
 ----
 ====

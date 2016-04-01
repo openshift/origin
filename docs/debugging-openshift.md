@@ -85,7 +85,7 @@ Docker Registry
 
 Most of the v3 flows today assume you are running a docker registry pod.  You should ensure that this local registry is running:
 
-    $ openshift admin registry
+    $ oadm registry --dry-run
 
 If it's running, you should see this:
 
@@ -93,11 +93,11 @@ If it's running, you should see this:
 
 If it's not running, you will instead see:
 
-    F0429 09:22:54.492990   25259 registry.go:154] Docker-registry "docker-registry" does not exist (no service). Pass --create to install.
+    error: docker-registry "docker-registry" does not exist (no service).
 
 If it's not running, you can launch it via:
 
-    $ oadm registry --create --credentials="${KUBECONFIG}"
+    $ oadm registry
 
 Insecure Docker Registry
 ------------------------

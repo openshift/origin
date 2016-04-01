@@ -46,9 +46,9 @@ func GetDisplayFilename(filename string) string {
 
 // ResolveResource returns the resource type and name of the resourceString.
 // If the resource string has no specified type, defaultResource will be returned.
-func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMapper) (string, string, error) {
+func ResolveResource(defaultResource unversioned.GroupResource, resourceString string, mapper meta.RESTMapper) (unversioned.GroupResource, string, error) {
 	if mapper == nil {
-		return "", "", errors.New("mapper cannot be nil")
+		return unversioned.GroupResource{}, "", errors.New("mapper cannot be nil")
 	}
 
 	var name string
@@ -57,32 +57,27 @@ func ResolveResource(defaultResource, resourceString string, mapper meta.RESTMap
 	case 1:
 		name = parts[0]
 	case 2:
-		partialResource := unversioned.GroupVersionResource{Resource: strings.ToLower(parts[0])}
-		gvrs, err := mapper.ResourcesFor(partialResource)
+		name = parts[1]
+
+		// Allow specifying the group the same way kubectl does, as "resource.group.name"
+		groupResource := unversioned.ParseGroupResource(parts[0])
+		// normalize resource case
+		groupResource.Resource = strings.ToLower(groupResource.Resource)
+
+		gvr, err := mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {
-			return "", "", err
+			return unversioned.GroupResource{}, "", err
 		}
-		if len(gvrs) == 0 {
-			return gvrs[0].Resource, parts[1], nil
-		}
-
-		groupResource := gvrs[0].GroupResource()
-		for _, gvr := range gvrs[1:] {
-			if groupResource != gvr.GroupResource() {
-				return "", "", &meta.AmbiguousResourceError{PartialResource: partialResource, MatchingResources: gvrs}
-			}
-		}
-
-		return gvrs[0].Resource, parts[1], nil
+		return gvr.GroupResource(), name, nil
 	default:
-		return "", "", fmt.Errorf("invalid resource format: %s", resourceString)
+		return unversioned.GroupResource{}, "", fmt.Errorf("invalid resource format: %s", resourceString)
 	}
 
 	return defaultResource, name, nil
 }
 
-// ConvertItemsForDisplay returns a new list that contains parallel elements that have been converted to the most preferred external version
-func ConvertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversioned.GroupVersion) ([]runtime.Object, error) {
+// convertItemsForDisplay returns a new list that contains parallel elements that have been converted to the most preferred external version
+func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversioned.GroupVersion) ([]runtime.Object, error) {
 	ret := []runtime.Object{}
 
 	for i := range objs {
@@ -126,13 +121,35 @@ func ConvertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 	return ret, nil
 }
 
-// ConvertItemsForDisplayFromDefaultCommand returns a new list that contains parallel elements that have been converted to the most preferred external version
-func ConvertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
-	requestedOutputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
-	requestedOutputVersion, err := unversioned.ParseGroupVersion(requestedOutputVersionString)
+// convertItemsForDisplayFromDefaultCommand returns a new list that contains parallel elements that have been converted to the most preferred external version
+// TODO: move this function into the core factory PrintObjects method
+// TODO: print-objects should have preferred output versions
+func convertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
+	requested := kcmdutil.GetFlagString(cmd, "output-version")
+	version, err := unversioned.ParseGroupVersion(requested)
 	if err != nil {
 		return nil, err
 	}
+	return convertItemsForDisplay(objs, version)
+}
 
-	return ConvertItemsForDisplay(objs, requestedOutputVersion)
+// VersionedPrintObject handles printing an object in the appropriate version by looking at 'output-version'
+// on the command
+func VersionedPrintObject(fn func(*cobra.Command, runtime.Object, io.Writer) error, c *cobra.Command, out io.Writer) func(runtime.Object) error {
+	return func(obj runtime.Object) error {
+		// TODO: fold into the core printer functionality (preferred output version)
+		if list, ok := obj.(*kapi.List); ok {
+			var err error
+			if list.Items, err = convertItemsForDisplayFromDefaultCommand(c, list.Items); err != nil {
+				return err
+			}
+		} else {
+			result, err := convertItemsForDisplayFromDefaultCommand(c, []runtime.Object{obj})
+			if err != nil {
+				return err
+			}
+			obj = result[0]
+		}
+		return fn(c, obj, out)
+	}
 }

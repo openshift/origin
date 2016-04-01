@@ -13,6 +13,7 @@ ExecStart=/usr/bin/docker run --restart=no --rm --privileged --net=host --pid=ho
 ExecStartPost=/usr/bin/sleep 10
 ExecStop=/usr/bin/docker stop origin-master
 Restart=always
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

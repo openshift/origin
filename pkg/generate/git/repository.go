@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"unicode"
 
 	"github.com/golang/glog"
@@ -128,6 +129,9 @@ var (
 func (r *repository) GetOriginURL(location string) (string, bool, error) {
 	text, _, err := r.git(nil, location, "config", "--get-regexp", "^remote\\..*\\.url$")
 	if err != nil {
+		if IsExitCode(err, 1) {
+			return "", false, nil
+		}
 		return "", false, err
 	}
 
@@ -267,7 +271,6 @@ func (r *repository) GetInfo(location string) (*SourceInfo, []error) {
 		return strings.TrimSpace(stdout)
 	}
 	info := &SourceInfo{}
-	info.Location = git("config", "--get", "remote.origin.url")
 	info.Ref = git("rev-parse", "--abbrev-ref", "HEAD")
 	info.CommitID = git("rev-parse", "--verify", "HEAD")
 	info.AuthorName = git("--no-pager", "show", "-s", "--format=%an", "HEAD")
@@ -276,6 +279,11 @@ func (r *repository) GetInfo(location string) (*SourceInfo, []error) {
 	info.CommitterEmail = git("--no-pager", "show", "-s", "--format=%ce", "HEAD")
 	info.Date = git("--no-pager", "show", "-s", "--format=%ad", "HEAD")
 	info.Message = git("--no-pager", "show", "-s", "--format=%<(80,trunc)%s", "HEAD")
+
+	// it is not required for a Git repository to have a remote "origin" defined
+	if out, _, err := r.git(nil, location, "config", "--get", "remote.origin.url"); err == nil {
+		info.Location = out
+	}
 
 	return info, errors
 }
@@ -341,4 +349,17 @@ func (e *GitError) Error() string {
 		return e.Stderr
 	}
 	return e.Err.Error()
+}
+
+func IsExitCode(err error, exitCode int) bool {
+	switch t := err.(type) {
+	case *GitError:
+		return IsExitCode(t.Err, exitCode)
+	case *exec.ExitError:
+		if ws, ok := t.Sys().(syscall.WaitStatus); ok {
+			return ws.ExitStatus() == exitCode
+		}
+		return false
+	}
+	return false
 }

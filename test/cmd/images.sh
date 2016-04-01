@@ -32,7 +32,7 @@ os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image-strea
 # verify that creating a registry fills out .status.dockerImageRepository
 if os::cmd::expect_success_and_not_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" '.'; then
   # create the registry
-  os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}' -n default"
+  os::cmd::expect_success "oadm registry --images='${USE_IMAGES}' -n default"
   # make sure stream.status.dockerImageRepository IS set
   os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
 fi

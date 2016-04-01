@@ -94,8 +94,9 @@ func TestRandomBuildTagNoDupes(t *testing.T) {
 }
 
 func TestContainerName(t *testing.T) {
+	rand.Seed(0)
 	got := containerName("test-strategy", "my-build", "ns", "hook")
-	want := "openshift_test-strategy-build_my-build_ns_hook"
+	want := "openshift_test-strategy-build_my-build_ns_hook_f1f85ff5"
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}

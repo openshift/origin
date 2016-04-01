@@ -757,6 +757,22 @@ func TestDeletingLayerPruner(t *testing.T) {
 	}
 }
 
+func TestDeletingNotFoundLayerPruner(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	var actions []string
+	client := fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+		actions = append(actions, req.Method+":"+req.URL.String())
+		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
+	})
+	layerPruner := NewDeletingLayerPruner()
+	layerPruner.PruneLayer(client, "registry1", "repo", "layer1")
+
+	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1"}) {
+		t.Errorf("Unexpected actions %v", actions)
+	}
+}
+
 func TestRegistryPruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
