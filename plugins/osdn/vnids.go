@@ -248,14 +248,10 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 	for {
 		select {
 		case ev := <-netNsEvent:
-			oldNetID, found := oc.VNIDMap[ev.NetNamespace.NetName]
-			if !found {
-				log.Errorf("Error fetching Net ID for namespace: %s, skipped netNsEvent: %v", ev.NetNamespace.NetName, ev)
-			}
 			switch ev.Type {
 			case Added:
 				// Skip this event if the old and new network ids are same
-				if oldNetID == ev.NetNamespace.NetID {
+				if oldNetID, ok := oc.VNIDMap[ev.NetNamespace.NetName]; ok && (oldNetID == ev.NetNamespace.NetID) {
 					continue
 				}
 				oc.VNIDMap[ev.NetNamespace.Name] = ev.NetNamespace.NetID
