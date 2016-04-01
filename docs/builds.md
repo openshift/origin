@@ -29,7 +29,7 @@ Company Y wants to leverage OpenShift to build Docker images, but their Devops S
 
 ## Build Strategies
 
-The OpenShift build system provides extensible support for build strategies based on selectable types specified in the build API. By default, two strategies are supported: Docker builds, and [Source-To-Images (sti)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
+The OpenShift build system provides extensible support for build strategies based on selectable types specified in the build API. By default, two strategies are supported: Docker builds, and [Source-To-Images (s2i)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
 
 ### Docker Builds
 

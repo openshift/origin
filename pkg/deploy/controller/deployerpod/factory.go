@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
@@ -59,6 +60,9 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(podLW, &kapi.Pod{}, podQueue, 2*time.Minute).Run()
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+
 	podController := &DeployerPodController{
 		store:   deploymentStore,
 		client:  factory.Client,
@@ -66,6 +70,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
+		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployerpod-controller"}),
 	}
 
 	return &controller.RetryController{

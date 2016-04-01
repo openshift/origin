@@ -875,6 +875,10 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 		return fmt.Sprintf("%s#%s", source.Git.URI, source.Git.Ref), true
 	case source.Dockerfile != nil:
 		return "Dockerfile", true
+	case source.Binary != nil:
+		return "uploaded code", true
+	case len(source.Images) > 0:
+		return "contents in other images", true
 	}
 	return "", false
 }

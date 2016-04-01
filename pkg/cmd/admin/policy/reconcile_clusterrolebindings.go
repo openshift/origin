@@ -15,7 +15,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -119,12 +119,12 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *cl
 
 	mapper, _ := f.Object()
 	for _, resourceString := range args {
-		resource, name, err := ocmdutil.ResolveResource("clusterroles", resourceString, mapper)
+		resource, name, err := cmdutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if resource != "clusterroles" {
-			return fmt.Errorf("%s is not a valid resource type for this command", resource)
+		if resource != authorizationapi.Resource("clusterroles") {
+			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {
 			return fmt.Errorf("%s did not contain a name", resourceString)
@@ -162,12 +162,8 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		for _, item := range changedClusterRoleBindings {
 			list.Items = append(list.Items, item)
 		}
-		list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-		if err != nil {
-			return err
-		}
-
-		if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, o.Out)
+		if err := fn(list); err != nil {
 			return err
 		}
 	}

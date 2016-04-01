@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -93,19 +94,19 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 	o.c, o.t = oc, oc
 
-	resource := ""
+	resource := unversioned.GroupResource{}
 	mapper, _ := f.Object()
-	resource, o.name, err = osutil.ResolveResource("imagestreamtags", args[0], mapper)
+	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err
 	}
 
 	switch resource {
-	case "imagestreamtags":
+	case imageapi.Resource("imagestreamtags"):
 		o.name = imageapi.NormalizeImageStreamTag(o.name)
 		glog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
 	default:
-		return fmt.Errorf("invalid resource provided: %s", resource)
+		return fmt.Errorf("invalid resource provided: %v", resource)
 	}
 
 	// Setup namespace

@@ -256,7 +256,7 @@ var DefaultFormRenderer = grantTemplateRenderer{}
 type grantTemplateRenderer struct{}
 
 func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
+	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := grantTemplate.Execute(w, form); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render grant template: %v", err))

@@ -16,7 +16,6 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type FakeClientConfig struct {
@@ -51,14 +50,23 @@ func TestStartBuildWebHook(t *testing.T) {
 	defer server.Close()
 
 	cfg := &FakeClientConfig{}
-	f := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "", nil); err != nil {
+	o := &StartBuildOptions{
+		Out:          buf,
+		ClientConfig: cfg,
+		FromWebhook:  server.URL + "/webhook",
+	}
+	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
 	}
 	<-invoked
 
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "unknownpath", nil); err == nil {
+	o = &StartBuildOptions{
+		Out:            buf,
+		FromWebhook:    server.URL + "/webhook",
+		GitPostReceive: "unknownpath",
+	}
+	if err := o.Run(); err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
@@ -75,9 +83,13 @@ func TestStartBuildWebHookHTTPS(t *testing.T) {
 	cfg := &FakeClientConfig{
 		Err: testErr,
 	}
-	f := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "", nil); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+	o := &StartBuildOptions{
+		Out:          buf,
+		ClientConfig: cfg,
+		FromWebhook:  server.URL + "/webhook",
+	}
+	if err := o.Run(); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
@@ -105,9 +117,14 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	cfg := &FakeClientConfig{
 		Err: testErr,
 	}
-	factory := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(factory, buf, server.URL+"/webhook", "", f.Name(), nil); err != nil {
+	o := &StartBuildOptions{
+		Out:            buf,
+		ClientConfig:   cfg,
+		FromWebhook:    server.URL + "/webhook",
+		GitPostReceive: f.Name(),
+	}
+	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
