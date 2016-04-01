@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b07ea74bb0a549373f10c6fa02dc81b4f63c980e
+%global commit e4fcf7d3a7eda2903cdbccc7cae25ed3bf058574
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.8-52-gb07ea74 -X github.com/openshift/origin/pkg/version.commitFromGit b07ea74 -X k8s.io/kubernetes/pkg/version.gitCommit b07ea74 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.9-52-ge4fcf7d -X github.com/openshift/origin/pkg/version.commitFromGit e4fcf7d -X k8s.io/kubernetes/pkg/version.gitCommit e4fcf7d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.9
+Version:        3.2.0.10
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,41 @@ fi
 
 
 %changelog
+* Fri Apr 01 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.10
+- Allow multiple routers to update route status (sross@redhat.com)
+- change default volume size (gmontero@redhat.com)
+- Bug 1322587 - NotFound error (404) when deleting layers is logged but we'll
+  be continuing the execution. (maszulik@redhat.com)
+- Separate out new-app code for reuse (ccoleman@redhat.com)
+- Refactor new app and new build to use options struct (ccoleman@redhat.com)
+- use restart sec to avoid default rate limit (pweil@redhat.com)
+- Refactor start-build to use options style (ccoleman@redhat.com)
+- Tolerate local Git repositories without an origin set (ccoleman@redhat.com)
+- Add unique suffix to build post-hook containers (rhcarvalho@gmail.com)
+- The router command should keep support for hostPort (ccoleman@redhat.com)
+- UPSTREAM: 23586: don't sync deployment when pod selector is empty
+  (jliggitt@redhat.com)
+- UPSTREAM: 23586: validate that daemonsets don't have empty selectors on
+  creation (jliggitt@redhat.com)
+- no commit id in img name and add openshift org to image name for openshift-
+  pipeline plugin extended test (gmontero@redhat.com)
+- Set service account correctly in oadm registry, deprecate --credentials
+  (jliggitt@redhat.com)
+- Add tests for multiple IDPs (sgallagh@redhat.com)
+- Encode provider name when redirecting to login page (jliggitt@redhat.com)
+- Allow multiple web login methods (sgallagh@redhat.com)
+- allow pvc by default (pweil@redhat.com)
+- UPSTREAM: 23007: Kubectl shouldn't print throttling debug output
+  (jliggitt@redhat.com)
+- Resolve api groups in resolveresource (jliggitt@redhat.com)
+- Improve provider selection page (jliggitt@redhat.com)
+- fix a forgotten modification : 'sti->s2i' (qilin.wang@huawei.com)
+- sort volumes for reconciliation (pweil@redhat.com)
+- Set charset with content type (jliggitt@redhat.com)
+- Bug 1318920: emit events for failed cancellations (mkargaki@redhat.com)
+- UPSTREAM: 22525: Add e2e for remaining quota resources (decarr@redhat.com)
+- remove test file cruft (skuznets@redhat.com)
+
 * Wed Mar 30 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.9
 - Fixed string formatting for glog.Infof in image prunning
   (maszulik@redhat.com)
