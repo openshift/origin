@@ -214,7 +214,7 @@ backend be_edge_http_{{$cfgIdx}}
   {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.ID}}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}}
                 {{ end }}
             {{ end }}
 
@@ -236,7 +236,7 @@ backend be_secure_{{$cfgIdx}}
   timeout check 5000ms
   cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}}
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
