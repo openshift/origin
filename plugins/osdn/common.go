@@ -30,7 +30,7 @@ type PluginHooks interface {
 	DeleteHostSubnetRules(subnet *osapi.HostSubnet)
 
 	AddServiceRules(service *kapi.Service, netID uint)
-	DeleteServiceRules(service *kapi.Service, netID uint)
+	DeleteServiceRules(service *kapi.Service)
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
