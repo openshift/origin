@@ -148,9 +148,29 @@ angular.module('openshiftConsole')
               }
             };
 
+            var fillHeight = function(animate) {
+              var content = $('.log-view-output');
+              var contentTop = content.offset().top;
+              if (contentTop < 0) {
+                // Content top is off the page already.
+                return;
+              }
+
+              var fill = Math.floor($(window).height() - contentTop);
+              if (!$scope.chromeless) {
+                // Add some bottom margin if not chromeless.
+                fill = fill - 35;
+              }
+              if (animate) {
+                content.animate({ 'min-height': fill +'px' }, 'fast');
+              } else {
+                content.css('min-height', fill + 'px');
+              }
+            };
 
             // roll up & debounce the various fns to call on resize
             var onResize = _.debounce(function() {
+              fillHeight(true);
               // update scroll handlers
               detectScrollableNode();
               attachScrollEvents();
@@ -159,7 +179,6 @@ angular.module('openshiftConsole')
               // toggle off the follow behavior if the user resizes the window
               onScroll();
             }, 100);
-
 
             $win.on('resize', onResize);
 
@@ -259,6 +278,8 @@ angular.module('openshiftConsole')
                   $scope.empty = false;
                   if($scope.state !== 'logs') {
                     $scope.state = 'logs';
+                    // setTimeout so that the log content is visible to correctly calculate fill height.
+                    setTimeout(fillHeight);
                   }
                 });
 

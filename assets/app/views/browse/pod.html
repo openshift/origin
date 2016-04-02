@@ -81,20 +81,6 @@
                   <uib-tab active="selectedTab.logs">
                     <uib-tab-heading>Logs</uib-tab-heading>
 
-                    <label for="selectLogContainer">Container:</label>
-
-                    <span ng-if="pod.spec.containers.length === 1">
-                      {{pod.spec.containers[0].name}}
-                    </span>
-
-                    <select
-                        id="selectLogContainer"
-                        ng-if="pod.spec.containers.length > 1"
-                        ng-model="logOptions.container"
-                        ng-options="container.name as container.name for container in pod.spec.containers"
-                        ng-init="logOptions.container = pod.spec.containers[0].name">
-                    </select>
-
                     <log-viewer
                       ng-if="selectedTab.logs"
                       follow-affix-top="390"
@@ -106,22 +92,29 @@
                       empty="logEmpty"
                       run="logCanRun">
 
-                      <div row mobile="column" tablet="column">
-                        <div class="nowrap">
-                          Container status:
-                          <status-icon status="containerStateReason || containerStatusKey"></status-icon>
-                          <span class="space-after">{{containerStateReason || containerStatusKey | sentenceCase}}</span>
-                        </div>
-                        <div ng-if="containerStartTime && !logEmpty">
-                          &mdash;
-                          <span ng-if="lasStatusKey">
-                            Last {{lasStatusKey}} log
-                          </span>
-                          <span ng-if="(!lasStatusKey)">Log</span>
-                            from {{containerStartTime  | date : 'short'}}
-                          <span ng-if="containerEndTime">to {{containerEndTime  | date : 'short'}}</span>
-                        </div>
-                      </div>
+                      <label for="selectLogContainer">Container:</label>
+
+                      <span ng-if="pod.spec.containers.length === 1">
+                        {{pod.spec.containers[0].name}}
+                      </span>
+
+                      <select
+                          id="selectLogContainer"
+                          ng-if="pod.spec.containers.length > 1"
+                          ng-model="logOptions.container"
+                          ng-options="container.name as container.name for container in pod.spec.containers"
+                          ng-init="logOptions.container = pod.spec.containers[0].name">
+                      </select>
+
+                      <span ng-if="containerStateReason || containerStatusKey">
+                        <span class="dash">&mdash;</span>
+                        <status-icon status="containerStateReason || (containerStatusKey | capitalize)"></status-icon>
+                        <span>{{containerStateReason || containerStatusKey | sentenceCase}}</span>
+                      </span>
+
+                      <span ng-if="containerStartTime && !logEmpty">
+                        <span class="log-timestamps">Log from {{containerStartTime  | date : 'short'}} <span ng-if="containerEndTime">to {{containerEndTime  | date : 'short'}}</span></span>
+                      </span>
 
                     </log-viewer>
                   </uib-tab>

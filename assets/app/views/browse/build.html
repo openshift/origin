@@ -107,19 +107,15 @@
                         empty="logEmpty"
                         run="logCanRun">
 
-                        <div row cross-axis="center">
-                          <div>
-                            Build status:
-                            <status-icon status="build.status.phase"></status-icon>
-                            <span class="space-after">{{build.status.phase}}</span>
+                        <label>Status:</label>
+                        <status-icon status="build.status.phase"></status-icon>
+                        <span class="space-after">{{build.status.phase}}</span>
 
-                            <span ng-if="build.status.startTimestamp && !logEmpty">
-                              &mdash; Log from {{build.status.startTimestamp  | date : 'short'}}
-                              <span ng-if="build.status.completionTimestamp">
-                                to {{build.status.completionTimestamp  | date : 'short'}}
-                              </span>
-                            </span>
-                          </div>
+                        <div ng-if="build.status.startTimestamp && !logEmpty" class="log-timestamps">
+                          Log from {{build.status.startTimestamp  | date : 'short'}}
+                          <span ng-if="build.status.completionTimestamp">
+                            to {{build.status.completionTimestamp  | date : 'short'}}
+                          </span>
                         </div>
 
                       </log-viewer>
