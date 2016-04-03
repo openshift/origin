@@ -83,9 +83,17 @@ __custom_func() {
             ;;
  
         # first arg is a build config name
-        oc_start-build | oc_cancel-build)
+        oc_start-build)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get buildconfigs
+            fi;
+            return
+            ;;
+
+        # first arg is a build name
+        oc_cancel-build)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get build
             fi;
             return
             ;;
