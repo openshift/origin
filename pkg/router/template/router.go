@@ -68,6 +68,10 @@ type templateRouter struct {
 	statsPassword string
 	// if the router can expose statistics it should expose them with this port
 	statsPort int
+	// validateRoutes controls whether or not to run an additional validation step on the generated configuration for a route.
+	validateRoutes bool
+	// validateConfigScriptPath is the path to the script for any running extra config validation check(s).
+	validateScriptPath string
 	// rateLimitedCommitFunction is a rate limited commit (persist state + refresh the backend)
 	// function that coalesces and controls how often the router is reloaded.
 	rateLimitedCommitFunction *ratelimiter.RateLimitedFunction
@@ -90,6 +94,8 @@ type templateRouterCfg struct {
 	statsPort              int
 	peerEndpointsKey       string
 	includeUDP             bool
+	validateRoutes         bool
+	validateScriptPath     string
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -147,6 +153,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
+
+		validateRoutes:     cfg.validateRoutes,
+		validateScriptPath: cfg.validateScriptPath,
 	}
 
 	keyFunc := func(_ interface{}) (string, error) {
@@ -217,11 +226,8 @@ func (r *templateRouter) Commit() {
 	r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
 }
 
-// commitAndReload refreshes the backend and persists the router state.
-func (r *templateRouter) commitAndReload() error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
+// commitConfiguration writes the current router state and configuration.
+func (r *templateRouter) commitConfiguration() error {
 	glog.V(4).Infof("Writing the router state")
 	if err := r.writeState(); err != nil {
 		return err
@@ -229,6 +235,19 @@ func (r *templateRouter) commitAndReload() error {
 
 	glog.V(4).Infof("Writing the router config")
 	if err := r.writeConfig(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// commitAndReload refreshes the backend and persists the router state.
+func (r *templateRouter) commitAndReload() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	glog.V(4).Infof("Committing router configuration")
+	if err := r.commitConfiguration(); err != nil {
 		return err
 	}
 
@@ -332,6 +351,8 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 		Name:                id,
 		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
 		EndpointTable:       []Endpoint{},
+
+		InvalidServiceAliasConfigs: make(map[string]ServiceAliasConfig),
 	}
 
 	r.state[id] = service
@@ -389,8 +410,59 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s_%s", route.Namespace, route.Name)
 }
 
+// validateRouteConfig validates the generated configuration for a route.
+func (r *templateRouter) validateRouteConfig(id, backendKey string, route *routeapi.Route, config ServiceAliasConfig) error {
+	if !r.validateRoutes {
+		return nil
+	}
+
+	// TODO: Do not attempt to revalidate a route if it was previously
+	//       marked good and is unchanged.
+	// return nil
+
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	frontend, _ := r.FindServiceUnit(id)
+	oldConfig, oldConfigExists := frontend.ServiceAliasConfigs[backendKey]
+	frontend.ServiceAliasConfigs[backendKey] = config
+	r.state[id] = frontend
+
+	glog.V(4).Infof("Committing configuration for validation check")
+	r.commitConfiguration()
+
+	if err := r.runValidationScript(); err != nil {
+		glog.Errorf("Validating route config for id %q: %v", id, err)
+		if oldConfigExists {
+			frontend.ServiceAliasConfigs[backendKey] = oldConfig
+		} else {
+			delete(frontend.ServiceAliasConfigs, backendKey)
+		}
+
+		r.state[id] = frontend
+
+		glog.V(4).Infof("Reverting to previous configuration")
+		r.commitConfiguration()
+
+		return fmt.Errorf("TLS config error")
+	}
+
+	return nil
+}
+
+// runValidationScript executes the router's validate-config script.
+func (r *templateRouter) runValidationScript() error {
+	cmd := exec.Command(r.validateScriptPath)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error validating router config: %v\n%s", err, out)
+	}
+	glog.V(4).Infof("Router config validation passed:\n%s", out)
+	return nil
+}
+
 // AddRoute adds a route for the given id
-func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
+func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string, skipValidation bool) error {
 	frontend, _ := r.FindServiceUnit(id)
 
 	backendKey := r.routeKey(route)
@@ -450,11 +522,31 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 		}
 	}
 
+	var err error
+	if !skipValidation {
+		// Don't reprocess the same erroneous config.
+		old, ok := frontend.InvalidServiceAliasConfigs[backendKey]
+		if ok && reflect.DeepEqual(old, config) {
+			// FIXME: Sending an error back causes an update
+			// of the route object and we keep reprocessing a
+			// bad route for a whole second odd - possibly due
+			// to way the timestamp is checked.
+			//return fmt.Errorf("Route %s TLS config error", id)
+			return nil
+		}
+
+		err = r.validateRouteConfig(id, backendKey, route, config)
+	}
+
 	//create or replace
-	frontend.ServiceAliasConfigs[backendKey] = config
+	if err == nil {
+		frontend.ServiceAliasConfigs[backendKey] = config
+	} else {
+		frontend.InvalidServiceAliasConfigs[backendKey] = config
+	}
 	r.state[id] = frontend
 	r.cleanUpdates(id, backendKey)
-	return true
+	return err
 }
 
 // cleanUpdates ensures the route is only under a single service key.  Backends are keyed
@@ -484,6 +576,7 @@ func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 	}
 
 	routeKey := r.routeKey(route)
+	delete(r.state[id].InvalidServiceAliasConfigs, routeKey)
 	serviceAliasConfig, ok := serviceUnit.ServiceAliasConfigs[routeKey]
 	if !ok {
 		return

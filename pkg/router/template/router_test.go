@@ -258,10 +258,10 @@ func TestRouteKey(t *testing.T) {
 			},
 		}
 
-		// add route always returns true
-		added := router.AddRoute(suKey, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("expected AddRoute to return true but got false")
+		// add route always returns no error if we skip the validation
+		err := router.AddRoute(suKey, route, route.Spec.Host, true)
+		if err != nil {
+			t.Fatalf("expected AddRoute to return no error but got %s", err)
 		}
 
 		routeKey := router.routeKey(route)
@@ -302,10 +302,10 @@ func TestAddRoute(t *testing.T) {
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
-	// add route always returns true
-	added := router.AddRoute(suKey, route, route.Spec.Host)
-	if !added {
-		t.Fatalf("expected AddRoute to return true but got false")
+	// add route always returns no error if we skip the validation
+	err := router.AddRoute(suKey, route, route.Spec.Host, true)
+	if err != nil {
+		t.Fatalf("expected AddRoute to return no error but got %s", err)
 	}
 
 	su, ok := router.FindServiceUnit(suKey)
@@ -383,8 +383,8 @@ func TestRemoveRoute(t *testing.T) {
 	suKey := "test"
 
 	router.CreateServiceUnit(suKey)
-	router.AddRoute(suKey, route, route.Spec.Host)
-	router.AddRoute(suKey, route2, route2.Spec.Host)
+	router.AddRoute(suKey, route, route.Spec.Host, true)
+	router.AddRoute(suKey, route2, route2.Spec.Host, true)
 
 	su, ok := router.FindServiceUnit(suKey)
 	if !ok {
@@ -575,7 +575,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	router.CreateServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
 
 	// add the route with the bad service name, it should add fine
-	router.AddRoute(routeWithBadServiceKey, routeWithBadService, routeWithBadService.Spec.Host)
+	router.AddRoute(routeWithBadServiceKey, routeWithBadService, routeWithBadService.Spec.Host, true)
 	route, ok := router.FindServiceUnit(routeWithBadServiceKey)
 
 	if !ok {
@@ -588,7 +588,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 
 	// now add the same route with a modified service name, it should exists under the new service
 	// and no longer exist under the old service
-	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService, routeWithGoodService.Spec.Host)
+	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService, routeWithGoodService.Spec.Host, true)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
 	if !ok {
 		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
@@ -608,7 +608,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	}
 
 	// add a route with the same name but under a different namespace.
-	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace, routeWithGoodServiceDifferentNamespace.Spec.Host)
+	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace, routeWithGoodServiceDifferentNamespace.Spec.Host, true)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
 	if !ok {
 		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceDifferentNamespaceKey)
@@ -682,10 +682,10 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 		suKey := fmt.Sprintf("%s-test", tc.Name)
 		router.CreateServiceUnit(suKey)
 
-		// add route always returns true
-		added := router.AddRoute(suKey, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return true but got false", tc.Name)
+		// add route always returns no error if we skip the validation
+		err := router.AddRoute(suKey, route, route.Spec.Host, true)
+		if err != nil {
+			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return no error but got %s", tc.Name, err)
 		}
 
 		su, ok := router.FindServiceUnit(suKey)

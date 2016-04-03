@@ -55,6 +55,8 @@ type TemplateRouter struct {
 	DefaultCertificate     string
 	DefaultCertificatePath string
 	RouterService          *ktypes.NamespacedName
+	ValidateRoutes         bool
+	ValidateScript         string
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -77,6 +79,8 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
+	flag.BoolVar(&o.ValidateRoutes, "validate-routes", util.Env("VALIDATE_ROUTES", "") == "true", "If true, routes are additionally checked by running the validation script against the generated router configuration.")
+	flag.StringVar(&o.ValidateScript, "validate-script", util.Env("VALIDATE_SCRIPT", ""), "The path to the router config validation script to use")
 }
 
 type RouterStats struct {
@@ -162,6 +166,11 @@ func (o *TemplateRouterOptions) Validate() error {
 	if len(o.ReloadScript) == 0 {
 		return errors.New("reload script must be specified")
 	}
+
+	if o.ValidateRoutes && len(o.ValidateScript) == 0 {
+		return errors.New("validate script must be specified")
+	}
+
 	return nil
 }
 
@@ -179,6 +188,8 @@ func (o *TemplateRouterOptions) Run() error {
 		StatsPassword:          o.StatsPassword,
 		PeerService:            o.RouterService,
 		IncludeUDP:             o.RouterSelection.IncludeUDP,
+		ValidateRoutes:         o.ValidateRoutes,
+		ValidateScriptPath:     o.ValidateScript,
 	}
 
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)

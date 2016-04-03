@@ -72,6 +72,8 @@ type RouteIngressConditionType string
 const (
 	// RouteAdmitted means the route is able to service requests for the provided Host
 	RouteAdmitted RouteIngressConditionType = "Admitted"
+	// RouteConfigError means the route configuration is invalid
+	RouteConfigError RouteIngressConditionType = "ConfigError"
 	// TODO: add other route condition types
 )
 
