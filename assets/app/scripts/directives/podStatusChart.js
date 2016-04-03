@@ -1,7 +1,13 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('podStatusChart', function($timeout, hashSizeFilter, isTroubledPodFilter, numContainersReadyFilter, Logger) {
+  .directive('podStatusChart', function($timeout,
+                                        hashSizeFilter,
+                                        isPullingImageFilter,
+                                        isTerminatingFilter,
+                                        isTroubledPodFilter,
+                                        numContainersReadyFilter,
+                                        Logger) {
     // Make sure our charts always have unique IDs even if the same deployment
     // or monopod is shown on the overview more than once.
     var lastId = 0;
@@ -17,7 +23,7 @@ angular.module('openshiftConsole')
         var chart, config;
 
         // The phases to show (in order).
-        var phases = ["Running", "Not Ready", "Warning", "Failed", "Pending", "Succeeded", "Unknown"];
+        var phases = ["Running", "Not Ready", "Warning", "Failed", "Pulling", "Pending", "Succeeded", "Terminating", "Unknown"];
 
         lastId++;
         $scope.chartId = 'pods-donut-chart-' + lastId;
@@ -85,6 +91,9 @@ angular.module('openshiftConsole')
               return { top: 0, left: 0 };
             }
           },
+          transition: {
+            duration: 350
+          },
           data: {
             type: "donut",
             groups: [ phases ],
@@ -97,8 +106,10 @@ angular.module('openshiftConsole')
               "Not Ready": "#beedf9",
               Warning: "#f9d67a",
               Failed: "#d9534f",
-              Pending: "#e8e8e8",
+              Pulling: "#d1d1d1",
+              Pending: "#ededed",
               Succeeded: "#3f9c35",
+              Terminating: "#00659c",
               Unknown: "#f9d67a"
             },
             selection: {
@@ -134,41 +145,47 @@ angular.module('openshiftConsole')
           $scope.podStatusData = data.columns;
         }
 
+        function isReady(pod) {
+          var numReady = numContainersReadyFilter(pod);
+          var total = pod.spec.containers.length;
+
+          return numReady === total;
+        }
+
+        function getPhase(pod) {
+          if (isTerminatingFilter(pod)) {
+            return 'Terminating';
+          }
+
+          if (isTroubledPodFilter(pod)) {
+            return 'Warning';
+          }
+
+          if (isPullingImageFilter(pod)) {
+            return 'Pulling';
+          }
+
+          // Also count running, but not ready, as its own phase.
+          if (pod.status.phase === 'Running' && !isReady(pod)) {
+            return 'Not Ready';
+          }
+
+          return _.get(pod, 'status.phase', 'Unknown');
+        }
+
         function countPodPhases() {
           var countByPhase = {};
-          var incrementCount = function(phase) {
-            countByPhase[phase] = (countByPhase[phase] || 0) + 1;
-          };
-
-          var isReady = function(pod) {
-            var numReady = numContainersReadyFilter(pod);
-            var total = pod.spec.containers.length;
-
-            return numReady === total;
-          };
 
           angular.forEach($scope.pods, function(pod) {
-            // Count 'Warning' as its own phase, even if not strictly accurate,
-            // so it appears in the donut chart. Warnings are too important not
-            // to call out.
-            if (isTroubledPodFilter(pod)) {
-              incrementCount('Warning');
-              return;
-            }
-
-            // Also count running, but not ready, as its own phase.
-            if (pod.status.phase === 'Running' && !isReady(pod)) {
-              incrementCount('Not Ready');
-              return;
-            }
-
-            incrementCount(pod.status.phase);
+            var phase = getPhase(pod);
+            countByPhase[phase] = (countByPhase[phase] || 0) + 1;
           });
 
           return countByPhase;
         }
 
-        $scope.$watch(countPodPhases, updateChart, true);
+        var debounceUpdate = _.debounce(updateChart, 350, { maxWait: 500 });
+        $scope.$watch(countPodPhases, debounceUpdate, true);
         $scope.$watch('desired', updateCenterText);
 
         $scope.$on('destroy', function() {
