@@ -565,7 +565,10 @@ function cleanup_openshift {
 		fi
 
 		echo "[INFO] Pruning etcd data directory..."
+		echo "[DEBUG] \$ETCD_DATA_DIR = ${ETCD_DATA_DIR}"
 		rm -rf "${ETCD_DATA_DIR}"
+		echo "[DEBUG] State of tmpdir:"
+		find "${BASETMPDIR}" -type d
 
 		set -u
 	fi
