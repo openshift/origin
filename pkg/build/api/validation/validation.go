@@ -446,10 +446,8 @@ func validateRelativePath(filePath, fieldName string, fldPath *field.Path) (stri
 	allErrs := field.ErrorList{}
 	cleaned := path.Clean(filePath)
 	switch {
-	case filepath.IsAbs(cleaned):
-		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must not be an absolute path"))
-	case cleaned == ".." || strings.HasPrefix(cleaned, "../"):
-		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must not start with .."))
+	case filepath.IsAbs(cleaned), cleaned == "..", strings.HasPrefix(cleaned, "../"):
+		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must be a relative path within your source location"))
 	default:
 		if cleaned == "." {
 			cleaned = ""
