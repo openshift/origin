@@ -270,6 +270,7 @@ var map_JenkinsPipelineConfig = map[string]string{
 	"namespace":    "Namespace contains the namespace name where the Jenkins template is stored",
 	"templateName": "TemplateName is the name of the default Jenkins template",
 	"serviceName":  "ServiceName is the name of the Jenkins service OpenShift use for Jenkins pipeline",
+	"parameters":   "Parameters specifies a set of optional parameters to the Jenkins template",
 }
 
 func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
