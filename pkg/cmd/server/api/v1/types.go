@@ -234,6 +234,8 @@ type JenkinsPipelineConfig struct {
 	// ServiceName is the name of the Jenkins service OpenShift use for Jenkins
 	// pipeline
 	ServiceName string `json:"serviceName"`
+	// Parameters specifies a set of optional parameters to the Jenkins template
+	Parameters map[string]string `json:"parameters"`
 }
 
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images

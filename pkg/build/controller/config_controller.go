@@ -72,16 +72,22 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 		}
 
 		jenkinsTemplate := buildutil.NewJenkinsPipelineTemplate(bc.Namespace, c.JenkinsConfig, kc, oc)
-		err := jenkinsTemplate.Process().Instantiate()
-		if err != nil {
-			// Record all processing and creation failures as events.
-			for _, e := range jenkinsTemplate.Errors() {
-				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "%v", e)
+		objects, errs := jenkinsTemplate.Process()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Processing %s/%s error: %v", c.JenkinsConfig.Namespace, c.JenkinsConfig.TemplateName, err)
 			}
-			return err
+			return fmt.Errorf("processing Jenkins pipeline template failed")
 		}
 
-		c.Recorder.Eventf(bc, kapi.EventTypeNormal, "Success", "Added new Jenkins service %q to project %q", svcName, bc.Namespace)
+		if errs := jenkinsTemplate.Instantiate(objects); len(errs) > 0 {
+			for _, err := range errs {
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Instantiating %s/%s error: %v", c.JenkinsConfig.Namespace, c.JenkinsConfig.TemplateName, err)
+			}
+			return fmt.Errorf("instantiating Jenkins pipeline template failed")
+		}
+
+		c.Recorder.Eventf(bc, kapi.EventTypeNormal, "Started", "Jenkins Pipeline service %q created", svcName)
 		return nil
 	}
 
