@@ -289,20 +289,6 @@ func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
 	return registry.clusterNetwork, nil
 }
 
-func (registry *Registry) GetHostSubnetLength() (int, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return -1, err
-	}
-	return registry.hostSubnetLength, nil
-}
-
-func (registry *Registry) GetServicesNetwork() (*net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return nil, err
-	}
-	return registry.serviceNetwork, nil
-}
-
 func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
 	eventQueue := registry.runEventQueue("Namespaces")
 
