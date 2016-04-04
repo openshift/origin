@@ -148,8 +148,9 @@ run() {
 	    ;;
 
 	teardown)
-	    del_ovs_port
 	    del_ovs_flows
+	    # Delete ovs port in the end, del_ovs_flows needs the port to delete qos record
+	    del_ovs_port
 	    ;;
 
 	*)
