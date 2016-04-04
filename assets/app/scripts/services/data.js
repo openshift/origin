@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
   // Handles attr with dot notation
   // TODO write lots of tests for this helper
   // Note: this lives outside the Data prototype for now so it can be used by the helper in DataService as well
-  var _objectByAttribute = function(obj, attr, map, action) {
+  function _objectByAttribute(obj, attr, map, action) {
     var subAttrs = attr.split(".");
     var attrValue = obj;
     for (var i = 0; i < subAttrs.length; i++) {
@@ -73,7 +73,7 @@ angular.module('openshiftConsole')
         map[attrValue] = obj;
       }
     }
-  };
+  }
 
   function DataService() {
     this._listCallbacksMap = {};

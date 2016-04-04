@@ -118,7 +118,7 @@ angular.module('openshiftConsole')
         };
 
         var allHPA = {}, limitRanges = {};
-        var updateHPA = function() {
+        function updateHPA() {
           $scope.hpaForRC = HPAService.hpaForRC(allHPA, $routeParams.deployment || $routeParams.replicationcontroller);
           if ($scope.isActive) {
             // Show both HPAs that target the RC and the DC if this is the active deployment.
@@ -127,7 +127,7 @@ angular.module('openshiftConsole')
           } else {
             $scope.autoscalers = $scope.hpaForRC;
           }
-        };
+        }
         var updateHPAWarnings = function() {
             HPAService.getHPAWarnings($scope.deployment, $scope.autoscalers, limitRanges, project)
                       .then(function(warnings) {
