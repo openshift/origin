@@ -323,7 +323,7 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 					},
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
@@ -376,7 +376,7 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 					},
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",

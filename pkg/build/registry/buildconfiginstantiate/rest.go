@@ -49,7 +49,16 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 		return nil, err
 	}
 
-	return s.generator.Instantiate(ctx, obj.(*buildapi.BuildRequest))
+	request := obj.(*buildapi.BuildRequest)
+	if request.TriggeredBy == nil {
+		buildTriggerCauses := []buildapi.BuildTriggerCause{}
+		request.TriggeredBy = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Manually triggered",
+			},
+		)
+	}
+	return s.generator.Instantiate(ctx, request)
 }
 
 func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient unversioned.PodsNamespacer, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {

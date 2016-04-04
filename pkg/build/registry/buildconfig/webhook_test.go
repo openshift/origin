@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -252,7 +253,7 @@ var testBuildConfig = &api.BuildConfig{
 				},
 			},
 		},
-		BuildSpec: api.BuildSpec{
+		CommonSpec: api.CommonSpec{
 			Source: api.BuildSource{
 				Git: &api.GitBuildSource{
 					URI: "git://github.com/my/repo.git",
@@ -396,5 +397,65 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	if !responder.called ||
 		!strings.Contains(responder.err.Error(), "Internal error occurred: hook failed: Plugin error!") {
 		t.Errorf("Expected BadRequest, got %s, expected error %s!", responder.err.Error(), "Internal error occurred: hook failed: Plugin error!")
+	}
+}
+
+func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
+	revision := &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Author: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Committer: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Message: "A random act of kindness",
+		},
+	}
+
+	buildtriggerCause := generateBuildTriggerInfo(revision, "generic", "mysecret")
+	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	for _, cause := range buildtriggerCause {
+		if !reflect.DeepEqual(revision, cause.GenericWebHook.Revision) {
+			t.Errorf("Expected returned revision to equal: %v", revision)
+		}
+		if cause.GenericWebHook.Secret != hiddenSecret {
+			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
+		}
+		if cause.Message != "Generic WebHook" {
+			t.Errorf("Expected build reason to be 'Generic WebHook, go %s'", cause.Message)
+		}
+	}
+}
+
+func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
+	revision := &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Author: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Committer: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Message: "A random act of kindness",
+		},
+	}
+
+	buildtriggerCause := generateBuildTriggerInfo(revision, "github", "mysecret")
+	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	for _, cause := range buildtriggerCause {
+		if !reflect.DeepEqual(revision, cause.GitHubWebHook.Revision) {
+			t.Errorf("Expected returned revision to equal: %v", revision)
+		}
+		if cause.GitHubWebHook.Secret != hiddenSecret {
+			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
+		}
+		if cause.Message != "GitHub WebHook" {
+			t.Errorf("Expected build reason to be 'GitHub WebHook, go %s'", cause.Message)
+		}
 	}
 }

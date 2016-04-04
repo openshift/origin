@@ -56,19 +56,21 @@ func TestAdmissionExists(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -104,19 +106,21 @@ func TestAdmissionLifecycle(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},

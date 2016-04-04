@@ -224,7 +224,9 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
-			Strategy: strategy,
+			CommonSpec: buildapi.CommonSpec{
+				Strategy: strategy,
+			},
 		},
 	}
 }
@@ -235,7 +237,7 @@ func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 			Name: "test-buildconfig",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: strategy,
 			},
 		},

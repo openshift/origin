@@ -761,7 +761,7 @@ func deepCopy_v1beta3_Build(in apiv1beta3.Build, out *apiv1beta3.Build, c *conve
 	} else {
 		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
 	}
-	if err := deepCopy_v1beta3_BuildSpec(in.Spec, &out.Spec, c); err != nil {
+	if err := deepCopy_v1beta3_CommonSpec(in.Spec.CommonSpec, &out.Spec.CommonSpec, c); err != nil {
 		return err
 	}
 	if err := deepCopy_v1beta3_BuildStatus(in.Status, &out.Status, c); err != nil {
@@ -826,7 +826,7 @@ func deepCopy_v1beta3_BuildConfigSpec(in apiv1beta3.BuildConfigSpec, out *apiv1b
 		out.Triggers = nil
 	}
 	out.RunPolicy = in.RunPolicy
-	if err := deepCopy_v1beta3_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
+	if err := deepCopy_v1beta3_CommonSpec(in.CommonSpec, &out.CommonSpec, c); err != nil {
 		return err
 	}
 	return nil
@@ -1083,7 +1083,7 @@ func deepCopy_v1beta3_BuildSource(in apiv1beta3.BuildSource, out *apiv1beta3.Bui
 	return nil
 }
 
-func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSpec, c *conversion.Cloner) error {
+func deepCopy_v1beta3_CommonSpec(in apiv1beta3.CommonSpec, out *apiv1beta3.CommonSpec, c *conversion.Cloner) error {
 	out.ServiceAccount = in.ServiceAccount
 	if err := deepCopy_v1beta3_BuildSource(in.Source, &out.Source, c); err != nil {
 		return err
@@ -3055,10 +3055,10 @@ func init() {
 		deepCopy_v1beta3_BuildPostCommitSpec,
 		deepCopy_v1beta3_BuildRequest,
 		deepCopy_v1beta3_BuildSource,
-		deepCopy_v1beta3_BuildSpec,
 		deepCopy_v1beta3_BuildStatus,
 		deepCopy_v1beta3_BuildStrategy,
 		deepCopy_v1beta3_BuildTriggerPolicy,
+		deepCopy_v1beta3_CommonSpec,
 		deepCopy_v1beta3_CustomBuildStrategy,
 		deepCopy_v1beta3_DockerBuildStrategy,
 		deepCopy_v1beta3_GitBuildSource,

@@ -29,18 +29,20 @@ func validBuild() *api.Build {
 	return &api.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: api.BuildSpec{
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
 				},
-			},
-			Strategy: api.BuildStrategy{
-				DockerStrategy: &api.DockerBuildStrategy{},
-			},
-			Output: api.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},

@@ -243,7 +243,13 @@ func (o *StartBuildOptions) Run() error {
 	if len(o.ListWebhooks) > 0 {
 		return o.RunListBuildWebHooks()
 	}
+	buildRequestCauses := []buildapi.BuildTriggerCause{}
 	request := &buildapi.BuildRequest{
+		TriggeredBy: append(buildRequestCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Manually triggered",
+			},
+		),
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
 	}
 	if len(o.EnvVar) > 0 {

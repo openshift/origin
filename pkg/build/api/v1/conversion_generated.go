@@ -49,18 +49,28 @@ func init() {
 		Convert_api_BuildStatus_To_v1_BuildStatus,
 		Convert_v1_BuildStrategy_To_api_BuildStrategy,
 		Convert_api_BuildStrategy_To_v1_BuildStrategy,
+		Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause,
+		Convert_api_BuildTriggerCause_To_v1_BuildTriggerCause,
 		Convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
+		Convert_v1_CommonSpec_To_api_CommonSpec,
+		Convert_api_CommonSpec_To_v1_CommonSpec,
 		Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy,
 		Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
 		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
 		Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
+		Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause,
+		Convert_api_GenericWebHookCause_To_v1_GenericWebHookCause,
 		Convert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent,
 		Convert_v1_GitBuildSource_To_api_GitBuildSource,
 		Convert_api_GitBuildSource_To_v1_GitBuildSource,
+		Convert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause,
+		Convert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause,
 		Convert_v1_GitInfo_To_api_GitInfo,
 		Convert_v1_GitSourceRevision_To_api_GitSourceRevision,
 		Convert_api_GitSourceRevision_To_v1_GitSourceRevision,
+		Convert_v1_ImageChangeCause_To_api_ImageChangeCause,
+		Convert_api_ImageChangeCause_To_v1_ImageChangeCause,
 		Convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		Convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger,
 		Convert_v1_ImageSource_To_api_ImageSource,
@@ -325,7 +335,7 @@ func autoConvert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *BuildConfigSpec, 
 		out.Triggers = nil
 	}
 	out.RunPolicy = build_api.BuildRunPolicy(in.RunPolicy)
-	if err := Convert_v1_BuildSpec_To_api_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
+	if err := Convert_v1_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
 	return nil
@@ -351,7 +361,7 @@ func autoConvert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *build_api.BuildCo
 		out.Triggers = nil
 	}
 	out.RunPolicy = BuildRunPolicy(in.RunPolicy)
-	if err := Convert_api_BuildSpec_To_v1_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
+	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
 	return nil
@@ -759,6 +769,17 @@ func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *buil
 	} else {
 		out.Env = nil
 	}
+	if in.TriggeredBy != nil {
+		in, out := &in.TriggeredBy, &out.TriggeredBy
+		*out = make([]build_api.BuildTriggerCause, len(*in))
+		for i := range *in {
+			if err := Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TriggeredBy = nil
+	}
 	return nil
 }
 
@@ -833,6 +854,17 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest,
 		}
 	} else {
 		out.Env = nil
+	}
+	if in.TriggeredBy != nil {
+		in, out := &in.TriggeredBy, &out.TriggeredBy
+		*out = make([]BuildTriggerCause, len(*in))
+		for i := range *in {
+			if err := Convert_api_BuildTriggerCause_To_v1_BuildTriggerCause(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -979,38 +1011,19 @@ func autoConvert_v1_BuildSpec_To_api_BuildSpec(in *BuildSpec, out *build_api.Bui
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*BuildSpec))(in)
 	}
-	out.ServiceAccount = in.ServiceAccount
-	if err := Convert_v1_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := Convert_v1_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(build_api.SourceRevision)
-		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
-			return err
+	if in.TriggeredBy != nil {
+		in, out := &in.TriggeredBy, &out.TriggeredBy
+		*out = make([]build_api.BuildTriggerCause, len(*in))
+		for i := range *in {
+			if err := Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Revision = nil
-	}
-	if err := Convert_v1_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
-		return err
-	}
-	if err := Convert_v1_BuildOutput_To_api_BuildOutput(&in.Output, &out.Output, s); err != nil {
-		return err
-	}
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
-		return err
-	}
-	if err := Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
-		return err
-	}
-	if in.CompletionDeadlineSeconds != nil {
-		in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.CompletionDeadlineSeconds = nil
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -1023,38 +1036,19 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *build_api.BuildSpec, out *Bui
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*build_api.BuildSpec))(in)
 	}
-	out.ServiceAccount = in.ServiceAccount
-	if err := Convert_api_BuildSource_To_v1_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(SourceRevision)
-		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
-			return err
+	if in.TriggeredBy != nil {
+		in, out := &in.TriggeredBy, &out.TriggeredBy
+		*out = make([]BuildTriggerCause, len(*in))
+		for i := range *in {
+			if err := Convert_api_BuildTriggerCause_To_v1_BuildTriggerCause(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Revision = nil
-	}
-	if err := Convert_api_BuildStrategy_To_v1_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
-		return err
-	}
-	if err := Convert_api_BuildOutput_To_v1_BuildOutput(&in.Output, &out.Output, s); err != nil {
-		return err
-	}
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
-		return err
-	}
-	if err := Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
-		return err
-	}
-	if in.CompletionDeadlineSeconds != nil {
-		in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.CompletionDeadlineSeconds = nil
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -1243,6 +1237,84 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *build_api.BuildStrate
 	return nil
 }
 
+func autoConvert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in *BuildTriggerCause, out *build_api.BuildTriggerCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*BuildTriggerCause))(in)
+	}
+	out.Message = in.Message
+	if in.GenericWebHook != nil {
+		in, out := &in.GenericWebHook, &out.GenericWebHook
+		*out = new(build_api.GenericWebHookCause)
+		if err := Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GenericWebHook = nil
+	}
+	if in.GitHubWebHook != nil {
+		in, out := &in.GitHubWebHook, &out.GitHubWebHook
+		*out = new(build_api.GitHubWebHookCause)
+		if err := Convert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitHubWebHook = nil
+	}
+	if in.ImageChangeBuild != nil {
+		in, out := &in.ImageChangeBuild, &out.ImageChangeBuild
+		*out = new(build_api.ImageChangeCause)
+		if err := Convert_v1_ImageChangeCause_To_api_ImageChangeCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ImageChangeBuild = nil
+	}
+	return nil
+}
+
+func Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in *BuildTriggerCause, out *build_api.BuildTriggerCause, s conversion.Scope) error {
+	return autoConvert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in, out, s)
+}
+
+func autoConvert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in *build_api.BuildTriggerCause, out *BuildTriggerCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*build_api.BuildTriggerCause))(in)
+	}
+	out.Message = in.Message
+	if in.GenericWebHook != nil {
+		in, out := &in.GenericWebHook, &out.GenericWebHook
+		*out = new(GenericWebHookCause)
+		if err := Convert_api_GenericWebHookCause_To_v1_GenericWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GenericWebHook = nil
+	}
+	if in.GitHubWebHook != nil {
+		in, out := &in.GitHubWebHook, &out.GitHubWebHook
+		*out = new(GitHubWebHookCause)
+		if err := Convert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitHubWebHook = nil
+	}
+	if in.ImageChangeBuild != nil {
+		in, out := &in.ImageChangeBuild, &out.ImageChangeBuild
+		*out = new(ImageChangeCause)
+		if err := Convert_api_ImageChangeCause_To_v1_ImageChangeCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ImageChangeBuild = nil
+	}
+	return nil
+}
+
+func Convert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in *build_api.BuildTriggerCause, out *BuildTriggerCause, s conversion.Scope) error {
+	return autoConvert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in, out, s)
+}
+
 func autoConvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *build_api.BuildTriggerPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*BuildTriggerPolicy))(in)
@@ -1315,6 +1387,94 @@ func autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.B
 
 func Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
 	return autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in, out, s)
+}
+
+func autoConvert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *build_api.CommonSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*CommonSpec))(in)
+	}
+	out.ServiceAccount = in.ServiceAccount
+	if err := Convert_v1_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
+		return err
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(build_api.SourceRevision)
+		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := Convert_v1_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_BuildOutput_To_api_BuildOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+		return err
+	}
+	if err := Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
+		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
+		*out = new(int64)
+		**out = **in
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
+	return nil
+}
+
+func Convert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *build_api.CommonSpec, s conversion.Scope) error {
+	return autoConvert_v1_CommonSpec_To_api_CommonSpec(in, out, s)
+}
+
+func autoConvert_api_CommonSpec_To_v1_CommonSpec(in *build_api.CommonSpec, out *CommonSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*build_api.CommonSpec))(in)
+	}
+	out.ServiceAccount = in.ServiceAccount
+	if err := Convert_api_BuildSource_To_v1_BuildSource(&in.Source, &out.Source, s); err != nil {
+		return err
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(SourceRevision)
+		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := Convert_api_BuildStrategy_To_v1_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildOutput_To_v1_BuildOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
+		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
+		*out = new(int64)
+		**out = **in
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
+	return nil
+}
+
+func Convert_api_CommonSpec_To_v1_CommonSpec(in *build_api.CommonSpec, out *CommonSpec, s conversion.Scope) error {
+	return autoConvert_api_CommonSpec_To_v1_CommonSpec(in, out, s)
 }
 
 func autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *build_api.CustomBuildStrategy, s conversion.Scope) error {
@@ -1503,6 +1663,48 @@ func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build_api.Doc
 	return autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in, out, s)
 }
 
+func autoConvert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHookCause, out *build_api.GenericWebHookCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*GenericWebHookCause))(in)
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(build_api.SourceRevision)
+		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHookCause, out *build_api.GenericWebHookCause, s conversion.Scope) error {
+	return autoConvert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in, out, s)
+}
+
+func autoConvert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in *build_api.GenericWebHookCause, out *GenericWebHookCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*build_api.GenericWebHookCause))(in)
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(SourceRevision)
+		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in *build_api.GenericWebHookCause, out *GenericWebHookCause, s conversion.Scope) error {
+	return autoConvert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in, out, s)
+}
+
 func autoConvert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWebHookEvent, out *build_api.GenericWebHookEvent, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*GenericWebHookEvent))(in)
@@ -1589,6 +1791,48 @@ func Convert_api_GitBuildSource_To_v1_GitBuildSource(in *build_api.GitBuildSourc
 	return autoConvert_api_GitBuildSource_To_v1_GitBuildSource(in, out, s)
 }
 
+func autoConvert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCause, out *build_api.GitHubWebHookCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*GitHubWebHookCause))(in)
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(build_api.SourceRevision)
+		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCause, out *build_api.GitHubWebHookCause, s conversion.Scope) error {
+	return autoConvert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in, out, s)
+}
+
+func autoConvert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in *build_api.GitHubWebHookCause, out *GitHubWebHookCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*build_api.GitHubWebHookCause))(in)
+	}
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(SourceRevision)
+		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in *build_api.GitHubWebHookCause, out *GitHubWebHookCause, s conversion.Scope) error {
+	return autoConvert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in, out, s)
+}
+
 func autoConvert_v1_GitInfo_To_api_GitInfo(in *GitInfo, out *build_api.GitInfo, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*GitInfo))(in)
@@ -1642,6 +1886,50 @@ func autoConvert_api_GitSourceRevision_To_v1_GitSourceRevision(in *build_api.Git
 
 func Convert_api_GitSourceRevision_To_v1_GitSourceRevision(in *build_api.GitSourceRevision, out *GitSourceRevision, s conversion.Scope) error {
 	return autoConvert_api_GitSourceRevision_To_v1_GitSourceRevision(in, out, s)
+}
+
+func autoConvert_v1_ImageChangeCause_To_api_ImageChangeCause(in *ImageChangeCause, out *build_api.ImageChangeCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*ImageChangeCause))(in)
+	}
+	out.ImageID = in.ImageID
+	if in.FromRef != nil {
+		in, out := &in.FromRef, &out.FromRef
+		*out = new(api.ObjectReference)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.FromRef = nil
+	}
+	return nil
+}
+
+func Convert_v1_ImageChangeCause_To_api_ImageChangeCause(in *ImageChangeCause, out *build_api.ImageChangeCause, s conversion.Scope) error {
+	return autoConvert_v1_ImageChangeCause_To_api_ImageChangeCause(in, out, s)
+}
+
+func autoConvert_api_ImageChangeCause_To_v1_ImageChangeCause(in *build_api.ImageChangeCause, out *ImageChangeCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*build_api.ImageChangeCause))(in)
+	}
+	out.ImageID = in.ImageID
+	if in.FromRef != nil {
+		in, out := &in.FromRef, &out.FromRef
+		*out = new(api_v1.ObjectReference)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.FromRef = nil
+	}
+	return nil
+}
+
+func Convert_api_ImageChangeCause_To_v1_ImageChangeCause(in *build_api.ImageChangeCause, out *ImageChangeCause, s conversion.Scope) error {
+	return autoConvert_api_ImageChangeCause_To_v1_ImageChangeCause(in, out, s)
 }
 
 func autoConvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *ImageChangeTrigger, out *build_api.ImageChangeTrigger, s conversion.Scope) error {

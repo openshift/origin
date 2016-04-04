@@ -147,6 +147,7 @@ var map_BuildRequest = map[string]string{
 	"binary":           "binary indicates a request to build from a binary provided to the builder",
 	"lastVersion":      "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated.",
 	"env":              "env contains additional environment variables you want to pass into a builder container",
+	"triggeredBy":      "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
 }
 
 func (BuildRequest) SwaggerDoc() map[string]string {
@@ -170,15 +171,8 @@ func (BuildSource) SwaggerDoc() map[string]string {
 }
 
 var map_BuildSpec = map[string]string{
-	"":                          "BuildSpec encapsulates all the inputs necessary to represent a build.",
-	"serviceAccount":            "serviceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount",
-	"source":                    "source describes the SCM in use.",
-	"revision":                  "revision is the information from the source for a specific repo snapshot. This is optional.",
-	"strategy":                  "strategy defines how to perform a build.",
-	"output":                    "output describes the Docker image the Strategy should produce.",
-	"resources":                 "resource requirements to execute the build",
-	"postCommit":                "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry.",
-	"completionDeadlineSeconds": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer",
+	"":            "BuildSpec has the information to represent a build and also additional information about a build",
+	"triggeredBy": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
 }
 
 func (BuildSpec) SwaggerDoc() map[string]string {
@@ -215,6 +209,18 @@ func (BuildStrategy) SwaggerDoc() map[string]string {
 	return map_BuildStrategy
 }
 
+var map_BuildTriggerCause = map[string]string{
+	"":                 "BuildTriggerCause holds information about a triggered build. It is used for displaying build trigger data for each build and build configuration in oc describe. It is also used to describe which triggers led to the most recent update in the build configuration.",
+	"message":          "message is used to store a human readable message for why the build was triggered. E.g.: \"Manually triggered by user\", \"Configuration change\",etc.",
+	"genericWebHook":   "genericWebHook holds data about a builds generic webhook trigger.",
+	"githubWebHook":    "gitHubWebHook represents data for a GitHub webhook that fired a specific build.",
+	"imageChangeBuild": "imageChangeBuild stores information about an imagechange event that triggered a new build.",
+}
+
+func (BuildTriggerCause) SwaggerDoc() map[string]string {
+	return map_BuildTriggerCause
+}
+
 var map_BuildTriggerPolicy = map[string]string{
 	"":            "BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.",
 	"type":        "type is the type of build trigger",
@@ -225,6 +231,22 @@ var map_BuildTriggerPolicy = map[string]string{
 
 func (BuildTriggerPolicy) SwaggerDoc() map[string]string {
 	return map_BuildTriggerPolicy
+}
+
+var map_CommonSpec = map[string]string{
+	"":                          "CommonSpec encapsulates all the inputs necessary to represent a build.",
+	"serviceAccount":            "serviceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount",
+	"source":                    "source describes the SCM in use.",
+	"revision":                  "revision is the information from the source for a specific repo snapshot. This is optional.",
+	"strategy":                  "strategy defines how to perform a build.",
+	"output":                    "output describes the Docker image the Strategy should produce.",
+	"resources":                 "resources computes resource requirements to execute the build.",
+	"postCommit":                "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry.",
+	"completionDeadlineSeconds": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer",
+}
+
+func (CommonSpec) SwaggerDoc() map[string]string {
+	return map_CommonSpec
 }
 
 var map_CustomBuildStrategy = map[string]string{
@@ -256,6 +278,16 @@ func (DockerBuildStrategy) SwaggerDoc() map[string]string {
 	return map_DockerBuildStrategy
 }
 
+var map_GenericWebHookCause = map[string]string{
+	"":         "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
+	"revision": "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available.",
+	"secret":   "secret is the obfuscated webhook secret that triggered a build.",
+}
+
+func (GenericWebHookCause) SwaggerDoc() map[string]string {
+	return map_GenericWebHookCause
+}
+
 var map_GenericWebHookEvent = map[string]string{
 	"":     "GenericWebHookEvent is the payload expected for a generic webhook post",
 	"type": "type is the type of source repository",
@@ -279,6 +311,16 @@ func (GitBuildSource) SwaggerDoc() map[string]string {
 	return map_GitBuildSource
 }
 
+var map_GitHubWebHookCause = map[string]string{
+	"":         "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
+	"revision": "revision is the git revision information of the trigger.",
+	"secret":   "secret is the obfuscated webhook secret that triggered a build.",
+}
+
+func (GitHubWebHookCause) SwaggerDoc() map[string]string {
+	return map_GitHubWebHookCause
+}
+
 var map_GitInfo = map[string]string{
 	"": "GitInfo is the aggregated git information for a generic webhook post",
 }
@@ -297,6 +339,16 @@ var map_GitSourceRevision = map[string]string{
 
 func (GitSourceRevision) SwaggerDoc() map[string]string {
 	return map_GitSourceRevision
+}
+
+var map_ImageChangeCause = map[string]string{
+	"":        "ImageChangeCause contains information about the image that triggered a build",
+	"imageID": "imageID is the ID of the image that triggered a a new build.",
+	"fromRef": "fromRef contains detailed information about an image that triggered a build.",
+}
+
+func (ImageChangeCause) SwaggerDoc() map[string]string {
+	return map_ImageChangeCause
 }
 
 var map_ImageChangeTrigger = map[string]string{
