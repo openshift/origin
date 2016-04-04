@@ -3,6 +3,8 @@ package docker
 import (
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
@@ -10,9 +12,6 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-
-	"os"
-	"os/signal"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -636,11 +635,13 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		return err
 	}
 
-	// Run OnStart hook if defined.
+	// Run OnStart hook if defined. OnStart might block, so we run it in a
+	// new goroutine, and wait for it to be done later on.
+	onStartDone := make(chan error, 1)
 	if opts.OnStart != nil {
-		if err = opts.OnStart(container.ID); err != nil {
-			return err
-		}
+		go func() {
+			onStartDone <- opts.OnStart(container.ID)
+		}()
 	}
 
 	// We either block waiting for a user-originated SIGINT, or wait for the
@@ -661,6 +662,25 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		}
 		if exitCode != 0 {
 			return errors.NewContainerError(container.Name, exitCode, "")
+		}
+	}
+
+	// FIXME: If Stdout or Stderr can be closed, close it to notify that
+	// there won't be any more writes. This is a hack to close the write
+	// half of a pipe so that the read half sees io.EOF.
+	// In particular, this is needed to eventually terminate code that runs
+	// on OnStart and blocks reading from the pipe.
+	if c, ok := opts.Stdout.(io.Closer); ok {
+		c.Close()
+	}
+	if c, ok := opts.Stderr.(io.Closer); ok {
+		c.Close()
+	}
+
+	// OnStart must be done before we move on.
+	if opts.OnStart != nil {
+		if err := <-onStartDone; err != nil {
+			return err
 		}
 	}
 
