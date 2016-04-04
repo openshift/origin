@@ -30,7 +30,7 @@ function cleanup()
     echo
 
     # we keep a JSON dump of etcd data so we do not need to keep the binary store
-    rm -rf "${ETCD_DATA_DIR}"
+    sudo rm -rf "${ETCD_DATA_DIR}"
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
