@@ -69,22 +69,24 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 func makeBuild() *api.Build {
 	return &api.Build{
 		Spec: api.BuildSpec{
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
-					URI: "http://localhost/123",
-				}},
-			Strategy: api.BuildStrategy{
-				SourceStrategy: &api.SourceBuildStrategy{
-					From: kapi.ObjectReference{
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "http://localhost/123",
+					}},
+				Strategy: api.BuildStrategy{
+					SourceStrategy: &api.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "test/builder:latest",
+						},
+						Incremental: true,
+					}},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "test/builder:latest",
+						Name: "test/test-result:latest",
 					},
-					Incremental: true,
-				}},
-			Output: api.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "test/test-result:latest",
 				},
 			},
 		},

@@ -58,15 +58,25 @@ type Build struct {
 
 // BuildSpec encapsulates all the inputs necessary to represent a build.
 type BuildSpec struct {
+	CommonSpec
+
+	// TriggeredBy holds information about the trigger of a build. It is a
+	// slice to be consistent with pkg/deploy/api.DeploymentDetails.Causes.
+	TriggeredBy []BuildTriggerCause
+}
+
+// CommonSpec encapsulates all common fields between Build and BuildConfig.
+type CommonSpec struct {
 	// ServiceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
-	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	// The pod will be allowed to use secrets referenced by the ServiceAccount.
 	ServiceAccount string
 
 	// Source describes the SCM in use.
 	Source BuildSource
 
-	// Revision is the information from the source for a specific repo snapshot.
+	// Revision is the information from the source for a specific repo
+	// snapshot.
 	// This is optional.
 	Revision *SourceRevision
 
@@ -76,17 +86,71 @@ type BuildSpec struct {
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput
 
-	// Compute resource requirements to execute the build
+	// Compute resource requirements to execute the build.
 	Resources kapi.ResourceRequirements
 
 	// PostCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
 	PostCommit BuildPostCommitSpec
 
-	// Optional duration in seconds, counted from the time when a build pod gets
-	// scheduled in the system, that the build may be active on a node before the
-	// system actively tries to terminate the build; value must be positive integer
+	// Optional duration in seconds, counted from the time when a build pod
+	// gets scheduled in the system, that the build may be active on a node
+	// before the system actively tries to terminate the build; value must be
+	// positive integer.
 	CompletionDeadlineSeconds *int64
+}
+
+// BuildTriggerCause holds information about the trigger of a build.
+type BuildTriggerCause struct {
+	// Reason is used to store a human readable reason for why the build was
+	// triggered. E.g.: "Build manually triggered by user", "Build triggered by
+	// ConfigChange update", "Build triggered by ImageChange for image:
+	// FOO:BAR", etc.
+	Reason BuildTriggerReason
+
+	// GitHubWebHook represents data for a GitHub webhook that fired a specific
+	// build.
+	GitHubWebHook *GitHubWebHookInfo
+
+	// GenericWebHook holds data about a builds generic webhook trigger.
+	GenericWebHook *GenericWebHookInfo
+
+	// ImageChangeBuild stores information about an imagechange event that
+	// triggered a new build.
+	ImageChangeBuild *ImageChangeInfo
+}
+
+// BuildTriggerReason stores a human readable message about the cause of a
+// triggered build.
+type BuildTriggerReason string
+
+// GenericWebHookInfo holds information about a generic WebHook that
+// triggered a build
+type GenericWebHookInfo struct {
+	// Revision is the git source revision information of the trigger
+	Revision *SourceRevision
+	// Secret is the obfuscated webhook secret that triggered a build
+	Secret string
+}
+
+// GitHubWebHookInfo has information about a GitHub webhook that triggered a
+// build
+type GitHubWebHookInfo struct {
+	// Revision is the git source revision information of the trigger
+	Revision *SourceRevision
+	// Secret is the obfuscated webhook secret that triggered a build
+	Secret string
+}
+
+// ImageChangeInfo contains information about the image that triggered a
+// build
+type ImageChangeInfo struct {
+	// ImageID is the ID of the image that triggered a
+	ImageID string
+
+	// FromRef contains detailed information about an image that triggered a
+	// build
+	FromRef *kapi.ObjectReference
 }
 
 // BuildStatus contains the status of a build
@@ -570,8 +634,9 @@ type BuildConfig struct {
 
 // BuildConfigSpec describes when and how builds are created
 type BuildConfigSpec struct {
-	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
-	// are defined, a new build can only occur as a result of an explicit client build creation.
+	// Triggers determine how new Builds can be launched from a BuildConfig. If
+	// no triggers are defined, a new build can only occur as a result of an
+	// explicit client build creation.
 	Triggers []BuildTriggerPolicy
 
 	// RunPolicy describes how the new build created from this build
@@ -579,8 +644,8 @@ type BuildConfigSpec struct {
 	// This is optional, if not specified we default to "Serial".
 	RunPolicy BuildRunPolicy
 
-	// BuildSpec is the desired build specification
-	BuildSpec
+	// CommonSpec is the desired build specification
+	CommonSpec
 }
 
 // BuildRunPolicy defines the behaviour of how the new builds are executed
@@ -753,6 +818,10 @@ type BuildRequest struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
+
+	// TriggeredBy helps pass information about a trigger from the
+	// controller to the generator
+	TriggeredBy []BuildTriggerCause
 }
 
 type BinaryBuildRequestOptions struct {

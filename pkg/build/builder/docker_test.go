@@ -193,19 +193,21 @@ func TestDockerfilePath(t *testing.T) {
 
 		build := &api.Build{
 			Spec: api.BuildSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/openshift/origin.git",
+				CommonSpec: api.CommonSpec{
+					Source: api.BuildSource{
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/openshift/origin.git",
+						},
+						ContextDir: test.contextDir,
 					},
-					ContextDir: test.contextDir,
-				},
-				Strategy: api.BuildStrategy{
-					DockerStrategy: test.dockerStrategy,
-				},
-				Output: api.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "test/test-result:latest",
+					Strategy: api.BuildStrategy{
+						DockerStrategy: test.dockerStrategy,
+					},
+					Output: api.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "test/test-result:latest",
+						},
 					},
 				},
 			},
@@ -256,14 +258,16 @@ func TestDockerfilePath(t *testing.T) {
 func TestEmptySource(t *testing.T) {
 	build := &api.Build{
 		Spec: api.BuildSpec{
-			Source: api.BuildSource{},
-			Strategy: api.BuildStrategy{
-				DockerStrategy: &api.DockerBuildStrategy{},
-			},
-			Output: api.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "test/test-result:latest",
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{},
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "test/test-result:latest",
+					},
 				},
 			},
 		},

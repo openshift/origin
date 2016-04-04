@@ -29,7 +29,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 					Type: "unknown",
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",

@@ -18,7 +18,7 @@ type okBuildConfigGetter struct{}
 func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Spec: api.BuildConfigSpec{
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Strategy: api.BuildStrategy{
 					SourceStrategy: &api.SourceBuildStrategy{
 						From: kapi.ObjectReference{
@@ -256,7 +256,7 @@ func TestInvokeWebhookOK(t *testing.T) {
 	var buildRequest string
 	buildConfig := &api.BuildConfig{
 		Spec: api.BuildConfigSpec{
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Strategy: api.BuildStrategy{
 					SourceStrategy: &api.SourceBuildStrategy{
 						From: kapi.ObjectReference{

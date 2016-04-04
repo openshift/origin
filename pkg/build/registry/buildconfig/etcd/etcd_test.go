@@ -30,7 +30,7 @@ func validBuildConfig() *api.BuildConfig {
 		ObjectMeta: kapi.ObjectMeta{Name: "configid"},
 		Spec: api.BuildConfigSpec{
 			RunPolicy: api.BuildRunPolicySerial,
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						URI: "http://github.com/my/repository",

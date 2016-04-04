@@ -27,7 +27,7 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						URI: "git://github.com/my/repo.git",
@@ -234,7 +234,7 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 						},
 					},
 				},
-				BuildSpec: api.BuildSpec{
+				CommonSpec: api.CommonSpec{
 					Source: api.BuildSource{
 						Git: &api.GitBuildSource{
 							URI: "git://github.com/my/repo.git",

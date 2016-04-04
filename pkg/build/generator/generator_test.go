@@ -242,7 +242,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	for _, tc := range tests {
 		bc := &buildapi.BuildConfig{
 			Spec: buildapi.BuildConfigSpec{
-				BuildSpec: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
 						SourceStrategy: &buildapi.SourceBuildStrategy{
 							From: kapi.ObjectReference{
@@ -409,7 +409,7 @@ func TestFindImageTrigger(t *testing.T) {
 			Namespace: "bcnamespace",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: kapi.ObjectReference{
@@ -617,7 +617,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{
@@ -689,7 +689,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			Name: "test-build-config",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{
@@ -767,7 +767,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			Name: "test-build-config",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{
@@ -844,7 +844,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			Name: "test-build-config",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{
@@ -921,14 +921,16 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+			CommonSpec: buildapi.CommonSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 
@@ -953,14 +955,16 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+			CommonSpec: buildapi.CommonSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 	nonAnnotatedBuild := &buildapi.Build{
@@ -968,14 +972,16 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 			Name: "nonAnnotatedBuild",
 		},
 		Spec: buildapi.BuildSpec{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+			CommonSpec: buildapi.CommonSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 
@@ -1359,14 +1365,16 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+			CommonSpec: buildapi.CommonSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 }

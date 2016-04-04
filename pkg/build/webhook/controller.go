@@ -80,6 +80,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
+
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: buildCfg.Name},
 		Revision:   revision,

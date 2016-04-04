@@ -82,9 +82,9 @@ func (i *testInstantiator) Instantiate(namespace string, request *buildapi.Build
 func baseBuildConfig() *buildapi.BuildConfig {
 	bc := &buildapi.BuildConfig{}
 	bc.Name = "testBuildConfig"
-	bc.Spec.BuildSpec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
-	bc.Spec.BuildSpec.Strategy.SourceStrategy.From.Name = "builderimage:latest"
-	bc.Spec.BuildSpec.Strategy.SourceStrategy.From.Kind = "ImageStreamTag"
+	bc.Spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
+	bc.Spec.Strategy.SourceStrategy.From.Name = "builderimage:latest"
+	bc.Spec.Strategy.SourceStrategy.From.Kind = "ImageStreamTag"
 	return bc
 }
 

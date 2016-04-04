@@ -113,8 +113,9 @@ func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *build
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildapi.BuildConfigSpec{
+
 			RunPolicy: buildapi.BuildRunPolicyParallel,
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "git://github.com/openshift/ruby-hello-world.git",
@@ -396,7 +397,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 	multipleImageChangeBuildConfig := func() *buildapi.BuildConfig {
 		strategy := stiStrategy("ImageStreamTag", "image1:tag1")
 		bc := imageChangeBuildConfig("multi-image-trigger", strategy)
-		bc.Spec.BuildSpec.Output.To.Name = "image1:outputtag"
+		bc.Spec.CommonSpec.Output.To.Name = "image1:outputtag"
 		bc.Spec.Triggers = []buildapi.BuildTriggerPolicy{
 			{
 				Type:        buildapi.ImageChangeBuildTriggerType,

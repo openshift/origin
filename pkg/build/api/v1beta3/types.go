@@ -20,8 +20,19 @@ type Build struct {
 	Status BuildStatus `json:"status,omitempty"`
 }
 
-// BuildSpec encapsulates all the inputs necessary to represent a build.
+// BuildSpec has the information to represent a build and also additional
+// information about a build
 type BuildSpec struct {
+	// CommonSpec is the information that represents a build
+	CommonSpec `json:",inline"`
+
+	// TriggeredBy holds information about the trigger of a
+	// build.
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy,omitempty"`
+}
+
+// CommonSpec encapsulates all the inputs necessary to represent a build.
+type CommonSpec struct {
 	// ServiceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
 	// The pod will be allowed to use secrets referenced by the ServiceAccount
@@ -51,6 +62,62 @@ type BuildSpec struct {
 	// scheduled in the system, that the build may be active on a node before the
 	// system actively tries to terminate the build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty"`
+}
+
+// BuildTriggerCause holds information about a triggered build. It is used for
+// displaying build trigger data for each build and buildconfig in oc
+// describe. It's also used to pass build trigger information from the
+// controller/event that fired the build to the generator.
+type BuildTriggerCause struct {
+	// Reason is used to store a human readable reason for why the build was
+	// triggered. E.g.: "Build manually triggered by user", "Build triggered by
+	// ConfigChange update", "Build triggered by ImageChange for image:
+	// FOO:BAR", etc.
+	Reason BuildTriggerReason `json:"reason,omitempty"`
+
+	// GitHubWebHook represents data for a GitHub webhook that fired a
+	//specific build.
+	GitHubWebHook *GitHubWebHookInfo `json:"githubWebHook,omitempty"`
+
+	// GenericWebHook holds data about a builds generic webhook trigger.
+	GenericWebHook *GenericWebHookInfo `json:"genericWebHook,omitempty"`
+
+	// ImageChangeBuild stores information about an imagechange event
+	// that triggered a new build.
+	ImageChangeBuild *ImageChangeInfo `json:"imageChangeBuild,omitempty"`
+}
+
+// BuildTriggerReason stores a human readable message about the cause of a
+// triggered build
+type BuildTriggerReason string
+
+// GenericWebHookInfo holds information about a generic WebHook that
+// triggered a build
+type GenericWebHookInfo struct {
+	// Revision is the git source revision information of the trigger
+	Revision *SourceRevision `json:"revision,omitempty"`
+	// Secret is the obfuscated webhook secret that triggered a build
+	Secret string `json:"secret,omitempty"`
+}
+
+// GitHubWebHookInfo has information about a GitHub webhook that triggered a
+// build
+type GitHubWebHookInfo struct {
+	// Revision is the git source revision information of the trigger
+	Revision *SourceRevision `json:"revision,omitempty"`
+	// Secret is the obfuscated webhook secret that triggered a build
+	Secret string `json:"secret,omitempty"`
+}
+
+// ImageChangeInfo contains information about the image that triggered a
+// build
+type ImageChangeInfo struct {
+	// ImageID is the ID of the image that triggered a
+	ImageID string `json:"imageID,omitempty"`
+
+	// FromRef contains detailed information about an image that triggered a
+	// build
+	FromRef *kapi.ObjectReference `json:"fromRef,omitempty"`
 }
 
 // BuildStatus contains the status of a build
@@ -509,13 +576,13 @@ type BuildConfigSpec struct {
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers"`
-
 	// RunPolicy describes how the new build created from this build
 	// configuration will be scheduled for execution.
 	// This is optional, if not specified we default to "Serial".
 	RunPolicy BuildRunPolicy `json:"runPolicy,omitempty"`
 
-	BuildSpec `json:",inline"`
+	// CommonSpec is the desired build specification
+	CommonSpec `json:",inline"`
 }
 
 // BuildRunPolicy defines the behaviour of how the new builds are executed
@@ -656,8 +723,13 @@ type BuildRequest struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
+
+	// TriggeredBy helps pass information about a trigger from the
+	// controller to the generator
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy,omitempty"`
 }
 
+// BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 type BinaryBuildRequestOptions struct {
 	unversioned.TypeMeta `json:",inline"`
 	kapi.ObjectMeta      `json:"metadata,omitempty"`

@@ -1122,7 +1122,7 @@ func autoConvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.Bui
 		out.Triggers = nil
 	}
 	out.RunPolicy = v1beta3.BuildRunPolicy(in.RunPolicy)
-	if err := Convert_api_BuildSpec_To_v1beta3_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
+	if err := Convert_api_CommonSpec_To_v1beta3_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
 	return nil
@@ -1346,36 +1346,18 @@ func autoConvert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out 
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSpec))(in)
 	}
-	out.ServiceAccount = in.ServiceAccount
-	if err := v1beta3.Convert_api_BuildSource_To_v1beta3_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := Convert_api_CommonSpec_To_v1beta3_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
-	// unable to generate simple pointer conversion for api.SourceRevision -> v1beta3.SourceRevision
-	if in.Revision != nil {
-		out.Revision = new(v1beta3.SourceRevision)
-		if err := v1beta3.Convert_api_SourceRevision_To_v1beta3_SourceRevision(in.Revision, out.Revision, s); err != nil {
-			return err
+	if in.TriggeredBy != nil {
+		out.TriggeredBy = make([]v1beta3.BuildTriggerCause, len(in.TriggeredBy))
+		for i := range in.TriggeredBy {
+			if err := Convert_api_BuildTriggerCause_To_v1beta3_BuildTriggerCause(&in.TriggeredBy[i], &out.TriggeredBy[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Revision = nil
-	}
-	if err := v1beta3.Convert_api_BuildStrategy_To_v1beta3_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
-		return err
-	}
-	if err := v1beta3.Convert_api_BuildOutput_To_v1beta3_BuildOutput(&in.Output, &out.Output, s); err != nil {
-		return err
-	}
-	if err := Convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
-		return err
-	}
-	if err := Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
-		return err
-	}
-	if in.CompletionDeadlineSeconds != nil {
-		out.CompletionDeadlineSeconds = new(int64)
-		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
-	} else {
-		out.CompletionDeadlineSeconds = nil
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -1463,6 +1445,45 @@ func autoConvert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildSt
 	return nil
 }
 
+func autoConvert_api_BuildTriggerCause_To_v1beta3_BuildTriggerCause(in *buildapi.BuildTriggerCause, out *v1beta3.BuildTriggerCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BuildTriggerCause))(in)
+	}
+	out.Reason = v1beta3.BuildTriggerReason(in.Reason)
+	// unable to generate simple pointer conversion for api.GitHubWebHookInfo -> v1beta3.GitHubWebHookInfo
+	if in.GitHubWebHook != nil {
+		out.GitHubWebHook = new(v1beta3.GitHubWebHookInfo)
+		if err := Convert_api_GitHubWebHookInfo_To_v1beta3_GitHubWebHookInfo(in.GitHubWebHook, out.GitHubWebHook, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitHubWebHook = nil
+	}
+	// unable to generate simple pointer conversion for api.GenericWebHookInfo -> v1beta3.GenericWebHookInfo
+	if in.GenericWebHook != nil {
+		out.GenericWebHook = new(v1beta3.GenericWebHookInfo)
+		if err := Convert_api_GenericWebHookInfo_To_v1beta3_GenericWebHookInfo(in.GenericWebHook, out.GenericWebHook, s); err != nil {
+			return err
+		}
+	} else {
+		out.GenericWebHook = nil
+	}
+	// unable to generate simple pointer conversion for api.ImageChangeInfo -> v1beta3.ImageChangeInfo
+	if in.ImageChangeBuild != nil {
+		out.ImageChangeBuild = new(v1beta3.ImageChangeInfo)
+		if err := Convert_api_ImageChangeInfo_To_v1beta3_ImageChangeInfo(in.ImageChangeBuild, out.ImageChangeBuild, s); err != nil {
+			return err
+		}
+	} else {
+		out.ImageChangeBuild = nil
+	}
+	return nil
+}
+
+func Convert_api_BuildTriggerCause_To_v1beta3_BuildTriggerCause(in *buildapi.BuildTriggerCause, out *v1beta3.BuildTriggerCause, s conversion.Scope) error {
+	return autoConvert_api_BuildTriggerCause_To_v1beta3_BuildTriggerCause(in, out, s)
+}
+
 func autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *buildapi.BuildTriggerPolicy, out *v1beta3.BuildTriggerPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildTriggerPolicy))(in)
@@ -1494,6 +1515,48 @@ func autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 		out.ImageChange = nil
 	}
 	return nil
+}
+
+func autoConvert_api_CommonSpec_To_v1beta3_CommonSpec(in *buildapi.CommonSpec, out *v1beta3.CommonSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.CommonSpec))(in)
+	}
+	out.ServiceAccount = in.ServiceAccount
+	if err := v1beta3.Convert_api_BuildSource_To_v1beta3_BuildSource(&in.Source, &out.Source, s); err != nil {
+		return err
+	}
+	// unable to generate simple pointer conversion for api.SourceRevision -> v1beta3.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(v1beta3.SourceRevision)
+		if err := v1beta3.Convert_api_SourceRevision_To_v1beta3_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := v1beta3.Convert_api_BuildStrategy_To_v1beta3_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+		return err
+	}
+	if err := v1beta3.Convert_api_BuildOutput_To_v1beta3_BuildOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
+	if err := Convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_api_BuildPostCommitSpec_To_v1beta3_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
+		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
+	return nil
+}
+
+func Convert_api_CommonSpec_To_v1beta3_CommonSpec(in *buildapi.CommonSpec, out *v1beta3.CommonSpec, s conversion.Scope) error {
+	return autoConvert_api_CommonSpec_To_v1beta3_CommonSpec(in, out, s)
 }
 
 func autoConvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buildapi.CustomBuildStrategy, out *v1beta3.CustomBuildStrategy, s conversion.Scope) error {
@@ -1576,6 +1639,27 @@ func autoConvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buil
 	return nil
 }
 
+func autoConvert_api_GenericWebHookInfo_To_v1beta3_GenericWebHookInfo(in *buildapi.GenericWebHookInfo, out *v1beta3.GenericWebHookInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.GenericWebHookInfo))(in)
+	}
+	// unable to generate simple pointer conversion for api.SourceRevision -> v1beta3.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(v1beta3.SourceRevision)
+		if err := v1beta3.Convert_api_SourceRevision_To_v1beta3_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_api_GenericWebHookInfo_To_v1beta3_GenericWebHookInfo(in *buildapi.GenericWebHookInfo, out *v1beta3.GenericWebHookInfo, s conversion.Scope) error {
+	return autoConvert_api_GenericWebHookInfo_To_v1beta3_GenericWebHookInfo(in, out, s)
+}
+
 func autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildSource, out *v1beta3.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitBuildSource))(in)
@@ -1601,6 +1685,27 @@ func Convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in *buildapi.GitBuildS
 	return autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource(in, out, s)
 }
 
+func autoConvert_api_GitHubWebHookInfo_To_v1beta3_GitHubWebHookInfo(in *buildapi.GitHubWebHookInfo, out *v1beta3.GitHubWebHookInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.GitHubWebHookInfo))(in)
+	}
+	// unable to generate simple pointer conversion for api.SourceRevision -> v1beta3.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(v1beta3.SourceRevision)
+		if err := v1beta3.Convert_api_SourceRevision_To_v1beta3_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_api_GitHubWebHookInfo_To_v1beta3_GitHubWebHookInfo(in *buildapi.GitHubWebHookInfo, out *v1beta3.GitHubWebHookInfo, s conversion.Scope) error {
+	return autoConvert_api_GitHubWebHookInfo_To_v1beta3_GitHubWebHookInfo(in, out, s)
+}
+
 func autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *v1beta3.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitSourceRevision))(in)
@@ -1618,6 +1723,27 @@ func autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi
 
 func Convert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in *buildapi.GitSourceRevision, out *v1beta3.GitSourceRevision, s conversion.Scope) error {
 	return autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision(in, out, s)
+}
+
+func autoConvert_api_ImageChangeInfo_To_v1beta3_ImageChangeInfo(in *buildapi.ImageChangeInfo, out *v1beta3.ImageChangeInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.ImageChangeInfo))(in)
+	}
+	out.ImageID = in.ImageID
+	// unable to generate simple pointer conversion for api.ObjectReference -> v1beta3.ObjectReference
+	if in.FromRef != nil {
+		out.FromRef = new(apiv1beta3.ObjectReference)
+		if err := Convert_api_ObjectReference_To_v1beta3_ObjectReference(in.FromRef, out.FromRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromRef = nil
+	}
+	return nil
+}
+
+func Convert_api_ImageChangeInfo_To_v1beta3_ImageChangeInfo(in *buildapi.ImageChangeInfo, out *v1beta3.ImageChangeInfo, s conversion.Scope) error {
+	return autoConvert_api_ImageChangeInfo_To_v1beta3_ImageChangeInfo(in, out, s)
 }
 
 func autoConvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *v1beta3.ImageChangeTrigger, s conversion.Scope) error {
@@ -1886,7 +2012,7 @@ func autoConvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *v1beta3.Buil
 		out.Triggers = nil
 	}
 	out.RunPolicy = buildapi.BuildRunPolicy(in.RunPolicy)
-	if err := Convert_v1beta3_BuildSpec_To_api_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
+	if err := Convert_v1beta3_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
 	return nil
@@ -2111,36 +2237,18 @@ func autoConvert_v1beta3_BuildSpec_To_api_BuildSpec(in *v1beta3.BuildSpec, out *
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildSpec))(in)
 	}
-	out.ServiceAccount = in.ServiceAccount
-	if err := v1beta3.Convert_v1beta3_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
+	if err := Convert_v1beta3_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
-	// unable to generate simple pointer conversion for v1beta3.SourceRevision -> api.SourceRevision
-	if in.Revision != nil {
-		out.Revision = new(buildapi.SourceRevision)
-		if err := v1beta3.Convert_v1beta3_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
-			return err
+	if in.TriggeredBy != nil {
+		out.TriggeredBy = make([]buildapi.BuildTriggerCause, len(in.TriggeredBy))
+		for i := range in.TriggeredBy {
+			if err := Convert_v1beta3_BuildTriggerCause_To_api_BuildTriggerCause(&in.TriggeredBy[i], &out.TriggeredBy[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Revision = nil
-	}
-	if err := v1beta3.Convert_v1beta3_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
-		return err
-	}
-	if err := v1beta3.Convert_v1beta3_BuildOutput_To_api_BuildOutput(&in.Output, &out.Output, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
-		return err
-	}
-	if in.CompletionDeadlineSeconds != nil {
-		out.CompletionDeadlineSeconds = new(int64)
-		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
-	} else {
-		out.CompletionDeadlineSeconds = nil
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -2228,6 +2336,45 @@ func autoConvert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *v1beta3.BuildStr
 	return nil
 }
 
+func autoConvert_v1beta3_BuildTriggerCause_To_api_BuildTriggerCause(in *v1beta3.BuildTriggerCause, out *buildapi.BuildTriggerCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.BuildTriggerCause))(in)
+	}
+	out.Reason = buildapi.BuildTriggerReason(in.Reason)
+	// unable to generate simple pointer conversion for v1beta3.GitHubWebHookInfo -> api.GitHubWebHookInfo
+	if in.GitHubWebHook != nil {
+		out.GitHubWebHook = new(buildapi.GitHubWebHookInfo)
+		if err := Convert_v1beta3_GitHubWebHookInfo_To_api_GitHubWebHookInfo(in.GitHubWebHook, out.GitHubWebHook, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitHubWebHook = nil
+	}
+	// unable to generate simple pointer conversion for v1beta3.GenericWebHookInfo -> api.GenericWebHookInfo
+	if in.GenericWebHook != nil {
+		out.GenericWebHook = new(buildapi.GenericWebHookInfo)
+		if err := Convert_v1beta3_GenericWebHookInfo_To_api_GenericWebHookInfo(in.GenericWebHook, out.GenericWebHook, s); err != nil {
+			return err
+		}
+	} else {
+		out.GenericWebHook = nil
+	}
+	// unable to generate simple pointer conversion for v1beta3.ImageChangeInfo -> api.ImageChangeInfo
+	if in.ImageChangeBuild != nil {
+		out.ImageChangeBuild = new(buildapi.ImageChangeInfo)
+		if err := Convert_v1beta3_ImageChangeInfo_To_api_ImageChangeInfo(in.ImageChangeBuild, out.ImageChangeBuild, s); err != nil {
+			return err
+		}
+	} else {
+		out.ImageChangeBuild = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_BuildTriggerCause_To_api_BuildTriggerCause(in *v1beta3.BuildTriggerCause, out *buildapi.BuildTriggerCause, s conversion.Scope) error {
+	return autoConvert_v1beta3_BuildTriggerCause_To_api_BuildTriggerCause(in, out, s)
+}
+
 func autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *v1beta3.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.BuildTriggerPolicy))(in)
@@ -2259,6 +2406,48 @@ func autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *v1beta
 		out.ImageChange = nil
 	}
 	return nil
+}
+
+func autoConvert_v1beta3_CommonSpec_To_api_CommonSpec(in *v1beta3.CommonSpec, out *buildapi.CommonSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.CommonSpec))(in)
+	}
+	out.ServiceAccount = in.ServiceAccount
+	if err := v1beta3.Convert_v1beta3_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
+		return err
+	}
+	// unable to generate simple pointer conversion for v1beta3.SourceRevision -> api.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := v1beta3.Convert_v1beta3_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := v1beta3.Convert_v1beta3_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
+		return err
+	}
+	if err := v1beta3.Convert_v1beta3_BuildOutput_To_api_BuildOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta3_BuildPostCommitSpec_To_api_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
+		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_CommonSpec_To_api_CommonSpec(in *v1beta3.CommonSpec, out *buildapi.CommonSpec, s conversion.Scope) error {
+	return autoConvert_v1beta3_CommonSpec_To_api_CommonSpec(in, out, s)
 }
 
 func autoConvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *v1beta3.CustomBuildStrategy, out *buildapi.CustomBuildStrategy, s conversion.Scope) error {
@@ -2341,6 +2530,27 @@ func autoConvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *v1be
 	return nil
 }
 
+func autoConvert_v1beta3_GenericWebHookInfo_To_api_GenericWebHookInfo(in *v1beta3.GenericWebHookInfo, out *buildapi.GenericWebHookInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GenericWebHookInfo))(in)
+	}
+	// unable to generate simple pointer conversion for v1beta3.SourceRevision -> api.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := v1beta3.Convert_v1beta3_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_v1beta3_GenericWebHookInfo_To_api_GenericWebHookInfo(in *v1beta3.GenericWebHookInfo, out *buildapi.GenericWebHookInfo, s conversion.Scope) error {
+	return autoConvert_v1beta3_GenericWebHookInfo_To_api_GenericWebHookInfo(in, out, s)
+}
+
 func autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *v1beta3.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.GitBuildSource))(in)
@@ -2366,6 +2576,27 @@ func Convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in *v1beta3.GitBuildSo
 	return autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource(in, out, s)
 }
 
+func autoConvert_v1beta3_GitHubWebHookInfo_To_api_GitHubWebHookInfo(in *v1beta3.GitHubWebHookInfo, out *buildapi.GitHubWebHookInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.GitHubWebHookInfo))(in)
+	}
+	// unable to generate simple pointer conversion for v1beta3.SourceRevision -> api.SourceRevision
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := v1beta3.Convert_v1beta3_SourceRevision_To_api_SourceRevision(in.Revision, out.Revision, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_v1beta3_GitHubWebHookInfo_To_api_GitHubWebHookInfo(in *v1beta3.GitHubWebHookInfo, out *buildapi.GitHubWebHookInfo, s conversion.Scope) error {
+	return autoConvert_v1beta3_GitHubWebHookInfo_To_api_GitHubWebHookInfo(in, out, s)
+}
+
 func autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *v1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1beta3.GitSourceRevision))(in)
@@ -2383,6 +2614,27 @@ func autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *v1beta3.
 
 func Convert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in *v1beta3.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	return autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision(in, out, s)
+}
+
+func autoConvert_v1beta3_ImageChangeInfo_To_api_ImageChangeInfo(in *v1beta3.ImageChangeInfo, out *buildapi.ImageChangeInfo, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1beta3.ImageChangeInfo))(in)
+	}
+	out.ImageID = in.ImageID
+	// unable to generate simple pointer conversion for v1beta3.ObjectReference -> api.ObjectReference
+	if in.FromRef != nil {
+		out.FromRef = new(api.ObjectReference)
+		if err := Convert_v1beta3_ObjectReference_To_api_ObjectReference(in.FromRef, out.FromRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromRef = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_ImageChangeInfo_To_api_ImageChangeInfo(in *v1beta3.ImageChangeInfo, out *buildapi.ImageChangeInfo, s conversion.Scope) error {
+	return autoConvert_v1beta3_ImageChangeInfo_To_api_ImageChangeInfo(in, out, s)
 }
 
 func autoConvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *v1beta3.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
@@ -6844,6 +7096,7 @@ func init() {
 		autoConvert_api_BuildSpec_To_v1beta3_BuildSpec,
 		autoConvert_api_BuildStatus_To_v1beta3_BuildStatus,
 		autoConvert_api_BuildStrategy_To_v1beta3_BuildStrategy,
+		autoConvert_api_BuildTriggerCause_To_v1beta3_BuildTriggerCause,
 		autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
 		autoConvert_api_Build_To_v1beta3_Build,
 		autoConvert_api_Capabilities_To_v1beta3_Capabilities,
@@ -6858,6 +7111,7 @@ func init() {
 		autoConvert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding,
 		autoConvert_api_ClusterRoleList_To_v1beta3_ClusterRoleList,
 		autoConvert_api_ClusterRole_To_v1beta3_ClusterRole,
+		autoConvert_api_CommonSpec_To_v1beta3_CommonSpec,
 		autoConvert_api_ContainerPort_To_v1beta3_ContainerPort,
 		autoConvert_api_Container_To_v1beta3_Container,
 		autoConvert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy,
@@ -6878,7 +7132,9 @@ func init() {
 		autoConvert_api_FCVolumeSource_To_v1beta3_FCVolumeSource,
 		autoConvert_api_FlockerVolumeSource_To_v1beta3_FlockerVolumeSource,
 		autoConvert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource,
+		autoConvert_api_GenericWebHookInfo_To_v1beta3_GenericWebHookInfo,
 		autoConvert_api_GitBuildSource_To_v1beta3_GitBuildSource,
+		autoConvert_api_GitHubWebHookInfo_To_v1beta3_GitHubWebHookInfo,
 		autoConvert_api_GitSourceRevision_To_v1beta3_GitSourceRevision,
 		autoConvert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource,
 		autoConvert_api_GroupList_To_v1beta3_GroupList,
@@ -6888,6 +7144,7 @@ func init() {
 		autoConvert_api_HostSubnet_To_v1beta3_HostSubnet,
 		autoConvert_api_IdentityList_To_v1beta3_IdentityList,
 		autoConvert_api_Identity_To_v1beta3_Identity,
+		autoConvert_api_ImageChangeInfo_To_v1beta3_ImageChangeInfo,
 		autoConvert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger,
 		autoConvert_api_ImageList_To_v1beta3_ImageList,
 		autoConvert_api_ImageSourcePath_To_v1beta3_ImageSourcePath,
@@ -6988,6 +7245,7 @@ func init() {
 		autoConvert_v1beta3_BuildSpec_To_api_BuildSpec,
 		autoConvert_v1beta3_BuildStatus_To_api_BuildStatus,
 		autoConvert_v1beta3_BuildStrategy_To_api_BuildStrategy,
+		autoConvert_v1beta3_BuildTriggerCause_To_api_BuildTriggerCause,
 		autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		autoConvert_v1beta3_Build_To_api_Build,
 		autoConvert_v1beta3_Capabilities_To_api_Capabilities,
@@ -7002,6 +7260,7 @@ func init() {
 		autoConvert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding,
 		autoConvert_v1beta3_ClusterRoleList_To_api_ClusterRoleList,
 		autoConvert_v1beta3_ClusterRole_To_api_ClusterRole,
+		autoConvert_v1beta3_CommonSpec_To_api_CommonSpec,
 		autoConvert_v1beta3_ContainerPort_To_api_ContainerPort,
 		autoConvert_v1beta3_Container_To_api_Container,
 		autoConvert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy,
@@ -7023,7 +7282,9 @@ func init() {
 		autoConvert_v1beta3_FCVolumeSource_To_api_FCVolumeSource,
 		autoConvert_v1beta3_FlockerVolumeSource_To_api_FlockerVolumeSource,
 		autoConvert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource,
+		autoConvert_v1beta3_GenericWebHookInfo_To_api_GenericWebHookInfo,
 		autoConvert_v1beta3_GitBuildSource_To_api_GitBuildSource,
+		autoConvert_v1beta3_GitHubWebHookInfo_To_api_GitHubWebHookInfo,
 		autoConvert_v1beta3_GitSourceRevision_To_api_GitSourceRevision,
 		autoConvert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource,
 		autoConvert_v1beta3_GroupList_To_api_GroupList,
@@ -7033,6 +7294,7 @@ func init() {
 		autoConvert_v1beta3_HostSubnet_To_api_HostSubnet,
 		autoConvert_v1beta3_IdentityList_To_api_IdentityList,
 		autoConvert_v1beta3_Identity_To_api_Identity,
+		autoConvert_v1beta3_ImageChangeInfo_To_api_ImageChangeInfo,
 		autoConvert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		autoConvert_v1beta3_ImageList_To_api_ImageList,
 		autoConvert_v1beta3_ImageSourcePath_To_api_ImageSourcePath,

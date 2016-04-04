@@ -125,19 +125,21 @@ func TestProjectMustExist(t *testing.T) {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},

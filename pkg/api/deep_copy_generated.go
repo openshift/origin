@@ -798,7 +798,7 @@ func deepCopy_api_BuildConfigSpec(in buildapi.BuildConfigSpec, out *buildapi.Bui
 		out.Triggers = nil
 	}
 	out.RunPolicy = in.RunPolicy
-	if err := deepCopy_api_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
+	if err := deepCopy_api_CommonSpec(in.CommonSpec, &out.CommonSpec, c); err != nil {
 		return err
 	}
 	return nil
@@ -995,6 +995,16 @@ func deepCopy_api_BuildRequest(in buildapi.BuildRequest, out *buildapi.BuildRequ
 	} else {
 		out.Env = nil
 	}
+	if in.TriggeredBy != nil {
+		out.TriggeredBy = make([]buildapi.BuildTriggerCause, len(in.TriggeredBy))
+		for i := range in.TriggeredBy {
+			if err := deepCopy_api_BuildTriggerCause(in.TriggeredBy[i], &out.TriggeredBy[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.TriggeredBy = nil
+	}
 	return nil
 }
 
@@ -1055,37 +1065,18 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 }
 
 func deepCopy_api_BuildSpec(in buildapi.BuildSpec, out *buildapi.BuildSpec, c *conversion.Cloner) error {
-	out.ServiceAccount = in.ServiceAccount
-	if err := deepCopy_api_BuildSource(in.Source, &out.Source, c); err != nil {
+	if err := deepCopy_api_CommonSpec(in.CommonSpec, &out.CommonSpec, c); err != nil {
 		return err
 	}
-	if in.Revision != nil {
-		out.Revision = new(buildapi.SourceRevision)
-		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
-			return err
+	if in.TriggeredBy != nil {
+		out.TriggeredBy = make([]buildapi.BuildTriggerCause, len(in.TriggeredBy))
+		for i := range in.TriggeredBy {
+			if err := deepCopy_api_BuildTriggerCause(in.TriggeredBy[i], &out.TriggeredBy[i], c); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.Revision = nil
-	}
-	if err := deepCopy_api_BuildStrategy(in.Strategy, &out.Strategy, c); err != nil {
-		return err
-	}
-	if err := deepCopy_api_BuildOutput(in.Output, &out.Output, c); err != nil {
-		return err
-	}
-	if newVal, err := c.DeepCopy(in.Resources); err != nil {
-		return err
-	} else {
-		out.Resources = newVal.(pkgapi.ResourceRequirements)
-	}
-	if err := deepCopy_api_BuildPostCommitSpec(in.PostCommit, &out.PostCommit, c); err != nil {
-		return err
-	}
-	if in.CompletionDeadlineSeconds != nil {
-		out.CompletionDeadlineSeconds = new(int64)
-		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
-	} else {
-		out.CompletionDeadlineSeconds = nil
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -1163,6 +1154,35 @@ func deepCopy_api_BuildStrategy(in buildapi.BuildStrategy, out *buildapi.BuildSt
 	return nil
 }
 
+func deepCopy_api_BuildTriggerCause(in buildapi.BuildTriggerCause, out *buildapi.BuildTriggerCause, c *conversion.Cloner) error {
+	out.Reason = in.Reason
+	if in.GitHubWebHook != nil {
+		out.GitHubWebHook = new(buildapi.GitHubWebHookInfo)
+		if err := deepCopy_api_GitHubWebHookInfo(*in.GitHubWebHook, out.GitHubWebHook, c); err != nil {
+			return err
+		}
+	} else {
+		out.GitHubWebHook = nil
+	}
+	if in.GenericWebHook != nil {
+		out.GenericWebHook = new(buildapi.GenericWebHookInfo)
+		if err := deepCopy_api_GenericWebHookInfo(*in.GenericWebHook, out.GenericWebHook, c); err != nil {
+			return err
+		}
+	} else {
+		out.GenericWebHook = nil
+	}
+	if in.ImageChangeBuild != nil {
+		out.ImageChangeBuild = new(buildapi.ImageChangeInfo)
+		if err := deepCopy_api_ImageChangeInfo(*in.ImageChangeBuild, out.ImageChangeBuild, c); err != nil {
+			return err
+		}
+	} else {
+		out.ImageChangeBuild = nil
+	}
+	return nil
+}
+
 func deepCopy_api_BuildTriggerPolicy(in buildapi.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, c *conversion.Cloner) error {
 	out.Type = in.Type
 	if in.GitHubWebHook != nil {
@@ -1188,6 +1208,42 @@ func deepCopy_api_BuildTriggerPolicy(in buildapi.BuildTriggerPolicy, out *builda
 		}
 	} else {
 		out.ImageChange = nil
+	}
+	return nil
+}
+
+func deepCopy_api_CommonSpec(in buildapi.CommonSpec, out *buildapi.CommonSpec, c *conversion.Cloner) error {
+	out.ServiceAccount = in.ServiceAccount
+	if err := deepCopy_api_BuildSource(in.Source, &out.Source, c); err != nil {
+		return err
+	}
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := deepCopy_api_BuildStrategy(in.Strategy, &out.Strategy, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_BuildOutput(in.Output, &out.Output, c); err != nil {
+		return err
+	}
+	if newVal, err := c.DeepCopy(in.Resources); err != nil {
+		return err
+	} else {
+		out.Resources = newVal.(pkgapi.ResourceRequirements)
+	}
+	if err := deepCopy_api_BuildPostCommitSpec(in.PostCommit, &out.PostCommit, c); err != nil {
+		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
 	}
 	return nil
 }
@@ -1272,6 +1328,19 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	return nil
 }
 
+func deepCopy_api_GenericWebHookInfo(in buildapi.GenericWebHookInfo, out *buildapi.GenericWebHookInfo, c *conversion.Cloner) error {
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
 func deepCopy_api_GitBuildSource(in buildapi.GitBuildSource, out *buildapi.GitBuildSource, c *conversion.Cloner) error {
 	out.URI = in.URI
 	out.Ref = in.Ref
@@ -1290,6 +1359,19 @@ func deepCopy_api_GitBuildSource(in buildapi.GitBuildSource, out *buildapi.GitBu
 	return nil
 }
 
+func deepCopy_api_GitHubWebHookInfo(in buildapi.GitHubWebHookInfo, out *buildapi.GitHubWebHookInfo, c *conversion.Cloner) error {
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
 func deepCopy_api_GitSourceRevision(in buildapi.GitSourceRevision, out *buildapi.GitSourceRevision, c *conversion.Cloner) error {
 	out.Commit = in.Commit
 	if err := deepCopy_api_SourceControlUser(in.Author, &out.Author, c); err != nil {
@@ -1299,6 +1381,20 @@ func deepCopy_api_GitSourceRevision(in buildapi.GitSourceRevision, out *buildapi
 		return err
 	}
 	out.Message = in.Message
+	return nil
+}
+
+func deepCopy_api_ImageChangeInfo(in buildapi.ImageChangeInfo, out *buildapi.ImageChangeInfo, c *conversion.Cloner) error {
+	out.ImageID = in.ImageID
+	if in.FromRef != nil {
+		if newVal, err := c.DeepCopy(in.FromRef); err != nil {
+			return err
+		} else {
+			out.FromRef = newVal.(*pkgapi.ObjectReference)
+		}
+	} else {
+		out.FromRef = nil
+	}
 	return nil
 }
 
@@ -3365,11 +3461,16 @@ func init() {
 		deepCopy_api_BuildSpec,
 		deepCopy_api_BuildStatus,
 		deepCopy_api_BuildStrategy,
+		deepCopy_api_BuildTriggerCause,
 		deepCopy_api_BuildTriggerPolicy,
+		deepCopy_api_CommonSpec,
 		deepCopy_api_CustomBuildStrategy,
 		deepCopy_api_DockerBuildStrategy,
+		deepCopy_api_GenericWebHookInfo,
 		deepCopy_api_GitBuildSource,
+		deepCopy_api_GitHubWebHookInfo,
 		deepCopy_api_GitSourceRevision,
+		deepCopy_api_ImageChangeInfo,
 		deepCopy_api_ImageChangeTrigger,
 		deepCopy_api_ImageSource,
 		deepCopy_api_ImageSourcePath,

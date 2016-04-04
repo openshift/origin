@@ -116,9 +116,15 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 	}
 
 	glog.V(4).Infof("Running build for BuildConfig %s/%s", bc.Namespace, bc.Name)
+
+	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	// instantiate new build
 	lastVersion := 0
 	request := &buildapi.BuildRequest{
+		TriggeredBy: append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Reason: "Triggered by config change",
+			}),
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      bc.Name,
 			Namespace: bc.Namespace,

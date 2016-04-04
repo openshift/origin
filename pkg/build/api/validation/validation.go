@@ -22,7 +22,7 @@ import (
 func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateBuildSpec(&build.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, validateCommonSpec(&build.Spec.CommonSpec, field.NewPath("spec"))...)
 	return allErrs
 }
 
@@ -89,7 +89,7 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 			"run policy must Parallel, Serial, or SerialLatestOnly"))
 	}
 
-	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec, specPath)...)
+	allErrs = append(allErrs, validateCommonSpec(&config.Spec.CommonSpec, specPath)...)
 
 	return allErrs
 }
@@ -106,7 +106,7 @@ func ValidateBuildRequest(request *buildapi.BuildRequest) field.ErrorList {
 	return validation.ValidateObjectMeta(&request.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
 }
 
-func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.ErrorList {
+func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	s := spec.Strategy
 

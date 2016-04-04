@@ -210,7 +210,7 @@ func TestGraph(t *testing.T) {
 					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
@@ -225,7 +225,7 @@ func TestGraph(t *testing.T) {
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:base-image"},
 				},
@@ -235,7 +235,7 @@ func TestGraph(t *testing.T) {
 	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build2"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{Kind: "DockerImage", Name: "mycustom/repo/image:tag2"},
 				},

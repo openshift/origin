@@ -128,16 +128,18 @@ func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.build.com/the/build/Dockerfile",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.build.com/the/build/Dockerfile",
+					},
+					ContextDir: "contextimage",
 				},
-				ContextDir: "contextimage",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: output,
 			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: output,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: phase,

@@ -58,19 +58,21 @@ func mockBuild() *buildapi.Build {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
 				},
 			},
 		},
@@ -792,9 +794,9 @@ func configChangeBuildConfig() *buildapi.BuildConfig {
 	bc := &buildapi.BuildConfig{}
 	bc.Name = "testcfgbc"
 	bc.Namespace = testutil.Namespace()
-	bc.Spec.BuildSpec.Source.Git = &buildapi.GitBuildSource{}
-	bc.Spec.BuildSpec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
-	bc.Spec.BuildSpec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	bc.Spec.Source.Git = &buildapi.GitBuildSource{}
+	bc.Spec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
+	bc.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 	configChangeTrigger := buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType}
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
 	return bc

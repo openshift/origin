@@ -211,7 +211,7 @@ func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
 	*buildEnv = newEnv
 }
 
-// Instantiate returns new Build object based on a BuildRequest object
+// Instantiate returns a new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
@@ -236,26 +236,31 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	// Add labels and annotations from the buildrequest.  Existing label/annotations will take
-	// precedence because we don't want system annotations/labels (eg buildname) to get stomped on.
+	// Add labels and annotations from the buildrequest.  Existing
+	// label/annotations will take precedence because we don't want system
+	// annotations/labels (eg buildname) to get stomped on.
 	newBuild.Annotations = policy.MergeMaps(request.Annotations, newBuild.Annotations)
 	newBuild.Labels = policy.MergeMaps(request.Labels, newBuild.Labels)
+	// Copy build trigger information to the build object.
+	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
 		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
 	}
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 
-	// need to update the BuildConfig because LastVersion and possibly LastTriggeredImageID changed
+	// need to update the BuildConfig because LastVersion and possibly
+	// LastTriggeredImageID changed
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
 		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 
-	// Ideally we would create the build *before* updating the BC to ensure that we don't set the LastTriggeredImageID
-	// on the BC and then fail to create the corresponding build, however doing things in that order allows for a race
-	// condition in which two builds get kicked off.  Doing it in this order ensures that we catch the race while
-	// updating the BC.
+	// Ideally we would create the build *before* updating the BC to ensure
+	// that we don't set the LastTriggeredImageID on the BC and then fail to
+	// create the corresponding build, however doing things in that order
+	// allows for a race condition in which two builds get kicked off.  Doing
+	// it in this order ensures that we catch the race while updating the BC.
 	return g.createBuild(ctx, newBuild)
 }
 
@@ -381,14 +386,16 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
-			ServiceAccount:            serviceAccount,
-			Source:                    bcCopy.Spec.Source,
-			Strategy:                  bcCopy.Spec.Strategy,
-			Output:                    bcCopy.Spec.Output,
-			Revision:                  revision,
-			Resources:                 bcCopy.Spec.Resources,
-			PostCommit:                bcCopy.Spec.PostCommit,
-			CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+			CommonSpec: buildapi.CommonSpec{
+				ServiceAccount:            serviceAccount,
+				Source:                    bcCopy.Spec.Source,
+				Strategy:                  bcCopy.Spec.Strategy,
+				Output:                    bcCopy.Spec.Output,
+				Revision:                  revision,
+				Resources:                 bcCopy.Spec.Resources,
+				PostCommit:                bcCopy.Spec.PostCommit,
+				CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+			},
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,

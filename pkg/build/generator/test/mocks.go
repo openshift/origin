@@ -72,7 +72,7 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 			},
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{

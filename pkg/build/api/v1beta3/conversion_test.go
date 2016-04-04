@@ -18,7 +18,7 @@ func TestBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -59,7 +59,7 @@ func TestBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -100,7 +100,7 @@ func TestBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -269,7 +269,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 	buildConfig := older.BuildConfig{
 		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: older.BuildConfigSpec{
-			BuildSpec: older.BuildSpec{
+			CommonSpec: older.CommonSpec{
 				Strategy: older.BuildStrategy{
 					Type: older.DockerBuildStrategyType,
 					DockerStrategy: &older.DockerBuildStrategy{

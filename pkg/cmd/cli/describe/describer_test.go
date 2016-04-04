@@ -449,19 +449,21 @@ func TestDescribeBuildSpec(t *testing.T) {
 	}{
 		{
 			spec: buildapi.BuildSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							URI: "http://github.com/my/repository",
+						},
+						ContextDir: "context",
 					},
-					ContextDir: "context",
-				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
+					Strategy: buildapi.BuildStrategy{
+						DockerStrategy: &buildapi.DockerBuildStrategy{},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
 					},
 				},
 			},
@@ -469,19 +471,21 @@ func TestDescribeBuildSpec(t *testing.T) {
 		},
 		{
 			spec: buildapi.BuildSpec{
-				Source: buildapi.BuildSource{},
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From: kapi.ObjectReference{
-							Kind: "DockerImage",
-							Name: "myimage:tag",
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
 						},
 					},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
 					},
 				},
 			},
@@ -489,19 +493,21 @@ func TestDescribeBuildSpec(t *testing.T) {
 		},
 		{
 			spec: buildapi.BuildSpec{
-				Source: buildapi.BuildSource{},
-				Strategy: buildapi.BuildStrategy{
-					CustomStrategy: &buildapi.CustomBuildStrategy{
-						From: kapi.ObjectReference{
-							Kind: "DockerImage",
-							Name: "myimage:tag",
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						CustomStrategy: &buildapi.CustomBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
 						},
 					},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
 					},
 				},
 			},
@@ -511,7 +517,7 @@ func TestDescribeBuildSpec(t *testing.T) {
 	for _, tt := range tests {
 		var b bytes.Buffer
 		out := tabwriter.NewWriter(&b, 0, 8, 0, '\t', 0)
-		describeBuildSpec(tt.spec, out)
+		describeCommonSpec(tt.spec.CommonSpec, out)
 		if err := out.Flush(); err != nil {
 			t.Fatalf("%+v: flush error: %v", tt.spec, err)
 		}
