@@ -430,16 +430,9 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 
 	if len(strategy.DockerfilePath) != 0 {
-		cleaned := path.Clean(strategy.DockerfilePath)
-		switch {
-		case filepath.IsAbs(cleaned):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not be an absolute path"))
-		case strings.HasPrefix(cleaned, ".."):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not start with .."))
-		default:
-			if cleaned == "." {
-				cleaned = ""
-			}
+		cleaned, errs := validateRelativePath(strategy.DockerfilePath, "dockerfilePath", fldPath.Child("dockerfilePath"))
+		allErrs = append(allErrs, errs...)
+		if len(errs) == 0 {
 			strategy.DockerfilePath = cleaned
 		}
 	}
@@ -447,6 +440,22 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
 
 	return allErrs
+}
+
+func validateRelativePath(filePath, fieldName string, fldPath *field.Path) (string, field.ErrorList) {
+	allErrs := field.ErrorList{}
+	cleaned := path.Clean(filePath)
+	switch {
+	case filepath.IsAbs(cleaned):
+		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must not be an absolute path"))
+	case cleaned == ".." || strings.HasPrefix(cleaned, "../"):
+		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must not start with .."))
+	default:
+		if cleaned == "." {
+			cleaned = ""
+		}
+	}
+	return cleaned, allErrs
 }
 
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *field.Path) field.ErrorList {
@@ -477,16 +486,9 @@ func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineBuildStra
 	}
 
 	if len(strategy.JenkinsfilePath) != 0 {
-		cleaned := path.Clean(strategy.JenkinsfilePath)
-		switch {
-		case filepath.IsAbs(cleaned):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not be an absolute path"))
-		case strings.HasPrefix(cleaned, ".."):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfilePath"), strategy.JenkinsfilePath, "jenkinsfilePath must not start with .."))
-		default:
-			if cleaned == "." {
-				cleaned = ""
-			}
+		cleaned, errs := validateRelativePath(strategy.JenkinsfilePath, "jenkinsfilePath", fldPath.Child("jenkinsfilePath"))
+		allErrs = append(allErrs, errs...)
+		if len(errs) == 0 {
 			strategy.JenkinsfilePath = cleaned
 		}
 	}

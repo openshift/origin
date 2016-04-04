@@ -1392,7 +1392,7 @@ func TestValidateBuildSpec(t *testing.T) {
 			},
 		},
 		// 16
-		// dockerfilePath can't start with ..
+		// dockerfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
 			&buildapi.BuildSpec{
@@ -1416,6 +1416,54 @@ func TestValidateBuildSpec(t *testing.T) {
 			},
 		},
 		// 17
+		// dockerfilePath can't reference a path outside of the dir
+		{
+			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "someDockerfile/../../..",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 17
+		// dockerfilePath can't equal ..
+		{
+			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "..",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 18
 		{
 			string(field.ErrorTypeInvalid) + "postCommit",
 			&buildapi.BuildSpec{
@@ -1433,7 +1481,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 18
+		// 19
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			&buildapi.BuildSpec{
@@ -1442,7 +1490,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 19
+		// 20
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			&buildapi.BuildSpec{
@@ -1453,7 +1501,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 20
+		// 21
 		// jenkinsfilePath can't be an absolute path
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1470,8 +1518,8 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 21
-		// jenkinsfilePath can't start with ..
+		// 22
+		// jenkinsfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
 			&buildapi.BuildSpec{
@@ -1487,7 +1535,41 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 22
+		// 23
+		// jenkinsfilePath can't be a reference a path outside of the dir
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "someJenkinsfile/../../../",
+					},
+				},
+			},
+		},
+		// 24
+		// jenkinsfilePath can't be equal to ..
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "..",
+					},
+				},
+			},
+		},
+		// 25
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
 			&buildapi.BuildSpec{
@@ -1503,7 +1585,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
-		// 23
+		// 26
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
 			&buildapi.BuildSpec{
