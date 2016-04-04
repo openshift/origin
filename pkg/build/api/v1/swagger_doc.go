@@ -330,8 +330,8 @@ func (ImageSourcePath) SwaggerDoc() map[string]string {
 
 var map_JenkinsPipelineBuildStrategy = map[string]string{
 	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
-	"jenkinsfilePath": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo.",
-	"jenkinsfile":     "Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
+	"jenkinsfilePath": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo.",
+	"jenkinsfile":     "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
 }
 
 func (JenkinsPipelineBuildStrategy) SwaggerDoc() map[string]string {
