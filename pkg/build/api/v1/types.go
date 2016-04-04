@@ -21,8 +21,19 @@ type Build struct {
 	Status BuildStatus `json:"status,omitempty"`
 }
 
-// BuildSpec encapsulates all the inputs necessary to represent a build.
+// BuildSpec has the information to represent a build and also additional
+// information about a build
 type BuildSpec struct {
+	// CommonSpec is the information that represents a build
+	CommonSpec `json:",inline"`
+
+	// triggeredBy describes which triggers started the most recent update to the
+	// build configuration and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy"`
+}
+
+// CommonSpec encapsulates all the inputs necessary to represent a build.
+type CommonSpec struct {
 	// serviceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
 	// The pod will be allowed to use secrets referenced by the ServiceAccount
@@ -41,17 +52,71 @@ type BuildSpec struct {
 	// output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty"`
 
-	// resource requirements to execute the build
+	// resources computes resource requirements to execute the build.
 	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 
 	// postCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
 	PostCommit BuildPostCommitSpec `json:"postCommit,omitempty"`
 
-	// completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets
-	// scheduled in the system, that the build may be active on a node before the
-	// system actively tries to terminate the build; value must be positive integer
+	// completionDeadlineSeconds is an optional duration in seconds, counted from
+	// the time when a build pod gets scheduled in the system, that the build may
+	// be active on a node before the system actively tries to terminate the
+	// build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty"`
+}
+
+// BuildTriggerCause holds information about a triggered build. It is used for
+// displaying build trigger data for each build and build configuration in oc
+// describe. It is also used to describe which triggers led to the most recent
+// update in the build configuration.
+type BuildTriggerCause struct {
+	// message is used to store a human readable message for why the build was
+	// triggered. E.g.: "Manually triggered by user", "Configuration change",etc.
+	Message string `json:"message,omitempty"`
+
+	// genericWebHook holds data about a builds generic webhook trigger.
+	GenericWebHook *GenericWebHookCause `json:"genericWebHook,omitempty"`
+
+	// gitHubWebHook represents data for a GitHub webhook that fired a
+	//specific build.
+	GitHubWebHook *GitHubWebHookCause `json:"githubWebHook,omitempty"`
+
+	// imageChangeBuild stores information about an imagechange event
+	// that triggered a new build.
+	ImageChangeBuild *ImageChangeCause `json:"imageChangeBuild,omitempty"`
+}
+
+// GenericWebHookCause holds information about a generic WebHook that
+// triggered a build.
+type GenericWebHookCause struct {
+	// revision is an optional field that stores the git source revision
+	// information of the generic webhook trigger when it is available.
+	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// secret is the obfuscated webhook secret that triggered a build.
+	Secret string `json:"secret,omitempty"`
+}
+
+// GitHubWebHookCause has information about a GitHub webhook that triggered a
+// build.
+type GitHubWebHookCause struct {
+	// revision is the git revision information of the trigger.
+	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// secret is the obfuscated webhook secret that triggered a build.
+	Secret string `json:"secret,omitempty"`
+}
+
+// ImageChangeCause contains information about the image that triggered a
+// build
+type ImageChangeCause struct {
+	// imageID is the ID of the image that triggered a a new build.
+	ImageID string `json:"imageID,omitempty"`
+
+	// fromRef contains detailed information about an image that triggered a
+	// build.
+	FromRef *kapi.ObjectReference `json:"fromRef,omitempty"`
 }
 
 // BuildStatus contains the status of a build
@@ -545,8 +610,10 @@ type BuildConfig struct {
 
 // BuildConfigSpec describes when and how builds are created
 type BuildConfigSpec struct {
-	// triggers determine how new Builds can be launched from a BuildConfig. If no triggers
-	// are defined, a new build can only occur as a result of an explicit client build creation.
+
+	//triggers determine how new Builds can be launched from a BuildConfig. If
+	//no triggers are defined, a new build can only occur as a result of an
+	//explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers"`
 
 	// RunPolicy describes how the new build created from this build
@@ -554,8 +621,8 @@ type BuildConfigSpec struct {
 	// This is optional, if not specified we default to "Serial".
 	RunPolicy BuildRunPolicy `json:"runPolicy,omitempty"`
 
-	// BuildSpec is the desired build specification
-	BuildSpec `json:",inline"`
+	// CommonSpec is the desired build specification
+	CommonSpec `json:",inline"`
 }
 
 // BuildRunPolicy defines the behaviour of how the new builds are executed
@@ -714,6 +781,10 @@ type BuildRequest struct {
 
 	// env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
+
+	// triggeredBy describes which triggers started the most recent update to the
+	// build configuration and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy"`
 }
 
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request
