@@ -268,6 +268,7 @@ do_node () {
 
     # Log some node-only information
     echo_and_eval  brctl show                              &> $lognode/bridges
+    echo_and_eval  docker ps -a                            &> $lognode/docker-ps
     echo_and_eval  ovs-ofctl -O OpenFlow13 dump-flows br0  &> $lognode/flows
     echo_and_eval  ovs-ofctl -O OpenFlow13 show br0        &> $lognode/ovs-show
     echo_and_eval  systemctl cat docker.service            &> $lognode/docker-unit-file
