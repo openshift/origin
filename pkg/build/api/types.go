@@ -430,12 +430,12 @@ type SourceBuildStrategy struct {
 
 // JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
 type JenkinsPipelineBuildStrategy struct {
-	// JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline
+	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are
 	// both not specified, this defaults to Jenkinsfile in the root of the specified git repo.
 	JenkinsfilePath string
 
-	// Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
 	Jenkinsfile string
 }
 
