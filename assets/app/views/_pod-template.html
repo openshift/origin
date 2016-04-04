@@ -18,6 +18,9 @@
           <span ng-if="imagesByDockerReference[container.image]">
             <a ng-href="{{imagesByDockerReference[container.image].imageStreamName | navigateResourceURL : 'ImageStream' : imagesByDockerReference[container.image].imageStreamNamespace}}">{{container.image | imageStreamName}}</a>
             (<span title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
+            <span ng-if="imagesByDockerReference[container.image].dockerImageMetadata.Size" class="small text-muted nowrap">
+              {{imagesByDockerReference[container.image].dockerImageMetadata.Size | humanizeSize}}
+            </span>
           </span>
         </div>
       </div>

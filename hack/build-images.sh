@@ -104,6 +104,7 @@ image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
 image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 image openshift/origin-docker-registry       images/dockerregistry
+image openshift/origin-egress-router         images/router/egress
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-recycler              images/recycler
