@@ -17933,11 +17933,11 @@
     "properties": {
      "jenkinsfilePath": {
       "type": "string",
-      "description": "JenkinsfilePath is the path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath \u0026 Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo."
+      "description": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the source repository. If both JenkinsfilePath \u0026 Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified git repo."
      },
      "jenkinsfile": {
       "type": "string",
-      "description": "Jenkinsfile is the raw contents of a Jenkinsfile which defines a Jenkins pipeline build."
+      "description": "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build."
      }
     }
    },
@@ -17971,7 +17971,7 @@
    },
    "v1.BuildPostCommitSpec": {
     "id": "v1.BuildPostCommitSpec",
-    "description": "A BuildPostCommitSpec holds a build post commit hook specification. The hook executes a command in a temporary container running the build output image, immediately after the last layer of the image is committed and before the image is pushed to a registry. The command is executed with the current working directory ($PWD) set to the image's WORKDIR.\n\nThe build will be marked as failed if the hook execution fails. It will fail if the script or command return a non-zero exit code, or if there is any other error related to starting the temporary container.\n\nThere are five different ways to configure the hook. As an example, all forms below are equivalent and will execute `rake test --verbose`.\n\n1. Shell script:\n\n       \"postCommit\": {\n         \"script\": \"rake test --verbose\",\n       }\n\n    The above is a convenient form which is equivalent to:\n\n       \"postCommit\": {\n         \"command\": [\"/bin/sh\", \"-ic\"],\n         \"args\":    [\"rake test --verbose\"]\n       }\n\n2. A command as the image entrypoint:\n\n       \"postCommit\": {\n         \"commit\": [\"rake\", \"test\", \"--verbose\"]\n       }\n\n    Command overrides the image entrypoint in the exec form, as documented in\n    Docker: https://docs.docker.com/engine/reference/builder/#entrypoint.\n\n3. Pass arguments to the default entrypoint:\n\n       \"postCommit\": {\n\t\t      \"args\": [\"rake\", \"test\", \"--verbose\"]\n\t      }\n\n    This form is only useful if the image entrypoint can handle arguments.\n\n4. Shell script with arguments:\n\n       \"postCommit\": {\n         \"script\": \"rake test $1\",\n         \"args\":   [\"--verbose\"]\n       }\n\n    This form is useful if you need to pass arguments that would otherwise be\n    hard to quote properly in the shell script. In the script, $0 will be\n    \"/bin/sh\" and $1, $2, etc, are the positional arguments from Args.\n\n5. Command with arguments:\n\n       \"postCommit\": {\n         \"command\": [\"rake\", \"test\"],\n         \"args\":    [\"--verbose\"]\n       }\n\n    This form is equivalent to appending the arguments to the Command slice.\n\nIt is invalid to provide both Script and Command simultaneously. If none of the fields are specified, the hook is not executed.",
+    "description": "A BuildPostCommitSpec holds a build post commit hook specification. The hook executes a command in a temporary container running the build output image, immediately after the last layer of the image is committed and before the image is pushed to a registry. The command is executed with the current working directory ($PWD) set to the image's WORKDIR.\n\nThe build will be marked as failed if the hook execution fails. It will fail if the script or command return a non-zero exit code, or if there is any other error related to starting the temporary container.\n\nThere are five different ways to configure the hook. As an example, all forms below are equivalent and will execute `rake test --verbose`.\n\n1. Shell script:\n\n\tBuildPostCommitSpec{\n\t\tScript: \"rake test --verbose\",\n\t}\n\nThe above is a convenient form which is equivalent to:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"/bin/sh\", \"-ic\"},\n\t\tArgs: []string{\"rake test --verbose\"},\n\t}\n\n2. Command as the image entrypoint:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"rake\", \"test\", \"--verbose\"},\n\t}\n\nCommand overrides the image entrypoint in the exec form, as documented in Docker: https://docs.docker.com/engine/reference/builder/#entrypoint.\n\n3. Pass arguments to the default entrypoint:\n\n\tBuildPostCommitSpec{\n\t\tArgs: []string{\"rake\", \"test\", \"--verbose\"},\n\t}\n\nThis form is only useful if the image entrypoint can handle arguments.\n\n4. Shell script with arguments:\n\n\tBuildPostCommitSpec{\n\t\tScript: \"rake test $1\",\n\t\tArgs: []string{\"--verbose\"},\n\t}\n\nThis form is useful if you need to pass arguments that would otherwise be hard to quote properly in the shell script. In the script, $0 will be \"/bin/sh\" and $1, $2, etc, are the positional arguments from Args.\n\n5. Command with arguments:\n\n\tBuildPostCommitSpec{\n\t\tCommand: []string{\"rake\", \"test\"},\n\t\tArgs: []string{\"--verbose\"},\n\t}\n\nThis form is equivalent to appending the arguments to the Command slice.\n\nIt is invalid to provide both Script and Command simultaneously. If none of the fields are specified, the hook is not executed.",
     "properties": {
      "command": {
       "type": "array",
@@ -18313,7 +18313,7 @@
      },
      "outputDockerImageReference": {
       "type": "string",
-      "description": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
+      "description": "OutputDockerImageReference contains a reference to the Docker image that will be built by this build. It's value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
      },
      "config": {
       "$ref": "v1.ObjectReference",
