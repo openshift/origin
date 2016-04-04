@@ -696,6 +696,36 @@ angular.module('openshiftConsole')
       return numRestarts;
     };
   })
+  .filter('isTerminating', function() {
+    return function(resource) {
+      return _.has(resource, 'metadata.deletionTimestamp');
+    };
+  })
+  .filter('isPullingImage', function() {
+    return function(pod) {
+      if (!pod) {
+        return false;
+      }
+
+      var phase = _.get(pod, 'status.phase');
+      if (phase !== 'Pending') {
+        return false;
+      }
+
+      var containerStatuses = _.get(pod, 'status.containerStatuses');
+      if (!containerStatuses) {
+        return false;
+      }
+
+      var containerPulling = function(containerStatus) {
+        // TODO: Update to use the pulling reason when available. We assume
+        // ContainerCreating === pulling, which might not be true.
+        return _.get(containerStatus, 'state.waiting.reason') === 'ContainerCreating';
+      };
+
+      return _.some(containerStatuses, containerPulling);
+    };
+  })
   .filter('newestResource', function() {
     return function(resources) {
       var newest = null;

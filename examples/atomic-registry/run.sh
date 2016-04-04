@@ -52,7 +52,7 @@ echo "Starting registry services..."
 
 set -x
 
-$CMD oadm registry --credentials /etc/origin/master/openshift-registry.kubeconfig --latest-images=true
+$CMD oadm registry --latest-images=true
 # we're hacking the service to use a node port to reduce deployment complexity
 $CMD oc patch service docker-registry -p \
      '{ "spec": { "type": "NodePort", "selector": {"docker-registry": "default"}, "ports": [ {"nodePort": 5000, "port": 5000, "targetPort": 5000}] }}'

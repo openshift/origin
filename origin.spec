@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e4fcf7d3a7eda2903cdbccc7cae25ed3bf058574
+%global commit d4743773cd8e1b4bbebd79748df7e7e1f5632a52
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.9-52-ge4fcf7d -X github.com/openshift/origin/pkg/version.commitFromGit e4fcf7d -X k8s.io/kubernetes/pkg/version.gitCommit e4fcf7d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.10-15-gd474377 -X github.com/openshift/origin/pkg/version.commitFromGit d474377 -X k8s.io/kubernetes/pkg/version.gitCommit d474377 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.10
+Version:        3.2.0.11
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,16 @@ fi
 
 
 %changelog
+* Mon Apr 04 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.11
+- Show pulling / terminated status in pods donut (spadgett@redhat.com)
+- Update the postCommit hook godoc to reflect API (ccoleman@redhat.com)
+- do not error on adding app label to objects if it exists (bparees@redhat.com)
+- Add the openshift/origin-egress-router image (danw@redhat.com)
+- remove credentials arg (aweiteka@redhat.com)
+- remove atomic registry quickstart from images dir, also hack test script
+  (aweiteka@redhat.com)
+- Retry when receiving an imagestreamtag not found error (ccoleman@redhat.com)
+
 * Fri Apr 01 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.10
 - Allow multiple routers to update route status (sross@redhat.com)
 - change default volume size (gmontero@redhat.com)

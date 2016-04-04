@@ -60,6 +60,11 @@ os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'MY
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'ADMIN_USERNAME'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'ADMIN_PASSWORD'
 
+# verify we can create from a template when some objects in the template declare an app label
+# the app label should still be applied to the other objects in the template.
+os::cmd::expect_success_and_text 'oc new-app -f test/fixtures/template-with-app-label.json -o yaml' 'app: ruby-sample-build'
+os::cmd::expect_success_and_text 'oc new-app -f test/fixtures/template-with-app-label.json -o yaml' 'app: myapp'
+
 # check search
 os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.5, 5.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'ruby-helloworld-sample'

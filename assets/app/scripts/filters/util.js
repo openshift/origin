@@ -153,6 +153,31 @@ angular.module('openshiftConsole')
       return toString(amountAndUnitFilter(value, type, true));
     };
   })
+  .filter('humanizeSize', function() {
+    return function(bytes) {
+      if (bytes === null || bytes === undefined || bytes === '') {
+        return bytes;
+      }
+
+      bytes = Number(bytes);
+      if (bytes < 1024) {
+        return bytes + " bytes";
+      }
+
+      var KiB = bytes / 1024;
+      if (KiB < 1024) {
+        return KiB.toFixed(1) + " KiB";
+      }
+
+      var MiB = KiB / 1024;
+      if (MiB < 1024) {
+        return MiB.toFixed(1) + " MiB";
+      }
+
+      var GiB = MiB / 1024;
+      return GiB.toFixed(1) + " GiB";
+    };
+  })
   .filter('computeResourceLabel', function() {
     return function(computeResourceType, capitalize) {
       switch (computeResourceType) {
