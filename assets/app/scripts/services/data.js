@@ -1141,7 +1141,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     else {
       template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
     }
-    return URI.expand(template, templateOptions);
+    return URI.expand(template, templateOptions).toString();
   };
 
   DataService.prototype.url = function(options) {
@@ -1157,10 +1157,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
         group:    options.group,
         version:  options.version
       });
-      var u = this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
-      if (u) {
-        return u.toString();
-      }
+      return this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
     }
     return null;
   };
