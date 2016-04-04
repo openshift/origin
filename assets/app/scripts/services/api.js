@@ -41,7 +41,7 @@ ResourceGroupVersion.prototype.equals = function(resource, group, version) {
 
 angular.module('openshiftConsole')
 .factory('APIService', function(API_CFG, APIS_CFG, Logger) {
-  
+
   // Set the default api versions the console will use if otherwise unspecified
   var defaultVersion = {
     "":           "v1",
@@ -74,9 +74,9 @@ angular.module('openshiftConsole')
     }
     return new ResourceGroupVersion(resource, group, version);
   };
-  
+
   // normalizeResource lowercases the first segment of the given resource. subresources can be case-sensitive.
-  var normalizeResource = function(resource) {
+  function normalizeResource(resource) {
     if (!resource) {
       return resource;
     }
@@ -85,8 +85,8 @@ angular.module('openshiftConsole')
       return resource.toLowerCase();
     }
     return resource.substring(0, i).toLowerCase() + resource.substring(i);
-  };
-  
+  }
+
   // port of group_version.go#ParseGroupVersion
   var parseGroupVersion = function(apiVersion) {
     if (!apiVersion) {
@@ -102,7 +102,7 @@ angular.module('openshiftConsole')
     Logger.warn('Invalid apiVersion "' + apiVersion + '"');
     return undefined;
   };
-  
+
   var objectToResourceGroupVersion = function(apiObject) {
     if (!apiObject || !apiObject.kind || !apiObject.apiVersion) {
       return undefined;
@@ -117,7 +117,7 @@ angular.module('openshiftConsole')
     }
     return new ResourceGroupVersion(resource, groupVersion.group, groupVersion.version);
   };
-  
+
   // deriveTargetResource figures out the fully qualified destination to submit the object to.
   // if resource is a string, and the object's kind matches the resource, the object's group/version are used.
   // if resource is a ResourceGroupVersion, and the object's kind and group match, the object's version is used.
@@ -132,7 +132,7 @@ angular.module('openshiftConsole')
     if (!objectResource || !objectGroupVersion || !resourceGroupVersion) {
       return undefined;
     }
-    
+
     // We specified something like "pods"
     if (angular.isString(resource)) {
       // If the object had a matching kind {"kind":"Pod","apiVersion":"v1"}, use the group/version from the object
@@ -142,17 +142,17 @@ angular.module('openshiftConsole')
       }
       return resourceGroupVersion;
     }
-    
+
     // If the resource was already a fully specified object,
     // require the group to match as well before taking the version from the object
     if (resourceGroupVersion.equals(objectResource, objectGroupVersion.group)) {
       resourceGroupVersion.version = objectGroupVersion.version;
     }
     return resourceGroupVersion;
-  };  
-  
+  };
+
   // port of restmapper.go#kindToResource
-  var kindToResource = function(kind) {
+  function kindToResource(kind) {
     if (!kind) {
       return "";
     }
@@ -171,14 +171,14 @@ angular.module('openshiftConsole')
     }
 
     return resource;
-  };
-  
+  }
+
   // apiInfo returns the host/port, prefix, group, and version for the given resource,
   // or undefined if the specified resource/group/version is known not to exist.
   var apiInfo = function(resource) {
     resource = toResourceGroupVersion(resource);
     var primaryResource = resource.primaryResource();
-    
+
     // API info for resources in an API group can just be derived
     // TODO: use API discovery to determine available groups, versions, and resources
     // If this is called before discovery loads, just return the derived data, but if we know from discovery that a group/version/resource is invalid, return undefined.
@@ -190,7 +190,7 @@ angular.module('openshiftConsole')
         version:  resource.version
       };
     }
-    
+
     // Resources without an API group could be legacy k8s or origin resources.
     // Scan through resources to determine which this is.
     var api, prefix;
@@ -210,8 +210,8 @@ angular.module('openshiftConsole')
       };
     }
     return undefined;
-  };  
-  
+  };
+
   var invalidObjectKindOrVersion = function(apiObject) {
     var kind = "<none>";
     var version = "<none>";
@@ -226,20 +226,20 @@ angular.module('openshiftConsole')
     if (apiObject && apiObject.apiVersion) { version = apiObject.apiVersion; }
     return "The API version "+version+" for kind " + kind + " is not supported by this server";
   };
-    
+
   return {
     toResourceGroupVersion: toResourceGroupVersion,
-    
+
     parseGroupVersion: parseGroupVersion,
-    
+
     objectToResourceGroupVersion: objectToResourceGroupVersion,
-    
+
     deriveTargetResource: deriveTargetResource,
-    
+
     kindToResource: kindToResource,
-    
+
     apiInfo: apiInfo,
-    
+
     invalidObjectKindOrVersion: invalidObjectKindOrVersion,
     unsupportedObjectKindOrVersion: unsupportedObjectKindOrVersion
   };
