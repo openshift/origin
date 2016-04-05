@@ -14,11 +14,9 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // JenkinsPipelineTemplate stores the configuration of the
@@ -81,7 +79,7 @@ func (t *JenkinsPipelineTemplate) Instantiate(list *kapi.List) []error {
 		return append(errors, err)
 	}
 	bulk := &cmd.Bulk{
-		Mapper: getMultiMapper(),
+		Mapper: client.DefaultMultiRESTMapper(),
 		Typer:  kapi.Scheme,
 		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 			if latest.OriginKind(mapping.GroupVersionKind) {
@@ -133,22 +131,4 @@ func substituteTemplateParameters(params map[string]string, t *templateapi.Templ
 		}
 	}
 	return errors
-}
-
-// getMultiMapper returns a REST mapper for both Origin and Kubernetes objects
-func getMultiMapper() meta.MultiRESTMapper {
-	var restMapper meta.MultiRESTMapper
-	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
-		if seenGroups.Has(gv.Group) {
-			continue
-		}
-		seenGroups.Insert(gv.Group)
-		groupMeta, err := registered.Group(gv.Group)
-		if err != nil {
-			continue
-		}
-		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
-	}
-	return restMapper
 }
