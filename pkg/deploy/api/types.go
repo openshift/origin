@@ -268,7 +268,7 @@ const DeploymentCancelledAnnotationValue = "true"
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
 	unversioned.TypeMeta
-	kapi.ObjectMeta
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec
