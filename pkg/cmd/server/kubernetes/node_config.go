@@ -148,6 +148,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 110
+	server.SerializeImagePulls = false // disable serial image pulls by default
 
 	switch server.NetworkPluginName {
 	case ovs.SingleTenantPluginName(), ovs.MultiTenantPluginName():
