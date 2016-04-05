@@ -127,6 +127,14 @@ func isKubernetesE2ETest() bool {
 	return isPackage("/kubernetes/test/e2e/")
 }
 
+func testNameContains(name string) bool {
+	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FullTestText, name)
+}
+
+func skipTestNamespaceCustomization() bool {
+	return (isPackage("/kubernetes/test/e2e/namespace.go") && (testNameContains("should always delete fast") || testNameContains("should delete fast enough")))
+}
+
 // Holds custom namespace creation functions so we can customize per-test
 var customCreateTestingNSFuncs = map[string]e2e.CreateTestingNSFn{}
 
@@ -154,7 +162,7 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 	}
 
 	// Add anyuid and privileged permissions for upstream tests
-	if isKubernetesE2ETest() {
+	if isKubernetesE2ETest() && !skipTestNamespaceCustomization() {
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
 		// add to the "privileged" scc to ensure pods that explicitly
 		// request extra capabilities are not rejected
