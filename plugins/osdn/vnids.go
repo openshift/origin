@@ -236,23 +236,14 @@ func watchServices(oc *OsdnController) {
 
 	for {
 		ev := <-svcevent
-		var netid uint
-		if ev.Type != Deleted {
-			var found bool
-			netid, found = oc.VNIDMap[ev.Service.Namespace]
+		switch ev.Type {
+		case Added:
+			netid, found := oc.VNIDMap[ev.Service.Namespace]
 			if !found {
 				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
 				continue
 			}
-		}
-		switch ev.Type {
-		case Added:
-			services[string(ev.Service.UID)] = ev.Service
-			oc.pluginHooks.AddServiceRules(ev.Service, netid)
-		case Deleted:
-			delete(services, string(ev.Service.UID))
-			oc.pluginHooks.DeleteServiceRules(ev.Service)
-		case Modified:
+
 			oldsvc, exists := services[string(ev.Service.UID)]
 			if exists {
 				if !isServiceChanged(oldsvc, ev.Service) {
@@ -262,6 +253,9 @@ func watchServices(oc *OsdnController) {
 			}
 			services[string(ev.Service.UID)] = ev.Service
 			oc.pluginHooks.AddServiceRules(ev.Service, netid)
+		case Deleted:
+			delete(services, string(ev.Service.UID))
+			oc.pluginHooks.DeleteServiceRules(ev.Service)
 		}
 	}
 }

@@ -39,9 +39,8 @@ type Registry struct {
 type EventType string
 
 const (
-	Added    EventType = "ADDED"
-	Deleted  EventType = "DELETED"
-	Modified EventType = "MODIFIED"
+	Added   EventType = "ADDED"
+	Deleted EventType = "DELETED"
 )
 
 type HostSubnetEvent struct {
@@ -315,12 +314,10 @@ func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error
 		ns := obj.(*kapi.Namespace)
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &NamespaceEvent{Type: Added, Namespace: ns}
 		case watch.Deleted:
 			receiver <- &NamespaceEvent{Type: Deleted, Namespace: ns}
-		case watch.Modified:
-			// Ignore, we don't need to update SDN in case of namespace updates
 		}
 	}
 }
@@ -411,12 +408,10 @@ func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
 		}
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &ServiceEvent{Type: Added, Service: serv}
 		case watch.Deleted:
 			receiver <- &ServiceEvent{Type: Deleted, Service: serv}
-		case watch.Modified:
-			receiver <- &ServiceEvent{Type: Modified, Service: serv}
 		}
 	}
 }
