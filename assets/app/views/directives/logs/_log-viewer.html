@@ -1,31 +1,27 @@
-<div
-  row
-  mobile="column"
-  tablet="column"
-  ng-if="(!chromeless)"
-  style="margin-bottom: 10px;">
-  <div ng-transclude flex><!-- expect start time, end time, status details --></div>
-  <div row class="text-right text-xs-left">
-    <a ng-if="state !== 'empty'"
-       href=""
-       ng-click="goChromeless(options)"
-       style="margin-right: 10px;">
-      Open full view of log <i class="fa fa-external-link"></i>
-    </a>
-    <div ng-if="kibanaAuthUrl">
+<div class="log-header" ng-if="!chromeless">
+  <div ng-transclude class="log-status"><!-- expect start time, end time, status details --></div>
+  <div class="log-actions">
+    <span ng-if="kibanaAuthUrl">
       <form
         action="{{kibanaAuthUrl}}"
         method="POST">
         <input type="hidden" name="redirect" value="{{kibanaArchiveUrl}}">
         <input type="hidden" name="access_token" value="{{access_token}}">
-        <button class="btn btn-sm btn-primary">View Archive</button>
+        <button class="btn btn-link">View archive</button>
       </form>
-    </div>
+      <span ng-if="state !== 'empty'" class="action-divider">|</span>
+    </span>
+    <a ng-if="state !== 'empty'"
+       href=""
+       ng-click="goChromeless(options)"
+       role="button">
+       Expand
+       <i class="fa fa-external-link"></i>
+    </a>
   </div>
 </div>
 
-
-<div ng-if="largeLog" class="log-size-warning">
+<div ng-if="largeLog" class="alert alert-info log-size-warning">
   <span class="pficon pficon-info" aria-hidden="true"></span>
   Only the previous {{options.tailLines || 1000}} log lines and new log
   messages will be displayed because of the large log size.
@@ -33,10 +29,9 @@
 
 
 <!-- show this spinner until the log viewer starts. important for pending state, etc -->
-<div row main-axis="center" ng-if="(!state)">
-  <ellipsis-loader ng-show="loading"></ellipsis-loader>
+<div class="text-center gutter-top" ng-if="(!state)">
+  <ellipsis-loader></ellipsis-loader>
 </div>
-
 
 <div class="empty-state-message text-center" ng-if="state=='empty'">
   <h2>Logs are not available.</h2>
@@ -60,12 +55,12 @@
 
 
 <!-- must be ng-show rather than ng-if, else DOM is not rendered in time to cache nodes -->
-<div flex height-max ng-show="state=='logs'">
+<div ng-show="state=='logs'">
   <a
     name="logTop"
     id="logTop"></a>
 
-  <div flex height-max class="log-view">
+  <div class="log-view">
     <div
       ng-show="showScrollLinks"
       id="affixedFollow"
@@ -78,13 +73,14 @@
         Go to end
       </a>
     </div>
-    <div flex column height-max class="log-view-output">
+    <div class="log-view-output">
       <table>
         <tbody id="logContent"></tbody>
       </table>
       <!-- show this spinner indicating logs are still streaming -->
-      <div row main-axis="center">
-        <ellipsis-loader ng-show="loading"></ellipsis-loader>
+      <ellipsis-loader ng-show="loading"></ellipsis-loader>
+      <div ng-if="(!loading) && (!limitReached) && (!errorWhileRunning) && state=='logs'" class="log-end-msg">
+        End of log
       </div>
     </div>
     <div
@@ -98,15 +94,10 @@
     name="logBottom"></a>
 </div>
 
-
 <!-- Show a different messsage if the log might have stopped because we reached the byte limit -->
 <div ng-if="limitReached" class="text-muted">
   The maximum web console log size has been reached. Use the command-line interface or
   <a href="" ng-click="restartLogs()">reload</a> the log to see new messages.
-</div>
-
-<div ng-if="(!loading) && (!limitReached) && (!errorWhileRunning) && state=='logs'" class="text-muted">
-  End of log
 </div>
 
 

@@ -93,18 +93,14 @@
                       empty="logEmpty"
                       run="logCanRun">
 
-                      <div row cross-axis="center">
-                        <div row>
-                          <div ng-if="deployment | deploymentStatus">
-                            Deployment status:
-                            <status-icon status="deployment | deploymentStatus"></status-icon>
-                            {{deployment | deploymentStatus}}
-                          </div>
-                          <div ng-if="deployment.metadata.creationTimestamp && !logEmpty">
-                            <div ng-if="(deployment | deploymentStatus) !== 'Deployed'">
-                              &mdash; Log from {{deployment.metadata.creationTimestamp  | date : 'short'}}
-                            </div>
-                          </div>
+                      <span ng-if="deployment | deploymentStatus">
+                        <label>Status:</label>
+                        <status-icon status="deployment | deploymentStatus"></status-icon>
+                        {{deployment | deploymentStatus}}
+                      </span>
+                      <div ng-if="deployment.metadata.creationTimestamp && !logEmpty" class="log-timestamps">
+                        <div ng-if="(deployment | deploymentStatus) !== 'Deployed'">
+                          Log from {{deployment.metadata.creationTimestamp  | date : 'short'}}
                         </div>
                       </div>
 
