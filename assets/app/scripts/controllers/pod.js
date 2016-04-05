@@ -189,6 +189,7 @@ angular.module('openshiftConsole')
           // Create the debug pod.
           DataService.create("pods", null, debugPod, context).then(
             function(pod) {
+              var container = _.find($scope.pod.spec.containers, { name: containerName });
               $scope.debugPod = pod;
 
               // Watch the pod so we know when it's running to connect.
@@ -208,8 +209,11 @@ angular.module('openshiftConsole')
                 controller: 'DebugTerminalModalController',
                 scope: $scope,
                 resolve: {
-                  containerName: function() {
-                    return containerName;
+                  container: function() {
+                    return container;
+                  },
+                  image: function() {
+                    return _.get($scope, ['imagesByDockerReference', container.image]);
                   }
                 },
                 backdrop: 'static' // don't close modal when clicking backdrop

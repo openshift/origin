@@ -987,12 +987,48 @@ angular.module('openshiftConsole')
       return PodsService.getDebugLabel(pod);
     };
   })
+  // Determines the container entrypoint command from the container and docker image metadata.
   .filter('entrypoint', function() {
-    return function(image) {
-      if (!image) {
+    // If `cmd` is an array (exec form), converts it to a string for display.
+    var toShellForm = function(cmd) {
+      if (_.isArray(cmd)) {
+        return cmd.join(' ');
+      }
+
+      return cmd;
+    };
+
+    return function(container, image) {
+      if (!container || !image) {
         return null;
       }
 
-      return _.get(image, 'dockerImageMetadata.Config.Cmd', []).join(' ');
+      // http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
+      var entrypoint,
+          cmd = toShellForm(container.command),
+          args = toShellForm(container.args);
+
+      // If `container.command` is specified, use that instead of image entrypoint. Add `container.args` if present.
+      if (cmd && args) {
+        return cmd + " " + args;
+      }
+
+      if (cmd) {
+        return cmd;
+      }
+
+      entrypoint = toShellForm(_.get(image, 'dockerImageMetadata.Config.Entrypoint') || ["/bin/sh", "-c"]);
+      // If `container.args` is supplied without `container.command`, use container args with the image entrypoint.
+      if (args) {
+        return entrypoint + " " + args;
+      }
+
+      // Otherwise, use container entrypoint with container command.
+      cmd = toShellForm(_.get(image, 'dockerImageMetadata.Config.Cmd'));
+      if (cmd) {
+        return entrypoint + " " + cmd;
+      }
+
+      return null;
     };
   });
