@@ -7,41 +7,43 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
-
-// NewJenkinsPipelineTemplate returns a new JenkinsPipelineTemplate.
-func NewJenkinsPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
-	return &JenkinsPipelineTemplate{
-		Config:          conf,
-		TargetNamespace: ns,
-		kubeClient:      kubeClient,
-		osClient:        osClient,
-	}
-}
 
 // JenkinsPipelineTemplate stores the configuration of the
 // JenkinsPipelineStrategy template, used to instantiate the Jenkins service in
 // given namespace.
 type JenkinsPipelineTemplate struct {
-	Config          serverapi.JenkinsPipelineConfig
-	TargetNamespace string
-	kubeClient      *kclient.Client
-	osClient        *client.Client
+	Config     *serverapi.JenkinsPipelineConfig
+	Namespace  string
+	kubeClient *kclient.Client
+	osClient   *client.Client
+}
+
+// NewJenkinsPipelineTemplate returns a new JenkinsPipelineTemplate.
+func NewJenkinsPipelineTemplate(ns string, conf *serverapi.JenkinsPipelineConfig, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
+	return &JenkinsPipelineTemplate{
+		Config:     conf,
+		Namespace:  ns,
+		kubeClient: kubeClient,
+		osClient:   osClient,
+	}
 }
 
 // Process processes the Jenkins template. If an error occurs
-func (t *JenkinsPipelineTemplate) Process() ([]resourceInfo, []error) {
-	var (
-		items  []resourceInfo
-		errors []error
-	)
+func (t *JenkinsPipelineTemplate) Process() (*kapi.List, []error) {
+	var errors []error
 	jenkinsTemplate, err := t.osClient.Templates(t.Config.Namespace).Get(t.Config.TemplateName)
 	if err != nil {
 		if kerrs.IsNotFound(err) {
@@ -49,22 +51,69 @@ func (t *JenkinsPipelineTemplate) Process() ([]resourceInfo, []error) {
 		} else {
 			errors = append(errors, err)
 		}
-		return items, errors
+		return nil, errors
 	}
 	errors = append(errors, substituteTemplateParameters(t.Config.Parameters, jenkinsTemplate)...)
-	pTemplate, err := t.osClient.TemplateConfigs(t.TargetNamespace).Create(jenkinsTemplate)
+	pTemplate, err := t.osClient.TemplateConfigs(t.Namespace).Create(jenkinsTemplate)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("processing Jenkins template %s/%s failed: %v", t.Config.Namespace, t.Config.TemplateName, err))
-		return items, errors
+		return nil, errors
 	}
-	var mappingErrs []error
-	items, mappingErrs = mapJenkinsTemplateResources(pTemplate.Objects)
-	if len(mappingErrs) > 0 {
-		errors = append(errors, mappingErrs...)
-		return items, errors
+	var items []runtime.Object
+	for _, obj := range pTemplate.Objects {
+		if unknownObj, ok := obj.(*runtime.Unknown); ok {
+			decodedObj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), unknownObj.RawJSON)
+			if err != nil {
+				errors = append(errors, err)
+			}
+			items = append(items, decodedObj)
+		}
 	}
 	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", pTemplate.Namespace, pTemplate.Namespace)
-	return items, errors
+	return &kapi.List{ListMeta: unversioned.ListMeta{}, Items: items}, errors
+}
+
+// Instantiate instantiates the Jenkins template in the target namespace.
+func (t *JenkinsPipelineTemplate) Instantiate(list *kapi.List) []error {
+	var errors []error
+	if !t.hasJenkinsService(list) {
+		err := fmt.Errorf("template %s/%s does not contain required service %q", t.Config.Namespace, t.Config.TemplateName, t.Config.ServiceName)
+		return append(errors, err)
+	}
+	bulk := &cmd.Bulk{
+		Mapper: getMultiMapper(),
+		Typer:  kapi.Scheme,
+		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+			if latest.OriginKind(mapping.GroupVersionKind) {
+				return t.osClient, nil
+			}
+			return t.kubeClient, nil
+		},
+	}
+	return bulk.Create(list, t.Namespace)
+}
+
+// hasJenkinsService searches the template items and return true if the expected
+// Jenkins service is contained in template.
+func (t *JenkinsPipelineTemplate) hasJenkinsService(items *kapi.List) bool {
+	accessor := meta.NewAccessor()
+	for _, item := range items.Items {
+		kind, err := kapi.Scheme.ObjectKind(item)
+		if err != nil {
+			glog.Infof("Error checking Jenkins service kind: %v", err)
+			return false
+		}
+		name, err := accessor.Name(item)
+		if err != nil {
+			glog.Infof("Error checking Jenkins service name: %v", err)
+			return false
+		}
+		glog.Infof("Jenkins Pipeline template object %q with name %q", name, kind.Kind)
+		if name == t.Config.ServiceName && kind.Kind == "Service" {
+			return true
+		}
+	}
+	return false
 }
 
 // substituteTemplateParameters injects user specified parameter values into the Template
@@ -86,91 +135,20 @@ func substituteTemplateParameters(params map[string]string, t *templateapi.Templ
 	return errors
 }
 
-// Instantiate instantiates the Jenkins template in the target namespace.
-func (t *JenkinsPipelineTemplate) Instantiate(items []resourceInfo) []error {
-	var errors []error
-	if !t.hasJenkinsService(items) {
-		err := fmt.Errorf("template %s/%s does not contain required service %q", t.Config.Namespace, t.Config.TemplateName, t.Config.ServiceName)
-		return append(errors, err)
-	}
-	counter := 0
-	for _, item := range items {
-		var err error
-		if item.IsOrigin {
-			err = t.osClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
-		} else {
-			err = t.kubeClient.Post().Namespace(t.TargetNamespace).Resource(item.Resource).Body(item.RawJSON).Do().Error()
+// getMultiMapper returns a REST mapper for both Origin and Kubernetes objects
+func getMultiMapper() meta.MultiRESTMapper {
+	var restMapper meta.MultiRESTMapper
+	seenGroups := sets.String{}
+	for _, gv := range registered.EnabledVersions() {
+		if seenGroups.Has(gv.Group) {
+			continue
 		}
+		seenGroups.Insert(gv.Group)
+		groupMeta, err := registered.Group(gv.Group)
 		if err != nil {
-			errors = append(errors, fmt.Errorf("creating Jenkins component %s/%s failed: %v", item.Kind, item.Name, err))
 			continue
 		}
-		counter++
+		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
 	}
-	delta := len(items) - counter
-	if delta != 0 {
-		// TODO: Shold we rollback in this case?
-		return append(errors, fmt.Errorf("%d of %d Jenkins pipeline components failed to create", delta, len(items)))
-	}
-	return errors
-}
-
-// resourceInfo specify resource metadata informations and JSON for items
-// contained in the Jenkins template.
-type resourceInfo struct {
-	Name     string
-	Kind     string
-	Resource string
-	RawJSON  []byte
-	IsOrigin bool
-}
-
-// hasJenkinsService searches the template items and return true if the expected
-// Jenkins service is contained in template.
-func (t *JenkinsPipelineTemplate) hasJenkinsService(items []resourceInfo) bool {
-	for _, item := range items {
-		if item.Name == t.Config.ServiceName && item.Kind == "Service" {
-			return true
-		}
-	}
-	return false
-}
-
-// mapJenkinsTemplateResources converts the input runtime.Object provided by
-// processed Jenkins template into a resource mappings ready for creation.
-func mapJenkinsTemplateResources(input []runtime.Object) ([]resourceInfo, []error) {
-	result := make([]resourceInfo, len(input))
-	var resultErrs []error
-	accessor := meta.NewAccessor()
-	for index, item := range input {
-		rawObj, ok := item.(*runtime.Unknown)
-		if !ok {
-			resultErrs = append(resultErrs, fmt.Errorf("unable to convert %+v to unknown object", item))
-			continue
-		}
-		obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), rawObj.RawJSON)
-		if err != nil {
-			resultErrs = append(resultErrs, fmt.Errorf("unable to decode %q", rawObj.RawJSON))
-			continue
-		}
-		kind, err := kapi.Scheme.ObjectKind(obj)
-		if err != nil {
-			resultErrs = append(resultErrs, fmt.Errorf("unknown kind %+v ", obj))
-			continue
-		}
-		plural, _ := meta.KindToResource(kind)
-		name, err := accessor.Name(obj)
-		if err != nil {
-			resultErrs = append(resultErrs, fmt.Errorf("unknown name %+v ", obj))
-			continue
-		}
-		result[index] = resourceInfo{
-			Name:     name,
-			Kind:     kind.Kind,
-			Resource: plural.Resource,
-			RawJSON:  rawObj.RawJSON,
-			IsOrigin: latest.IsKindInAnyOriginGroup(kind.Kind),
-		}
-	}
-	return result, resultErrs
+	return restMapper
 }

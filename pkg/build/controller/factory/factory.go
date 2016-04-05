@@ -310,7 +310,7 @@ type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
 	KubeClient              kclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-	JenkinsConfig           serverapi.JenkinsPipelineConfig
+	JenkinsConfig           *serverapi.JenkinsPipelineConfig
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }

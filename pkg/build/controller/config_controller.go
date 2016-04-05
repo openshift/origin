@@ -43,7 +43,7 @@ type BuildConfigController struct {
 	KubeClient kclient.Interface
 	Client     osclient.Interface
 
-	JenkinsConfig serverapi.JenkinsPipelineConfig
+	JenkinsConfig *serverapi.JenkinsPipelineConfig
 
 	// recorder is used to record events.
 	Recorder record.EventRecorder
@@ -53,6 +53,13 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 	glog.V(4).Infof("Handling BuildConfig %s/%s", bc.Namespace, bc.Name)
 
 	if strategy := bc.Spec.Strategy.JenkinsPipelineStrategy; strategy != nil {
+		// If admin does not set the default Jenkins configuration in master config, users are responsible
+		// for deploying the Jenkins themself
+		if c.JenkinsConfig == nil {
+			c.Recorder.Eventf(bc, kapi.EventTypeNormal, "Info", "No Jenkins Pipeline configuration set in master, defaulting to user managed Jenkins")
+			return &ConfigControllerFatalError{Reason: "no Jenkins configuration found for this master"}
+		}
+
 		svcName := c.JenkinsConfig.ServiceName
 
 		glog.V(4).Infof("Detected Jenkins pipeline strategy in %s/%s build configuration", bc.Namespace, bc.Name)
