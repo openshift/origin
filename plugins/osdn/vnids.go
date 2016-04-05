@@ -18,17 +18,29 @@ const (
 	AdminVNID = uint(0)
 )
 
-func (oc *OsdnController) VnidStartMaster() error {
+func populateVNIDMap(oc *OsdnController) error {
 	nets, err := oc.Registry.GetNetNamespaces()
 	if err != nil {
 		return err
 	}
-	inUse := make([]uint, 0)
+
 	for _, net := range nets {
-		if net.NetID != AdminVNID {
-			inUse = append(inUse, net.NetID)
-		}
 		oc.VNIDMap[net.Name] = net.NetID
+	}
+	return nil
+}
+
+func (oc *OsdnController) VnidStartMaster() error {
+	err := populateVNIDMap(oc)
+	if err != nil {
+		return err
+	}
+
+	inUse := make([]uint, 0)
+	for _, netid := range oc.VNIDMap {
+		if netid != AdminVNID {
+			inUse = append(inUse, netid)
+		}
 	}
 	// VNID: 0 reserved for default namespace and can reach any network in the cluster
 	// VNID: 1 to 9 are internally reserved for any special cases in the future
@@ -141,6 +153,11 @@ func watchNamespaces(oc *OsdnController) {
 }
 
 func (oc *OsdnController) VnidStartNode() error {
+	err := populateVNIDMap(oc)
+	if err != nil {
+		return err
+	}
+
 	go watchNetNamespaces(oc)
 	go watchServices(oc)
 	go watchPods(oc)
@@ -201,6 +218,7 @@ func watchNetNamespaces(oc *OsdnController) {
 func watchServices(oc *OsdnController) {
 	svcevent := make(chan *ServiceEvent)
 	go oc.Registry.WatchServices(svcevent)
+
 	for {
 		ev := <-svcevent
 		var netid uint
