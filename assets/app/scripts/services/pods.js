@@ -12,14 +12,14 @@ angular.module("openshiftConsole")
 
       // Generates a copy of pod for debugging crash loops.
       generateDebugPod: function(pod, containerName) {
-        var container = _.find(pod.spec.containers, { name: containerName });
+        // Copy the pod and make some changes for debugging.
+        var debugPod = angular.copy(pod);
+        var container = _.find(debugPod.spec.containers, { name: containerName });
         if (!container) {
           return null;
         }
 
-        // Copy the pod and make some changes for debugging. Use the same
-        // metadata as `oc debug`.
-        var debugPod = angular.copy(pod);
+        // Use the same metadata as `oc debug`.
         debugPod.metadata = {
           name: pod.metadata.name + "-debug",
           annotations: {
