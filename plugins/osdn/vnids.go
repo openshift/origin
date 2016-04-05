@@ -50,8 +50,9 @@ func (oc *OsdnController) VnidStartMaster() error {
 	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
 	// Handle existing namespaces
-	namespaces := result.([]string)
-	for _, nsName := range namespaces {
+	namespaces := result.([]kapi.Namespace)
+	for _, ns := range namespaces {
+		nsName := ns.ObjectMeta.Name
 		// Revoke invalid VNID for admin namespaces
 		if oc.isAdminNamespace(nsName) {
 			netid, ok := oc.VNIDMap[nsName]
