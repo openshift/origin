@@ -217,7 +217,7 @@ func (oc *OsdnController) VnidStartNode() error {
 	return nil
 }
 
-func (oc *OsdnController) updatePodNetwork(namespace string, netID, oldNetID uint) error {
+func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	// Update OF rules for the existing/old pods in the namespace
 	pods, err := oc.GetLocalPods(namespace)
 	if err != nil {
@@ -236,7 +236,7 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID, oldNetID uin
 		return err
 	}
 	for _, svc := range services {
-		oc.pluginHooks.DeleteServiceRules(&svc, oldNetID)
+		oc.pluginHooks.DeleteServiceRules(&svc)
 		oc.pluginHooks.AddServiceRules(&svc, netID)
 	}
 	return nil
@@ -260,12 +260,12 @@ func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan stri
 					continue
 				}
 				oc.VNIDMap[ev.NetNamespace.Name] = ev.NetNamespace.NetID
-				err := oc.updatePodNetwork(ev.NetNamespace.NetName, ev.NetNamespace.NetID, oldNetID)
+				err := oc.updatePodNetwork(ev.NetNamespace.NetName, ev.NetNamespace.NetID)
 				if err != nil {
 					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
 				}
 			case Deleted:
-				err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID, oldNetID)
+				err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID)
 				if err != nil {
 					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
 				}
@@ -286,9 +286,14 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 	for {
 		select {
 		case ev := <-svcevent:
-			netid, found := oc.VNIDMap[ev.Service.Namespace]
-			if !found {
-				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
+			var netid uint
+			if ev.Type != Deleted {
+				var found bool
+				netid, found = oc.VNIDMap[ev.Service.Namespace]
+				if !found {
+					log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
+					continue
+				}
 			}
 			switch ev.Type {
 			case Added:
@@ -296,7 +301,7 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 				oc.pluginHooks.AddServiceRules(ev.Service, netid)
 			case Deleted:
 				delete(oc.services, string(ev.Service.UID))
-				oc.pluginHooks.DeleteServiceRules(ev.Service, netid)
+				oc.pluginHooks.DeleteServiceRules(ev.Service)
 			case Modified:
 				oldsvc, exists := oc.services[string(ev.Service.UID)]
 				if exists && len(oldsvc.Spec.Ports) == len(ev.Service.Spec.Ports) {
@@ -312,7 +317,7 @@ func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
 					}
 				}
 				if exists {
-					oc.pluginHooks.DeleteServiceRules(oldsvc, netid)
+					oc.pluginHooks.DeleteServiceRules(oldsvc)
 				}
 				oc.services[string(ev.Service.UID)] = ev.Service
 				oc.pluginHooks.AddServiceRules(ev.Service, netid)
