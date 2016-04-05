@@ -335,6 +335,7 @@ type BuildStrategy struct {
 	CustomStrategy *CustomBuildStrategy
 
 	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy
+	// This strategy is experimental.
 	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy
 }
 
@@ -429,6 +430,7 @@ type SourceBuildStrategy struct {
 }
 
 // JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
+// This strategy is experimental.
 type JenkinsPipelineBuildStrategy struct {
 	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the source repository. If both JenkinsfilePath & Jenkinsfile are
