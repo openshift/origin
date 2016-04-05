@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/docker"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -68,6 +69,9 @@ type NodeConfig struct {
 	// EndpointsFilterer is an optional endpoints filterer
 	FilteringEndpointsHandler osdnapi.FilteringEndpointsConfigHandler
 }
+
+// Docker 1.9 (api version 1.21)
+const minimumDockerAPIVersionForParallelPulls = "1.21"
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
 	originClient, _, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
@@ -154,6 +158,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 		server.ConfigureCBR0 = false
+	}
+
+	if dockerClient, _, err := docker.NewHelper().GetClient(); err == nil {
+		if docker.IsAPIVersionCompatible(dockerClient, minimumDockerAPIVersionForParallelPulls) {
+			server.SerializeImagePulls = false // disable serializeImagePulls by default for docker 1.9+
+		}
 	}
 
 	// prevents kube from generating certs

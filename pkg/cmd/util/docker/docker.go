@@ -45,3 +45,28 @@ func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 	}
 	return client, addr
 }
+
+// IsAPIVersionCompatible returns true if the current docker API version >= the input
+// version, otherwise it returns false.
+func IsAPIVersionCompatible(dc *docker.Client, version string) bool {
+	env, err := dc.Version()
+	if err != nil {
+		glog.Warningf("Failed to get docker server version: %v", err)
+		return false
+	}
+
+	apiVersion := env.Get("ApiVersion")
+	serverVersion, err := docker.NewAPIVersion(apiVersion)
+	if err != nil {
+		glog.Warningf("Failed to parse docker server version %q: %v", apiVersion, err)
+		return false
+	}
+
+	minimumVersion, err := docker.NewAPIVersion(version)
+	if err != nil {
+		glog.Warningf("Failed to parse minimum required docker server version %q: %v", version, err)
+		return false
+	}
+
+	return !serverVersion.LessThan(minimumVersion)
+}
