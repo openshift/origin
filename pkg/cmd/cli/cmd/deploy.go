@@ -48,8 +48,7 @@ View, start, cancel, or retry a deployment
 
 This command allows you to control a deployment config. Each individual deployment is exposed
 as a new replication controller, and the deployment process manages scaling down old deployments
-and scaling up new ones. You can rollback to any previous deployment, or even scale multiple
-deployments up at the same time.
+and scaling up new ones. Use '%[1]s rollback' to rollback to any previous deployment.
 
 There are several deployment strategies defined:
 
@@ -63,8 +62,10 @@ There are several deployment strategies defined:
 
 If a deployment fails, you may opt to retry it (if the error was transient). Some deployments may
 never successfully complete - in which case you can use the '--latest' flag to force a redeployment.
-When rolling back to a previous deployment, a new deployment will be created with an identical copy
-of your config at the latest position.
+If a deployment config has completed deploying successfully at least once in the past, it would be
+automatically rolled back in the event of a new failed deployment. Note that you would still need
+to update the erroneous deployment config in order to have its template persisted across your
+application.
 
 If you want to cancel a running deployment, use '--cancel' but keep in mind that this is a best-effort
 operation and may take some time to complete. It’s possible the deployment will partially or totally
@@ -95,7 +96,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:        "deploy DEPLOYMENTCONFIG [--latest|--retry|--cancel|--enable-triggers]",
 		Short:      "View, start, cancel, or retry a deployment",
-		Long:       deployLong,
+		Long:       fmt.Sprintf(deployLong, fullName),
 		Example:    fmt.Sprintf(deployExample, fullName),
 		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -228,6 +229,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 	_, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err == nil {
 		fmt.Fprintf(out, "Started deployment #%d\n", config.Status.LatestVersion)
+		fmt.Fprintf(out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, config.Name)
 	}
 	return err
 }
