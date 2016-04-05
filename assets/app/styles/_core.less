@@ -153,6 +153,21 @@
   // Use Patternfly secondary tab style on tabs
   // https://www.patternfly.org/widgets/#tabs
   .nav-tabs-pf;
+
+  // Make sure the tabs are left-aligned when they wrap. Apply the same style
+  // Patternfly uses for the first tab to all tabs, which prevents the extra
+  // left margin on the second line.
+  > li {
+    // Right padding keeps the same spacing between tabs as before.
+    padding-right: 15px;
+    // https://github.com/patternfly/patternfly/blob/v3.3.2/less/tabs.less#L82-L89
+    > a {
+      padding-left: 0;
+      &:before {
+        left: 0 !important;
+      }
+    }
+  }
 }
 
 .nav-tabs, .tab-content {
