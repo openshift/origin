@@ -372,8 +372,7 @@ func (registry *Registry) DeleteNetNamespace(name string) error {
 }
 
 func (registry *Registry) GetServicesForNamespace(namespace string) ([]kapi.Service, error) {
-	services, err := registry.getServices(namespace)
-	return services, err
+	return registry.getServices(namespace)
 }
 
 func (registry *Registry) GetServices() ([]kapi.Service, error) {

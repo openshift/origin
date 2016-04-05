@@ -159,8 +159,9 @@ func (oc *OsdnController) VnidStartNode() error {
 	}
 
 	go watchNetNamespaces(oc)
-	go watchServices(oc)
 	go watchPods(oc)
+	go watchServices(oc)
+
 	return nil
 }
 
@@ -215,6 +216,19 @@ func watchNetNamespaces(oc *OsdnController) {
 	}
 }
 
+func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
+	if len(oldsvc.Spec.Ports) == len(newsvc.Spec.Ports) {
+		for i := range oldsvc.Spec.Ports {
+			if oldsvc.Spec.Ports[i].Protocol != newsvc.Spec.Ports[i].Protocol ||
+				oldsvc.Spec.Ports[i].Port != newsvc.Spec.Ports[i].Port {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
 func watchServices(oc *OsdnController) {
 	svcevent := make(chan *ServiceEvent)
 	go oc.Registry.WatchServices(svcevent)
@@ -239,19 +253,10 @@ func watchServices(oc *OsdnController) {
 			oc.pluginHooks.DeleteServiceRules(ev.Service)
 		case Modified:
 			oldsvc, exists := oc.services[string(ev.Service.UID)]
-			if exists && len(oldsvc.Spec.Ports) == len(ev.Service.Spec.Ports) {
-				same := true
-				for i := range oldsvc.Spec.Ports {
-					if oldsvc.Spec.Ports[i].Protocol != ev.Service.Spec.Ports[i].Protocol || oldsvc.Spec.Ports[i].Port != ev.Service.Spec.Ports[i].Port {
-						same = false
-						break
-					}
-				}
-				if same {
+			if exists {
+				if !isServiceChanged(oldsvc, ev.Service) {
 					continue
 				}
-			}
-			if exists {
 				oc.pluginHooks.DeleteServiceRules(oldsvc)
 			}
 			oc.services[string(ev.Service.UID)] = ev.Service
