@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][pullsecret] docker build using a pull secret", func() {
+var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull secret", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
