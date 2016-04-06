@@ -222,11 +222,16 @@ type MasterConfig struct {
 
 	// JenkinsPipelineConfig holds information about the default Jenkins template
 	// used for JenkinsPipeline build strategy.
-	JenkinsPipelineConfig *JenkinsPipelineConfig `json:"jenkinsPipelineConfig"`
+	JenkinsPipelineConfig JenkinsPipelineConfig `json:"jenkinsPipelineConfig"`
 }
 
 // JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
 type JenkinsPipelineConfig struct {
+	// Disabled disables the Jenkins Pipeline auto-instantiation of Jenkins
+	// template. The ServiceName is still used to verify the project already have
+	// the Jenkins available. When not specified (default), this option defaults
+	// to false
+	Disabled *bool `json:"disabled"`
 	// Namespace contains the namespace name where the Jenkins template is stored
 	Namespace string `json:"namespace"`
 	// TemplateName is the name of the default Jenkins template

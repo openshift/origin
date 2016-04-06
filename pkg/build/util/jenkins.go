@@ -23,14 +23,14 @@ import (
 // JenkinsPipelineStrategy template, used to instantiate the Jenkins service in
 // given namespace.
 type JenkinsPipelineTemplate struct {
-	Config     *serverapi.JenkinsPipelineConfig
+	Config     serverapi.JenkinsPipelineConfig
 	Namespace  string
 	kubeClient *kclient.Client
 	osClient   *client.Client
 }
 
 // NewJenkinsPipelineTemplate returns a new JenkinsPipelineTemplate.
-func NewJenkinsPipelineTemplate(ns string, conf *serverapi.JenkinsPipelineConfig, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
+func NewJenkinsPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, kubeClient *kclient.Client, osClient *client.Client) *JenkinsPipelineTemplate {
 	return &JenkinsPipelineTemplate{
 		Config:     conf,
 		Namespace:  ns,
