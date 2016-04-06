@@ -55,6 +55,15 @@ images=(
   openshift/hello-openshift
   openshift/openvswitch
   openshift/node
+  openshift/origin-logging-curator
+  openshift/origin-logging-fluentd
+  openshift/origin-logging-elasticsearch
+  openshift/origin-logging-kibana
+  openshift/origin-logging-deployment
+  openshift/origin-metrics-deployer
+  openshift/origin-metrics-hawkular-metrics
+  openshift/origin-metrics-cassandra
+  openshift/origin-metrics-heapster
 )
 
 PUSH_OPTS=""

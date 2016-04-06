@@ -121,10 +121,12 @@ image openshift/hello-openshift              examples/hello-openshift
 docker build --no-cache -t openshift/deployment-example:v1 examples/deployment
 docker build --no-cache -t openshift/deployment-example:v2 -f examples/deployment/Dockerfile.v2 examples/deployment
 
+# images from integration services
+${OS_ROOT}/hack/build-integration-images.sh
+
 echo
 echo
 echo "++ Active images"
-
 docker images | grep openshift/ | grep ${OS_RELEASE_COMMIT} | sort
 echo
 
