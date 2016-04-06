@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 const (
@@ -60,6 +61,10 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 			}
 
 			if err := options.Validate(args, kcmdutil.GetFlagString(cmd, "server")); err != nil {
+				kcmdutil.CheckErr(err)
+			}
+
+			if ok, err := options.checkConfigIsWritable(f); !ok {
 				kcmdutil.CheckErr(err)
 			}
 
@@ -176,6 +181,43 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 	}
 
 	return nil
+}
+
+func (o LoginOptions) checkConfigIsWritable(f *osclientcmd.Factory) (bool, error) {
+	kubeconfig := o.PathOptions.GetDefaultFilename()
+
+	file, err := os.OpenFile(kubeconfig, os.O_CREATE|os.O_WRONLY|O_APPEND, 0600)
+	if err == nil {
+		file.Close()
+		return true, nil
+	}
+
+	// Whole directory does not exist and we cannot create kubeconfig file.
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+
+	errmsg := kubeconfig
+
+	if os.IsPermission(err) {
+		errmsg += ": The kubeconfig file is not writable. Specify a writeable path with --config or by setting $KUBECONFIG."
+
+		if me, err := getCurrentUser(f); err == nil {
+			if me.Name == "system:admin" {
+				errmsg += " Please do not use system configuration file. This can lead to serious errors."
+			}
+		}
+	}
+
+	return false, errors.New(errmsg)
+}
+
+func getCurrentUser(f *osclientcmd.Factory) (*userapi.User, error) {
+	client, _, err := f.Clients()
+	if err != nil {
+		return nil, err
+	}
+	return client.Users().Get("~")
 }
 
 // RunLogin contains all the necessary functionality for the OpenShift cli login command

@@ -257,6 +257,13 @@ os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-au
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 os::cmd::expect_success 'oadm prune images'
 
+# readonly kubeconfig
+mkdir -p -- "${BASETMPDIR}/master"
+kubeconfig="${BASETMPDIR}/master/readonly.kubeconfig"
+touch -- "${kubeconfig}"
+chmod -w -- "${kubeconfig}"
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user -p test-password --insecure-skip-tls-verify --config ${kubeconfig}" "The kubeconfig file is not writable"
+
 # log in and set project to use from now on
 VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 VERBOSE=true os::cmd::expect_success 'oc get projects'
