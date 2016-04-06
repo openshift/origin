@@ -56,7 +56,7 @@ os::provision::base-install() {
 os::provision::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
+  cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,oadm,osadm} /usr/bin
 }
 
 os::provision::add-to-hosts-file() {
