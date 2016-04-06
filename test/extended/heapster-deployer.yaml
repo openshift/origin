@@ -1,0 +1,87 @@
+# Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+# and other contributors as indicated by the @author tags.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: "v1"
+kind: "Template"
+metadata:
+  name: metrics-heapster-deployer-template
+  annotations:
+    description: "Template for deploying a standalone Heapster for HPA. Requires cluster-admin 'metrics-deployer' service account and 'metrics-deployer' secret."
+    tags: "infrastructure"
+labels:
+  metrics-infra: deployer
+  provider: openshift
+  component: deployer
+objects:
+-
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    generateName: metrics-deployer-
+  spec:
+    containers:
+    - image: ${IMAGE_PREFIX}metrics-deployer:${IMAGE_VERSION}
+      name: deployer
+      volumeMounts:
+      - name: secret
+        mountPath: /secret
+        readOnly: true
+      - name: empty
+        mountPath: /etc/deploy
+      env:
+        - name: PROJECT
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: IMAGE_PREFIX
+          value: ${IMAGE_PREFIX}
+        - name: IMAGE_VERSION
+          value: ${IMAGE_VERSION}
+        - name: PUBLIC_MASTER_URL
+          value: ${PUBLIC_MASTER_URL}
+        - name: MASTER_URL
+          value: ${MASTER_URL}
+        - name: REDEPLOY
+          value: ${REDEPLOY}
+        - name: HEAPSTER_STANDALONE
+          value: "true"
+    dnsPolicy: ClusterFirst
+    restartPolicy: Never
+    serviceAccount: metrics-deployer
+    volumes:
+    - name: empty
+      emptyDir: {}
+    - name: secret
+      secret:
+        secretName: metrics-deployer
+parameters:
+-
+  description: 'Specify prefix for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1", set prefix "openshift/origin-"'
+  name: IMAGE_PREFIX
+  value: "openshift/origin-"
+-
+  description: 'Specify version for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1", set version "v1.1"'
+  name: IMAGE_VERSION
+  value: "latest"
+-
+  description: "Internal URL for the master, for authentication retrieval"
+  name: MASTER_URL
+  value: "https://kubernetes.default.svc:443"
+-
+  description: "If set to true the deployer will try and delete all the existing components before trying to redeploy."
+  name: REDEPLOY
+  value: "false"
+
