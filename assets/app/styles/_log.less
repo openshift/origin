@@ -1,13 +1,50 @@
 .log-title {
   margin-top: 0;
 }
-.log-timestamp, .log-size-warning {
-  margin-bottom: 10px;
+.log-header {
+  margin-bottom: 3px;
+  label {
+    margin-bottom: 0;
+  }
+  .dash {
+    .text-muted();
+    margin: 0 2px;
+  }
+  .log-actions {
+    form {
+      display: inline-block;
+    }
+    .btn-link {
+      padding: 0;
+    }
+  }
+  .log-timestamps {
+    .text-muted();
+    display: block;
+  }
+  @media (min-width: @screen-sm-min) {
+    .log-status {
+      display: inline-block;
+    }
+    .log-timestamps {
+      .small();
+      display: inline-block;
+      margin-left: 3px;
+    }
+    .log-actions {
+      .pull-right();
+      margin-left: 5px;
+    }
+  }
+}
+.log-size-warning {
+  margin: 0;
 }
 .log-view {
   background-color: @log-bg-color;
+  // Make sure log-actions are not hidden behind log if they wrap.
+  clear: both;
   font-family: @font-family-monospace;
-  min-height: 60px;
   padding: 0;
   position: relative;
   pre, pre code {
@@ -75,18 +112,36 @@
     @media (min-width: @screen-sm-min) {
       font-size: 12px;
     }
-    padding: 30px 0 30px;
-    .ellipsis-loader {
-      // Give space between log output and loader
-      margin-top: 30px;
+    padding: 40px 0;
+    @media only screen and (max-device-width: 736px) and (-webkit-min-device-pixel-ratio: 0) {
+      // On an iPhone, add additional margin so that following logs is never obscured
+      // by the bottom buttons that are displayed and hidden.
+      padding-bottom: 70px;
     }
     table {
       table-layout: fixed;
       width: 100%;
     }
+    .ellipsis-loader {
+      // Show the loading dots at the bottom, even when the log content doesn't fill the page.
+      position: absolute;
+      bottom: 10px;
+      // Center the dots.
+      margin-left: auto;
+      margin-right: auto;
+      left: 0;
+      right: 0;
+    }
   }
 }
-
+.log-end-msg {
+  font-family: @font-family-base;
+  font-size: @font-size-base - 1;
+  color: #72767b;
+  position: absolute;
+  bottom: 5px;
+  left: 10px;
+}
 // TODO: need to encapsulate this better
 .chromeless .log-scroll-top.affix {
   right: 0px; // override
@@ -140,7 +195,6 @@
     background: lighten(#d1d1d1, 8%);
   }
 }
-
 .table-log-pods {
   > tbody + tbody {
     border-top-width: 1px;

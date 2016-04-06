@@ -31,6 +31,8 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
+	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -44,7 +46,7 @@ import (
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
-var AdmissionPlugins = []string{"RunOnceDuration", "NamespaceLifecycle", "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, serviceadmit.ExternalIPPluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
+var AdmissionPlugins = []string{"RunOnceDuration", lifecycle.PluginName, "PodNodeConstraints", "OriginPodNodeEnvironment", overrideapi.PluginName, serviceadmit.ExternalIPPluginName, "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "BuildDefaults", "BuildOverrides", "ResourceQuota", "SCCExecRestrictions"}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -140,6 +142,17 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	plugins := []admission.Interface{}
 	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
 		switch pluginName {
+		case lifecycle.PluginName:
+			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
+			immortalNamespaces := sets.NewString(kapi.NamespaceDefault)
+			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
+				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
+			}
+			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
+				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
+			}
+			plugins = append(plugins, lifecycle.NewLifecycle(internalclientset.FromUnversionedClient(kubeClient), immortalNamespaces))
+
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
 			reject, admit, err := serviceadmit.ParseCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
