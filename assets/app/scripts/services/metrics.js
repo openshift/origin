@@ -8,7 +8,9 @@ angular.module("openshiftConsole")
     // URL template to show for each type of metric.
     var templateByMetric = {
       "cpu/usage": COUNTER_TEMPLATE,
-      "memory/usage": GAUGE_TEMPLATE
+      "memory/usage": GAUGE_TEMPLATE,
+      "network/rx": COUNTER_TEMPLATE,
+      "network/tx": COUNTER_TEMPLATE
     };
 
     var metricsURL;
@@ -51,7 +53,7 @@ angular.module("openshiftConsole")
       return (usageInMillis / timeInMillis) * 1000;
     }
 
-    function normalize(data, metric) {
+    function normalize(data, metricID) {
       // Track the previous value for CPU usage calculations.
       var lastValue;
 
@@ -73,10 +75,18 @@ angular.module("openshiftConsole")
           point.value = (avg && avg !== "NaN") ? avg : null;
         }
 
-        if (metric === 'cpu/usage') {
+        if (metricID === 'cpu/usage') {
           // Save the raw value before we change it.
           value = point.value;
           point.value = millicoresUsed(point, lastValue);
+          lastValue = value;
+        }
+
+        // Network is cumulative, convert to amount per point.
+        if (/network\/rx|tx/.test(metricID)) {
+          // Save the raw value before we change it.
+          value = point.value;
+          point.value = point.value - lastValue;
           lastValue = value;
         }
       });
@@ -145,6 +155,7 @@ angular.module("openshiftConsole")
             params: params
           }).then(function(response) {
             return _.assign(response, {
+              metricID: config.metric,
               data: normalize(response.data, config.metric)
             });
           });

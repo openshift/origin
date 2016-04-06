@@ -4,6 +4,7 @@ angular.module('openshiftConsole')
   .directive('podMetrics', function($interval,
                                     $parse,
                                     $timeout,
+                                    $q,
                                     ChartsService,
                                     MetricsService,
                                     usageValueFilter) {
@@ -33,15 +34,47 @@ angular.module('openshiftConsole')
         scope.metrics = [
           {
             label: "Memory",
-            id: "memory/usage",
             units: "MiB",
-            chartPrefix: "memory-"
+            chartPrefix: "memory-",
+            convert: bytesToMiB,
+            containerMetric: true,
+            datasets: [
+              {
+                id: "memory/usage",
+                data: []
+              }
+            ]
           },
           {
             label: "CPU",
-            id: "cpu/usage",
             units: "millicores",
-            chartPrefix: "cpu-"
+            chartPrefix: "cpu-",
+            containerMetric: true,
+            datasets: [
+              {
+                id: "cpu/usage",
+                data: []
+              }
+            ]
+          },
+          {
+            label: "Network",
+            units: "MiB",
+            chartPrefix: "network-",
+            chartType: "line",
+            convert: bytesToMiB,
+            datasets: [
+              {
+                id: "network/tx",
+                label: "Sent",
+                data: []
+              },
+              {
+                id: "network/rx",
+                label: "Received",
+                data: []
+              }
+            ]
           }
         ];
 
@@ -77,12 +110,16 @@ angular.module('openshiftConsole')
 
         scope.usageByMetric = {};
 
+        scope.anyUsageByMetric = function(metric) {
+          return _.some(_.map(metric.datasets, 'id'), function(metricID) { return scope.usageByMetric[metricID] !== undefined; });
+        };
+
         var createDonutConfig = function(metric) {
           var chartID = '#' + metric.chartPrefix + scope.uniqueID + '-donut';
           return {
             bindto: chartID,
             onrendered: function() {
-              var used = scope.usageByMetric[metric.id].used;
+              var used = scope.usageByMetric[metric.datasets[0].id].used;
               ChartsService.updateDonutCenterText(chartID, used, metric.units);
             },
             donut: {
@@ -136,7 +173,7 @@ angular.module('openshiftConsole')
               }
             },
             legend: {
-              show: false
+              show: metric.datasets.length > 1
             },
             point: {
               show: false
@@ -147,9 +184,9 @@ angular.module('openshiftConsole')
           };
         };
 
-        function getLimit(metric) {
+        function getLimit(metricID) {
           var container = scope.options.selectedContainer;
-          switch (metric.id) {
+          switch (metricID) {
           case 'memory/usage':
             var memLimit = getMemoryLimit(container);
             if (memLimit) {
@@ -169,83 +206,100 @@ angular.module('openshiftConsole')
           return null;
         }
 
-        function updateChart(data, metric) {
-          var dates = ['dates'], values = [metric.units];
-          var usage = scope.usageByMetric[metric.id] = {
-            total: getLimit(metric)
-          };
+        function updateChart(metric) {
+          var dates, values = {};
 
-          var mostRecentValue = data[data.length - 1].value;
-          if (isNaN(mostRecentValue)) {
-            mostRecentValue = 0;
-          }
-          if (metric.id === 'memory/usage') {
-            mostRecentValue = bytesToMiB(mostRecentValue);
-          }
+          angular.forEach(metric.datasets, function(dataset) {
+            var metricID = dataset.id, metricData = dataset.data;
 
-          // Round to the closest whole number for the utilization chart.
-          usage.used = d3.round(mostRecentValue);
-          if (usage.total) {
-            usage.available = Math.max(usage.total - usage.used, 0);
-          }
+            dates = ['dates'], values[metricID] = [dataset.label || metricID];
 
-          angular.forEach(data, function(point) {
-            dates.push(point.timestamp);
-            if (point.value === undefined || point.value === null) {
-              // Don't attempt to round null values. These appear as gaps in the chart.
-              values.push(point.value);
-            } else {
-              switch (metric.id) {
-                case 'memory/usage':
-                  values.push(d3.round(bytesToMiB(point.value), 2));
-                break;
-                case 'cpu/usage':
-                  values.push(d3.round(point.value));
-                break;
+            var usage = scope.usageByMetric[metricID] = {
+              total: getLimit(metricID)
+            };
+
+            var mostRecentValue = _.last(metricData).value;
+            if (isNaN(mostRecentValue)) {
+              mostRecentValue = 0;
+            }
+            if (metric.convert) {
+              mostRecentValue = metric.convert(mostRecentValue);
+            }
+
+            // Round to the closest whole number for the utilization chart.
+            usage.used = d3.round(mostRecentValue);
+            if (usage.total) {
+              usage.available = Math.max(usage.total - usage.used, 0);
+            }
+
+            angular.forEach(metricData, function(point) {
+              dates.push(point.timestamp);
+              if (point.value === undefined || point.value === null) {
+                // Don't attempt to round null values. These appear as gaps in the chart.
+                values[metricID].push(point.value);
+              } else {
+                var value = metric.convert ? metric.convert(point.value) : point.value;
+                switch (metricID) {
+                  case 'memory/usage':
+                  case 'network/rx':
+                  case 'network/tx':
+                    values[metricID].push(d3.round(value, 2));
+                    break;
+                  default:
+                    values[metricID].push(d3.round(value));
+                }
+              }
+            });
+
+            // Donut
+            var donutConfig, donutData;
+            if (usage.total) {
+              donutData = {
+                type: 'donut',
+                columns: [
+                  ['Used', usage.used],
+                  ['Available', usage.available]
+                ],
+                colors: {
+                  Used: "#0088ce",      // Blue
+                  Available: "#d1d1d1"  // Gray
+                }
+              };
+
+              if (!donutByMetric[metricID]) {
+                donutConfig = createDonutConfig(metric);
+                donutConfig.data = donutData;
+                $timeout(function() {
+                  donutByMetric[metricID] = c3.generate(donutConfig);
+                });
+              } else {
+                donutByMetric[metricID].load(donutData);
               }
             }
           });
 
+          var columns = [dates].concat(_.values(values));
+
           // Sparkline
           var sparklineConfig, sparklineData = {
-            type: 'area',
+            type: metric.chartType || 'area',
             x: 'dates',
-            columns: [ dates, values ]
+            columns: columns
           };
-          if (!sparklineByMetric[metric.id]) {
+
+          var chartId = metric.chartPrefix + "sparkline";
+
+          if (!sparklineByMetric[chartId]) {
             sparklineConfig = createSparklineConfig(metric);
             sparklineConfig.data = sparklineData;
+            if (metric.chartDataColors) {
+              sparklineConfig.color = { pattern: metric.chartDataColors };
+            }
             $timeout(function() {
-              sparklineByMetric[metric.id] = c3.generate(sparklineConfig);
+              sparklineByMetric[chartId] = c3.generate(sparklineConfig);
             });
           } else {
-            sparklineByMetric[metric.id].load(sparklineData);
-          }
-
-          // Donut
-          var donutConfig, donutData;
-          if (usage.total) {
-            donutData = {
-              type: 'donut',
-              columns: [
-                ['Used', usage.used],
-                ['Available', usage.available]
-              ],
-              colors: {
-                Used: "#0088ce",      // Blue
-                Available: "#d1d1d1"  // Gray
-              }
-            };
-
-            if (!donutByMetric[metric.id]) {
-              donutConfig = createDonutConfig(metric);
-              donutConfig.data = donutData;
-              $timeout(function() {
-                donutByMetric[metric.id] = c3.generate(donutConfig);
-              });
-            } else {
-              donutByMetric[metric.id].load(donutData);
-            }
+            sparklineByMetric[chartId].load(sparklineData);
           }
         }
 
@@ -262,22 +316,45 @@ angular.module('openshiftConsole')
           // time. This prevents an issue where the donut chart shows 0 for
           // current usage if the client clock is ahead of the server clock.
           angular.forEach(scope.metrics, function(metric) {
-            MetricsService.get({
-              pod: pod,
-              containerName: container.name,
-              metric: metric.id,
-              start: start
-            }).then(
+            var promises = [];
+
+            // On metrics that require more than one set of data (e.g. network
+            // incoming and outgoing traffic) we perform one request for each,
+            // but collect and handle all requests in one single promise below.
+            // It's important that every metric uses the same 'start' timestamp
+            // and number of buckets, so that the returned data for every metric
+            // fit in the same collection of 'dates' and can be displayed in
+            // exactly the same point in time in the graph.
+            angular.forEach(_.map(metric.datasets, 'id'), function(metricID) {
+              promises.push(MetricsService.get({
+                pod: pod,
+                // some metrics (network, disk) are not available at container
+                // level (only at pod and node level)
+                containerName: metric.containerMetric ? container.name : "pod",
+                metric: metricID,
+                start: start
+              }));
+            });
+
+            // Collect all promises from every metric requested into one, so we
+            // have all data the chart wants at the time of the chart creation
+            // (or timeout updates, etc).
+            $q.all(promises).then(
               // success
-              function(response) {
-                updateChart(response.data, metric);
+              function(responses) {
+                angular.forEach(responses, function(response) {
+                  _.find(metric.datasets, {'id': response.metricID}).data = response.data;
+                });
+                updateChart(metric);
               },
               // failure
-              function(response) {
-                scope.metricsError = {
-                  status: response.status,
-                  details: _.get(response, 'data.errorMsg') || response.statusText || "Status code " + response.status
-                };
+              function(responses) {
+                angular.forEach(responses, function(response) {
+                  scope.metricsError = {
+                    status: response.status,
+                    details: _.get(response, 'data.errorMsg') || response.statusText || "Status code " + response.status
+                  };
+                });
               }
             ).finally(function() {
               // Even on errors mark metrics as loaded to replace the

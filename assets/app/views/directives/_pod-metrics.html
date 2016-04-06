@@ -49,19 +49,25 @@
       </p>
     </div>
 
-    <div ng-repeat="metric in metrics" ng-if="usageByMetric[metric.id] && !metricsError">
-      <h3>{{metric.label}}</h3>
+    <div ng-repeat="metric in metrics" ng-if="anyUsageByMetric(metric) && !metricsError">
+      <h3>
+        {{metric.label}}
+        <small ng-if="pod.spec.containers.length > 1">
+          <span ng-if="metric.containerMetric">Container Metrics</span>
+          <span ng-if="!metric.containerMetric">Pod Metrics</span>
+        </small>
+       </h3>
 
       <!-- Show a summary of usage above the charts like the patternfly utilization card. -->
       <!-- Reuse the utilization card styles, but only here. -->
-      <div ng-if="usageByMetric[metric.id].total" class="utilization-trend-chart-pf">
-        <div ng-if="usageByMetric[metric.id].total" class="current-values">
+      <div ng-if="usageByMetric[metric.datasets[0].id].total" class="utilization-trend-chart-pf">
+        <div ng-if="usageByMetric[metric.datasets[0].id].total" class="current-values">
           <h1 class="available-count pull-left">
-            {{usageByMetric[metric.id].available}}
+            {{usageByMetric[metric.datasets[0].id].available}}
           </h1>
           <div class="available-text pull-left">
             <div>Available of</div>
-            <div>{{usageByMetric[metric.id].total}} {{metric.units}}</div>
+            <div>{{usageByMetric[metric.datasets[0].id].total}} {{metric.units}}</div>
           </div>
         </div>
       </div>
@@ -70,9 +76,9 @@
       <div style="clear: both;"></div>
 
       <!-- Donut -->
-      <div ng-if="usageByMetric[metric.id].total"
-           ng-attr-id="{{metric.chartPrefix + uniqueID}}-donut"
-           class="metrics-donut">
+      <div ng-if="usageByMetric[metric.datasets[0].id].total"
+          ng-attr-id="{{metric.chartPrefix + uniqueID}}-donut"
+          class="metrics-donut">
       </div>
 
       <!-- Sparkline -->
