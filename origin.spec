@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d4743773cd8e1b4bbebd79748df7e7e1f5632a52
+%global commit b142489ba717af6d0874db03ebd5fa76a0edcffc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.10-15-gd474377 -X github.com/openshift/origin/pkg/version.commitFromGit d474377 -X k8s.io/kubernetes/pkg/version.gitCommit d474377 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.11-22-gb142489 -X github.com/openshift/origin/pkg/version.commitFromGit b142489 -X k8s.io/kubernetes/pkg/version.gitCommit b142489 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.11
+Version:        3.2.0.12
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,23 @@ fi
 
 
 %changelog
+* Wed Apr 06 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.12
+- Make infra and shared resource namespaces immortal (jliggitt@redhat.com)
+- UPSTREAM: 23883: Externalize immortal namespaces (jliggitt@redhat.com)
+- add conformance tag to some extended build tests (bparees@redhat.com)
+- add slow tag to jenkins plugin extended test (gmontero@redhat.com)
+- Bug 1323710: fix deploy --cancel message on subsequent calls
+  (mkargaki@redhat.com)
+- UPSTREAM: 23548: Check claimRef UID when processing a recycled PV, take 2
+  (swagiaal@redhat.com)
+- Updates to the 503 application unavailable page. (sgoodwin@redhat.com)
+- Improve display of logs in web console (spadgett@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  641b22d0a5e7a77f7dab2b1e75f563ba59a4ec96 (rhcarvalho@gmail.com)
+- elevate privilegs when removing etcd binary store (skuznets@redhat.com)
+- UPSTREAM: 23078: Check claimRef UID when processing a recycled PV
+  (swagiaal@redhat.com)
+
 * Mon Apr 04 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.11
 - Show pulling / terminated status in pods donut (spadgett@redhat.com)
 - Update the postCommit hook godoc to reflect API (ccoleman@redhat.com)
