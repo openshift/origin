@@ -17,17 +17,19 @@ os::log::install_errexit
 cd "${OS_ROOT}"
 
 # build binaries
-if [[ -z $(os::build::find-binary ginkgo) ]]; then
+ginkgo="$(os::build::find-binary ginkgo)"
+if [[ -z "$ginkgo" ]]; then
   hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
 fi
-if [[ -z $(os::build::find-binary extended.test) ]]; then
+
+extendedtest="$(os::build::find-binary extended.test)"
+if [[ -z "$extendedtest" ]]; then
   hack/build-go.sh test/extended/extended.test
 fi
+
 if [[ -z $(os::build::find-binary openshift) ]]; then
   hack/build-go.sh
 fi
-ginkgo="$(os::build::find-binary ginkgo)"
-extendedtest="$(os::build::find-binary extended.test)"
 
 source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
