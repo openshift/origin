@@ -3399,7 +3399,8 @@ func (kl *Kubelet) convertStatusToAPIStatus(pod *api.Pod, podStatus *kubecontain
 		} else if reason == kubecontainer.ErrImagePullBackOff ||
 			reason == kubecontainer.ErrImageInspect ||
 			reason == kubecontainer.ErrImagePull ||
-			reason == kubecontainer.ErrImageNeverPull {
+			reason == kubecontainer.ErrImageNeverPull ||
+			reason == kubecontainer.RegistryUnavailable {
 			// mark it as waiting, reason will be filled bellow
 			containerStatus.State = api.ContainerState{Waiting: &api.ContainerStateWaiting{}}
 		} else if reason == kubecontainer.ErrRunContainer {
