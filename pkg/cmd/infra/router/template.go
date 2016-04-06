@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
@@ -54,6 +55,7 @@ type TemplateRouter struct {
 	ReloadInterval         time.Duration
 	DefaultCertificate     string
 	DefaultCertificatePath string
+	ExtendedValidation     bool
 	RouterService          *ktypes.NamespacedName
 }
 
@@ -77,6 +79,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
+	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router.")
 }
 
 type RouterStats struct {
@@ -192,7 +195,11 @@ func (o *TemplateRouterOptions) Run() error {
 	}
 
 	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, o.RouterName)
-	plugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
+	var nextPlugin router.Plugin = statusPlugin
+	if o.ExtendedValidation {
+		nextPlugin = controller.NewExtendedValidator(nextPlugin, controller.RejectionRecorder(statusPlugin))
+	}
+	plugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), controller.RejectionRecorder(statusPlugin))
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	controller := factory.Create(plugin)
