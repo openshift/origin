@@ -45,6 +45,7 @@ os::cmd::expect_failure_and_text 'openshift start network --config=${NODECONFIG}
 os::cmd::expect_failure_and_text 'openshift start node' 'kubeconfig must be set'
 os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
 os::cmd::expect_failure_and_text 'openshift start node --config=${NODECONFIG} --disable=kubelet,proxy,plugins' 'at least one node component must be enabled \(kubelet, plugins, proxy\)'
+os::cmd::expect_failure_and_text 'openshift start --write-config=/tmp/test --hostname=""' 'error: --hostname must have a value'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/manage-node"

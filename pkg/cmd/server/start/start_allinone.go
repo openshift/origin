@@ -164,6 +164,9 @@ func (o AllInOneOptions) Validate(args []string) error {
 		return errors.New("config directory must have a value")
 	}
 
+	if len(o.NodeArgs.NodeName) == 0 {
+		return errors.New("--hostname must have a value")
+	}
 	// if we are not starting up using a config file, run the argument validation
 	if !o.IsRunFromConfig() {
 		if err := o.MasterOptions.MasterArgs.Validate(); err != nil {
