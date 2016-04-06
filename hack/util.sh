@@ -565,7 +565,7 @@ function cleanup_openshift {
 		fi
 
 		echo "[INFO] Pruning etcd data directory..."
-		rm -rf "${ETCD_DATA_DIR}"
+		sudo rm -rf "${ETCD_DATA_DIR}"
 
 		set -u
 	fi

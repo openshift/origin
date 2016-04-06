@@ -92,7 +92,7 @@ func jenkinsJobBytes(filename, namespace string) []byte {
 	return data
 }
 
-var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
+var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
 	var hostPort string

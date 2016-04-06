@@ -66,6 +66,10 @@ never successfully complete - in which case you can use the '--latest' flag to f
 When rolling back to a previous deployment, a new deployment will be created with an identical copy
 of your config at the latest position.
 
+If you want to cancel a running deployment, use '--cancel' but keep in mind that this is a best-effort
+operation and may take some time to complete. It’s possible the deployment will partially or totally
+complete before the cancellation is effective. In such a case an appropriate event will be emitted.
+
 If no options are given, shows information about the latest deployment.`
 
 	deployExample = `  # Display the latest deployment for the 'database' deployment config
@@ -319,10 +323,14 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 	}
 	if !anyCancelled {
 		latest := &deployments.Items[0]
+		status := string(deployutil.DeploymentStatusFor(latest))
+		if deployutil.IsDeploymentCancelled(latest) {
+			status = "cancelled"
+		}
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
 		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
 			deployutil.DeploymentVersionFor(latest),
-			strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
+			strings.ToLower(status),
 			timeAt)
 	}
 	return nil
