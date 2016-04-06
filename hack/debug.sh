@@ -46,6 +46,7 @@ log_system () {
     echo_and_eval  head -1000 /etc/sysconfig/network-scripts/ifcfg-*  &> $logpath/ifcfg
     echo_and_eval  ip addr show                                       &> $logpath/addresses
     echo_and_eval  ip route show                                      &> $logpath/routes
+    echo_and_eval  ip neighbor show                                   &> $logpath/arp
     echo_and_eval  iptables-save                                      &> $logpath/iptables
     echo_and_eval  cat /etc/hosts                                     &> $logpath/hosts
     echo_and_eval  cat /etc/resolv.conf                               &> $logpath/resolv.conf
