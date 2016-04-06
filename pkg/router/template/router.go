@@ -306,7 +306,7 @@ func (r *templateRouter) reloadRouter() error {
 	cmd := exec.Command(r.reloadScriptPath)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error reloading router: %v\n%s", err, out)
+		return fmt.Errorf("error reloading router: %v\n%s", err, string(out))
 	}
 	glog.Infof("Router reloaded:\n%s", out)
 	return nil
