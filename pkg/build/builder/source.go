@@ -319,15 +319,20 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
+	}
 
+	containerConfig := &docker.Config{Image: image}
+	if inspect, err := dockerClient.InspectImage(image); err != nil {
+		return err
+	} else {
+		// In case the Docker image does not specify the entrypoint
+		if len(inspect.Config.Entrypoint) == 0 && len(inspect.Config.Cmd) == 0 {
+			containerConfig.Entrypoint = []string{"/fake-entrypoint"}
+		}
 	}
 
 	// Create container to copy from
-	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{
-		Config: &docker.Config{
-			Image: image,
-		},
-	})
+	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Config: containerConfig})
 	if err != nil {
 		return fmt.Errorf("error creating source image container: %v", err)
 	}
