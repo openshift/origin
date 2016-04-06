@@ -118,7 +118,7 @@ function test-osdn-plugin() {
   # plugin.
   set +e
 
-  run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
+  TEST_REPORT_FILE_NAME=networking_${name}_${isolation} run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
   local exit_status=$?
 
   set -e
