@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -81,6 +82,7 @@ type RegistryConfig struct {
 	Credentials    string
 	Selector       string
 	ServiceAccount string
+	DaemonSet      bool
 
 	ServingCertPath string
 	ServingKeyPath  string
@@ -150,6 +152,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
 	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
+	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "Use a daemonset instead of a deployment config.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
@@ -374,20 +377,36 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		)
 	}
 
-	objects = append(objects, &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:   name,
-			Labels: label,
-		},
-		Spec: deployapi.DeploymentConfigSpec{
-			Replicas: cfg.Replicas,
-			Selector: label,
-			Triggers: []deployapi.DeploymentTriggerPolicy{
-				{Type: deployapi.DeploymentTriggerOnConfigChange},
+	if cfg.DaemonSet {
+		objects = append(objects, &extensions.DaemonSet{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   name,
+				Labels: label,
 			},
-			Template: podTemplate,
-		},
-	})
+			Spec: extensions.DaemonSetSpec{
+				Template: kapi.PodTemplateSpec{
+					ObjectMeta: podTemplate.ObjectMeta,
+					Spec:       podTemplate.Spec,
+				},
+			},
+		})
+	} else {
+		objects = append(objects, &deployapi.DeploymentConfig{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   name,
+				Labels: label,
+			},
+			Spec: deployapi.DeploymentConfigSpec{
+				Replicas: cfg.Replicas,
+				Selector: label,
+				Triggers: []deployapi.DeploymentTriggerPolicy{
+					{Type: deployapi.DeploymentTriggerOnConfigChange},
+				},
+				Template: podTemplate,
+			},
+		})
+	}
+
 	objects = app.AddServices(objects, true)
 
 	// Set registry service's sessionAffinity to ClientIP to prevent push

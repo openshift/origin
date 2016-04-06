@@ -295,6 +295,16 @@ echo "router: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/registry"
+# Test running a registry as a daemonset
+os::cmd::expect_failure_and_text 'oadm registry --daemonset --dry-run' 'does not exist'
+os::cmd::expect_success_and_text "oadm registry --daemonset -o yaml --credentials=${KUBECONFIG}" 'DaemonSet'
+os::cmd::expect_success "oadm registry --daemonset --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
+os::cmd::expect_success_and_text 'oadm registry --daemonset' 'service exists'
+os::cmd::expect_success_and_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
+# clean up so we can test non-daemonset
+os::cmd::expect_success "oc delete ds/docker-registry svc/docker-registry"
+echo "registry daemonset: ok"
+
 # Test running a registry
 os::cmd::expect_failure_and_text 'oadm registry --dry-run' 'does not exist'
 os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*-docker-registry'
