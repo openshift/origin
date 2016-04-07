@@ -64,10 +64,28 @@ func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile strin
 	if addr == "" {
 		addr = ":https"
 	}
-	config := &tls.Config{}
-	if srv.TLSConfig != nil {
-		*config = *srv.TLSConfig
+	ln, err := net.Listen(network, addr)
+	if err != nil {
+		return err
 	}
+
+	if srv.TLSConfig != nil {
+		if err := tweakTLSConfig(srv.TLSConfig, certFile, keyFile); err != nil {
+			return err
+		}
+		tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, srv.TLSConfig)
+		return srv.Serve(tlsListener)
+	}
+
+	config := &tls.Config{}
+	if err := tweakTLSConfig(config, certFile, keyFile); err != nil {
+		return err
+	}
+	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+	return srv.Serve(tlsListener)
+}
+
+func tweakTLSConfig(config *tls.Config, certFile, keyFile string) error {
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http/1.1"}
 	}
@@ -75,17 +93,7 @@ func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile strin
 	var err error
 	config.Certificates = make([]tls.Certificate, 1)
 	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return err
-	}
-
-	ln, err := net.Listen(network, addr)
-	if err != nil {
-		return err
-	}
-
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
-	return srv.Serve(tlsListener)
+	return err
 }
 
 // WaitForSuccessfulDial attempts to connect to the given address, closing and returning nil on the first successful connection.

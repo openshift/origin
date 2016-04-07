@@ -45,18 +45,18 @@ func main() {
 	}
 
 	pkg := filepath.Join(execDir, fmt.Sprintf("%s.test", base))
-	test, err := filepath.Abs(pkg)
+	testExec, err := filepath.Abs(pkg)
 	if err != nil {
 		log.Fatalf("Unable to make path %q absolute: %v", execDir, err)
 	}
-	if _, err := os.Stat(test); err != nil {
-		log.Fatalf("No test executable %q exits, did you run `go test -c` on the named package?", test)
+	if _, err = os.Stat(testExec); err != nil {
+		log.Fatalf("No test executable %q exits, did you run `go test -c` on the named package?", testExec)
 	}
 
-	cmd := exec.Command("go", "tool", "nm", "-sort", "name", "-n", test)
+	cmd := exec.Command("go", "tool", "nm", "-sort", "name", "-n", testExec)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatalf("Can't get `go tool nm` output from %q: %v", test, err)
+		log.Fatalf("Can't get `go tool nm` output from %q: %v", testExec, err)
 	}
 
 	names := []string{}
