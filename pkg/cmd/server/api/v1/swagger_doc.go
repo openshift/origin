@@ -265,6 +265,19 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 	return map_ImagePolicyConfig
 }
 
+var map_JenkinsPipelineConfig = map[string]string{
+	"":             "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"disabled":     "Disabled disables the Jenkins Pipeline auto-instantiation of Jenkins template. The ServiceName is still used to verify the project already have the Jenkins available. When not specified (default), this option defaults to false",
+	"namespace":    "Namespace contains the namespace name where the Jenkins template is stored",
+	"templateName": "TemplateName is the name of the default Jenkins template",
+	"serviceName":  "ServiceName is the name of the Jenkins service OpenShift use for Jenkins pipeline",
+	"parameters":   "Parameters specifies a set of optional parameters to the Jenkins template",
+}
+
+func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineConfig
+}
+
 var map_KeystonePasswordIdentityProvider = map[string]string{
 	"":           "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
 	"domainName": "Domain Name is required for keystone v3",
@@ -408,6 +421,7 @@ var map_MasterConfig = map[string]string{
 	"projectConfig":          "ProjectConfig holds information about project creation and defaults",
 	"routingConfig":          "RoutingConfig holds information about routing and route generation",
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
+	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {

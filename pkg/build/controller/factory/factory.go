@@ -2,8 +2,9 @@ package factory
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"time"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -23,6 +24,7 @@ import (
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	errors "github.com/openshift/origin/pkg/util/errors"
@@ -306,7 +308,9 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
+	KubeClient              kclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	JenkinsConfig           serverapi.JenkinsPipelineConfig
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -316,8 +320,15 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		KubeClient:              factory.KubeClient,
+		Client:                  factory.Client,
+		JenkinsConfig:           factory.JenkinsConfig,
+		Recorder:                eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-config-controller"}),
 	}
 
 	return &controller.RetryController{
@@ -368,6 +379,8 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 		pod, err = f.SourceBuildStrategy.CreateBuildPod(build)
 	case build.Spec.Strategy.CustomStrategy != nil:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
+	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s", build.Namespace, build.Name)
 	}

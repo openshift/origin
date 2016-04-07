@@ -205,6 +205,7 @@ items:
     - builds/clone
     - builds/custom
     - builds/docker
+    - builds/jenkinspipeline
     - builds/log
     - builds/source
     - deploymentconfigrollbacks
@@ -385,6 +386,7 @@ items:
     - builds/clone
     - builds/custom
     - builds/docker
+    - builds/jenkinspipeline
     - builds/log
     - builds/source
     - deploymentconfigrollbacks
@@ -1302,6 +1304,7 @@ items:
     resources:
     - builds/custom
     - builds/docker
+    - builds/jenkinspipeline
     - builds/source
     verbs:
     - create

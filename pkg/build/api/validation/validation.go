@@ -103,11 +103,18 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 	s := spec.Strategy
 
-	if s.CustomStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, or dockerfile"))
+	if s.CustomStrategy == nil && s.JenkinsPipelineStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, dockerfile, or jenkinsfile"))
 	}
 
-	allErrs = append(allErrs, validateSource(&spec.Source, s.CustomStrategy != nil, s.DockerStrategy != nil, fldPath.Child("source"))...)
+	allErrs = append(allErrs,
+		validateSource(
+			&spec.Source,
+			s.CustomStrategy != nil,
+			s.DockerStrategy != nil,
+			s.JenkinsPipelineStrategy != nil && len(s.JenkinsPipelineStrategy.Jenkinsfile) == 0,
+			fldPath.Child("source"))...,
+	)
 
 	if spec.CompletionDeadlineSeconds != nil {
 		if *spec.CompletionDeadlineSeconds <= 0 {
@@ -123,13 +130,16 @@ func validateBuildSpec(spec *buildapi.BuildSpec, fldPath *field.Path) field.Erro
 	return allErrs
 }
 
-const maxDockerfileLengthBytes = 60 * 1000
+const (
+	maxDockerfileLengthBytes  = 60 * 1000
+	maxJenkinsfileLengthBytes = 60 * 1000
+)
 
 func hasProxy(source *buildapi.GitBuildSource) bool {
 	return (source.HTTPProxy != nil && len(*source.HTTPProxy) > 0) || (source.HTTPSProxy != nil && len(*source.HTTPSProxy) > 0)
 }
 
-func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy bool, fldPath *field.Path) field.ErrorList {
+func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy, isJenkinsPipelineStrategyFromRepo bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// Ensure that Git and Binary source types are mutually exclusive.
@@ -153,6 +163,10 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 		for i, image := range input.Images {
 			allErrs = append(allErrs, validateImageSource(image, fldPath.Child("images").Index(i))...)
 		}
+	}
+
+	if isJenkinsPipelineStrategyFromRepo && input.Git == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("git"), "", "must be set when using Jenkins Pipeline strategy with Jenkinsfile from a git repo"))
 	}
 
 	allErrs = append(allErrs, validateSecrets(input.Secrets, isDockerStrategy, fldPath.Child("secrets"))...)
@@ -383,8 +397,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	if strategy.CustomStrategy != nil {
 		strategyCount++
 	}
+	if strategy.JenkinsPipelineStrategy != nil {
+		strategyCount++
+	}
 	if strategyCount != 1 {
-		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, or dockerStrategy"))
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for exactly one of sourceStrategy, customStrategy, dockerStrategy, or jenkinsPipelineStrategy"))
 	}
 
 	if strategy.SourceStrategy != nil {
@@ -395,6 +412,9 @@ func validateStrategy(strategy *buildapi.BuildStrategy, fldPath *field.Path) fie
 	}
 	if strategy.CustomStrategy != nil {
 		allErrs = append(allErrs, validateCustomStrategy(strategy.CustomStrategy, fldPath.Child("customStrategy"))...)
+	}
+	if strategy.JenkinsPipelineStrategy != nil {
+		allErrs = append(allErrs, validateJenkinsPipelineStrategy(strategy.JenkinsPipelineStrategy, fldPath.Child("jenkinsPipelineStrategy"))...)
 	}
 
 	return allErrs
@@ -410,16 +430,9 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 
 	if len(strategy.DockerfilePath) != 0 {
-		cleaned := path.Clean(strategy.DockerfilePath)
-		switch {
-		case strings.HasPrefix(cleaned, "/"):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not be an absolute path"))
-		case strings.HasPrefix(cleaned, ".."):
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("dockerfilePath"), strategy.DockerfilePath, "dockerfilePath must not start with .."))
-		default:
-			if cleaned == "." {
-				cleaned = ""
-			}
+		cleaned, errs := validateRelativePath(strategy.DockerfilePath, "dockerfilePath", fldPath.Child("dockerfilePath"))
+		allErrs = append(allErrs, errs...)
+		if len(errs) == 0 {
 			strategy.DockerfilePath = cleaned
 		}
 	}
@@ -427,6 +440,20 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
 
 	return allErrs
+}
+
+func validateRelativePath(filePath, fieldName string, fldPath *field.Path) (string, field.ErrorList) {
+	allErrs := field.ErrorList{}
+	cleaned := path.Clean(filePath)
+	switch {
+	case filepath.IsAbs(cleaned), cleaned == "..", strings.HasPrefix(cleaned, "../"):
+		allErrs = append(allErrs, field.Invalid(fldPath, filePath, fieldName+" must be a relative path within your source location"))
+	default:
+		if cleaned == "." {
+			cleaned = ""
+		}
+	}
+	return cleaned, allErrs
 }
 
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *field.Path) field.ErrorList {
@@ -442,6 +469,28 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
+	return allErrs
+}
+
+func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineBuildStrategy, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(strategy.JenkinsfilePath) != 0 && len(strategy.Jenkinsfile) != 0 {
+		return append(allErrs, field.Invalid(fldPath, strategy, "must provide a value for at most one of jenkinsfilePath, or jenkinsfile"))
+	}
+
+	if len(strategy.Jenkinsfile) > maxJenkinsfileLengthBytes {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("jenkinsfile"), "", fmt.Sprintf("must be smaller than %d bytes", maxJenkinsfileLengthBytes)))
+	}
+
+	if len(strategy.JenkinsfilePath) != 0 {
+		cleaned, errs := validateRelativePath(strategy.JenkinsfilePath, "jenkinsfilePath", fldPath.Child("jenkinsfilePath"))
+		allErrs = append(allErrs, errs...)
+		if len(errs) == 0 {
+			strategy.JenkinsfilePath = cleaned
+		}
+	}
+
 	return allErrs
 }
 

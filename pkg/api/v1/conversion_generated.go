@@ -26,7 +26,7 @@ import (
 	resource "k8s.io/kubernetes/pkg/api/resource"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
-	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
+	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
@@ -1439,6 +1439,15 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrateg
 	} else {
 		out.CustomStrategy = nil
 	}
+	// unable to generate simple pointer conversion for api.JenkinsPipelineBuildStrategy -> v1.JenkinsPipelineBuildStrategy
+	if in.JenkinsPipelineStrategy != nil {
+		out.JenkinsPipelineStrategy = new(v1.JenkinsPipelineBuildStrategy)
+		if err := Convert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in.JenkinsPipelineStrategy, out.JenkinsPipelineStrategy, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -1666,6 +1675,19 @@ func autoConvert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSou
 
 func Convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *buildapi.ImageSourcePath, out *v1.ImageSourcePath, s conversion.Scope) error {
 	return autoConvert_api_ImageSourcePath_To_v1_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in *buildapi.JenkinsPipelineBuildStrategy, out *v1.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.JenkinsPipelineBuildStrategy))(in)
+	}
+	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
+	return nil
+}
+
+func Convert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in *buildapi.JenkinsPipelineBuildStrategy, out *v1.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
+	return autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in, out, s)
 }
 
 func autoConvert_api_SecretBuildSource_To_v1_SecretBuildSource(in *buildapi.SecretBuildSource, out *v1.SecretBuildSource, s conversion.Scope) error {
@@ -2278,6 +2300,15 @@ func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *v1.BuildStrategy, out
 	} else {
 		out.CustomStrategy = nil
 	}
+	// unable to generate simple pointer conversion for v1.JenkinsPipelineBuildStrategy -> api.JenkinsPipelineBuildStrategy
+	if in.JenkinsPipelineStrategy != nil {
+		out.JenkinsPipelineStrategy = new(buildapi.JenkinsPipelineBuildStrategy)
+		if err := Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in.JenkinsPipelineStrategy, out.JenkinsPipelineStrategy, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -2505,6 +2536,19 @@ func autoConvert_v1_ImageSourcePath_To_api_ImageSourcePath(in *v1.ImageSourcePat
 
 func Convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *v1.ImageSourcePath, out *buildapi.ImageSourcePath, s conversion.Scope) error {
 	return autoConvert_v1_ImageSourcePath_To_api_ImageSourcePath(in, out, s)
+}
+
+func autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in *v1.JenkinsPipelineBuildStrategy, out *buildapi.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*v1.JenkinsPipelineBuildStrategy))(in)
+	}
+	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
+	return nil
+}
+
+func Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in *v1.JenkinsPipelineBuildStrategy, out *buildapi.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
+	return autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in, out, s)
 }
 
 func autoConvert_v1_SecretBuildSource_To_api_SecretBuildSource(in *v1.SecretBuildSource, out *buildapi.SecretBuildSource, s conversion.Scope) error {
@@ -7209,7 +7253,7 @@ func autoConvert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in *api.PodTemplateSp
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := batchv1.Convert_api_PodSpec_To_v1_PodSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := v1beta1.Convert_api_PodSpec_To_v1_PodSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
@@ -8476,7 +8520,7 @@ func autoConvert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in *apiv1.PodTemplate
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := batchv1.Convert_v1_PodSpec_To_api_PodSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := v1beta1.Convert_v1_PodSpec_To_api_PodSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
@@ -8974,6 +9018,7 @@ func init() {
 		autoConvert_api_ImageStream_To_v1_ImageStream,
 		autoConvert_api_Image_To_v1_Image,
 		autoConvert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview,
+		autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy,
 		autoConvert_api_KeyToPath_To_v1_KeyToPath,
 		autoConvert_api_LifecycleHook_To_v1_LifecycleHook,
 		autoConvert_api_Lifecycle_To_v1_Lifecycle,
@@ -9153,6 +9198,7 @@ func init() {
 		autoConvert_v1_ImageStream_To_api_ImageStream,
 		autoConvert_v1_Image_To_api_Image,
 		autoConvert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
+		autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy,
 		autoConvert_v1_KeyToPath_To_api_KeyToPath,
 		autoConvert_v1_LifecycleHook_To_api_LifecycleHook,
 		autoConvert_v1_Lifecycle_To_api_Lifecycle,
