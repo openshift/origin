@@ -28,7 +28,7 @@ func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache 
 
 func testConfig(n *int64) *api.RunOnceDurationConfig {
 	return &api.RunOnceDurationConfig{
-		ActiveDeadlineSecondsOverride: n,
+		ActiveDeadlineSecondsLimit: n,
 	}
 }
 
@@ -81,32 +81,41 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 			expectedActiveDeadlineSeconds: nil,
 		},
 		{
-			name:   "expect configured duration to override existing duration",
+			name:   "expect configured duration to not limit lower existing duration",
 			config: testConfig(int64p(10)),
 			pod:    testRunOncePodWithDuration(5),
-			expectedActiveDeadlineSeconds: int64p(10),
+			expectedActiveDeadlineSeconds: int64p(5),
 		},
 		{
-			name:   "expect empty config to not override existing duration",
+			name:   "expect empty config to not limit existing duration",
 			config: testConfig(nil),
 			pod:    testRunOncePodWithDuration(5),
 			expectedActiveDeadlineSeconds: int64p(5),
 		},
 		{
-			name:   "expect project override to be used with nil global value",
+			name:   "expect project limit to be used with nil global value",
 			config: testConfig(nil),
-			pod:    testRunOncePodWithDuration(5),
+			pod:    testRunOncePodWithDuration(2000),
 			projectAnnotations: map[string]string{
-				api.ActiveDeadlineSecondsOverrideAnnotation: "1000",
+				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
 			},
 			expectedActiveDeadlineSeconds: int64p(1000),
 		},
 		{
-			name:   "expect project override to have priority over global config value",
-			config: testConfig(int64p(10)),
-			pod:    testRunOncePodWithDuration(5),
+			name:   "expect project limit to not limit a smaller set value",
+			config: testConfig(nil),
+			pod:    testRunOncePodWithDuration(10),
 			projectAnnotations: map[string]string{
-				api.ActiveDeadlineSecondsOverrideAnnotation: "1000",
+				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
+			},
+			expectedActiveDeadlineSeconds: int64p(10),
+		},
+		{
+			name:   "expect project limit to have priority over global config value",
+			config: testConfig(int64p(10)),
+			pod:    testRunOncePodWithDuration(2000),
+			projectAnnotations: map[string]string{
+				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
 			},
 			expectedActiveDeadlineSeconds: int64p(1000),
 		},
@@ -157,10 +166,53 @@ activeDeadlineSecondsOverride: 3600
 	if err != nil {
 		t.Fatalf("unexpected error reading config: %v", err)
 	}
-	if config.ActiveDeadlineSecondsOverride == nil {
-		t.Fatalf("nil value for ActiveDeadlineSecondsOverride")
+	if config.ActiveDeadlineSecondsLimit == nil {
+		t.Fatalf("nil value for ActiveDeadlineSecondsLimit")
 	}
-	if *config.ActiveDeadlineSecondsOverride != 3600 {
-		t.Errorf("unexpected value for ActiveDeadlineSecondsOverride: %d", config.ActiveDeadlineSecondsOverride)
+	if *config.ActiveDeadlineSecondsLimit != 3600 {
+		t.Errorf("unexpected value for ActiveDeadlineSecondsLimit: %d", config.ActiveDeadlineSecondsLimit)
+	}
+}
+
+func TestInt64MinP(t *testing.T) {
+	ten := int64(10)
+	twenty := int64(20)
+	tests := []struct {
+		a, b, expected *int64
+	}{
+		{
+			a:        &ten,
+			b:        nil,
+			expected: &ten,
+		},
+		{
+			a:        nil,
+			b:        &ten,
+			expected: &ten,
+		},
+		{
+			a:        &ten,
+			b:        &twenty,
+			expected: &ten,
+		},
+		{
+			a:        nil,
+			b:        nil,
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		actual := int64MinP(test.a, test.b)
+		switch {
+		case actual == nil && test.expected != nil,
+			test.expected == nil && actual != nil:
+			t.Errorf("unexpected %v for %#v", actual, test)
+			continue
+		case actual == nil:
+			continue
+		case *actual != *test.expected:
+			t.Errorf("unexpected: %v for %#v", actual, test)
+		}
 	}
 }
