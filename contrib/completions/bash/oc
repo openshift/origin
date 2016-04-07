@@ -348,6 +348,7 @@ _oc_login()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--force")
     flags+=("--password=")
     two_word_flags+=("-p")
     flags+=("--username=")

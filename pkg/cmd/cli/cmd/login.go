@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -12,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -63,7 +65,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 				kcmdutil.CheckErr(err)
 			}
 
-			err := RunLogin(cmd, options)
+			err := options.RunLogin()
 
 			if kapierrors.IsUnauthorized(err) {
 				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
@@ -87,6 +89,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 	// Login is the only command that can negotiate a session token against the auth server using basic auth
 	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
+	cmds.Flags().BoolVar(&options.Force, "force", false, "Forces a login attempt even if the kubeconfig file probably shouldn't be updated")
 
 	return cmds
 }
@@ -178,19 +181,68 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 	return nil
 }
 
-// RunLogin contains all the necessary functionality for the OpenShift cli login command
-func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
-	if err := options.GatherInfo(); err != nil {
+func (o *LoginOptions) RunLogin() error {
+	if !o.Force && o.isLikelyAdminKubeConfig() {
+		return errors.New("It looks like your config file is used for a cluster-admin (system:admin).  You probably shouldn't modify this file using `oc login`.\n" +
+			"Modifying the cluster-admin configuration file can result in confusion when you try to use it later for privileged actions and get denied.\n" +
+			"If you really want to modify this file, use `--force`, otherwise specify a different path with --config or by setting KUBECONFIG.")
+	}
+	if !o.Force && !o.isKubeConfigWriteable() {
+		return errors.New("Your config file is read only so `oc login` will probably fail.\n" +
+			"If you really want to modify this file, use `--force`, otherwise specify a different path with --config or by setting KUBECONFIG.")
+	}
+
+	if err := o.GatherInfo(); err != nil {
 		return err
 	}
 
-	newFileCreated, err := options.SaveConfig()
+	newFileCreated, err := o.SaveConfig()
 	if err != nil {
 		return err
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome! See 'oc help' to get started.")
+		fmt.Fprintln(o.Out, "Welcome! See 'oc help' to get started.")
 	}
 	return nil
+}
+
+func (o *LoginOptions) isLikelyAdminKubeConfig() bool {
+	if len(o.StartingKubeConfig.CurrentContext) == 0 {
+		return false
+	}
+
+	context := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]
+	// when we generate, we always choose this name
+	if strings.HasPrefix(context.AuthInfo, "system:admin/") {
+		return true
+	}
+
+	return false
+}
+
+func (o *LoginOptions) isKubeConfigWriteable() bool {
+	originalFiles := sets.String{}
+	for _, c := range o.StartingKubeConfig.AuthInfos {
+		originalFiles.Insert(c.LocationOfOrigin)
+	}
+	for _, c := range o.StartingKubeConfig.Contexts {
+		originalFiles.Insert(c.LocationOfOrigin)
+	}
+	for _, c := range o.StartingKubeConfig.Clusters {
+		originalFiles.Insert(c.LocationOfOrigin)
+	}
+
+	for fileName := range originalFiles {
+		file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_APPEND, 0600)
+		if err == nil {
+			file.Close()
+			continue
+		}
+		if os.IsPermission(err) {
+			return false
+		}
+	}
+
+	return true
 }

@@ -104,7 +104,6 @@ os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
-os::cmd::expect_success 'oc login -u e2e-user -p pass'
 os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
 
 # make sure viewers can see oc status
@@ -130,7 +129,7 @@ docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
 
 # check to make sure an image-pusher can push an image
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'
-os::cmd::expect_success 'oc login -u pusher -p pass'
+os::cmd::expect_success 'oc login --force -u pusher -p pass'
 pusher_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
 os::cmd::expect_success_and_text "echo ${pusher_token}" '.+'
 
@@ -160,7 +159,7 @@ os::cmd::expect_success "oc process -n docker -f examples/sample-app/application
 os::cmd::expect_success "oc process -n custom -f examples/sample-app/application-template-custombuild.json > '${CUSTOM_CONFIG_FILE}'"
 
 echo "[INFO] Back to 'test' context with 'e2e-user' user"
-os::cmd::expect_success 'oc login -u e2e-user'
+os::cmd::expect_success 'oc login --force -u e2e-user'
 os::cmd::expect_success 'oc project test'
 os::cmd::expect_success 'oc whoami'
 
@@ -352,7 +351,7 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 
 # set up pruner user
 os::cmd::expect_success 'oadm policy add-cluster-role-to-user system:image-pruner e2e-pruner'
-os::cmd::expect_success 'oc login -u e2e-pruner -p pass'
+os::cmd::expect_success 'oc login --force -u e2e-pruner -p pass'
 
 # run image pruning
 os::cmd::expect_success "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm &> '${LOG_DIR}/prune-images.log'"
