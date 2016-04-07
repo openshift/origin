@@ -17,7 +17,7 @@
           <span ng-repeat="(key, value) in env.valueFrom">
             <span ng-switch on="key">
               <span ng-switch-when="configMapKeyRef">
-                Set to the key <b>{{value.key}}</b> in secret <b>{{value.name}}</b>.
+                Set to the key <b>{{value.key}}</b> in config map <b>{{value.name}}</b>.
               </span>
               <span ng-switch-when="secretKeyRef">
                 Set to the key <b>{{value.key}}</b> in secret <b>{{value.name}}</b>.
