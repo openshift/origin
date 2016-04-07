@@ -923,6 +923,11 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bo
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
 	status := deployutil.DeploymentStatusFor(deploy)
 	version := deployutil.DeploymentVersionFor(deploy)
+	maybeCancelling := ""
+	if deployutil.IsDeploymentCancelled(deploy) && !deployutil.IsTerminatedDeployment(deploy) {
+		maybeCancelling = " (cancelling)"
+	}
+
 	switch status {
 	case deployapi.DeploymentStatusFailed:
 		reason := deployutil.DeploymentStatusReasonFor(deploy)
@@ -938,13 +943,13 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bo
 		}
 		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
 	case deployapi.DeploymentStatusRunning:
-		format := "deployment #%d running for %s%s"
+		format := "deployment #%d running%s for %s%s"
 		if test {
-			format = "test deployment #%d running for %s%s"
+			format = "test deployment #%d running%s for %s%s"
 		}
-		return fmt.Sprintf(format, version, timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(deploy, false))
 	default:
-		return fmt.Sprintf("deployment #%d %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(deploy, false))
 	}
 }
 
