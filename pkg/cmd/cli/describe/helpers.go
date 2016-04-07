@@ -132,7 +132,7 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	if !m.CreationTimestamp.IsZero() {
 		formatTime(out, "Created", m.CreationTimestamp.Time)
 	}
-	formatString(out, "Labels", formatLabels(m.Labels))
+	formatMapStringString(out, "Labels", m.Labels)
 	formatAnnotations(out, m, "")
 }
 

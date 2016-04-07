@@ -123,25 +123,31 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
-		if build.Status.Config != nil {
-			formatString(out, "Build Config", build.Status.Config.Name)
-		}
-		if build.Status.StartTimestamp != nil {
-			formatString(out, "Started", build.Status.StartTimestamp.Time)
-		}
-		if build.Status.CompletionTimestamp != nil {
-			formatString(out, "Finished", build.Status.CompletionTimestamp.Time)
-		}
-		// Create the time object with second-level precision so we don't get
-		// output like "duration: 1.2724395728934s"
-		formatString(out, "Duration", describeBuildDuration(build))
-		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
-		describeBuildSpec(build.Spec, out)
+
+		fmt.Fprintln(out, "")
+
 		status := bold(build.Status.Phase)
 		if build.Status.Message != "" {
 			status += " (" + build.Status.Message + ")"
 		}
 		formatString(out, "Status", status)
+
+		if build.Status.StartTimestamp != nil && !build.Status.StartTimestamp.IsZero() {
+			formatString(out, "Started", build.Status.StartTimestamp.Time.Format(time.RFC1123))
+		}
+
+		// Create the time object with second-level precision so we don't get
+		// output like "duration: 1.2724395728934s"
+		formatString(out, "Duration", describeBuildDuration(build))
+
+		if build.Status.Config != nil {
+			formatString(out, "Build Config", build.Status.Config.Name)
+		}
+		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
+
+		describeBuildSpec(build.Spec, out)
+
+		fmt.Fprintln(out, "")
 		kctl.DescribeEvents(events, out)
 
 		return nil
@@ -180,17 +186,7 @@ func nameAndNamespace(ns, name string) string {
 	return name
 }
 func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
-	formatString(out, "Strategy", buildapi.StrategyType(p.Strategy))
-	if p.Source.Dockerfile != nil {
-		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
-			formatString(out, "Dockerfile", "")
-		} else {
-			fmt.Fprintf(out, "Dockerfile:\n")
-			for _, s := range strings.Split(*p.Source.Dockerfile, "\n") {
-				fmt.Fprintf(out, "  %s\n", s)
-			}
-		}
-	}
+	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
 	if p.Source.Git != nil {
 		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
@@ -204,16 +200,47 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		}
 		if p.Revision != nil && p.Revision.Git != nil {
 			rev := p.Revision.Git
-			formatString(out, "Commit", rev.Commit)
-			if len(rev.Author.Name) != 0 {
+			formatString(out, "Commit", fmt.Sprintf("%s (%s)", rev.Commit[:7], rev.Message))
+
+			hasAuthor := len(rev.Author.Name) != 0
+			hasCommitter := len(rev.Committer.Name) != 0
+			if hasAuthor && hasCommitter {
+				if rev.Author.Name == rev.Committer.Name {
+					formatString(out, "Author/Committer", rev.Author.Name)
+				} else {
+					formatString(out, "Author/Committer", fmt.Sprintf("%s / %s", rev.Author.Name, rev.Committer.Name))
+				}
+
+			} else if hasAuthor {
 				formatString(out, "Author", rev.Author.Name)
-			}
-			if len(rev.Committer.Name) != 0 {
+			} else if hasCommitter {
 				formatString(out, "Committer", rev.Committer.Name)
 			}
-			formatString(out, "Message", rev.Message)
 		}
 	}
+	if p.Source.Dockerfile != nil {
+		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
+			formatString(out, "Dockerfile", "")
+		} else {
+			fmt.Fprintf(out, "Dockerfile:\n")
+			for _, s := range strings.Split(*p.Source.Dockerfile, "\n") {
+				fmt.Fprintf(out, "  %s\n", s)
+			}
+		}
+	}
+	switch {
+	case p.Strategy.DockerStrategy != nil:
+		describeDockerStrategy(p.Strategy.DockerStrategy, out)
+	case p.Strategy.SourceStrategy != nil:
+		describeSourceStrategy(p.Strategy.SourceStrategy, out)
+	case p.Strategy.CustomStrategy != nil:
+		describeCustomStrategy(p.Strategy.CustomStrategy, out)
+	}
+
+	if p.Output.To != nil {
+		formatString(out, "Output to", fmt.Sprintf("%s %s", p.Output.To.Kind, nameAndNamespace(p.Output.To.Namespace, p.Output.To.Name)))
+	}
+
 	if p.Source.Binary != nil {
 		if len(p.Source.Binary.AsFile) > 0 {
 			formatString(out, "Binary", fmt.Sprintf("provided as file %q on build", p.Source.Binary.AsFile))
@@ -241,34 +268,11 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 			}
 		}
 	}
-	switch {
-	case p.Strategy.DockerStrategy != nil:
-		describeDockerStrategy(p.Strategy.DockerStrategy, out)
-	case p.Strategy.SourceStrategy != nil:
-		describeSourceStrategy(p.Strategy.SourceStrategy, out)
-	case p.Strategy.CustomStrategy != nil:
-		describeCustomStrategy(p.Strategy.CustomStrategy, out)
-	}
-
-	if p.Output.To != nil {
-		formatString(out, "Output to", fmt.Sprintf("%s %s", p.Output.To.Kind, nameAndNamespace(p.Output.To.Namespace, p.Output.To.Name)))
-	}
 
 	describePostCommitHook(p.PostCommit, out)
 
 	if p.Output.PushSecret != nil {
 		formatString(out, "Push Secret", p.Output.PushSecret.Name)
-	}
-
-	if p.Revision != nil && p.Revision.Git != nil {
-		buildDescriber := &BuildDescriber{}
-
-		formatString(out, "Git Commit", p.Revision.Git.Commit)
-		buildDescriber.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
-		buildDescriber.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
-		if len(p.Revision.Git.Message) > 0 {
-			formatString(out, "Revision Message", p.Revision.Git.Message)
-		}
 	}
 
 	if p.CompletionDeadlineSeconds != nil {
