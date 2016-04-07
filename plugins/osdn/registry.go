@@ -123,6 +123,18 @@ func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
 	}
 }
 
+func (registry *Registry) PopulatePodsByIP() error {
+	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, pod := range podList.Items {
+		registry.trackPod(&pod)
+	}
+	return nil
+}
+
 func (registry *Registry) WatchPods() error {
 	eventQueue := registry.runEventQueue("Pods")
 

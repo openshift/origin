@@ -153,7 +153,14 @@ func watchNamespaces(oc *OsdnController) {
 }
 
 func (oc *OsdnController) VnidStartNode() error {
+	// Populate vnid map synchronously so that existing services can fetch vnid
 	err := populateVNIDMap(oc)
+	if err != nil {
+		return err
+	}
+
+	// Populate pod info map synchronously so that kube proxy can filter endpoints to support isolation
+	err = oc.Registry.PopulatePodsByIP()
 	if err != nil {
 		return err
 	}
