@@ -221,6 +221,7 @@ func TestWatch(t *testing.T) {
 	_ = updatePod(t, etcdStorage, podBar, nil)
 	fooUpdated := updatePod(t, etcdStorage, podFooPrime, fooCreated)
 
+	t.Log("verifying")
 	verifyWatchEvent(t, watcher, watch.Added, podFoo)
 	verifyWatchEvent(t, watcher, watch.Modified, podFooPrime)
 
@@ -236,7 +237,7 @@ func TestWatch(t *testing.T) {
 	}
 	defer initialWatcher.Stop()
 
-	verifyWatchEvent(t, initialWatcher, watch.Added, podFoo)
+	t.Log("verifying")
 	verifyWatchEvent(t, initialWatcher, watch.Modified, podFooPrime)
 
 	// Now test watch from "now".
@@ -246,10 +247,12 @@ func TestWatch(t *testing.T) {
 	}
 	defer nowWatcher.Stop()
 
+	t.Log("verifying")
 	verifyWatchEvent(t, nowWatcher, watch.Added, podFooPrime)
 
 	_ = updatePod(t, etcdStorage, podFooBis, fooUpdated)
 
+	t.Log("verifying")
 	verifyWatchEvent(t, nowWatcher, watch.Modified, podFooBis)
 }
 
@@ -335,7 +338,6 @@ func TestFiltering(t *testing.T) {
 	}
 	defer watcher.Stop()
 
-	verifyWatchEvent(t, watcher, watch.Added, podFoo)
 	verifyWatchEvent(t, watcher, watch.Deleted, podFooFiltered)
 	verifyWatchEvent(t, watcher, watch.Added, podFoo)
 	verifyWatchEvent(t, watcher, watch.Modified, podFooPrime)
