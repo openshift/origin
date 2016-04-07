@@ -39,10 +39,18 @@ type Registry struct {
 }
 
 type EventType string
+type ResourceName string
 
 const (
 	Added   EventType = "ADDED"
 	Deleted EventType = "DELETED"
+
+	Nodes         ResourceName = "Nodes"
+	Namespaces    ResourceName = "Namespaces"
+	NetNamespaces ResourceName = "NetNamespaces"
+	Services      ResourceName = "Services"
+	HostSubnets   ResourceName = "HostSubnets"
+	Pods          ResourceName = "Pods"
 )
 
 type HostSubnetEvent struct {
@@ -106,7 +114,7 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 }
 
 func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
-	eventQueue := registry.runEventQueue("HostSubnets")
+	eventQueue := registry.runEventQueue(HostSubnets)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -137,7 +145,7 @@ func (registry *Registry) PopulatePodsByIP() error {
 }
 
 func (registry *Registry) WatchPods() error {
-	eventQueue := registry.runEventQueue("Pods")
+	eventQueue := registry.runEventQueue(Pods)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -196,7 +204,7 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 }
 
 func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
-	eventQueue := registry.runEventQueue("Nodes")
+	eventQueue := registry.runEventQueue(Nodes)
 	nodeAddressMap := map[types.UID]string{}
 
 	for {
@@ -303,7 +311,7 @@ func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
 }
 
 func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
-	eventQueue := registry.runEventQueue("Namespaces")
+	eventQueue := registry.runEventQueue(Namespaces)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -322,7 +330,7 @@ func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error
 }
 
 func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent) error {
-	eventQueue := registry.runEventQueue("NetNamespaces")
+	eventQueue := registry.runEventQueue(NetNamespaces)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -392,7 +400,7 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) 
 }
 
 func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
-	eventQueue := registry.runEventQueue("Services")
+	eventQueue := registry.runEventQueue(Services)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -416,34 +424,34 @@ func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
 }
 
 // Run event queue for the given resource
-func (registry *Registry) runEventQueue(resourceName string) *oscache.EventQueue {
+func (registry *Registry) runEventQueue(resourceName ResourceName) *oscache.EventQueue {
 	var client cache.Getter
 	var expectedType interface{}
 
-	switch strings.ToLower(resourceName) {
-	case "hostsubnets":
+	switch resourceName {
+	case HostSubnets:
 		expectedType = &osapi.HostSubnet{}
 		client = registry.oClient
-	case "netnamespaces":
+	case NetNamespaces:
 		expectedType = &osapi.NetNamespace{}
 		client = registry.oClient
-	case "nodes":
+	case Nodes:
 		expectedType = &kapi.Node{}
 		client = registry.kClient
-	case "namespaces":
+	case Namespaces:
 		expectedType = &kapi.Namespace{}
 		client = registry.kClient
-	case "services":
+	case Services:
 		expectedType = &kapi.Service{}
 		client = registry.kClient
-	case "pods":
+	case Pods:
 		expectedType = &kapi.Pod{}
 		client = registry.kClient
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	lw := cache.NewListWatchFromClient(client, strings.ToLower(resourceName), kapi.NamespaceAll, fields.Everything())
+	lw := cache.NewListWatchFromClient(client, strings.ToLower(string(resourceName)), kapi.NamespaceAll, fields.Everything())
 	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(lw, expectedType, eventQueue, 0).Run()
 	return eventQueue
