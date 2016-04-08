@@ -15,26 +15,34 @@ angular.module('openshiftConsole')
     };
   })
   .filter('annotationName', function() {
-    return function(annotationKey) {
-      // This maps an annotation key to all known synonymous keys to insulate
-      // the referring code from key renames across API versions.
-      var annotationMap = {
-        "deploymentConfig":         ["openshift.io/deployment-config.name"],
-        "deployment":               ["openshift.io/deployment.name"],
-        "pod":                      ["openshift.io/deployer-pod.name"],
-        "deployerPodFor":           ["openshift.io/deployer-pod-for.name"],
-        "deploymentStatus":         ["openshift.io/deployment.phase"],
-        "deploymentStatusReason":   ["openshift.io/deployment.status-reason"],
-        "deploymentCancelled":      ["openshift.io/deployment.cancelled"],
-        "encodedDeploymentConfig":  ["openshift.io/encoded-deployment-config"],
-        "deploymentVersion":        ["openshift.io/deployment-config.latest-version"],
-        "displayName":              ["openshift.io/display-name"],
-        "description":              ["openshift.io/description"],
-        "buildNumber":              ["openshift.io/build.number"],
-        "buildPod":                 ["openshift.io/build.pod-name"],
+    // This maps an annotation key to all known synonymous keys to insulate
+    // the referring code from key renames across API versions.
+    var annotationMap = {
+      "deploymentConfig":         ["openshift.io/deployment-config.name"],
+      "deployment":               ["openshift.io/deployment.name"],
+      "pod":                      ["openshift.io/deployer-pod.name"],
+      "deployerPodFor":           ["openshift.io/deployer-pod-for.name"],
+      "deploymentStatus":         ["openshift.io/deployment.phase"],
+      "deploymentStatusReason":   ["openshift.io/deployment.status-reason"],
+      "deploymentCancelled":      ["openshift.io/deployment.cancelled"],
+      "encodedDeploymentConfig":  ["openshift.io/encoded-deployment-config"],
+      "deploymentVersion":        ["openshift.io/deployment-config.latest-version"],
+      "displayName":              ["openshift.io/display-name"],
+      "description":              ["openshift.io/description"],
+      "buildNumber":              ["openshift.io/build.number"],
+      "buildPod":                 ["openshift.io/build.pod-name"],
         "jenkinsLogURL":            ["openshift.io/jenkins-log-url"]
-      };
+    };
+    return function(annotationKey) {
       return annotationMap[annotationKey] || null;
+    };
+  })
+  .filter('labelName', function() {
+    var labelMap = {
+      'deploymentConfig' : ["openshift.io/deployment-config.name"]
+    };
+    return function(labelKey) {
+      return labelMap[labelKey];
     };
   })
   .filter('annotation', function(annotationNameFilter) {
@@ -857,7 +865,7 @@ angular.module('openshiftConsole')
   })
   .filter('kindToResource', function (APIService) {
     return APIService.kindToResource;
-  })  
+  })
   .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
       if (!resourceType) {

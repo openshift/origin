@@ -36,6 +36,8 @@ angular.module('openshiftConsole')
       editor.$blockScrolling = Infinity;
     };
 
+    var orderByDate = $filter('orderObjectsByDate');
+
     var updateCanBuild = function() {
       if (!$scope.buildConfig || !$scope.buildConfigBuildsInProgress) {
         $scope.canBuild = false;
@@ -79,6 +81,62 @@ angular.module('openshiftConsole')
               $scope.paused = BuildsService.isPaused($scope.buildConfig);
               updateCanBuild();
             }));
+
+
+            watches.push(DataService.watch("builds", context, function(builds, action, build) {
+              $scope.emptyMessage = "No builds to show";
+              // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
+              // to only load the buildconfig's builds, but this requires some DataService changes
+              if (!action) {
+                $scope.unfilteredBuilds = builds.by("metadata.name");
+
+                // Loading of the page that will create buildConfigBuildsInProgress structure, which will associate running build to his buildConfig.
+                $scope.buildConfigBuildsInProgress = BuildsService.associateRunningBuildToBuildConfig($scope.unfilteredBuilds);
+              } else if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
+                var buildName = build.metadata.name;
+                var buildConfigName = $routeParams.buildconfig;
+                switch (action) {
+                  case 'ADDED':
+                  case 'MODIFIED':
+                    $scope.unfilteredBuilds[buildName] = build;
+                    // After the build ends remove him from the buildConfigBuildsInProgress structure.
+                    if ($filter('isIncompleteBuild')(build)){
+                      $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
+                      $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
+                    } else if ($scope.buildConfigBuildsInProgress[buildConfigName]) {
+                      delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
+                    }
+                    break;
+                  case 'DELETED':
+                    delete $scope.unfilteredBuilds[buildName];
+                    if ($scope.buildConfigBuildsInProgress[buildConfigName]){
+                      delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
+                    }
+                    break;
+                }
+              }
+
+              $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
+              updateCanBuild();
+              updateFilterWarning();
+              LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
+              LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+
+              // Sort now to avoid sorting on every digest loop.
+              $scope.orderedBuilds = orderByDate($scope.builds, true);
+              $scope.latestBuild = $scope.orderedBuilds.length ? $scope.orderedBuilds[0] : null;
+            },
+            // params object for filtering
+            {
+              // http is passed to underlying $http calls
+              http: {
+                params: {
+                  labelSelector: 'buildconfig='+$scope.buildConfigName
+                }
+              }
+            }));
+
+
           },
           // failure
           function(e) {
@@ -91,56 +149,8 @@ angular.module('openshiftConsole')
           }
         );
 
-        var orderByDate = $filter('orderObjectsByDate');
-        watches.push(DataService.watch("builds", context, function(builds, action, build) {
-          $scope.emptyMessage = "No builds to show";
-          // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
-          // to only load the buildconfig's builds, but this requires some DataService changes
-          if (!action) {
-            $scope.unfilteredBuilds = {};
-            var allBuilds = builds.by("metadata.name");
-            angular.forEach(allBuilds, function(build, name) {
-              if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
-                $scope.unfilteredBuilds[name] = build;
-              }
-            });
 
-            // Loading of the page that will create buildConfigBuildsInProgress structure, which will associate running build to his buildConfig.
-            $scope.buildConfigBuildsInProgress = BuildsService.associateRunningBuildToBuildConfig($scope.unfilteredBuilds);
-          } else if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
-            var buildName = build.metadata.name;
-            var buildConfigName = $routeParams.buildconfig;
-            switch (action) {
-              case 'ADDED':
-              case 'MODIFIED':
-                $scope.unfilteredBuilds[buildName] = build;
-                // After the build ends remove him from the buildConfigBuildsInProgress structure.
-                if ($filter('isIncompleteBuild')(build)){
-                  $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
-                  $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
-                } else if ($scope.buildConfigBuildsInProgress[buildConfigName]) {
-                  delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
-                }
-                break;
-              case 'DELETED':
-                delete $scope.unfilteredBuilds[buildName];
-                if ($scope.buildConfigBuildsInProgress[buildConfigName]){
-                  delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
-                }
-                break;
-            }
-          }
 
-          $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
-          updateCanBuild();
-          updateFilterWarning();
-          LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
-          LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-
-          // Sort now to avoid sorting on every digest loop.
-          $scope.orderedBuilds = orderByDate($scope.builds, true);
-          $scope.latestBuild = $scope.orderedBuilds.length ? $scope.orderedBuilds[0] : null;
-        }));
 
         function updateFilterWarning() {
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.builds) && !$.isEmptyObject($scope.unfilteredBuilds)) {

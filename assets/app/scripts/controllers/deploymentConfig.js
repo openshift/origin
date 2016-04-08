@@ -18,7 +18,8 @@ angular.module('openshiftConsole')
                         ImageStreamResolver,
                         Navigate,
                         ProjectsService,
-                        LabelFilter) {
+                        LabelFilter,
+                        labelNameFilter) {
     $scope.projectName = $routeParams.project;
     $scope.deploymentConfigName = $routeParams.deploymentconfig;
     $scope.deploymentConfig = null;
@@ -100,6 +101,63 @@ angular.module('openshiftConsole')
               updateHPAWarnings();
               ImageStreamResolver.fetchReferencedImageStreamImages([deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
             }));
+
+
+            watches.push(DataService.watch("replicationcontrollers", context, function(deployments, action, deployment) {
+              // TODO we should add this back in and show the pod template on this page
+              // extractPodTemplates();
+              // ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+              $scope.emptyMessage = "No deployments to show";
+              if (!action) {
+                var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
+                $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
+                angular.forEach($scope.unfilteredDeployments, function(deployment) {
+                  deployment.causes = $filter('deploymentCauses')(deployment);
+                });
+                // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
+                $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
+              } else if (DeploymentsService.deploymentBelongsToConfig(deployment, $routeParams.deploymentconfig)) {
+                var deploymentName = deployment.metadata.name;
+                var deploymentConfigName = $routeParams.deploymentconfig;
+                switch (action) {
+                  case 'ADDED':
+                  case 'MODIFIED':
+                    $scope.unfilteredDeployments[deploymentName] = deployment;
+                    // When deployment is retried, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
+                    if ($filter('deploymentIsInProgress')(deployment)){
+                      $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
+                      $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
+                    } else if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) { // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
+                      delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
+                    }
+                    deployment.causes = $filter('deploymentCauses')(deployment);
+                    break;
+                  case 'DELETED':
+                    delete $scope.unfilteredDeployments[deploymentName];
+                    if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) {
+                      delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
+                    }
+                    break;
+                }
+              }
+
+              $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);
+              updateFilterWarning();
+              LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
+              LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+            },
+            // params object for filtering
+            {
+              // http is passed to underlying $http calls
+              http: {
+                params: {
+                  labelSelector: labelNameFilter('deploymentConfig')+'='+ $scope.deploymentConfigName
+                }
+              }
+            }
+          ));
+
+
           },
           // failure
           function(e) {
@@ -126,50 +184,7 @@ angular.module('openshiftConsole')
           updateHPAWarnings();
         });
 
-        watches.push(DataService.watch("replicationcontrollers", context, function(deployments, action, deployment) {
-          // TODO we should add this back in and show the pod template on this page
-          // extractPodTemplates();
-          // ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-          $scope.emptyMessage = "No deployments to show";
 
-          if (!action) {
-            var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
-            $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
-            angular.forEach($scope.unfilteredDeployments, function(deployment) {
-              deployment.causes = $filter('deploymentCauses')(deployment);
-            });
-            // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
-            $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
-          } else if (DeploymentsService.deploymentBelongsToConfig(deployment, $routeParams.deploymentconfig)) {
-            var deploymentName = deployment.metadata.name;
-            var deploymentConfigName = $routeParams.deploymentconfig;
-            switch (action) {
-              case 'ADDED':
-              case 'MODIFIED':
-                $scope.unfilteredDeployments[deploymentName] = deployment;
-                // When deployment is retried, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
-                if ($filter('deploymentIsInProgress')(deployment)){
-                  $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
-                  $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
-                } else if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) { // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
-                  delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
-                }
-                deployment.causes = $filter('deploymentCauses')(deployment);
-                break;
-              case 'DELETED':
-                delete $scope.unfilteredDeployments[deploymentName];
-                if ($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]) {
-                  delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
-                }
-                break;
-            }
-          }
-
-          $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);
-          updateFilterWarning();
-          LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
-          LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        }));
 
         watches.push(DataService.watch("imagestreams", context, function(imageStreams) {
           $scope.imageStreams = imageStreams.by("metadata.name");
