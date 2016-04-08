@@ -31,7 +31,7 @@ import (
 type Registry struct {
 	oClient          osclient.Interface
 	kClient          kclient.Interface
-	namespaceOfPodIP map[string]string
+	podsByIP         map[string]*kapi.Pod
 	serviceNetwork   *net.IPNet
 	clusterNetwork   *net.IPNet
 	hostSubnetLength int
@@ -75,9 +75,9 @@ type ServiceEvent struct {
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
-		oClient:          osClient,
-		kClient:          kClient,
-		namespaceOfPodIP: make(map[string]string),
+		oClient:  osClient,
+		kClient:  kClient,
+		podsByIP: make(map[string]*kapi.Pod),
 	}
 }
 
@@ -137,7 +137,7 @@ func (registry *Registry) GetPods() ([]kapi.Pod, string, error) {
 
 	for _, pod := range podList.Items {
 		if pod.Status.PodIP != "" {
-			registry.namespaceOfPodIP[pod.Status.PodIP] = pod.ObjectMeta.Namespace
+			registry.trackPod(&pod)
 		}
 	}
 	return podList.Items, podList.ListMeta.ResourceVersion, nil
@@ -156,9 +156,9 @@ func (registry *Registry) WatchPods(ready chan<- bool, start <-chan string, stop
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			registry.namespaceOfPodIP[pod.Status.PodIP] = pod.ObjectMeta.Namespace
+			registry.trackPod(pod)
 		case watch.Deleted:
-			delete(registry.namespaceOfPodIP, pod.Status.PodIP)
+			registry.unTrackPod(pod)
 		}
 	}
 }
@@ -649,13 +649,13 @@ EndpointLoop:
 					continue EndpointLoop
 				}
 				if clusterNetwork.Contains(IP) {
-					podNamespace, ok := registry.namespaceOfPodIP[addr.IP]
+					podInfo, ok := registry.podsByIP[addr.IP]
 					if !ok {
 						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop
 					}
-					if podNamespace != ns {
-						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podNamespace)
+					if podInfo.ObjectMeta.Namespace != ns {
+						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podInfo.ObjectMeta.Namespace)
 						continue EndpointLoop
 					}
 				}
@@ -665,4 +665,42 @@ EndpointLoop:
 	}
 
 	registry.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
+}
+
+func (registry *Registry) trackPod(pod *kapi.Pod) {
+	if pod.Status.PodIP == "" {
+		return
+	}
+
+	podInfo, ok := registry.podsByIP[pod.Status.PodIP]
+
+	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodRunning {
+		// When a pod hits one of the states where the IP is in use then
+		// we need to add it to our IP -> namespace tracker.  There _should_ be no
+		// other entries for the IP if we caught all of the right messages, so warn
+		// if we see one, but clobber it anyway since the IPAM
+		// should ensure that each IP is uniquely assigned to a pod (when running)
+		if ok && podInfo.UID != pod.UID {
+			log.Warningf("IP '%s' was marked as used by namespace '%s' (pod '%s')... updating to namespace '%s' (pod '%s')",
+				pod.Status.PodIP, podInfo.Namespace, podInfo.UID, pod.ObjectMeta.Namespace, pod.UID)
+		}
+
+		registry.podsByIP[pod.Status.PodIP] = pod
+	} else if ok && podInfo.UID == pod.UID {
+		// If the UIDs match, then this pod is moving to a state that indicates it is not running
+		// so we need to remove it from the cache
+		registry.unTrackPod(pod)
+	}
+
+	return
+}
+
+func (registry *Registry) unTrackPod(pod *kapi.Pod) {
+	// Only delete if the pod ID is the one we are tracking (in case there is a failed or complete
+	// pod lying around that gets deleted while there is a running pod with the same IP)
+	if podInfo, ok := registry.podsByIP[pod.Status.PodIP]; ok && podInfo.UID == pod.UID {
+		delete(registry.podsByIP, pod.Status.PodIP)
+	}
+
+	return
 }
