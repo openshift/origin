@@ -59,7 +59,7 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 		}
 		_, err = oc.Registry.GetSubnet(node.Name)
 		if err == nil {
-			// subnet already exists, continue
+			log.V(5).Infof("HostSubnet for node %q already exists", node.Name)
 			continue
 		}
 		err = oc.addNode(node.Name, nodeIP)
@@ -71,37 +71,40 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 }
 
 func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
+	if nodeIP == "" || nodeIP == "127.0.0.1" {
+		return fmt.Errorf("Invalid node IP %q for node %q", nodeIP, nodeName)
+	}
+
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
-		log.Errorf("Error creating network for node %s.", nodeName)
-		return err
+		return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
 	}
-
-	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		return fmt.Errorf("Invalid node IP")
-	}
-
 	err = oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
 	if err != nil {
-		log.Errorf("Error writing subnet to etcd for node %s: %v", nodeName, sn)
-		return err
+		return fmt.Errorf("Error writing subnet %v to etcd for node %s: %v", sn, nodeName, err)
 	}
+
+	log.Infof("Created HostSubnet %v for node %s (%s)", sn, nodeName, nodeIP)
 	return nil
 }
 
 func (oc *OsdnController) deleteNode(nodeName string) error {
 	sub, err := oc.Registry.GetSubnet(nodeName)
 	if err != nil {
-		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
-		return err
+		return fmt.Errorf("Error fetching subnet for node %q for deletion: %v", nodeName, err)
 	}
 	_, ipnet, err := net.ParseCIDR(sub.Subnet)
 	if err != nil {
-		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.Subnet)
-		return err
+		return fmt.Errorf("Error parsing subnet %q for node %q for deletion: %v", sub.Subnet, nodeName, err)
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
-	return oc.Registry.DeleteSubnet(nodeName)
+	err = oc.Registry.DeleteSubnet(nodeName)
+	if err != nil {
+		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
+	}
+
+	log.Infof("Deleted HostSubnet %v for node %s", sub, nodeName)
+	return nil
 }
 
 func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
@@ -186,7 +189,10 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 				if err != nil {
 					if nodeErr == nil {
 						// subnet does not exist already
-						oc.addNode(ev.Node.Name, nodeIP)
+						err = oc.addNode(ev.Node.Name, nodeIP)
+						if err != nil {
+							log.Errorf("Error adding node: %v", err)
+						}
 					} else {
 						log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
 					}
@@ -194,13 +200,13 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 					if sub.HostIP != nodeIP {
 						err = oc.Registry.DeleteSubnet(ev.Node.Name)
 						if err != nil {
-							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.HostIP)
+							log.Errorf("Error deleting subnet for node %s, old ip %s: %v", ev.Node.Name, sub.HostIP, err)
 							continue
 						}
 						if nodeErr == nil {
 							err = oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
 							if err != nil {
-								log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.HostIP)
+								log.Errorf("Error creating subnet for node %s, ip %s: %v", ev.Node.Name, sub.HostIP, err)
 								continue
 							}
 						} else {
@@ -209,7 +215,10 @@ func watchNodes(oc *OsdnController, ready chan<- bool, start <-chan string) {
 					}
 				}
 			case Deleted:
-				oc.deleteNode(ev.Node.Name)
+				err := oc.deleteNode(ev.Node.Name)
+				if err != nil {
+					log.Errorf("Error deleting node: %v", err)
+				}
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")

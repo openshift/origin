@@ -109,6 +109,7 @@ func (oc *OsdnController) assignVNID(namespaceName string) error {
 		return err
 	}
 	oc.VNIDMap[namespaceName] = netid
+	log.Infof("Assigned id %d to namespace %q", netid, namespaceName)
 	return nil
 }
 
@@ -131,9 +132,10 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	// Check if this netid is used by any other namespaces
 	// If not, then release the netid
 	netid_inuse := false
-	for _, id := range oc.VNIDMap {
+	for name, id := range oc.VNIDMap {
 		if id == netid {
 			netid_inuse = true
+			log.V(5).Infof("Net ID %d for namespace %q is still in use by namespace %q", netid, namespaceName, name)
 			break
 		}
 	}
@@ -141,6 +143,8 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 		err = oc.netIDManager.ReleaseNetID(netid)
 		if err != nil {
 			return fmt.Errorf("Error while releasing Net ID: %v", err)
+		} else {
+			log.Infof("Released netid %d for namespace %q", netid, namespaceName)
 		}
 	}
 	return nil

@@ -51,7 +51,7 @@ type OsdnController struct {
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string) error {
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -73,7 +73,11 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 			selfIP = defaultIP.String()
 		}
 	}
-	log.Infof("Self IP: %s.", selfIP)
+	if multitenant {
+		log.Infof("Initializing multi-tenant plugin for %s (%s)", hostname, selfIP)
+	} else {
+		log.Infof("Initializing single-tenant plugin for %s (%s)", hostname, selfIP)
+	}
 
 	oc.pluginHooks = pluginHooks
 	oc.Registry = registry
