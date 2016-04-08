@@ -834,3 +834,31 @@ os::util::get_object_assert() {
       return 1
   fi
 }
+
+# os::util::fail_if_port_bound checks that nothing is bound to port 53 and fails
+# if this is not the case. This function requires elevated privileges and will fail
+# if called without them
+#
+# Globals:
+#  - USE_SUDO
+# Arguments:
+#  - 1: the port to check
+# Returns:
+#  None
+function os::util::fail_if_port_bound() {
+	local port=$1
+
+	if [[ -z "${USE_SUDO:-}" ]]; then
+		echo "[ERROR] os::util::fail_if_port_taken requires elevated privileges, but was called without them."
+		exit 1
+	fi
+
+	if sudo lsof -i4 -n -s TCP:listen -P | grep -Eq ":${port} \(LISTEN\)"; then
+		echo "[ERROR] It seems as though something is bound to port ${port}."
+		echo "        This test changes DNS settings and therefore cannot be run"
+		echo "        in this state. The following programs are listening to the port:"
+		sudo lsof -i4 -n -s TCP:listen -P | grep -E "(COMMAND|:${port} \(LISTEN\))"
+		echo "[ERROR] Aborting..."
+		exit 1
+	fi
+}
