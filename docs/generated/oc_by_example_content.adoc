@@ -811,6 +811,19 @@ Create a namespace with the specified name.
 ====
 
 
+== oc create policybinding
+Create a policy binding that references the policy in the targetted namespace.
+
+====
+
+[options="nowrap"]
+----
+  # Create a policy binding in namespace "foo" that references the policy in namespace "bar"
+  $ oc create policybinding bar -n foo
+----
+====
+
+
 == oc create route edge
 Create a route that uses edge TLS termination
 
