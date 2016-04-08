@@ -132,13 +132,19 @@ type NodeConfig struct {
 	IPTablesSyncPeriod string
 
 	// VolumeConfig contains options for configuring volumes on the node.
-	VolumeConfig VolumeConfig
+	VolumeConfig NodeVolumeConfig
 }
 
-// VolumeConfig contains options for configuring volumes on the node.
-type VolumeConfig struct {
+// NodeVolumeConfig contains options for configuring volumes on the node.
+type NodeVolumeConfig struct {
 	// LocalQuota contains options for controlling local volume quota on the node.
 	LocalQuota LocalQuota
+}
+
+// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+type MasterVolumeConfig struct {
+	// DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true
+	DynamicProvisioningEnabled bool
 }
 
 // LocalQuota contains options for controlling local volume quota on the node.
@@ -279,6 +285,9 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig MasterVolumeConfig
 }
 
 type ImagePolicyConfig struct {

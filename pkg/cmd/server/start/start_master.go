@@ -607,7 +607,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunEndpointController()
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeClaimBinder(binderClient)
-		kc.RunPersistentVolumeProvisioner(provisionerClient)
+		if oc.Options.VolumeConfig.DynamicProvisioningEnabled {
+			kc.RunPersistentVolumeProvisioner(provisionerClient)
+		}
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		kc.RunGCController(gcClient)
 

@@ -116,7 +116,7 @@ func ValidateKubeletExtendedArguments(config api.ExtendedArguments, fldPath *fie
 	return ValidateExtendedArguments(config, kubeletoptions.NewKubeletServer().AddFlags, fldPath)
 }
 
-func ValidateVolumeConfig(config api.VolumeConfig, fldPath *field.Path) field.ErrorList {
+func ValidateVolumeConfig(config api.NodeVolumeConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if config.LocalQuota.PerFSGroup != nil && config.LocalQuota.PerFSGroup.Value() < 0 {

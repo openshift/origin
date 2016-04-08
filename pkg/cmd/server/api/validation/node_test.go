@@ -66,7 +66,7 @@ func TestFailingKubeletArgs(t *testing.T) {
 func TestInvalidProjectEmptyDirQuota(t *testing.T) {
 	negQuota := resource.MustParse("-1000Mi")
 	nodeCfg := configapi.NodeConfig{
-		VolumeConfig: configapi.VolumeConfig{
+		VolumeConfig: configapi.NodeVolumeConfig{
 			LocalQuota: configapi.LocalQuota{
 				PerFSGroup: &negQuota,
 			},

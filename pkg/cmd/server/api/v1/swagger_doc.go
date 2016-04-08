@@ -408,6 +408,7 @@ var map_MasterConfig = map[string]string{
 	"projectConfig":          "ProjectConfig holds information about project creation and defaults",
 	"routingConfig":          "RoutingConfig holds information about routing and route generation",
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
+	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {
@@ -425,6 +426,15 @@ var map_MasterNetworkConfig = map[string]string{
 
 func (MasterNetworkConfig) SwaggerDoc() map[string]string {
 	return map_MasterNetworkConfig
+}
+
+var map_MasterVolumeConfig = map[string]string{
+	"": "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"dynamicProvisioningEnabled": "DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true",
+}
+
+func (MasterVolumeConfig) SwaggerDoc() map[string]string {
+	return map_MasterVolumeConfig
 }
 
 var map_NamedCertificate = map[string]string{
@@ -482,6 +492,15 @@ var map_NodeNetworkConfig = map[string]string{
 
 func (NodeNetworkConfig) SwaggerDoc() map[string]string {
 	return map_NodeNetworkConfig
+}
+
+var map_NodeVolumeConfig = map[string]string{
+	"":           "NodeVolumeConfig contains options for configuring volumes on the node.",
+	"localQuota": "LocalQuota contains options for controlling local volume quota on the node.",
+}
+
+func (NodeVolumeConfig) SwaggerDoc() map[string]string {
+	return map_NodeVolumeConfig
 }
 
 var map_OAuthConfig = map[string]string{
@@ -760,13 +779,4 @@ var map_UserAgentMatchingConfig = map[string]string{
 
 func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
 	return map_UserAgentMatchingConfig
-}
-
-var map_VolumeConfig = map[string]string{
-	"":           "VolumeConfig contains options for configuring volumes on the node.",
-	"localQuota": "LocalQuota contains options for controlling local volume quota on the node.",
-}
-
-func (VolumeConfig) SwaggerDoc() map[string]string {
-	return map_VolumeConfig
 }
