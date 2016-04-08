@@ -110,8 +110,8 @@ do_master () {
     # Outputs a list of nodes in the form "nodename IP"
     oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}} {{.address}}{{"\n"}}{{end}}{{end}}{{end}}' > $logdir/meta/nodeinfo
 
-    # Outputs a list of pods in the form "minion-1 mypod namespace 10.1.0.2 e4f1d61b"
-    oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}} {{.metadata.name}} {{.metadata.namespace}} {{.status.podIP}} {{printf "%.21s" (index .status.containerStatuses 0).containerID}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}' | sed -e 's|docker://||' > $logdir/meta/podinfo
+    # Outputs a list of pods in the form "minion-1 172.17.0.1 mypod namespace 10.1.0.2 e4f1d61b"
+    oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}} {{.status.hostIP}} {{.metadata.name}} {{.metadata.namespace}} {{.status.podIP}} {{printf "%.21s" (index .status.containerStatuses 0).containerID}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}' | sed -e 's|docker://||' > $logdir/meta/podinfo
 
     # Outputs a list of services in the form "myservice namespace 172.30.0.99 tcp 5454"
     oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}} {{.metadata.namespace}} {{.spec.clusterIP}} {{(index .spec.ports 0).protocol}} {{(index .spec.ports 0).port}}{{"\n"}}{{end}}{{end}}' | sed -e 's/ TCP / tcp /g' -e 's/ UDP / udp /g' > $logdir/meta/serviceinfo
@@ -145,14 +145,16 @@ do_pod_to_pod_connectivity_check () {
     base_pod_ether=$8
     other_pod_name=$9
     other_pod_addr=${10}
+    other_pod_nodeaddr=${11}
 
     echo $where pod, $namespace namespace: | tr '[a-z]' '[A-Z]'
     echo ""
 
     other_pod_port=$(get_port_for_addr $other_pod_addr)
-    other_pod_vnid=$(get_vnid_for_addr $other_pod_addr)
-    if [ -z "$other_pod_port" ]; then
-	other_pod_port=1 # vxlan
+    if [ -n "$other_pod_port" ]; then
+	other_pod_vnid=$(get_vnid_for_addr $other_pod_addr)
+	in_spec="in_port=${other_pod_port}"
+    else
 	case $namespace in
 	    default)
 		other_pod_vnid=0
@@ -165,13 +167,14 @@ do_pod_to_pod_connectivity_check () {
 		other_pod_vnid=6
 		;;
 	esac
+	in_spec="in_port=1,tun_src=${other_pod_nodeaddr},tun_id=${other_pod_vnid}"
     fi
 
     echo "$base_pod_name -> $other_pod_name"
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${other_pod_addr}"
     echo ""
     echo "$other_pod_name -> $base_pod_name"
-    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${other_pod_vnid},ip,nw_src=${other_pod_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
+    echo_and_eval ovs-appctl ofproto/trace br0 "${in_spec},ip,nw_src=${other_pod_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
     if nsenter -n -t $base_pod_pid -- ping -c 1 -W 2 $other_pod_addr  &> /dev/null; then
@@ -281,7 +284,7 @@ do_node () {
     # Remember the name, address, namespace, and pid of the first pod we find on
     # this node which is not in the default namespace
     base_pod_addr=
-    while read pod_node pod_name pod_ns pod_addr pod_id; do
+    while read pod_node pod_nodeaddr pod_name pod_ns pod_addr pod_id; do
 	if [ "$pod_node" != "$node" ]; then
 	    continue
 	fi
@@ -341,7 +344,7 @@ do_node () {
 
     # Now find other pods of various types to test connectivity against
     touch $lognode/pod-connectivity
-    while read pod_node pod_name pod_ns pod_addr pod_id; do
+    while read pod_node pod_nodeaddr pod_name pod_ns pod_addr pod_id; do
 	if [ "$pod_addr" = "$base_pod_addr" ]; then
 	    continue
 	fi
@@ -367,7 +370,7 @@ do_node () {
 					 $base_pod_name $base_pod_addr \
 					 $base_pod_pid $base_pod_port \
 					 $base_pod_vnid $base_pod_ether \
-					 $pod_name $pod_addr \
+					 $pod_name $pod_addr $pod_nodeaddr \
 					 &>> $lognode/pod-connectivity
 	eval did_${where}_${namespace}=1
     done < $logdir/meta/podinfo
