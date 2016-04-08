@@ -15,10 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
-
-	"github.com/openshift/openshift-sdn/pkg/netutils"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -38,13 +35,9 @@ type Registry struct {
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 }
 
-type EventType string
 type ResourceName string
 
 const (
-	Added   EventType = "ADDED"
-	Deleted EventType = "DELETED"
-
 	Nodes         ResourceName = "Nodes"
 	Namespaces    ResourceName = "Namespaces"
 	NetNamespaces ResourceName = "NetNamespaces"
@@ -52,31 +45,6 @@ const (
 	HostSubnets   ResourceName = "HostSubnets"
 	Pods          ResourceName = "Pods"
 )
-
-type HostSubnetEvent struct {
-	Type       EventType
-	HostSubnet *osapi.HostSubnet
-}
-
-type NodeEvent struct {
-	Type EventType
-	Node *kapi.Node
-}
-
-type NetNamespaceEvent struct {
-	Type         EventType
-	NetNamespace *osapi.NetNamespace
-}
-
-type NamespaceEvent struct {
-	Type      EventType
-	Namespace *kapi.Namespace
-}
-
-type ServiceEvent struct {
-	Type    EventType
-	Service *kapi.Service
-}
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
@@ -113,25 +81,6 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 	return registry.oClient.HostSubnets().Create(hs)
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
-	eventQueue := registry.runEventQueue(HostSubnets)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		hs := obj.(*osapi.HostSubnet)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &HostSubnetEvent{Type: Added, HostSubnet: hs}
-		case watch.Deleted:
-			receiver <- &HostSubnetEvent{Type: Deleted, HostSubnet: hs}
-		}
-	}
-}
-
 func (registry *Registry) PopulatePodsByIP() error {
 	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
@@ -145,7 +94,7 @@ func (registry *Registry) PopulatePodsByIP() error {
 }
 
 func (registry *Registry) WatchPods() error {
-	eventQueue := registry.runEventQueue(Pods)
+	eventQueue := registry.RunEventQueue(Pods)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -201,42 +150,6 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 		}
 	}
 	return nil, nil
-}
-
-func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
-	eventQueue := registry.runEventQueue(Nodes)
-	nodeAddressMap := map[types.UID]string{}
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		node := obj.(*kapi.Node)
-
-		nodeIP := ""
-		if len(node.Status.Addresses) > 0 {
-			nodeIP = node.Status.Addresses[0].Address
-		} else {
-			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
-			if err != nil {
-				return err
-			}
-		}
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
-			if ok && (oldNodeIP == nodeIP) {
-				continue
-			}
-			receiver <- &NodeEvent{Type: Added, Node: node}
-			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-		case watch.Deleted:
-			receiver <- &NodeEvent{Type: Deleted, Node: node}
-			delete(nodeAddressMap, node.ObjectMeta.UID)
-		}
-	}
 }
 
 func (registry *Registry) UpdateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
@@ -310,44 +223,6 @@ func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
 	return registry.clusterNetwork, nil
 }
 
-func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
-	eventQueue := registry.runEventQueue(Namespaces)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		ns := obj.(*kapi.Namespace)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &NamespaceEvent{Type: Added, Namespace: ns}
-		case watch.Deleted:
-			receiver <- &NamespaceEvent{Type: Deleted, Namespace: ns}
-		}
-	}
-}
-
-func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent) error {
-	eventQueue := registry.runEventQueue(NetNamespaces)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		netns := obj.(*osapi.NetNamespace)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &NetNamespaceEvent{Type: Added, NetNamespace: netns}
-		case watch.Deleted:
-			receiver <- &NetNamespaceEvent{Type: Deleted, NetNamespace: netns}
-		}
-	}
-}
-
 func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
 	netNamespaceList, err := registry.oClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
@@ -399,32 +274,8 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) 
 	return servList, nil
 }
 
-func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
-	eventQueue := registry.runEventQueue(Services)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		serv := obj.(*kapi.Service)
-
-		// Ignore headless services
-		if !kapi.IsServiceIPSet(serv) {
-			continue
-		}
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &ServiceEvent{Type: Added, Service: serv}
-		case watch.Deleted:
-			receiver <- &ServiceEvent{Type: Deleted, Service: serv}
-		}
-	}
-}
-
 // Run event queue for the given resource
-func (registry *Registry) runEventQueue(resourceName ResourceName) *oscache.EventQueue {
+func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.EventQueue {
 	var client cache.Getter
 	var expectedType interface{}
 

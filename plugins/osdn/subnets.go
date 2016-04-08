@@ -7,6 +7,10 @@ import (
 
 	log "github.com/golang/glog"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/watch"
+
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -38,20 +42,58 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 }
 
 func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
-	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		return fmt.Errorf("Invalid node IP %q for node %q", nodeIP, nodeName)
+	// Validate node IP before proceeding
+	if err := oc.validateNode(nodeIP); err != nil {
+		return err
 	}
 
-	sn, err := oc.subnetAllocator.GetNetwork()
-	if err != nil {
-		return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
-	}
-	sub, err := oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
-	if err != nil {
-		return fmt.Errorf("Error writing subnet %v to etcd for node %s: %v", sn, nodeName, err)
+	// Check if subnet needs to be created or updated
+	subnetCIDR := ""
+	sub, err := oc.Registry.GetSubnet(nodeName)
+	if err == nil {
+		if sub.HostIP == nodeIP {
+			return nil
+		} else {
+			// Node IP changed, delete old subnet
+			// TODO: We should add Update REST endpoint for HostSubnet
+			err = oc.Registry.DeleteSubnet(nodeName)
+			if err != nil {
+				return fmt.Errorf("Error deleting subnet for node %s, old ip %s", nodeName, sub.HostIP)
+			}
+			subnetCIDR = sub.Subnet
+		}
 	}
 
-	log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
+	// Get new subnet if needed
+	subnetAllocated := false
+	if subnetCIDR == "" {
+		sn, err := oc.subnetAllocator.GetNetwork()
+		if err != nil {
+			return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
+		}
+		subnetAllocated = true
+		subnetCIDR = sn.String()
+	}
+
+	sub, err = oc.Registry.CreateSubnet(nodeName, nodeIP, subnetCIDR)
+	if err != nil {
+		// Release subnet if needed
+		if subnetAllocated {
+			_, ipnet, er := net.ParseCIDR(subnetCIDR)
+			if er != nil {
+				log.Errorf("Failed to release subnet %q for node %q: %v", subnetCIDR, nodeName, er)
+			} else {
+				oc.subnetAllocator.ReleaseNetwork(ipnet)
+			}
+		}
+		return fmt.Errorf("Error writing subnet %s to etcd for node %s: %v", subnetCIDR, nodeName, err)
+	}
+
+	if subnetAllocated {
+		log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
+	} else {
+		log.Infof("Updated HostSubnet %s", HostSubnetToString(sub))
+	}
 	return nil
 }
 
@@ -126,53 +168,43 @@ func (oc *OsdnController) initSelfSubnet() error {
 }
 
 // Only run on the master
-func watchNodes(oc *OsdnController) {
-	nodeEvent := make(chan *NodeEvent)
-	go oc.Registry.WatchNodes(nodeEvent)
-	for {
-		ev := <-nodeEvent
-		switch ev.Type {
-		case Added:
-			nodeIP, nodeErr := GetNodeIP(ev.Node)
-			if nodeErr == nil {
-				nodeErr = oc.validateNode(nodeIP)
-			}
+func watchNodes(oc *OsdnController) error {
+	eventQueue := oc.Registry.RunEventQueue(Nodes)
+	nodeAddressMap := map[types.UID]string{}
 
-			sub, err := oc.Registry.GetSubnet(ev.Node.Name)
-			if err != nil {
-				if nodeErr == nil {
-					// subnet does not exist already
-					err = oc.addNode(ev.Node.Name, nodeIP)
-					if err != nil {
-						log.Errorf("Error adding node: %v", err)
-						continue
-					}
-				} else {
-					log.Errorf("Ignoring invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
-				}
-			} else {
-				if sub.HostIP != nodeIP {
-					err = oc.Registry.DeleteSubnet(ev.Node.Name)
-					if err != nil {
-						log.Errorf("Error deleting subnet for node %s, old ip %s: %v", ev.Node.Name, sub.HostIP, err)
-						continue
-					}
-					if nodeErr == nil {
-						_, err := oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
-						if err != nil {
-							log.Errorf("Error creating subnet for node %s, ip %s: %v", ev.Node.Name, sub.HostIP, err)
-							continue
-						}
-						log.Infof("Updated HostSubnet %s to HostIP %s", HostSubnetToString(sub), nodeIP)
-					} else {
-						log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
-					}
-				}
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			return err
+		}
+		node := obj.(*kapi.Node)
+		name := node.ObjectMeta.Name
+		uid := node.ObjectMeta.UID
+
+		nodeIP, err := GetNodeIP(node)
+		if err != nil {
+			log.Errorf("Failed to get node IP for %s, skipping event: %v, node: %v", name, eventType, node)
+			continue
+		}
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			if oldNodeIP, ok := nodeAddressMap[uid]; ok && (oldNodeIP == nodeIP) {
+				continue
 			}
-		case Deleted:
-			err := oc.deleteNode(ev.Node.Name)
+			nodeAddressMap[uid] = nodeIP
+
+			err = oc.addNode(name, nodeIP)
 			if err != nil {
-				log.Errorf("Error deleting node: %v", err)
+				log.Errorf("Error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
+				continue
+			}
+		case watch.Deleted:
+			delete(nodeAddressMap, uid)
+
+			err := oc.deleteNode(name)
+			if err != nil {
+				log.Errorf("Error deleting node %s: %v", name, err)
 				continue
 			}
 		}
@@ -180,28 +212,37 @@ func watchNodes(oc *OsdnController) {
 }
 
 // Only run on the nodes
-func watchSubnets(oc *OsdnController) {
-	clusterEvent := make(chan *HostSubnetEvent)
-	go oc.Registry.WatchSubnets(clusterEvent)
+func watchSubnets(oc *OsdnController) error {
+	eventQueue := oc.Registry.RunEventQueue(HostSubnets)
+
 	for {
-		ev := <-clusterEvent
-		if ev.HostSubnet.HostIP == oc.localIP {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			return err
+		}
+		hs := obj.(*osapi.HostSubnet)
+
+		if hs.HostIP == oc.localIP {
 			continue
 		}
-		switch ev.Type {
-		case Added:
-			if err := oc.validateNode(ev.HostSubnet.HostIP); err != nil {
-				log.Errorf("Ignoring invalid subnet for node %s: %v", ev.HostSubnet.HostIP, err)
+		switch eventType {
+		case watch.Added, watch.Modified:
+			if err := oc.validateNode(hs.HostIP); err != nil {
+				log.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				continue
 			}
-			oc.pluginHooks.AddHostSubnetRules(ev.HostSubnet)
-		case Deleted:
-			oc.pluginHooks.DeleteHostSubnetRules(ev.HostSubnet)
+			oc.pluginHooks.AddHostSubnetRules(hs)
+		case watch.Deleted:
+			oc.pluginHooks.DeleteHostSubnetRules(hs)
 		}
 	}
 }
 
 func (oc *OsdnController) validateNode(nodeIP string) error {
+	if nodeIP == "" || nodeIP == "127.0.0.1" {
+		return fmt.Errorf("Invalid node IP %q", nodeIP)
+	}
+
 	clusterNet, err := oc.Registry.GetClusterNetwork()
 	if err != nil {
 		return fmt.Errorf("Failed to get Cluster Network address: %v", err)
