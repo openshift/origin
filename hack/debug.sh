@@ -456,14 +456,15 @@ do_master_and_nodes ()
 
 ######## Main program starts here
 
-systemd_dir=/usr/lib/systemd/system/
-for name in openshift origin atomic-openshift; do
-    if [ -f $systemd_dir/$name-master.service ]; then
-	aos_master_service=$name-master.service
-    fi
-    if [ -f $systemd_dir/$name-node.service ]; then
-	aos_node_service=$name-node.service
-    fi
+for systemd_dir in /etc/systemd/system /usr/lib/systemd/system; do
+    for name in openshift origin atomic-openshift; do
+	if [ -f $systemd_dir/$name-master.service ]; then
+	    aos_master_service=$name-master.service
+	fi
+	if [ -f $systemd_dir/$name-node.service ]; then
+	    aos_node_service=$name-node.service
+	fi
+    done
 done
 
 case "$1" in
