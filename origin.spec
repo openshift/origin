@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b142489ba717af6d0874db03ebd5fa76a0edcffc
+%global commit 10f6f7c66c30bb46f360e86ff04934358e0d096d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.11-22-gb142489 -X github.com/openshift/origin/pkg/version.commitFromGit b142489 -X k8s.io/kubernetes/pkg/version.gitCommit b142489 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.12-36-g10f6f7c -X github.com/openshift/origin/pkg/version.commitFromGit 10f6f7c -X k8s.io/kubernetes/pkg/version.gitCommit 10f6f7c -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.12
+Version:        3.2.0.13
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,31 @@ fi
 
 
 %changelog
+* Fri Apr 08 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.13
+- Travis can't install go vet anymore (ccoleman@redhat.com)
+- Add debugs for CPU Quota flake (mrunalp@gmail.com)
+- Getting docker logs always to debug issue 8399 (maszulik@redhat.com)
+- ProjectRequestLimit plugin: ignore projects in terminating state
+  (cewong@redhat.com)
+- Support focus arguments on both conformance and core (ccoleman@redhat.com)
+- BZ_1324273: Make BC edit form dirty when deleting Key-Value pair
+  (jhadvig@redhat.com)
+- Add a conformance test for extended (ccoleman@redhat.com)
+- Always set the Cmd for source Docker image (mfojtik@redhat.com)
+- stylistic/refactoring changes for test/extended/cmd to use os::cmd
+  (skuznets@redhat.com)
+- UPSTREAM: 23445: Update port forward e2e for go 1.6 (agoldste@redhat.com)
+- Naming inconsistancy fix (jhadvig@redhat.com)
+- install iproute since the origin-base image dose not contain ip command
+  (bmeng@redhat.com)
+- Change RunOnce duration plugin to act as a limit instead of override
+  (cewong@redhat.com)
+- Error on node startup using perFSGroup quota, but fs mounted with noquota.
+  (dgoodwin@redhat.com)
+- remove running containers in case of a sigterm (bparees@redhat.com)
+- Add mounting volumes to privileged pods template (jcope@redhat.com)
+- oc describe build: improve output. (vsemushi@redhat.com)
+
 * Wed Apr 06 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.12
 - Make infra and shared resource namespaces immortal (jliggitt@redhat.com)
 - UPSTREAM: 23883: Externalize immortal namespaces (jliggitt@redhat.com)
