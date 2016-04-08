@@ -50,7 +50,7 @@ function wait_for_app() {
 
 # service dns entry is visible via master service
 # find the IP of the master service by asking the API_HOST to verify DNS is running there
-MASTER_SERVICE_IP="$(dig @${API_HOST} "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
+MASTER_SERVICE_IP="$(dig @${API_HOST} -p 8053 "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
 os::cmd::expect_success_and_text "dig +tcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
 os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
@@ -91,7 +91,7 @@ oc logs rc/docker-registry-1 > /dev/null
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
-registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
+registry="$(dig @${API_HOST} -p 8053 "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
@@ -99,7 +99,7 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/" "[INFO] Docker registry says: " 
 # ensure original healthz route works as well
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
-os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
+os::cmd::expect_success "dig @${API_HOST} -p 8053 docker-registry.default.local. A"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!

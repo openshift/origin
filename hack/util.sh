@@ -144,6 +144,7 @@ function start_os_server {
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+	 --dns="tcp://0.0.0.0:8053" \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
@@ -197,6 +198,7 @@ function start_os_master {
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
+	 --dns="tcp://0.0.0.0:8053" \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --loglevel=4 \
 	&>"${LOG_DIR}/openshift.log" &
