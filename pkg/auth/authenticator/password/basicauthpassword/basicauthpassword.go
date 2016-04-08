@@ -52,6 +52,8 @@ type RemoteError struct {
 	Error string
 }
 
+var RedirectAttemptedError = errors.New("Redirect attempted")
+
 // New returns an authenticator which will make a basic auth call to the given url.
 // A custom transport can be provided (typically to customize TLS options like trusted roots or present a client certificate).
 // If no transport is provided, http.DefaultTransport is used
@@ -60,6 +62,13 @@ func New(providerName string, url string, transport http.RoundTripper, mapper au
 		transport = http.DefaultTransport
 	}
 	client := &http.Client{Transport: transport}
+
+	// We don't support redirects in the basic auth provider because it could be a malicious attempt to send credentials to
+	// another site.
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return RedirectAttemptedError
+	}
+
 	return &Authenticator{providerName, url, client, mapper}
 }
 
