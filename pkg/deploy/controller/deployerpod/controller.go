@@ -97,9 +97,8 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
-		if !deployutil.IsTerminatedDeployment(deployment) {
-			nextStatus = deployapi.DeploymentStatusRunning
-		}
+		nextStatus = deployapi.DeploymentStatusRunning
+
 	case kapi.PodSucceeded:
 		nextStatus = deployapi.DeploymentStatusComplete
 
@@ -137,7 +136,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		}
 	}
 
-	if currentStatus != nextStatus {
+	if deployutil.CanTransitionPhase(currentStatus, nextStatus) {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.kClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
 			if kerrors.IsNotFound(err) {
