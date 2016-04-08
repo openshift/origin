@@ -11,7 +11,6 @@ import (
 func init() {
 	admission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		execAdmitter := NewSCCExecRestrictions(client)
-		execAdmitter.constraintAdmission.Run()
 		return execAdmitter, nil
 	})
 }

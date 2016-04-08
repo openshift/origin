@@ -438,6 +438,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// Must start policy caching immediately
+	oc.RunSecurityCache()
 	oc.RunGroupCache()
 	oc.RunPolicyCache()
 	oc.RunProjectCache()

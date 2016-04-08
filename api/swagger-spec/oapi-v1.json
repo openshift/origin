@@ -11603,6 +11603,294 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/podspecreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecReview",
+      "method": "POST",
+      "summary": "create a PodSpecReview",
+      "nickname": "createNamespacedPodSpecReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podspecreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecReview",
+      "method": "POST",
+      "summary": "create a PodSpecReview",
+      "nickname": "createNamespacedPodSpecReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/podspecselfsubjectreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecSelfSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSpecSelfSubjectReview",
+      "nickname": "createNamespacedPodSpecSelfSubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecSelfSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecSelfSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podspecselfsubjectreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecSelfSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSpecSelfSubjectReview",
+      "nickname": "createNamespacedPodSpecSelfSubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecSelfSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecSelfSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/podspecsubjectreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSpecSubjectReview",
+      "nickname": "createNamespacedPodSpecSubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podspecsubjectreview",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSpecSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSpecSubjectReview",
+      "nickname": "createNamespacedPodSpecSubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSpecSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSpecSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/policies",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -22094,6 +22382,169 @@
      "allowEscalation": {
       "type": "boolean",
       "description": "AllowEscalation indicates whether you can request roles and their escalating resources"
+     }
+    }
+   },
+   "v1.PodSpecReview": {
+    "id": "v1.PodSpecReview",
+    "description": "PodSpecReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodSpec` in question",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
+     },
+     "spec": {
+      "$ref": "v1.PodSpec",
+      "description": "Spec is the PodSpec to check.  The ServiceAccountName field is ignored for this check."
+     },
+     "status": {
+      "$ref": "v1.PodSpecReviewStatus",
+      "description": "Status represents the current information/status for the PodSpecReview"
+     }
+    }
+   },
+   "v1.PodSpecReviewStatus": {
+    "id": "v1.PodSpecReviewStatus",
+    "description": "PodSpecReviewStatus represents the status of PodSpecReview",
+    "required": [
+     "allowedSubjects"
+    ],
+    "properties": {
+     "allowedSubjects": {
+      "type": "any",
+      "description": "AllowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodSpec"
+     }
+    }
+   },
+   "v1.PodSpecSelfSubjectReview": {
+    "id": "v1.PodSpecSelfSubjectReview",
+    "description": "PodSpecSelfSubjectReview checks whether this user/SA tuple can create the PodSpec",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
+     },
+     "spec": {
+      "$ref": "v1.PodSpecSelfSubjectReviewSpec",
+      "description": "Spec defines specification the PodSpecSelfSubjectReview"
+     },
+     "status": {
+      "$ref": "v1.PodSpecSubjectReviewStatus",
+      "description": "Status represents the current information/status for the PodSpecSelfSubjectReview"
+     }
+    }
+   },
+   "v1.PodSpecSelfSubjectReviewSpec": {
+    "id": "v1.PodSpecSelfSubjectReviewSpec",
+    "description": "PodSpecSelfSubjectReviewSpec contains specification for PodSpecSelfSubjectReview",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "spec": {
+      "$ref": "v1.PodSpec",
+      "description": "Spec is the PodSpec to check."
+     },
+     "excluseSelf": {
+      "type": "boolean",
+      "description": "ExcludeSelf indicates that the check is performed using *only* the ServiceAccountName in the PodSpec"
+     }
+    }
+   },
+   "v1.PodSpecSubjectReviewStatus": {
+    "id": "v1.PodSpecSubjectReviewStatus",
+    "description": "PodSpecSubjectReviewStatus contains information/status for PodSpecSubjectReview",
+    "required": [
+     "allowedSubjects",
+     "spec"
+    ],
+    "properties": {
+     "allowedSubjects": {
+      "$ref": "v1.ObjectReference",
+      "description": "AllowedBy is a reference to the rule that allows the PodSpec.  A `nil`, indicates that it was denied"
+     },
+     "reason": {
+      "type": "string",
+      "description": "Reason is optional.  It indicates why a request was allowed or denied."
+     },
+     "spec": {
+      "$ref": "v1.PodSpec",
+      "description": "PodSpec is the PodSpec after the defaulting is applied"
+     }
+    }
+   },
+   "v1.PodSpecSubjectReview": {
+    "id": "v1.PodSpecSubjectReview",
+    "description": "PodSpecSubjectReview checks whether a particular user/SA tuple can create the PodSpec.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
+     },
+     "spec": {
+      "$ref": "v1.PodSpecSubjectReviewSpec",
+      "description": "Spec defines specification for the PodSpecSubjectReview"
+     },
+     "status": {
+      "$ref": "v1.PodSpecSubjectReviewStatus",
+      "description": "Status represents the current information/status for the PodSpecSubjectReview"
+     }
+    }
+   },
+   "v1.PodSpecSubjectReviewSpec": {
+    "id": "v1.PodSpecSubjectReviewSpec",
+    "description": "PodSpecSubjectReviewSpec defines specification for PodSpecSubjectReview",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "spec": {
+      "$ref": "v1.PodSpec",
+      "description": "Spec is the PodSpec to check."
+     },
+     "user": {
+      "type": "string",
+      "description": "User is the user you're testing for. If you specify \"User\" but not \"Group\", then is it interpreted as \"What if User were not a member of any groups If User and Groups are empty, then the check is performed using *only* the ServiceAccountName in the PodSpec"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Groups is the groups you're testing for."
      }
     }
    },

@@ -6,10 +6,13 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
+
+	securitycache "github.com/openshift/origin/pkg/security/cache"
 )
 
 // scc exec is a pass through to *constraint, so we only need to test that
@@ -89,6 +92,10 @@ func TestExecAdmit(t *testing.T) {
 
 		// create the admission plugin
 		p := NewSCCExecRestrictions(tc)
+
+		cache := securitycache.NewSecurityCache(tc)
+		cache.Store = kcache.NewStore(kcache.MetaNamespaceKeyFunc)
+		p.constraintAdmission.cache = cache
 
 		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)

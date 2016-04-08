@@ -60,6 +60,7 @@ import (
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	securitycache "github.com/openshift/origin/pkg/security/cache"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -83,6 +84,7 @@ type MasterConfig struct {
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 	ProjectCache              *projectcache.ProjectCache
+	SecurityCache             *securitycache.SecurityCache
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -187,14 +189,18 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	)
 	authorizer := newAuthorizer(ruleResolver, policyClient, options.ProjectConfig.ProjectRequestMessage)
 
+	clientsetClient := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
+	securityCache := securitycache.NewSecurityCache(clientsetClient)
+
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
 		ProjectCache:    projectCache,
 		Authorizer:      authorizer,
+		SecurityCache:   securityCache,
 	}
 
 	plugins := []admission.Interface{}
-	clientsetClient := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
+
 	for _, pluginName := range admissionControlPluginNames {
 		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
 		if err != nil {
@@ -231,6 +237,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		GroupCache:                groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
 		ProjectCache:              projectCache,
+		SecurityCache:             securityCache,
 
 		RequestContextMapper: requestContextMapper,
 

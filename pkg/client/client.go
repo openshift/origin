@@ -262,6 +262,18 @@ func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
 	return newClusterRoleBindings(c)
 }
 
+func (c *Client) PodSpecReviews() PodSpecReviewInterface {
+	return newPodSpecReviews(c)
+}
+
+func (c *Client) PodSpecSelfSubjectReviews() PodSpecSelfSubjectReviewInterface {
+	return newPodSpecSelfSubjectReviews(c)
+}
+
+func (c *Client) PodSpecSubjectReviews() PodSpecSubjectReviewInterface {
+	return newPodSpecSubjectReviews(c)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*restclient.RESTClient

@@ -27,6 +27,7 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -68,6 +69,9 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&securityapi.PodSpecSubjectReview{}),
+	reflect.TypeOf(&securityapi.PodSpecSelfSubjectReview{}),
+	reflect.TypeOf(&securityapi.PodSpecReview{}),
 }
 
 // MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started

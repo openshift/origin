@@ -2,29 +2,38 @@ package admission
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
+	securitycache "github.com/openshift/origin/pkg/security/cache"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/util/diff"
 
-	"sort"
-
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-func NewTestAdmission(store cache.Store, kclient clientset.Interface) kadmission.Interface {
+func NewTestAdmission(t *testing.T, kclient clientset.Interface, sccs []*kapi.SecurityContextConstraints) kadmission.Interface {
+	cache := securitycache.NewSecurityCache(kclient)
+	cache.Store = kcache.NewStore(kcache.MetaNamespaceKeyFunc)
+	for _, sc := range sccs {
+		sc := sc
+		err := cache.Store.Add(sc)
+		if err != nil {
+			t.Fatalf("error adding sccs to store: %v", err)
+		}
+	}
 	return &constraint{
 		Handler: kadmission.NewHandler(kadmission.Create),
 		client:  kclient,
-		store:   store,
+		cache:   cache,
 	}
 }
 
@@ -125,13 +134,7 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-
-	for _, scc := range sccs {
-		store.Add(scc)
-	}
-
-	plugin := NewTestAdmission(store, tc)
+	plugin := NewTestAdmission(t, tc, sccs)
 
 	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
@@ -206,12 +209,9 @@ func TestAdmit(t *testing.T) {
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	store.Add(saExactSCC)
-	store.Add(saSCC)
-
+	sccs := []*kapi.SecurityContextConstraints{saSCC, saExactSCC}
 	// create the admission plugin
-	p := NewTestAdmission(store, tc)
+	p := NewTestAdmission(t, tc, sccs)
 
 	// setup test data
 	uidNotInRange := goodPod()
@@ -444,7 +444,11 @@ func TestAdmit(t *testing.T) {
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
-	store.Add(adminSCC)
+	asConstraint, ok := p.(*constraint)
+	if !ok {
+		t.Fatal("Unable to conver to constraint...")
+	}
+	asConstraint.cache.Store.Add(adminSCC)
 
 	for k, v := range testCases {
 		if !v.shouldAdmit {
@@ -810,14 +814,12 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-
 		// create the admission handler
 		tc := clientsetfake.NewSimpleClientset(v.namespace)
 		admit := &constraint{
 			Handler: kadmission.NewHandler(kadmission.Create),
 			client:  tc,
-			store:   store,
+			cache:   securitycache.NewSecurityCache(tc),
 		}
 
 		scc := v.scc()
@@ -863,9 +865,10 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 			Users: []string{"user"},
 		},
 	}
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	sc := securitycache.NewSecurityCache(clientsetfake.NewSimpleClientset(createNamespaceForTest()))
+	sc.Store = kcache.NewStore(kcache.MetaNamespaceKeyFunc)
 	for _, v := range sccs {
-		store.Add(v)
+		sc.Store.Add(v)
 	}
 
 	// single match cases
@@ -896,7 +899,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		sccs, err := getMatchingSecurityContextConstraints(store, v.userInfo)
+		sccs, err := GetMatchingSecurityContextConstraints(sc, v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
 			continue
@@ -922,7 +925,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		Name:   "user",
 		Groups: []string{"group"},
 	}
-	sccs, err := getMatchingSecurityContextConstraints(store, userInfo)
+	sccs, err := GetMatchingSecurityContextConstraints(sc, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
@@ -1440,16 +1443,9 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	serviceAccount := createSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	for _, scc := range sccsToSort {
-		err := store.Add(scc)
-		if err != nil {
-			t.Fatalf("error adding sccs to store: %v", err)
-		}
-	}
-
 	// create the admission plugin
-	plugin := NewTestAdmission(store, tc)
+	plugin := NewTestAdmission(t, tc, sccsToSort)
+
 	// match the restricted SCC
 	testSCCAdmission(goodPod(), plugin, restricted.Name, t)
 	// match matchingPrioritySCCOne by setting RunAsUser to 5

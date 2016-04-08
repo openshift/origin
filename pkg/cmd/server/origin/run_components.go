@@ -209,6 +209,11 @@ func (c *MasterConfig) RunProjectCache() {
 	c.ProjectCache.Run()
 }
 
+// RunSecurityCache populates security cache, used by SCC review API and security admission controller
+func (c *MasterConfig) RunSecurityCache() {
+	c.SecurityCache.Run()
+}
+
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
