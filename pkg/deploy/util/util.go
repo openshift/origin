@@ -62,7 +62,7 @@ func LabelForDeployment(deployment *api.ReplicationController) string {
 
 // LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
 func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.Status.LatestVersion)
+	return fmt.Sprintf("%s/%s", config.Namespace, config.Name)
 }
 
 // DeploymentNameForConfigVersion returns the name of the version-th deployment
