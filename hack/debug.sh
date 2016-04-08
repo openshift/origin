@@ -113,7 +113,7 @@ do_master () {
     # Outputs a list of pods in the form "minion-1 mypod namespace 10.1.0.2 e4f1d61b"
     oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if (index .status.containerStatuses 0).ready}}{{if not .spec.hostNetwork}}{{.spec.nodeName}} {{.metadata.name}} {{.metadata.namespace}} {{.status.podIP}} {{printf "%.21s" (index .status.containerStatuses 0).containerID}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}' | sed -e 's|docker://||' > $logdir/meta/podinfo
 
-    # Outputs a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
+    # Outputs a list of services in the form "myservice namespace 172.30.0.99 tcp 5454"
     oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}} {{.metadata.namespace}} {{.spec.clusterIP}} {{(index .spec.ports 0).protocol}} {{(index .spec.ports 0).port}}{{"\n"}}{{end}}{{end}}' | sed -e 's/ TCP / tcp /g' -e 's/ UDP / udp /g' > $logdir/meta/serviceinfo
 }
 
