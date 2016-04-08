@@ -1,0 +1,18 @@
+apiVersion: v1
+id: gluster-nginx-pvc
+kind: Pod
+metadata: 
+  name: gluster-nginx-priv
+spec: 
+  containers: 
+    - name: gluster-nginx-priv
+      image: fedora/nginx
+      volumeMounts: 
+        - mountPath: /mnt/gluster
+          name: gluster-volume-claim
+      securityContext: 
+        privileged: true
+  volumes: 
+    - name: gluster-volume-claim
+      persistentVolumeClaim: 
+        claimName: gluster-claim

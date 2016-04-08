@@ -51,6 +51,7 @@ angular.module("openshiftConsole")
       if ($scope.entries[key]) {
         delete $scope.entries[key];
         delete added[key];
+        $scope.form.$setDirty();
       }
     };
     $scope.setErrorText = function(keyTitle) {

@@ -15,9 +15,9 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func testRunOnceDurationPod() *kapi.Pod {
+func testRunOnceDurationPod(activeDeadlineSeconds int64) *kapi.Pod {
 	pod := &kapi.Pod{}
-	pod.Name = "testpod"
+	pod.GenerateName = "testpod"
 	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
 	pod.Spec.Containers = []kapi.Container{
 		{
@@ -25,40 +25,51 @@ func testRunOnceDurationPod() *kapi.Pod {
 			Image: "test/image",
 		},
 	}
+	if activeDeadlineSeconds > 0 {
+		pod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+	}
 	return pod
+}
+
+func testPodDuration(t *testing.T, name string, kclient kclient.Interface, pod *kapi.Pod, expected int64) {
+	// Pod with no duration set
+	pod, err := kclient.Pods(testutil.Namespace()).Create(pod)
+	if err != nil {
+		t.Fatalf("%s: unexpected: %v", name, err)
+	}
+	if pod.Spec.ActiveDeadlineSeconds == nil {
+		t.Errorf("%s: unexpected nil value for pod.Spec.ActiveDeadlineSeconds", name)
+		return
+	}
+	if *pod.Spec.ActiveDeadlineSeconds != expected {
+		t.Errorf("%s: unexpected value for pod.Spec.ActiveDeadlineSeconds: %d. Expected: %d", name, *pod.Spec.ActiveDeadlineSeconds, expected)
+	}
 }
 
 func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
-		ActiveDeadlineSecondsOverride: &secs,
+		ActiveDeadlineSecondsLimit: &secs,
 	}
 	kclient := setupRunOnceDurationTest(t, config, nil)
-	pod, err := kclient.Pods(testutil.Namespace()).Create(testRunOnceDurationPod())
-	if err != nil {
-		t.Fatalf("Unexpected: %v", err)
-	}
-	if pod.Spec.ActiveDeadlineSeconds == nil || *pod.Spec.ActiveDeadlineSeconds != 3600 {
-		t.Errorf("Unexpected value for pod.ActiveDeadlineSeconds %v", pod.Spec.ActiveDeadlineSeconds)
-	}
+
+	testPodDuration(t, "global, no duration", kclient, testRunOnceDurationPod(0), 3600)
+	testPodDuration(t, "global, larger duration", kclient, testRunOnceDurationPod(7200), 3600)
+	testPodDuration(t, "global, smaller duration", kclient, testRunOnceDurationPod(100), 100)
 }
 
-func TestRunOnceDurationAdmissionPluginProjectOverride(t *testing.T) {
+func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
-		ActiveDeadlineSecondsOverride: &secs,
+		ActiveDeadlineSecondsLimit: &secs,
 	}
 	nsAnnotations := map[string]string{
-		pluginapi.ActiveDeadlineSecondsOverrideAnnotation: "100",
+		pluginapi.ActiveDeadlineSecondsLimitAnnotation: "100",
 	}
 	kclient := setupRunOnceDurationTest(t, config, nsAnnotations)
-	pod, err := kclient.Pods(testutil.Namespace()).Create(testRunOnceDurationPod())
-	if err != nil {
-		t.Fatalf("Unexpected: %v", err)
-	}
-	if pod.Spec.ActiveDeadlineSeconds == nil || *pod.Spec.ActiveDeadlineSeconds != 100 {
-		t.Errorf("Unexpected value for pod.ActiveDeadlineSeconds %v", pod.Spec.ActiveDeadlineSeconds)
-	}
+	testPodDuration(t, "project, no duration", kclient, testRunOnceDurationPod(0), 100)
+	testPodDuration(t, "project, larger duration", kclient, testRunOnceDurationPod(7200), 100)
+	testPodDuration(t, "project, smaller duration", kclient, testRunOnceDurationPod(50), 50)
 }
 
 func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) kclient.Interface {
