@@ -11,6 +11,7 @@ source "${OS_ROOT}/test/extended/setup.sh"
 cd "${OS_ROOT}"
 
 os::test::extended::setup
+os::test::extended::focus $@
 
 function join { local IFS="$1"; shift; echo "$*"; }
 

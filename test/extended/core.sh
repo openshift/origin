@@ -12,17 +12,7 @@ source "${OS_ROOT}/test/extended/setup.sh"
 cd "${OS_ROOT}"
 
 os::test::extended::setup
-
-if [[ $# -ne 0 ]]; then
-  echo "[INFO] Running custom: $@"
-  tests=$()
-  if ! TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} --ginkgo.dryRun --ginkgo.noColor "$@" | grep -v skip | grep -q " ok "; then
-    echo "[ERROR] No tests would be run"
-    exit 1
-  fi
-  ${EXTENDEDTEST} "$@"
-  exit $?
-fi
+os::test::extended::focus $@
 
 function join { local IFS="$1"; shift; echo "$*"; }
 

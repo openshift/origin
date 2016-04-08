@@ -2,6 +2,20 @@
 #
 # This abstracts starting up an extended server.
 
+# If invoked with arguments, executes the test directly.
+function os::test::extended::focus {
+  if [[ $# -ne 0 ]]; then
+    echo "[INFO] Running custom: $@"
+    tests=$(TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} --ginkgo.dryRun --ginkgo.noColor "$@" | col -b | grep -v "35mskip0m" | grep "1mok0m" | wc -l)
+    if [[ "${tests}" -eq 0 ]]; then
+      echo "[ERROR] No tests would be run"
+      exit 1
+    fi
+    ${EXTENDEDTEST} "$@"
+    exit $?
+  fi
+}
+
 # Launches an extended server for OpenShift
 # TODO: this should be doing less, because clusters should be stood up outside
 #   and then tests are executed.  Tests that depend on fine grained setup should
