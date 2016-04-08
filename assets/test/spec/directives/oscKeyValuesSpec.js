@@ -46,9 +46,13 @@ describe("KeyValuesController", function(){
     scope = { 
       entries: { "foo": "bar"},
       form: {
+        $dirty: false,
         $setPristine: function(){},
         $setUntouched: function(){},
         $setValidity: function(){},
+        $setDirty: function() {
+          scope.form.$dirty = true;
+        }
       },
       readonlyKeys: ""
     };
@@ -117,6 +121,7 @@ describe("KeyValuesController", function(){
     it("should delete the key/value from the scope", function(){
       scope.deleteEntry("foo");
       expect(scope.entries["foo"]).toBe(undefined);
+      expect(scope.form.$dirty).toBe(true);
     });
   });
 });

@@ -175,6 +175,45 @@ func TestMaxProjectByRequester(t *testing.T) {
 	}
 }
 
+func TestProjectCountByRequester(t *testing.T) {
+	pCache := fakeProjectCache(map[string]projectCount{
+		"user1": {1, 5}, // total 6, expect 4
+		"user2": {5, 1}, // total 6, expect 5
+		"user3": {1, 0}, // total 1, expect 1
+	})
+	reqLimit := &projectRequestLimit{
+		cache: pCache,
+	}
+	tests := []struct {
+		user   string
+		expect int
+	}{
+		{
+			user:   "user1",
+			expect: 4,
+		},
+		{
+			user:   "user2",
+			expect: 5,
+		},
+		{
+			user:   "user3",
+			expect: 1,
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := reqLimit.projectCountByRequester(test.user)
+		if err != nil {
+			t.Errorf("unexpected: %v", err)
+		}
+		if actual != test.expect {
+			t.Errorf("user %s got %d, expected %d", test.user, actual, test.expect)
+		}
+	}
+
+}
+
 func TestAdmit(t *testing.T) {
 	tests := []struct {
 		config          *requestlimitapi.ProjectRequestLimitConfig
@@ -219,10 +258,11 @@ func TestAdmit(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		pCache := fakeProjectCache(map[string]int{
-			"user2": 2,
-			"user3": 5,
-			"user4": 1,
+		pCache := fakeProjectCache(map[string]projectCount{
+			"user1": {0, 1},
+			"user2": {2, 2},
+			"user3": {5, 3},
+			"user4": {1, 0},
 		})
 		client := &testclient.Fake{}
 		client.AddReactor("get", "users", userFn(map[string]labels.Set{
@@ -296,11 +336,14 @@ func configEquals(a, b *requestlimitapi.ProjectRequestLimitConfig) bool {
 	return true
 }
 
-func fakeNs(name string) *kapi.Namespace {
+func fakeNs(name string, terminating bool) *kapi.Namespace {
 	ns := &kapi.Namespace{}
 	ns.Name = kapi.SimpleNameGenerator.GenerateName("testns")
 	ns.Annotations = map[string]string{
 		"openshift.io/requester": name,
+	}
+	if terminating {
+		ns.Status.Phase = kapi.NamespaceTerminating
 	}
 	return ns
 }
@@ -312,12 +355,20 @@ func fakeUser(name string, labels map[string]string) *userapi.User {
 	return user
 }
 
-func fakeProjectCache(requesters map[string]int) *projectcache.ProjectCache {
+type projectCount struct {
+	active      int
+	terminating int
+}
+
+func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectCache {
 	kclient := &ktestclient.Fake{}
 	pCache := projectcache.NewFake(kclient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 	for requester, count := range requesters {
-		for i := 0; i < count; i++ {
-			pCache.Store.Add(fakeNs(requester))
+		for i := 0; i < count.active; i++ {
+			pCache.Store.Add(fakeNs(requester, false))
+		}
+		for i := 0; i < count.terminating; i++ {
+			pCache.Store.Add(fakeNs(requester, true))
 		}
 	}
 	return pCache

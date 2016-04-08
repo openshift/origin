@@ -18,6 +18,10 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
+// allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,
+// and do not count towards the user's limit.
+const allowedTerminatingProjects = 2
+
 func init() {
 	admission.RegisterPlugin("ProjectRequestLimit", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
@@ -116,7 +120,24 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 	if err != nil {
 		return 0, err
 	}
-	return len(namespaces), nil
+
+	terminatingCount := 0
+	for _, obj := range namespaces {
+		ns, ok := obj.(*kapi.Namespace)
+		if !ok {
+			return 0, fmt.Errorf("object in cache is not a namespace: %#v", obj)
+		}
+		if ns.Status.Phase == kapi.NamespaceTerminating {
+			terminatingCount++
+		}
+	}
+	count := len(namespaces)
+	if terminatingCount > allowedTerminatingProjects {
+		count -= allowedTerminatingProjects
+	} else {
+		count -= terminatingCount
+	}
+	return count, nil
 }
 
 func (o *projectRequestLimit) SetOpenshiftClient(client client.Interface) {

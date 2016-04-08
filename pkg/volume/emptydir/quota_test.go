@@ -2,6 +2,7 @@ package emptydir
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -60,26 +61,27 @@ func TestParseFSDevice(t *testing.T) {
 
 // Avoid running actual commands to manage XFS quota:
 type mockQuotaCommandRunner struct {
-	RunFSDeviceCommandResponse *cmdResponse
-	RunFSTypeCommandResponse   *cmdResponse
+	RunFSDeviceCommandResponse     *cmdResponse
+	RunFSTypeCommandResponse       *cmdResponse
+	RunMountOptionsCommandResponse *cmdResponse
 
 	RanApplyQuotaFSDevice string
 	RanApplyQuota         *resource.Quantity
 	RanApplyQuotaFSGroup  int64
 }
 
-func (m *mockQuotaCommandRunner) RunFSTypeCommand(dir string) (string, string, error) {
+func (m *mockQuotaCommandRunner) RunFSTypeCommand(dir string) (string, error) {
 	if m.RunFSTypeCommandResponse != nil {
-		return m.RunFSTypeCommandResponse.Stdout, m.RunFSTypeCommandResponse.Stderr, m.RunFSTypeCommandResponse.Error
+		return m.RunFSTypeCommandResponse.Stdout, m.RunFSTypeCommandResponse.Error
 	}
-	return "xfs", "", nil
+	return "xfs", nil
 }
 
-func (m *mockQuotaCommandRunner) RunFSDeviceCommand(dir string) (string, string, error) {
+func (m *mockQuotaCommandRunner) RunFSDeviceCommand(dir string) (string, error) {
 	if m.RunFSDeviceCommandResponse != nil {
-		return m.RunFSDeviceCommandResponse.Stdout, m.RunFSDeviceCommandResponse.Stderr, m.RunFSDeviceCommandResponse.Error
+		return m.RunFSDeviceCommandResponse.Stdout, m.RunFSDeviceCommandResponse.Error
 	}
-	return "Filesystem\n/dev/sdb2", "", nil
+	return "Filesystem\n/dev/sdb2", nil
 }
 
 func (m *mockQuotaCommandRunner) RunApplyQuotaCommand(fsDevice string, quota resource.Quantity, fsGroup int64) (string, string, error) {
@@ -88,6 +90,10 @@ func (m *mockQuotaCommandRunner) RunApplyQuotaCommand(fsDevice string, quota res
 	m.RanApplyQuota = &quota
 	m.RanApplyQuotaFSGroup = fsGroup
 	return "", "", nil
+}
+
+func (m *mockQuotaCommandRunner) RunMountOptionsCommand() (string, error) {
+	return m.RunMountOptionsCommandResponse.Stdout, m.RunMountOptionsCommandResponse.Error
 }
 
 // Small struct for specifying how we want the various quota command runners to
@@ -245,5 +251,83 @@ func TestApplyQuota(t *testing.T) {
 				t.Errorf("failed: '%s', expected error but quota was applied", name)
 			}
 		}
+	}
+}
+
+func TestIsMountedWithGrpquota(t *testing.T) {
+	// Substitute in the actual mount line we're after for each test:
+	mountOutput := `/dev/mapper/fedora_system-root on / type ext4 (rw,relatime,seclabel,data=ordered)
+selinuxfs on /sys/fs/selinux type selinuxfs (rw,relatime)
+systemd-1 on /proc/sys/fs/binfmt_misc type autofs (rw,relatime,fd=26,pgrp=1,timeout=0,minproto=5,maxproto=5,direct)
+debugfs on /sys/kernel/debug type debugfs (rw,relatime,seclabel)
+mqueue on /dev/mqueue type mqueue (rw,relatime,seclabel)
+hugetlbfs on /dev/hugepages type hugetlbfs (rw,relatime,seclabel)
+tmpfs on /tmp type tmpfs (rw,seclabel)
+%s
+nfsd on /proc/fs/nfsd type nfsd (rw,relatime)
+/dev/sda1 on /boot type ext4 (rw,relatime,seclabel,data=ordered)
+/dev/mapper/fedora_system-home on /home type ext4 (rw,relatime,seclabel,data=ordered)
+/dev/sdb1 on /storage type btrfs (rw,relatime,seclabel,space_cache,subvolid=5,subvol=/)
+`
+	var fsDevice = "/dev/mapper/openshift--vol--dir"
+	var volumeDir = "/var/lib/origin/openshift.local.volumes"
+
+	tests := map[string]struct {
+		MountLine      string
+		ExpectedResult bool
+		ExpError       string // sub-string to be searched for in error message
+	}{
+		"grpquota": {
+			MountLine:      fmt.Sprintf("%s on %s type xfs (rw,relatime,seclabel,attr2,inode64,grpquota)", fsDevice, volumeDir),
+			ExpectedResult: true,
+		},
+		"gquota": {
+			// May not be possible in the real world (would show up as grpquota) but just in case:
+			MountLine:      fmt.Sprintf("%s on %s type xfs (rw,relatime,seclabel,attr2,inode64,gquota)", fsDevice, volumeDir),
+			ExpectedResult: true,
+		},
+		"gqnoenforce": {
+			MountLine:      fmt.Sprintf("%s on %s type xfs (rw,relatime,seclabel,attr2,inode64,gqnoenforce)", fsDevice, volumeDir),
+			ExpectedResult: false,
+		},
+		"noquota": {
+			MountLine:      fmt.Sprintf("%s on %s type xfs (rw,relatime,seclabel,attr2,inode64,noquota)", fsDevice, volumeDir),
+			ExpectedResult: false,
+		},
+		"device not in output": {
+			MountLine:      fmt.Sprintf("/dev/sdb1 on %s type xfs (rw,relatime,seclabel,attr2,inode64,noquota)", volumeDir),
+			ExpectedResult: false,
+			ExpError:       "unable to find device",
+		},
+	}
+
+	for name, test := range tests {
+		t.Logf("running TestIsMountedWithGrpquota: %s", name)
+
+		mockCmdRunner := &mockQuotaCommandRunner{}
+		mockCmdRunner.RunMountOptionsCommandResponse = &cmdResponse{
+			Stdout: fmt.Sprintf(mountOutput, test.MountLine),
+			Stderr: "",
+			Error:  nil,
+		}
+		mockCmdRunner.RunFSDeviceCommandResponse = &cmdResponse{
+			Stdout: fmt.Sprintf("Filesystem\n%s", fsDevice),
+			Stderr: "",
+			Error:  nil,
+		}
+
+		mountedWithQuota, err := isMountedWithGrpquota(mockCmdRunner, volumeDir)
+		if len(test.ExpError) > 0 {
+			if err == nil {
+				t.Errorf("%q, expected error but got none", name)
+			} else if !strings.Contains(err.Error(), test.ExpError) {
+				t.Errorf("%q, expected error containing %q, got: %q", name, test.ExpError, err)
+			}
+		}
+
+		if test.ExpectedResult != mountedWithQuota {
+			t.Errorf("%q, expected %t, got: %t", name, test.ExpectedResult, mountedWithQuota)
+		}
+
 	}
 }
