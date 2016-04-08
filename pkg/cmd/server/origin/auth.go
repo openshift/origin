@@ -81,8 +81,7 @@ const (
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) {
-	// TODO: register into container
-	mux := container.ServeMux
+	mux := c.getMux(container)
 
 	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, c.EtcdBackends...)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
@@ -172,6 +171,20 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
 	}, nil
+}
+
+func (c *AuthConfig) getMux(container *restful.Container) cmdutil.Mux {
+	// Register directly into the container's mux
+	if c.HandlerWrapper == nil {
+		return container.ServeMux
+	}
+
+	// Wrap all handlers before registering into the container's mux
+	// This lets us do things like defer session clearing to the end of a request
+	return &handlerWrapperMux{
+		mux:     container.ServeMux,
+		wrapper: c.HandlerWrapper,
+	}
 }
 
 func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
