@@ -9,6 +9,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
@@ -37,7 +39,7 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 		return err
 	}
 
-	go watchNodes(oc)
+	go utilwait.Forever(oc.watchNodes, 0)
 	return nil
 }
 
@@ -133,7 +135,7 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 		return false, err
 	}
 
-	go watchSubnets(oc)
+	go utilwait.Forever(oc.watchSubnets, 0)
 	return networkChanged, nil
 }
 
@@ -168,14 +170,15 @@ func (oc *OsdnController) initSelfSubnet() error {
 }
 
 // Only run on the master
-func watchNodes(oc *OsdnController) error {
+func (oc *OsdnController) watchNodes() {
 	eventQueue := oc.Registry.RunEventQueue(Nodes)
 	nodeAddressMap := map[types.UID]string{}
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
-			return err
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for nodes: %v", err))
+			return
 		}
 		node := obj.(*kapi.Node)
 		name := node.ObjectMeta.Name
@@ -212,13 +215,14 @@ func watchNodes(oc *OsdnController) error {
 }
 
 // Only run on the nodes
-func watchSubnets(oc *OsdnController) error {
+func (oc *OsdnController) watchSubnets() {
 	eventQueue := oc.Registry.RunEventQueue(HostSubnets)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
-			return err
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for subnets: %v", err))
+			return
 		}
 		hs := obj.(*osapi.HostSubnet)
 

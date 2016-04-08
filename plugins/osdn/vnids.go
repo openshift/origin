@@ -8,7 +8,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
@@ -133,7 +135,7 @@ func (oc *OsdnController) VnidStartMaster() error {
 	// 'default' namespace is currently always an admin namespace
 	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
-	go watchNamespaces(oc)
+	go utilwait.Forever(oc.watchNamespaces, 0)
 	return nil
 }
 
@@ -220,13 +222,14 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	return nil
 }
 
-func watchNamespaces(oc *OsdnController) error {
+func (oc *OsdnController) watchNamespaces() {
 	eventQueue := oc.Registry.RunEventQueue(Namespaces)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
-			return err
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for namespaces: %v", err))
+			return
 		}
 		ns := obj.(*kapi.Namespace)
 		name := ns.ObjectMeta.Name
@@ -261,10 +264,9 @@ func (oc *OsdnController) VnidStartNode() error {
 		return err
 	}
 
-	go watchNetNamespaces(oc)
-	go watchPods(oc)
-	go watchServices(oc)
-
+	go utilwait.Forever(oc.watchNetNamespaces, 0)
+	go utilwait.Forever(oc.watchPods, 0)
+	go utilwait.Forever(oc.watchServices, 0)
 	return nil
 }
 
@@ -293,13 +295,14 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	return nil
 }
 
-func watchNetNamespaces(oc *OsdnController) error {
+func (oc *OsdnController) watchNetNamespaces() {
 	eventQueue := oc.Registry.RunEventQueue(NetNamespaces)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
-			return err
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for network namespaces: %v", err))
+			return
 		}
 		netns := obj.(*osapi.NetNamespace)
 
@@ -339,14 +342,15 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 	return true
 }
 
-func watchServices(oc *OsdnController) error {
+func (oc *OsdnController) watchServices() {
 	services := make(map[string]*kapi.Service)
 	eventQueue := oc.Registry.RunEventQueue(Services)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
-			return err
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for services: %v", err))
+			return
 		}
 		serv := obj.(*kapi.Service)
 
@@ -379,6 +383,22 @@ func watchServices(oc *OsdnController) error {
 	}
 }
 
-func watchPods(oc *OsdnController) {
-	oc.Registry.WatchPods()
+func (oc *OsdnController) watchPods() {
+	eventQueue := oc.Registry.RunEventQueue(Pods)
+
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for pods: %v", err))
+			return
+		}
+		pod := obj.(*kapi.Pod)
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			oc.Registry.TrackPod(pod)
+		case watch.Deleted:
+			oc.Registry.UnTrackPod(pod)
+		}
+	}
 }

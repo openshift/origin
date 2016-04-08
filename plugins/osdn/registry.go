@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -88,28 +87,9 @@ func (registry *Registry) PopulatePodsByIP() error {
 	}
 
 	for _, pod := range podList.Items {
-		registry.trackPod(&pod)
+		registry.TrackPod(&pod)
 	}
 	return nil
-}
-
-func (registry *Registry) WatchPods() error {
-	eventQueue := registry.RunEventQueue(Pods)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		pod := obj.(*kapi.Pod)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			registry.trackPod(pod)
-		case watch.Deleted:
-			registry.unTrackPod(pod)
-		}
-	}
 }
 
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
@@ -358,7 +338,7 @@ func (registry *Registry) getTrackedPod(ip string) (*kapi.Pod, bool) {
 	return pod, ok
 }
 
-func (registry *Registry) trackPod(pod *kapi.Pod) {
+func (registry *Registry) TrackPod(pod *kapi.Pod) {
 	if pod.Status.PodIP == "" {
 		return
 	}
@@ -388,7 +368,7 @@ func (registry *Registry) trackPod(pod *kapi.Pod) {
 	return
 }
 
-func (registry *Registry) unTrackPod(pod *kapi.Pod) {
+func (registry *Registry) UnTrackPod(pod *kapi.Pod) {
 	registry.podTrackingLock.Lock()
 	defer registry.podTrackingLock.Unlock()
 
