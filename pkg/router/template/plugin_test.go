@@ -73,7 +73,7 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 }
 
 // AddRoute adds a ServiceAliasConfig for the route to the ServiceUnit identified by id
-func (r *TestRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
+func (r *TestRouter) AddRoute(id string, route *routeapi.Route, host string, skipValidation bool) bool {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	su, _ := r.FindServiceUnit(id)
 	routeKey := r.routeKey(route)
@@ -83,6 +83,7 @@ func (r *TestRouter) AddRoute(id string, route *routeapi.Route, host string) boo
 		Path: route.Spec.Path,
 	}
 
+	//  TODO: add test for validation + skip validation
 	su.ServiceAliasConfigs[routeKey] = config
 	r.State[id] = su
 	return true

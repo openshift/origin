@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -42,6 +43,8 @@ type TemplatePluginConfig struct {
 	StatsUsername          string
 	StatsPassword          string
 	IncludeUDP             bool
+	ValidateRoutes         bool
+	ValidateScriptPath     string
 	PeerService            *ktypes.NamespacedName
 }
 
@@ -63,9 +66,9 @@ type routerInterface interface {
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id and the calculated host.  Returns true if a
-	// change was made and the state should be stored with Commit().
-	AddRoute(id string, route *routeapi.Route, host string) bool
+	// AddRoute adds a route for the given id and the calculated host.  Returns any error
+	// encountered if any changing the router state.
+	AddRoute(id string, route *routeapi.Route, host string, skipValidation bool) error
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 	// Reduce the list of routes to only these namespaces
@@ -120,6 +123,8 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		statsPassword:          cfg.StatsPassword,
 		statsPort:              cfg.StatsPort,
 		peerEndpointsKey:       peerKey,
+		validateRoutes:         cfg.ValidateRoutes,
+		validateScriptPath:     cfg.ValidateScriptPath,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err
@@ -169,11 +174,16 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 			p.Router.CreateServiceUnit(key)
 		}
 
-		glog.V(4).Infof("Modifying routes for %s", key)
-		commit := p.Router.AddRoute(key, route, host)
-		if commit {
-			p.Router.Commit()
+		validate, lastError := routeNeedsValidating(eventType, route)
+		if !validate && len(lastError) > 0 {
+			glog.V(4).Infof("Not re-validating route %s with previously reported config errors for host %s", key, host)
+			return fmt.Errorf(lastError)
 		}
+		glog.V(4).Infof("Modifying routes for %s", key)
+		if err := p.Router.AddRoute(key, route, host, !validate); err != nil {
+			return err
+		}
+		p.Router.Commit()
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
 		p.Router.RemoveRoute(key, route)
@@ -236,4 +246,38 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 	}
 
 	return out
+}
+
+// routeNeedsValidating checks if a route needs [re]validating and returns
+// the last encountered error if any.
+func routeNeedsValidating(eventType watch.EventType, route *routeapi.Route) (bool, string) {
+	if eventType == watch.Added {
+		return true, ""
+	}
+
+	var lastTransitionTime *unversioned.Time
+	lastError := ""
+	for i := range route.Status.Ingress {
+		ingress := &route.Status.Ingress[i]
+		for _, condition := range ingress.Conditions {
+			if t := condition.LastTransitionTime; t != nil {
+				switch {
+				case lastTransitionTime == nil, t.After(lastTransitionTime.Time):
+					lastTransitionTime = t
+					if len(condition.Message) > 0 {
+						lastError = condition.Message
+					} else {
+						lastError = ""
+					}
+				}
+			}
+		}
+	}
+
+	// TODO: Get the time the route was last modified. Do we have a way
+	//       to get this info - aka last object update timestamp?
+	//       For now, use Now(): causes routes to always be revalidated.
+	// lastUpdateAt := unversioned.Now().Rfc3339Copy()
+	// return lastTransitionTime.Before(lastUpdateAt), lastError
+	return true, lastError
 }

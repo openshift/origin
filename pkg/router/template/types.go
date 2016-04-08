@@ -15,6 +15,8 @@ type ServiceUnit struct {
 	EndpointTable []Endpoint
 	// ServiceAliasConfigs is a collection of unique routes that support this service, keyed by host + path
 	ServiceAliasConfigs map[string]ServiceAliasConfig
+	// InvalidServiceAliasConfigs is a collection of unique routes that support this service, keyed by host + path that have configuration errors.
+	InvalidServiceAliasConfigs map[string]ServiceAliasConfig
 }
 
 // ServiceAliasConfig is a route for a service.  Uniquely identified by host + path.

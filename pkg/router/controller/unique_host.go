@@ -167,7 +167,13 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 			}
 		}
 		p.routeToHost[routeName] = host
-		return p.plugin.HandleRoute(eventType, route)
+		err := p.plugin.HandleRoute(eventType, route)
+		if err != nil {
+			glog.V(4).Infof("Route %s config error for host %s, recording rejection: %s",
+				routeName, host, err)
+			p.recorder.RecordRouteRejection(route, "RouteConfigError", err.Error())
+		}
+		return err
 
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)

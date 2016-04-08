@@ -6,6 +6,7 @@
 FROM openshift/origin-haproxy-router-base
 
 ADD conf/ /var/lib/haproxy/conf/
+ADD validate-config /var/lib/haproxy/validate-config
 ADD reload-haproxy /var/lib/haproxy/reload-haproxy
 ADD bin/openshift /usr/bin/openshift
 
@@ -22,5 +23,6 @@ WORKDIR /var/lib/haproxy/conf
 
 EXPOSE 80
 ENV TEMPLATE_FILE=/var/lib/haproxy/conf/haproxy-config.template \
-    RELOAD_SCRIPT=/var/lib/haproxy/reload-haproxy
+    RELOAD_SCRIPT=/var/lib/haproxy/reload-haproxy \
+    VALIDATE_SCRIPT=/var/lib/haproxy/validate-config
 ENTRYPOINT ["/usr/bin/openshift-router"]

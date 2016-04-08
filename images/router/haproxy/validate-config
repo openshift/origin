@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -o nounset
+
+config_file=${1:-"/var/lib/haproxy/conf/haproxy.config"}
+
+# Exit code is used to make a determination if the given config is good or
+# not. So ensure that we exit with the status of the haproxy -c command.
+haproxy -c -f "$config_file"
+exit $?
