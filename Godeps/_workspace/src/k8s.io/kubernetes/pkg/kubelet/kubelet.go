@@ -1630,7 +1630,7 @@ func (kl *Kubelet) GetClusterDNS(pod *api.Pod) ([]string, []string, error) {
 	}
 	var dns, dnsSearch []string
 
-	if kl.clusterDNS != nil {
+	if kl.clusterDNS != nil && !sets.NewString(hostDNS...).Has(kl.clusterDNS.String()) {
 		dns = append([]string{kl.clusterDNS.String()}, hostDNS...)
 	} else {
 		dns = hostDNS
