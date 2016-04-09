@@ -27,5 +27,22 @@ window.OPENSHIFT_CONSTANTS = {
   },
   // The default CPU target percentage for horizontal pod autoscalers created or edited in the web console.
   // This value is set in the HPA when the input is left blank.
-  DEFAULT_HPA_CPU_TARGET_PERCENT: 80
+  DEFAULT_HPA_CPU_TARGET_PERCENT: 80,
+  
+  // This blacklist hides certain kinds from the "Other Resources" page because they are unpersisted, disallowed for most end users, or not supported by openshift but exist in kubernetes
+  AVAILABLE_KINDS_BLACKLIST: [
+      // These are k8s kinds that are not supported in the current release of OpenShift
+      "PodTemplate",
+      "Binding",
+      "Ingress",
+      "ReplicaSet",
+   
+      // These are things like SARs that aren't actually persisted resources
+      "LocalResourceAccessReview",
+      "LocalSubjectAccessReview",
+      "ResourceAccessReview",
+      "SubjectAccessReview",
+      "ReplicationControllerDummy",
+      "DeploymentConfigRollback"    
+  ]
 };

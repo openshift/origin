@@ -1,0 +1,87 @@
+<project-header class="top-header"></project-header>
+  <project-page>
+
+  <!-- Middle section -->
+  <div class="middle-section">
+    <div id="scrollable-content" class="middle-container has-scroll">
+      <div class="middle-header header-light">
+        <div class="container-fluid">
+          <div class="page-header page-header-bleed-right page-header-bleed-left">
+            <h1>Other Resources</h1>
+          </div>
+          <alerts alerts="alerts"></alerts>
+          <div class="data-toolbar">
+            <ui-select ng-model="kindSelector.selected" theme="bootstrap" search-enabled="true" ng-disabled="kindSelector.disabled" title="Choose a resource" style="width: 250px;">
+              <ui-select-match placeholder="Choose a resource to list...">{{$select.selected.kind | humanizeKind : true}}</ui-select-match>
+              <ui-select-choices repeat="kind in kinds | filter : {kind: $select.search} : matchKind | orderBy : 'kind'">
+                <div ng-bind-html="(kind.kind | humanizeKind : true) | highlight: $select.search"></div>
+              </ui-select-choices>
+            </ui-select>
+            <div class="vertical-divider"></div>
+            <div class="data-toolbar-filter">            
+              <project-filter></project-filter>
+            </div>
+          </div>
+        </div>
+      </div><!-- /middle-header-->
+      <div class="middle-content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-12 gutter-top">
+              <table class="table table-bordered table-mobile">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Created</th>
+                    <th>Labels</th>
+                    <th><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody ng-if="(resources | hashSize) == 0">
+                  <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
+                </tbody>
+                <tbody ng-repeat="resource in resources | orderObjectsByDate : true">
+                  <tr>
+                    <td data-title="Name">{{resource.metadata.name}}</td>
+                    <td data-title="Created"><relative-timestamp timestamp="resource.metadata.creationTimestamp"></relative-timestamp></td>
+                    <td data-title="Labels">
+                      <em ng-if="(resource.metadata.labels | hashSize) === 0">none</em>
+                      <labels labels="resource.metadata.labels" clickable="true" kind="{{kindSelector.selected.kind | kindToResource : true }}" project-name="{{resource.metadata.namespace}}" limit="3" filter-current-page="true"></labels></td>
+                    <td data-title="Actions" class="text-right">
+                      <span uib-dropdown>
+                        <a uib-dropdown-toggle id="{{resource.metadata.name}}_actions" href="" class="actions-dropdown-kebab">
+                          <i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span>
+                        </a>
+                        <ul class="uib-dropdown-menu dropdown-menu-right" aria-labelledby="{{resource.metadata.name}}_actions">
+                          <li>
+                              <edit-link
+                                resource="resource"
+                                kind="{{kindSelector.selected.kind}}"
+                                alerts="alerts"
+                                success="loadKind">
+                              </edit-link>
+                            </li>
+                            <li>
+                              <delete-link
+                                kind="{{kindSelector.selected.kind}}"
+                                group="{{kindSelector.selected.group}}"
+                                resource-name="{{resource.metadata.name}}"
+                                project-name="{{resource.metadata.namespace}}"
+                                alerts="alerts"
+                                stay-on-current-page="true"
+                                success="loadKind">
+                              </delete-link>
+                            </li>
+                        </ul>
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div><!-- /col-* -->
+          </div>
+        </div>
+      </div><!-- /middle-content -->
+    </div><!-- /middle-container -->
+  </div><!-- /middle-section -->
+  </project-page>

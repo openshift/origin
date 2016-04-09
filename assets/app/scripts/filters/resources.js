@@ -826,6 +826,9 @@ angular.module('openshiftConsole')
       return humanized.toLowerCase();
     };
   })
+  .filter('kindToResource', function (APIService) {
+    return APIService.kindToResource;
+  })  
   .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
       if (!resourceType) {

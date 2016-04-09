@@ -40,7 +40,7 @@ ResourceGroupVersion.prototype.equals = function(resource, group, version) {
 
 
 angular.module('openshiftConsole')
-.factory('APIService', function(API_CFG, APIS_CFG, Logger, $q, $http, Navigate) {
+.factory('APIService', function(API_CFG, APIS_CFG, Constants, Logger, $q, $http, Navigate, $filter) {
   // Set the default api versions the console will use if otherwise unspecified
   var defaultVersion = {
     "":           "v1",
@@ -69,7 +69,7 @@ angular.module('openshiftConsole')
     } else if (r && r.resource) {
       resource = normalizeResource(r.resource);
       group = r.group || '';
-      version = r.version || defaultVersion[group];
+      version = r.version || defaultVersion[group] || _.get(APIS_CFG.groups[group], "preferredVersion.version");
     }
     return new ResourceGroupVersion(resource, group, version);
   };
@@ -151,11 +151,17 @@ angular.module('openshiftConsole')
   };
 
   // port of restmapper.go#kindToResource
-  function kindToResource(kind) {
+  // humanize will add spaces between words in the resource
+  function kindToResource(kind, humanize) {
     if (!kind) {
       return "";
     }
-    var resource = String(kind).toLowerCase();
+    var resource = kind;
+    if (humanize) {
+      var humanizeKind = $filter("humanizeKind");
+      resource = humanizeKind(resource);
+    }
+    resource = String(resource).toLowerCase();
     if (resource === 'endpoints' || resource === 'securitycontextconstraints') {
       // no-op, plural is the singular
     }
@@ -171,7 +177,7 @@ angular.module('openshiftConsole')
 
     return resource;
   }
-
+  
   // apiInfo returns the host/port, prefix, group, and version for the given resource,
   // or undefined if the specified resource/group/version is known not to exist.
   var apiInfo = function(resource) {
@@ -229,6 +235,66 @@ angular.module('openshiftConsole')
     return "The API version "+version+" for kind " + kind + " is not supported by this server";
   };
 
+  // Returns an array of available kinds, including their group
+  var calculateAvailableKinds = function(includeClusterScoped) {
+    var kinds = [];   
+    var rejectedKinds = Constants.AVAILABLE_KINDS_BLACKLIST;
+    
+    // Legacy openshift and k8s kinds
+    _.each(API_CFG, function(api) {
+      _.each(api.resources.v1, function(resource) {
+        if (resource.namespaced || includeClusterScoped) {
+          // Exclude subresources and any rejected kinds
+          if (resource.name.indexOf("/") >= 0 || _.contains(rejectedKinds, resource.kind)) {
+            return;
+          }
+
+          kinds.push({
+            kind: resource.kind
+          });
+        }
+      });      
+    });
+   
+   // Kinds under api groups
+    _.each(APIS_CFG.groups, function(group) {
+      // Use the console's default version first, and the server's preferred version second
+      var preferredVersion = defaultVersion[group.name] || group.preferredVersion;
+      _.each(group.versions[preferredVersion].resources, function(resource) {
+        // Exclude subresources and any rejected kinds
+        if (resource.name.indexOf("/") >= 0 || _.contains(rejectedKinds, resource.kind)) {
+          return;
+        }
+
+        // Exclude duplicate kinds we know about that map to the same storage as another group/kind
+        // This is unusual, so we are special casing these
+        if (group.name === "autoscaling" && resource.kind === "HorizontalPodAutoscaler" ||
+            group.name === "batch" && resource.kind === "Job"
+        ) {
+          return;
+        }
+               
+        if (resource.namespaced || includeClusterScoped) {
+          kinds.push({
+            kind: resource.kind,
+            group: group.name
+          });
+        }
+      });
+    });
+
+    return _.uniq(kinds, false, function(value) {
+      return value.group + "/" + value.kind;
+    });
+  };
+  
+  var namespacedKinds = calculateAvailableKinds(false);
+  var allKinds = calculateAvailableKinds(true);
+  
+  var availableKinds = function(includeClusterScoped) {
+    return includeClusterScoped ? allKinds : namespacedKinds;
+  };
+
   return {
     toResourceGroupVersion: toResourceGroupVersion,
 
@@ -243,6 +309,7 @@ angular.module('openshiftConsole')
     apiInfo: apiInfo,
 
     invalidObjectKindOrVersion: invalidObjectKindOrVersion,
-    unsupportedObjectKindOrVersion: unsupportedObjectKindOrVersion
+    unsupportedObjectKindOrVersion: unsupportedObjectKindOrVersion,
+    availableKinds: availableKinds
   };
 });

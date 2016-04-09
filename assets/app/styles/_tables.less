@@ -61,24 +61,12 @@
   }
 }
 
-.table-toolbar {
-  .filter-controls input {
-    width: 100%;
-  }
+.data-toolbar, .table-toolbar {
   .vertical-divider {
     // Controls are stacked at mobile, so hide the divider.
     display: none;
   }
   @media (min-width: @screen-sm-min) {
-    // Only needed at larger sizes since form-group has a bottom margin at mobile.
-    .gutter-bottom;
-    .filter-controls, .sort-controls {
-      // Inline controls at wider widths.
-      display: inline-block;
-    }
-    .filter-controls input {
-      width: 300px;
-    }
     .vertical-divider {
       // @gray-light is too dark, and @gray-lighter is too light.
       // Choose another gray from the Patternfly palette.
@@ -89,6 +77,23 @@
       margin: 0 7px;
       vertical-align: middle;
       width: 1px;
+    }
+  }
+}
+
+.table-toolbar {
+  .filter-controls input {
+    width: 100%;
+  }
+  @media (min-width: @screen-sm-min) {
+    // Only needed at larger sizes since form-group has a bottom margin at mobile.
+    .gutter-bottom;
+    .filter-controls, .sort-controls {
+      // Inline controls at wider widths.
+      display: inline-block;
+    }
+    .filter-controls input {
+      width: 300px;
     }
   }
 }

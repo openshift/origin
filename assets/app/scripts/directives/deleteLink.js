@@ -30,7 +30,9 @@ angular.module("openshiftConsole")
         // Stay on the current page without redirecting to the resource list.
         stayOnCurrentPage: "=?",
         // Array of associated HPAs for this resource. If set, prompts the user to delete the HPA resources as well.
-        hpaList: "=?"
+        hpaList: "=?",
+        // Optional callback when the delete succeeds
+        success: "=?"
       },
       templateUrl: function(elem, attr) {
         if (angular.isDefined(attr.buttonOnly)) {
@@ -137,6 +139,10 @@ angular.module("openshiftConsole")
                   message: _.capitalize(formattedResource) + " was marked for deletion."
                 }
               });
+
+              if (scope.success) {
+                scope.success();
+              }
 
               // Delete any associated HPAs if requested.
               var promises = [];

@@ -25,7 +25,8 @@ angular
     'openshiftConsoleTemplates',
     'ui.ace',
     'extension-registry',
-    'as.sortable'
+    'as.sortable',
+    'ui.select'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
                          // or it can't be referenced during module config
@@ -74,6 +75,7 @@ angular
       .subPath("Routes", "routes", builder.join(templatePath, 'browse/routes.html'))
       .subPath("Services", "services", builder.join(templatePath, 'services.html'))
       .subPath("Storage", "storage", builder.join(templatePath, 'storage.html'))
+      .subPath("Other Resources", "other", builder.join(templatePath, 'other-resources.html'))
       .build();
     tab.icon = "sitemap";
     tabs.push(tab);
@@ -207,6 +209,10 @@ angular
         templateUrl: 'views/storage.html',
         controller: 'StorageController'
       })
+      .when('/project/:project/browse/other', {
+        templateUrl: 'views/other-resources.html',
+        controller: 'OtherResourcesController'
+      })      
       .when('/project/:project/browse/persistentvolumeclaims/:pvc', {
         templateUrl: 'views/browse/persistent-volume-claim.html',
         controller: 'PersistentVolumeClaimController'
