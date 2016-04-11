@@ -51,7 +51,7 @@ to generate the API structure for a template to which you can add parameters and
 )
 
 func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
-	exporter := &defaultExporter{}
+	exporter := NewExporter()
 	var filenames []string
 	cmd := &cobra.Command{
 		Use:     "export RESOURCE/NAME ... [options]",
