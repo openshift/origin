@@ -184,3 +184,169 @@ func TestSort(t *testing.T) {
 		t.Errorf("Unexpected sort order")
 	}
 }
+
+func TestCanTransitionPhase(t *testing.T) {
+	tests := []struct {
+		name          string
+		current, next deployapi.DeploymentStatus
+		expected      bool
+	}{
+		{
+			name:     "New->New",
+			current:  deployapi.DeploymentStatusNew,
+			next:     deployapi.DeploymentStatusNew,
+			expected: false,
+		},
+		{
+			name:     "New->Pending",
+			current:  deployapi.DeploymentStatusNew,
+			next:     deployapi.DeploymentStatusPending,
+			expected: true,
+		},
+		{
+			name:     "New->Running",
+			current:  deployapi.DeploymentStatusNew,
+			next:     deployapi.DeploymentStatusRunning,
+			expected: true,
+		},
+		{
+			name:     "New->Complete",
+			current:  deployapi.DeploymentStatusNew,
+			next:     deployapi.DeploymentStatusComplete,
+			expected: true,
+		},
+		{
+			name:     "New->Failed",
+			current:  deployapi.DeploymentStatusNew,
+			next:     deployapi.DeploymentStatusFailed,
+			expected: true,
+		},
+		{
+			name:     "Pending->New",
+			current:  deployapi.DeploymentStatusPending,
+			next:     deployapi.DeploymentStatusNew,
+			expected: false,
+		},
+		{
+			name:     "Pending->Pending",
+			current:  deployapi.DeploymentStatusPending,
+			next:     deployapi.DeploymentStatusPending,
+			expected: false,
+		},
+		{
+			name:     "Pending->Running",
+			current:  deployapi.DeploymentStatusPending,
+			next:     deployapi.DeploymentStatusRunning,
+			expected: true,
+		},
+		{
+			name:     "Pending->Failed",
+			current:  deployapi.DeploymentStatusPending,
+			next:     deployapi.DeploymentStatusFailed,
+			expected: true,
+		},
+		{
+			name:     "Pending->Complete",
+			current:  deployapi.DeploymentStatusPending,
+			next:     deployapi.DeploymentStatusComplete,
+			expected: true,
+		},
+		{
+			name:     "Running->New",
+			current:  deployapi.DeploymentStatusRunning,
+			next:     deployapi.DeploymentStatusNew,
+			expected: false,
+		},
+		{
+			name:     "Running->Pending",
+			current:  deployapi.DeploymentStatusRunning,
+			next:     deployapi.DeploymentStatusPending,
+			expected: false,
+		},
+		{
+			name:     "Running->Running",
+			current:  deployapi.DeploymentStatusRunning,
+			next:     deployapi.DeploymentStatusRunning,
+			expected: false,
+		},
+		{
+			name:     "Running->Failed",
+			current:  deployapi.DeploymentStatusRunning,
+			next:     deployapi.DeploymentStatusFailed,
+			expected: true,
+		},
+		{
+			name:     "Running->Complete",
+			current:  deployapi.DeploymentStatusRunning,
+			next:     deployapi.DeploymentStatusComplete,
+			expected: true,
+		},
+		{
+			name:     "Complete->New",
+			current:  deployapi.DeploymentStatusComplete,
+			next:     deployapi.DeploymentStatusNew,
+			expected: false,
+		},
+		{
+			name:     "Complete->Pending",
+			current:  deployapi.DeploymentStatusComplete,
+			next:     deployapi.DeploymentStatusPending,
+			expected: false,
+		},
+		{
+			name:     "Complete->Running",
+			current:  deployapi.DeploymentStatusComplete,
+			next:     deployapi.DeploymentStatusRunning,
+			expected: false,
+		},
+		{
+			name:     "Complete->Failed",
+			current:  deployapi.DeploymentStatusComplete,
+			next:     deployapi.DeploymentStatusFailed,
+			expected: false,
+		},
+		{
+			name:     "Complete->Complete",
+			current:  deployapi.DeploymentStatusComplete,
+			next:     deployapi.DeploymentStatusComplete,
+			expected: false,
+		},
+		{
+			name:     "Failed->New",
+			current:  deployapi.DeploymentStatusFailed,
+			next:     deployapi.DeploymentStatusNew,
+			expected: false,
+		},
+		{
+			name:     "Failed->Pending",
+			current:  deployapi.DeploymentStatusFailed,
+			next:     deployapi.DeploymentStatusPending,
+			expected: false,
+		},
+		{
+			name:     "Failed->Running",
+			current:  deployapi.DeploymentStatusFailed,
+			next:     deployapi.DeploymentStatusRunning,
+			expected: false,
+		},
+		{
+			name:     "Failed->Complete",
+			current:  deployapi.DeploymentStatusFailed,
+			next:     deployapi.DeploymentStatusComplete,
+			expected: false,
+		},
+		{
+			name:     "Failed->Failed",
+			current:  deployapi.DeploymentStatusFailed,
+			next:     deployapi.DeploymentStatusFailed,
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		got := CanTransitionPhase(test.current, test.next)
+		if got != test.expected {
+			t.Errorf("%s: expected %t, got %t", test.name, test.expected, got)
+		}
+	}
+}

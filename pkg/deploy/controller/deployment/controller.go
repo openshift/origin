@@ -201,7 +201,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 	}
 
-	if currentStatus != nextStatus || deploymentScaled {
+	if deployutil.CanTransitionPhase(currentStatus, nextStatus) || deploymentScaled {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
 			if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
