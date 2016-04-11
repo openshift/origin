@@ -458,13 +458,13 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 		if trigger.GitHubWebHook == nil {
 			allErrs = append(allErrs, field.Required(fldPath.Child("github"), ""))
 		} else {
-			allErrs = append(allErrs, validateWebHook(trigger.GitHubWebHook, fldPath.Child("github"))...)
+			allErrs = append(allErrs, validateWebHook(trigger.GitHubWebHook, fldPath.Child("github"), false)...)
 		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
 			allErrs = append(allErrs, field.Required(fldPath.Child("generic"), ""))
 		} else {
-			allErrs = append(allErrs, validateWebHook(trigger.GenericWebHook, fldPath.Child("generic"))...)
+			allErrs = append(allErrs, validateWebHook(trigger.GenericWebHook, fldPath.Child("generic"), true)...)
 		}
 	case buildapi.ImageChangeBuildTriggerType:
 		if trigger.ImageChange == nil {
@@ -500,10 +500,13 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 	return allErrs
 }
 
-func validateWebHook(webHook *buildapi.WebHookTrigger, fldPath *field.Path) field.ErrorList {
+func validateWebHook(webHook *buildapi.WebHookTrigger, fldPath *field.Path, isGeneric bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(webHook.Secret) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("secret"), ""))
+	}
+	if !isGeneric && webHook.AllowEnv {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("allowEnv"), webHook, "git webhooks cannot allow env vars"))
 	}
 	return allErrs
 }

@@ -68,15 +68,15 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
 	p.Path = path
-	return nil, true, nil
+	return nil, []kapi.EnvVar{}, true, nil
 }
 
 type errPlugin struct{}
 
-func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
-	return nil, true, errors.New("Plugin error!")
+func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
+	return nil, []kapi.EnvVar{}, true, errors.New("Plugin error!")
 }
 
 func TestParseUrlError(t *testing.T) {

@@ -136,28 +136,40 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatAnnotations(out, m, "")
 }
 
-// webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[string]string {
-	result := map[string]string{}
-	for _, trigger := range c.Spec.Triggers {
+type DescribeWebhook struct {
+	URL      string
+	AllowEnv *bool
+}
+
+// webhookDescribe assembles a map with of webhook type as the key and a DescribeWebhook struct  as the value
+func webhookDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, cli client.BuildConfigsNamespacer) map[string]DescribeWebhook {
+	result := map[string]DescribeWebhook{}
+	for _, trigger := range triggers {
 		whTrigger := ""
+		var allowEnv *bool
 		switch trigger.Type {
 		case buildapi.GitHubWebHookBuildTriggerType:
 			whTrigger = trigger.GitHubWebHook.Secret
 		case buildapi.GenericWebHookBuildTriggerType:
 			whTrigger = trigger.GenericWebHook.Secret
+			allowEnv = &trigger.GenericWebHook.AllowEnv
 		}
 		if len(whTrigger) == 0 {
 			continue
 		}
-		out := ""
-		url, err := cli.BuildConfigs(c.Namespace).WebHookURL(c.Name, &trigger)
+		urlStr := ""
+		url, err := cli.BuildConfigs(namespace).WebHookURL(name, &trigger)
 		if err != nil {
-			out = fmt.Sprintf("<error: %s>", err.Error())
+			urlStr = fmt.Sprintf("<error: %s>", err.Error())
 		} else {
-			out = url.String()
+			urlStr = url.String()
 		}
-		result[string(trigger.Type)] = out
+		desc := DescribeWebhook{
+			URL:      urlStr,
+			AllowEnv: allowEnv,
+		}
+
+		result[string(trigger.Type)] = desc
 	}
 	return result
 }

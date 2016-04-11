@@ -9,6 +9,8 @@ import (
 	"mime"
 	"net/http"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
@@ -36,7 +38,7 @@ type pushEvent struct {
 }
 
 // Extract services webhooks from github.com
-func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
+func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, envvars []kapi.EnvVar, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
 	if !ok {
 		err = webhook.ErrHookNotEnabled

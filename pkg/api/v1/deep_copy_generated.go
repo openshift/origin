@@ -1410,6 +1410,7 @@ func deepCopy_v1_SourceRevision(in apiv1.SourceRevision, out *apiv1.SourceRevisi
 
 func deepCopy_v1_WebHookTrigger(in apiv1.WebHookTrigger, out *apiv1.WebHookTrigger, c *conversion.Cloner) error {
 	out.Secret = in.Secret
+	out.AllowEnv = in.AllowEnv
 	return nil
 }
 

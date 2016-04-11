@@ -263,7 +263,7 @@ func TestExtractForAPingEvent(t *testing.T) {
 	context := setup(t, "pingevent.json", "ping")
 
 	//execute
-	_, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	_, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -279,7 +279,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	context := setup(t, "pushevent.json", "push")
 
 	//execute
-	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	revision, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -303,7 +303,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	context.buildCfg.Spec.Source.Git.Ref = "my_other_branch"
 
 	//execute
-	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	revision, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -327,7 +327,7 @@ func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	context.buildCfg.Spec.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
-	_, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	_, _, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 	if proceed {
 		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Spec.Source.Git.Ref)
 	}

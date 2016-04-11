@@ -360,15 +360,10 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig
 func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
-	describeBuildTriggers(bc.Spec.Triggers, out)
-	webhooks := webhookURL(bc, d.Interface)
-	for whType, whURL := range webhooks {
-		t := strings.Title(whType)
-		formatString(out, "Webhook "+t, whURL)
-	}
+	describeBuildTriggers(bc.Spec.Triggers, bc.Name, bc.Namespace, out, d)
 }
 
-func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, w *tabwriter.Writer) {
+func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespace string, w *tabwriter.Writer, d *BuildConfigDescriber) {
 	if len(triggers) == 0 {
 		formatString(w, "Triggered by", "<none>")
 		return
@@ -397,6 +392,15 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, w *tabwriter.
 
 	desc := strings.Join(labels, ", ")
 	formatString(w, "Triggered by", desc)
+
+	webhooks := webhookDescribe(triggers, name, namespace, d.Interface)
+	for whType, whDesc := range webhooks {
+		t := strings.Title(whType)
+		fmt.Fprintf(w, fmt.Sprintf("%s:\n\tURL:\t%s\n", "Webhook "+t, whDesc.URL))
+		if whType == string(buildapi.GenericWebHookBuildTriggerType) && whDesc.AllowEnv != nil {
+			fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *whDesc.AllowEnv))
+		}
+	}
 }
 
 // Describe returns the description of a buildConfig

@@ -49,7 +49,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kap
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
-	revision, proceed, err := plugin.Extract(config, secret, "", req)
+	revision, envvars, proceed, err := plugin.Extract(config, secret, "", req)
 	switch err {
 	case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
@@ -65,6 +65,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kap
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 		Revision:   revision,
+		Env:        envvars,
 	}
 	if _, err := c.instantiator.Instantiate(config.Namespace, request); err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
