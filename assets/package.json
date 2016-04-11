@@ -46,7 +46,6 @@
     "load-grunt-tasks": "0.4.0",
     "lodash": "3.2.0",
     "phantomjs": "1.9.15",
-    "pretty-bytes": "1.0.4",
     "protractor": "1.7.0",
     "protractor-screenshot-reporter": "0.0.5",
     "time-grunt": "0.3.2"
