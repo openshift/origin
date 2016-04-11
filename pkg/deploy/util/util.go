@@ -62,7 +62,7 @@ func LabelForDeployment(deployment *api.ReplicationController) string {
 
 // LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
 func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.Status.LatestVersion)
+	return fmt.Sprintf("%s/%s", config.Namespace, config.Name)
 }
 
 // DeploymentNameForConfigVersion returns the name of the version-th deployment
@@ -277,6 +277,33 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
 	current := DeploymentStatusFor(deployment)
 	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
+}
+
+// CanTransitionPhase returns whether it is allowed to go from the current to the next phase.
+func CanTransitionPhase(current, next deployapi.DeploymentStatus) bool {
+	switch current {
+	case deployapi.DeploymentStatusNew:
+		switch next {
+		case deployapi.DeploymentStatusPending,
+			deployapi.DeploymentStatusRunning,
+			deployapi.DeploymentStatusFailed,
+			deployapi.DeploymentStatusComplete:
+			return true
+		}
+	case deployapi.DeploymentStatusPending:
+		switch next {
+		case deployapi.DeploymentStatusRunning,
+			deployapi.DeploymentStatusFailed,
+			deployapi.DeploymentStatusComplete:
+			return true
+		}
+	case deployapi.DeploymentStatusRunning:
+		switch next {
+		case deployapi.DeploymentStatusFailed, deployapi.DeploymentStatusComplete:
+			return true
+		}
+	}
+	return false
 }
 
 // annotationFor returns the annotation with key for obj.

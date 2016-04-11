@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 10f6f7c66c30bb46f360e86ff04934358e0d096d
+%global commit 41e4049fbdcad9db0cbc6042e1027ad4600c5866
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.12-36-g10f6f7c -X github.com/openshift/origin/pkg/version.commitFromGit 10f6f7c -X k8s.io/kubernetes/pkg/version.gitCommit 10f6f7c -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.13-10-g41e4049 -X github.com/openshift/origin/pkg/version.commitFromGit 41e4049 -X k8s.io/kubernetes/pkg/version.gitCommit 41e4049 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.13
+Version:        3.2.0.14
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,14 @@ fi
 
 
 %changelog
+* Mon Apr 11 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.14
+- deployer controller: ensure phase direction (mkargaki@redhat.com)
+- Getting docker logs always to debug issue 8399 (maszulik@redhat.com)
+- deployment controller: cancel deployers on new cancelled deployments
+  (mkargaki@redhat.com)
+- Bug 1324437: show cancel as subordinate to non-terminating phases
+  (mkargaki@redhat.com)
+
 * Fri Apr 08 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.13
 - Travis can't install go vet anymore (ccoleman@redhat.com)
 - Add debugs for CPU Quota flake (mrunalp@gmail.com)
