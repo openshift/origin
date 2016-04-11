@@ -66,10 +66,19 @@ func (oc *OsdnController) isAdminNamespace(nsName string) bool {
 }
 
 func (oc *OsdnController) assignVNID(namespaceName string) error {
-	_, err := oc.Registry.GetNetNamespace(namespaceName)
-	if err == nil {
+	// Nothing to do if the netid is in the VNIDMap
+	if _, ok := oc.VNIDMap[namespaceName]; ok {
 		return nil
 	}
+
+	// If NetNamespace is present, update VNIDMap
+	netns, err := oc.Registry.GetNetNamespace(namespaceName)
+	if err == nil {
+		oc.VNIDMap[namespaceName] = netns.NetID
+		return nil
+	}
+
+	// NetNamespace not found, so allocate new NetID
 	var netid uint
 	if oc.isAdminNamespace(namespaceName) {
 		netid = AdminVNID
@@ -80,6 +89,8 @@ func (oc *OsdnController) assignVNID(namespaceName string) error {
 			return err
 		}
 	}
+
+	// Create NetNamespace Object and update VNIDMap
 	err = oc.Registry.WriteNetNamespace(namespaceName, netid)
 	if err != nil {
 		e := oc.netIDManager.ReleaseNetID(netid)
