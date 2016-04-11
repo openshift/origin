@@ -8,7 +8,7 @@ net_container=$2
 tenant_id=$3
 ingress_bw=$4
 egress_bw=$5
-mtu=$6
+macvlan=$6
 
 lockwrap() {
     (
@@ -101,9 +101,9 @@ del_ovs_flows() {
     ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_src=${ipaddr}"
 
     qos=$(ovs-vsctl get port ${veth_host} qos)
-    if [ -n "$qos" ]; then
+    if [ "$qos" != "[]" ]; then
         ovs-vsctl clear port ${veth_host} qos
-        ovs-vsctl destroy qos ${qos}
+        ovs-vsctl --if-exists destroy qos ${qos}
     fi
 }
 
@@ -116,6 +116,16 @@ ensure_subnet_route() {
     add_subnet_route
 }
 
+add_macvlan() {
+    default_dev=$(ip route show | sed -ne 's/^default .* dev \([^ ]*\) .*/\1/p')
+    if [ -z "$default_dev" ]; then
+	echo "Could not find default network interface"
+	exit 1
+    fi
+    ip link add link $default_dev name macvlan0 type macvlan mode private
+    ip link set macvlan0 netns $pid
+}
+
 run() {
     get_ipaddr_pid_veth
     source /run/openshift-sdn/config.env
@@ -125,6 +135,9 @@ run() {
 	    add_ovs_port
 	    add_ovs_flows
 	    add_subnet_route
+	    if [ "$macvlan" = true ]; then
+		add_macvlan
+	    fi
 	    ;;
 
 	update)
@@ -135,8 +148,9 @@ run() {
 	    ;;
 
 	teardown)
-	    del_ovs_port
 	    del_ovs_flows
+	    # Delete ovs port in the end, del_ovs_flows needs the port to delete qos record
+	    del_ovs_port
 	    ;;
 
 	*)
