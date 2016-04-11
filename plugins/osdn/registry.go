@@ -3,21 +3,17 @@ package osdn
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -29,8 +25,8 @@ import (
 )
 
 type Registry struct {
-	oClient          osclient.Interface
-	kClient          kclient.Interface
+	oClient          *osclient.Client
+	kClient          *kclient.Client
 	podsByIP         map[string]*kapi.Pod
 	serviceNetwork   *net.IPNet
 	clusterNetwork   *net.IPNet
@@ -43,9 +39,8 @@ type Registry struct {
 type EventType string
 
 const (
-	Added    EventType = "ADDED"
-	Deleted  EventType = "DELETED"
-	Modified EventType = "MODIFIED"
+	Added   EventType = "ADDED"
+	Deleted EventType = "DELETED"
 )
 
 type HostSubnetEvent struct {
@@ -81,12 +76,12 @@ func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	}
 }
 
-func (registry *Registry) GetSubnets() ([]osapi.HostSubnet, string, error) {
+func (registry *Registry) GetSubnets() ([]osapi.HostSubnet, error) {
 	hostSubnetList, err := registry.oClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return hostSubnetList.Items, hostSubnetList.ListMeta.ResourceVersion, nil
+	return hostSubnetList.Items, nil
 }
 
 func (registry *Registry) GetSubnet(nodeName string) (*osapi.HostSubnet, error) {
@@ -109,12 +104,11 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) erro
 	return err
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("HostSubnet", ready, start)
+func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
+	eventQueue := registry.runEventQueue("HostSubnets")
 
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
@@ -129,26 +123,23 @@ func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent, ready c
 	}
 }
 
-func (registry *Registry) GetPods() ([]kapi.Pod, string, error) {
+func (registry *Registry) PopulatePodsByIP() error {
 	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return err
 	}
 
 	for _, pod := range podList.Items {
-		if pod.Status.PodIP != "" {
-			registry.trackPod(&pod)
-		}
+		registry.trackPod(&pod)
 	}
-	return podList.Items, podList.ListMeta.ResourceVersion, nil
+	return nil
 }
 
-func (registry *Registry) WatchPods(ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("Pod", ready, start)
+func (registry *Registry) WatchPods() error {
+	eventQueue := registry.runEventQueue("Pods")
 
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
@@ -203,41 +194,12 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 	return nil, nil
 }
 
-func (registry *Registry) GetNodes() ([]kapi.Node, string, error) {
-	nodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
-	if err != nil {
-		return nil, "", err
-	}
-
-	return nodes.Items, nodes.ListMeta.ResourceVersion, nil
-}
-
-func (registry *Registry) getNodeAddressMap() (map[types.UID]string, error) {
+func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
+	eventQueue := registry.runEventQueue("Nodes")
 	nodeAddressMap := map[types.UID]string{}
 
-	nodes, err := registry.kClient.Nodes().List(kapi.ListOptions{})
-	if err != nil {
-		return nodeAddressMap, err
-	}
-	for _, node := range nodes.Items {
-		if len(node.Status.Addresses) > 0 {
-			nodeAddressMap[node.ObjectMeta.UID] = node.Status.Addresses[0].Address
-		}
-	}
-	return nodeAddressMap, nil
-}
-
-func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("Node", ready, start)
-
-	nodeAddressMap, err := registry.getNodeAddressMap()
-	if err != nil {
-		return err
-	}
-
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
@@ -254,16 +216,13 @@ func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent, ready chan<- bo
 		}
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
+			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
+			if ok && (oldNodeIP == nodeIP) {
+				continue
+			}
 			receiver <- &NodeEvent{Type: Added, Node: node}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-		case watch.Modified:
-			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
-			if ok && oldNodeIP != nodeIP {
-				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &NodeEvent{Type: Added, Node: node}
-				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-			}
 		case watch.Deleted:
 			receiver <- &NodeEvent{Type: Deleted, Node: node}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
@@ -342,56 +301,30 @@ func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
 	return registry.clusterNetwork, nil
 }
 
-func (registry *Registry) GetHostSubnetLength() (int, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return -1, err
-	}
-	return registry.hostSubnetLength, nil
-}
+func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
+	eventQueue := registry.runEventQueue("Namespaces")
 
-func (registry *Registry) GetServicesNetwork() (*net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return nil, err
-	}
-	return registry.serviceNetwork, nil
-}
-
-func (registry *Registry) GetNamespaces() ([]kapi.Namespace, string, error) {
-	namespaceList, err := registry.kClient.Namespaces().List(kapi.ListOptions{})
-	if err != nil {
-		return nil, "", err
-	}
-	return namespaceList.Items, namespaceList.ListMeta.ResourceVersion, nil
-}
-
-func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("Namespace", ready, start)
-
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
 		ns := obj.(*kapi.Namespace)
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &NamespaceEvent{Type: Added, Namespace: ns}
 		case watch.Deleted:
 			receiver <- &NamespaceEvent{Type: Deleted, Namespace: ns}
-		case watch.Modified:
-			// Ignore, we don't need to update SDN in case of namespace updates
 		}
 	}
 }
 
-func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("NetNamespace", ready, start)
+func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent) error {
+	eventQueue := registry.runEventQueue("NetNamespaces")
 
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
@@ -406,12 +339,12 @@ func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent,
 	}
 }
 
-func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, string, error) {
+func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
 	netNamespaceList, err := registry.oClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return netNamespaceList.Items, netNamespaceList.ListMeta.ResourceVersion, nil
+	return netNamespaceList.Items, nil
 }
 
 func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, error) {
@@ -434,18 +367,17 @@ func (registry *Registry) DeleteNetNamespace(name string) error {
 }
 
 func (registry *Registry) GetServicesForNamespace(namespace string) ([]kapi.Service, error) {
-	services, _, err := registry.getServices(namespace)
-	return services, err
+	return registry.getServices(namespace)
 }
 
-func (registry *Registry) GetServices() ([]kapi.Service, string, error) {
+func (registry *Registry) GetServices() ([]kapi.Service, error) {
 	return registry.getServices(kapi.NamespaceAll)
 }
 
-func (registry *Registry) getServices(namespace string) ([]kapi.Service, string, error) {
+func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) {
 	kServList, err := registry.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	servList := make([]kapi.Service, 0, len(kServList.Items))
@@ -455,15 +387,14 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, string,
 		}
 		servList = append(servList, service)
 	}
-	return servList, kServList.ListMeta.ResourceVersion, nil
+	return servList, nil
 }
 
-func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := registry.createAndRunEventQueue("Service", ready, start)
+func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
+	eventQueue := registry.runEventQueue("Services")
 
-	checkCondition := true
 	for {
-		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		eventType, obj, err := eventQueue.Pop()
 		if err != nil {
 			return err
 		}
@@ -475,154 +406,46 @@ func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent, ready cha
 		}
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &ServiceEvent{Type: Added, Service: serv}
 		case watch.Deleted:
 			receiver <- &ServiceEvent{Type: Deleted, Service: serv}
-		case watch.Modified:
-			receiver <- &ServiceEvent{Type: Modified, Service: serv}
 		}
 	}
 }
 
 // Run event queue for the given resource
-func (registry *Registry) runEventQueue(resourceName string) (*oscache.EventQueue, *cache.Reflector) {
-	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	lw := &cache.ListWatch{}
+func (registry *Registry) runEventQueue(resourceName string) *oscache.EventQueue {
+	var client cache.Getter
 	var expectedType interface{}
+
 	switch strings.ToLower(resourceName) {
-	case "hostsubnet":
+	case "hostsubnets":
 		expectedType = &osapi.HostSubnet{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.oClient.HostSubnets().List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.oClient.HostSubnets().Watch(options)
-		}
-	case "node":
-		expectedType = &kapi.Node{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.kClient.Nodes().List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.kClient.Nodes().Watch(options)
-		}
-	case "namespace":
-		expectedType = &kapi.Namespace{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.kClient.Namespaces().List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.kClient.Namespaces().Watch(options)
-		}
-	case "netnamespace":
+		client = registry.oClient
+	case "netnamespaces":
 		expectedType = &osapi.NetNamespace{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.oClient.NetNamespaces().List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.oClient.NetNamespaces().Watch(options)
-		}
-	case "service":
+		client = registry.oClient
+	case "nodes":
+		expectedType = &kapi.Node{}
+		client = registry.kClient
+	case "namespaces":
+		expectedType = &kapi.Namespace{}
+		client = registry.kClient
+	case "services":
 		expectedType = &kapi.Service{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.kClient.Services(kapi.NamespaceAll).List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.kClient.Services(kapi.NamespaceAll).Watch(options)
-		}
-	case "pod":
+		client = registry.kClient
+	case "pods":
 		expectedType = &kapi.Pod{}
-		lw.ListFunc = func(options kapi.ListOptions) (runtime.Object, error) {
-			return registry.kClient.Pods(kapi.NamespaceAll).List(options)
-		}
-		lw.WatchFunc = func(options kapi.ListOptions) (watch.Interface, error) {
-			return registry.kClient.Pods(kapi.NamespaceAll).Watch(options)
-		}
+		client = registry.kClient
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
-	reflector := cache.NewReflector(lw, expectedType, eventQueue, 4*time.Minute)
-	reflector.Run()
-	return eventQueue, reflector
-}
 
-// Ensures given event queue is ready for watching new changes
-// and unblock other end of the ready channel
-func sendWatchReadiness(reflector *cache.Reflector, ready chan<- bool) {
-	// timeout: 1min
-	retries := 120
-	retryInterval := 500 * time.Millisecond
-	// Try every retryInterval and bail-out if it exceeds max retries
-	for i := 0; i < retries; i++ {
-		// Reflector does list and watch of the resource
-		// when listing of the resource is done, resourceVersion will be populated
-		// and the event queue will be ready to watch any new changes
-		version := reflector.LastSyncResourceVersion()
-		if len(version) > 0 {
-			ready <- true
-			return
-		}
-		time.Sleep(retryInterval)
-	}
-	log.Fatalf("SDN event queue is not ready for watching new changes(timeout: 1min)")
-}
-
-// Get resource version from start channel
-// Watch interface for the resource will process any item after this version
-func getStartVersion(start <-chan string, resourceName string) uint64 {
-	var version uint64
-	var err error
-
-	timeout := time.Minute
-	select {
-	case rv := <-start:
-		version, err = strconv.ParseUint(rv, 10, 64)
-		if err != nil {
-			log.Fatalf("Invalid start version %s for %s, error: %v", rv, resourceName, err)
-		}
-	case <-time.After(timeout):
-		log.Fatalf("Error fetching resource version for %s (timeout: %v)", resourceName, timeout)
-	}
-	return version
-}
-
-// createAndRunEventQueue will create and run event queue and also returns start version for watching any new changes
-func (registry *Registry) createAndRunEventQueue(resourceName string, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
-	eventQueue, reflector := registry.runEventQueue(resourceName)
-	sendWatchReadiness(reflector, ready)
-	startVersion := getStartVersion(start, resourceName)
-	return eventQueue, startVersion
-}
-
-// getEvent returns next item in the event queue which satisfies item version greater than given start version
-// checkCondition is an optimization that ignores version check when it is not needed
-func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkCondition *bool) (watch.EventType, interface{}, error) {
-	if *checkCondition {
-		// Ignore all events with version <= given start version
-		for {
-			eventType, obj, err := eventQueue.Pop()
-			if err != nil {
-				return watch.Error, nil, err
-			}
-			accessor, err := meta.Accessor(obj)
-			if err != nil {
-				return watch.Error, nil, err
-			}
-			currentVersion, err := strconv.ParseUint(accessor.GetResourceVersion(), 10, 64)
-			if err != nil {
-				return watch.Error, nil, err
-			}
-			if currentVersion <= startVersion {
-				log.V(5).Infof("Ignoring %s with version %d, start version: %d", accessor.GetName(), currentVersion, startVersion)
-				continue
-			}
-			*checkCondition = false
-			return eventType, obj, nil
-		}
-	} else {
-		return eventQueue.Pop()
-	}
+	lw := cache.NewListWatchFromClient(client, strings.ToLower(resourceName), kapi.NamespaceAll, fields.Everything())
+	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(lw, expectedType, eventQueue, 0).Run()
+	return eventQueue
 }
 
 // FilteringEndpointsConfigHandler implementation

@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
@@ -19,17 +18,29 @@ const (
 	AdminVNID = uint(0)
 )
 
-func (oc *OsdnController) VnidStartMaster() error {
-	nets, _, err := oc.Registry.GetNetNamespaces()
+func populateVNIDMap(oc *OsdnController) error {
+	nets, err := oc.Registry.GetNetNamespaces()
 	if err != nil {
 		return err
 	}
-	inUse := make([]uint, 0)
+
 	for _, net := range nets {
-		if net.NetID != AdminVNID {
-			inUse = append(inUse, net.NetID)
-		}
 		oc.VNIDMap[net.Name] = net.NetID
+	}
+	return nil
+}
+
+func (oc *OsdnController) VnidStartMaster() error {
+	err := populateVNIDMap(oc)
+	if err != nil {
+		return err
+	}
+
+	inUse := make([]uint, 0)
+	for _, netid := range oc.VNIDMap {
+		if netid != AdminVNID {
+			inUse = append(inUse, netid)
+		}
 	}
 	// VNID: 0 reserved for default namespace and can reach any network in the cluster
 	// VNID: 1 to 9 are internally reserved for any special cases in the future
@@ -38,41 +49,10 @@ func (oc *OsdnController) VnidStartMaster() error {
 		return err
 	}
 
-	getNamespaces := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetNamespaces()
-	}
-	result, err := oc.watchAndGetResource("Namespace", watchNamespaces, getNamespaces)
-	if err != nil {
-		return err
-	}
-
 	// 'default' namespace is currently always an admin namespace
 	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
-	// Handle existing namespaces
-	namespaces := result.([]kapi.Namespace)
-	for _, ns := range namespaces {
-		nsName := ns.ObjectMeta.Name
-		// Revoke invalid VNID for admin namespaces
-		if oc.isAdminNamespace(nsName) {
-			netid, ok := oc.VNIDMap[nsName]
-			if ok && (netid != AdminVNID) {
-				err := oc.revokeVNID(nsName)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		_, found := oc.VNIDMap[nsName]
-		// Assign VNID for the namespace if it doesn't exist
-		if !found {
-			err := oc.assignVNID(nsName)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
+	go watchNamespaces(oc)
 	return nil
 }
 
@@ -150,73 +130,44 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	return nil
 }
 
-func watchNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
+func watchNamespaces(oc *OsdnController) {
 	nsevent := make(chan *NamespaceEvent)
-	stop := make(chan bool)
-	go oc.Registry.WatchNamespaces(nsevent, ready, start, stop)
+	go oc.Registry.WatchNamespaces(nsevent)
 	for {
-		select {
-		case ev := <-nsevent:
-			switch ev.Type {
-			case Added:
-				err := oc.assignVNID(ev.Namespace.Name)
-				if err != nil {
-					log.Errorf("Error assigning Net ID: %v", err)
-					continue
-				}
-			case Deleted:
-				err := oc.revokeVNID(ev.Namespace.Name)
-				if err != nil {
-					log.Errorf("Error revoking Net ID: %v", err)
-					continue
-				}
+		ev := <-nsevent
+		switch ev.Type {
+		case Added:
+			err := oc.assignVNID(ev.Namespace.Name)
+			if err != nil {
+				log.Errorf("Error assigning Net ID: %v", err)
+				continue
 			}
-		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of nodes.")
-			stop <- true
-			return
+		case Deleted:
+			err := oc.revokeVNID(ev.Namespace.Name)
+			if err != nil {
+				log.Errorf("Error revoking Net ID: %v", err)
+				continue
+			}
 		}
 	}
 }
 
 func (oc *OsdnController) VnidStartNode() error {
-	getNetNamespaces := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetNetNamespaces()
-	}
-	result, err := oc.watchAndGetResource("NetNamespace", watchNetNamespaces, getNetNamespaces)
-	if err != nil {
-		return err
-	}
-	nslist := result.([]osapi.NetNamespace)
-	for _, ns := range nslist {
-		oc.VNIDMap[ns.Name] = ns.NetID
-	}
-
-	getServices := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetServices()
-	}
-	result, err = oc.watchAndGetResource("Service", watchServices, getServices)
+	// Populate vnid map synchronously so that existing services can fetch vnid
+	err := populateVNIDMap(oc)
 	if err != nil {
 		return err
 	}
 
-	services := result.([]kapi.Service)
-	for _, svc := range services {
-		netid, found := oc.VNIDMap[svc.Namespace]
-		if !found {
-			return fmt.Errorf("Error fetching Net ID for namespace: %s", svc.Namespace)
-		}
-		oc.services[string(svc.UID)] = &svc
-		oc.pluginHooks.AddServiceRules(&svc, netid)
-	}
-
-	getPods := func(registry *Registry) (interface{}, string, error) {
-		return registry.GetPods()
-	}
-	_, err = oc.watchAndGetResource("Pod", watchPods, getPods)
+	// Populate pod info map synchronously so that kube proxy can filter endpoints to support isolation
+	err = oc.Registry.PopulatePodsByIP()
 	if err != nil {
 		return err
 	}
+
+	go watchNetNamespaces(oc)
+	go watchPods(oc)
+	go watchServices(oc)
 
 	return nil
 }
@@ -246,95 +197,76 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	return nil
 }
 
-func watchNetNamespaces(oc *OsdnController, ready chan<- bool, start <-chan string) {
-	stop := make(chan bool)
+func watchNetNamespaces(oc *OsdnController) {
 	netNsEvent := make(chan *NetNamespaceEvent)
-	go oc.Registry.WatchNetNamespaces(netNsEvent, ready, start, stop)
+	go oc.Registry.WatchNetNamespaces(netNsEvent)
 	for {
-		select {
-		case ev := <-netNsEvent:
-			switch ev.Type {
-			case Added:
-				// Skip this event if the old and new network ids are same
-				if oldNetID, ok := oc.VNIDMap[ev.NetNamespace.NetName]; ok && (oldNetID == ev.NetNamespace.NetID) {
-					continue
-				}
-				oc.VNIDMap[ev.NetNamespace.Name] = ev.NetNamespace.NetID
-				err := oc.updatePodNetwork(ev.NetNamespace.NetName, ev.NetNamespace.NetID)
-				if err != nil {
-					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
-				}
-			case Deleted:
-				err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID)
-				if err != nil {
-					log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
-				}
-				delete(oc.VNIDMap, ev.NetNamespace.NetName)
+		ev := <-netNsEvent
+		switch ev.Type {
+		case Added:
+			// Skip this event if the old and new network ids are same
+			if oldNetID, ok := oc.VNIDMap[ev.NetNamespace.NetName]; ok && (oldNetID == ev.NetNamespace.NetID) {
+				continue
 			}
-		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of NetNamespaces.")
-			stop <- true
-			return
+			oc.VNIDMap[ev.NetNamespace.Name] = ev.NetNamespace.NetID
+			err := oc.updatePodNetwork(ev.NetNamespace.NetName, ev.NetNamespace.NetID)
+			if err != nil {
+				log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
+			}
+		case Deleted:
+			err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID)
+			if err != nil {
+				log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
+			}
+			delete(oc.VNIDMap, ev.NetNamespace.NetName)
 		}
 	}
 }
 
-func watchServices(oc *OsdnController, ready chan<- bool, start <-chan string) {
-	stop := make(chan bool)
+func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
+	if len(oldsvc.Spec.Ports) == len(newsvc.Spec.Ports) {
+		for i := range oldsvc.Spec.Ports {
+			if oldsvc.Spec.Ports[i].Protocol != newsvc.Spec.Ports[i].Protocol ||
+				oldsvc.Spec.Ports[i].Port != newsvc.Spec.Ports[i].Port {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func watchServices(oc *OsdnController) {
 	svcevent := make(chan *ServiceEvent)
-	go oc.Registry.WatchServices(svcevent, ready, start, stop)
+	services := make(map[string]*kapi.Service)
+	go oc.Registry.WatchServices(svcevent)
+
 	for {
-		select {
-		case ev := <-svcevent:
-			var netid uint
-			if ev.Type != Deleted {
-				var found bool
-				netid, found = oc.VNIDMap[ev.Service.Namespace]
-				if !found {
-					log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
+		ev := <-svcevent
+		switch ev.Type {
+		case Added:
+			netid, found := oc.VNIDMap[ev.Service.Namespace]
+			if !found {
+				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
+				continue
+			}
+
+			oldsvc, exists := services[string(ev.Service.UID)]
+			if exists {
+				if !isServiceChanged(oldsvc, ev.Service) {
 					continue
 				}
+				oc.pluginHooks.DeleteServiceRules(oldsvc)
 			}
-			switch ev.Type {
-			case Added:
-				oc.services[string(ev.Service.UID)] = ev.Service
-				oc.pluginHooks.AddServiceRules(ev.Service, netid)
-			case Deleted:
-				delete(oc.services, string(ev.Service.UID))
-				oc.pluginHooks.DeleteServiceRules(ev.Service)
-			case Modified:
-				oldsvc, exists := oc.services[string(ev.Service.UID)]
-				if exists && len(oldsvc.Spec.Ports) == len(ev.Service.Spec.Ports) {
-					same := true
-					for i := range oldsvc.Spec.Ports {
-						if oldsvc.Spec.Ports[i].Protocol != ev.Service.Spec.Ports[i].Protocol || oldsvc.Spec.Ports[i].Port != ev.Service.Spec.Ports[i].Port {
-							same = false
-							break
-						}
-					}
-					if same {
-						continue
-					}
-				}
-				if exists {
-					oc.pluginHooks.DeleteServiceRules(oldsvc)
-				}
-				oc.services[string(ev.Service.UID)] = ev.Service
-				oc.pluginHooks.AddServiceRules(ev.Service, netid)
-			}
-		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of services.")
-			stop <- true
-			return
+			services[string(ev.Service.UID)] = ev.Service
+			oc.pluginHooks.AddServiceRules(ev.Service, netid)
+		case Deleted:
+			delete(services, string(ev.Service.UID))
+			oc.pluginHooks.DeleteServiceRules(ev.Service)
 		}
 	}
 }
 
-func watchPods(oc *OsdnController, ready chan<- bool, start <-chan string) {
-	stop := make(chan bool)
-	go oc.Registry.WatchPods(ready, start, stop)
-
-	<-oc.sig
-	log.Error("Signal received. Stopping watching of pods.")
-	stop <- true
+func watchPods(oc *OsdnController) {
+	oc.Registry.WatchPods()
 }
