@@ -14,11 +14,11 @@ import (
 
 func TestCreateImageImport(t *testing.T) {
 	testCases := []struct {
-		name   string
-		stream *imageapi.ImageStream
-		all    bool
-		err    string
-		from   []kapi.ObjectReference
+		name     string
+		stream   *imageapi.ImageStream
+		all      bool
+		err      string
+		expected []imageapi.ImageImportSpec
 	}{
 		{
 			// 0: checking import's from when only .spec.dockerImageRepository is set, no status
@@ -33,12 +33,12 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			from: []kapi.ObjectReference{
-				{
+			expected: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{
 					Kind: "DockerImage",
 					Name: "repo.com/somens/someimage",
 				},
-			},
+			}},
 		},
 		{
 			// 1: checking import's from when only .spec.dockerImageRepository is set, no status (with all flag set)
@@ -54,12 +54,12 @@ func TestCreateImageImport(t *testing.T) {
 				},
 			},
 			all: true,
-			from: []kapi.ObjectReference{
-				{
+			expected: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{
 					Kind: "DockerImage",
 					Name: "repo.com/somens/someimage",
 				},
-			},
+			}},
 		},
 		{
 			// 2: with --all flag only .spec.dockerImageRepository is handled
@@ -107,12 +107,12 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
-			from: []kapi.ObjectReference{
-				{
+			expected: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{
 					Kind: "DockerImage",
 					Name: "repo.com/somens/someimage:latest",
 				},
-			},
+			}},
 		},
 		{
 			// 5: import latest from image stream which has only tags specified and no latest
@@ -131,6 +131,28 @@ func TestCreateImageImport(t *testing.T) {
 				},
 			},
 			err: "does not exist on the image stream",
+		},
+		{
+			// 6: insecure annotation should be applied to tags if exists
+			name: "testis",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "testis",
+					Namespace:   "other",
+					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			expected: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repo.com/somens/someimage",
+				},
+				ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+			}},
 		},
 	}
 
@@ -164,16 +186,21 @@ func TestCreateImageImport(t *testing.T) {
 		}
 		// check values
 		if test.all {
-			if !kapi.Semantic.DeepEqual(isi.Spec.Repository.From, test.from[0]) {
-				t.Errorf("(%d) unexpected import spec, expected %#v, got %#v", idx, test.from[0], isi.Spec.Repository.From)
+			if !kapi.Semantic.DeepEqual(isi.Spec.Repository.From, test.expected[0].From) {
+				t.Errorf("(%d) unexpected import spec, expected %#v, got %#v", idx, test.expected[0].From, isi.Spec.Repository.From)
 			}
 		} else {
-			if len(isi.Spec.Images) != len(test.from) {
-				t.Errorf("(%d) unexpected number of images, expected %d, got %d", idx, len(test.from), len(isi.Spec.Images))
+			if len(isi.Spec.Images) != len(test.expected) {
+				t.Errorf("(%d) unexpected number of images, expected %d, got %d", idx, len(test.expected), len(isi.Spec.Images))
 			}
-			for i := 0; i < len(test.from); i++ {
-				if !kapi.Semantic.DeepEqual(isi.Spec.Images[i].From, test.from[i]) {
-					t.Errorf("(%d) unexpected import spec[%d], expected %#v, got %#v", idx, i, test.from[i], isi.Spec.Images[i].From)
+			for i := 0; i < len(test.expected); i++ {
+				actual := isi.Spec.Images[i]
+				expected := test.expected[i]
+				if !kapi.Semantic.DeepEqual(actual.ImportPolicy, expected.ImportPolicy) {
+					t.Errorf("(%d) unexpected import[%d] policy, expected %v, got %v", idx, i, expected.ImportPolicy, actual.ImportPolicy)
+				}
+				if !kapi.Semantic.DeepEqual(actual.From, expected.From) {
+					t.Errorf("(%d) unexpected import[%d] from, expected %#v, got %#v", idx, i, expected.From, actual.From)
 				}
 			}
 		}

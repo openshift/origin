@@ -374,13 +374,15 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		},
 		Spec: imageapi.ImageStreamImportSpec{Import: true},
 	}
+	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+	insecure := o.Insecure || insecureAnnotation == "true"
 	if o.All {
 		isi.Spec.Repository = &imageapi.RepositoryImportSpec{
 			From: kapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: from,
 			},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: o.Insecure},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 		}
 	} else {
 		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
@@ -389,7 +391,7 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 				Name: from,
 			},
 			To:           &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: o.Insecure},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 		})
 	}
 
