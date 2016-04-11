@@ -569,6 +569,32 @@ module.exports = function (grunt) {
         dir: 'coverage',
         root: 'test'
       }
+    },
+
+    // Settings for gettext
+    nggettext_extract: {
+      pot: {
+        files: {
+          'po/openshift.pot': ['app/index.html', 'app/views/**/*.html', 'app/scripts/**/*.js']
+        }
+      }
+    },
+    nggettext_compile: {
+      all: {
+        options: {
+          format:  "json"
+        },
+        files: [
+          {
+            expand: true,
+            dot: true,
+            cwd: "po",
+            dest: "dist/languages",
+            src: ["*.po"],
+            ext: ".json"
+          }
+        ]
+      }
     }
   });
 
@@ -599,6 +625,13 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-htmlhint');
 
   grunt.loadNpmTasks('grunt-angular-templates');
+
+  grunt.loadNpmTasks('grunt-angular-gettext');
+
+  // alias for compatibility to GNU autotools
+  grunt.registerTask('update-po', [
+    'nggettext_extract'
+  ]);
 
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
@@ -636,7 +669,8 @@ module.exports = function (grunt) {
     'uglify',
     'filerev',
     'usemin',
-    'htmlmin'
+    'htmlmin',
+    'nggettext_compile'
   ]);
 
   grunt.registerTask('default', [

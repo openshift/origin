@@ -15,7 +15,8 @@ angular.module("openshiftConsole")
       failureObjectNameFilter,
       $filter,
       $parse,
-      SOURCE_URL_PATTERN
+      SOURCE_URL_PATTERN,
+      gettextCatalog
     ){
     var displayNameFilter = $filter('displayName');
     var humanize = $filter('humanize');
@@ -47,13 +48,13 @@ angular.module("openshiftConsole")
         function initAndValidate(scope){
 
           if(!imageName){
-            Navigate.toErrorPage("Cannot create from source: a base image was not specified");
+            Navigate.toErrorPage(gettextCatalog.getString("Cannot create from source: a base image was not specified"));
           }
           if(!$routeParams.imageTag){
-            Navigate.toErrorPage("Cannot create from source: a base image tag was not specified");
+            Navigate.toErrorPage(gettextCatalog.getString("Cannot create from source: a base image tag was not specified"));
           }
 
-          scope.emptyMessage = "Loading...";
+          scope.emptyMessage = gettextCatalog.getString("Loading...");
           scope.imageName = imageName;
           scope.imageTag = $routeParams.imageTag;
           scope.namespace = $routeParams.namespace;
@@ -130,12 +131,12 @@ angular.module("openshiftConsole")
                     scope.routing.targetPort = scope.routing.portOptions[0];
                   }
                 }, function(){
-                    Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
+                    Navigate.toErrorPage(gettextCatalog.getString("Cannot create from source: the specified image could not be retrieved."));
                   }
                 );
             },
             function(){
-              Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
+              Navigate.toErrorPage(gettextCatalog.getString("Cannot create from source: the specified image could not be retrieved."));
             });
         }
 
@@ -205,9 +206,9 @@ angular.module("openshiftConsole")
 
         var createResources = function(resources){
           var titles = {
-            started: "Creating application " + $scope.name + " in project " + $scope.projectDisplayName(),
-            success: "Created application " + $scope.name + " in project " + $scope.projectDisplayName(),
-            failure: "Failed to create " + $scope.name + " in project " + $scope.projectDisplayName()
+            started: gettextCatalog.getString("Creating application {{name}} in project {{project}}", {name: $scope.name, project: $scope.projectDisplayName()}),
+            success: gettextCatalog.getString("Created application {{name}} in project {{project}}", {name: $scope.name, project: $scope.projectDisplayName()}),
+            failure: gettextCatalog.getString("Failed to create {{name}} in project {{project}}", {name: $scope.name, project: $scope.projectDisplayName()})
           };
           var helpLinks = {};
 
@@ -225,7 +226,7 @@ angular.module("openshiftConsole")
                         function(failure) {
                           alerts.push({
                             type: "error",
-                            message: "Cannot create " + humanize(failure.object.kind).toLowerCase() + " \"" + failure.object.metadata.name + "\". ",
+                            message: gettextCatalog.getString("Cannot create {{kind}} \"{{name}}\". ", {kind: humanize(failure.object.kind).toLowerCase(), name: failure.object.metadata.name}),
                             details: failure.data.message
                           });
                         }
@@ -234,13 +235,12 @@ angular.module("openshiftConsole")
                         function(success) {
                           alerts.push({
                             type: "success",
-                            message: "Created " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                            message: gettextCatalog.getString("Created {{kind}} \"{{name}}\" successfully. ", {kind: humanize(success.kind).toLowerCase(), name: success.metadata.name})
                           });
                         }
                       );
                     } else {
-                      alerts.push({ type: "success", message: "All resources for application " + $scope.name +
-                        " were created successfully."});
+                      alerts.push({ type: "success", message: gettextCatalog.getString("All resources for application {{name}} were created successfully.", {name: $scope.name})});
                     }
                     d.resolve({alerts: alerts, hasErrors: hasErrors});
                   }
@@ -251,8 +251,8 @@ angular.module("openshiftConsole")
                 $scope.alerts["create"] =
                   {
                     type: "error",
-                    message: "An error occurred creating the application.",
-                    details: "Status: " + result.status + ". " + result.data
+                    message: gettextCatalog.getString("An error occurred creating the application."),
+                    details: gettextCatalog.getString("Status: {{status}}. {{data}}", {status: result.status, data: result.data})
                   };
               }
             );

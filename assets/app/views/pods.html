@@ -7,7 +7,7 @@
       <div class="middle-header header-light">
         <div class="container-fluid">
           <div class="page-header page-header-bleed-right page-header-bleed-left">
-            <h1>Pods</h1>
+            <h1 translate>Pods</h1>
           </div>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
@@ -24,11 +24,11 @@
               <table class="table table-bordered table-hover table-mobile">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Containers Ready</th>
-                    <th>Container Restarts</th>
-                    <th>Age</th>
+                    <th translate>Name</th>
+                    <th translate>Status</th>
+                    <th translate>Containers Ready</th>
+                    <th translate>Container Restarts</th>
+                    <th translate>Age</th>
                   </tr>
                 </thead>
                 <tbody ng-if="(pods | hashSize) == 0">

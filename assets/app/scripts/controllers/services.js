@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ServicesController', function ($routeParams, $scope, AlertMessageService, DataService, ProjectsService, $filter, LabelFilter, Logger, $location, $anchorScroll) {
+  .controller('ServicesController', function ($routeParams, $scope, AlertMessageService, DataService, ProjectsService, $filter, LabelFilter, Logger, $location, $anchorScroll, gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.services = {};
     $scope.unfilteredServices = {};
@@ -16,8 +16,8 @@ angular.module('openshiftConsole')
     $scope.routes = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
-    $scope.emptyMessageRoutes = "Loading...";
+    $scope.emptyMessage = gettextCatalog.getString("Loading...");
+    $scope.emptyMessageRoutes = gettextCatalog.getString("Loading...");
 
     // get and clear any alerts
     AlertMessageService.getAlerts().forEach(function(alert) {
@@ -36,7 +36,7 @@ angular.module('openshiftConsole')
           LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
           LabelFilter.setLabelSuggestions($scope.labelSuggestions);
           $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
-          $scope.emptyMessage = "No services to show";
+          $scope.emptyMessage = gettextCatalog.getString("No services to show");
           updateFilterWarning();
 
           // Scroll to anchor on first load if location has a hash.
@@ -50,7 +50,7 @@ angular.module('openshiftConsole')
 
         watches.push(DataService.watch("routes", context, function(routes){
             $scope.routes = routes.by("metadata.name");
-            $scope.emptyMessageRoutes = "No routes to show";
+            $scope.emptyMessageRoutes = gettextCatalog.getString("No routes to show");
             $scope.routesByService = routesByService($scope.routes);
             Logger.log("routes (subscribe)", $scope.routesByService);
         }));
@@ -71,7 +71,7 @@ angular.module('openshiftConsole')
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {
             $scope.alerts["services"] = {
               type: "warning",
-              details: "The active filters are hiding all services."
+              details: gettextCatalog.getString("The active filters are hiding all services.")
             };
           }
           else {

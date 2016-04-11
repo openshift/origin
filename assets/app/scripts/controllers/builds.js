@@ -8,14 +8,14 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildsController', function ($routeParams, $scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll, BuildsService, ProjectsService) {
+  .controller('BuildsController', function ($routeParams, $scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll, BuildsService, ProjectsService, gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.builds = {};
     $scope.unfilteredBuildConfigs = {};
     $scope.buildConfigs = undefined;
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.emptyMessage = gettextCatalog.getString("Loading...");
     // Expand builds on load if there's a hash that might link to a hidden build.
     $scope.expanded = !!$location.hash();
     // Show only 3 builds for each build config by default.
@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
         $scope.project = project;
         watches.push(DataService.watch("builds", context, function(builds, action, build) {
           $scope.builds = builds.by("metadata.name");
-          $scope.emptyMessage = "No builds to show";
+          $scope.emptyMessage = gettextCatalog.getString("No builds to show");
           associateBuildsToBuildConfig();
 
           var buildConfigName;
@@ -126,7 +126,7 @@ angular.module('openshiftConsole')
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.buildsByBuildConfig)) {
             $scope.alerts["builds"] = {
               type: "warning",
-              details: "The active filters are hiding all builds."
+              details: gettextCatalog.getString("The active filters are hiding all builds.")
             };
           }
           else {

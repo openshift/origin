@@ -1,11 +1,11 @@
 <div class="template-options" ng-show="parameters.length" ng-form="paramForm">
   <div class="flow">
     <div class="flow-block">
-      <h2>Parameters</h2>
+      <h2 translate>Parameters</h2>
     </div>
     <div ng-show="canToggle" class="flow-block right">
-      <a class="action action-inline" href="" ng-click="expand = false" ng-show="expand"><i class="pficon pficon-remove"></i> Collapse</a>
-      <a class="action action-inline" href="" ng-click="expand = true" ng-hide="expand"><i class="pficon pficon-edit"></i> Edit Parameters</a>
+      <a class="action action-inline" href="" ng-click="expand = false" ng-show="expand"><i class="pficon pficon-remove"></i> <translate>Collapse</translate></a>
+      <a class="action action-inline" href="" ng-click="expand = true" ng-hide="expand"><i class="pficon pficon-edit"></i> <translate>Edit Parameters</translate></a>
     </div>
   </div>
   <div
@@ -32,13 +32,13 @@
     </span>
     <div class="help-block" ng-if="parameter.description" ng-attr-id="{{paramID}}-description">{{parameter.description}}</div>
     <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared" class="has-error">
-      <div class="help-block">{{parameter.displayName || parameter.name}} is required.</div>
+      <div class="help-block" translate>{{parameter.displayName || parameter.name}} is required.</div>
     </div>
     <div ng-show="isOnlyWhitespace(parameter.value)" class="has-warning help-block">
-      The current value is "{{parameter.value}}", which is not empty.
-      <span ng-if="parameter.generate">This will prevent a value from being generated.</span>
-      If this isn't what you want,
-        <a href="" ng-click="parameter.value=''; cleared = true; focus(paramID)">clear the value</a>.
+      <translate>The current value is "{{parameter.value}}", which is not empty.</translate>
+      <span ng-if="parameter.generate" translate>This will prevent a value from being generated.</span>
+      <translate>If this isn't what you want,</translate>
+        <a href="" ng-click="parameter.value=''; cleared = true; focus(paramID)" translate>clear the value</a>.
     </div>
   </div>
   <ul class="list-unstyled env-variable-list" ng-hide="expand">
@@ -49,7 +49,7 @@
       <span class="value truncate" ng-attr-title="{{parameter | parameterValue}}">{{ parameter | parameterValue }}</span>
       <div class="help-block" ng-if="parameter.description">{{parameter.description}}</div>
       <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched" class="has-error">
-        <div class="help-block">{{parameter.name}} is required.</div>
+        <div class="help-block" translate>{{parameter.name}} is required.</div>
       </div>
     </li>
   </ul>

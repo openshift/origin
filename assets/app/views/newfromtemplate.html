@@ -21,7 +21,7 @@
                       <fieldset ng-disabled="disableInputs">
                         <osc-image-summary resource="template"></osc-image-summary>
                         <div ng-if="templateImages.length" class="images">
-                          <h2>Images</h2>
+                          <h2 translate>Images</h2>
                           <ul class="list-unstyled" ng-repeat="image in templateImages">
                             <li>
                               <i class="pficon pficon-image" aria-hidden="true"></i>
@@ -34,7 +34,7 @@
                           <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
                           <alerts alerts="alerts"></alerts>
                           <div class="buttons gutter-top-bottom">
-                            <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
+                            <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs" translate>Create</button>
                             <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
                           </div>
                         </form>

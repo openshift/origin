@@ -10,7 +10,7 @@
             </a>
           </h3>
           <div ng-if="task.helpLinks.length">
-            <h4>Helpful Links</h4>
+            <h4 translate>Helpful Links</h4>
             <ul class="list-unstyled">
               <li ng-repeat="link in task.helpLinks">
                 <a href="{{ link.link }}" target="_blank">{{ link.title }}</a>
@@ -19,8 +19,8 @@
           </div>
           <div ng-show="task.hasErrors">
             <a href="javascript:;" ng-click="expanded = !expanded">
-              <span ng-hide="expanded">Show details</span>
-              <span ng-show="expanded">Hide details</span>
+              <span ng-hide="expanded" translate>Show details</span>
+              <span ng-show="expanded" translate>Hide details</span>
             </a>
           </div>
           <div ng-show="!task.hasErrors || expanded">

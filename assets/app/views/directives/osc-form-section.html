@@ -6,12 +6,12 @@
     <ul class="list-inline">
         <li ng-if="canToggle">
           <a class="action action-inline" href ng-click="toggle()" ng-hide="expand"><i class="pficon pficon-edit"></i>{{editText}} {{aboutTitle}}</a>
-          <a class="action action-inline" href ng-click="toggle()" ng-show="expand"><i class="pficon pficon-remove"></i>Collapse</a>
+          <a class="action action-inline" href ng-click="toggle()" ng-show="expand"><i class="pficon pficon-remove"></i><translate>Collapse</translate></a>
         </li>
         <li>
           <span class="help action-inline">
             <i class="pficon pficon-help"></i>
-            <a href data-toggle="tooltip" data-original-title="{{about}}">About {{aboutTitle}}</a>
+            <a href data-toggle="tooltip" data-original-title="{{about}}" translate>About {{aboutTitle}}</a>
           </span>
         </li>
     </ul>

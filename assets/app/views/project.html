@@ -9,7 +9,7 @@
           <tasks></tasks>
 
           <div ng-if="renderOptions.showToolbar" class="page-header page-header-bleed-right page-header-bleed-left">
-            <h1 title="Overview">Overview</h1>
+            <h1 title="Overview" translate>Overview</h1>
           </div>
           <!-- TODO handle things that don't live under services -->
           <alerts alerts="alerts"></alerts>
@@ -20,10 +20,10 @@
             <div class="data-toolbar-views">
               <div class="actions">
                 <div class="btn-group">
-                  <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'tiles'" title="Tile View">
+                  <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'tiles'" data-original-title="{{'Tile View'|translate}}">
                     <i class="fa fa-list"></i>
                   </label>
-                  <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'topology'" title="Topology View">
+                  <label class="btn btn-default" ng-model="$parent.overviewMode" uib-btn-radio="'topology'" data-original-title="{{'Topology View'|translate}}">
                     <i class="pficon pficon-topology"></i>
                   </label>
                 </div>
@@ -41,13 +41,13 @@
               <div ng-if="(services | hashSize) === 0 && (monopodsByService[''] | hashSize) === 0 && (deploymentsByServiceByDeploymentConfig[''] | hashSize) === 0">
                 <!-- Getting started -->
                 <div ng-if="renderOptions.showGetStarted" class="empty-project text-center">
-                  <h2>Get started with your project.</h2>
-                  <p class="gutter-top">
+                  <h2 translate>Get started with your project.</h2>
+                  <p class="gutter-top" translate>
                     Use your source or an example repository to build an application
                     image, or add components like databases and message queues.
                   </p>
                   <p class="gutter-top">
-                    <a ng-href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+                    <a ng-href="project/{{projectName}}/create" class="btn btn-lg btn-primary" translate>
                       Add to Project
                     </a>
                   </p>
@@ -150,7 +150,7 @@
                           </span>
                         </span>
                         <div ng-if="!displayRouteByService[serviceId]" class="add-route-link">
-                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create Route</a>
+                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}" translate>Create Route</a>
                         </div>
                       </div>
                     </div>
@@ -215,7 +215,7 @@
                   <!-- TODO implement filters for empty and present to return booleans for cases like this -->
                   <div ng-if="(podsByService[serviceId] | hashSize) === 0 && (deploymentsByServiceByDeploymentConfig[serviceId] | hashSize) === 0"
                        class="osc-object components-panel deployment-block deployments none">
-                    <span class="pficon pficon-info"></span> There are no pods or deployments for this service.
+                    <span class="pficon pficon-info"></span> <translate>There are no pods or deployments for this service.</translate>
                   </div>
                 </section>
 

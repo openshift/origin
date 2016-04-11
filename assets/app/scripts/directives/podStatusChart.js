@@ -7,7 +7,8 @@ angular.module('openshiftConsole')
                                         isTerminatingFilter,
                                         isTroubledPodFilter,
                                         numContainersReadyFilter,
-                                        Logger) {
+                                        Logger,
+                                        gettextCatalog) {
     // Make sure our charts always have unique IDs even if the same deployment
     // or monopod is shown on the overview more than once.
     var lastId = 0;
@@ -38,9 +39,9 @@ angular.module('openshiftConsole')
           }
 
           if (!angular.isNumber($scope.desired) || $scope.desired === total) {
-            smallText = (total === 1) ? "pod" : "pods";
+            smallText = gettextCatalog.getPlural(total, "pod", "pods", {});
           } else {
-            smallText = "scaling to " + $scope.desired + "...";
+            smallText = gettextCatalog.getString("scaling to {{desired}}...", {desired: $scope.desired});
           }
 
           // Replace donut title content.

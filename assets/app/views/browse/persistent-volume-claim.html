@@ -8,7 +8,7 @@
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!loaded">Loading...</div>
+          <div ng-if="!loaded" translate>Loading...</div>
           <div ng-if="pvc">
             <h1>
               {{pvc.metadata.name}}
@@ -16,17 +16,17 @@
                   <span ng-if="pvc.spec.resources.requests['storage']">
                     waiting for {{pvc.spec.resources.requests['storage'] | usageWithUnits: 'storage'}} allocation,
                   </span>
-                  <span ng-if="!pvc.spec.resources.requests['storage']">waiting for allocation,</span>
+                  <span ng-if="!pvc.spec.resources.requests['storage']" translate>waiting for allocation,</span>
               </small>
               <small class="meta">created <relative-timestamp timestamp="pvc.metadata.creationTimestamp"></relative-timestamp></small>
               <div class="pull-right dropdown">
                 <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                  Actions
+                  <translate>Actions</translate>
                   <span class="caret" aria-hidden="true"></span>
                 </button>
                 <a href=""
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li ng-if="!pvc.spec.volumeName">
                     <edit-link
@@ -56,27 +56,27 @@
             <div class="col-md-12 gutter-top">
               <div class="resource-details">
                 <dl class="dl-horizontal left">
-                  <dt>Status:</dt>
+                  <dt translate>Status:</dt>
                   <dd>
                     <status-icon status="pvc.status.phase" disable-animation></status-icon>
                     {{pvc.status.phase}}
                     <span ng-if="pvc.spec.volumeName">to volume <strong>{{pvc.spec.volumeName}}</strong></span>
                   </dd>
-                  <dt ng-if="pvc.spec.volumeName">Capacity:</dt>
+                  <dt ng-if="pvc.spec.volumeName" translate>Capacity:</dt>
                   <dd ng-if="pvc.spec.volumeName">
                     <span ng-if="pvc.status.capacity['storage']">
                       allocated {{pvc.status.capacity['storage'] | usageWithUnits: 'storage'}}
                     </span>
                     <span ng-if="!pvc.status.capacity['storage']">allocated unknown size</span>
                   </dd>
-                  <dt>Requested Capacity:</dt>
+                  <dt translate>Requested Capacity:</dt>
                   <dd>
                     <span ng-if="pvc.spec.resources.requests['storage']">
                       {{pvc.spec.resources.requests['storage'] | usageWithUnits: 'storage'}}
                     </span>
-                    <span ng-if="!pvc.spec.resources.requests['storage']"><em>none</em></span>
+                    <span ng-if="!pvc.spec.resources.requests['storage']"><em translate>none</em></span>
                   </dd>
-                  <dt>Access Modes:</dt>
+                  <dt translate>Access Modes:</dt>
                   <dd>{{pvc.spec.accessModes | accessModes:'long' | join}}</dd>
                 </dl>
               </div>

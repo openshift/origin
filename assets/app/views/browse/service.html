@@ -8,22 +8,22 @@
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!loaded">Loading...</div>
+          <div ng-if="!loaded" translate>Loading...</div>
           <div ng-if="service">
             <h1>
               {{service.metadata.name}}
               <div class="pull-right dropdown">
                 <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                  Actions
+                  <translate>Actions</translate>
                   <span class="caret"></span>
                 </button>
                 <a href=""
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                 <ul class="dropdown-menu actions action-link">
                   <li>
                     <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}"
-                       role="button">Create Route</a>
+                       role="button" translate>Create Route</a>
                   </li>
                   <li>
                     <edit-link
@@ -54,29 +54,29 @@
             <div class="col-md-12">
               <uib-tabset>
                 <uib-tab active="selectedTab.details">
-                  <uib-tab-heading>Details</uib-tab-heading>
+                  <uib-tab-heading translate>Details</uib-tab-heading>
                   <div class="resource-details">
                     <dl class="dl-horizontal left">
-                      <dt>Selectors:</dt>
+                      <dt translate>Selectors:</dt>
                       <dd>
-                        <span ng-if="!service.spec.selector"><em>none</em></span>
+                        <span ng-if="!service.spec.selector"><em translate>none</em></span>
                         <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
                       </dd>
-                      <dt>Type:</dt>
+                      <dt translate>Type:</dt>
                       <dd>{{service.spec.type}}</dd>
-                      <dt>IP:</dt>
+                      <dt translate>IP:</dt>
                       <dd>{{service.spec.clusterIP}}</dd>
-                      <dt>Session affinity:</dt>
+                      <dt translate>Session affinity:</dt>
                       <dd>{{service.spec.sessionAffinity}}</dd>
-                      <dt ng-if="resource.status.loadBalancer.ingress.length">Ingress points</dt>
+                      <dt ng-if="resource.status.loadBalancer.ingress.length" translate>Ingress points</dt>
                       <dd ng-if="resource.status.loadBalancer.ingress.length">
                         <span ng-repeat="ingress in resource.status.loadBalancer.ingress"
                           >{{ingress.ip}}<span ng-if="!$last">, </span></span>
                       </dd>
-                      <dt>Routes:</dt>
+                      <dt translate>Routes:</dt>
                       <dd>
                         <span ng-if="!routesForService.length">
-                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}">Create route</a>
+                          <a ng-href="project/{{project.metadata.name}}/create-route?service={{service.metadata.name}}" translate>Create route</a>
                         </span>
                         <span ng-repeat="route in routesForService">
                             <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
@@ -89,11 +89,11 @@
                       <table class="table table-bordered small service-table">
                         <thead>
                           <tr>
-                            <th>Node Port</th>
+                            <th translate>Node Port</th>
                             <th role="presentation"></th>
-                            <th>Service Port</th>
+                            <th translate>Service Port</th>
                             <th role="presentation"></th>
-                            <th>Target Port</th>
+                            <th translate>Target Port</th>
                           </tr>
                         </thead>
                         <tbody>

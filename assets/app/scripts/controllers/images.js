@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ImagesController', function ($routeParams, $scope, AlertMessageService, DataService, ProjectsService, $filter, LabelFilter, Logger) {
+  .controller('ImagesController', function ($routeParams, $scope, AlertMessageService, DataService, ProjectsService, $filter, LabelFilter, Logger, gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.imageStreams = {};
     $scope.unfilteredImageStreams = {};
@@ -16,7 +16,7 @@ angular.module('openshiftConsole')
     $scope.builds = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.emptyMessage = gettextCatalog.getString("Loading...");
 
     // get and clear any alerts
     AlertMessageService.getAlerts().forEach(function(alert) {
@@ -35,7 +35,7 @@ angular.module('openshiftConsole')
           LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImageStreams, $scope.labelSuggestions);
           LabelFilter.setLabelSuggestions($scope.labelSuggestions);
           $scope.imageStreams = LabelFilter.getLabelSelector().select($scope.unfilteredImageStreams);
-          $scope.emptyMessage = "No image streams to show";
+          $scope.emptyMessage = gettextCatalog.getString("No image streams to show");
           updateMissingStatusTags();
           updateFilterWarning();
           Logger.log("image streams (subscribe)", $scope.imageStreams);
@@ -71,7 +71,7 @@ angular.module('openshiftConsole')
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.imageStreams) && !$.isEmptyObject($scope.unfilteredImageStreams)) {
             $scope.alerts["imageStreams"] = {
               type: "warning",
-              details: "The active filters are hiding all image streams."
+              details: gettextCatalog.getString("The active filters are hiding all image streams.")
             };
           }
           else {

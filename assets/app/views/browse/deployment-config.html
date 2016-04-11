@@ -8,7 +8,7 @@
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
-            <div ng-if="!loaded">Loading...</div>
+            <div ng-if="!loaded" translate>Loading...</div>
             <div>
               <h1>
                 {{deploymentConfigName}}
@@ -18,33 +18,33 @@
                   <button
                       class="btn btn-default hidden-xs"
                       ng-click="startLatestDeployment()"
-                      ng-disabled="!canDeploy()">
+                      ng-disabled="!canDeploy()" translate>
                     Deploy
                   </button>
 
                   <!-- Secondary Actions -->
                   <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                    Actions
+                    <translate>Actions</translate>
                     <span class="caret" aria-hidden="true"></span>
                   </button>
                   <a href=""
                      class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li class="visible-xs-inline" ng-class="{ disabled: !canDeploy() }">
                       <a href=""
                         role="button"
                         ng-attr-aria-disabled="{{canDeploy() ? undefined : 'true'}}"
                         ng-class="{ 'disabled-link': !canDeploy() }"
-                        ng-click="startLatestDeployment()">Deploy</a>
+                        ng-click="startLatestDeployment()" translate>Deploy</a>
                     </li>
                     <li>
                       <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}"
-                         role="button">Attach Storage</a>
+                         role="button" translate>Attach Storage</a>
                     </li>
                     <li>
                       <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
-                        role="button">Set Resource Limits</a>
+                        role="button" translate>Set Resource Limits</a>
                     </li>
                     <li>
                       <edit-link
@@ -76,39 +76,39 @@
               <div class="col-md-12" ng-class="{ 'hide-tabs' : !deploymentConfig }">
                 <uib-tabset>
                   <uib-tab active="selectedTab.details">
-                    <uib-tab-heading>Details</uib-tab-heading>
+                    <uib-tab-heading translate>Details</uib-tab-heading>
                     <div class="resource-details" ng-if="deploymentConfig">
                       <div class="row">
                         <div class="col-lg-6">
-                          <h3>Configuration</h3>
+                          <h3 translate>Configuration</h3>
                           <dl class="dl-horizontal left">
                             <div ng-if="deploymentConfig.spec.strategy.type">
-                                <dt>Strategy:</dt>
+                                <dt translate>Strategy:</dt>
                                 <dd>{{deploymentConfig.spec.strategy.type}}</dd>
                             </div>
                             <div ng-if="deploymentConfig.spec.strategy.rollingParams">
-                              <dt>Update Period:</dt>
+                              <dt translate>Update Period:</dt>
                               <dd>{{deploymentConfig.spec.strategy.rollingParams.updatePeriodSeconds}} sec</dd>
-                              <dt>Interval:</dt>
+                              <dt translate>Interval:</dt>
                               <dd>{{deploymentConfig.spec.strategy.rollingParams.intervalSeconds}} sec</dd>
-                              <dt>Timeout:</dt>
+                              <dt translate>Timeout:</dt>
                               <dd>{{deploymentConfig.spec.strategy.rollingParams.timeoutSeconds}} sec</dd>
-                              <dt>Max Unavailable:</dt>
+                              <dt translate>Max Unavailable:</dt>
                               <dd>{{deploymentConfig.spec.strategy.rollingParams.maxUnavailable}}</dd>
-                              <dt>Max Surge:</dt>
+                              <dt translate>Max Surge:</dt>
                               <dd>{{deploymentConfig.spec.strategy.rollingParams.maxSurge}}</dd>
                             </div>
                             <!-- TODO: Surface the parameters for the recreate and custom strategies -->
                           </dl>
-                          <h3>Template</h3>
+                          <h3 translate>Template</h3>
                           <dl class="dl-horizontal left">
-                            <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
+                            <dt translate>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector" translate>none</dd>
                             <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
-                            <dt>Replicas:</dt>
+                            <dt translate>Replicas:</dt>
                             <dd>
                               <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
                             </dd>
-                            <dt>Pod template:</dt>
+                            <dt translate>Pod template:</dt>
                             <dd>&nbsp;</dd>
                             <pod-template
                                   pod-template="deploymentConfig.spec.template"
@@ -116,18 +116,18 @@
                                   builds="builds"
                                   detailed="true"></pod-template>
                           </dl>
-                          <h4 style="margin-top: 20px;">Volumes</h4>
+                          <h4 style="margin-top: 20px;" translate>Volumes</h4>
                           <p ng-if="!deploymentConfig.spec.template.spec.volumes.length">
-                            <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
+                            <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}" translate>Attach storage</a>
                           </p>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
                         <div class="col-lg-6">
-                          <h3>Triggers</h3>
+                          <h3 translate>Triggers</h3>
                           <dl class="dl-horizontal left">
-                            <dt>Manual (CLI):
+                            <dt><translate>Manual (CLI):</translate>
                               <a href="{{'deployment-operations' | helpLink}}" target="_blank">
-                                <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
+                                <span class="learn-more-block"><translate>Learn more</translate> <i class="fa fa-external-link"> </i></span>
                               </a>
                             </dt>
                             <dd>
@@ -138,12 +138,12 @@
                               <span ng-switch="trigger.type">
                                 <span ng-switch-default>{{trigger.type}}</span>
                                 <span ng-switch-when="ImageChange" ng-if="trigger.imageChangeParams.from">
-                                  <dt>New image for:</dt>
+                                  <dt translate>New image for:</dt>
                                   <dd>{{trigger.imageChangeParams.from | imageObjectRef : deploymentConfig.metadata.namespace}}</dd>
                                 </span>
                                 <span ng-switch-when="ConfigChange">
-                                  <dt>Change of:</dt>
-                                  <dd>Config</dd>
+                                  <dt translate>Change of:</dt>
+                                  <dd translate>Config</dd>
                                 </span>
                               </span>
                             </div>
@@ -159,10 +159,10 @@
                       <table class="table table-bordered table-hover table-mobile">
                         <thead>
                           <tr>
-                            <th>Deployment</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Trigger</th>
+                            <th translate>Deployment</th>
+                            <th translate>Status</th>
+                            <th translate>Created</th>
+                            <th translate>Trigger</th>
                           </tr>
                         </thead>
                         <tbody ng-if="(deployments | hashSize) == 0">
@@ -201,7 +201,7 @@
                                         <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">Image</abbr> change
                                       </span>
                                     </span>
-                                    <span ng-switch-when="ConfigChange">Config change</span>
+                                    <span ng-switch-when="ConfigChange" translate>Config change</span>
                                     <span ng-switch-default>{{cause.type}}</span>
                                   </span>
                                 </span>
@@ -213,15 +213,15 @@
                     </div>
                   </uib-tab>
                   <uib-tab heading="Environment" active="selectedTab.environment" ng-if="deploymentConfig">
-                    <uib-tab-heading>Environment</uib-tab-heading>
+                    <uib-tab-heading translate>Environment</uib-tab-heading>
                     <div ng-repeat="container in deploymentConfig.spec.template.spec.containers">
-                      <h3>Container {{container.name}}</h3>
+                      <h3 translate>Container {{container.name}}</h3>
                       <environment env-vars="container.env" ng-if="container.env.length"></environment>
-                      <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
+                      <em ng-if="!container.env.length" translate>The container specification has no environment variables set.</em>
                     </div>
                   </uib-tab>
                   <uib-tab active="selectedTab.events">
-                    <uib-tab-heading>Events</uib-tab-heading>
+                    <uib-tab-heading translate>Events</uib-tab-heading>
                     <events resource-kind="DeploymentConfig" resource-name="{{deploymentConfig.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>

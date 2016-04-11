@@ -7,7 +7,7 @@
       <div class="middle-header header-light">
         <div class="container-fluid">
           <div class="page-header page-header-bleed-right page-header-bleed-left">
-            <h1>Builds</h1>
+            <h1 translate>Builds</h1>
           </div>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
@@ -24,12 +24,12 @@
               <table class="table table-bordered table-hover table-mobile">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Last Build</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Type</th>
-                    <th>Source</th>
+                    <th translate>Name</th>
+                    <th translate>Last Build</th>
+                    <th translate>Status</th>
+                    <th translate>Created</th>
+                    <th translate>Type</th>
+                    <th translate>Source</th>
                   </tr>
                 </thead>
                 <tbody ng-if="((buildsByBuildConfig | hashSize) == 0)">
@@ -41,7 +41,7 @@
                     <td data-title="Name">
                       <a href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
                     </td>
-                    <td data-title="Last Build"><em>No builds</em></td>
+                    <td data-title="Last Build"><em translate>No builds</em></td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td data-title="Type">{{buildConfigs[buildConfigName].spec.strategy.type}}</td>
@@ -52,8 +52,8 @@
                   <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1" ng-if="buildConfigs[buildConfigName] || !unfilteredBuildConfigs[buildConfigName]">
                     <td data-title="Name">
                       <a ng-if="buildConfigName" href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : projectName}}">{{buildConfigName}}</a>
-                      <span ng-if="buildConfigs && buildConfigName && !buildConfigs[buildConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" title="This build config no longer exists" style="cursor: help;"></span>
-                      <span ng-if="buildConfigName == ''"><em>none</em></span>
+                      <span ng-if="buildConfigs && buildConfigName && !buildConfigs[buildConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-original-title="{{'This build config no longer exists'|translate}}" style="cursor: help;"></span>
+                      <span ng-if="buildConfigName == ''"><em translate>none</em></span>
                     </td>
                     <td data-title="Last Build">
                       <!-- Build number and link -->

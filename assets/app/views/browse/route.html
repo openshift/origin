@@ -8,7 +8,7 @@
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!loaded">Loading...</div>
+          <div ng-if="!loaded" translate>Loading...</div>
           <div ng-if="route">
             <h1>
               {{route.metadata.name}}
@@ -19,12 +19,12 @@
               <small class="meta">created <relative-timestamp timestamp="route.metadata.creationTimestamp"></relative-timestamp></small>
               <div class="pull-right dropdown">
                 <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                  Actions
+                  <translate>Actions</translate>
                   <span class="caret" aria-hidden="true"></span>
                 </button>
                 <a href=""
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
                     <edit-link
@@ -82,75 +82,75 @@
                       </span>
                     </div>
                   </dd>
-                  <dt>Path:</dt>
+                  <dt translate>Path:</dt>
                   <dd>
                     <span ng-if="route.spec.path">{{route.spec.path}}</span>
-                    <span ng-if="!route.spec.path"><em>none</em></span>
+                    <span ng-if="!route.spec.path"><em translate>none</em></span>
                   </dd>
-                  <dt>{{route.spec.to.kind || "Routes to"}}:</dt>
+                  <dt>{{route.spec.to.kind || ("Routes to"|translate)}}:</dt>
                   <dd>
                     <a ng-href="{{route.spec.to.name | navigateResourceURL : route.spec.to.kind : route.metadata.namespace}}">{{route.spec.to.name}}</a>
                   </dd>
-                  <dt>Target Port:</dt>
+                  <dt translate>Target Port:</dt>
                   <dd>
                     <span ng-if="route.spec.port.targetPort">
                       {{route.spec.port.targetPort}}
                     </span>
-                    <span ng-if="!route.spec.port.targetPort"><em>any</em></span>
+                    <span ng-if="!route.spec.port.targetPort"><em translate>any</em></span>
                   </dd>
                   <div ng-if="route.spec.port.targetPort && route.spec.to.kind === 'Service' && (route | routeTargetPortMapping : services[route.spec.to.name])" class="help-block">
                     This target port will route to {{route | routeTargetPortMapping : services[route.spec.to.name]}}.
                   </div>
                 </dl>
                 <div style="margin-bottom: 10px;">
-                  <h4>TLS Settings</h4>
+                  <h4 translate>TLS Settings</h4>
                   <dl class="dl-horizontal left" ng-if="route.spec.tls">
-                    <dt>Termination type:</dt>
+                    <dt translate>Termination type:</dt>
                     <dd>{{route.spec.tls.termination}}</dd>
-                    <dt ng-if-start="route.spec.tls.termination === 'edge'">Insecure Traffic:</dt>
-                    <dd ng-if-end>{{route.spec.tls.insecureEdgeTerminationPolicy || 'None'}}</dd>
-                    <dt>Certificate:</dt>
+                    <dt ng-if-start="route.spec.tls.termination === 'edge'" translate>Insecure Traffic:</dt>
+                    <dd ng-if-end>{{route.spec.tls.insecureEdgeTerminationPolicy || ('None'|translate)}}</dd>
+                    <dt translate>Certificate:</dt>
                     <dd>
                       <span ng-show="route.spec.tls.certificate && !reveal.certificate">
-                        <a href="" ng-click="reveal.certificate = true">Show</a>
+                        <a href="" ng-click="reveal.certificate = true" translate>Show</a>
                       </span>
-                      <span ng-if="!route.spec.tls.certificate"><em>none</em></span>
+                      <span ng-if="!route.spec.tls.certificate"><em translate>none</em></span>
                     </dd>
                     <div ng-if="reveal.certificate">
                       <pre class="clipped">{{route.spec.tls.certificate}}</pre>
                     </div>
-                    <dt>Key:</dt>
+                    <dt translate>Key:</dt>
                     <dd>
                       <span ng-if="route.spec.tls.key && !reveal.key">
-                        <a href="" ng-click="reveal.key = true">Show</a>
+                        <a href="" ng-click="reveal.key = true" translate>Show</a>
                       </span>
-                      <span ng-if="!route.spec.tls.key"><em>none</em></span>
+                      <span ng-if="!route.spec.tls.key"><em translate>none</em></span>
                     </dd>
                     <div ng-if="reveal.key">
                       <pre class="clipped">{{route.spec.tls.key}}</pre>
                     </div>
-                    <dt>CA Certificate:</dt>
+                    <dt translate>CA Certificate:</dt>
                     <dd>
                       <span ng-show="route.spec.tls.caCertificate && !reveal.caCertificate">
-                        <a href="" ng-click="reveal.caCertificate = true">Show</a>
+                        <a href="" ng-click="reveal.caCertificate = true" translate>Show</a>
                       </span>
-                      <span ng-if="!route.spec.tls.caCertificate"><em>none</em></span>
+                      <span ng-if="!route.spec.tls.caCertificate"><em translate>none</em></span>
                     </dd>
                     <div ng-if="reveal.caCertificate">
                       <pre class="clipped">{{route.spec.tls.caCertificate}}</pre>
                     </div>
-                    <dt>Destination CA Cert:</dt>
+                    <dt translate>Destination CA Cert:</dt>
                     <dd>
                       <span ng-show="route.spec.tls.destinationCACertificate && !reveal.destinationCACertificate">
-                        <a href="" ng-click="reveal.destinationCACertificate = true">Show</a>
+                        <a href="" ng-click="reveal.destinationCACertificate = true" translate>Show</a>
                       </span>
-                      <span ng-if="!route.spec.tls.destinationCACertificate"><em>none</em></span>
+                      <span ng-if="!route.spec.tls.destinationCACertificate"><em translate>none</em></span>
                     </dd>
                     <div ng-if="reveal.destinationCACertificate">
                       <pre class="clipped">{{route.spec.tls.destinationCACertificate}}</pre>
                     </div>
                   </dl>
-                  <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
+                  <div ng-if="!route.spec.tls"><em translate>TLS is not enabled for this route</em></div>
                 </div>
                 <annotations annotations="route.metadata.annotations"></annotations>
               </div>

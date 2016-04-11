@@ -8,9 +8,9 @@
         <div class="container-fluid">
           <div class="page-header page-header-bleed-right page-header-bleed-left">
             <div class="pull-right">
-              <a ng-href="project/{{project.metadata.name}}/create-route" class="btn btn-default">Create Route</a>
+              <a ng-href="project/{{project.metadata.name}}/create-route" class="btn btn-default" translate>Create Route</a>
             </div>
-            <h1>Routes</h1>
+            <h1 translate>Routes</h1>
           </div>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
@@ -27,11 +27,11 @@
               <table class="table table-bordered table-hover table-mobile">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Hostname</th>
-                    <th>Routes To</th>
-                    <th>Target Port</th>
-                    <th>TLS Termination</th>
+                    <th translate>Name</th>
+                    <th translate>Hostname</th>
+                    <th translate>Routes To</th>
+                    <th translate>Target Port</th>
+                    <th translate>TLS Termination</th>
                   </tr>
                 </thead>
                 <tbody ng-if="(routes | hashSize) == 0">

@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentsController', function ($routeParams, $scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, DeploymentsService, ProjectsService) {
+  .controller('DeploymentsController', function ($routeParams, $scope, AlertMessageService, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, DeploymentsService, ProjectsService, gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.deployments = {};
     $scope.unfilteredDeploymentConfigs = {};
@@ -17,7 +17,7 @@ angular.module('openshiftConsole')
     $scope.deploymentsByDeploymentConfig = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.emptyMessage = gettextCatalog.getString("Loading...");
     $scope.expandedDeploymentConfigRow = {};
     $scope.unfilteredReplicationControllers = {};
 
@@ -85,7 +85,7 @@ angular.module('openshiftConsole')
         LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeploymentConfigs, $scope.labelSuggestions);
         LabelFilter.setLabelSuggestions($scope.labelSuggestions);
         $scope.deploymentConfigs = LabelFilter.getLabelSelector().select($scope.unfilteredDeploymentConfigs);
-        $scope.emptyMessage = "No deployments to show";
+        $scope.emptyMessage = gettextCatalog.getString("No deployments to show");
         $scope.deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig($scope.deployments, $scope.deploymentConfigs, true);
         if ($scope.deploymentsByDeploymentConfig['']) {
           $scope.unfilteredReplicationControllers = $scope.deploymentsByDeploymentConfig[''];
@@ -105,7 +105,7 @@ angular.module('openshiftConsole')
         if (isFiltering && (isFilteringAllDCs || !thereAreDCs) && (isFilteringAllRCs || !thereAreRCs) && (thereAreDCs || thereAreRCs)) {
           $scope.alerts["deployments"] = {
             type: "warning",
-            details: "The active filters are hiding all deployments."
+            details: gettextCatalog.getString("The active filters are hiding all deployments.")
           };
         }
         else {

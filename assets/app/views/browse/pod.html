@@ -8,23 +8,23 @@
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
-            <div ng-if="!loaded">Loading...</div>
+            <div ng-if="!loaded" translate>Loading...</div>
             <div ng-if="pod">
               <h1>
                 {{pod.metadata.name}}
 
                 <div class="pull-right dropdown">
                   <button type="button" class="dropdown-toggle actions-dropdown-btn btn btn-default hidden-xs" data-toggle="dropdown">
-                    Actions
+                    <translate>Actions</translate>
                     <span class="caret"></span>
                   </button>
                   <a href=""
                      class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li ng-if="pod | annotation:'deploymentConfig'">
                       <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{pod | annotation:'deploymentConfig'}}"
-                         role="button">Attach Storage</a>
+                         role="button" translate>Attach Storage</a>
                     </li>
                     <li>
                       <edit-link
@@ -58,15 +58,15 @@
               <div class="col-md-12">
                 <uib-tabset>
                   <uib-tab heading="Details" active="selectedTab.details">
-                    <uib-tab-heading>Details</uib-tab-heading>
+                    <uib-tab-heading translate>Details</uib-tab-heading>
                     <ng-include src=" 'views/browse/_pod-details.html' "></ng-include>
                   </uib-tab>
                   <uib-tab heading="Environment" active="selectedTab.environment">
-                    <uib-tab-heading>Environment</uib-tab-heading>
+                    <uib-tab-heading translate>Environment</uib-tab-heading>
                     <div ng-repeat="container in pod.spec.containers">
-                      <h3>Container {{container.name}}</h3>
+                      <h3 translate>Container {{container.name}}</h3>
                       <environment env-vars="container.env" ng-if="container.env.length"></environment>
-                      <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
+                      <em ng-if="!container.env.length" translate>The container specification has no environment variables set.</em>
                     </div>
                   </uib-tab>
                   <uib-tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
@@ -79,7 +79,7 @@
                   </uib-tab>
 
                   <uib-tab active="selectedTab.logs">
-                    <uib-tab-heading>Logs</uib-tab-heading>
+                    <uib-tab-heading translate>Logs</uib-tab-heading>
 
                     <log-viewer
                       ng-if="selectedTab.logs"
@@ -123,11 +123,11 @@
                     select="terminalTabWasSelected = true"
                     ng-init="containers = pod.status.containerStatuses"
                     ng-if="containersRunning(pod.status.containerStatuses) > 0">
-                    <uib-tab-heading>Terminal</uib-tab-heading>
+                    <uib-tab-heading translate>Terminal</uib-tab-heading>
                     <div>
                       <span class="pficon pficon-info" aria-hidden="true"></span>
-                      When you navigate away from this pod, any processes running
-                      in these terminals will quit.
+                      <translate>When you navigate away from this pod, any processes running
+                      in these terminals will quit.</translate>
                     </div>
                     <div class="pod-container-terminal"
                       ng-repeat="container in containers | orderBy:'name' track by container.name"
@@ -140,7 +140,7 @@
     	            </uib-tab>
 
                   <uib-tab active="selectedTab.events">
-                    <uib-tab-heading>Events</uib-tab-heading>
+                    <uib-tab-heading translate>Events</uib-tab-heading>
                     <events resource-kind="Pod" resource-name="{{pod.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>
