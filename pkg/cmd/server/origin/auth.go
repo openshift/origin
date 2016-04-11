@@ -683,7 +683,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 						return nil, fmt.Errorf("Error loading certs from %s: %v", provider.ClientCA, err)
 					}
 
-					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler)
+					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler, sets.NewString(provider.ClientCommonNames...))
 				}
 				authRequestHandlers = append(authRequestHandlers, authRequestHandler)
 

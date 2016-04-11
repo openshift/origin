@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -536,6 +537,8 @@ func TestX509Verifier(t *testing.T) {
 
 		Opts x509.VerifyOptions
 
+		AllowedCNs sets.String
+
 		ExpectOK  bool
 		ExpectErr bool
 	}{
@@ -579,6 +582,22 @@ func TestX509Verifier(t *testing.T) {
 			ExpectOK:  true,
 			ExpectErr: false,
 		},
+		"valid client cert with wrong CN": {
+			Opts:       getDefaultVerifyOptions(t),
+			AllowedCNs: sets.NewString("foo", "bar"),
+			Certs:      getCerts(t, clientCNCert),
+
+			ExpectOK:  false,
+			ExpectErr: true,
+		},
+		"valid client cert with right CN": {
+			Opts:       getDefaultVerifyOptions(t),
+			AllowedCNs: sets.NewString("client_cn"),
+			Certs:      getCerts(t, clientCNCert),
+
+			ExpectOK:  true,
+			ExpectErr: false,
+		},
 
 		"future cert": {
 			Opts: x509.VerifyOptions{
@@ -614,7 +633,7 @@ func TestX509Verifier(t *testing.T) {
 			return &user.DefaultInfo{Name: "innerauth"}, true, nil
 		})
 
-		a := NewVerifier(testCase.Opts, auth)
+		a := NewVerifier(testCase.Opts, auth, testCase.AllowedCNs)
 
 		user, ok, err := a.AuthenticateRequest(req)
 
