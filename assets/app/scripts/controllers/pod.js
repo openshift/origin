@@ -158,6 +158,8 @@ angular.module('openshiftConsole')
             debugPodWatch = null;
           }
 
+          $(window).off('beforeunload.debugPod');
+
           if (debugPod) {
             DataService.delete("pods", debugPod.metadata.name, context, {
               gracePeriodSeconds: 0
@@ -191,6 +193,11 @@ angular.module('openshiftConsole')
             function(pod) {
               var container = _.find($scope.pod.spec.containers, { name: containerName });
               $scope.debugPod = pod;
+
+              // Warn users when navigating away with the debug pod open. (Removed in `cleanUpDebugPod`.)
+              $(window).on('beforeunload.debugPod', function() {
+                return "Are you sure you want to leave with the debug terminal open? The debug pod will not be deleted unless you close the dialog.";
+              });
 
               // Watch the pod so we know when it's running to connect.
               // Keep the watch handle in a var outside the watches array so we

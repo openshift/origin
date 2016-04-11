@@ -30,7 +30,7 @@
     <div ng-if="containerState.running">
       <div class="help-block">
         This temporary pod has a modified entrypoint command to debug a failing container. The pod
-        will be deleted when the terminal is closed or after one hour.
+        will be available for one hour and will be deleted when the terminal window is closed.
       </div>
       <div ng-if="container | entrypoint : image" class="original-cmd-msg">
         <label>Original Command:</label>
