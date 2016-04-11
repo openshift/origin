@@ -257,19 +257,6 @@ module.exports = function (grunt) {
       }
     },
 
-    // Renames files for browser caching purposes
-    filerev: {
-      dist: {
-        src: [
-          // We do not need digest filenames as our files are loaded from
-          // a commit-based path
-          //'<%= yeoman.dist %>/scripts/{,*/}*.js',
-          //'<%= yeoman.dist %>/styles/{,*/}*.css',
-          //'<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-          //'<%= yeoman.dist %>/styles/fonts/*'
-        ]
-      }
-    },
 
     // Reads HTML for usemin blocks to enable smart builds that automatically
     // concat, minify and revision files. Creates configurations in memory so
@@ -650,7 +637,6 @@ module.exports = function (grunt) {
     'less',
     'cssmin',
     'uglify',
-    'filerev',
     'usemin',
     'htmlmin'
   ]);
