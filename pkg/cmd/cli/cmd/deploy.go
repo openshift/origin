@@ -323,14 +323,15 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 	}
 	if !anyCancelled {
 		latest := &deployments.Items[0]
-		status := string(deployutil.DeploymentStatusFor(latest))
-		if deployutil.IsDeploymentCancelled(latest) {
-			status = "cancelled"
+		maybeCancelling := ""
+		if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
+			maybeCancelling = " (cancelling)"
 		}
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
-		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
+		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
 			deployutil.DeploymentVersionFor(latest),
-			strings.ToLower(status),
+			strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
+			maybeCancelling,
 			timeAt)
 	}
 	return nil

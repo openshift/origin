@@ -352,7 +352,8 @@ func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
 // TestHandle_cleanupDesiredReplicasAnnotation ensures that the desired replicas annotation
 // will be cleaned up in a complete deployment and stay around in a failed deployment
 func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	// shared fixtures shouldn't be used in unit tests
+	shared, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 	tests := []struct {
 		name     string
@@ -361,17 +362,18 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 	}{
 		{
 			name:     "complete deployment - cleaned up annotation",
-			pod:      succeededPod(deployment),
+			pod:      succeededPod(shared),
 			expected: false,
 		},
 		{
 			name:     "failed deployment - annotation stays",
-			pod:      terminatedPod(deployment),
+			pod:      terminatedPod(shared),
 			expected: true,
 		},
 	}
 
 	for _, test := range tests {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		var updatedDeployment *kapi.ReplicationController
 		deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "1"
 
