@@ -434,6 +434,17 @@ func RemoveInboundEdges(nodes []graph.Node) EdgeFunc {
 	}
 }
 
+func RemoveOutboundEdges(nodes []graph.Node) EdgeFunc {
+	return func(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
+		for _, node := range nodes {
+			if node == from {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // EdgeSubgraph returns the directed subgraph with only the edges that match the
 // provided function.
 func (g Graph) EdgeSubgraph(edgeFn EdgeFunc) Graph {

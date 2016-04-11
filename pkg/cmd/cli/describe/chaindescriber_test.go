@@ -19,6 +19,7 @@ func TestChainDescriber(t *testing.T) {
 		testName         string
 		namespaces       sets.String
 		output           string
+		reverse          bool
 		defaultNamespace string
 		name             string
 		tag              string
@@ -161,6 +162,24 @@ func TestChainDescriber(t *testing.T) {
 				"\t\tistag/parent3img:latest":    1,
 			},
 		},
+		{
+			testName:         "human readable - multiple triggers - triggeronly - reverse",
+			name:             "child2img",
+			reverse:          true,
+			defaultNamespace: "test",
+			tag:              "latest",
+			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-trigger-bcs.yaml",
+			namespaces:       sets.NewString("test"),
+			humanReadable: map[string]int{
+				"istag/child2img:latest":               1,
+				"\tbc/child2":                          1,
+				"\t\tistag/parent1img:latest":          1,
+				"\t\t\tbc/parent1":                     1,
+				"\t\t\t\tistag/ruby-22-centos7:latest": 2,
+				"\t\tistag/parent3img:latest":          1,
+				"\t\t\tbc/parent3":                     1,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -174,7 +193,7 @@ func TestChainDescriber(t *testing.T) {
 		oc, _ := testclient.NewFixtureClients(o)
 		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
-		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg)
+		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
 		t.Logf("%s: output:\n%s\n\n", test.testName, desc)
 		if err != test.expectedErr {
 			t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)

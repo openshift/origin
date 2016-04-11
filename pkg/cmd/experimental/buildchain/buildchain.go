@@ -49,6 +49,7 @@ type BuildChainOptions struct {
 	namespaces       sets.String
 	allNamespaces    bool
 	triggerOnly      bool
+	reverse          bool
 
 	output string
 
@@ -77,6 +78,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
 	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
+	cmd.Flags().BoolVar(&options.reverse, "reverse", false, "If true, show the istags dependencies instead of its dependants.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")
 	return cmd
 }
@@ -160,7 +162,7 @@ func (o *BuildChainOptions) Validate() error {
 func (o *BuildChainOptions) RunBuildChain() error {
 	ist := imagegraph.MakeImageStreamTagObjectMeta2(o.defaultNamespace, o.name)
 
-	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly)
+	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly, o.reverse)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
 			name, tag, _ := imageapi.SplitImageStreamTag(o.name)
