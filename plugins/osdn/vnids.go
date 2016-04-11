@@ -105,18 +105,24 @@ func (oc *OsdnController) assignVNID(namespaceName string) error {
 }
 
 func (oc *OsdnController) revokeVNID(namespaceName string) error {
+	// Remove NetID from VNIDMap
+	netid, found := oc.VNIDMap[namespaceName]
+	if !found {
+		log.Errorf("Failed to find NetID for namespace: %s in VNIDMap", namespaceName)
+	} else {
+		delete(oc.VNIDMap, namespaceName)
+	}
+
+	// Delete NetNamespace object
 	err := oc.Registry.DeleteNetNamespace(namespaceName)
 	if err != nil {
 		return err
 	}
-	netid, found := oc.VNIDMap[namespaceName]
-	if !found {
-		return fmt.Errorf("Error while fetching Net ID for namespace: %s", namespaceName)
-	}
-	delete(oc.VNIDMap, namespaceName)
 
-	// Skip AdminVNID as it is not part of Net ID allocation
-	if netid == AdminVNID {
+	// Skip NetID release if
+	// - Value matches AdminVNID as it is not part of NetID allocation or
+	// - NetID is not found in the VNIDMap
+	if netid == AdminVNID || !found {
 		return nil
 	}
 
