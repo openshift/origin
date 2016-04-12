@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -30,6 +31,9 @@ type ServiceResolver struct {
 
 // ServiceResolver implements server.Backend
 var _ server.Backend = &ServiceResolver{}
+
+// TODO: abstract in upstream SkyDNS
+var errNoSuchName = &etcd.EtcdError{ErrorCode: 100}
 
 type FallbackFunc func(name string, exact bool) (string, bool)
 
@@ -70,7 +74,7 @@ func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoin
 //
 func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, error) {
 	if !strings.HasSuffix(dnsName, b.base) {
-		return nil, nil
+		return nil, errNoSuchName
 	}
 	prefix := strings.Trim(strings.TrimSuffix(dnsName, b.base), ".")
 	segments := strings.Split(prefix, ".")
@@ -78,18 +82,18 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		segments[i], segments[j] = segments[j], segments[i]
 	}
 	if len(segments) == 0 {
-		return nil, nil
+		return nil, errNoSuchName
 	}
 	glog.V(4).Infof("Answering query %s:%t", dnsName, exact)
 	switch base := segments[0]; base {
 	case "pod":
 		if len(segments) != 3 {
-			return nil, nil
+			return nil, errNoSuchName
 		}
 		namespace, encodedIP := segments[1], segments[2]
 		ip := convertDashIPToIP(encodedIP)
 		if net.ParseIP(ip) == nil {
-			return nil, nil
+			return nil, errNoSuchName
 		}
 		return []msg.Service{
 			{
@@ -106,7 +110,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 
 	case "svc", "endpoints":
 		if len(segments) < 3 {
-			return nil, nil
+			return nil, errNoSuchName
 		}
 		namespace, name := segments[1], segments[2]
 		svc, err := b.accessor.Services(namespace).Get(name)
@@ -115,13 +119,14 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 				if fallback, ok := b.fallback(prefix, exact); ok {
 					return b.Records(fallback+b.base, exact)
 				}
+				return nil, errNoSuchName
 			}
-			return nil, err
+			return nil, errNoSuchName
 		}
 
 		// no portalIP and not headless, no DNS
 		if len(svc.Spec.ClusterIP) == 0 {
-			return nil, nil
+			return nil, errNoSuchName
 		}
 
 		subdomain := buildDNSName(b.base, base, namespace, name)
@@ -188,7 +193,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		// return endpoints
 		endpoints, err := b.endpoints.Endpoints(namespace).Get(name)
 		if err != nil {
-			return nil, err
+			return nil, errNoSuchName
 		}
 
 		services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
@@ -239,7 +244,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		glog.V(4).Infof("Answered %s:%t with %#v", dnsName, exact, services)
 		return services, nil
 	}
-	return nil, nil
+	return nil, errNoSuchName
 }
 
 // ReverseRecord implements the SkyDNS Backend interface and returns standard records for
