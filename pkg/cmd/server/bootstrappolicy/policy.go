@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
@@ -299,6 +300,18 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 						"/oapi", "/oapi/*",
 						"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
 					),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImageAuditorRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{imageapi.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch", "patch", "update"),
+					Resources: sets.NewString("images"),
 				},
 			},
 		},

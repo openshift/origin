@@ -675,6 +675,23 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: system:image-auditor
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - images
+    verbs:
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: system:image-puller
   rules:
   - apiGroups: null
