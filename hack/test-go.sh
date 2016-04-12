@@ -180,12 +180,14 @@ else
     if [[ -n "${test_kube}" ]]; then
         # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
         # the go2idl tests which we currently do not support
+        # etcd3 isn't supported yet and that test flakes upstream
         optional_kubernetes_packages="$(find "${kubernetes_path}" -not \(                             \
           \(                                                                                          \
             -path "${kubernetes_path}/pkg/api"                                                        \
             -o -path "${kubernetes_path}/pkg/api/v1"                                                  \
             -o -path "${kubernetes_path}/test/e2e"                                                    \
             -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
+            -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \
           \) -prune                                                                                   \
         \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n")"
 
