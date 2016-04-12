@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -44,6 +45,7 @@ type OsdnController struct {
 	subnetAllocator *netutils.SubnetAllocator
 	podNetworkReady chan struct{}
 	vnidMap         map[string]uint
+	vnidLock        sync.Mutex
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 }

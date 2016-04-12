@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -20,11 +21,14 @@ const (
 )
 
 func (oc *OsdnController) GetVNID(name string) (uint, error) {
+	oc.vnidLock.Lock()
+	defer oc.vnidLock.Unlock()
+
 	if id, ok := oc.vnidMap[name]; ok {
 		return id, nil
 	}
 	// In case of error, return some value which is not a valid VNID
-	return MaxVNID + 1, fmt.Errorf("Failed to find NetID for namespace: %s in vnid map", name)
+	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
 // Nodes asynchronously watch for both NetNamespaces and services
@@ -45,21 +49,58 @@ func (oc *OsdnController) WaitAndGetVNID(name string) (uint, error) {
 	}
 
 	// In case of error, return some value which is not a valid VNID
-	return MaxVNID + 1, fmt.Errorf("Failed to find NetID for namespace: %s in vnid map", name)
+	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
 func (oc *OsdnController) setVNID(name string, id uint) {
+	oc.vnidLock.Lock()
+	defer oc.vnidLock.Unlock()
+
 	oc.vnidMap[name] = id
-	log.Infof("Associate NetID %d to namespace %q", id, name)
+	log.Infof("Associate netid %d to namespace %q", id, name)
 }
 
 func (oc *OsdnController) unSetVNID(name string) (id uint, err error) {
-	id, err := oc.GetVNID(name)
-	if err == nil {
-		log.Infof("Dissociate NetID %d from namespace %q", id, name)
+	oc.vnidLock.Lock()
+	defer oc.vnidLock.Unlock()
+
+	id, found := oc.vnidMap[name]
+	if !found {
+		// In case of error, return some value which is not a valid VNID
+		return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 	}
 	delete(oc.vnidMap, name)
-	return id, err
+	log.Infof("Dissociate netid %d from namespace %q", id, name)
+	return id, nil
+}
+
+func (oc *OsdnController) checkVNID(id uint) bool {
+	oc.vnidLock.Lock()
+	defer oc.vnidLock.Unlock()
+
+	for _, netid := range oc.vnidMap {
+		if netid == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (oc *OsdnController) getAllocatedVNIDs() []uint {
+	oc.vnidLock.Lock()
+	defer oc.vnidLock.Unlock()
+
+	ids := []uint{}
+	idSet := sets.Int{}
+	for _, id := range oc.vnidMap {
+		if id != AdminVNID {
+			if !idSet.Has(int(id)) {
+				ids = append(ids, id)
+				idSet.Insert(int(id))
+			}
+		}
+	}
+	return ids
 }
 
 func populateVNIDMap(oc *OsdnController) error {
@@ -80,15 +121,9 @@ func (oc *OsdnController) VnidStartMaster() error {
 		return err
 	}
 
-	inUse := make([]uint, 0)
-	for _, netid := range oc.vnidMap {
-		if netid != AdminVNID {
-			inUse = append(inUse, netid)
-		}
-	}
 	// VNID: 0 reserved for default namespace and can reach any network in the cluster
 	// VNID: 1 to 9 are internally reserved for any special cases in the future
-	oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxVNID, inUse)
+	oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxVNID, oc.getAllocatedVNIDs())
 	if err != nil {
 		return err
 	}
@@ -171,21 +206,14 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 
 	// Check if this netid is used by any other namespaces
 	// If not, then release the netid
-	netid_inuse := false
-	for name, id := range oc.vnidMap {
-		if id == netid {
-			netid_inuse = true
-			log.V(5).Infof("netid %d for namespace %q is still in use by namespace %q", netid, namespaceName, name)
-			break
-		}
-	}
-	if !netid_inuse {
+	if !oc.checkVNID(netid) {
 		err = oc.netIDManager.ReleaseNetID(netid)
 		if err != nil {
-			return fmt.Errorf("Error while releasing netid: %v", err)
-		} else {
-			log.Infof("Released netid %d for namespace %q", netid, namespaceName)
+			return fmt.Errorf("Error while releasing netid %d for namespace %q, %v", netid, namespaceName, err)
 		}
+		log.Infof("Released netid %d for namespace %q", netid, namespaceName)
+	} else {
+		log.V(5).Infof("netid %d for namespace %q is still in use", netid, namespaceName)
 	}
 	return nil
 }
