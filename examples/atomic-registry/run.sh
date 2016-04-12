@@ -34,7 +34,7 @@ INSTALL_HOST=${1:-`hostname`}
 
 echo "Running using hostname ${INSTALL_HOST}"
 
-chroot /host sudo docker run -d --name "origin" \
+chroot /host docker run -d --name "origin" \
         --privileged --pid=host --net=host \
         -e KUBECONFIG=/etc/origin/master/admin.kubeconfig \
         -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys -v /var/lib/docker:/var/lib/docker:rw \
@@ -47,7 +47,7 @@ chroot /host sudo docker run -d --name "origin" \
 echo "Waiting for services to come up..."
 wait_for_url "https://${INSTALL_HOST}:8443/api"
 
-CMD="chroot /host docker exec -it origin"
+CMD="chroot /host docker exec -i origin"
 echo "Starting registry services..."
 
 set -x

@@ -85,6 +85,25 @@ objects:
                 -
                   name: REGISTRY_HOST
                   value: "${REGISTRY_HOST}"
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /ping
+                  port: 9090
+                  scheme: HTTP
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /ping
+                  port: 9090
+                  scheme: HTTP
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
   -
     kind: Service
     apiVersion: v1
@@ -122,6 +141,7 @@ objects:
       name: "${OPENSHIFT_OAUTH_CLIENT_ID}"
       respondWithChallenges: false
     secret: "${OPENSHIFT_OAUTH_CLIENT_SECRET}"
+    allowAnyScope: true
     redirectURIs:
       -
         "${COCKPIT_KUBE_URL}"
