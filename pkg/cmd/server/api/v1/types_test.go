@@ -272,6 +272,7 @@ oauthConfig:
       apiVersion: v1
       challengeURL: ""
       clientCA: ""
+      clientCommonNames: null
       emailHeaders: null
       headers: null
       kind: RequestHeaderIdentityProvider
