@@ -53,6 +53,23 @@ angular.module("openshiftConsole")
       return (usageInMillis / timeInMillis) * 1000;
     }
 
+    // Convert cumulative usage to usage rate, doesn't change units.
+    function bytesUsed(point, lastValue) {
+      // Is there a gap in the data?
+      if (!lastValue || !point.value) {
+        return null;
+      }
+
+      // When a container restarts, the cumulative usage resets to 0. As a
+      // result, lastValue can be greater than the current value.  Throw out
+      // those data points since we can't calculate usage rate.
+      if (lastValue > point.value) {
+        return null;
+      }
+
+      return point.value - lastValue;
+    }
+
     function normalize(data, metricID) {
       // Track the previous value for CPU usage calculations.
       var lastValue;
@@ -86,7 +103,7 @@ angular.module("openshiftConsole")
         if (/network\/rx|tx/.test(metricID)) {
           // Save the raw value before we change it.
           value = point.value;
-          point.value = point.value - lastValue;
+          point.value = bytesUsed(point, lastValue);
           lastValue = value;
         }
       });
