@@ -43,7 +43,7 @@ type OsdnController struct {
 	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	podNetworkReady chan struct{}
-	VNIDMap         map[string]uint
+	vnidMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 }
@@ -81,7 +81,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.Registry = registry
 	oc.localIP = selfIP
 	oc.HostName = hostname
-	oc.VNIDMap = make(map[string]uint)
+	oc.vnidMap = make(map[string]uint)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
 
