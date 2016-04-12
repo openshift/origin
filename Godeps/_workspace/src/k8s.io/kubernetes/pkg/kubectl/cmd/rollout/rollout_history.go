@@ -32,12 +32,16 @@ import (
 // referencing the cmd.Flags()
 type HistoryOptions struct {
 	Filenames []string
+	Recursive bool
 }
 
 const (
-	history_long    = `view previous rollout revisions and configurations.`
+	history_long    = `View previous rollout revisions and configurations.`
 	history_example = `# View the rollout history of a deployment
-kubectl rollout history deployment/abc`
+kubectl rollout history deployment/abc
+
+# View the details of deployment revision 3
+kubectl rollout history deployment/abc --revision=3`
 )
 
 func NewCmdRolloutHistory(f *cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -56,6 +60,7 @@ func NewCmdRolloutHistory(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().Int64("revision", 0, "See the details, including podTemplate of the revision specified")
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
 	return cmd
 }
 
@@ -65,7 +70,7 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 	}
 	revisionDetail := cmdutil.GetFlagInt64(cmd, "revision")
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
@@ -74,7 +79,7 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 
 	infos, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Filenames...).
+		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
 		ResourceTypeOrNameArgs(true, args...).
 		Latest().
 		Flatten().

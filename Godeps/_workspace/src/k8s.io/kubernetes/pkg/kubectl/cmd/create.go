@@ -35,6 +35,7 @@ import (
 // referencing the cmd.Flags()
 type CreateOptions struct {
 	Filenames []string
+	Recursive bool
 }
 
 const (
@@ -71,9 +72,11 @@ func NewCmdCreate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
 	cmd.MarkFlagRequired("filename")
 	cmdutil.AddValidateFlags(cmd)
+	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
 	cmdutil.AddOutputFlagsForMutation(cmd)
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddRecordFlag(cmd)
+	cmdutil.AddInclude3rdPartyFlags(cmd)
 
 	// create subcommands
 	cmd.AddCommand(NewCmdCreateNamespace(f, out))
@@ -101,12 +104,12 @@ func RunCreate(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *C
 		return err
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		Schema(schema).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Filenames...).
+		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
 		Flatten().
 		Do()
 	err = r.Err()
@@ -159,7 +162,7 @@ func printObjectSpecificMessage(obj runtime.Object, out io.Writer) {
 cluster.  If you want to expose this service to the external internet, you may
 need to set up firewall rules for the service port(s) (%s) to serve traffic.
 
-See http://releases.k8s.io/release-1.2/docs/user-guide/services-firewalls.md for more details.
+See http://releases.k8s.io/HEAD/docs/user-guide/services-firewalls.md for more details.
 `,
 				makePortsString(obj.Spec.Ports, true))
 			out.Write([]byte(msg))
@@ -221,7 +224,7 @@ func RunCreateSubcommand(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, 
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 	gvk, err := typer.ObjectKind(obj)
 	mapping, err := mapper.RESTMapping(unversioned.GroupKind{Group: gvk.Group, Kind: gvk.Kind}, gvk.Version)
 	if err != nil {
@@ -255,5 +258,5 @@ func RunCreateSubcommand(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, 
 		return nil
 	}
 
-	return f.PrintObject(cmd, obj, out)
+	return f.PrintObject(cmd, mapper, obj, out)
 }

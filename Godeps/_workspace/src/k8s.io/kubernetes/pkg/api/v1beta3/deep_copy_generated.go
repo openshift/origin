@@ -2415,13 +2415,13 @@ func deepCopy_v1beta3_VolumeSource(in VolumeSource, out *VolumeSource, c *conver
 }
 
 func deepCopy_runtime_RawExtension(in runtime.RawExtension, out *runtime.RawExtension, c *conversion.Cloner) error {
-	if in.RawJSON != nil {
-		out.RawJSON = make([]uint8, len(in.RawJSON))
-		for i := range in.RawJSON {
-			out.RawJSON[i] = in.RawJSON[i]
+	if in.Raw != nil {
+		out.Raw = make([]uint8, len(in.Raw))
+		for i := range in.Raw {
+			out.Raw[i] = in.Raw[i]
 		}
 	} else {
-		out.RawJSON = nil
+		out.Raw = nil
 	}
 	return nil
 }

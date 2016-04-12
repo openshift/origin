@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -87,7 +87,7 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreatePodSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {
@@ -155,7 +155,7 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreateContainerSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {

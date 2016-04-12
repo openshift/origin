@@ -29,18 +29,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ReplicationController", func() {
+var _ = KubeDescribe("ReplicationController", func() {
 	framework := NewDefaultFramework("replication-controller")
 
 	It("should serve a basic image on each replica with a public image [Conformance]", func() {
-		ServeImageOrFail(framework, "basic", "gcr.io/google_containers/serve_hostname:1.1")
+		ServeImageOrFail(framework, "basic", "gcr.io/google_containers/serve_hostname:v1.4")
 	})
 
 	It("should serve a basic image on each replica with a private image", func() {
 		// requires private images
 		SkipUnlessProviderIs("gce", "gke")
 
-		ServeImageOrFail(framework, "private", "b.gcr.io/k8s_authenticated_test/serve_hostname:1.1")
+		ServeImageOrFail(framework, "private", "b.gcr.io/k8s_authenticated_test/serve_hostname:v1.4")
 	})
 })
 

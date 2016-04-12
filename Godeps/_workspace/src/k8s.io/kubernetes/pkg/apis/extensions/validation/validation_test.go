@@ -354,11 +354,14 @@ func TestValidateDaemonSetStatusUpdate(t *testing.T) {
 			t.Errorf("expected success: %v", errs)
 		}
 	}
-
 	errorCases := map[string]dsUpdateTest{
 		"negative values": {
 			old: extensions.DaemonSet{
-				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				ObjectMeta: api.ObjectMeta{
+					Name:            "abc",
+					Namespace:       api.NamespaceDefault,
+					ResourceVersion: "10",
+				},
 				Status: extensions.DaemonSetStatus{
 					CurrentNumberScheduled: 1,
 					NumberMisscheduled:     2,
@@ -366,7 +369,11 @@ func TestValidateDaemonSetStatusUpdate(t *testing.T) {
 				},
 			},
 			update: extensions.DaemonSet{
-				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				ObjectMeta: api.ObjectMeta{
+					Name:            "abc",
+					Namespace:       api.NamespaceDefault,
+					ResourceVersion: "10",
+				},
 				Status: extensions.DaemonSetStatus{
 					CurrentNumberScheduled: -1,
 					NumberMisscheduled:     -1,
@@ -377,7 +384,7 @@ func TestValidateDaemonSetStatusUpdate(t *testing.T) {
 	}
 
 	for testName, errorCase := range errorCases {
-		if errs := ValidateDaemonSetStatusUpdate(&errorCase.old, &errorCase.update); len(errs) == 0 {
+		if errs := ValidateDaemonSetStatusUpdate(&errorCase.update, &errorCase.old); len(errs) == 0 {
 			t.Errorf("expected failure: %s", testName)
 		}
 	}
@@ -1170,6 +1177,82 @@ func TestValidateJob(t *testing.T) {
 	}
 }
 
+func TestValidateJobUpdateStatus(t *testing.T) {
+	type testcase struct {
+		old    extensions.Job
+		update extensions.Job
+	}
+
+	successCases := []testcase{
+		{
+			old: extensions.Job{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Status: extensions.JobStatus{
+					Active:    1,
+					Succeeded: 2,
+					Failed:    3,
+				},
+			},
+			update: extensions.Job{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Status: extensions.JobStatus{
+					Active:    1,
+					Succeeded: 1,
+					Failed:    3,
+				},
+			},
+		},
+	}
+
+	for _, successCase := range successCases {
+		successCase.old.ObjectMeta.ResourceVersion = "1"
+		successCase.update.ObjectMeta.ResourceVersion = "1"
+		if errs := ValidateJobUpdateStatus(&successCase.update, &successCase.old); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+
+	errorCases := map[string]testcase{
+		"[status.active: Invalid value: -1: must be greater than or equal to 0, status.succeeded: Invalid value: -2: must be greater than or equal to 0]": {
+			old: extensions.Job{
+				ObjectMeta: api.ObjectMeta{
+					Name:            "abc",
+					Namespace:       api.NamespaceDefault,
+					ResourceVersion: "10",
+				},
+				Status: extensions.JobStatus{
+					Active:    1,
+					Succeeded: 2,
+					Failed:    3,
+				},
+			},
+			update: extensions.Job{
+				ObjectMeta: api.ObjectMeta{
+					Name:            "abc",
+					Namespace:       api.NamespaceDefault,
+					ResourceVersion: "10",
+				},
+				Status: extensions.JobStatus{
+					Active:    -1,
+					Succeeded: -2,
+					Failed:    3,
+				},
+			},
+		},
+	}
+
+	for testName, errorCase := range errorCases {
+		errs := ValidateJobUpdateStatus(&errorCase.update, &errorCase.old)
+		if len(errs) == 0 {
+			t.Errorf("expected failure: %s", testName)
+			continue
+		}
+		if errs.ToAggregate().Error() != testName {
+			t.Errorf("expected '%s' got '%s'", errs.ToAggregate().Error(), testName)
+		}
+	}
+}
+
 type ingressRules map[string]string
 
 func TestValidateIngress(t *testing.T) {
@@ -1244,8 +1327,6 @@ func TestValidateIngress(t *testing.T) {
 	badHostIP := newValid()
 	badHostIP.Spec.Rules[0].Host = hostIP
 	badHostIPErr := fmt.Sprintf("spec.rules[0].host: Invalid value: '%v'", hostIP)
-	noSecretName := newValid()
-	noSecretName.Spec.TLS = []extensions.IngressTLS{{SecretName: ""}}
 
 	errorCases := map[string]extensions.Ingress{
 		"spec.backend.serviceName: Required value":        servicelessBackend,
@@ -1254,7 +1335,6 @@ func TestValidateIngress(t *testing.T) {
 		"spec.rules[0].host: Invalid value":               badHost,
 		"spec.rules[0].http.paths: Required value":        noPaths,
 		"spec.rules[0].http.paths[0].path: Invalid value": noForwardSlashPath,
-		"spec.tls[0].secretName: Required value":          noSecretName,
 	}
 	errorCases[badPathErr] = badRegexPath
 	errorCases[badHostIPErr] = badHostIP

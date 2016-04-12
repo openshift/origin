@@ -239,8 +239,8 @@ func (c *Cacher) Set(ctx context.Context, key string, obj, out runtime.Object, t
 }
 
 // Implements storage.Interface.
-func (c *Cacher) Delete(ctx context.Context, key string, out runtime.Object) error {
-	return c.storage.Delete(ctx, key, out)
+func (c *Cacher) Delete(ctx context.Context, key string, out runtime.Object, preconditions *Preconditions) error {
+	return c.storage.Delete(ctx, key, out, preconditions)
 }
 
 // Implements storage.Interface.
@@ -347,8 +347,8 @@ func (c *Cacher) List(ctx context.Context, key string, resourceVersion string, f
 }
 
 // Implements storage.Interface.
-func (c *Cacher) GuaranteedUpdate(ctx context.Context, key string, ptrToType runtime.Object, ignoreNotFound bool, tryUpdate UpdateFunc) error {
-	return c.storage.GuaranteedUpdate(ctx, key, ptrToType, ignoreNotFound, tryUpdate)
+func (c *Cacher) GuaranteedUpdate(ctx context.Context, key string, ptrToType runtime.Object, ignoreNotFound bool, preconditions *Preconditions, tryUpdate UpdateFunc) error {
+	return c.storage.GuaranteedUpdate(ctx, key, ptrToType, ignoreNotFound, preconditions, tryUpdate)
 }
 
 // Implements storage.Interface.
@@ -502,9 +502,11 @@ func (c *cacheWatcher) stop() {
 }
 
 func (c *cacheWatcher) add(event watchCacheEvent) {
+	t := time.NewTimer(5 * time.Second)
+	defer t.Stop()
 	select {
 	case c.input <- event:
-	case <-time.After(5 * time.Second):
+	case <-t.C:
 		// This means that we couldn't send event to that watcher.
 		// Since we don't want to blockin on it infinitely,
 		// we simply terminate it.

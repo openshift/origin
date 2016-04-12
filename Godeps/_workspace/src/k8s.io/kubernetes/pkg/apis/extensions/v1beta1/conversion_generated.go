@@ -2287,7 +2287,6 @@ func autoConvert_extensions_APIVersion_To_v1beta1_APIVersion(in *extensions.APIV
 		defaulting.(func(*extensions.APIVersion))(in)
 	}
 	out.Name = in.Name
-	out.APIGroup = in.APIGroup
 	return nil
 }
 
@@ -3405,7 +3404,7 @@ func autoConvert_extensions_ThirdPartyResourceData_To_v1beta1_ThirdPartyResource
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := conversion.ByteSliceCopy(&in.Data, &out.Data, s); err != nil {
+	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Data, &out.Data, s); err != nil {
 		return err
 	}
 	return nil
@@ -3474,7 +3473,6 @@ func autoConvert_v1beta1_APIVersion_To_extensions_APIVersion(in *APIVersion, out
 		defaulting.(func(*APIVersion))(in)
 	}
 	out.Name = in.Name
-	out.APIGroup = in.APIGroup
 	return nil
 }
 
@@ -4646,7 +4644,7 @@ func autoConvert_v1beta1_ThirdPartyResourceData_To_extensions_ThirdPartyResource
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := conversion.ByteSliceCopy(&in.Data, &out.Data, s); err != nil {
+	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Data, &out.Data, s); err != nil {
 		return err
 	}
 	return nil

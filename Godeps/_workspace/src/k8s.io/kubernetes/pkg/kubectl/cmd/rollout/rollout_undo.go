@@ -37,14 +37,19 @@ type UndoOptions struct {
 	Typer      runtime.ObjectTyper
 	Info       *resource.Info
 	ToRevision int64
-	Out        io.Writer
-	Filenames  []string
+
+	Out       io.Writer
+	Filenames []string
+	Recursive bool
 }
 
 const (
-	undo_long    = `undo rolls back to a previous rollout.`
+	undo_long    = `Rollback to a previous rollout.`
 	undo_example = `# Rollback to the previous deployment
-kubectl rollout undo deployment/abc`
+kubectl rollout undo deployment/abc
+
+# Rollback to deployment revision 3
+kubectl rollout undo deployment/abc --to-revision=3`
 )
 
 func NewCmdRolloutUndo(f *cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -64,6 +69,7 @@ func NewCmdRolloutUndo(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().Int64("to-revision", 0, "The revision to rollback to. Default to 0 (last revision).")
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
 	return cmd
 }
 
@@ -73,7 +79,7 @@ func (o *UndoOptions) CompleteUndo(f *cmdutil.Factory, cmd *cobra.Command, out i
 	}
 
 	o.ToRevision = cmdutil.GetFlagInt64(cmd, "to-revision")
-	o.Mapper, o.Typer = f.Object()
+	o.Mapper, o.Typer = f.Object(false)
 	o.Out = out
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
@@ -83,7 +89,7 @@ func (o *UndoOptions) CompleteUndo(f *cmdutil.Factory, cmd *cobra.Command, out i
 
 	infos, err := resource.NewBuilder(o.Mapper, o.Typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, o.Filenames...).
+		FilenameParam(enforceNamespace, o.Recursive, o.Filenames...).
 		ResourceTypeOrNameArgs(true, args...).
 		Latest().
 		Flatten().

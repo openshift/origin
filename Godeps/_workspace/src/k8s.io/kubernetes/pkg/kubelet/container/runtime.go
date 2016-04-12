@@ -26,7 +26,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -68,7 +68,7 @@ type Runtime interface {
 	// GarbageCollect removes dead containers using the specified container gc policy
 	GarbageCollect(gcPolicy ContainerGCPolicy) error
 	// Syncs the running pod into the desired pod.
-	SyncPod(pod *api.Pod, apiPodStatus api.PodStatus, podStatus *PodStatus, pullSecrets []api.Secret, backOff *util.Backoff) PodSyncResult
+	SyncPod(pod *api.Pod, apiPodStatus api.PodStatus, podStatus *PodStatus, pullSecrets []api.Secret, backOff *flowcontrol.Backoff) PodSyncResult
 	// KillPod kills all the containers of a pod. Pod may be nil, running pod must not be.
 	// TODO(random-liu): Return PodSyncResult in KillPod.
 	KillPod(pod *api.Pod, runningPod Pod) error
@@ -103,7 +103,7 @@ type ContainerAttacher interface {
 // CommandRunner encapsulates the command runner interfaces for testability.
 type ContainerCommandRunner interface {
 	// TODO(vmarmol): Merge RunInContainer and ExecInContainer.
-	// Runs the command in the container of the specified pod using nsinit.
+	// Runs the command in the container of the specified pod.
 	RunInContainer(containerID ContainerID, cmd []string) ([]byte, error)
 	// Runs the command in the container of the specified pod using nsenter.
 	// Attaches the processes stdin, stdout, and stderr. Optionally uses a
@@ -218,7 +218,8 @@ type Container struct {
 	// The name of the container, which should be the same as specified by
 	// api.Container.
 	Name string
-	// The image name of the container.
+	// The image name of the container, this also includes the tag of the image,
+	// the expected form is "NAME:TAG".
 	Image string
 	// Hash of the container, used for comparison. Optional for containers
 	// not managed by kubelet.
@@ -261,7 +262,8 @@ type ContainerStatus struct {
 	FinishedAt time.Time
 	// Exit code of the container.
 	ExitCode int
-	// Name of the image.
+	// Name of the image, this also includes the tag of the image,
+	// the expected form is "NAME:TAG".
 	Image string
 	// ID of the image.
 	ImageID string
@@ -365,8 +367,8 @@ type RunContainerOptions struct {
 
 // VolumeInfo contains information about the volume.
 type VolumeInfo struct {
-	// Builder is the volume's builder
-	Builder volume.Builder
+	// Mounter is the volume's mounter
+	Mounter volume.Mounter
 	// SELinuxLabeled indicates whether this volume has had the
 	// pod's SELinux label applied to it or not
 	SELinuxLabeled bool

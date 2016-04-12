@@ -33,7 +33,7 @@ const (
 	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.3"
 )
 
-var _ = Describe("EmptyDir volumes", func() {
+var _ = KubeDescribe("EmptyDir volumes", func() {
 
 	f := NewDefaultFramework("emptydir")
 
@@ -132,7 +132,6 @@ func doTestSetgidFSGroup(f *Framework, image string, medium api.StorageMedium) {
 		fmt.Sprintf("--file_owner=%v", filePath),
 	}
 
-	pod.Spec.SecurityContext = &api.PodSecurityContext{}
 	fsGroup := int64(123)
 	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
@@ -161,7 +160,7 @@ func doTestVolumeModeFSGroup(f *Framework, image string, medium api.StorageMediu
 	}
 
 	fsGroup := int64(1001)
-	pod.Spec.SecurityContext = &api.PodSecurityContext{FSGroup: &fsGroup}
+	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
 	msg := fmt.Sprintf("emptydir volume type on %v", formatMedium(medium))
 	out := []string{
@@ -187,7 +186,6 @@ func doTest0644FSGroup(f *Framework, image string, medium api.StorageMedium) {
 		fmt.Sprintf("--file_perm=%v", filePath),
 	}
 
-	pod.Spec.SecurityContext = &api.PodSecurityContext{}
 	fsGroup := int64(123)
 	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
@@ -328,6 +326,11 @@ func testPodWithVolume(image, path string, source *api.EmptyDirVolumeSource) *ap
 							MountPath: path,
 						},
 					},
+				},
+			},
+			SecurityContext: &api.PodSecurityContext{
+				SELinuxOptions: &api.SELinuxOptions{
+					Level: "s0",
 				},
 			},
 			RestartPolicy: api.RestartPolicyNever,

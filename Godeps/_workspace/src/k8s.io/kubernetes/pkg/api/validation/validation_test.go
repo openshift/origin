@@ -563,7 +563,7 @@ func TestValidateVolumes(t *testing.T) {
 		{Name: "glusterfs", VolumeSource: api.VolumeSource{Glusterfs: &api.GlusterfsVolumeSource{EndpointsName: "host1", Path: "path", ReadOnly: false}}},
 		{Name: "flocker", VolumeSource: api.VolumeSource{Flocker: &api.FlockerVolumeSource{DatasetName: "datasetName"}}},
 		{Name: "rbd", VolumeSource: api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{"foo"}, RBDImage: "bar", FSType: "ext4"}}},
-		{Name: "cinder", VolumeSource: api.VolumeSource{Cinder: &api.CinderVolumeSource{"29ea5088-4f60-4757-962e-dba678767887", "ext4", false}}},
+		{Name: "cinder", VolumeSource: api.VolumeSource{Cinder: &api.CinderVolumeSource{VolumeID: "29ea5088-4f60-4757-962e-dba678767887", FSType: "ext4", ReadOnly: false}}},
 		{Name: "cephfs", VolumeSource: api.VolumeSource{CephFS: &api.CephFSVolumeSource{Monitors: []string{"foo"}}}},
 		{Name: "downwardapi", VolumeSource: api.VolumeSource{DownwardAPI: &api.DownwardAPIVolumeSource{Items: []api.DownwardAPIVolumeFile{
 			{Path: "labels", FieldRef: api.ObjectFieldSelector{
@@ -591,9 +591,9 @@ func TestValidateVolumes(t *testing.T) {
 				APIVersion: "v1",
 				FieldPath:  "metadata.labels"}},
 		}}}},
-		{Name: "fc", VolumeSource: api.VolumeSource{FC: &api.FCVolumeSource{[]string{"some_wwn"}, &lun, "ext4", false}}},
+		{Name: "fc", VolumeSource: api.VolumeSource{FC: &api.FCVolumeSource{TargetWWNs: []string{"some_wwn"}, Lun: &lun, FSType: "ext4", ReadOnly: false}}},
 		{Name: "flexvolume", VolumeSource: api.VolumeSource{FlexVolume: &api.FlexVolumeSource{Driver: "kubernetes.io/blue", FSType: "ext4"}}},
-		{Name: "azure", VolumeSource: api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{"key", "share", false}}},
+		{Name: "azure", VolumeSource: api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{SecretName: "key", ShareName: "share", ReadOnly: false}}},
 	}
 	names, errs := validateVolumes(successCase, field.NewPath("field"))
 	if len(errs) != 0 {
@@ -639,11 +639,11 @@ func TestValidateVolumes(t *testing.T) {
 			APIVersion: "v1",
 			FieldPath:  "metadata.labels"}}},
 	}}
-	zeroWWN := api.VolumeSource{FC: &api.FCVolumeSource{[]string{}, &lun, "ext4", false}}
-	emptyLun := api.VolumeSource{FC: &api.FCVolumeSource{[]string{"wwn"}, nil, "ext4", false}}
+	zeroWWN := api.VolumeSource{FC: &api.FCVolumeSource{TargetWWNs: []string{}, Lun: &lun, FSType: "ext4", ReadOnly: false}}
+	emptyLun := api.VolumeSource{FC: &api.FCVolumeSource{TargetWWNs: []string{"wwn"}, Lun: nil, FSType: "ext4", ReadOnly: false}}
 	slashInName := api.VolumeSource{Flocker: &api.FlockerVolumeSource{DatasetName: "foo/bar"}}
-	emptyAzureSecret := api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{"", "share", false}}
-	emptyAzureShare := api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{"name", "", false}}
+	emptyAzureSecret := api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{SecretName: "", ShareName: "share", ReadOnly: false}}
+	emptyAzureShare := api.VolumeSource{AzureFile: &api.AzureFileVolumeSource{SecretName: "name", ShareName: "", ReadOnly: false}}
 	errorCases := map[string]struct {
 		V []api.Volume
 		T field.ErrorType
@@ -1124,18 +1124,19 @@ func TestValidateVolumeMounts(t *testing.T) {
 
 	successCase := []api.VolumeMount{
 		{Name: "abc", MountPath: "/foo"},
-		{Name: "123", MountPath: "/foo"},
-		{Name: "abc-123", MountPath: "/bar"},
+		{Name: "123", MountPath: "/bar"},
+		{Name: "abc-123", MountPath: "/baz"},
 	}
 	if errs := validateVolumeMounts(successCase, volumes, field.NewPath("field")); len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
 
 	errorCases := map[string][]api.VolumeMount{
-		"empty name":      {{Name: "", MountPath: "/foo"}},
-		"name not found":  {{Name: "", MountPath: "/foo"}},
-		"empty mountpath": {{Name: "abc", MountPath: ""}},
-		"colon mountpath": {{Name: "abc", MountPath: "foo:bar"}},
+		"empty name":          {{Name: "", MountPath: "/foo"}},
+		"name not found":      {{Name: "", MountPath: "/foo"}},
+		"empty mountpath":     {{Name: "abc", MountPath: ""}},
+		"colon mountpath":     {{Name: "abc", MountPath: "foo:bar"}},
+		"mountpath collision": {{Name: "foo", MountPath: "/path/a"}, {Name: "bar", MountPath: "/path/a"}},
 	}
 	for k, v := range errorCases {
 		if errs := validateVolumeMounts(v, volumes, field.NewPath("field")); len(errs) == 0 {

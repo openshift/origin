@@ -180,7 +180,8 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			if true { //c.RandBool() {
 				*j = &runtime.Unknown{
 					// We do not set TypeMeta here because it is not carried through a round trip
-					RawJSON: []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
+					Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
+					ContentType: runtime.ContentTypeJSON,
 				}
 			} else {
 				types := []runtime.Object{&api.Pod{}, &api.ReplicationController{}}
@@ -391,11 +392,6 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 		func(s *api.NodeStatus, c fuzz.Continue) {
 			c.FuzzNoCustom(s)
 			s.Allocatable = s.Capacity
-		},
-		func(s *extensions.APIVersion, c fuzz.Continue) {
-			// We can't use c.RandString() here because it may generate empty
-			// string, which will cause tests failure.
-			s.APIGroup = "something"
 		},
 		func(s *extensions.HorizontalPodAutoscalerSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again

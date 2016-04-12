@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"path"
 	"regexp"
 	"sort"
@@ -44,6 +45,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/crypto"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -57,6 +59,7 @@ import (
 
 const (
 	DefaultEtcdPathPrefix = "/registry"
+	globalTimeout         = time.Minute
 )
 
 // StorageDestinations is a mapping from API group & resource to
@@ -160,15 +163,6 @@ func (s *StorageDestinations) Backends() []string {
 	return backends.List()
 }
 
-// Specifies the overrides for various API group versions.
-// This can be used to enable/disable entire group versions or specific resources.
-type APIGroupVersionOverride struct {
-	// Whether to enable or disable this group version.
-	Disable bool
-	// List of overrides for individual resources in this group version.
-	ResourceOverrides map[string]bool
-}
-
 // Info about an API group.
 type APIGroupInfo struct {
 	GroupMeta apimachinery.GroupMeta
@@ -207,10 +201,14 @@ type Config struct {
 	// allow downstream consumers to disable the core controller loops
 	EnableLogsSupport bool
 	EnableUISupport   bool
-	// allow downstream consumers to disable swagger
+	// Allow downstream consumers to disable swagger.
+	// This includes returning the generated swagger spec at /swaggerapi and swagger ui at /swagger-ui.
 	EnableSwaggerSupport bool
+	// Allow downstream consumers to disable swagger ui.
+	// Note that this is ignored if either EnableSwaggerSupport or EnableUISupport is false.
+	EnableSwaggerUI bool
 	// Allows api group versions or specific resources to be conditionally enabled/disabled.
-	APIGroupVersionOverrides map[string]APIGroupVersionOverride
+	APIResourceConfigSource APIResourceConfigSource
 	// allow downstream consumers to disable the index route
 	EnableIndex           bool
 	EnableProfiling       bool
@@ -297,24 +295,24 @@ type GenericAPIServer struct {
 	cacheTimeout          time.Duration
 	MinRequestTimeout     time.Duration
 
-	mux                      apiserver.Mux
-	MuxHelper                *apiserver.MuxHelper
-	HandlerContainer         *restful.Container
-	RootWebService           *restful.WebService
-	enableLogsSupport        bool
-	enableUISupport          bool
-	enableSwaggerSupport     bool
-	enableProfiling          bool
-	enableWatchCache         bool
-	APIPrefix                string
-	APIGroupPrefix           string
-	corsAllowedOriginList    []string
-	authenticator            authenticator.Request
-	authorizer               authorizer.Authorizer
-	AdmissionControl         admission.Interface
-	MasterCount              int
-	ApiGroupVersionOverrides map[string]APIGroupVersionOverride
-	RequestContextMapper     api.RequestContextMapper
+	mux                   apiserver.Mux
+	MuxHelper             *apiserver.MuxHelper
+	HandlerContainer      *restful.Container
+	RootWebService        *restful.WebService
+	enableLogsSupport     bool
+	enableUISupport       bool
+	enableSwaggerSupport  bool
+	enableSwaggerUI       bool
+	enableProfiling       bool
+	enableWatchCache      bool
+	APIPrefix             string
+	APIGroupPrefix        string
+	corsAllowedOriginList []string
+	authenticator         authenticator.Request
+	authorizer            authorizer.Authorizer
+	AdmissionControl      admission.Interface
+	MasterCount           int
+	RequestContextMapper  api.RequestContextMapper
 
 	// ExternalAddress is the address (hostname or IP and port) that should be used in
 	// external (public internet) URLs for this GenericAPIServer.
@@ -442,23 +440,23 @@ func New(c *Config) (*GenericAPIServer, error) {
 	setDefaults(c)
 
 	s := &GenericAPIServer{
-		ServiceClusterIPRange:    c.ServiceClusterIPRange,
-		ServiceNodePortRange:     c.ServiceNodePortRange,
-		RootWebService:           new(restful.WebService),
-		enableLogsSupport:        c.EnableLogsSupport,
-		enableUISupport:          c.EnableUISupport,
-		enableSwaggerSupport:     c.EnableSwaggerSupport,
-		enableProfiling:          c.EnableProfiling,
-		enableWatchCache:         c.EnableWatchCache,
-		APIPrefix:                c.APIPrefix,
-		APIGroupPrefix:           c.APIGroupPrefix,
-		corsAllowedOriginList:    c.CorsAllowedOriginList,
-		authenticator:            c.Authenticator,
-		authorizer:               c.Authorizer,
-		AdmissionControl:         c.AdmissionControl,
-		ApiGroupVersionOverrides: c.APIGroupVersionOverrides,
-		RequestContextMapper:     c.RequestContextMapper,
-		Serializer:               c.Serializer,
+		ServiceClusterIPRange: c.ServiceClusterIPRange,
+		ServiceNodePortRange:  c.ServiceNodePortRange,
+		RootWebService:        new(restful.WebService),
+		enableLogsSupport:     c.EnableLogsSupport,
+		enableUISupport:       c.EnableUISupport,
+		enableSwaggerSupport:  c.EnableSwaggerSupport,
+		enableSwaggerUI:       c.EnableSwaggerUI,
+		enableProfiling:       c.EnableProfiling,
+		enableWatchCache:      c.EnableWatchCache,
+		APIPrefix:             c.APIPrefix,
+		APIGroupPrefix:        c.APIGroupPrefix,
+		corsAllowedOriginList: c.CorsAllowedOriginList,
+		authenticator:         c.Authenticator,
+		authorizer:            c.Authorizer,
+		AdmissionControl:      c.AdmissionControl,
+		RequestContextMapper:  c.RequestContextMapper,
+		Serializer:            c.Serializer,
 
 		cacheTimeout:      c.CacheTimeout,
 		MinRequestTimeout: time.Duration(c.MinRequestTimeout) * time.Second,
@@ -497,8 +495,8 @@ func New(c *Config) (*GenericAPIServer, error) {
 
 func (s *GenericAPIServer) NewRequestInfoResolver() *apiserver.RequestInfoResolver {
 	return &apiserver.RequestInfoResolver{
-		sets.NewString(strings.Trim(s.APIPrefix, "/"), strings.Trim(s.APIGroupPrefix, "/")), // all possible API prefixes
-		sets.NewString(strings.Trim(s.APIPrefix, "/")),                                      // APIPrefixes that won't have groups (legacy)
+		APIPrefixes:          sets.NewString(strings.Trim(s.APIPrefix, "/"), strings.Trim(s.APIGroupPrefix, "/")), // all possible API prefixes
+		GrouplessAPIPrefixes: sets.NewString(strings.Trim(s.APIPrefix, "/")),                                      // APIPrefixes that won't have groups (legacy)
 	}
 }
 
@@ -550,7 +548,7 @@ func (s *GenericAPIServer) init(c *Config) {
 		apiserver.InstallLogsSupport(s.MuxHelper)
 	}
 	// if c.EnableUISupport {
-	// 	ui.InstallSupport(s.MuxHelper, s.enableSwaggerSupport)
+	// 	ui.InstallSupport(s.MuxHelper, s.enableSwaggerSupport && s.enableSwaggerUI)
 	// }
 
 	if c.EnableProfiling {
@@ -606,15 +604,12 @@ func (s *GenericAPIServer) init(c *Config) {
 	s.installGroupsDiscoveryHandler()
 }
 
-// Exposes the given group versions in API.
+// Exposes the given group versions in API. Helper method to install multiple group versions at once.
 func (s *GenericAPIServer) InstallAPIGroups(groupsInfo []APIGroupInfo) error {
 	for _, apiGroupInfo := range groupsInfo {
-		if err := s.installAPIGroup(&apiGroupInfo); err != nil {
+		if err := s.InstallAPIGroup(&apiGroupInfo); err != nil {
 			return err
 		}
-	}
-	if s.enableSwaggerSupport {
-		s.InstallSwaggerAPI()
 	}
 	return nil
 }
@@ -642,7 +637,10 @@ func (s *GenericAPIServer) installGroupsDiscoveryHandler() {
 }
 
 func (s *GenericAPIServer) Run(options *ServerRunOptions) {
-	// We serve on 2 ports.  See docs/accessing_the_api.md
+	if s.enableSwaggerSupport {
+		s.InstallSwaggerAPI()
+	}
+	// We serve on 2 ports. See docs/accessing_the_api.md
 	secureLocation := ""
 	if options.SecurePort != 0 {
 		secureLocation = net.JoinHostPort(options.BindAddress.String(), strconv.Itoa(options.SecurePort))
@@ -661,7 +659,7 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 		if longRunningRequestCheck(req) {
 			return nil, ""
 		}
-		return time.After(time.Minute), ""
+		return time.After(globalTimeout), ""
 	}
 
 	if secureLocation != "" {
@@ -677,7 +675,7 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 		}
 
 		if len(options.ClientCAFile) > 0 {
-			clientCAs, err := util.CertPoolFromFile(options.ClientCAFile)
+			clientCAs, err := crypto.CertPoolFromFile(options.ClientCAFile)
 			if err != nil {
 				glog.Fatalf("Unable to load client CA file: %v", err)
 			}
@@ -697,10 +695,12 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 			alternateDNS := []string{"kubernetes.default.svc", "kubernetes.default", "kubernetes"}
 			// It would be nice to set a fqdn subject alt name, but only the kubelets know, the apiserver is clueless
 			// alternateDNS = append(alternateDNS, "kubernetes.default.svc.CLUSTER.DNS.NAME")
-			if err := util.GenerateSelfSignedCert(s.ClusterIP.String(), options.TLSCertFile, options.TLSPrivateKeyFile, alternateIPs, alternateDNS); err != nil {
-				glog.Errorf("Unable to generate self signed cert: %v", err)
-			} else {
-				glog.Infof("Using self-signed cert (%v, %v)", options.TLSCertFile, options.TLSPrivateKeyFile)
+			if shouldGenSelfSignedCerts(options.TLSCertFile, options.TLSPrivateKeyFile) {
+				if err := crypto.GenerateSelfSignedCert(s.ClusterIP.String(), options.TLSCertFile, options.TLSPrivateKeyFile, alternateIPs, alternateDNS); err != nil {
+					glog.Errorf("Unable to generate self signed cert: %v", err)
+				} else {
+					glog.Infof("Using self-signed cert (%options, %options)", options.TLSCertFile, options.TLSPrivateKeyFile)
+				}
 			}
 		}
 
@@ -734,7 +734,30 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 	glog.Fatal(http.ListenAndServe())
 }
 
-func (s *GenericAPIServer) installAPIGroup(apiGroupInfo *APIGroupInfo) error {
+// If the file represented by path exists and
+// readable, return true otherwise return false.
+func canReadFile(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+
+	defer f.Close()
+
+	return true
+}
+
+func shouldGenSelfSignedCerts(certPath, keyPath string) bool {
+	if canReadFile(certPath) || canReadFile(keyPath) {
+		glog.Infof("using existing apiserver.crt and apiserver.key files")
+		return false
+	}
+
+	return true
+}
+
+// Exposes the given group version in API.
+func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 	apiPrefix := s.APIGroupPrefix
 	if apiGroupInfo.IsLegacyGroup {
 		apiPrefix = s.APIPrefix

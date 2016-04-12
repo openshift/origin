@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	rollout_long    = `rollout manages a deployment using subcommands like "kubectl rollout undo deployment/abc"`
+	rollout_long    = `Manages a deployment using subcommands like "kubectl rollout undo deployment/abc"`
 	rollout_example = `# Rollback to the previous deployment
 kubectl rollout undo deployment/abc`
 	rollout_valid_resources = `Valid resource types include:
@@ -43,7 +43,6 @@ func NewCmdRollout(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmd.Help()
 		},
 	}
-
 	// subcommands
 	cmd.AddCommand(NewCmdRolloutHistory(f, out))
 	cmd.AddCommand(NewCmdRolloutPause(f, out))

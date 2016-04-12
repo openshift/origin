@@ -61,7 +61,7 @@ const loadBalancerCreateTimeout = 20 * time.Minute
 // This should match whatever the default/configured range is
 var ServiceNodePortRange = utilnet.PortRange{Base: 30000, Size: 2768}
 
-var _ = Describe("Services", func() {
+var _ = KubeDescribe("Services", func() {
 	f := NewDefaultFramework("services")
 
 	var c *client.Client
@@ -399,11 +399,11 @@ var _ = Describe("Services", func() {
 		cmd := fmt.Sprintf(`for i in $(seq 1 300); do if ss -ant46 'sport = :%d' | grep ^LISTEN; then exit 0; fi; sleep 1; done; exit 1`, nodePort)
 		stdout, err := RunHostCmd(hostExec.Namespace, hostExec.Name, cmd)
 		if err != nil {
-			Failf("expected node port %d to be in use, stdout: %v", nodePort, stdout)
+			Failf("expected node port %d to be in use, stdout: %v. err: %v", nodePort, stdout, err)
 		}
 	})
 
-	It("should be able to change the type and ports of a service", func() {
+	It("should be able to change the type and ports of a service [Slow]", func() {
 		// requires cloud load-balancer support
 		SkipUnlessProviderIs("gce", "gke", "aws")
 
@@ -1295,7 +1295,7 @@ func startServeHostnameService(c *client.Client, ns, name string, port, replicas
 	maxContainerFailures := 0
 	config := RCConfig{
 		Client:               c,
-		Image:                "gcr.io/google_containers/serve_hostname:1.1",
+		Image:                "gcr.io/google_containers/serve_hostname:v1.4",
 		Name:                 name,
 		Namespace:            ns,
 		PollInterval:         3 * time.Second,

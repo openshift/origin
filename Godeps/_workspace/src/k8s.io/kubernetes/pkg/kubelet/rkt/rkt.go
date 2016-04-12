@@ -47,16 +47,18 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 )
 
 const (
-	RktType = "rkt"
+	RktType                      = "rkt"
+	DefaultRktAPIServiceEndpoint = "localhost:15441"
 
 	minimumAppcVersion       = "0.7.4"
-	minimumRktBinVersion     = "0.13.0"
-	recommendedRktBinVersion = "0.13.0"
+	minimumRktBinVersion     = "1.2.1"
+	recommendedRktBinVersion = "1.2.1"
 	minimumRktApiVersion     = "1.0.0-alpha"
 	minimumSystemdVersion    = "219"
 
@@ -85,7 +87,6 @@ const (
 	authDir            = "auth.d"
 	dockerAuthTemplate = `{"rktKind":"dockerAuth","rktVersion":"v1","registries":[%q],"credentials":{"user":%q,"password":%q}}`
 
-	defaultImageTag          = "latest"
 	defaultRktAPIServiceAddr = "localhost:15441"
 	defaultNetworkName       = "rkt.kubernetes.io"
 
@@ -94,6 +95,11 @@ const (
 	// hence, setting ndots to be 5.
 	// TODO(yifan): Move this and dockertools.ndotsDNSOption to a common package.
 	defaultDNSOption = "ndots:5"
+
+	// Annotations for the ENTRYPOINT and CMD for an ACI that's converted from Docker image.
+	// TODO(yifan): Import them from docker2aci. See https://github.com/appc/docker2aci/issues/133.
+	appcDockerEntrypoint = "appc.io/docker/entrypoint"
+	appcDockerCmd        = "appc.io/docker/cmd"
 )
 
 // Runtime implements the Containerruntime for rkt. The implementation
@@ -104,9 +110,7 @@ type Runtime struct {
 	// The grpc client for rkt api-service.
 	apisvcConn *grpc.ClientConn
 	apisvc     rktapi.PublicAPIClient
-	// The absolute path to rkt binary.
-	rktBinAbsPath string
-	config        *Config
+	config     *Config
 	// TODO(yifan): Refactor this to be generic keyring.
 	dockerKeyring credentialprovider.DockerKeyring
 
@@ -117,11 +121,7 @@ type Runtime struct {
 	volumeGetter        volumeGetter
 	imagePuller         kubecontainer.ImagePuller
 
-	// Versions
-	binVersion     rktVersion
-	apiVersion     rktVersion
-	appcVersion    rktVersion
-	systemdVersion systemdVersion
+	versions versions
 }
 
 var _ kubecontainer.Runtime = &Runtime{}
@@ -134,13 +134,15 @@ type volumeGetter interface {
 // New creates the rkt container runtime which implements the container runtime interface.
 // It will test if the rkt binary is in the $PATH, and whether we can get the
 // version of it. If so, creates the rkt container runtime, otherwise returns an error.
-func New(config *Config,
+func New(
+	apiEndpoint string,
+	config *Config,
 	runtimeHelper kubecontainer.RuntimeHelper,
 	recorder record.EventRecorder,
 	containerRefManager *kubecontainer.RefManager,
 	livenessManager proberesults.Manager,
 	volumeGetter volumeGetter,
-	imageBackOff *util.Backoff,
+	imageBackOff *flowcontrol.Backoff,
 	serializeImagePulls bool,
 ) (*Runtime, error) {
 	// Create dbus connection.
@@ -150,16 +152,16 @@ func New(config *Config,
 	}
 
 	// TODO(yifan): Use secure connection.
-	apisvcConn, err := grpc.Dial(defaultRktAPIServiceAddr, grpc.WithInsecure())
+	apisvcConn, err := grpc.Dial(apiEndpoint, grpc.WithInsecure())
 	if err != nil {
 		return nil, fmt.Errorf("rkt: cannot connect to rkt api service: %v", err)
 	}
 
-	rktBinAbsPath := config.Path
-	if rktBinAbsPath == "" {
+	// TODO(yifan): Get the rkt path from API service.
+	if config.Path == "" {
 		// No default rkt path was set, so try to find one in $PATH.
 		var err error
-		rktBinAbsPath, err = exec.LookPath("rkt")
+		config.Path, err = exec.LookPath("rkt")
 		if err != nil {
 			return nil, fmt.Errorf("cannot find rkt binary: %v", err)
 		}
@@ -167,7 +169,6 @@ func New(config *Config,
 
 	rkt := &Runtime{
 		systemd:             systemd,
-		rktBinAbsPath:       rktBinAbsPath,
 		apisvcConn:          apisvcConn,
 		apisvc:              rktapi.NewPublicAPIClient(apisvcConn),
 		config:              config,
@@ -178,17 +179,27 @@ func New(config *Config,
 		livenessManager:     livenessManager,
 		volumeGetter:        volumeGetter,
 	}
+
+	rkt.config, err = rkt.getConfig(rkt.config)
+	if err != nil {
+		return nil, fmt.Errorf("rkt: cannot get config from rkt api service: %v", err)
+	}
+
 	if serializeImagePulls {
 		rkt.imagePuller = kubecontainer.NewSerializedImagePuller(recorder, rkt, imageBackOff)
 	} else {
 		rkt.imagePuller = kubecontainer.NewImagePuller(recorder, rkt, imageBackOff)
 	}
 
+	if err := rkt.getVersions(); err != nil {
+		return nil, fmt.Errorf("rkt: error getting version info: %v", err)
+	}
+
 	return rkt, nil
 }
 
 func (r *Runtime) buildCommand(args ...string) *exec.Cmd {
-	cmd := exec.Command(r.rktBinAbsPath)
+	cmd := exec.Command(r.config.Path)
 	cmd.Args = append(cmd.Args, r.config.buildGlobalOptions()...)
 	cmd.Args = append(cmd.Args, args...)
 	return cmd
@@ -414,10 +425,35 @@ func setSupplementaryGIDs(app *appctypes.App, podCtx *api.PodSecurityContext) {
 }
 
 // setApp merges the container spec with the image's manifest.
-func setApp(app *appctypes.App, c *api.Container, opts *kubecontainer.RunContainerOptions, ctx *api.SecurityContext, podCtx *api.PodSecurityContext) error {
-	// TODO(yifan): If ENTRYPOINT and CMD are both specified in the image,
-	// we cannot override just one of these at this point as they are already mixed.
-	command, args := kubecontainer.ExpandContainerCommandAndArgs(c, opts.Envs)
+func setApp(imgManifest *appcschema.ImageManifest, c *api.Container, opts *kubecontainer.RunContainerOptions, ctx *api.SecurityContext, podCtx *api.PodSecurityContext) error {
+	app := imgManifest.App
+
+	// Set up Exec.
+	var command, args []string
+	cmd, ok := imgManifest.Annotations.Get(appcDockerEntrypoint)
+	if ok {
+		err := json.Unmarshal([]byte(cmd), &command)
+		if err != nil {
+			return fmt.Errorf("cannot unmarshal ENTRYPOINT %q: %v", cmd, err)
+		}
+	}
+	ag, ok := imgManifest.Annotations.Get(appcDockerCmd)
+	if ok {
+		err := json.Unmarshal([]byte(ag), &args)
+		if err != nil {
+			return fmt.Errorf("cannot unmarshal CMD %q: %v", ag, err)
+		}
+	}
+	userCommand, userArgs := kubecontainer.ExpandContainerCommandAndArgs(c, opts.Envs)
+
+	if len(userCommand) > 0 {
+		command = userCommand
+		args = nil // If 'command' is specified, then drop the default args.
+	}
+	if len(userArgs) > 0 {
+		args = userArgs
+	}
+
 	exec := append(command, args...)
 	if len(exec) > 0 {
 		app.Exec = exec
@@ -514,7 +550,7 @@ func (r *Runtime) makePodManifest(pod *api.Pod, pullSecrets []api.Secret) (*appc
 		manifest.Volumes = append(manifest.Volumes, appctypes.Volume{
 			Name:   convertToACName(vname),
 			Kind:   "host",
-			Source: volume.Builder.GetPath(),
+			Source: volume.Mounter.GetPath(),
 		})
 	}
 
@@ -592,7 +628,7 @@ func (r *Runtime) newAppcRuntimeApp(pod *api.Pod, c api.Container, pullSecrets [
 	}
 
 	ctx := securitycontext.DetermineEffectiveSecurityContext(pod, &c)
-	if err := setApp(imgManifest.App, &c, opts, ctx, pod.Spec.SecurityContext); err != nil {
+	if err := setApp(imgManifest, &c, opts, ctx, pod.Spec.SecurityContext); err != nil {
 		return err
 	}
 
@@ -725,6 +761,10 @@ func (r *Runtime) generateRunCommand(pod *api.Pod, uuid string) (string, error) 
 	if len(dnsServers) > 0 || len(dnsSearches) > 0 {
 		runPrepared = append(runPrepared, fmt.Sprintf("--dns-opt=%s", defaultDNSOption))
 	}
+
+	// TODO(yifan): host domain is not being used.
+	hostname, _ := r.runtimeHelper.GeneratePodHostNameAndDomain(pod)
+	runPrepared = append(runPrepared, fmt.Sprintf("--hostname=%s", hostname))
 	runPrepared = append(runPrepared, uuid)
 	return strings.Join(runPrepared, " "), nil
 }
@@ -768,7 +808,7 @@ func (r *Runtime) preparePod(pod *api.Pod, pullSecrets []api.Secret) (string, *k
 	// Run 'rkt prepare' to get the rkt UUID.
 	cmds := []string{"prepare", "--quiet", "--pod-manifest", manifestFile.Name()}
 	if r.config.Stage1Image != "" {
-		cmds = append(cmds, "--stage1-image", r.config.Stage1Image)
+		cmds = append(cmds, "--stage1-path", r.config.Stage1Image)
 	}
 	output, err := r.runCommand(cmds...)
 	if err != nil {
@@ -790,8 +830,6 @@ func (r *Runtime) preparePod(pod *api.Pod, pullSecrets []api.Secret) (string, *k
 	// TODO handle pod.Spec.HostIPC
 
 	units := []*unit.UnitOption{
-		// This makes the service show up for 'systemctl list-units' even if it exits successfully.
-		newUnitOption("Service", "RemainAfterExit", "true"),
 		newUnitOption("Service", "ExecStart", runPrepared),
 		// This enables graceful stop.
 		newUnitOption("Service", "KillMode", "mixed"),
@@ -958,9 +996,10 @@ func (r *Runtime) convertRktPod(rktpod *rktapi.Pod) (*kubecontainer.Pod, error) 
 		}
 
 		kubepod.Containers = append(kubepod.Containers, &kubecontainer.Container{
-			ID:      buildContainerID(&containerID{rktpod.Id, app.Name}),
-			Name:    app.Name,
-			Image:   app.Image.Name,
+			ID:   buildContainerID(&containerID{rktpod.Id, app.Name}),
+			Name: app.Name,
+			// By default, the version returned by rkt API service will be "latest" if not specified.
+			Image:   fmt.Sprintf("%s:%s", app.Image.Name, app.Image.Version),
 			Hash:    containerHash,
 			Created: podCreated,
 			State:   appStateToContainerState(app.State),
@@ -998,16 +1037,33 @@ func (r *Runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 		return nil, fmt.Errorf("couldn't list pods: %v", err)
 	}
 
-	var pods []*kubecontainer.Pod
+	pods := make(map[types.UID]*kubecontainer.Pod)
+	var podIDs []types.UID
 	for _, pod := range listResp.Pods {
 		pod, err := r.convertRktPod(pod)
 		if err != nil {
 			glog.Warningf("rkt: Cannot construct pod from unit file: %v.", err)
 			continue
 		}
-		pods = append(pods, pod)
+
+		// Group pods together.
+		oldPod, found := pods[pod.ID]
+		if !found {
+			pods[pod.ID] = pod
+			podIDs = append(podIDs, pod.ID)
+			continue
+		}
+
+		oldPod.Containers = append(oldPod.Containers, pod.Containers...)
 	}
-	return pods, nil
+
+	// Convert map to list, using the consistent order from the podIDs array.
+	var result []*kubecontainer.Pod
+	for _, id := range podIDs {
+		result = append(result, pods[id])
+	}
+
+	return result, nil
 }
 
 // KillPod invokes 'systemctl kill' to kill the unit that runs the pod.
@@ -1052,11 +1108,15 @@ func (r *Runtime) Type() string {
 }
 
 func (r *Runtime) Version() (kubecontainer.Version, error) {
-	return r.binVersion, nil
+	r.versions.RLock()
+	defer r.versions.RUnlock()
+	return r.versions.binVersion, nil
 }
 
 func (r *Runtime) APIVersion() (kubecontainer.Version, error) {
-	return r.apiVersion, nil
+	r.versions.RLock()
+	defer r.versions.RUnlock()
+	return r.versions.apiVersion, nil
 }
 
 // Status returns error if rkt is unhealthy, nil otherwise.
@@ -1065,7 +1125,7 @@ func (r *Runtime) Status() error {
 }
 
 // SyncPod syncs the running pod to match the specified desired pod.
-func (r *Runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStatus *kubecontainer.PodStatus, pullSecrets []api.Secret, backOff *util.Backoff) (result kubecontainer.PodSyncResult) {
+func (r *Runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStatus *kubecontainer.PodStatus, pullSecrets []api.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
 	var err error
 	defer func() {
 		if err != nil {
@@ -1414,9 +1474,10 @@ func populateContainerStatus(pod rktapi.Pod, app rktapi.App, runtimeApp appcsche
 		CreatedAt: creationTime,
 		StartedAt: creationTime,
 		ExitCode:  int(app.ExitCode),
-		Image:     app.Image.Name,
-		ImageID:   "rkt://" + app.Image.Id, // TODO(yifan): Add the prefix only in api.PodStatus.
-		Hash:      hashNum,
+		// By default, the version returned by rkt API service will be "latest" if not specified.
+		Image:   fmt.Sprintf("%s:%s", app.Image.Name, app.Image.Version),
+		ImageID: "rkt://" + app.Image.Id, // TODO(yifan): Add the prefix only in api.PodStatus.
+		Hash:    hashNum,
 		// TODO(yifan): Note that now all apps share the same restart count, this might
 		// change once apps don't share the same lifecycle.
 		// See https://github.com/appc/spec/pull/547.

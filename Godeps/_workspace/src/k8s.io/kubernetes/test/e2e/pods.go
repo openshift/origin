@@ -205,7 +205,7 @@ func getRestartDelay(c *client.Client, pod *api.Pod, ns string, name string, con
 	return 0, fmt.Errorf("timeout getting pod restart delay")
 }
 
-var _ = Describe("Pods", func() {
+var _ = KubeDescribe("Pods", func() {
 	framework := NewDefaultFramework("pods")
 
 	It("should get a host IP [Conformance]", func() {
@@ -350,6 +350,28 @@ var _ = Describe("Pods", func() {
 		if err := podClient.Delete(pod.Name, api.NewDeleteOptions(30)); err != nil {
 			Failf("Failed to delete pod: %v", err)
 		}
+
+		By("verifying the kubelet observed the termination notice")
+		pod, err = podClient.Get(pod.Name)
+		Expect(wait.Poll(time.Second*5, time.Second*30, func() (bool, error) {
+			podList, err := GetKubeletPods(framework.Client, pod.Spec.NodeName)
+			if err != nil {
+				Logf("Unable to retrieve kubelet pods for node %v: %v", pod.Spec.NodeName, err)
+				return false, nil
+			}
+			for _, kubeletPod := range podList.Items {
+				if pod.Name != kubeletPod.Name {
+					continue
+				}
+				if kubeletPod.ObjectMeta.DeletionTimestamp == nil {
+					Logf("deletion has not yet been observed")
+					return false, nil
+				}
+				return true, nil
+			}
+			Logf("no pod exists with the name we were looking for, assuming the termination request was observed and completed")
+			return true, nil
+		})).NotTo(HaveOccurred(), "kubelet never observed the termination notice")
 
 		By("verifying pod deletion was observed")
 		deleted := false
@@ -562,7 +584,7 @@ var _ = Describe("Pods", func() {
 				Containers: []api.Container{
 					{
 						Name:  "srv",
-						Image: "gcr.io/google_containers/serve_hostname:1.1",
+						Image: "gcr.io/google_containers/serve_hostname:v1.4",
 						Ports: []api.ContainerPort{{ContainerPort: 9376}},
 					},
 				},

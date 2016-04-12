@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -36,7 +37,7 @@ const (
 	serverStartTimeout = podStartTimeout + 3*time.Minute
 )
 
-var _ = Describe("[Feature:Example]", func() {
+var _ = KubeDescribe("[Feature:Example]", func() {
 	framework := NewDefaultFramework("examples")
 	var c *client.Client
 	var ns string
@@ -45,7 +46,7 @@ var _ = Describe("[Feature:Example]", func() {
 		ns = framework.Namespace.Name
 	})
 
-	Describe("Redis", func() {
+	KubeDescribe("Redis", func() {
 		It("should create and stop redis servers", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples/redis", file)
@@ -107,7 +108,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Celery-RabbitMQ", func() {
+	KubeDescribe("Celery-RabbitMQ", func() {
 		It("should create and stop celery+rabbitmq servers", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "celery-rabbitmq", file)
@@ -150,7 +151,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Spark", func() {
+	KubeDescribe("Spark", func() {
 		It("should start spark master, driver and workers", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "spark", file)
@@ -200,7 +201,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Cassandra", func() {
+	KubeDescribe("Cassandra", func() {
 		It("should create and scale cassandra", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "cassandra", file)
@@ -247,7 +248,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Storm", func() {
+	KubeDescribe("Storm", func() {
 		It("should create and stop Zookeeper, Nimbus and Storm worker servers", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "storm", file)
@@ -301,7 +302,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Liveness", func() {
+	KubeDescribe("Liveness", func() {
 		It("liveness pods should be automatically restarted", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "docs", "user-guide", "liveness", file)
@@ -312,28 +313,46 @@ var _ = Describe("[Feature:Example]", func() {
 
 			runKubectlOrDie("create", "-f", execYaml, nsFlag)
 			runKubectlOrDie("create", "-f", httpYaml, nsFlag)
+
+			// Since both containers start rapidly, we can easily run this test in parallel.
+			var wg sync.WaitGroup
+			passed := true
 			checkRestart := func(podName string, timeout time.Duration) {
 				err := waitForPodRunningInNamespace(c, podName, ns)
 				Expect(err).NotTo(HaveOccurred())
-
 				for t := time.Now(); time.Since(t) < timeout; time.Sleep(poll) {
 					pod, err := c.Pods(ns).Get(podName)
 					expectNoError(err, fmt.Sprintf("getting pod %s", podName))
-					restartCount := api.GetExistingContainerStatus(pod.Status.ContainerStatuses, "liveness").RestartCount
-					Logf("Pod: %s   restart count:%d", podName, restartCount)
-					if restartCount > 0 {
+					stat := api.GetExistingContainerStatus(pod.Status.ContainerStatuses, podName)
+					Logf("Pod: %s, restart count:%d", stat.Name, stat.RestartCount)
+					if stat.RestartCount > 0 {
+						Logf("Saw %v restart, succeeded...", podName)
+						wg.Done()
 						return
 					}
 				}
-				Failf("Pod %s was not restarted", podName)
+				Logf("Failed waiting for %v restart! ", podName)
+				passed = false
+				wg.Done()
 			}
+
 			By("Check restarts")
-			checkRestart("liveness-exec", time.Minute)
-			checkRestart("liveness-http", time.Minute)
+
+			// Start the "actual test", and wait for both pods to complete.
+			// If 2 fail: Something is broken with the test (or maybe even with liveness).
+			// If 1 fails: Its probably just an error in the examples/ files themselves.
+			wg.Add(2)
+			for _, c := range []string{"liveness-http", "liveness-exec"} {
+				go checkRestart(c, 2*time.Minute)
+			}
+			wg.Wait()
+			if !passed {
+				Failf("At least one liveness example failed.  See the logs above.")
+			}
 		})
 	})
 
-	Describe("Secret", func() {
+	KubeDescribe("Secret", func() {
 		It("should create a pod that reads a secret", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "docs", "user-guide", "secrets", file)
@@ -355,7 +374,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Downward API", func() {
+	KubeDescribe("Downward API", func() {
 		It("should create a pod that prints his name and namespace", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "docs", "user-guide", "downward-api", file)
@@ -377,7 +396,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("RethinkDB", func() {
+	KubeDescribe("RethinkDB", func() {
 		It("should create and stop rethinkdb servers", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "rethinkdb", file)
@@ -419,7 +438,7 @@ var _ = Describe("[Feature:Example]", func() {
 		})
 	})
 
-	Describe("Hazelcast", func() {
+	KubeDescribe("Hazelcast", func() {
 		It("should create and scale hazelcast", func() {
 			mkpath := func(file string) string {
 				return filepath.Join(testContext.RepoRoot, "examples", "hazelcast", file)
