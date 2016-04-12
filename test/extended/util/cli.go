@@ -214,21 +214,20 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 // Run executes given OpenShift CLI command verb (iow. "oc <verb>").
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
-func (c *CLI) Run(verb string) *CLI {
+func (c *CLI) Run(commands ...string) *CLI {
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		execPath:        c.execPath,
-		verb:            verb,
+		verb:            commands[0],
 		kubeFramework:   c.KubeFramework(),
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
 		outputDir:       c.outputDir,
-		globalArgs: []string{
-			verb,
+		globalArgs: append(commands, []string{
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.configPath),
-		},
+		}...),
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
