@@ -12,37 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package timeutil
+// +build linux
+
+package backend
 
 import (
-	"reflect"
-	"testing"
-	"time"
+	"syscall"
+
+	"github.com/boltdb/bolt"
 )
 
-func TestUnixNanoToTime(t *testing.T) {
-	tests := []struct {
-		ns   int64
-		want time.Time
-	}{
-		{
-			0,
-			time.Time{},
-		},
-		{
-			60000,
-			time.Unix(0, 60000),
-		},
-		{
-			-60000,
-			time.Unix(0, -60000),
-		},
-	}
-
-	for i, tt := range tests {
-		got := UnixNanoToTime(tt.ns)
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("#%d: time = %v, want %v", i, got, tt.want)
-		}
-	}
+// syscall.MAP_POPULATE on linux 2.6.23+ does sequential read-ahead
+// which can speed up entire-database read with boltdb. We want to
+// enable MAP_POPULATE for faster key-value store recovery in storage
+// package. If your kernel version is lower than 2.6.23
+// (https://github.com/torvalds/linux/releases/tag/v2.6.23), mmap might
+// silently ignore this flag. Please update your kernel to prevent this.
+var boltOpenOptions = &bolt.Options{
+	MmapFlags:       syscall.MAP_POPULATE,
+	InitialMmapSize: int(InitialMmapSize),
 }

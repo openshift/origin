@@ -1,15 +1,29 @@
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package storage
 
 import (
-	"io/ioutil"
-	"log"
+	"fmt"
 	"os"
-	"path"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/coreos/etcd/lease"
 	"github.com/coreos/etcd/pkg/testutil"
+	"github.com/coreos/etcd/storage/backend"
 	"github.com/coreos/etcd/storage/storagepb"
 )
 
@@ -20,7 +34,7 @@ import (
 
 type (
 	rangeFunc       func(kv KV, key, end []byte, limit, rangeRev int64) ([]storagepb.KeyValue, int64, error)
-	putFunc         func(kv KV, key, value []byte) int64
+	putFunc         func(kv KV, key, value []byte, lease lease.LeaseID) int64
 	deleteRangeFunc func(kv KV, key, end []byte) (n, rev int64)
 )
 
@@ -34,13 +48,13 @@ var (
 		return kv.TxnRange(id, key, end, limit, rangeRev)
 	}
 
-	normalPutFunc = func(kv KV, key, value []byte) int64 {
-		return kv.Put(key, value)
+	normalPutFunc = func(kv KV, key, value []byte, lease lease.LeaseID) int64 {
+		return kv.Put(key, value, lease)
 	}
-	txnPutFunc = func(kv KV, key, value []byte) int64 {
+	txnPutFunc = func(kv KV, key, value []byte, lease lease.LeaseID) int64 {
 		id := kv.TxnBegin()
 		defer kv.TxnEnd(id)
-		rev, err := kv.TxnPut(id, key, value)
+		rev, err := kv.TxnPut(id, key, value, lease)
 		if err != nil {
 			panic("txn put error")
 		}
@@ -59,35 +73,19 @@ var (
 		}
 		return n, rev
 	}
-
-	tmpPath string
 )
-
-func init() {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "etcd_test_storage")
-	if err != nil {
-		log.Fatal(err)
-	}
-	tmpPath = path.Join(tmpDir, "database")
-}
 
 func TestKVRange(t *testing.T)    { testKVRange(t, normalRangeFunc) }
 func TestKVTxnRange(t *testing.T) { testKVRange(t, txnRangeFunc) }
 
 func testKVRange(t *testing.T, f rangeFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
-	s.Put([]byte("foo1"), []byte("bar1"))
-	s.Put([]byte("foo2"), []byte("bar2"))
-	kvs := []storagepb.KeyValue{
-		{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 1, ModRevision: 1, Version: 1},
-		{Key: []byte("foo1"), Value: []byte("bar1"), CreateRevision: 2, ModRevision: 2, Version: 1},
-		{Key: []byte("foo2"), Value: []byte("bar2"), CreateRevision: 3, ModRevision: 3, Version: 1},
-	}
+	kvs := put3TestKVs(s)
 
-	wrev := int64(3)
+	wrev := int64(4)
 	tests := []struct {
 		key, end []byte
 		wkvs     []storagepb.KeyValue
@@ -122,6 +120,11 @@ func testKVRange(t *testing.T, f rangeFunc) {
 			[]byte("foo"), nil,
 			kvs[:1],
 		},
+		// get entire keyspace
+		{
+			[]byte(""), []byte(""),
+			kvs,
+		},
 	}
 
 	for i, tt := range tests {
@@ -142,28 +145,22 @@ func TestKVRangeRev(t *testing.T)    { testKVRangeRev(t, normalRangeFunc) }
 func TestKVTxnRangeRev(t *testing.T) { testKVRangeRev(t, normalRangeFunc) }
 
 func testKVRangeRev(t *testing.T, f rangeFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
-	s.Put([]byte("foo1"), []byte("bar1"))
-	s.Put([]byte("foo2"), []byte("bar2"))
-	kvs := []storagepb.KeyValue{
-		{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 1, ModRevision: 1, Version: 1},
-		{Key: []byte("foo1"), Value: []byte("bar1"), CreateRevision: 2, ModRevision: 2, Version: 1},
-		{Key: []byte("foo2"), Value: []byte("bar2"), CreateRevision: 3, ModRevision: 3, Version: 1},
-	}
+	kvs := put3TestKVs(s)
 
 	tests := []struct {
 		rev  int64
 		wrev int64
 		wkvs []storagepb.KeyValue
 	}{
-		{-1, 3, kvs},
-		{0, 3, kvs},
-		{1, 1, kvs[:1]},
-		{2, 2, kvs[:2]},
-		{3, 3, kvs},
+		{-1, 4, kvs},
+		{0, 4, kvs},
+		{2, 4, kvs[:1]},
+		{3, 4, kvs[:2]},
+		{4, 4, kvs},
 	}
 
 	for i, tt := range tests {
@@ -184,13 +181,12 @@ func TestKVRangeBadRev(t *testing.T)    { testKVRangeBadRev(t, normalRangeFunc) 
 func TestKVTxnRangeBadRev(t *testing.T) { testKVRangeBadRev(t, normalRangeFunc) }
 
 func testKVRangeBadRev(t *testing.T, f rangeFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
-	s.Put([]byte("foo1"), []byte("bar1"))
-	s.Put([]byte("foo2"), []byte("bar2"))
-	if err := s.Compact(3); err != nil {
+	put3TestKVs(s)
+	if err := s.Compact(4); err != nil {
 		t.Fatalf("compact error (%v)", err)
 	}
 
@@ -199,9 +195,9 @@ func testKVRangeBadRev(t *testing.T, f rangeFunc) {
 		werr error
 	}{
 		{-1, ErrCompacted},
+		{1, ErrCompacted},
 		{2, ErrCompacted},
-		{3, ErrCompacted},
-		{4, ErrFutureRev},
+		{5, ErrFutureRev},
 		{100, ErrFutureRev},
 	}
 	for i, tt := range tests {
@@ -216,19 +212,13 @@ func TestKVRangeLimit(t *testing.T)    { testKVRangeLimit(t, normalRangeFunc) }
 func TestKVTxnRangeLimit(t *testing.T) { testKVRangeLimit(t, txnRangeFunc) }
 
 func testKVRangeLimit(t *testing.T, f rangeFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
-	s.Put([]byte("foo1"), []byte("bar1"))
-	s.Put([]byte("foo2"), []byte("bar2"))
-	kvs := []storagepb.KeyValue{
-		{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 1, ModRevision: 1, Version: 1},
-		{Key: []byte("foo1"), Value: []byte("bar1"), CreateRevision: 2, ModRevision: 2, Version: 1},
-		{Key: []byte("foo2"), Value: []byte("bar2"), CreateRevision: 3, ModRevision: 3, Version: 1},
-	}
+	kvs := put3TestKVs(s)
 
-	wrev := int64(3)
+	wrev := int64(4)
 	tests := []struct {
 		limit int64
 		wkvs  []storagepb.KeyValue
@@ -260,15 +250,16 @@ func TestKVPutMultipleTimes(t *testing.T)    { testKVPutMultipleTimes(t, normalP
 func TestKVTxnPutMultipleTimes(t *testing.T) { testKVPutMultipleTimes(t, txnPutFunc) }
 
 func testKVPutMultipleTimes(t *testing.T, f putFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
 	for i := 0; i < 10; i++ {
 		base := int64(i + 1)
 
-		rev := f(s, []byte("foo"), []byte("bar"))
-		if wrev := base; rev != wrev {
-			t.Errorf("#%d: rev = %d, want %d", i, rev, base)
+		rev := f(s, []byte("foo"), []byte("bar"), lease.LeaseID(base))
+		if rev != base+1 {
+			t.Errorf("#%d: rev = %d, want %d", i, rev, base+1)
 		}
 
 		kvs, _, err := s.Range([]byte("foo"), nil, 0, 0)
@@ -276,7 +267,7 @@ func testKVPutMultipleTimes(t *testing.T, f putFunc) {
 			t.Fatal(err)
 		}
 		wkvs := []storagepb.KeyValue{
-			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 1, ModRevision: base, Version: base},
+			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 2, ModRevision: base + 1, Version: base, Lease: base},
 		}
 		if !reflect.DeepEqual(kvs, wkvs) {
 			t.Errorf("#%d: kvs = %+v, want %+v", i, kvs, wkvs)
@@ -296,43 +287,44 @@ func testKVDeleteRange(t *testing.T, f deleteRangeFunc) {
 	}{
 		{
 			[]byte("foo"), nil,
-			4, 1,
+			5, 1,
 		},
 		{
 			[]byte("foo"), []byte("foo1"),
-			4, 1,
+			5, 1,
 		},
 		{
 			[]byte("foo"), []byte("foo2"),
-			4, 2,
+			5, 2,
 		},
 		{
 			[]byte("foo"), []byte("foo3"),
-			4, 3,
+			5, 3,
 		},
 		{
 			[]byte("foo3"), []byte("foo8"),
-			3, 0,
+			4, 0,
 		},
 		{
 			[]byte("foo3"), nil,
-			3, 0,
+			4, 0,
 		},
 	}
 
 	for i, tt := range tests {
-		s := New(tmpPath)
+		b, tmpPath := backend.NewDefaultTmpBackend()
+		s := NewStore(b, &lease.FakeLessor{})
 
-		s.Put([]byte("foo"), []byte("bar"))
-		s.Put([]byte("foo1"), []byte("bar1"))
-		s.Put([]byte("foo2"), []byte("bar2"))
+		s.Put([]byte("foo"), []byte("bar"), lease.NoLease)
+		s.Put([]byte("foo1"), []byte("bar1"), lease.NoLease)
+		s.Put([]byte("foo2"), []byte("bar2"), lease.NoLease)
 
 		n, rev := f(s, tt.key, tt.end)
 		if n != tt.wN || rev != tt.wrev {
 			t.Errorf("#%d: n = %d, rev = %d, want (%d, %d)", i, n, rev, tt.wN, tt.wrev)
 		}
 
-		cleanup(s, tmpPath)
+		cleanup(s, b, tmpPath)
 	}
 }
 
@@ -340,34 +332,36 @@ func TestKVDeleteMultipleTimes(t *testing.T)    { testKVDeleteMultipleTimes(t, n
 func TestKVTxnDeleteMultipleTimes(t *testing.T) { testKVDeleteMultipleTimes(t, txnDeleteRangeFunc) }
 
 func testKVDeleteMultipleTimes(t *testing.T, f deleteRangeFunc) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
+	s.Put([]byte("foo"), []byte("bar"), lease.NoLease)
 
 	n, rev := f(s, []byte("foo"), nil)
-	if n != 1 || rev != 2 {
-		t.Fatalf("n = %d, rev = %d, want (%d, %d)", n, rev, 1, 2)
+	if n != 1 || rev != 3 {
+		t.Fatalf("n = %d, rev = %d, want (%d, %d)", n, rev, 1, 3)
 	}
 
 	for i := 0; i < 10; i++ {
 		n, rev := f(s, []byte("foo"), nil)
-		if n != 0 || rev != 2 {
-			t.Fatalf("#%d: n = %d, rev = %d, want (%d, %d)", i, n, rev, 0, 2)
+		if n != 0 || rev != 3 {
+			t.Fatalf("#%d: n = %d, rev = %d, want (%d, %d)", i, n, rev, 0, 3)
 		}
 	}
 }
 
 // test that range, put, delete on single key in sequence repeatedly works correctly.
 func TestKVOperationInSequence(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
 	for i := 0; i < 10; i++ {
-		base := int64(i * 2)
+		base := int64(i*2 + 1)
 
 		// put foo
-		rev := s.Put([]byte("foo"), []byte("bar"))
+		rev := s.Put([]byte("foo"), []byte("bar"), lease.NoLease)
 		if rev != base+1 {
 			t.Errorf("#%d: put rev = %d, want %d", i, rev, base+1)
 		}
@@ -377,7 +371,7 @@ func TestKVOperationInSequence(t *testing.T) {
 			t.Fatal(err)
 		}
 		wkvs := []storagepb.KeyValue{
-			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: base + 1, ModRevision: base + 1, Version: 1},
+			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: base + 1, ModRevision: base + 1, Version: 1, Lease: int64(lease.NoLease)},
 		}
 		if !reflect.DeepEqual(kvs, wkvs) {
 			t.Errorf("#%d: kvs = %+v, want %+v", i, kvs, wkvs)
@@ -405,18 +399,18 @@ func TestKVOperationInSequence(t *testing.T) {
 	}
 }
 
-func TestKVTxnBlockNonTnxOperations(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+func TestKVTxnBlockNonTxnOperations(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
 
 	tests := []func(){
 		func() { s.Range([]byte("foo"), nil, 0, 0) },
-		func() { s.Put([]byte("foo"), nil) },
+		func() { s.Put([]byte("foo"), nil, lease.NoLease) },
 		func() { s.DeleteRange([]byte("foo"), nil) },
 	}
 	for i, tt := range tests {
 		id := s.TxnBegin()
-		done := make(chan struct{})
+		done := make(chan struct{}, 1)
 		go func() {
 			tt()
 			done <- struct{}{}
@@ -430,15 +424,19 @@ func TestKVTxnBlockNonTnxOperations(t *testing.T) {
 		s.TxnEnd(id)
 		select {
 		case <-done:
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("#%d: operation failed to be unblocked", i)
+		case <-time.After(10 * time.Second):
+			testutil.FatalStack(t, fmt.Sprintf("#%d: operation failed to be unblocked", i))
 		}
 	}
+
+	// only close backend when we know all the tx are finished
+	cleanup(s, b, tmpPath)
 }
 
 func TestKVTxnWrongID(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
 	id := s.TxnBegin()
 	wrongid := id + 1
@@ -449,7 +447,7 @@ func TestKVTxnWrongID(t *testing.T) {
 			return err
 		},
 		func() error {
-			_, err := s.TxnPut(wrongid, []byte("foo"), nil)
+			_, err := s.TxnPut(wrongid, []byte("foo"), nil, lease.NoLease)
 			return err
 		},
 		func() error {
@@ -472,16 +470,17 @@ func TestKVTxnWrongID(t *testing.T) {
 }
 
 // test that txn range, put, delete on single key in sequence repeatedly works correctly.
-func TestKVTnxOperationInSequence(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+func TestKVTxnOperationInSequence(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
 	for i := 0; i < 10; i++ {
 		id := s.TxnBegin()
-		base := int64(i)
+		base := int64(i + 1)
 
 		// put foo
-		rev, err := s.TxnPut(id, []byte("foo"), []byte("bar"))
+		rev, err := s.TxnPut(id, []byte("foo"), []byte("bar"), lease.NoLease)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -494,7 +493,7 @@ func TestKVTnxOperationInSequence(t *testing.T) {
 			t.Fatal(err)
 		}
 		wkvs := []storagepb.KeyValue{
-			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: base + 1, ModRevision: base + 1, Version: 1},
+			{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: base + 1, ModRevision: base + 1, Version: 1, Lease: int64(lease.NoLease)},
 		}
 		if !reflect.DeepEqual(kvs, wkvs) {
 			t.Errorf("#%d: kvs = %+v, want %+v", i, kvs, wkvs)
@@ -528,13 +527,14 @@ func TestKVTnxOperationInSequence(t *testing.T) {
 }
 
 func TestKVCompactReserveLastValue(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar0"))
-	s.Put([]byte("foo"), []byte("bar1"))
+	s.Put([]byte("foo"), []byte("bar0"), 1)
+	s.Put([]byte("foo"), []byte("bar1"), 2)
 	s.DeleteRange([]byte("foo"), nil)
-	s.Put([]byte("foo"), []byte("bar2"))
+	s.Put([]byte("foo"), []byte("bar2"), 3)
 
 	// rev in tests will be called in Compact() one by one on the same store
 	tests := []struct {
@@ -543,25 +543,25 @@ func TestKVCompactReserveLastValue(t *testing.T) {
 		wkvs []storagepb.KeyValue
 	}{
 		{
-			0,
-			[]storagepb.KeyValue{
-				{Key: []byte("foo"), Value: []byte("bar0"), CreateRevision: 1, ModRevision: 1, Version: 1},
-			},
-		},
-		{
 			1,
 			[]storagepb.KeyValue{
-				{Key: []byte("foo"), Value: []byte("bar1"), CreateRevision: 1, ModRevision: 2, Version: 2},
+				{Key: []byte("foo"), Value: []byte("bar0"), CreateRevision: 2, ModRevision: 2, Version: 1, Lease: 1},
 			},
 		},
 		{
 			2,
-			nil,
+			[]storagepb.KeyValue{
+				{Key: []byte("foo"), Value: []byte("bar1"), CreateRevision: 2, ModRevision: 3, Version: 2, Lease: 2},
+			},
 		},
 		{
 			3,
+			nil,
+		},
+		{
+			4,
 			[]storagepb.KeyValue{
-				{Key: []byte("foo"), Value: []byte("bar2"), CreateRevision: 4, ModRevision: 4, Version: 1},
+				{Key: []byte("foo"), Value: []byte("bar2"), CreateRevision: 5, ModRevision: 5, Version: 1, Lease: 3},
 			},
 		},
 	}
@@ -581,12 +581,13 @@ func TestKVCompactReserveLastValue(t *testing.T) {
 }
 
 func TestKVCompactBad(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar0"))
-	s.Put([]byte("foo"), []byte("bar1"))
-	s.Put([]byte("foo"), []byte("bar2"))
+	s.Put([]byte("foo"), []byte("bar0"), lease.NoLease)
+	s.Put([]byte("foo"), []byte("bar1"), lease.NoLease)
+	s.Put([]byte("foo"), []byte("bar2"), lease.NoLease)
 
 	// rev in tests will be called in Compact() one by one on the same store
 	tests := []struct {
@@ -596,8 +597,8 @@ func TestKVCompactBad(t *testing.T) {
 		{0, nil},
 		{1, nil},
 		{1, ErrCompacted},
-		{3, nil},
-		{4, ErrFutureRev},
+		{4, nil},
+		{5, ErrFutureRev},
 		{100, ErrFutureRev},
 	}
 	for i, tt := range tests {
@@ -608,26 +609,50 @@ func TestKVCompactBad(t *testing.T) {
 	}
 }
 
+func TestKVHash(t *testing.T) {
+	hashes := make([]uint32, 3)
+
+	for i := 0; i < len(hashes); i++ {
+		var err error
+		b, tmpPath := backend.NewDefaultTmpBackend()
+		kv := NewStore(b, &lease.FakeLessor{})
+		kv.Put([]byte("foo0"), []byte("bar0"), lease.NoLease)
+		kv.Put([]byte("foo1"), []byte("bar0"), lease.NoLease)
+		hashes[i], err = kv.Hash()
+		if err != nil {
+			t.Fatalf("failed to get hash: %v", err)
+		}
+		cleanup(kv, b, tmpPath)
+	}
+
+	for i := 1; i < len(hashes); i++ {
+		if hashes[i-1] != hashes[i] {
+			t.Errorf("hash[%d](%d) != hash[%d](%d)", i-1, hashes[i-1], i, hashes[i])
+		}
+	}
+}
+
 func TestKVRestore(t *testing.T) {
 	tests := []func(kv KV){
 		func(kv KV) {
-			kv.Put([]byte("foo"), []byte("bar0"))
-			kv.Put([]byte("foo"), []byte("bar1"))
-			kv.Put([]byte("foo"), []byte("bar2"))
+			kv.Put([]byte("foo"), []byte("bar0"), 1)
+			kv.Put([]byte("foo"), []byte("bar1"), 2)
+			kv.Put([]byte("foo"), []byte("bar2"), 3)
 		},
 		func(kv KV) {
-			kv.Put([]byte("foo"), []byte("bar0"))
+			kv.Put([]byte("foo"), []byte("bar0"), 1)
 			kv.DeleteRange([]byte("foo"), nil)
-			kv.Put([]byte("foo"), []byte("bar1"))
+			kv.Put([]byte("foo"), []byte("bar1"), 2)
 		},
 		func(kv KV) {
-			kv.Put([]byte("foo"), []byte("bar0"))
-			kv.Put([]byte("foo"), []byte("bar1"))
+			kv.Put([]byte("foo"), []byte("bar0"), 1)
+			kv.Put([]byte("foo"), []byte("bar1"), 2)
 			kv.Compact(1)
 		},
 	}
 	for i, tt := range tests {
-		s := New(tmpPath)
+		b, tmpPath := backend.NewDefaultTmpBackend()
+		s := NewStore(b, &lease.FakeLessor{})
 		tt(s)
 		var kvss [][]storagepb.KeyValue
 		for k := int64(0); k < 10; k++ {
@@ -636,8 +661,8 @@ func TestKVRestore(t *testing.T) {
 		}
 		s.Close()
 
-		ns := New(tmpPath)
-		ns.Restore()
+		// ns should recover the the previous state from backend.
+		ns := NewStore(b, &lease.FakeLessor{})
 		// wait for possible compaction to finish
 		testutil.WaitSchedule()
 		var nkvss [][]storagepb.KeyValue
@@ -645,7 +670,7 @@ func TestKVRestore(t *testing.T) {
 			nkvs, _, _ := ns.Range([]byte("a"), []byte("z"), 0, k)
 			nkvss = append(nkvss, nkvs)
 		}
-		cleanup(ns, tmpPath)
+		cleanup(ns, b, tmpPath)
 
 		if !reflect.DeepEqual(nkvss, kvss) {
 			t.Errorf("#%d: kvs history = %+v, want %+v", i, nkvss, kvss)
@@ -654,31 +679,29 @@ func TestKVRestore(t *testing.T) {
 }
 
 func TestKVSnapshot(t *testing.T) {
-	s := New(tmpPath)
-	defer cleanup(s, tmpPath)
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{})
+	defer cleanup(s, b, tmpPath)
 
-	s.Put([]byte("foo"), []byte("bar"))
-	s.Put([]byte("foo1"), []byte("bar1"))
-	s.Put([]byte("foo2"), []byte("bar2"))
-	wkvs := []storagepb.KeyValue{
-		{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 1, ModRevision: 1, Version: 1},
-		{Key: []byte("foo1"), Value: []byte("bar1"), CreateRevision: 2, ModRevision: 2, Version: 1},
-		{Key: []byte("foo2"), Value: []byte("bar2"), CreateRevision: 3, ModRevision: 3, Version: 1},
-	}
+	wkvs := put3TestKVs(s)
 
-	f, err := os.Create("new_test")
+	newPath := "new_test"
+	f, err := os.Create(newPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.Snapshot(f)
+	defer os.Remove(newPath)
+
+	snap := s.b.Snapshot()
+	defer snap.Close()
+	_, err = snap.WriteTo(f)
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
 
-	ns := New("new_test")
-	defer cleanup(ns, "new_test")
-	ns.Restore()
+	ns := NewStore(b, &lease.FakeLessor{})
+	defer ns.Close()
 	kvs, rev, err := ns.Range([]byte("a"), []byte("z"), 0, 0)
 	if err != nil {
 		t.Errorf("unexpect range error (%v)", err)
@@ -686,12 +709,129 @@ func TestKVSnapshot(t *testing.T) {
 	if !reflect.DeepEqual(kvs, wkvs) {
 		t.Errorf("kvs = %+v, want %+v", kvs, wkvs)
 	}
-	if rev != 3 {
-		t.Errorf("rev = %d, want %d", rev, 3)
+	if rev != 4 {
+		t.Errorf("rev = %d, want %d", rev, 4)
 	}
 }
 
-func cleanup(s KV, path string) {
+func TestWatchableKVWatch(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := WatchableKV(newWatchableStore(b, &lease.FakeLessor{}))
+	defer cleanup(s, b, tmpPath)
+
+	w := s.NewWatchStream()
+	defer w.Close()
+
+	wid := w.Watch([]byte("foo"), []byte("fop"), 0)
+
+	wev := []storagepb.Event{
+		{Type: storagepb.PUT,
+			Kv: &storagepb.KeyValue{
+				Key:            []byte("foo"),
+				Value:          []byte("bar"),
+				CreateRevision: 2,
+				ModRevision:    2,
+				Version:        1,
+				Lease:          1,
+			},
+		},
+		{
+			Type: storagepb.PUT,
+			Kv: &storagepb.KeyValue{
+				Key:            []byte("foo1"),
+				Value:          []byte("bar1"),
+				CreateRevision: 3,
+				ModRevision:    3,
+				Version:        1,
+				Lease:          2,
+			},
+		},
+		{
+			Type: storagepb.PUT,
+			Kv: &storagepb.KeyValue{
+				Key:            []byte("foo1"),
+				Value:          []byte("bar11"),
+				CreateRevision: 3,
+				ModRevision:    4,
+				Version:        2,
+				Lease:          3,
+			},
+		},
+	}
+
+	s.Put([]byte("foo"), []byte("bar"), 1)
+	select {
+	case resp := <-w.Chan():
+		if resp.WatchID != wid {
+			t.Errorf("resp.WatchID got = %d, want = %d", resp.WatchID, wid)
+		}
+		ev := resp.Events[0]
+		if !reflect.DeepEqual(ev, wev[0]) {
+			t.Errorf("watched event = %+v, want %+v", ev, wev[0])
+		}
+	case <-time.After(5 * time.Second):
+		// CPU might be too slow, and the routine is not able to switch around
+		testutil.FatalStack(t, "failed to watch the event")
+	}
+
+	s.Put([]byte("foo1"), []byte("bar1"), 2)
+	select {
+	case resp := <-w.Chan():
+		if resp.WatchID != wid {
+			t.Errorf("resp.WatchID got = %d, want = %d", resp.WatchID, wid)
+		}
+		ev := resp.Events[0]
+		if !reflect.DeepEqual(ev, wev[1]) {
+			t.Errorf("watched event = %+v, want %+v", ev, wev[1])
+		}
+	case <-time.After(5 * time.Second):
+		testutil.FatalStack(t, "failed to watch the event")
+	}
+
+	w = s.NewWatchStream()
+	wid = w.Watch([]byte("foo1"), []byte("foo2"), 3)
+
+	select {
+	case resp := <-w.Chan():
+		if resp.WatchID != wid {
+			t.Errorf("resp.WatchID got = %d, want = %d", resp.WatchID, wid)
+		}
+		ev := resp.Events[0]
+		if !reflect.DeepEqual(ev, wev[1]) {
+			t.Errorf("watched event = %+v, want %+v", ev, wev[1])
+		}
+	case <-time.After(5 * time.Second):
+		testutil.FatalStack(t, "failed to watch the event")
+	}
+
+	s.Put([]byte("foo1"), []byte("bar11"), 3)
+	select {
+	case resp := <-w.Chan():
+		if resp.WatchID != wid {
+			t.Errorf("resp.WatchID got = %d, want = %d", resp.WatchID, wid)
+		}
+		ev := resp.Events[0]
+		if !reflect.DeepEqual(ev, wev[2]) {
+			t.Errorf("watched event = %+v, want %+v", ev, wev[2])
+		}
+	case <-time.After(5 * time.Second):
+		testutil.FatalStack(t, "failed to watch the event")
+	}
+}
+
+func cleanup(s KV, b backend.Backend, path string) {
 	s.Close()
+	b.Close()
 	os.Remove(path)
+}
+
+func put3TestKVs(s KV) []storagepb.KeyValue {
+	s.Put([]byte("foo"), []byte("bar"), 1)
+	s.Put([]byte("foo1"), []byte("bar1"), 2)
+	s.Put([]byte("foo2"), []byte("bar2"), 3)
+	return []storagepb.KeyValue{
+		{Key: []byte("foo"), Value: []byte("bar"), CreateRevision: 2, ModRevision: 2, Version: 1, Lease: 1},
+		{Key: []byte("foo1"), Value: []byte("bar1"), CreateRevision: 3, ModRevision: 3, Version: 1, Lease: 2},
+		{Key: []byte("foo2"), Value: []byte("bar2"), CreateRevision: 4, ModRevision: 4, Version: 1, Lease: 3},
+	}
 }
