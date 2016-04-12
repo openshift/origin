@@ -66,3 +66,9 @@ func TestMetadataURL(t *testing.T) {
 	expected := endpoint + "servers/foo/metadata"
 	th.CheckEquals(t, expected, actual)
 }
+
+func TestPasswordURL(t *testing.T) {
+	actual := passwordURL(endpointClient(), "foo")
+	expected := endpoint + "servers/foo/os-server-password"
+	th.CheckEquals(t, expected, actual)
+}

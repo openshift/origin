@@ -45,9 +45,19 @@ func TestPortCRUD(t *testing.T) {
 	th.AssertEquals(t, p.ID, portID)
 
 	// Update port
-	p, err = ports.Update(Client, portID, ports.UpdateOpts{Name: "new_port_name"}).Extract()
+	updateOpts := ports.UpdateOpts{
+		Name: "new_port_name",
+		AllowedAddressPairs: []ports.AddressPair{
+			ports.AddressPair{IPAddress: "192.168.199.201"},
+		},
+	}
+	p, err = ports.Update(Client, portID, updateOpts).Extract()
+
 	th.AssertNoErr(t, err)
 	th.AssertEquals(t, p.Name, "new_port_name")
+
+	updatedPort, err := ports.Get(Client, portID).Extract()
+	th.AssertEquals(t, updatedPort.AllowedAddressPairs[0].IPAddress, "192.168.199.201")
 
 	// Delete port
 	res := ports.Delete(Client, portID)
@@ -82,8 +92,8 @@ func listPorts(t *testing.T) {
 		th.AssertNoErr(t, err)
 
 		for _, p := range portList {
-			t.Logf("Port: ID [%s] Name [%s] Status [%s] MAC addr [%s] Fixed IPs [%#v] Security groups [%#v]",
-				p.ID, p.Name, p.Status, p.MACAddress, p.FixedIPs, p.SecurityGroups)
+			t.Logf("Port: ID [%s] Name [%s] Status [%s] MAC addr [%s] Fixed IPs [%#v] Security groups [%#v] Allowed Address Pairs [%#v]",
+				p.ID, p.Name, p.Status, p.MACAddress, p.FixedIPs, p.SecurityGroups, p.AllowedAddressPairs)
 		}
 
 		return true, nil
@@ -108,6 +118,9 @@ func createSubnet(networkID string) (string, error) {
 		IPVersion:  subnets.IPv4,
 		Name:       "my_subnet",
 		EnableDHCP: subnets.Down,
+		AllocationPools: []subnets.AllocationPool{
+			subnets.AllocationPool{Start: "192.168.199.2", End: "192.168.199.200"},
+		},
 	}).Extract()
 	return s.ID, err
 }

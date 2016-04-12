@@ -78,6 +78,15 @@ func TestDeleteServer(t *testing.T) {
 	th.AssertNoErr(t, res.Err)
 }
 
+func TestForceDeleteServer(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleServerForceDeletionSuccessfully(t)
+
+	res := ForceDelete(client.ServiceClient(), "asdfasdfasdf")
+	th.AssertNoErr(t, res.Err)
+}
+
 func TestGetServer(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -112,6 +121,15 @@ func TestChangeServerAdminPassword(t *testing.T) {
 	HandleAdminPasswordChangeSuccessfully(t)
 
 	res := ChangeAdminPassword(client.ServiceClient(), "1234asdf", "new-password")
+	th.AssertNoErr(t, res.Err)
+}
+
+func TestGetPassword(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandlePasswordGetSuccessfully(t)
+
+	res := GetPassword(client.ServiceClient(), "1234asdf")
 	th.AssertNoErr(t, res.Err)
 }
 
