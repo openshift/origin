@@ -12,7 +12,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"sort"
 
@@ -827,7 +827,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*kapi.SecurityContextConstraints{scc})
 
 		if !reflect.DeepEqual(scc, v.scc()) {
-			diff := util.ObjectDiff(scc, v.scc())
+			diff := diff.ObjectDiff(scc, v.scc())
 			t.Errorf("%s createProvidersFromConstraints mutated constraints. diff:\n%s", k, diff)
 		}
 		if len(v.expectedErr) > 0 && len(errs) != 1 {

@@ -8,7 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 func TestParseDockerImageReference(t *testing.T) {
@@ -645,7 +645,7 @@ func TestImageWithMetadata(t *testing.T) {
 			continue
 		}
 		if e, a := test.expectedImage, imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
-			t.Errorf("%s: image: %s", name, util.ObjectDiff(e, a))
+			t.Errorf("%s: image: %s", name, diff.ObjectDiff(e, a))
 		}
 	}
 }

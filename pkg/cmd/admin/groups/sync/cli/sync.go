@@ -408,7 +408,8 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
-	fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, o.Out)
+	mapper, _ := f.Object(false)
+	fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 	if err := fn(list); err != nil {
 		return err
 	}

@@ -119,7 +119,7 @@ func (o *AddSecretOptions) Complete(f *kcmdutil.Factory, args []string, typeFlag
 		return err
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Mapper, o.Typer = f.Object(false)
 	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil

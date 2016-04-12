@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -202,7 +202,7 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) field.Erro
 	newISTCopy.Tag, oldISTCopy.Tag = nil, nil
 	newISTCopy.Generation = oldISTCopy.Generation
 	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
-		glog.Infof("objects differ: ", util.ObjectDiff(oldISTCopy, newISTCopy))
+		glog.Infof("objects differ: ", diff.ObjectDiff(oldISTCopy, newISTCopy))
 		result = append(result, field.Invalid(field.NewPath("metadata"), "", "may not update fields other than metadata.annotations"))
 	}
 

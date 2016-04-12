@@ -116,7 +116,7 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 }
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
-	mapper, _ := f.Object()
+	mapper, _ := f.Object(false)
 	gvks, err := mapper.KindsFor(unversioned.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
 		return gvks[0].Kind

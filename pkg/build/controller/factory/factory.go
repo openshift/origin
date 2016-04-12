@@ -13,7 +13,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -95,7 +95,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
 			err := buildController.HandleBuild(build)
@@ -134,7 +134,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
 			for _, delta := range deltas {
@@ -201,7 +201,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildPod", nil),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
@@ -250,7 +250,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
 			for _, delta := range deltas {
@@ -295,7 +295,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
 				return isFatal
 			}),
-			kutil.NewTokenBucketRateLimiter(1, 10),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageStream)
@@ -326,7 +326,7 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildConfig", buildcontroller.IsFatal),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			bc := obj.(*buildapi.BuildConfig)
 			return bcController.HandleBuildConfig(bc)

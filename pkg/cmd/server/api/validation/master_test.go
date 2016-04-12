@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -193,7 +193,7 @@ func TestValidate_ValidateEtcdStorageConfig(t *testing.T) {
 		}
 		results := ValidateEtcdStorageConfig(config, nil)
 		if !kapi.Semantic.DeepEqual(test.expected, results) {
-			t.Errorf("unexpected validation results; diff:\n%v", util.ObjectDiff(test.expected, results))
+			t.Errorf("unexpected validation results; diff:\n%v", diff.ObjectDiff(test.expected, results))
 			return
 		}
 	}

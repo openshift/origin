@@ -6,14 +6,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 type NamespaceControllerFactory struct {
@@ -38,7 +38,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 
 	namespaceController := &NamespaceController{
 		Client:     factory.Client,
-		KubeClient: internalclientset.FromUnversionedClient(factory.KubeClient),
+		KubeClient: clientadapter.FromUnversionedClient(factory.KubeClient),
 	}
 
 	return &controller.RetryController{
@@ -56,7 +56,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 				}
 				return true
 			},
-			kutil.NewTokenBucketRateLimiter(1, 10),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			namespace := obj.(*kapi.Namespace)

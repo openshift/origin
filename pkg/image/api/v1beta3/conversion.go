@@ -38,7 +38,7 @@ func convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversio
 	if err != nil {
 		return err
 	}
-	out.DockerImageMetadata.RawJSON = data
+	out.DockerImageMetadata.Raw = data
 	out.DockerImageMetadataVersion = version.Version
 
 	return nil
@@ -56,13 +56,13 @@ func convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversio
 	if len(version) == 0 {
 		version = "1.0"
 	}
-	if len(in.DockerImageMetadata.RawJSON) > 0 {
+	if len(in.DockerImageMetadata.Raw) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
 		obj, err := api.Scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}
-		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.RawJSON, obj); err != nil {
+		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.Raw, obj); err != nil {
 			return err
 		}
 		if err := s.Convert(obj, &out.DockerImageMetadata, 0); err != nil {

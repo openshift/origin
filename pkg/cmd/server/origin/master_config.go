@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -189,7 +190,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	plugins := []admission.Interface{}
-	clientsetClient := internalclientset.FromUnversionedClient(privilegedLoopbackKubeClient)
+	clientsetClient := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
 	for _, pluginName := range admissionControlPluginNames {
 		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
 		if err != nil {
@@ -282,7 +283,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 		if err != nil {
 			return nil, err
 		}
-		tokenGetter = sacontroller.NewGetterFromClient(internalclientset.FromUnversionedClient(kubeClient))
+		tokenGetter = sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient))
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
@@ -545,7 +546,7 @@ func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
 func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *internalclientset.Clientset) {
-	return c.PrivilegedLoopbackOpenShiftClient, internalclientset.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
+	return c.PrivilegedLoopbackOpenShiftClient, clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.

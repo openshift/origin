@@ -315,7 +315,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit

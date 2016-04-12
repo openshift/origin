@@ -156,7 +156,8 @@ func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cob
 
 	o.CommandPath = c.CommandPath()
 	o.CommandName = fullName
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, out)
+	mapper, _ := f.Object(false)
+	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err

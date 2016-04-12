@@ -136,7 +136,7 @@ func (p *KeepalivedPlugin) Create(out io.Writer) error {
 		return fmt.Errorf("error getting Namespace: %v", err)
 	}
 
-	mapper, typer := p.Factory.Factory.Object()
+	mapper, typer := p.Factory.Factory.Object(false)
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,

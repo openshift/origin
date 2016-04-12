@@ -64,7 +64,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 		return errors.New("you must specify two arguments: verb and resource")
 	}
 
-	restMapper, _ := f.Object()
+	restMapper, _ := f.Object(false)
 
 	o.verb = args[0]
 	o.resource = resourceFor(restMapper, args[1])

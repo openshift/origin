@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
@@ -127,7 +127,7 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, util.ObjectDiff(test.out, out), util.ObjectGoPrintSideBySide(test.out, out))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, diff.ObjectDiff(test.out, out), diff.ObjectGoPrintSideBySide(test.out, out))
 		}
 	}
 }
@@ -197,7 +197,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, util.ObjectDiff(test.out, out), util.ObjectGoPrintSideBySide(test.out, out))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, diff.ObjectDiff(test.out, out), diff.ObjectGoPrintSideBySide(test.out, out))
 		}
 	}
 }

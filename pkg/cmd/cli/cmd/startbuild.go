@@ -184,7 +184,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
-		mapper, _ := f.Object()
+		mapper, _ := f.Object(false)
 		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err

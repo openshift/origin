@@ -20,8 +20,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -157,7 +157,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			plugins = append(plugins, lifecycle.NewLifecycle(internalclientset.FromUnversionedClient(kubeClient), immortalNamespaces))
+			plugins = append(plugins, lifecycle.NewLifecycle(clientadapter.FromUnversionedClient(kubeClient), immortalNamespaces))
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
@@ -169,7 +169,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(internalclientset.FromUnversionedClient(kubeClient))
+			saAdmitter := saadmit.NewServiceAccount(clientadapter.FromUnversionedClient(kubeClient))
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			saAdmitter.Run()
 			plugins = append(plugins, saAdmitter)
@@ -179,7 +179,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			if err != nil {
 				return nil, err
 			}
-			plugin := admission.InitPlugin(pluginName, internalclientset.FromUnversionedClient(kubeClient), configFile)
+			plugin := admission.InitPlugin(pluginName, clientadapter.FromUnversionedClient(kubeClient), configFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}

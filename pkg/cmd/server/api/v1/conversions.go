@@ -339,14 +339,14 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 	if runtime.IsNotRegisteredError(err) {
 		switch cast := in.(type) {
 		case *runtime.Unknown:
-			out.RawJSON = cast.RawJSON
+			out.Raw = cast.Raw
 			return nil
 		case *runtime.Unstructured:
 			bytes, err := runtime.Encode(runtime.UnstructuredJSONScheme, externalObject)
 			if err != nil {
 				return err
 			}
-			out.RawJSON = bytes
+			out.Raw = bytes
 			return nil
 		}
 	}
@@ -359,7 +359,7 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 		return err
 	}
 
-	out.RawJSON = bytes
+	out.Raw = bytes
 	out.Object = externalObject
 
 	return nil
@@ -369,13 +369,13 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 // The caller doesn't know the type ahead of time and that means this method can't communicate the return value.  This sucks really badly.
 // I'm going to set the `in.Object` field can have callers to this function do magic to pull it back out.  I'm also going to bitch about it.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out runtime.Object, s conversion.Scope) error {
-	if in == nil || len(in.RawJSON) == 0 || in.Object != nil {
+	if in == nil || len(in.Raw) == 0 || in.Object != nil {
 		return nil
 	}
 
-	decodedObject, err := runtime.Decode(codec, in.RawJSON)
+	decodedObject, err := runtime.Decode(codec, in.Raw)
 	if err != nil {
-		in.Object = &runtime.Unknown{RawJSON: in.RawJSON}
+		in.Object = &runtime.Unknown{Raw: in.Raw}
 		return nil
 	}
 

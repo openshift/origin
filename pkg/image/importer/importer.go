@@ -16,7 +16,7 @@ import (
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -45,16 +45,16 @@ type ImageStreamImporter struct {
 	maximumTagsPerRepo int
 
 	retriever RepositoryRetriever
-	limiter   util.RateLimiter
+	limiter   flowcontrol.RateLimiter
 
 	digestToRepositoryCache map[gocontext.Context]map[manifestKey]*api.Image
 }
 
 // NewImageStreamImport creates an importer that will load images from a remote Docker registry into an
 // ImageStreamImport object. Limiter may be nil.
-func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo int, limiter util.RateLimiter) *ImageStreamImporter {
+func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo int, limiter flowcontrol.RateLimiter) *ImageStreamImporter {
 	if limiter == nil {
-		limiter = util.NewFakeAlwaysRateLimiter()
+		limiter = flowcontrol.NewFakeAlwaysRateLimiter()
 	}
 	return &ImageStreamImporter{
 		maximumTagsPerRepo: maximumTagsPerRepo,
@@ -86,7 +86,7 @@ func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *api.ImageStream
 
 // importImages updates the passed ImageStreamImport object and sets Status for each image based on whether the import
 // succeeded or failed. Cache is updated with any loaded images. Limiter is optional and controls how fast images are updated.
-func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, cache map[manifestKey]*api.Image, limiter util.RateLimiter) {
+func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, cache map[manifestKey]*api.Image, limiter flowcontrol.RateLimiter) {
 	tags := make(map[manifestKey][]int)
 	ids := make(map[manifestKey][]int)
 	repositories := make(map[repositoryKey]*importRepository)
@@ -192,7 +192,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 // importFromRepository imports the repository named on the ImageStreamImport, if any, importing up to maximumTags, and reporting
 // status on each image that is attempted to be imported. If the repository cannot be found or tags cannot be retrieved, the repository
 // status field is set.
-func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, maximumTags int, cache map[manifestKey]*api.Image, limiter util.RateLimiter) {
+func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, maximumTags int, cache map[manifestKey]*api.Image, limiter flowcontrol.RateLimiter) {
 	if isi.Spec.Repository == nil {
 		return
 	}
@@ -284,7 +284,7 @@ func applyErrorToRepository(repository *importRepository, err error) {
 
 // importRepositoryFromDocker loads the tags and images requested in the passed importRepository, obeying the
 // optional rate limiter.  Errors are set onto the individual tags and digest objects.
-func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter util.RateLimiter) {
+func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter flowcontrol.RateLimiter) {
 	glog.V(5).Infof("importing remote Docker repository registry=%s repository=%s insecure=%t", repository.Registry, repository.Name, repository.Insecure)
 	// retrieve the repository
 	repo, err := retriever.Repository(ctx, repository.Registry, repository.Name, repository.Insecure)
@@ -433,7 +433,7 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 	}
 }
 
-func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepository, limiter util.RateLimiter) {
+func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepository, limiter flowcontrol.RateLimiter) {
 	value := ctx.Value(ContextKeyV1RegistryClient)
 	if value == nil {
 		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)

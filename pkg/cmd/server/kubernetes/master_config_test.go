@@ -9,12 +9,15 @@ import (
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/util"
+	utilconfig "k8s.io/kubernetes/pkg/util/config"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -50,7 +53,7 @@ func TestAPIServerDefaults(t *testing.T) {
 		MasterCount:            1,
 		MasterServiceNamespace: "default",
 		MinRequestTimeout:      1800,
-		RuntimeConfig:          util.ConfigurationMap{},
+		RuntimeConfig:          utilconfig.ConfigurationMap{},
 		StorageVersions:        registered.AllPreferredGroupVersions(),
 		DefaultStorageVersions: registered.AllPreferredGroupVersions(),
 		KubeletConfig: kubeletclient.KubeletClientConfig{
@@ -61,7 +64,7 @@ func TestAPIServerDefaults(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", util.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
 	}
 }
@@ -124,7 +127,7 @@ func TestCMServerDefaults(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", util.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
 	}
 }

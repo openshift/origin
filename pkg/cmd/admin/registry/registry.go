@@ -405,14 +405,15 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 	list := &kapi.List{Items: objects}
 
 	if output {
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, out)
+		mapper, _ := f.Object(false)
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}
 		return nil
 	}
 
-	mapper, typer := f.Factory.Object()
+	mapper, typer := f.Factory.Object(false)
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,

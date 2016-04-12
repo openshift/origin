@@ -2,7 +2,7 @@ package ratelimiter
 
 import (
 	kcache "k8s.io/kubernetes/pkg/client/cache"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
@@ -19,7 +19,7 @@ type RateLimitedFunction struct {
 	queue kcache.Queue
 
 	// Rate limiting configuration.
-	kutil.RateLimiter
+	flowcontrol.RateLimiter
 }
 
 // NewRateLimitedFunction creates a new rate limited function.
@@ -31,7 +31,7 @@ func NewRateLimitedFunction(keyFunc kcache.KeyFunc, interval int, handlerFunc Ha
 		qps = float32(1.0 / float32(interval))
 	}
 
-	limiter := kutil.NewTokenBucketRateLimiter(qps, 1)
+	limiter := flowcontrol.NewTokenBucketRateLimiter(qps, 1)
 
 	return &RateLimitedFunction{handlerFunc, fifo, limiter}
 }

@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	kutil "k8s.io/kubernetes/pkg/util"
+	flowcontrol "k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 func TestScheduler(t *testing.T) {
 	keys := []string{}
-	s := NewScheduler(2, kutil.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {
+	s := NewScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {
 		keys = append(keys, key.(string))
 	})
 
@@ -57,7 +57,7 @@ func TestScheduler(t *testing.T) {
 }
 
 func TestSchedulerAddAndDelay(t *testing.T) {
-	s := NewScheduler(3, kutil.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
+	s := NewScheduler(3, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
 	// 3 is the last bucket, 0 is the current bucket
 	s.Add("first", "other")
 	if s.buckets[3]["first"] != "other" {
@@ -103,7 +103,7 @@ func TestSchedulerAddAndDelay(t *testing.T) {
 }
 
 func TestSchedulerRemove(t *testing.T) {
-	s := NewScheduler(2, kutil.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
+	s := NewScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
 	s.Add("test", "other")
 	if s.Remove("test", "value") {
 		t.Fatal(s)

@@ -9,7 +9,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/api/install"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	v1 "github.com/openshift/origin/pkg/api/v1"
@@ -244,7 +244,7 @@ func TestDefaults(t *testing.T) {
 			t.FailNow()
 		}
 		if !reflect.DeepEqual(got.Spec, expected.Spec) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, util.ObjectDiff(expected, got), util.ObjectGoPrintSideBySide(expected, got))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
 		}
 	}
 }

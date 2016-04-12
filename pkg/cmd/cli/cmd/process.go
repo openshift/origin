@@ -114,7 +114,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return err
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 
 	client, _, err := f.Clients()
 	if err != nil {
