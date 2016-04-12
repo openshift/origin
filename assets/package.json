@@ -7,7 +7,7 @@
     "url": "git://github.com/openshift/origin.git"
   },
   "devDependencies": {
-    "clean-css": "3.4.9",
+    "clean-css": "3.4.12",
     "connect-modrewrite": "0.7.9",
     "grunt": "0.4.5",
     "grunt-angular-templates": "1.0.3",
