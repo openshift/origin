@@ -8,9 +8,15 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateProjectController', function ($scope, $location, AuthService, DataService, Notification) {
+  .controller('CreateProjectController', function ($scope, $location, AuthService, DataService, AlertMessageService) {
+    $scope.alerts = {};
 
     AuthService.withUser();
+
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     $scope.createProject = function() {
       $scope.disableInputs = true;
@@ -33,7 +39,7 @@ angular.module('openshiftConsole')
             $scope.nameTaken = true;
           } else {
             var msg = data.message || 'An error occurred creating the project.';
-            Notification.error(msg, { mustDismiss: true });
+            $scope.alerts['error-creating-project'] = {type: 'error', message: msg};
           }
         });
       }
