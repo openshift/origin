@@ -11,4 +11,4 @@ source "${OS_ROOT}/hack/common.sh"
 
 # Find binary
 godepchecker="$(os::build::find-binary godepchecker)"
-$godepchecker
+$godepchecker "$@"
