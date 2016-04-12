@@ -1,0 +1,18 @@
+// hides the node if it has no children.
+// https://css-tricks.com/almanac/selectors/e/empty/
+// - will match the following:
+//     <div></div>
+//   or:
+//     <div><!-- nothing here --></div>
+// - will not match:
+//     <div> </div>
+//   or:
+//     <div>
+//       <!-- test -->
+//     </div>
+//   or:
+//     <div>
+//     </div>
+.hide-if-empty:empty {
+  display: none !important;
+}
