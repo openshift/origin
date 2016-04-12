@@ -9,6 +9,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	"k8s.io/kubernetes/pkg/util"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
@@ -78,6 +79,7 @@ func TestKubeletDefaults(t *testing.T) {
 			RegistryBurst:                  10,
 			RegistryPullQPS:                5.0,
 			KubeletCgroups:                 "",
+			RktAPIEndpoint:                 rkt.DefaultRktAPIServiceEndpoint,
 			RktPath:                        "",
 			RktStage1Image:                 "",
 			RootDirectory:                  "/var/lib/kubelet", // overridden
