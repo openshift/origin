@@ -135,7 +135,7 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
-		FilenameParam(false, policyFile).
+		FilenameParam(false, false, policyFile).
 		Flatten().
 		Do()
 

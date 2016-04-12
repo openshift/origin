@@ -185,7 +185,7 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, o.Filenames...).
+		FilenameParam(explicit, false, o.Filenames...).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, args...).
 		Flatten()

@@ -134,36 +134,51 @@ func TestCMServerDefaults(t *testing.T) {
 
 func TestGetAPIGroupVersionOverrides(t *testing.T) {
 	testcases := map[string]struct {
-		DisabledVersions  map[string][]string
-		ExpectedOverrides map[string]genericapiserver.APIGroupVersionOverride
+		DisabledVersions         map[string][]string
+		ExpectedDisabledVersions []unversioned.GroupVersion
+		ExpectedEnabledVersions  []unversioned.GroupVersion
 	}{
 		"empty": {
-			DisabledVersions:  nil,
-			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{},
+			DisabledVersions:         nil,
+			ExpectedDisabledVersions: []unversioned.GroupVersion{},
+			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"* -> v1": {
-			DisabledVersions:  map[string][]string{"": {"*"}},
-			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"api/v1": {Disable: true}},
+			DisabledVersions:         map[string][]string{"": {"*"}},
+			ExpectedDisabledVersions: []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"v1": {
-			DisabledVersions:  map[string][]string{"": {"v1"}},
-			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"api/v1": {Disable: true}},
+			DisabledVersions:         map[string][]string{"": {"v1"}},
+			ExpectedDisabledVersions: []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"* -> v1beta1": {
-			DisabledVersions:  map[string][]string{"extensions": {"*"}},
-			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
+			DisabledVersions:         map[string][]string{"extensions": {"*"}},
+			ExpectedDisabledVersions: []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
 		},
 		"extensions/v1beta1": {
-			DisabledVersions:  map[string][]string{"extensions": {"v1beta1"}},
-			ExpectedOverrides: map[string]genericapiserver.APIGroupVersionOverride{"extensions/v1beta1": {Disable: true}},
+			DisabledVersions:         map[string][]string{"extensions": {"v1beta1"}},
+			ExpectedDisabledVersions: []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
 		},
 	}
 
 	for k, tc := range testcases {
 		config := configapi.MasterConfig{KubernetesMasterConfig: &configapi.KubernetesMasterConfig{DisabledAPIGroupVersions: tc.DisabledVersions}}
-		overrides := getAPIGroupVersionOverrides(config)
-		if !reflect.DeepEqual(overrides, tc.ExpectedOverrides) {
-			t.Errorf("%s: Expected\n%#v\ngot\n%#v", k, tc.ExpectedOverrides, overrides)
+		overrides := getAPIResourceConfig(config)
+
+		for _, expected := range tc.ExpectedDisabledVersions {
+			if overrides.AnyResourcesForVersionEnabled(expected) {
+				t.Errorf("%s: Expected %v", k, expected)
+			}
+		}
+
+		for _, expected := range tc.ExpectedEnabledVersions {
+			if !overrides.AllResourcesForVersionEnabled(expected) {
+				t.Errorf("%s: Expected %v", k, expected)
+			}
 		}
 	}
 }

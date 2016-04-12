@@ -199,7 +199,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		ResourceTypeOrNameArgs(true, resources...).
 		Flatten()
 	if len(o.Filename) > 0 {
-		b.FilenameParam(explicit, o.Filename)
+		b.FilenameParam(explicit, false, o.Filename)
 	}
 
 	o.AddEnv, o.RemoveEnv, err = cmdutil.ParseEnv(envArgs, nil)
