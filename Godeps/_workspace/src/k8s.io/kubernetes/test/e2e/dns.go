@@ -41,6 +41,8 @@ var dnsServiceLabelSelector = labels.Set{
 	"kubernetes.io/cluster-service": "true",
 }.AsSelector()
 
+var ClusterDNSVerifier = verifyDNSPodIsRunning
+
 func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
 	pod := &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
@@ -253,7 +255,7 @@ var _ = KubeDescribe("DNS", func() {
 	f := NewDefaultFramework("dns")
 
 	It("should provide DNS for the cluster [Conformance]", func() {
-		verifyDNSPodIsRunning(f)
+		ClusterDNSVerifier(f)
 
 		// All the names we need to be able to resolve.
 		// TODO: Spin up a separate test service and test that dns works for that service.
@@ -280,7 +282,7 @@ var _ = KubeDescribe("DNS", func() {
 	})
 
 	It("should provide DNS for services [Conformance]", func() {
-		verifyDNSPodIsRunning(f)
+		ClusterDNSVerifier(f)
 
 		// Create a test headless service.
 		By("Creating a test headless service")
@@ -330,7 +332,7 @@ var _ = KubeDescribe("DNS", func() {
 	})
 
 	It("should provide DNS for pods for Hostname and Subdomain Annotation", func() {
-		verifyDNSPodIsRunning(f)
+		ClusterDNSVerifier(f)
 
 		// Create a test headless service.
 		By("Creating a test headless service")
