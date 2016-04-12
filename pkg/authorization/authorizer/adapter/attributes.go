@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"strings"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -8,16 +10,14 @@ import (
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
-// ensure we satisfy both interfaces
-var _ = oauthorizer.AuthorizationAttributes(AdapterAttributes{})
 var _ = kauthorizer.Attributes(AdapterAttributes{})
 
-// AdapterAttributes satisfies both origin authorizer.AuthorizationAttributes and k8s authorizer.Attributes interfaces
+// AdapterAttributes satisfies k8s authorizer.Attributes interfaces
 type AdapterAttributes struct {
-	namespace string
-	userName  string
-	groups    []string
-	oauthorizer.AuthorizationAttributes
+	namespace               string
+	userName                string
+	groups                  []string
+	authorizationAttributes oauthorizer.AuthorizationAttributes
 }
 
 // OriginAuthorizerAttributes adapts Kubernetes authorization attributes to Origin authorization attributes
@@ -31,25 +31,29 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 		Groups: kattrs.GetGroups(),
 	})
 
-	// If the passed attributes already satisfy our interface, use it directly
-	if oattrs, ok := kattrs.(oauthorizer.AuthorizationAttributes); ok {
-		return ctx, oattrs
+	// If we recognize the type, use the embedded type.  Do NOT use it directly, because not all things that quack are ducks.
+	if castAdapterAttributes, ok := kattrs.(AdapterAttributes); ok {
+		return ctx, castAdapterAttributes.authorizationAttributes
 	}
 
 	// Otherwise build what we can
 	oattrs := &oauthorizer.DefaultAuthorizationAttributes{
-		Verb:     kattrs.GetVerb(),
-		Resource: kattrs.GetResource(),
-		APIGroup: kattrs.GetAPIGroup(),
+		Verb:         kattrs.GetVerb(),
+		APIGroup:     kattrs.GetAPIGroup(),
+		APIVersion:   kattrs.GetAPIVersion(),
+		Resource:     kattrs.GetResource(),
+		ResourceName: kattrs.GetName(),
 
 		NonResourceURL: kattrs.IsResourceRequest() == false,
 		URL:            kattrs.GetPath(),
 
 		// TODO: add to kube authorizer attributes
-		// APIVersion        string
-		// ResourceName      string
 		// RequestAttributes interface{}
 	}
+	if len(kattrs.GetSubresource()) > 0 {
+		oattrs.Resource = kattrs.GetResource() + "/" + kattrs.GetSubresource()
+	}
+
 	return ctx, oattrs
 }
 
@@ -60,14 +64,46 @@ func KubernetesAuthorizerAttributes(namespace string, userName string, groups []
 		namespace:               namespace,
 		userName:                userName,
 		groups:                  groups,
-		AuthorizationAttributes: oattrs,
+		authorizationAttributes: oattrs,
 	}
+}
+
+func (a AdapterAttributes) GetVerb() string {
+	return a.authorizationAttributes.GetVerb()
+}
+
+func (a AdapterAttributes) GetAPIGroup() string {
+	return a.authorizationAttributes.GetAPIGroup()
+}
+
+func (a AdapterAttributes) GetAPIVersion() string {
+	return a.authorizationAttributes.GetAPIVersion()
 }
 
 // GetNamespace satisfies the kubernetes authorizer.Attributes interface
 // origin gets this value from the request context
 func (a AdapterAttributes) GetNamespace() string {
 	return a.namespace
+}
+
+func (a AdapterAttributes) GetName() string {
+	return a.authorizationAttributes.GetResourceName()
+}
+
+func (a AdapterAttributes) GetSubresource() string {
+	tokens := strings.SplitN(a.authorizationAttributes.GetResource(), "/", 2)
+	if len(tokens) != 2 {
+		return ""
+	}
+	return tokens[1]
+}
+
+func (a AdapterAttributes) GetResource() string {
+	tokens := strings.SplitN(a.authorizationAttributes.GetResource(), "/", 2)
+	if len(tokens) < 1 {
+		return ""
+	}
+	return tokens[0]
 }
 
 // GetUserName satisfies the kubernetes authorizer.Attributes interface
@@ -90,10 +126,10 @@ func (a AdapterAttributes) IsReadOnly() bool {
 
 // IsResourceRequest satisfies the kubernetes authorizer.Attributes interface
 func (a AdapterAttributes) IsResourceRequest() bool {
-	return !a.IsNonResourceURL()
+	return !a.authorizationAttributes.IsNonResourceURL()
 }
 
 // GetPath satisfies the kubernetes authorizer.Attributes interface
 func (a AdapterAttributes) GetPath() string {
-	return a.GetURL()
+	return a.authorizationAttributes.GetURL()
 }
