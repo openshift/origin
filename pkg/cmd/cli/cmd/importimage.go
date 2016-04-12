@@ -40,7 +40,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		Example:    fmt.Sprintf(importImageExample, fullName),
 		SuggestFor: []string{"image"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, args, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
 			kcmdutil.CheckErr(opts.Validate(cmd))
 			kcmdutil.CheckErr(opts.Run())
 		},
@@ -48,7 +48,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	cmd.Flags().StringVar(&opts.From, "from", "", "A Docker image repository to import images from")
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, allow the image stream import location to be set or changed")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, import all tags from the provided source on creation or if --from is specified")
-	cmd.Flags().BoolVar(&opts.Insecure, "insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP")
+	opts.Insecure = cmd.Flags().Bool("insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP. This flag will take precedence over the insecure annotation.")
 
 	return cmd
 }
@@ -59,7 +59,7 @@ type ImportImageOptions struct {
 	From     string
 	Confirm  bool
 	All      bool
-	Insecure bool
+	Insecure *bool
 
 	// internal values
 	Namespace string
@@ -75,9 +75,13 @@ type ImportImageOptions struct {
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
 // which can be validated and used for aa import.
-func (o *ImportImageOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		o.Target = args[0]
+	}
+
+	if !cmd.Flags().Lookup("insecure").Changed {
+		o.Insecure = nil
 	}
 
 	namespace, _, err := f.DefaultNamespace()
@@ -156,7 +160,7 @@ func (o *ImportImageOptions) Run() error {
 
 	// Legacy path, remove when support for older importers is removed
 	delete(stream.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
-	if o.Insecure {
+	if o.Insecure != nil && *o.Insecure {
 		if stream.Annotations == nil {
 			stream.Annotations = make(map[string]string)
 		}
@@ -375,7 +379,11 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		Spec: imageapi.ImageStreamImportSpec{Import: true},
 	}
 	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
-	insecure := o.Insecure || insecureAnnotation == "true"
+	insecure := insecureAnnotation == "true"
+	// --insecure flag (if provided) takes precedence over insecure annotation
+	if o.Insecure != nil {
+		insecure = *o.Insecure
+	}
 	if o.All {
 		isi.Spec.Repository = &imageapi.RepositoryImportSpec{
 			From: kapi.ObjectReference{

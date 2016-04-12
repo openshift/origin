@@ -17,6 +17,7 @@ func TestCreateImageImport(t *testing.T) {
 		name     string
 		stream   *imageapi.ImageStream
 		all      bool
+		insecure *bool
 		err      string
 		expected []imageapi.ImageImportSpec
 	}{
@@ -154,6 +155,29 @@ func TestCreateImageImport(t *testing.T) {
 				ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
 			}},
 		},
+		{
+			// 7: insecure annotation should be overriden by the flag
+			name: "testis",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "testis",
+					Namespace:   "other",
+					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			insecure: newBool(false),
+			expected: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repo.com/somens/someimage",
+				},
+				ImportPolicy: imageapi.TagImportPolicy{Insecure: false},
+			}},
+		},
 	}
 
 	for idx, test := range testCases {
@@ -161,6 +185,7 @@ func TestCreateImageImport(t *testing.T) {
 		o := ImportImageOptions{
 			Target:    test.stream.Name,
 			All:       test.all,
+			Insecure:  test.insecure,
 			Namespace: test.stream.Namespace,
 			isClient:  fake.ImageStreams(test.stream.Namespace),
 		}
@@ -205,4 +230,10 @@ func TestCreateImageImport(t *testing.T) {
 			}
 		}
 	}
+}
+
+func newBool(a bool) *bool {
+	r := new(bool)
+	*r = a
+	return r
 }
