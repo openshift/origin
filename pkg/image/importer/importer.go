@@ -97,16 +97,16 @@ func (i *ImageStreamImporter) contextImageCache(ctx gocontext.Context) map[manif
 }
 
 // Import tries to complete the provided isi object with images loaded from remote registries.
-func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *api.ImageStreamImport) error {
+func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *api.ImageStreamImport) (err error) {
 	cache := i.contextImageCache(ctx)
-	importImages(ctx, i.retriever, isi, cache, i.limiter)
+	err = importImages(ctx, i.retriever, isi, cache, i.limiter)
 	importFromRepository(ctx, i.retriever, isi, i.maximumTagsPerRepo, cache, i.limiter)
-	return nil
+	return
 }
 
 // importImages updates the passed ImageStreamImport object and sets Status for each image based on whether the import
 // succeeded or failed. Cache is updated with any loaded images. Limiter is optional and controls how fast images are updated.
-func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, cache map[manifestKey]*api.Image, limiter util.RateLimiter) {
+func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, cache map[manifestKey]*api.Image, limiter util.RateLimiter) error {
 	tags := make(map[manifestKey][]int)
 	ids := make(map[manifestKey][]int)
 	repositories := make(map[repositoryKey]*importRepository)
@@ -162,6 +162,8 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 		}
 	}
 
+	importSuccess := false
+
 	// for each repository we found, import all tags and digests
 	for key, repo := range repositories {
 		importRepositoryFromDocker(ctx, retriever, repo, limiter)
@@ -184,6 +186,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 				image.Tag = tag.Name
 				image.Image = &copied
 				image.Status.Status = unversioned.StatusSuccess
+				importSuccess = true
 			}
 		}
 		for _, digest := range repo.Digests {
@@ -204,9 +207,15 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 				copied.DockerImageReference = ref.MostSpecific().Exact()
 				image.Image = &copied
 				image.Status.Status = unversioned.StatusSuccess
+				importSuccess = true
 			}
 		}
 	}
+
+	if !importSuccess {
+		return fmt.Errorf("Failed to import a single tag and digest")
+	}
+	return nil
 }
 
 // importFromRepository imports the repository named on the ImageStreamImport, if any, importing up to maximumTags, and reporting
