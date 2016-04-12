@@ -32,42 +32,28 @@ angular.module("openshiftConsole")
     }
 
     // Convert cumulative CPU usage in nanoseconds to millicores.
-    function millicoresUsed(point, lastValue) {
+    function millicoresUsed(point) {
       // Is there a gap in the data?
-      if (!lastValue || !point.value) {
-        return null;
-      }
-
-      // When a container restarts, the cumulative CPU usage resets to 0. As a
-      // result, lastValue can be greater than the current value.  Throw out
-      // those data points since we can't calculate usage as millicores.
-      if (lastValue > point.value) {
+      if (!point.min || !point.max || point.samples < 2) {
         return null;
       }
 
       var timeInMillis = point.end - point.start;
       // Find the usage for just this bucket by comparing it to the last value.
       // Values are in nanoseconds. Calculate usage in millis.
-      var usageInMillis = (point.value - lastValue) / 1000000;
+      var usageInMillis = (point.max - point.min) / 1000000;
       // Convert to millicores.
       return (usageInMillis / timeInMillis) * 1000;
     }
 
     // Convert cumulative usage to usage rate, doesn't change units.
-    function bytesUsed(point, lastValue) {
+    function bytesUsed(point) {
       // Is there a gap in the data?
-      if (!lastValue || !point.value) {
+      if (!point.min || !point.max || point.samples < 2) {
         return null;
       }
 
-      // When a container restarts, the cumulative usage resets to 0. As a
-      // result, lastValue can be greater than the current value.  Throw out
-      // those data points since we can't calculate usage rate.
-      if (lastValue > point.value) {
-        return null;
-      }
-
-      return point.value - lastValue;
+      return point.max - point.min;
     }
 
     function normalize(data, metricID) {
@@ -79,8 +65,6 @@ angular.module("openshiftConsole")
       }
 
       angular.forEach(data, function(point) {
-        var value;
-
         // Calculate a timestamp based on the midtime if missing.
         if (!point.timestamp) {
           point.timestamp = midtime(point);
@@ -93,24 +77,15 @@ angular.module("openshiftConsole")
         }
 
         if (metricID === 'cpu/usage') {
-          // Save the raw value before we change it.
-          value = point.value;
           point.value = millicoresUsed(point, lastValue);
-          lastValue = value;
         }
 
         // Network is cumulative, convert to amount per point.
         if (/network\/rx|tx/.test(metricID)) {
-          // Save the raw value before we change it.
-          value = point.value;
-          point.value = bytesUsed(point, lastValue);
-          lastValue = value;
+          point.value = bytesUsed(point);
         }
       });
 
-      // Remove the first value since it can't be used CPU utilization.
-      // We want the same number of data points for all charts.
-      data.shift();
       return data;
     }
 
@@ -140,9 +115,7 @@ angular.module("openshiftConsole")
         return getMetricsURL().then(function(metricsURL) {
           var reqURL,
               template = metricsURL + templateByMetric[config.metric],
-              buckets = 60,
-              start,
-              end = config.end || Date.now();
+              buckets = 60;
 
           reqURL = URI.expand(template, {
             podUID: config.pod.metadata.uid,
@@ -150,13 +123,9 @@ angular.module("openshiftConsole")
             metric: config.metric
           }).toString();
 
-          // Request an earlier start time and one extra bucket since we throw
-          // the first data point away calculating CPU usage.
-          // See normalize().
-          start = Math.floor(config.start - (end - config.start) / buckets);
           var params = {
-            buckets: buckets + 1,
-            start: start
+            buckets: buckets,
+            start: config.start
           };
 
           if (config.end) {

@@ -89,9 +89,6 @@ angular.module('openshiftConsole')
         // Relative time options.
         scope.options = {
           rangeOptions: [{
-            label: "Last 30 minutes",
-            value: 30
-          }, {
             label: "Last hour",
             value: 60
           }, {
@@ -101,11 +98,14 @@ angular.module('openshiftConsole')
             label: "Last day",
             value: 24 * 60
           }, {
+            label: "Last 3 days",
+            value: 3 * 24 * 60
+          }, {
             label: "Last week",
             value: 7 * 24 * 60
           }]
         };
-        // Show last 30 minutes by default.
+        // Show last hour by default.
         scope.options.timeRange = scope.options.rangeOptions[0];
 
         scope.usageByMetric = {};
@@ -167,7 +167,7 @@ angular.module('openshiftConsole')
                 show: true,
                 tick: {
                   format: function(value) {
-                    return d3.round(value, 1);
+                    return d3.round(value, 2);
                   }
                 }
               }
@@ -369,8 +369,8 @@ angular.module('openshiftConsole')
           delete scope.metricsError;
           update();
         }, true);
-        // Also update every 30 seconds.
-        intervalPromise = $interval(update, 30 * 1000, false);
+        // Also update every 15 seconds.
+        intervalPromise = $interval(update, 15 * 1000, false);
 
         scope.$on('$destroy', function() {
           if (intervalPromise) {
