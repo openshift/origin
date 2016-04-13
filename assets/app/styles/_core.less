@@ -1074,3 +1074,8 @@ h1 small.meta, .build-config-summary .meta {
   vertical-align: middle;
   margin-left: 2px;
 }
+
+// don't allow copy-to-clipboard .input-groups get bigger than 600px so Github webhook secrets aren't revealed within the input-group
+copy-to-clipboard .input-group {
+  max-width: 300px;
+}

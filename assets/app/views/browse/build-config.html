@@ -273,8 +273,7 @@
                                       <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
-                                      <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
-                                      <copy-to-clipboard-button clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
+                                      <copy-to-clipboard clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard>
                                     </dd>
                                 </div>
                                 <div ng-switch-when="Generic">
@@ -282,8 +281,7 @@
                                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
-                                      <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
-                                      <copy-to-clipboard-button clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
+                                      <copy-to-clipboard clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard>
                                     </dd>
                                 </div>
                                 <div ng-switch-when="ImageChange">
@@ -310,8 +308,7 @@
                               </a>
                             </dt>
                             <dd>
-                              <code>oc start-build {{buildConfig.metadata.name}} -n {{project.metadata.name}}</code>
-                              <copy-to-clipboard-button clipboard-text="'oc start-build ' + buildConfig.metadata.name + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
+                              <copy-to-clipboard clipboard-text="'oc start-build ' + buildConfig.metadata.name + ' -n ' + project.metadata.name"></copy-to-clipboard>
                             </dd>
                           </dl>
                         </div>

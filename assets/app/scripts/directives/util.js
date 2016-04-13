@@ -71,7 +71,7 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .directive('copyToClipboardButton', function(IS_IOS) {
+  .directive('copyToClipboard', function(IS_IOS) {
     return {
       restrict: 'E',
       scope: {
