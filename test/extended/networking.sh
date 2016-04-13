@@ -59,6 +59,8 @@ function copy-container-files() {
 function save-container-logs() {
   local base_dest_dir=$1
 
+  os::log::info "Saving container logs"
+
   for container_name in "${CONTAINER_NAMES[@]}"; do
     local dest_dir="${base_dest_dir}/${container_name}"
     if [ ! -d "${dest_dir}" ]; then
@@ -75,6 +77,8 @@ function save-artifacts() {
   local name=$1
   local config_root=$2
 
+  os::log::info "Saving cluster configuration"
+
   local dest_dir="${ARTIFACT_DIR}/${name}"
 
   local config_source="${config_root}/openshift.local.config"
@@ -83,6 +87,43 @@ function save-artifacts() {
   cp -r ${config_source}/* ${config_dest}/
 
   copy-container-files "/etc/hosts" "${dest_dir}"
+}
+
+function deploy-cluster() {
+  local name=$1
+  local plugin=$2
+  local isolation=$3
+  local log_dir=$4
+
+  os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
+  export OPENSHIFT_NETWORK_PLUGIN="${plugin}"
+  export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
+  export OPENSHIFT_NETWORK_ISOLATION="${isolation}"
+  # Images have already been built
+  export OS_DIND_BUILD_IMAGES=0
+  DIND_CLEANUP_REQUIRED=1
+
+  local exit_status=0
+
+  # Disable error checking to have a chance to save logs and artifacts
+  # if cluster deployment fails.
+  set +e
+
+  # Restart instead of start to ensure that an existing cluster is
+  # always torn down.
+  ${CLUSTER_CMD} restart
+  exit_status=$?
+
+  if [ "${exit_status}" = "0" ]; then
+    ${CLUSTER_CMD} wait-for-cluster
+    exit_status=$?
+  fi
+
+  set -e
+
+  save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
+
+  return "${exit_status}"
 }
 
 # Any non-zero exit code from any test run invoked by this script
@@ -95,31 +136,26 @@ function test-osdn-plugin() {
   local isolation=$3
 
   os::log::info "Targeting ${name} plugin: ${plugin}"
-  os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
-  export OPENSHIFT_NETWORK_PLUGIN="${plugin}"
-  export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
-  export OPENSHIFT_NETWORK_ISOLATION="${isolation}"
-  # Images have already been built
-  export OS_DIND_BUILD_IMAGES=0
-  DIND_CLEANUP_REQUIRED=1
-  ${CLUSTER_CMD} start
-  ${CLUSTER_CMD} wait-for-cluster
 
-  os::log::info "Saving cluster configuration"
-  save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
-
-  os::log::info "Running networking e2e tests against the ${name} plugin"
-  export TEST_REPORT_FILE_NAME="${name}-junit"
   local log_dir="${LOG_DIR}/${name}"
   mkdir -p "${log_dir}"
 
-  # Disable error checking for the test run to ensure that failures
-  # for one plugin do not prevent a test run against a different
-  # plugin.
+  # Disable error checking to ensure that failures for one plugin do
+  # not prevent other plugins from being tested.
   set +e
 
-  TEST_REPORT_FILE_NAME=networking_${name}_${isolation} run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
+  deploy-cluster "${name}" "${plugin}" "${isolation}" "${log_dir}"
   local exit_status=$?
+
+  if [[ "${exit_status}" != "0" ]]; then
+    os::log::error "Failed to deploy cluster for plugin: {$name}"
+  else
+    os::log::info "Running networking e2e tests against the ${name} plugin"
+    export TEST_REPORT_FILE_NAME="${name}-junit"
+
+    TEST_REPORT_FILE_NAME=networking_${name}_${isolation} run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
+    local exit_status=$?
+  fi
 
   set -e
 
@@ -128,7 +164,6 @@ function test-osdn-plugin() {
     os::log::error "e2e tests failed for plugin: ${plugin}"
   fi
 
-  os::log::info "Saving container logs"
   save-container-logs "${log_dir}"
 
   os::log::info "Shutting down docker-in-docker cluster for the ${name} plugin"
@@ -256,13 +291,12 @@ else
   # Docker-in-docker is not compatible with selinux
   disable-selinux
 
-  os::log::info "Ensuring that previous test cluster is shut down"
-  ${CLUSTER_CMD} stop
-
-  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false"
+  # Ignore deployment errors for a given plugin to allow other plugins
+  # to be tested.
+  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false" || true
 
   # Avoid unnecessary go builds for subsequent deployments
   export OPENSHIFT_SKIP_BUILD=true
 
-  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true"
+  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true" || true
 fi
