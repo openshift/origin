@@ -39,7 +39,8 @@
     "jasmine-spec-reporter": "1.1.2",
     "jshint-stylish": "0.2.0",
     "karma": "0.12.37",
-    "karma-coverage": "0.2.6",
+
+    "karma-coverage": "0.2.7",
     "karma-jasmine": "0.1.5",
     "karma-phantomjs-launcher": "0.1.4",
     "less": "2.6.1",
