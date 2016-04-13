@@ -5,6 +5,8 @@
 # run with "uninstall" argument to test tear down after test
 ###
 
+# $1 is optional hostname override
+
 set -o errexit
 set -o pipefail
 set -x
@@ -13,7 +15,7 @@ TEST_IMAGE=atomic-registry-quickstart
 
 # we're going to use this for testing
 # node ports aren't working with boxes default hostname localdomain.localhost
-LOCALHOST=127.0.0.1
+LOCALHOST=${1:-`hostname`}
 CMD="docker exec -it origin"
 
 USER=mary

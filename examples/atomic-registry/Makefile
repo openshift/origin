@@ -13,7 +13,8 @@ install:
 	sudo atomic run $(TEST_IMAGE) $(INSTALLHOST)
 
 test:
-	bash test.sh
+	bash test.sh 127.0.0.1
 
 clean:
-	sudo atomic uninstall --force $(TEST_IMAGE) ; sudo docker rm $(sudo docker ps -qa)
+	sudo atomic uninstall --force $(TEST_IMAGE)
+	sudo docker rm $(sudo docker ps -qa)

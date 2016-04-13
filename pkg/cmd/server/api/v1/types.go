@@ -732,6 +732,9 @@ type RequestHeaderIdentityProvider struct {
 
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string `json:"clientCA"`
+	// ClientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.
+	ClientCommonNames []string `json:"clientCommonNames"`
+
 	// Headers is the set of headers to check for identity information
 	Headers []string `json:"headers"`
 	// PreferredUsernameHeaders is the set of headers to check for the preferred username

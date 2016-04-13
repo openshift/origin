@@ -63,6 +63,7 @@ const (
 	RegistryViewerRoleName = "registry-viewer"
 	RegistryEditorRoleName = "registry-editor"
 
+	ImageAuditorRoleName      = "system:image-auditor"
 	ImagePullerRoleName       = "system:image-puller"
 	ImagePusherRoleName       = "system:image-pusher"
 	ImageBuilderRoleName      = "system:image-builder"
