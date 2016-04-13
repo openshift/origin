@@ -318,7 +318,7 @@ func (o MasterOptions) CreateCerts() error {
 		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
 		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
-		Output:             o.Output,
+		Output:             cmdutil.NewGLogWriterV(3),
 	}
 	if err := mintAllCertsOptions.Validate(nil); err != nil {
 		return err

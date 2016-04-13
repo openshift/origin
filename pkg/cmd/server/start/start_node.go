@@ -19,6 +19,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
@@ -257,7 +258,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 		APIServerCAFiles: []string{admin.DefaultCABundleFile(o.NodeArgs.MasterCertDir)},
 
 		NodeClientCAFile: getSignerOptions.CertFile,
-		Output:           o.Output,
+		Output:           cmdutil.NewGLogWriterV(3),
 	}
 
 	if err := createNodeConfigOptions.Validate(nil); err != nil {
