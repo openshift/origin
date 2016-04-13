@@ -55,10 +55,13 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
-		// If the deployment has been cancelled, don't create a deployer pod, and
-		// transition to failed immediately.
+		// If the deployment has been cancelled, don't create a deployer pod.
+		// Transition the deployment to Pending so that re-syncs will check
+		// up on the deployer pods and so that the deployment config controller
+		// continues to see the deployment as in-flight (which it is until we
+		// have deployer pod outcomes).
 		if deployutil.IsDeploymentCancelled(deployment) {
-			nextStatus = deployapi.DeploymentStatusFailed
+			nextStatus = deployapi.DeploymentStatusPending
 			if err := c.cancelDeployerPods(deployment); err != nil {
 				return err
 			}
@@ -286,6 +289,7 @@ func (c *DeploymentController) cancelDeployerPods(deployment *kapi.ReplicationCo
 	}
 	glog.V(4).Infof("Cancelling %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
 	zeroDelay := int64(1)
+	anyCancelled := false
 	for _, deployerPod := range deployerPods {
 		// Set the ActiveDeadlineSeconds on the pod so it's terminated very soon.
 		if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
@@ -298,13 +302,16 @@ func (c *DeploymentController) cancelDeployerPods(deployment *kapi.ReplicationCo
 				}
 				return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 			}
+			anyCancelled = true
 			glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
 		}
 	}
-	if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil && len(deployerPods) > 0 {
-		c.recorder.Eventf(config, kapi.EventTypeNormal, "Cancelled", "Cancelled deployer pods for deployment %s", deployutil.LabelForDeployment(deployment))
-	} else if len(deployerPods) > 0 {
-		c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployer pods")
+	if anyCancelled {
+		if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil && len(deployerPods) > 0 {
+			c.recorder.Eventf(config, kapi.EventTypeNormal, "Cancelled", "Cancelled deployer pods for deployment %s", deployutil.LabelForDeployment(deployment))
+		} else if len(deployerPods) > 0 {
+			c.recorder.Eventf(deployment, kapi.EventTypeNormal, "Cancelled", "Cancelled deployer pods")
+		}
 	}
 	return nil
 }
