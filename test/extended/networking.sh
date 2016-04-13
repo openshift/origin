@@ -7,9 +7,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [[ "${OPENSHIFT_QUIET_OUTPUT:-false}" != "true" ]]; then
+if [[ -n "${OPENSHIFT_VERBOSE_OUTPUT:-}" ]]; then
   set -o xtrace
-  export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+  export PS4='+ \D{%b %d %H:%M:%S} $(basename ${BASH_SOURCE}):${LINENO} ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 fi
 
 # Ensure that subshells inherit bash settings (specifically xtrace)
