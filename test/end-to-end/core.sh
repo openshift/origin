@@ -125,8 +125,9 @@ os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:la
 echo "[INFO] Pushed ruby-22-centos7"
 
 # verify remote images can be pulled directly from the local registry
-oc import-image --confirm --from=mysql:latest mysql:pullthrough
-docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough
+echo "[INFO] Docker pullthrough"
+os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
 # check to make sure an image-pusher can push an image
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'

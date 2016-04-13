@@ -208,18 +208,11 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, 
 			return err
 		}
 
-		groups := []string{}
-		for _, name := range scc.Groups {
-			if !strings.Contains(name, "e2e-") {
-				groups = append(groups, name)
-			}
-		}
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") {
-				groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		scc.Groups = groups
 		if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}

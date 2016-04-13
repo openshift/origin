@@ -25,7 +25,7 @@ DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 SCRATCH_OPTION=""
 BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo"
-COMMIT_MESSAGE="Update dockerfile"
+COMMIT_MESSAGE=""
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
 OSBS_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
 #OSBS_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
@@ -39,6 +39,7 @@ usage() {
   echo "  docker_update   :: Clone dist-git, update version, release, or rhel" >&2
   echo "  docker_backfill :: Copy dist-git Dockerfile to git Dockerfile.product" >&2
   echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
+  echo "  update_compare  :: Clone dist-git and git, update dockerfile, compare all" >&2
   echo "  push_images     :: Push images to qe-registry" >&2
   echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
   echo "  list            :: Display full list of packages / images" >&2
@@ -52,6 +53,7 @@ usage() {
   echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
   echo "  -n, --notlatest     :: Do not tag or push as latest" >&2
   echo "  --scratch           :: Do a scratch build" >&2
+  echo "  --message [message] :: Git commit message" >&2
   echo "  --group [group]     :: Which group list to use (base sti metrics logging misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
@@ -82,6 +84,7 @@ add_group_to_list() {
       add_to_list openshift-enterprise-base-docker
       add_to_list openshift-enterprise-openvswitch-docker
       add_to_list openshift-enterprise-pod-docker
+      add_to_list aos3-installation-docker
       add_to_list openshift-enterprise-docker
       add_to_list openshift-enterprise-haproxy-router-base-docker
       add_to_list openshift-enterprise-dockerregistry-docker
@@ -91,8 +94,6 @@ add_group_to_list() {
       add_to_list openshift-enterprise-deployer-docker
       add_to_list openshift-enterprise-node-docker
       add_to_list openshift-enterprise-sti-builder-docker
-      add_to_list logging-deployment-docker
-      add_to_list metrics-deployer-docker
       add_to_list openshift-enterprise-docker-builder-docker
       add_to_list openshift-enterprise-haproxy-router-docker
       ;;
@@ -113,12 +114,14 @@ add_group_to_list() {
       ;;
     logging)
       add_to_list logging-auth-proxy-docker
+      add_to_list logging-deployment-docker
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
       add_to_list logging-kibana-docker
       ;;
     metrics)
       add_to_list metrics-cassandra-docker
+      add_to_list metrics-deployer-docker
       add_to_list metrics-hawkular-metrics-docker
       add_to_list metrics-heapster-docker
       ;;
@@ -195,10 +198,12 @@ check_build_dependencies() {
 
 build_image() {
     rhpkg container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://file.rdu.redhat.com/sdodson/aos-unsigned.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     echo -n "  Waiting for createContainer taskid ."
     sleep 10
     taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
@@ -266,46 +271,48 @@ update_dockerfile() {
 
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
-  echo "  ---- Checking files changed, added or removed ----"
-  extra_check=$(diff --brief -r ${workingdir}/${container} ${workingdir}/${git_path} | grep -v -e Dockerfile -e git -e osbs )
-  if ! [ "${extra_check}" == "" ] ; then
-    echo "${extra_check}"
-  fi
-  differ_check=$(echo "${extra_check}" | grep " differ")
-  new_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${git_path}")
-  old_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${container}")
-  if ! [ "${differ_check}" == "" ] ; then
-    echo "  ---- Non-Docker file changes ----"
-    echo "${differ_check}" | while read differ_line
-    do
-      myold_file=$(echo "${differ_line}" | awk '{print $2}')
-      mynew_file=$(echo "${differ_line}" | awk '{print $4}')
-      diff -u ${myold_file} ${mynew_file}
-      cp -vf ${mynew_file} ${myold_file}
-      git add ${myold_file}
-    done
-  fi
-  if ! [ "${old_file}" == "" ] ; then
-    echo "  ---- Removed Non-Docker files ----"
-    echo "${old_file}" | while read old_file_line
-    do
-      myold_file=$(echo "${old_file_line}" | awk '{print $4}')
-      # echo "Removing: ${myold_file}"
-      git rm ${myold_file}
-    done
-  fi
-  if ! [ "${new_file}" == "" ] ; then
-    echo "  ---- New Non-Docker files ----"
-    #echo " New files must be added by hand - sorry about that"
-    echo "${new_file}"
-    working_path="${workingdir}/${git_path}"
-    echo "${new_file}" | while read new_file_line
-    do
-      mynew_file=$(echo "${new_file_line}" | awk '{print $4}')
-      mynew_file_trim="${mynew_file#$working_path}"
-      cp -rv ${workingdir}/${git_path}/${mynew_file} ${workingdir}/${container}/${mynew_file}
-      git add ${workingdir}/${container}/${mynew_file}
-    done
+  if ! [ "${git_style}" == "dockerfile_only" ] ; then
+    echo "  ---- Checking files changed, added or removed ----"
+    extra_check=$(diff --brief -r ${workingdir}/${container} ${workingdir}/${git_path} | grep -v -e Dockerfile -e git -e osbs )
+    if ! [ "${extra_check}" == "" ] ; then
+      echo "${extra_check}"
+    fi
+    differ_check=$(echo "${extra_check}" | grep " differ")
+    new_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${git_path}")
+    old_file=$(echo "${extra_check}" | grep "Only in ${workingdir}/${container}")
+    if ! [ "${differ_check}" == "" ] ; then
+      echo "  ---- Non-Docker file changes ----"
+      echo "${differ_check}" | while read differ_line
+      do
+        myold_file=$(echo "${differ_line}" | awk '{print $2}')
+        mynew_file=$(echo "${differ_line}" | awk '{print $4}')
+        diff -u ${myold_file} ${mynew_file}
+        cp -vf ${mynew_file} ${myold_file}
+        git add ${myold_file}
+      done
+    fi
+    if ! [ "${old_file}" == "" ] ; then
+      echo "  ---- Removed Non-Docker files ----"
+      echo "${old_file}" | while read old_file_line
+      do
+        myold_file=$(echo "${old_file_line}" | awk '{print $4}')
+        # echo "Removing: ${myold_file}"
+        git rm ${myold_file}
+      done
+    fi
+    if ! [ "${new_file}" == "" ] ; then
+      echo "  ---- New Non-Docker files ----"
+      #echo " New files must be added by hand - sorry about that"
+      echo "${new_file}"
+      working_path="${workingdir}/${git_path}"
+      echo "${new_file}" | while read new_file_line
+      do
+        mynew_file=$(echo "${new_file_line}" | awk '{print $4}')
+        mynew_file_trim="${mynew_file#$working_path}"
+        cp -rv ${workingdir}/${git_path}/${mynew_file} ${workingdir}/${container}/${mynew_file}
+        git add ${workingdir}/${container}/${mynew_file}
+      done
+    fi
   fi
   echo "  ---- Checking Dockerfile changes ----"
   diff --label Dockerfile --label ${git_path}/Dockerfile -u Dockerfile ${workingdir}/${git_path}/${git_dockerfile} >> .osbs-logs/Dockerfile.diff.new
@@ -319,11 +326,13 @@ show_git_diffs() {
   if ! [ "${newdiff}" == "" ] || ! [ "${extra_check}" == "" ] ; then
     echo "${newdiff}"
     echo " "
+    echo "Changes occured "
     if [ "${FORCE}" == "TRUE" ] ; then
       echo "  Force Option Selected - Assuming Continue"
       mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff ; git add .osbs-logs/Dockerfile.diff ; rhpkg commit -p -m "${COMMIT_MESSAGE} ${version_version} ${release_version} ${rhel_version}" > /dev/null
     else
-      echo "(c)ontinue [replace old diff], (i)gnore [leave old diff], (q)uit [exit script] : "
+      echo "  To view/modify changes, go to: ${workingdir}/${container}"
+      echo "(c)ontinue [rhpkg commit], (i)gnore, (q)uit [exit script] : "
       read choice < /dev/tty
       case ${choice} in
         c | C | continue ) mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff ; git add .osbs-logs/Dockerfile.diff ; rhpkg commit -p -m "${COMMIT_MESSAGE} ${version_version} ${release_version} ${rhel_version}" > /dev/null ;;
@@ -570,8 +579,10 @@ push_images() {
 }
 
 test_function() {
-  echo "container: ${container} dependency: ${build_dependency} branch: ${branch}"
-  echo "docker names: ${dict_image_name[${container}]}"
+  echo -e "container: ${container}\tdocker names: ${dict_image_name[${container}]}"
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo -e "dependency: ${build_dependency}\tbranch: ${branch}"
+  fi
 }
 
 if [ "$#" -lt 1 ] ; then
@@ -583,11 +594,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | test)
-      export action="${key}"
-      ;;
-    bump_and_build)
-      export bump_release="TRUE"
+    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | update_compare | test)
       export action="${key}"
       ;;
     list)
@@ -627,6 +634,7 @@ case $key in
       shift
       ;;
     --bump_release)
+      export really_bump_release="TRUE"
       export bump_release="TRUE"
       ;;
     --rhel)
@@ -657,6 +665,7 @@ case $key in
       ;;
     -f|--force)
       export FORCE="TRUE"
+      export REALLYFORCE="TRUE"
       ;;
     -i|--ignore)
       export IGNORE="TRUE"
@@ -723,6 +732,10 @@ do
       export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
       export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
+      export git_style=$(echo "${dict_git_compare[${container}]}" | awk '{print $4}')
+      if [ "${COMMIT_MESSAGE}" == "" ] ; then
+        COMMIT_MESSAGE="Sync origin git to ose dist-git "
+      fi
       echo "=== ${container} ==="
       if ! [ "${git_repo}" == "None" ] ; then
         git_compare
@@ -732,17 +745,56 @@ do
       fi
       ;;
     docker_update )
+      if [ "${COMMIT_MESSAGE}" == "" ] ; then
+        COMMIT_MESSAGE="Updating Dockerfile version and release"
+      fi
       echo "=== ${container} ==="
       docker_update
       ;;
     docker_backfill )
+      if [ "${COMMIT_MESSAGE}" == "" ] ; then
+        COMMIT_MESSAGE="Backporting dis-git Dockerfile changes to ose Dockerfile.product"
+      fi
       echo "=== ${container} ==="
       docker_backfill
       ;;
-    bump_and_build )
+    update_compare )
+      if [ "${REALLYFORCE}" == "TRUE" ] ; then
+        export FORCE="TRUE"
+      fi
+      if [ "${really_bump_release}" == "TRUE" ] ; then
+        export bump_release="TRUE"
+      fi
+      export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
+      export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
+      export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
+      export git_style=$(echo "${dict_git_compare[${container}]}" | awk '{print $4}')
       echo "=== ${container} ==="
+      if [ "${COMMIT_MESSAGE}" == "" ] ; then
+        COMMIT_MESSAGE="Updating Dockerfile version and release"
+      fi
+      export FORCE="TRUE"
       docker_update
-      build_container
+      if ! [ "${git_repo}" == "None" ] ; then
+        if [ "${COMMIT_MESSAGE}" == "" ] ; then
+          COMMIT_MESSAGE="Sync origin git to ose dist-git "
+        fi
+        if [ "${REALLYFORCE}" == "TRUE" ] ; then
+          export FORCE="TRUE"
+        else
+          export FORCE="FALSE"
+        fi
+        git_compare
+        if [ "${COMMIT_MESSAGE}" == "" ] ; then
+          COMMIT_MESSAGE="Reupdate Dockerfile after compare"
+        fi
+        export FORCE="TRUE"
+        export bump_release="FALSE"
+        docker_update
+      else
+        echo " No git repo to compare to."
+        echo " Skipping"
+      fi
       ;;
     make_yaml )
       docker_name_list="${dict_image_name[${container}]}"

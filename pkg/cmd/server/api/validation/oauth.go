@@ -235,7 +235,10 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 
 	if len(provider.ClientCA) > 0 {
 		validationResults.AddErrors(ValidateFile(provider.ClientCA, fieldPath.Child("provider", "clientCA"))...)
+	} else if len(provider.ClientCommonNames) > 0 {
+		validationResults.AddErrors(field.Invalid(fieldPath.Child("provider", "clientCommonNames"), provider.ClientCommonNames, "clientCA must be specified in order to use clientCommonNames"))
 	}
+
 	if len(provider.Headers) == 0 {
 		validationResults.AddErrors(field.Required(fieldPath.Child("provider", "headers"), ""))
 	}

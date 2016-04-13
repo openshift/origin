@@ -99,7 +99,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
     * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
-* **VAGRANT USERS**: when you are inside of vagrant environment, you have pre-setted `$KUBECONFIG` environment variable. It may interferes with subsequent commands, so we are recommending to unset it: `unset KUBECONFIG`
+* **VAGRANT USERS**: when you are inside of a vagrant environment, the `$KUBECONFIG` environment variable is preset and may interfere with subsequent commands, so it is recommended to unset it: `unset KUBECONFIG`
 
 - - -
 
