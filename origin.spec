@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 41e4049fbdcad9db0cbc6042e1027ad4600c5866
+%global commit d2f51a9ea39f224a023e9bdc56aa167544f09267
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.13-10-g41e4049 -X github.com/openshift/origin/pkg/version.commitFromGit 41e4049 -X k8s.io/kubernetes/pkg/version.gitCommit 41e4049 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.14-37-gd2f51a9 -X github.com/openshift/origin/pkg/version.commitFromGit d2f51a9 -X k8s.io/kubernetes/pkg/version.gitCommit d2f51a9 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.14
+Version:        3.2.0.15
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,35 @@ fi
 
 
 %changelog
+* Wed Apr 13 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.15
+- Update atomic registry quickstart artifacts (aweiteka@redhat.com)
+- UPSTREAM: 23746: A pod never terminated if a container image registry was
+  unavailable (agoldste@redhat.com)
+- fix push path in log message (bparees@redhat.com)
+- Bump fontawesome to 4.6.1 (jforrest@redhat.com)
+- Fix bindata diff for new font-awesome release (spadgett@redhat.com)
+- Fix e2e scc race (agoldste@redhat.com)
+- UPSTREAM: 23894: Should not fail containers on OOM score adjust
+  (ccoleman@redhat.com)
+- Add ability to specify allowed CNs for RequestHeader proxy client cert
+  (jliggitt@redhat.com)
+- bump(k8s.io/kubernetes): 114a51dfbc43a8bcf07db1774a20e05d560e34b0
+  (deads@redhat.com)
+- Update ose image build scripts (tdawson@redhat.com)
+- Modify pullthrough import-image use case to use our cli framework
+  (maszulik@redhat.com)
+- add system:image-auditor (deads@redhat.com)
+- Improve wording in sample-app README (rhcarvalho@gmail.com)
+- Wrap login requests to clear in-memory session (jliggitt@redhat.com)
+- Grant use of the NFS plugin in hostmount-anyuid SCC, to enable NFS recycler
+  pods to run (pmorie@gmail.com)
+- made hack/test-go handle compilation errors better (skuznets@redhat.com)
+- Enable etcd cache for k8s resources (jliggitt@redhat.com)
+- UPSTREAM: 24048: Use correct defaults when binding apiserver flags
+  (jliggitt@redhat.com)
+- UPSTREAM: 24008: Make watch cache behave like uncached watch
+  (jliggitt@redhat.com)
+
 * Mon Apr 11 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.14
 - deployer controller: ensure phase direction (mkargaki@redhat.com)
 - Getting docker logs always to debug issue 8399 (maszulik@redhat.com)
