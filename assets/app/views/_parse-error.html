@@ -1,0 +1,12 @@
+<div ng-show="error" class="alert alert-danger">
+  <button ng-click="error = null" type="button" class="close" aria-hidden="true">
+    <span class="pficon pficon-close"></span>
+  </button>
+  <span class="pficon pficon-error-circle-o"></span>
+  <strong>Failed to process the resource.</strong>
+  <div>
+    <truncate-long-text ng-if="error.message" content="error.message" limit="512" use-word-boundary="true"></truncate-long-text>
+    <span ng-if="error.parsedLine">Line: {{error.parsedLine}}</span>
+    <code ng-if="error.snippet">{{error.snippet}}</code>
+  </div>
+</div>

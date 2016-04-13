@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
+  .controller('CreateController', function ($q, $uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -79,6 +79,15 @@ angular.module('openshiftConsole')
       keyword: '',
       tag: ''
     };
+
+    $scope.alerts = $scope.alerts || {};
+
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
+
+    $scope.editorContent = "";
 
     $scope.breadcrumbs = [
       {
@@ -305,6 +314,7 @@ angular.module('openshiftConsole')
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
         $scope.project = project;
+        $scope.context = context;
         // Update project breadcrumb with display name.
         $scope.breadcrumbs[0].title = $filter('displayName')(project);
         // List templates in the project namespace as well as the shared `openshift` namespace.

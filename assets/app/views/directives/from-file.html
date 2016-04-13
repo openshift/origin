@@ -1,0 +1,39 @@
+<parse-error error="error" ng-show="error"></parse-error>
+<div class="row">
+  <div class="col-sm-12 pad-top-xl pod-bottom-xl">
+    <form name="form">
+      <div class="form-group" id="from-file">
+        <osc-file-input 
+          model="editorContent"
+          drop-zone-id="from-file"
+          dragging="false"
+          help-text="Upload file by dragging & dropping, selecting it, or pasting from the clipboard."
+          ng-disabled="false"
+          show-values="false"></osc-file-input>
+        <div ui-ace="{
+          mode: 'yaml',
+          theme: 'eclipse',
+          onLoad: aceLoaded,
+          onChange: aceChanged,
+          rendererOptions: {
+            fadeFoldWidgets: true,
+            showPrintMargin: false
+          }
+        }" ng-model="editorContent" class="editor ace-bordered yaml-mode" id="add-component-editor" required></div>
+      </div>
+      <div class="buttons gutter-top-bottom">
+        <button
+          type="submit"
+          ng-click="create()"
+          ng-disabled="editorErrorAnnotation || !editorContent"
+          class="btn btn-primary btn-lg">
+          Create
+        </button>
+        <a class="btn btn-default btn-lg"
+          href="{{projectName | projectOverviewURL}}">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>

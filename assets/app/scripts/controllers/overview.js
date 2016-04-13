@@ -26,7 +26,8 @@ angular.module('openshiftConsole')
                         $parse,
                         $filter,
                         $interval,
-                        RoutesService) {
+                        RoutesService,
+                        AlertMessageService) {
     $scope.projectName = $routeParams.project;
     $scope.pods = {};
     $scope.services = {};
@@ -99,6 +100,12 @@ angular.module('openshiftConsole')
     /* Filled in by updateTopology */
     $scope.topologyItems = { };
     $scope.topologyRelations = [ ];
+
+    $scope.alerts = $scope.alerts || {};
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     var intervals = [];
     var watches = [];

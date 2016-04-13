@@ -9,11 +9,13 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, ProjectsService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, AlertMessageService, ProjectsService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter, CachedTemplateService) {
 
 
     var name = $routeParams.name;
-    var namespace = $routeParams.namespace;
+
+    // If the namespace is not defined, that indicates that the processed Template should be obtained from the 'CachedTemplateService'
+    var namespace = $routeParams.namespace || "";
 
     if (!name) {
       Navigate.toErrorPage("Cannot create from template: a template name was not specified.");
@@ -38,6 +40,12 @@ angular.module('openshiftConsole')
         title: name
       }
     ];
+
+    $scope.alerts = $scope.alerts || {};
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     var displayNameFilter = $filter('displayName');
     var humanize = $filter('humanize');
@@ -138,7 +146,7 @@ angular.module('openshiftConsole')
               TaskList.clear();
               TaskList.add(titles, helpLinks, function() {
                 var d = $q.defer();
-                DataService.createList(config.objects, context).then(
+                DataService.batch(config.objects, context).then(
                   function(result) {
                     var alerts = [];
                     var hasErrors = false;
@@ -188,17 +196,36 @@ angular.module('openshiftConsole')
           );
         };
 
-        DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
-          function(template) {
-            $scope.template = template;
-            $scope.templateImages = imageItems(template);
-            $scope.hasParameters = $scope.template.parameters && $scope.template.parameters.length > 0;
-            $scope.templateUrl = template.metadata.selfLink;
-            template.labels = template.labels || {};
-          },
-          function() {
-            Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
-          });
+        function setTemplateParams() {
+          $scope.templateImages = imageItems($scope.template);
+          $scope.template.labels = $scope.template.labels || {};
+        }
+
+        // Missing namespace indicates that the template should be received from from the 'CachedTemplateService'.
+        // Otherwise get it via GET call. 
+        if (!namespace) {
+          $scope.template = CachedTemplateService.getTemplate();
+          // In case the template can be loaded from 'CachedTemaplteService', show an alert and disable "Create" button.
+          if (_.isEmpty($scope.template)) {
+
+            var redirect = URI('error').query({
+              error: "not_found",
+              error_description: "Template wasn't found in cache."
+            }).toString();
+            $location.url(redirect);
+          }
+          CachedTemplateService.clearTemplate();
+          setTemplateParams();
+        } else {
+          DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
+            function(template) {
+              $scope.template = template;
+              setTemplateParams();
+            },
+            function() {
+              Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
+            });
+        }
 
     }));
 

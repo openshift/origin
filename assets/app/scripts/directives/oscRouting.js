@@ -39,6 +39,12 @@ angular.module("openshiftConsole")
         routingDisabled: "="
       },
       templateUrl: 'views/directives/osc-routing.html',
+      controller: function($scope) {
+        $scope.disableCertificateInputs = function() {
+          var termination = _.get($scope, 'route.tls.termination');
+          return !termination || termination === 'passthrough';
+        };
+      },
       link: function(scope, element, attrs, formCtl){
         scope.form = formCtl;
 
