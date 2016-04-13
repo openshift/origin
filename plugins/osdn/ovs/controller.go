@@ -334,7 +334,6 @@ func (plugin *ovsPlugin) GetName() string {
 
 func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.V(5).Infof("AddHostSubnetRules for %v", subnet)
-	cookie := generateCookie(subnet.HostIP)
 	otx := ovs.NewTransaction(BR)
 
 	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
@@ -351,8 +350,8 @@ func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.V(5).Infof("DeleteHostSubnetRules for %v", subnet)
 
 	otx := ovs.NewTransaction(BR)
-	otx.DeleteFlows("table=1, tun_src=%s", nodeIP)
-	otx.DeleteFlows("table=8, nw_dst=%s", nodeIP)
+	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
+	otx.DeleteFlows("table=8, nw_dst=%s", subnet.Subnet)
 	err := otx.EndTransaction()
 	if err != nil {
 		glog.Errorf("Error deleting OVS flows: %v", err)
