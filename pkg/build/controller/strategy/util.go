@@ -93,7 +93,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 			{Name: "PUSH_DOCKERCFG_PATH", Value: DockerPushSecretMountPath},
 		}...)
-		glog.V(3).Infof("%s will be used for docker push in %s", DockerPullSecretMountPath, pod.Name)
+		glog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
 	}
 
 	if pullSecret != nil {
