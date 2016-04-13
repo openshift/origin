@@ -100,7 +100,7 @@ function deploy-cluster() {
   export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
   export OPENSHIFT_NETWORK_ISOLATION="${isolation}"
   # Images have already been built
-  export OS_DIND_BUILD_IMAGES=0
+  export OPENSHIFT_DIND_BUILD_IMAGES=0
   DIND_CLEANUP_REQUIRED=1
 
   local exit_status=0
