@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -288,11 +289,16 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	if err != nil {
 		return err
 	}
+	errList := []error{}
 	for _, svc := range services {
-		oc.pluginHooks.DeleteServiceRules(&svc)
-		oc.pluginHooks.AddServiceRules(&svc, netID)
+		if err := oc.pluginHooks.DeleteServiceRules(&svc); err != nil {
+			log.Error(err)
+		}
+		if err := oc.pluginHooks.AddServiceRules(&svc, netID); err != nil {
+			errList = append(errList, err)
+		}
 	}
-	return nil
+	return kerrors.NewAggregate(errList)
 }
 
 func (oc *OsdnController) watchNetNamespaces() {
@@ -318,8 +324,11 @@ func (oc *OsdnController) watchNetNamespaces() {
 			err = oc.updatePodNetwork(netns.NetName, netns.NetID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
+				oc.setVNID(netns.NetName, oldNetID)
+				continue
 			}
 		case watch.Deleted:
+			// updatePodNetwork needs vnid, so unset vnid after this call
 			err := oc.updatePodNetwork(netns.NetName, AdminVNID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
@@ -361,24 +370,33 @@ func (oc *OsdnController) watchServices() {
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			netid, err := oc.WaitAndGetVNID(serv.Namespace)
-			if err != nil {
-				log.Errorf("Skipped serviceEvent: %v, Error: %v", eventType, err)
-				continue
-			}
-
 			oldsvc, exists := services[string(serv.UID)]
 			if exists {
 				if !isServiceChanged(oldsvc, serv) {
 					continue
 				}
-				oc.pluginHooks.DeleteServiceRules(oldsvc)
+				if err := oc.pluginHooks.DeleteServiceRules(oldsvc); err != nil {
+					log.Error(err)
+				}
+			}
+
+			netid, err := oc.WaitAndGetVNID(serv.Namespace)
+			if err != nil {
+				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
+				continue
+			}
+
+			if err := oc.pluginHooks.AddServiceRules(serv, netid); err != nil {
+				log.Error(err)
+				continue
 			}
 			services[string(serv.UID)] = serv
-			oc.pluginHooks.AddServiceRules(serv, netid)
 		case watch.Deleted:
 			delete(services, string(serv.UID))
-			oc.pluginHooks.DeleteServiceRules(serv)
+
+			if err := oc.pluginHooks.DeleteServiceRules(serv); err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
