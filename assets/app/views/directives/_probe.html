@@ -3,7 +3,17 @@
   GET {{probe.httpGet.path || '/'}} on port {{probe.httpGet.port || 'unknown'}}
 </span>
 <span ng-if="probe.exec.command">
-  <code ng-repeat="arg in probe.exec.command">{{arg}}</code>
+  <code>
+    <span ng-repeat="arg in probe.exec.command">
+      <truncate-long-text
+          content="arg"
+          limit="80"
+          newline-limit="1"
+          expandable="false"
+          use-word-boundary="false">
+      </truncate-long-text>
+    </span>
+  </code>
 </span>
 <span ng-if="probe.tcpSocket">
   Open socket on port {{probe.tcpSocket.port}}

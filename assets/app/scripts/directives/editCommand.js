@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module('openshiftConsole')
-  .directive('editCommand', function() {
+  .directive('editCommand', function($filter) {
     return {
       restrict: 'E',
       scope: {
@@ -13,7 +13,7 @@ angular.module('openshiftConsole')
         scope.id = _.uniqueId('edit-command-');
         scope.input = {};
 
-        var inputChanged;
+        var inputChanged, isMultiline = $filter('isMultiline');
         scope.$watch('args', function() {
           if (inputChanged) {
             inputChanged = false;
@@ -25,7 +25,10 @@ angular.module('openshiftConsole')
             // avoid problems dragging/dropping duplicate values, which
             // ng-sortable doesn't handle well.
             scope.input.args = _.map(scope.args, function(arg) {
-              return { value: arg };
+              return {
+                value: arg,
+                multiline: isMultiline(arg)
+              };
             });
           }
         }, true);
@@ -48,7 +51,10 @@ angular.module('openshiftConsole')
           }
 
           scope.input.args = scope.input.args || [];
-          scope.input.args.push({ value: scope.nextArg });
+          scope.input.args.push({
+            value: scope.nextArg,
+            multiline: isMultiline(scope.nextArg)
+          });
           scope.nextArg = '';
         };
 

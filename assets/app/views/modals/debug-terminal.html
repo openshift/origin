@@ -34,7 +34,15 @@
       </div>
       <div ng-if="container | entrypoint : image" class="original-cmd-msg">
         <label>Original Command:</label>
-        <code>{{container | entrypoint : image}}</code>
+        <code>
+          <truncate-long-text
+              content="container | entrypoint : image"
+              limit="80"
+              newline-limit="1"
+              expandable="false"
+              use-word-boundary="false">
+          </truncate-long-text>
+        </code>
         <!-- Don't add the copy-to-clipboard button for now since we have problems with paste in the terminal. -->
         <!-- <copy-to-clipboard-button clipboard-text="container | entrypoint : image"></copy-to-clipboard-button> -->
       </div>
