@@ -14,6 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -666,6 +667,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			ReadinessProbe:  readinessProbe,
 			ImagePullPolicy: kapi.PullIfNotPresent,
 			VolumeMounts:    mounts,
+			Resources: kapi.ResourceRequirements{
+				Requests: kapi.ResourceList{
+					kapi.ResourceCPU:    resource.MustParse("100m"),
+					kapi.ResourceMemory: resource.MustParse("256Mi"),
+				},
+			},
 		},
 	}
 
