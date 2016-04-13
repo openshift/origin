@@ -319,94 +319,153 @@ func (o TagOptions) RunTag() error {
 
 		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
 			isc := o.osClient.ImageStreams(o.destNamespace[i])
-			target, err := isc.Get(destName)
-			if err != nil {
-				if !kerrors.IsNotFound(err) {
+
+			if o.deleteTag {
+				// new server support
+				err := o.osClient.ImageStreamTags(o.destNamespace[i]).Delete(destName, destTag)
+				switch {
+				case err == nil:
+					fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+					return nil
+
+				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
+					// fall back to legacy behavior
+				default:
+					//  error that isn't whitelisted: fail
 					return err
 				}
 
-				if o.deleteTag {
+				// try the old way
+				target, err := isc.Get(destName)
+				if err != nil {
+					if !kerrors.IsNotFound(err) {
+						return err
+					}
+
 					// Nothing to do here, continue to the next dest tag
 					// if there is any.
 					fmt.Fprintf(o.out, "Image stream %q does not exist.\n", destName)
 					return nil
 				}
 
-				// try to create the target if it doesn't exist
+				// The user wants to delete a spec tag.
+				if _, ok := target.Spec.Tags[destTag]; !ok {
+					return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
+				}
+				delete(target.Spec.Tags, destTag)
+
+				if _, err = isc.Update(target); err != nil {
+					return err
+				}
+
+				fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+				return nil
+			}
+
+			// The user wants to symlink a tag.
+			istag := &imageapi.ImageStreamTag{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      destNameAndTag,
+					Namespace: o.destNamespace[i],
+				},
+				Tag: &imageapi.TagReference{
+					Reference: o.referenceTag,
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure:  o.insecureTag,
+						Scheduled: o.scheduleTag,
+					},
+					From: &kapi.ObjectReference{
+						Kind: o.sourceKind,
+					},
+				},
+			}
+			localRef := o.ref
+			switch o.sourceKind {
+			case "DockerImage":
+				istag.Tag.From.Name = localRef.Exact()
+				gen := int64(0)
+				istag.Tag.Generation = &gen
+
+			default:
+				istag.Tag.From.Name = localRef.NameString()
+				istag.Tag.From.Namespace = o.ref.Namespace
+			}
+
+			msg := ""
+			sameNamespace := o.namespace == o.destNamespace[i]
+			if o.aliasTag {
+				if sameNamespace {
+					msg = fmt.Sprintf("Tag %s set up to track %s.", destNameAndTag, o.ref.Exact())
+				} else {
+					msg = fmt.Sprintf("Tag %s/%s set up to track %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
+				}
+			} else {
+				if istag.Tag.ImportPolicy.Scheduled {
+					if sameNamespace {
+						msg = fmt.Sprintf("Tag %s set to import %s periodically.", destNameAndTag, o.ref.Exact())
+					} else {
+						msg = fmt.Sprintf("Tag %s/%s set to %s periodically.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
+					}
+				} else {
+					if sameNamespace {
+						msg = fmt.Sprintf("Tag %s set to %s.", destNameAndTag, o.ref.Exact())
+					} else {
+						msg = fmt.Sprintf("Tag %s/%s set to %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
+					}
+				}
+			}
+
+			// supported by new servers.
+			_, err := o.osClient.ImageStreamTags(o.destNamespace[i]).Update(istag)
+			switch {
+			case err == nil:
+				fmt.Fprintln(o.out, msg)
+				return nil
+
+			case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err), kerrors.IsNotFound(err):
+				// if we got one of these errors, it possible that a Create will do what we need.  Try that
+				_, err := o.osClient.ImageStreamTags(o.destNamespace[i]).Create(istag)
+				switch {
+				case err == nil:
+					fmt.Fprintln(o.out, msg)
+					return nil
+
+				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
+					// fall back to legacy behavior
+				default:
+					//  error that isn't whitelisted: fail
+					return err
+				}
+
+			default:
+				//  error that isn't whitelisted: fail
+				return err
+
+			}
+
+			target, err := isc.Get(destName)
+			if kerrors.IsNotFound(err) {
 				target = &imageapi.ImageStream{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: destName,
 					},
 				}
+			} else if err != nil {
+				return err
 			}
 
 			if target.Spec.Tags == nil {
 				target.Spec.Tags = make(map[string]imageapi.TagReference)
 			}
 
-			msg := ""
-			if o.deleteTag {
-				// The user wants to delete a spec tag.
-				if _, ok := target.Spec.Tags[destTag]; !ok {
-					return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
-				}
-				delete(target.Spec.Tags, destTag)
-				msg = fmt.Sprintf("Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
-			} else {
-				// The user wants to symlink a tag.
-				targetRef, ok := target.Spec.Tags[destTag]
-				if !ok {
-					targetRef = imageapi.TagReference{}
-				}
-
-				targetRef.Reference = o.referenceTag
-				targetRef.ImportPolicy.Insecure = o.insecureTag
-				targetRef.ImportPolicy.Scheduled = o.scheduleTag
-				targetRef.From = &kapi.ObjectReference{
-					Kind: o.sourceKind,
-				}
-				localRef := o.ref
-				switch o.sourceKind {
-				case "DockerImage":
-					targetRef.From.Name = localRef.Exact()
-					if targetRef.Generation == nil {
-						// for servers that do not support tag generations, we need to force re-import to fetch its metadata
-						delete(target.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
-					} else {
-						// for newer servers we do not need to force re-import
-						gen := int64(0)
-						targetRef.Generation = &gen
-					}
-
-				default:
-					targetRef.From.Name = localRef.NameString()
-					targetRef.From.Namespace = o.ref.Namespace
-				}
-
-				sameNamespace := o.namespace == o.destNamespace[i]
-				target.Spec.Tags[destTag] = targetRef
-				if o.aliasTag {
-					if sameNamespace {
-						msg = fmt.Sprintf("Tag %s set up to track %s.", destNameAndTag, o.ref.Exact())
-					} else {
-						msg = fmt.Sprintf("Tag %s/%s set up to track %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
-					}
-				} else {
-					if targetRef.ImportPolicy.Scheduled {
-						if sameNamespace {
-							msg = fmt.Sprintf("Tag %s set to import %s periodically.", destNameAndTag, o.ref.Exact())
-						} else {
-							msg = fmt.Sprintf("Tag %s/%s set to %s periodically.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
-						}
-					} else {
-						if sameNamespace {
-							msg = fmt.Sprintf("Tag %s set to %s.", destNameAndTag, o.ref.Exact())
-						} else {
-							msg = fmt.Sprintf("Tag %s/%s set to %s.", o.destNamespace[i], destNameAndTag, o.ref.Exact())
-						}
-					}
+			if oldTargetTag, exists := target.Spec.Tags[destTag]; exists {
+				if oldTargetTag.Generation == nil {
+					// for servers that do not support tag generations, we need to force re-import to fetch its metadata
+					delete(target.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+					istag.Tag.Generation = nil
 				}
 			}
+			target.Spec.Tags[destTag] = *istag.Tag
 
 			// Check the stream creation timestamp and make sure we will not
 			// create a new image stream while deleting.

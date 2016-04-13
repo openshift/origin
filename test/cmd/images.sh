@@ -9,42 +9,47 @@ source "${OS_ROOT}/hack/lib/init.sh"
 os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
+
+currentcontext=$(oc config current-context)
+oc login -u system:admin
+clusteradmincontext=$(oc config current-context)
+oc config use-context ${currentcontext}
+
+project=$(oc project -q)
+
+
 # Cleanup cluster resources created by this test
 (
   set +e
   oc delete project test-cmd-images-2
   oc delete all,templates --all
+
+  defaultimage="openshift/origin-\${component}:latest"
+  USE_IMAGES=${USE_IMAGES:-$defaultimage}
+  # create a second project
+  oc new-project test-cmd-images-2
+  oc project $project
+
+  oadm registry --images="${USE_IMAGES}" -n default --context=${clusteradmincontext}
   exit 0
-) &>/dev/null
+) &> /dev/null
 
 
-defaultimage="openshift/origin-\${component}:latest"
-USE_IMAGES=${USE_IMAGES:-$defaultimage}
-project=$(oc project -q)
-# create a second project
-oc new-project test-cmd-images-2
-oc project $project
 
 os::test::junit::declare_suite_start "cmd/images"
 # This test validates images and image streams along with the tag and import-image commands
 
 os::test::junit::declare_suite_start "cmd/images/images"
-os::cmd::expect_success 'oc get images'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-image.json'
-os::cmd::expect_success 'oc delete images test'
+os::cmd::expect_success 'oc get images --context=${clusteradmincontext}'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-image.json --context=${clusteradmincontext}'
+os::cmd::expect_success 'oc delete images test --context=${clusteradmincontext}'
 echo "images: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images/imagestreams"
 os::cmd::expect_success 'oc get imageStreams'
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-image-stream.json'
-# verify that creating a registry fills out .status.dockerImageRepository
-if os::cmd::expect_success_and_not_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" '.'; then
-  # create the registry
-  os::cmd::expect_success "oadm registry --images='${USE_IMAGES}' -n default"
-  # make sure stream.status.dockerImageRepository IS set
-  os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
-fi
+os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
 os::cmd::expect_success 'oc delete imageStreams test'
 os::cmd::expect_failure 'oc get imageStreams test'
 
@@ -243,7 +248,7 @@ os::test::junit::declare_suite_start "cmd/images/delete-istag"
 # test deleting a tag using oc delete
 os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.16'
 os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" 'latest'
-os::cmd::expect_success 'oc delete istag/perl:5.16'
+os::cmd::expect_success 'oc delete istag/perl:5.16 --context=${clusteradmincontext}'
 os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.16'
 os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.16'
 os::cmd::expect_success 'oc delete all --all'
