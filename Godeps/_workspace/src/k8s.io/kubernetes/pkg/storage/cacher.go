@@ -30,7 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -541,8 +540,6 @@ func (c *cacheWatcher) sendWatchCacheEvent(event watchCacheEvent) {
 }
 
 func (c *cacheWatcher) process(initEvents []watchCacheEvent) {
-	defer utilruntime.HandleCrash()
-
 	for _, event := range initEvents {
 		c.sendWatchCacheEvent(event)
 	}
