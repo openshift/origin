@@ -105,21 +105,15 @@ function deploy-cluster() {
 
   local exit_status=0
 
-  # Disable error checking to have a chance to save logs and artifacts
-  # if cluster deployment fails.
-  set +e
-
-  # Restart instead of start to ensure that an existing cluster is
+  # Restart instead of start to ensure that an existing test cluster is
   # always torn down.
-  ${CLUSTER_CMD} restart
-  exit_status=$?
-
-  if [ "${exit_status}" = "0" ]; then
-    ${CLUSTER_CMD} wait-for-cluster
-    exit_status=$?
+  if ${CLUSTER_CMD} restart; then
+    if ! ${CLUSTER_CMD} wait-for-cluster; then
+      exit_status=1
+    fi
+  else
+    exit_status=1
   fi
-
-  set -e
 
   save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
 
@@ -140,28 +134,24 @@ function test-osdn-plugin() {
   local log_dir="${LOG_DIR}/${name}"
   mkdir -p "${log_dir}"
 
-  # Disable error checking to ensure that failures for one plugin do
-  # not prevent other plugins from being tested.
-  set +e
+  local failed=
 
-  deploy-cluster "${name}" "${plugin}" "${isolation}" "${log_dir}"
-  local exit_status=$?
-
-  if [[ "${exit_status}" != "0" ]]; then
-    os::log::error "Failed to deploy cluster for plugin: {$name}"
-  else
+  if deploy-cluster "${name}" "${plugin}" "${isolation}" "${log_dir}"; then
     os::log::info "Running networking e2e tests against the ${name} plugin"
     export TEST_REPORT_FILE_NAME="${name}-junit"
 
-    TEST_REPORT_FILE_NAME=networking_${name}_${isolation} run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"
-    local exit_status=$?
+    if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
+         run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"; then
+      failed=1
+      os::log::error "e2e tests failed for plugin: ${plugin}"
+    fi
+  else
+    failed=1
+    os::log::error "Failed to deploy cluster for plugin: {$name}"
   fi
 
-  set -e
-
-  if [ "${exit_status}" != "0" ]; then
+  if [[ -n "${failed}" ]]; then
     TEST_FAILURES=$((TEST_FAILURES + 1))
-    os::log::error "e2e tests failed for plugin: ${plugin}"
   fi
 
   save-container-logs "${log_dir}"
