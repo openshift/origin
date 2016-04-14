@@ -805,6 +805,8 @@ angular.module('openshiftConsole')
           return build.spec.strategy.dockerStrategy;
         case 'Custom':
           return build.spec.strategy.customStrategy;
+        case 'JenkinsPipeline':
+          return build.spec.strategy.jenkinsPipelineStrategy;
         default:
           return null;
       }

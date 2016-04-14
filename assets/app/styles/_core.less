@@ -916,8 +916,8 @@ a.disabled-link {
   }
 }
 
-.dockerfile-editor {
-  height: 200px;
+.ace-inline {
+  height: 300px;
 }
 
 .edit-form {
@@ -1047,8 +1047,12 @@ h1 small.meta, .build-config-summary .meta {
   }
 }
 
-.ace_editor-bordered {
-  border: 1px solid #999999;
+.ace-bordered {
+  border: 1px solid #8b8d8f;
+  &.ace-read-only {
+    border-color: #d1d1d1;
+    background-color: #fafafa;
+  }
 }
 
 .action-divider {
