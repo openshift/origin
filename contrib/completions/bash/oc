@@ -861,6 +861,7 @@ _oc_cancel-build()
 
     flags+=("--dump-logs")
     flags+=("--restart")
+    flags+=("--state=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
