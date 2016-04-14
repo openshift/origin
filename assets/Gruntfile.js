@@ -9,6 +9,7 @@
 // 'test/spec/**/*.js'
 
 var modRewrite = require('connect-modrewrite');
+var serveStatic = require('serve-static');
 
 module.exports = function (grunt) {
 
@@ -107,16 +108,16 @@ module.exports = function (grunt) {
           middleware: function (connect) {
             return [
               modRewrite(['!^/(config.js|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
-              connect.static('.tmp'),
+              serveStatic('.tmp'),
               connect().use(
                 '/java',
-                connect.static('./openshift-jvm')
+                serveStatic('./openshift-jvm')
               ),
               connect().use(
                 '/bower_components',
-                connect.static('./bower_components')
+                serveStatic('./bower_components')
               ),
-              connect.static(appConfig.app)
+              serveStatic(appConfig.app)
             ];
           }
         }
@@ -126,13 +127,13 @@ module.exports = function (grunt) {
           middleware: function (connect) {
             return [
               modRewrite(['!^/(config.js|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
-              connect.static('.tmp'),
-              connect.static('test'),
+              serveStatic('.tmp'),
+              serveStatic('test'),
               connect().use(
                 '/bower_components',
-                connect.static('./bower_components')
+                serveStatic('./bower_components')
               ),
-              connect.static(appConfig.app)
+              serveStatic(appConfig.app)
             ];
           }
         }

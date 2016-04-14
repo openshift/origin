@@ -13,9 +13,9 @@
     "grunt-angular-templates": "1.0.3",
     "grunt-autoprefixer": "0.7.6",
     "grunt-concurrent": "0.5.0",
-    "grunt-contrib-clean": "0.5.0",
-    "grunt-contrib-concat": "0.4.0",
-    "grunt-contrib-connect": "0.7.1",
+    "grunt-contrib-clean": "0.7.0",
+    "grunt-contrib-concat": "0.5.1",
+    "grunt-contrib-connect": "1.0.1",
     "grunt-contrib-copy": "0.5.0",
     "grunt-contrib-cssmin": "0.14.0",
     "grunt-contrib-htmlmin": "0.6.0",
@@ -48,6 +48,7 @@
     "phantomjs": "1.9.15",
     "protractor": "1.7.0",
     "protractor-screenshot-reporter": "0.0.5",
+    "serve-static": "1.10.2",
     "time-grunt": "0.3.2"
   },
   "engines": {
