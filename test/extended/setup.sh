@@ -145,6 +145,7 @@ readonly EXCLUDED_TESTS=(
   "paused deployment should be ignored by the controller" # Not enabled yet
   "deployment should create new pods" # Not enabled yet
 	"should create an rc or deployment from an image" # not enabled yet
+	"should create a deployment from an image" # not enabled yet
 
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
