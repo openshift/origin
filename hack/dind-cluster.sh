@@ -246,7 +246,8 @@ EOF
         "${SDN_NODE_NAME}"
   fi
 
-  if [[ "${KUBECONFIG:-}" != "${admin_config}" ]]; then
+  if [[ "${KUBECONFIG:-}" != "${admin_config}"  ||
+          ":${PATH}:" != *":${bin_path}:"* ]]; then
     echo ""
     echo "Before invoking the openshift cli, make sure to source the
 cluster's rc file to configure the bash environment:

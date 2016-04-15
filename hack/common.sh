@@ -818,7 +818,9 @@ os::build::get-bin-output-path() {
 }
 
 # os::build::find-binary locates a locally built binary for the current
-# platform and returns the path to the binary.
+# platform and returns the path to the binary.  The base path to search
+# from will default to the current working directory but can be
+# overridden via the optional second argument.
 os::build::find-binary() {
   local bin="$1"
   local os_root="${2:-}"
