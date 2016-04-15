@@ -111,6 +111,43 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: BuildStrategyDockerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{api.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString(authorizationapi.DockerBuildResource),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: BuildStrategyCustomRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{api.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString(authorizationapi.CustomBuildResource),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: BuildStrategySourceRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{api.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString(authorizationapi.SourceBuildResource),
+				},
+			},
+		},
+
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: AdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -132,9 +169,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 						authorizationapi.OpenshiftExposedGroupName,
 						authorizationapi.PermissionGrantingGroupName,
 						"projects",
-						authorizationapi.DockerBuildResource,
-						authorizationapi.SourceBuildResource,
-						authorizationapi.CustomBuildResource,
 						"deploymentconfigs/scale",
 						"imagestreams/secrets",
 					),
@@ -196,9 +230,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString(
 						authorizationapi.OpenshiftExposedGroupName,
-						authorizationapi.DockerBuildResource,
-						authorizationapi.SourceBuildResource,
-						authorizationapi.CustomBuildResource,
 						"deploymentconfigs/scale",
 						"imagestreams/secrets",
 					),
@@ -941,6 +972,25 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup},
 				{Kind: authorizationapi.SystemGroupKind, Name: UnauthenticatedGroup},
 			},
+		},
+
+		// Allow all build strategies by default.
+		// Cluster admins can remove these role bindings, and the reconcile-cluster-role-bindings command
+		// run during an upgrade won't re-add the "system:authenticated" group
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: BuildStrategyDockerRoleBindingName},
+			RoleRef:    kapi.ObjectReference{Name: BuildStrategyDockerRoleName},
+			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: BuildStrategyCustomRoleBindingName},
+			RoleRef:    kapi.ObjectReference{Name: BuildStrategyCustomRoleName},
+			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: BuildStrategySourceRoleBindingName},
+			RoleRef:    kapi.ObjectReference{Name: BuildStrategySourceRoleName},
+			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
 		},
 	}
 }
