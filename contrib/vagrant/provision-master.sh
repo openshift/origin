@@ -56,7 +56,7 @@ if [[ "${SDN_NODE}" = "true" ]]; then
   # as possible for the node to register itself.  Vagrant can deploy
   # in parallel but dind deploys serially for simplicity.
   if ! os::provision::in-container; then
-    os::provision::disable-sdn-node "${DEPLOYED_CONFIG_ROOT}" \
+    os::provision::disable-node "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
         "${SDN_NODE_NAME}"
   fi
 fi

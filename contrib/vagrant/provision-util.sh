@@ -361,24 +361,30 @@ os::provision::wait-for-condition() {
   fi
 }
 
-os::provision::is-sdn-node-registered() {
-  local node_name=$1
+os::provision::is-node-registered() {
+  local oc=$1
+  local config=$2
+  local node_name=$3
 
-  oc get nodes "${node_name}" &> /dev/null
+  "${oc}" --config="${config}" get nodes "${node_name}" &> /dev/null
 }
 
-os::provision::disable-sdn-node() {
-  local config_root=$1
-  local node_name=$2
+os::provision::disable-node() {
+  local origin_root=$1
+  local config_root=$2
+  local node_name=$3
 
-  export KUBECONFIG="$(os::provision::get-admin-config "${config_root}")"
+  local config="$(os::provision::get-admin-config "${config_root}")"
 
-  local msg="sdn node to register with the master"
-  local condition="os::provision::is-sdn-node-registered ${node_name}"
+  local msg="${node_name} to register with the master"
+  local oc="$(os::build::find-binary oc "${origin_root}")"
+  local condition="os::provision::is-node-registered ${oc} ${config} \
+      ${node_name}"
   os::provision::wait-for-condition "${msg}" "${condition}"
 
-  echo "Disabling scheduling for the sdn node"
-  osadm manage-node "${node_name}" --schedulable=false > /dev/null
+  echo "Disabling scheduling for node ${node_name}"
+  "$(os::build::find-binary osadm "${origin_root}")" --config="${config}" \
+      manage-node "${node_name}" --schedulable=false > /dev/null
 }
 
 os::provision::wait-for-node-config() {

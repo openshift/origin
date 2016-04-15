@@ -242,8 +242,8 @@ EOF
   # Disable the sdn node as late as possible to allow time for the
   # node to register itself.
   if [[ "${SDN_NODE}" = "true" ]]; then
-    export PATH="${PATH}:${bin_path}"
-    os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+    os::provision::disable-node "${ORIGIN_ROOT}" "${CONFIG_ROOT}" \
+        "${SDN_NODE_NAME}"
   fi
 
   if [[ "${KUBECONFIG:-}" != "${admin_config}" ]]; then
