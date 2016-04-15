@@ -144,7 +144,7 @@ os::provision::set-os-env() {
   local file_target=".bashrc"
 
   local vagrant_target="/home/vagrant/${file_target}"
-  if [[ -d $(dirname "${vagrant_target}") ]]; then
+  if [[ -d "$(dirname "${vagrant_target}")" ]]; then
     os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "${vagrant_target}"
   fi
@@ -173,7 +173,7 @@ os::provision::set-bash-env() {
   local config_root=$2
   local target=$3
 
-  local path=$(os::provision::get-admin-config "${config_root}")
+  local path="$(os::provision::get-admin-config "${config_root}")"
   local config_line="export KUBECONFIG=${path}"
   if ! grep -q "${config_line}" "${target}" &> /dev/null; then
     echo "${config_line}" >> "${target}"
@@ -371,7 +371,7 @@ os::provision::disable-sdn-node() {
   local config_root=$1
   local node_name=$2
 
-  export KUBECONFIG=$(os::provision::get-admin-config "${config_root}")
+  export KUBECONFIG="$(os::provision::get-admin-config "${config_root}")"
 
   local msg="sdn node to register with the master"
   local condition="os::provision::is-sdn-node-registered ${node_name}"
@@ -386,8 +386,8 @@ os::provision::wait-for-node-config() {
   local node_name=$2
 
   local msg="node configuration file"
-  local config_file=$(os::provision::get-node-config "${config_root}" \
-    "${node_name}")
+  local config_file="$(os::provision::get-node-config "${config_root}" \
+    "${node_name}")"
   local condition="test ! -f ${config_root}/openshift.local.config/.stale -a \
 -f ${config_file}"
   os::provision::wait-for-condition "${msg}" "${condition}" \

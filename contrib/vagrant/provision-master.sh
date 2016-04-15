@@ -38,7 +38,7 @@ else
 fi
 
 echo "Launching openshift daemons"
-NODE_LIST=$(os::provision::join , ${NODE_NAMES[@]})
+NODE_LIST="$(os::provision::join , ${NODE_NAMES[@]})"
 cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --master=https://${MASTER_IP}:8443 \
  --network-plugin=${NETWORK_PLUGIN}"

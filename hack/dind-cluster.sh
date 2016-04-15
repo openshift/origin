@@ -172,19 +172,19 @@ function start() {
   local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
   local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
 
-  local master_cid=$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
-    --hostname="${MASTER_NAME}" "${DIND_IMAGE}")
-  local master_ip=$(get-docker-ip "${master_cid}")
+  local master_cid="$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
+      --hostname="${MASTER_NAME}" "${DIND_IMAGE}")"
+  local master_ip="$(get-docker-ip "${master_cid}")"
 
   local node_cids=()
   local node_ips=()
   for name in "${NODE_NAMES[@]}"; do
-    local cid=$(${base_run_cmd} --privileged --name="${name}" \
-      --hostname="${name}" "${DIND_IMAGE}")
+    local cid="$(${base_run_cmd} --privileged --name="${name}" \
+        --hostname="${name}" "${DIND_IMAGE}")"
     node_cids+=( "${cid}" )
-    node_ips+=( $(get-docker-ip "${cid}") )
+    node_ips+=( "$(get-docker-ip "${cid}")" )
   done
-  node_ips=$(os::provision::join , ${node_ips[@]})
+  node_ips="$(os::provision::join , ${node_ips[@]})"
 
   ## Provision containers
   local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
@@ -201,7 +201,7 @@ ${DEPLOYED_CONFIG_ROOT}"
   if [[ "${DEPLOY_SSH}" = "true" ]]; then
     ${DOCKER_CMD} exec -t "${master_cid}" ssh-keygen -N '' -q -f /root/.ssh/id_rsa
     cmd="cat /root/.ssh/id_rsa.pub"
-    local public_key=$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})
+    local public_key="$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})"
     cmd="cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys"
     ${DOCKER_CMD} exec -t "${master_cid}" ${cmd}
     ${DOCKER_CMD} exec -t "${master_cid}" systemctl start sshd
@@ -232,7 +232,7 @@ ${DEPLOYED_CONFIG_ROOT}"
   done
 
   local rc_file="dind-${INSTANCE_PREFIX}.rc"
-  local admin_config=$(os::provision::get-admin-config ${CONFIG_ROOT})
+  local admin_config="$(os::provision::get-admin-config ${CONFIG_ROOT})"
   local bin_path="$(os::build::get-bin-output-path "${ORIGIN_ROOT}")"
   cat >"${rc_file}" <<EOF
 export KUBECONFIG=${admin_config}
@@ -260,12 +260,12 @@ cluster's rc file to configure the bash environment:
 function stop() {
   echo "Cleaning up docker-in-docker containers"
 
-  local master_cid=$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")
+  local master_cid="$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")"
   if [[ "${master_cid}" ]]; then
     ${DOCKER_CMD} rm -f "${master_cid}"
   fi
 
-  local node_cids=$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")
+  local node_cids="$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")"
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
