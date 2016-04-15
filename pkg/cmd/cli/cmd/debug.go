@@ -196,7 +196,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
-		ResourceTypeOrNameArgs(true, resources...).
+		ResourceNames("pods", resources...).
 		Flatten()
 	if len(o.Filename) > 0 {
 		b.FilenameParam(explicit, o.Filename)
