@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d2f51a9ea39f224a023e9bdc56aa167544f09267
+%global commit c11331d07bdf2e00a149624366a963075ffa2aca
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.14-37-gd2f51a9 -X github.com/openshift/origin/pkg/version.commitFromGit d2f51a9 -X k8s.io/kubernetes/pkg/version.gitCommit d2f51a9 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.15-22-gc11331d -X github.com/openshift/origin/pkg/version.commitFromGit c11331d -X k8s.io/kubernetes/pkg/version.gitCommit c11331d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.15
+Version:        3.2.0.16
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,26 @@ fi
 
 
 %changelog
+* Fri Apr 15 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.16
+- UPSTREAM: 24208: Honor starting resourceVersion in watch cache
+  (agoldste@redhat.com)
+- Abuse deployments with extended test (ccoleman@redhat.com)
+- dind: only wait for Ready non-sdn nodes (marun@redhat.com)
+- UPSTREAM: 23769: Ensure volume GetCloudProvider code uses cloud config
+  (jliggitt@redhat.com)
+- UPSTREAM: 21140: e2e test for dynamic provisioning. (jliggitt@redhat.com)
+- UPSTREAM: 23463: add an event for when a daemonset can't place a pod due to
+  insufficent resource or port conflict (jliggitt@redhat.com)
+- UPSTREAM: 23929: only include running and pending pods in daemonset should
+  place calculation (jliggitt@redhat.com)
+- Update font-awesome bower dependency (spadgett@redhat.com)
+- Fix unit tests (ironcladlou@gmail.com)
+- Prevent concurrent deployer pod creation (ironcladlou@gmail.com)
+- Enforce overview scaling rules for deployments without a service
+  (spadgett@redhat.com)
+- bump(github.com/openshift/openshift-sdn):
+  9f1f60258fcef6f0ef647a75a8754bc80779c065 (rpenta@redhat.com)
+
 * Wed Apr 13 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.15
 - Update atomic registry quickstart artifacts (aweiteka@redhat.com)
 - UPSTREAM: 23746: A pod never terminated if a container image registry was
