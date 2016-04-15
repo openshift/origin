@@ -22,7 +22,7 @@ function os::test::extended::focus {
 #   be done in other contexts.
 function os::test::extended::setup {
   source "${OS_ROOT}/hack/lib/init.sh"
-  os::log::install_errexit
+  os::log::stacktrace::install
 
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then

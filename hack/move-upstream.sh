@@ -13,7 +13,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/lib/init.sh"
-os::log::install_errexit
+os::log::stacktrace::install
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
