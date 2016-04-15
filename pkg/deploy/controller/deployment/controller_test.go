@@ -659,7 +659,7 @@ func TestHandle_cancelNew(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
@@ -706,7 +706,7 @@ func TestHandle_cancelNewWithDeployers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 	if !updatedDeployer {

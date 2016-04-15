@@ -212,7 +212,8 @@ module.exports = function (grunt) {
           'bower_components/messenger/build/css/messenger-theme-block.css',
           'bower_components/messenger/build/css/messenger-theme-air.css',
           'bower_components/messenger/build/css/messenger-theme-ice.css',
-          'bower_components/messenger/build/js/messenger-theme-future.js'
+          'bower_components/messenger/build/js/messenger-theme-future.js',
+          'bower_components/fontawesome/css/font-awesome.css'
         ]
       }
     },

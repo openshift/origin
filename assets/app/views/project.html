@@ -236,7 +236,7 @@
                       deployment-config-id="deploymentConfigId"
                       deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
                       deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[''][deploymentConfigId]"
-                      scalable="true"
+                      scalable="isScalable(deployment, deploymentConfigId)"
                       images-by-docker-reference="imagesByDockerReference"
                       builds="builds"
                       pods="podsByDeployment[deployment.metadata.name]">

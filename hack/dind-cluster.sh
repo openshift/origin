@@ -324,11 +324,12 @@ os::provision::install-cmds ${DEPLOYED_ROOT}"
 }
 
 function nodes-are-ready() {
-    local node_count=$(${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
+  # Skip the SDN node since nothing is intended to be scheduled on it.
+  local node_count=$(${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
 KUBECONFIG=${DEPLOYED_CONFIG_ROOT}/openshift.local.config/master/admin.kubeconfig \
-oc get nodes | grep Ready | wc -l")
-    node_count=$(echo "${node_count}" | tr -d '\r')
-    test "${node_count}" -ge "${NODE_COUNT}"
+oc get nodes | grep -v ${SDN_NODE_NAME} | grep -v NotReady | grep Ready | wc -l")
+  node_count=$(echo "${node_count}" | tr -d '\r')
+  test "${node_count}" -ge "${NODE_COUNT}"
 }
 
 function wait-for-cluster() {
