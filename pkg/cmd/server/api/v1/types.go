@@ -71,13 +71,19 @@ type NodeConfig struct {
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
 
 	// VolumeConfig contains options for configuring volumes on the node.
-	VolumeConfig VolumeConfig `json:"volumeConfig"`
+	VolumeConfig NodeVolumeConfig `json:"volumeConfig"`
 }
 
-// VolumeConfig contains options for configuring volumes on the node.
-type VolumeConfig struct {
+// NodeVolumeConfig contains options for configuring volumes on the node.
+type NodeVolumeConfig struct {
 	// LocalQuota contains options for controlling local volume quota on the node.
 	LocalQuota LocalQuota `json:"localQuota"`
+}
+
+// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+type MasterVolumeConfig struct {
+	// DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true
+	DynamicProvisioningEnabled *bool `json:"dynamicProvisioningEnabled"`
 }
 
 // LocalQuota contains options for controlling local volume quota on the node.
@@ -219,6 +225,9 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
+
+	// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+	VolumeConfig MasterVolumeConfig `json:"volumeConfig"`
 }
 
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
