@@ -14,8 +14,8 @@ os::provision::build-origin() {
 
   # This optimization is intended for devcluster use so hard-coding the
   # arch in the path should be ok.
-  if [ -f "${origin_root}/_output/local/bin/linux/amd64/oc" ] &&
-     [ "${skip_build}" = "true" ]; then
+  if [[ -f "${origin_root}/_output/local/bin/linux/amd64/oc" &&
+          "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
     echo "Building openshift"
@@ -32,8 +32,8 @@ os::provision::build-etcd() {
   local origin_root=$1
   local skip_build=$2
 
-  if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
-     [ "${skip_build}" = "true" ]; then
+  if [[ -f "${origin_root}/_tools/etcd/bin/etcd" &&
+          "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
   # Etcd is required for integration testing which isn't a use case
   # for dind.
@@ -64,7 +64,7 @@ os::provision::add-to-hosts-file() {
   local name=$2
   local force=${3:-0}
 
-  if ! grep -q "${ip}" /etc/hosts || [ "${force}" = "1" ]; then
+  if ! grep -q "${ip}" /etc/hosts || [[ "${force}" = "1" ]]; then
     local entry="${ip}\t${name}"
     echo -e "Adding '${entry}' to hosts file"
     echo -e "${entry}" >> /etc/hosts
@@ -143,7 +143,7 @@ os::provision::set-os-env() {
   local file_target=".bashrc"
 
   local vagrant_target="/home/vagrant/${file_target}"
-  if [ -d $(dirname "${vagrant_target}") ]; then
+  if [[ -d $(dirname "${vagrant_target}") ]]; then
     os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "${vagrant_target}"
   fi
@@ -188,12 +188,12 @@ os::provision::get-network-plugin() {
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
   local default_plugin="${subnet_plugin}"
 
-  if [ "${plugin}" != "${subnet_plugin}" ] && \
-     [ "${plugin}" != "${multitenant_plugin}" ]; then
+  if [[ "${plugin}" != "${subnet_plugin}" &&
+          "${plugin}" != "${multitenant_plugin}" ]]; then
     # Disable output when being called from the dind management script
     # since it may be doing something other than launching a cluster.
-    if [ "${dind_management_script}" = "false" ]; then
-      if [ "${plugin}" != "" ]; then
+    if [[ "${dind_management_script}" = "false" ]]; then
+      if [[ -n "${plugin}" ]]; then
         >&2 echo "Invalid network plugin: ${plugin}"
       fi
       >&2 echo "Using default network plugin: ${default_plugin}"
@@ -238,7 +238,7 @@ os::provision::base-provision() {
 }
 
 os::provision::fixup-net-udev() {
-  if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+  if [[ "${FIXUP_NET_UDEV}" == "true" ]]; then
     NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
     rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
     if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
@@ -310,7 +310,7 @@ os::provision::copy-config() {
 
   # Copy over the certificates directory so that each node has a copy.
   cp -r "${config_root}/openshift.local.config" /
-  if [ -d /home/vagrant ]; then
+  if [[ -d /home/vagrant ]]; then
     chown -R vagrant.vagrant /openshift.local.config
   fi
 }
@@ -338,12 +338,12 @@ os::provision::wait-for-condition() {
 
   local counter=0
   while ! $(${condition}); do
-    if [ "${counter}" = "0" ]; then
+    if [[ "${counter}" = "0" ]]; then
       echo "${start_msg}"
     fi
 
-    if [[ "${counter}" -lt "${timeout}" ]] || \
-       [[ "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
+    if [[ "${counter}" -lt "${timeout}" ||
+            "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
       counter=$((counter + 1))
       if [[ "${timeout}" != "${OS_WAIT_FOREVER}" ]]; then
         echo -n '.'
@@ -355,10 +355,8 @@ os::provision::wait-for-condition() {
     fi
   done
 
-  if [ "${counter}" != "0" ]; then
-    if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
-      echo -e '\nDone'
-    fi
+  if [[ "${counter}" != "0" && "${timeout}" != "${OS_WAIT_FOREVER}" ]]; then
+    echo -e '\nDone'
   fi
 }
 

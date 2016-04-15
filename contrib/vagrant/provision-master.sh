@@ -9,7 +9,7 @@ os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 
 os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
 
-if [ "${SDN_NODE}" = "true" ]; then
+if [[ "${SDN_NODE}" = "true" ]]; then
   # Running an sdn node on the master when using an openshift sdn
   # plugin ensures connectivity between the openshift service and
   # pods.  This enables kube API calls that query a service and
@@ -45,7 +45,7 @@ cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
 os::provision::start-os-service "openshift-master" "OpenShift Master" \
     "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
 
-if [ "${SDN_NODE}" = "true" ]; then
+if [[ "${SDN_NODE}" = "true" ]]; then
   os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \
       "${SDN_NODE_NAME}"
 

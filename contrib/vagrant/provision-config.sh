@@ -63,7 +63,7 @@ done
 LOG_LEVEL=${OPENSHIFT_LOG_LEVEL:-5}
 
 NODE_IPS=(${NODE_IPS//,/ })
-if [ "${CONFIG_ROOT}" = "/" ]; then
+if [[ "${CONFIG_ROOT}" = "/" ]]; then
   CONFIG_ROOT=""
 fi
 
