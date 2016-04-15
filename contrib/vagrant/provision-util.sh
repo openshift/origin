@@ -14,7 +14,7 @@ os::provision::build-origin() {
 
   # This optimization is intended for devcluster use so hard-coding the
   # arch in the path should be ok.
-  if [[ -f "${origin_root}/_output/local/bin/linux/amd64/oc" &&
+  if [[ -f "$(os::build::find-binary oc "${origin_root}")" &&
           "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
@@ -56,7 +56,8 @@ os::provision::base-install() {
 os::provision::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
+  local output_path="$(os::build::get-bin-output-path "${deployed_root}")"
+  cp ${output_path}/{openshift,oc,osadm} /usr/bin
 }
 
 os::provision::add-to-hosts-file() {
