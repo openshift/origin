@@ -575,6 +575,7 @@ func (s *GenericAPIServer) init(c *Config) {
 
 	attributeGetter := apiserver.NewRequestAttributeGetter(s.RequestContextMapper, s.NewRequestInfoResolver())
 	handler = apiserver.WithAuthorizationCheck(handler, attributeGetter, s.authorizer)
+	handler = apiserver.WithActingAs(handler, s.RequestContextMapper, s.authorizer)
 
 	// Install Authenticator
 	if c.Authenticator != nil {
