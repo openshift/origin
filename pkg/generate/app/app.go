@@ -47,6 +47,13 @@ func (s NameSuggestions) SuggestName() (string, bool) {
 	return "", false
 }
 
+// IsParameterizableValue returns true if the value contains standard replacement
+// syntax, to preserve the value for use inside of the generated output. Passing
+// parameters into output is only valid if the output is used inside of a template.
+func IsParameterizableValue(s string) bool {
+	return strings.Contains(s, "${") || strings.Contains(s, "$(")
+}
+
 // Generated is a list of runtime objects
 type Generated struct {
 	Items []runtime.Object

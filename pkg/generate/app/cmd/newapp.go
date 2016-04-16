@@ -244,7 +244,7 @@ func (c *AppConfig) AddArguments(args []string) []string {
 }
 
 func validateEnforcedName(name string) error {
-	if ok, _ := validation.ValidateServiceName(name, false); !ok {
+	if ok, _ := validation.ValidateServiceName(name, false); !ok && !app.IsParameterizableValue(name) {
 		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
 	}
 	return nil

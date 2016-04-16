@@ -57,18 +57,21 @@ func (ung *uniqueNameGenerator) ensureValidName(name string) (string, error) {
 		return "", fmt.Errorf("invalid name: %s", name)
 	}
 
-	// Make all names lowercase
-	name = strings.ToLower(name)
+	if !IsParameterizableValue(name) {
 
-	// Remove everything except [-0-9a-z]
-	name = invalidNameCharactersRegexp.ReplaceAllString(name, "")
+		// Make all names lowercase
+		name = strings.ToLower(name)
 
-	// Remove leading hyphen(s) that may be introduced by the previous step
-	name = strings.TrimLeft(name, "-")
+		// Remove everything except [-0-9a-z]
+		name = invalidNameCharactersRegexp.ReplaceAllString(name, "")
 
-	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
-		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
-		name = name[:kvalidation.DNS1123SubdomainMaxLength]
+		// Remove leading hyphen(s) that may be introduced by the previous step
+		name = strings.TrimLeft(name, "-")
+
+		if len(name) > kvalidation.DNS1123SubdomainMaxLength {
+			glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
+			name = name[:kvalidation.DNS1123SubdomainMaxLength]
+		}
 	}
 
 	count, existing := names[name]
