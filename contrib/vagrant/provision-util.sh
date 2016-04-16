@@ -276,7 +276,7 @@ os::provision::start-os-service() {
   local unit_name=$1
   local description=$2
   local exec_start=$3
-  local work_dir=${4:-${CONFIG_ROOT}/}
+  local work_dir=$4
 
   local dind_env_var=
   if os::provision::in-container; then
@@ -305,19 +305,24 @@ EOF
   systemctl start "${unit_name}.service"
 }
 
-os::provision::start-node-service() {
+os::provision::copy-config() {
   local config_root=$1
-  local node_name=$2
 
   # Copy over the certificates directory so that each node has a copy.
   cp -r "${config_root}/openshift.local.config" /
   if [ -d /home/vagrant ]; then
     chown -R vagrant.vagrant /openshift.local.config
   fi
+}
+
+os::provision::start-node-service() {
+  local config_root=$1
+  local node_name=$2
 
   cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
 --config=$(os::provision::get-node-config ${config_root} ${node_name})"
-  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
+  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" \
+      "${config_root}"
 }
 
 OS_WAIT_FOREVER=-1
