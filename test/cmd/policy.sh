@@ -35,6 +35,28 @@ os::cmd::expect_success_and_not_text 'oc get rolebinding/cluster-admin --no-head
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
 
+
+os::cmd::expect_success 'oc policy add-role-to-user admin namespaced-user'
+# Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
+os::cmd::try_until_text              'oadm policy who-can create builds' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'namespaced-user'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/source' 'system:authenticated'
+# if this method for removing access to docker/custom/source builds changes, docs need to be updated as well
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-custom system:authenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated'
+# ensure build strategy permissions no longer exist
+os::cmd::try_until_failure           'oadm policy who-can create builds/source | grep system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
+
+
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
 workingdir=$(mktemp -d)

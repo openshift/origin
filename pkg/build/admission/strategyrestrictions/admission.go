@@ -75,16 +75,17 @@ func (a *buildByStrategy) Validate() error {
 	return nil
 }
 
-func resourceForStrategyType(strategy buildapi.BuildStrategy) unversioned.GroupResource {
+func resourceForStrategyType(strategy buildapi.BuildStrategy) (unversioned.GroupResource, error) {
 	switch {
 	case strategy.DockerStrategy != nil:
-		return buildapi.Resource(authorizationapi.DockerBuildResource)
+		return buildapi.Resource(authorizationapi.DockerBuildResource), nil
 	case strategy.CustomStrategy != nil:
-		return buildapi.Resource(authorizationapi.CustomBuildResource)
+		return buildapi.Resource(authorizationapi.CustomBuildResource), nil
 	case strategy.SourceStrategy != nil:
-		return buildapi.Resource(authorizationapi.SourceBuildResource)
+		return buildapi.Resource(authorizationapi.SourceBuildResource), nil
+	default:
+		return unversioned.GroupResource{}, fmt.Errorf("unrecognized build strategy: %#v", strategy)
 	}
-	return unversioned.GroupResource{}
 }
 
 func resourceName(objectMeta kapi.ObjectMeta) string {
@@ -96,11 +97,15 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 
 func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
 	strategy := build.Spec.Strategy
+	resource, err := resourceForStrategyType(strategy)
+	if err != nil {
+		return err
+	}
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Group:        resourceForStrategyType(strategy).Group,
-			Resource:     resourceForStrategyType(strategy).Resource,
+			Group:        resource.Group,
+			Resource:     resource.Resource,
 			Content:      build,
 			ResourceName: resourceName(build.ObjectMeta),
 		},
@@ -112,11 +117,15 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 
 func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
 	strategy := buildConfig.Spec.Strategy
+	resource, err := resourceForStrategyType(strategy)
+	if err != nil {
+		return err
+	}
 	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
 			Verb:         "create",
-			Group:        resourceForStrategyType(strategy).Group,
-			Resource:     resourceForStrategyType(strategy).Resource,
+			Group:        resource.Group,
+			Resource:     resource.Resource,
 			Content:      buildConfig,
 			ResourceName: resourceName(buildConfig.ObjectMeta),
 		},

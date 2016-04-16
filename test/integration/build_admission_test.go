@@ -202,33 +202,30 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 
 func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	// remove resources from role so that certain build strategies are forbidden
-	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
+	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName} {
+		remove := &policy.RoleModificationOptions{
+			RoleNamespace:       "",
+			RoleName:            role,
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			Groups:              []string{"system:authenticated"},
+		}
+		if err := remove.RemoveRole(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
 		t.Error(err)
 	}
-
-	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
-	if err := testutil.WaitForPolicyUpdate(projectAdminClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.SourceBuildResource), false); err != nil {
+		t.Error(err)
+	}
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), false); err != nil {
 		t.Error(err)
 	}
 }
 
-func removeBuildStrategyPrivileges(t *testing.T, clusterRoleInterface client.ClusterRoleInterface, roleName string) {
-	role, err := clusterRoleInterface.Get(roleName)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	for i := range role.Rules {
-		role.Rules[i].Resources.Delete(authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource)
-	}
-	if _, err := clusterRoleInterface.Update(role); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-}
-
-func strategyForType(strategy string) buildapi.BuildStrategy {
+func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
 	buildStrategy := buildapi.BuildStrategy{}
 	switch strategy {
 	case "docker":
@@ -239,6 +236,8 @@ func strategyForType(strategy string) buildapi.BuildStrategy {
 	case "source":
 		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
 		buildStrategy.SourceStrategy.From.Name = "builderimage:latest"
+	default:
+		t.Fatalf("unknown strategy: %#v", strategy)
 	}
 	return buildStrategy
 }
@@ -246,7 +245,7 @@ func strategyForType(strategy string) buildapi.BuildStrategy {
 func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy string) (*buildapi.Build, error) {
 	build := &buildapi.Build{}
 	build.GenerateName = strings.ToLower(string(strategy)) + "-build-"
-	build.Spec.Strategy = strategyForType(strategy)
+	build.Spec.Strategy = strategyForType(t, strategy)
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
 	return buildInterface.Create(build)
@@ -260,7 +259,7 @@ func updateBuild(t *testing.T, buildInterface client.BuildInterface, build *buil
 func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
 	buildConfig := &buildapi.BuildConfig{}
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
-	buildConfig.Spec.Strategy = strategyForType(strategy)
+	buildConfig.Spec.Strategy = strategyForType(t, strategy)
 	buildConfig.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
 	return buildConfigInterface.Create(buildConfig)
