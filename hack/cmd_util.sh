@@ -5,6 +5,7 @@
 # We assume ${OS_ROOT} is set
 source "${OS_ROOT}/hack/text.sh"
 source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 
 # expect_success runs the cmd and expects an exit code of 0
 function os::cmd::expect_success() {
@@ -146,6 +147,18 @@ os_cmd_internal_tmperr="${os_cmd_internal_tmpdir}/tmp_stderr.log"
 # command to be tested is suppressed unless either `VERBOSE=1` or the test fails. This function bypasses
 # any error exiting settings or traps set by upstream callers by masking the return code of the command
 # with the return code of setting the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: command evaluation assertion to use
+#  - 3: text to test for
+#  - 4: text assertion to use
+# Returns:
+#  - 0: if all assertions met
+#  - 1: if any assertions fail
 function os::cmd::internal::expect_exit_code_run_grep() {
 	local cmd=$1
 	# default expected cmd code to 0 for success
@@ -155,10 +168,15 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	# default expected test code to 0 for success
 	local test_eval_func=${4:-os::cmd::internal::success_func}
 
+	local -a junit_log
+
 	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
 
 	local name=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}" "${grep_args}" "${test_eval_func}")
 	echo "Running ${name}..."
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'	
+	junit_log+=( "${name//$'\n'/;}" )
 
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
@@ -181,19 +199,31 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 		os::text::clear_last_line
 	done
 
+	local return_code
 	if (( cmd_succeeded && test_succeeded )); then
 		os::text::print_green "SUCCESS after ${time_elapsed}s: ${name}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${name//$'\n'/;}" )
+
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_results
 		fi
-		return 0
+		return_code=0
 	else
 		local cause=$(os::cmd::internal::assemble_causes "${cmd_succeeded}" "${test_succeeded}")
 
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${name//$'\n'/;}: ${cause}" )
+
 		os::text::print_red "$(os::cmd::internal::print_results)"
-		return 1
+		return_code=1
 	fi
+
+	junit_log+=( "$(os::cmd::internal::print_results)" )
+	# append inside of a subshell so that IFS doesn't get propagated out
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
+
 }
 
 # os::cmd::internal::init_tempdir initializes the temporary directory
@@ -367,14 +397,14 @@ function os::cmd::internal::compress_output() {
 function os::cmd::internal::print_results() {
 	if [[ -s "${os_cmd_internal_tmpout}" ]]; then
 		echo "Standard output from the command:"
-		cat "${os_cmd_internal_tmpout}"
+		cat "${os_cmd_internal_tmpout}"; echo
 	else
 		echo "There was no output from the command."
 	fi
 
 	if [[ -s "${os_cmd_internal_tmperr}" ]]; then
 		echo "Standard error from the command:"
-		cat "${os_cmd_internal_tmperr}"
+		cat "${os_cmd_internal_tmperr}"; echo
 	else
 		echo "There was no error output from the command."
 	fi
@@ -404,19 +434,36 @@ function os::cmd::internal::assemble_causes() {
 # either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
 # set by upstream callers by masking the return code of the command with the return code of setting
 # the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: command evaluation assertion to use
+#  - 3: timeout duration
+#  - 4: interval duration
+# Returns:
+#  - 0: if all assertions met before timeout
+#  - 1: if timeout occurs
 function os::cmd::internal::run_until_exit_code() {
 	local cmd=$1
 	local cmd_eval_func=$2
 	local duration=$3
 	local interval=$4
 
+	local -a junit_log
+
 	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
 
 	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	echo "Running ${description}..."
-
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
+	junit_log+=( "${description//$'\n'/;}" )
+	
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))
@@ -440,18 +487,27 @@ function os::cmd::internal::run_until_exit_code() {
 		os::text::clear_last_line
 	done
 
+	local return_code
 	if (( cmd_succeeded )); then
-
 		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
+
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
-		return 0
+		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
+
 		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
-		return 1
+		return_code=1
 	fi
+
+	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
 }
 
 # os::cmd::internal::run_until_text runs the provided command until the command output contains the
@@ -459,19 +515,36 @@ function os::cmd::internal::run_until_exit_code() {
 # either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
 # set by upstream callers by masking the return code of the command with the return code of setting
 # the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: text to test for
+#  - 3: timeout duration
+#  - 4: interval duration
+# Returns:
+#  - 0: if all assertions met before timeout
+#  - 1: if timeout occurs
 function os::cmd::internal::run_until_text() {
 	local cmd=$1
 	local text=$2
 	local duration=$3
 	local interval=$4
 
+	local -a junit_log
+
 	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
 
 	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "os::cmd::internal::success_func")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	echo "Running ${description}..."
-
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
+	junit_log+=( "${description//$'\n'/;}" )
+	
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))
@@ -497,16 +570,26 @@ function os::cmd::internal::run_until_text() {
 		os::text::clear_last_line
 	done
 
+	local return_code
 	if (( test_succeeded )); then
-
 		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
+
 		if [[ -n ${VERBOSE-} ]]; then
 			os::cmd::internal::print_try_until_results
 		fi
-		return 0
+		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
+
 		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
-		return 1
+		os::test::junit::declare_test_end
+		return_code=1
 	fi
+
+	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
 }

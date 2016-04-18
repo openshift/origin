@@ -8,7 +8,9 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -18,8 +20,10 @@ os::log::install_errexit
   exit 0
 ) &>/dev/null
 
+os::test::junit::declare_suite_start "cmd/basicresources"
 # This test validates basic resource retrieval and command interaction
 
+os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 # Test to make sure that we're reporting the correct version information from endpoints and the correct
 # User-Agent information from our clients regardless of which resources they're trying to access
 os::build::get_version_vars
@@ -58,10 +62,10 @@ os::cmd::expect_success_and_text 'oadm policy who-can get pods --loglevel=7  2>&
 os::cmd::expect_success_and_text 'openshift cli get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${KUBE_GIT_VERSION_TO_MICRO} .* kubernetes/"
 # example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
 os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${OS_GIT_VERSION_TO_MICRO} .* openshift/"
-
 echo "version reporting: ok"
+os::test::junit::declare_suite_end
 
-
+os::test::junit::declare_suite_start "cmd/basicresources/explain"
 os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
 os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'
 os::cmd::expect_success_and_text 'oc get all --loglevel=6' 'buildconfigs'
@@ -70,7 +74,9 @@ os::cmd::expect_success_and_text 'oc explain pods.spec' 'SecurityContext holds p
 os::cmd::expect_success_and_text 'oc explain deploymentconfig' 'a desired deployment state'
 os::cmd::expect_success_and_text 'oc explain deploymentconfig.spec' 'ensures that this deployment config will have zero replicas'
 echo "explain: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
 os::cmd::expect_success 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension'
 # Explicitly specified extensionless files
@@ -80,13 +86,17 @@ os::cmd::expect_success 'oc get secret json-with-extension yml-with-extension'
 # Ensure extensionless files inside directories are not processed by resource-builder
 os::cmd::expect_failure_and_text 'oc get secret json-no-extension-in-directory' 'not found'
 echo "resource-builder: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/pods"
 os::cmd::expect_success 'oc get pods --match-server-version'
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json' 'pod "hello-openshift" created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0'
 echo "pods: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/label"
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
 os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
@@ -95,12 +105,16 @@ os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
 os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
 echo "label: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
 echo "services: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/list-version-conversion"
 os::cmd::expect_success 'oc create   -f test/fixtures/mixed-api-versions.yaml'
 os::cmd::expect_success 'oc get      -f test/fixtures/mixed-api-versions.yaml -o yaml'
 os::cmd::expect_success 'oc label    -f test/fixtures/mixed-api-versions.yaml mylabel=a'
@@ -110,7 +124,9 @@ os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yam
 os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
 os::cmd::expect_success 'oc delete   -f test/fixtures/mixed-api-versions.yaml'
 echo "list version conversion: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/nodes"
 os::cmd::expect_success 'oc get nodes'
 (
   # subshell so we can unset kubeconfig
@@ -119,7 +135,9 @@ os::cmd::expect_success 'oc get nodes'
   os::cmd::expect_success 'kubectl get nodes --kubeconfig="${cfg}"'
 )
 echo "nodes: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/routes"
 os::cmd::expect_success 'oc get routes'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-route.json'
 os::cmd::expect_success 'oc delete routes testroute'
@@ -133,7 +151,9 @@ os::cmd::expect_success 'oc delete routes test-route'
 os::cmd::expect_failure 'oc create route edge new-route'
 os::cmd::expect_success 'oc delete services frontend'
 echo "routes: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
 arg="-f examples/hello-openshift/hello-pod.json"
 os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
@@ -182,7 +202,9 @@ os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liven
 os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "livenessProbe"
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 echo "set probe: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/setenv"
 os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
 os::cmd::expect_success "oc create -f test/integration/fixtures/test-buildcli.json"
 os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar" "updated"
@@ -193,7 +215,9 @@ os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
 echo "set env: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/expose"
 # Expose service as a route
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
@@ -214,9 +238,11 @@ os::cmd::expect_success 'oc create -f test/fixtures/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
+os::test::junit::declare_suite_end
 
 os::cmd::expect_success 'oc delete all --all'
 
+os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
 # switch to test user to be sure that default project admin policy works properly
 new="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > $new"
@@ -257,11 +283,12 @@ os::cmd::expect_success_and_text "oc get dc/ruby-hello-world --template='{{ .spe
 os::cmd::expect_success 'oc delete all -l app=ruby-hello-world'
 os::cmd::expect_failure 'oc get dc/ruby-hello-world'
 echo "delete all: ok"
+os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
 os::cmd::expect_failure_and_text "oc new-project --token="$( oc sa get-token builder )" will-fail" 'Error from server: You may not request a new project via this API'
 
-
+os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly
 oc login -u system:admin
 # Clean up group if needed to be re-entrant
@@ -274,4 +301,7 @@ os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
 os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
 echo "patch: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
 

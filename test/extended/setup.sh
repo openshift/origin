@@ -5,7 +5,7 @@
 # If invoked with arguments, executes the test directly.
 function os::test::extended::focus {
   if [[ $# -ne 0 ]]; then
-    echo "[INFO] Running custom: $@"
+    echo "[INFO] Running custom: $*"
     tests=$(TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} --ginkgo.dryRun --ginkgo.noColor "$@" | col -b | grep -v "35mskip0m" | grep "1mok0m" | wc -l)
     if [[ "${tests}" -eq 0 ]]; then
       echo "[ERROR] No tests would be run"

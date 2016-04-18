@@ -63,9 +63,7 @@ func TestAddSuite(t *testing.T) {
 		}
 
 		for _, suite := range testCase.suitesToAdd {
-			if err := builder.AddSuite(suite); err != nil {
-				t.Errorf("%s: unexpected error adding test suite: %v", testCase.name, err)
-			}
+			builder.AddSuite(suite)
 		}
 
 		if expected, actual := testCase.expectedSuites, builder.Build(); !reflect.DeepEqual(expected, actual) {

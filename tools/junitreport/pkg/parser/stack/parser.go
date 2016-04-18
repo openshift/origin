@@ -2,6 +2,8 @@ package stack
 
 import (
 	"bufio"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
@@ -10,11 +12,12 @@ import (
 )
 
 // NewParser returns a new parser that's capable of parsing Go unit test output
-func NewParser(builder builder.TestSuitesBuilder, testParser TestDataParser, suiteParser TestSuiteDataParser) parser.TestOutputParser {
+func NewParser(builder builder.TestSuitesBuilder, testParser TestDataParser, suiteParser TestSuiteDataParser, stream bool) parser.TestOutputParser {
 	return &testOutputParser{
 		builder:     builder,
 		testParser:  testParser,
 		suiteParser: suiteParser,
+		stream:      stream,
 	}
 }
 
@@ -33,6 +36,8 @@ type testOutputParser struct {
 
 	testParser  TestDataParser
 	suiteParser TestSuiteDataParser
+
+	stream bool
 }
 
 // Parse parses output syntax of a specific class, the assumptions of which are outlined in the struct definition.
@@ -76,15 +81,19 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 		}
 
 		if p.testParser.MarksCompletion(line) {
+			currentOutput = append(currentOutput, line)
 			// if we have finished the current test case, we finalize our current test, add it to the package
 			// at the head of our in progress package stack, and clear our current test record.
-			output := strings.Join(currentOutput, "\n")
-
 			switch currentResult {
 			case api.TestResultSkip:
 				currentTest.MarkSkipped(currentMessage)
 			case api.TestResultFail:
+				output := strings.Join(currentOutput, "\n")
 				currentTest.MarkFailed(currentMessage, output)
+			}
+
+			if inProgress.Peek() == nil {
+				return nil, fmt.Errorf("found test case %q outside of a test suite", currentTest.Name)
 			}
 
 			inProgress.Peek().AddTestCase(currentTest)
@@ -111,6 +120,10 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 		}
 
 		if p.suiteParser.MarksCompletion(line) {
+			if p.stream {
+				fmt.Fprintln(os.Stdout, line)
+			}
+
 			// if we encounter the end of a suite, we remove the suite at the head of the in progress stack
 			p.builder.AddSuite(inProgress.Pop())
 			isTestOutput = false

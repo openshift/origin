@@ -8,6 +8,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -20,12 +21,14 @@ os::log::install_errexit
 url=":${API_PORT:-8443}"
 project="$(oc project -q)"
 
-# This test validates builds and build related commands
+os::test::junit::declare_suite_start "cmd/triggers"
+# This test validates triggers
 
 os::cmd::expect_success 'oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
+os::test::junit::declare_suite_start "cmd/triggers/buildconfigs"
 ## Build configs
 
 # error conditions
@@ -64,7 +67,9 @@ os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'imag
 os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*false'
 os::cmd::expect_success_and_text 'oc set triggers bc --all --auto' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*true'
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
 # error conditions
@@ -86,3 +91,6 @@ os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'u
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end

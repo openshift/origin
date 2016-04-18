@@ -253,6 +253,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
 			ServiceNetworkCIDR: args.NetworkArgs.ServiceNetworkCIDR,
 		},
+
+		VolumeConfig: configapi.MasterVolumeConfig{
+			DynamicProvisioningEnabled: true,
+		},
 	}
 
 	if args.ListenArg.UseTLS() {

@@ -97,7 +97,7 @@ Requires:       %{name} = %{version}-%{release}
 %package node
 Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
-Requires:       docker-io >= %{docker_version}
+Requires:       docker >= %{docker_version}
 Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat

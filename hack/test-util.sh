@@ -9,14 +9,21 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 BASETMPDIR="${TMPDIR:-/tmp}/openshift/test-tools"
-JUNIT_OUTPUT_FILE="${BASETMPDIR}/junit_output.txt"
+JUNIT_REPORT_OUTPUT="${BASETMPDIR}/junit_output.txt"
+mkdir -p "${BASETMPDIR}"
+touch "${JUNIT_REPORT_OUTPUT}"
 
 # set verbosity so we can see that command output renders correctly
 VERBOSE=1
 
+os::test::junit::declare_suite_start "cmd/util"
+
+os::test::junit::declare_suite_start "cmd/util/positive"
 # positive tests
 os::cmd::expect_success 'exit 0'
 
@@ -37,7 +44,9 @@ os::cmd::expect_code_and_text 'echo "hello" && exit 213' '213' 'hello'
 os::cmd::expect_code_and_not_text 'echo "goodbye" && exit 213' '213' 'hello'
 
 echo "positive tests: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/util/negative"
 # negative tests
 
 if os::cmd::expect_success 'exit 1'; then
@@ -125,7 +134,9 @@ if os::cmd::expect_code_and_not_text 'echo "hello" && exit 0' '1' 'hello'; then
 fi
 
 echo "negative tests: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/util/complex"
 # complex input tests
 
 # pipes
@@ -170,8 +181,9 @@ EOF
 os::cmd::expect_success 'grep hello <<< hello'
 
 echo "complex tests: ok"
+os::test::junit::declare_suite_end
 
-
+os::test::junit::declare_suite_start "cmd/util/output"
 # test for output correctness
 
 # expect_code
@@ -333,7 +345,9 @@ echo "${output}" | grep -q '; the output content test failed'
 echo "${output}" | grep -q 'hello' 
 
 echo "output tests: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/util/tryuntil"
 function current_time_millis_mod_1000() {
 	mod=$(expr $(date +%s000) % 1000)
 	if [ $mod -eq 0 ]; then
@@ -379,7 +393,9 @@ if os::cmd::try_until_failure 'exit 0' $(( 1 * second )); then
 fi
 
 echo "try_until: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/util/compression"
 TMPDIR="${TMPDIR:-"/tmp"}"
 TEST_DIR=${TMPDIR}/openshift/origin/test/cmd
 rm -rf ${TEST_DIR} || true
@@ -433,3 +449,8 @@ line 2
 os::cmd::internal::compress_output ${TEST_DIR}//compress_test.txt > ${TEST_DIR}/actual-compressed.out
 diff ${TEST_DIR}/expected-compressed.out ${TEST_DIR}/actual-compressed.out
 echo "compression: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+
+os::test::junit::check_test_counters

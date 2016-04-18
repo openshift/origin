@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/tools/junitreport/pkg/builder/nested"
 	"github.com/openshift/origin/tools/junitreport/pkg/parser"
 	"github.com/openshift/origin/tools/junitreport/pkg/parser/gotest"
+	"github.com/openshift/origin/tools/junitreport/pkg/parser/oscmd"
 )
 
 type testSuitesBuilderType string
@@ -26,9 +27,10 @@ type testParserType string
 
 const (
 	goTestParserType testParserType = "gotest"
+	osCmdParserType  testParserType = "oscmd"
 )
 
-var supportedTestParserTypes = []testParserType{goTestParserType}
+var supportedTestParserTypes = []testParserType{goTestParserType, osCmdParserType}
 
 type JUnitReportOptions struct {
 	// BuilderType is the type of test suites builder to use
@@ -65,6 +67,8 @@ func (o *JUnitReportOptions) Complete(builderType, parserType string, rootSuiteN
 	switch testParserType(parserType) {
 	case goTestParserType:
 		o.ParserType = goTestParserType
+	case osCmdParserType:
+		o.ParserType = osCmdParserType
 	default:
 		return fmt.Errorf("unrecognized test parser type: got %s, expected one of %v", parserType, supportedTestParserTypes)
 	}
@@ -87,6 +91,8 @@ func (o *JUnitReportOptions) Run() error {
 	switch o.ParserType {
 	case goTestParserType:
 		testParser = gotest.NewParser(builder, o.Stream)
+	case osCmdParserType:
+		testParser = oscmd.NewParser(builder, o.Stream)
 	}
 
 	testSuites, err := testParser.Parse(bufio.NewScanner(o.Input))
