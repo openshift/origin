@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -20,13 +22,17 @@ os::log::install_errexit
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
+os::test::junit::declare_suite_start "cmd/images"
 # This test validates images and image streams along with the tag and import-image commands
 
+os::test::junit::declare_suite_start "cmd/images/images"
 os::cmd::expect_success 'oc get images'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image.json'
 os::cmd::expect_success 'oc delete images test'
 echo "images: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/images/imagestreams"
 os::cmd::expect_success 'oc get imageStreams'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image-stream.json'
 # verify that creating a registry fills out .status.dockerImageRepository
@@ -92,7 +98,9 @@ os::cmd::expect_success_and_text "oc describe ${imagename}" 'Environment:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
 echo "imageStreams: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/images/import-image"
 # should follow the latest reference to 5.6 and update that, and leave latest unchanged
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
@@ -123,7 +131,9 @@ os::cmd::expect_failure_and_text 'oc import-image mysql --from=mysql --all' '\-\
 os::cmd::expect_success_and_text 'oc import-image mysql --from=mysql --all --confirm' 'sha256:'
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/images/tag"
 # oc tag
 os::cmd::expect_success 'oc tag mysql:latest tagtest:tag1 --alias'
 os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
@@ -185,7 +195,9 @@ os::cmd::expect_success 'oc create -f test/fixtures/test-stream.yaml'
 os::cmd::expect_success_and_text 'oc tag test-stream:latest -d' 'Deleted'
 os::cmd::expect_success 'oc delete is/test-stream'
 echo "tag: ok"
+os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/images/delete-istag"
 # test deleting a tag using oc delete
 os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.16'
 os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.16'
@@ -195,3 +207,6 @@ os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}
 os::cmd::expect_success 'oc delete all --all'
 
 echo "delete istag: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end

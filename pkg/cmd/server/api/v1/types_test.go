@@ -459,6 +459,8 @@ servingInfo:
     keyFile: ""
     names: null
   requestTimeoutSeconds: 0
+volumeConfig:
+  dynamicProvisioningEnabled: false
 `
 )
 
@@ -664,6 +666,9 @@ func TestMasterConfig(t *testing.T) {
 				},
 			},
 			PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
+		},
+		VolumeConfig: internal.MasterVolumeConfig{
+			DynamicProvisioningEnabled: false,
 		},
 	}
 	serializedConfig, err := writeYAML(config)

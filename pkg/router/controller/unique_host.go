@@ -114,7 +114,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 			added := false
 			for i := range old {
 				if old[i].Spec.Path == route.Spec.Path {
-					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
+					if routeapi.RouteLessThan(old[i], route) {
 						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 						err := fmt.Errorf("route %s already exposes %s and is older", oldest.Name, host)
 						p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
@@ -132,14 +132,14 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 				}
 			}
 			if !added {
-				if route.CreationTimestamp.Before(oldest.CreationTimestamp) {
+				if routeapi.RouteLessThan(route, oldest) {
 					p.hostToRoute[host] = append([]*routeapi.Route{route}, old...)
 				} else {
 					p.hostToRoute[host] = append(old, route)
 				}
 			}
 		} else {
-			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
+			if routeapi.RouteLessThan(oldest, route) {
 				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 				err := fmt.Errorf("a route in another namespace holds %s and is older than %s", host, route.Name)
 				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())

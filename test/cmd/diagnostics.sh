@@ -8,6 +8,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # This test validates the diagnostics command
 
@@ -16,6 +17,7 @@ os::log::install_errexit
 # Without things feeding into systemd, AnalyzeLogs and UnitStatus are irrelevant.
 # The rest should be included in some fashion.
 
+os::test::junit::declare_suite_start "cmd/diagnostics"
 os::cmd::expect_success 'oadm diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 # DiagnosticPod can't run without Docker, would just time out. Exercise flags instead.
 os::cmd::expect_success "oadm diagnostics DiagnosticPod --prevent-modification --images=foo"
@@ -33,3 +35,4 @@ os::cmd::expect_failure_and_text 'oadm diagnostics AnalyzeLogs AlsoMissing' 'Not
 # openshift ex diagnostics is deprecated but not removed. Make sure it works until we consciously remove it.
 os::cmd::expect_success 'openshift ex diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 echo "diagnostics: ok"
+os::test::junit::declare_suite_end

@@ -7,8 +7,11 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
+os::test::junit::declare_suite_start "cmd/help"
 # This test validates the help commands and output text
 
 # verify some default commands
@@ -128,3 +131,5 @@ os::cmd::expect_success_and_text 'openshift ex prune-groups --help' 'external pr
 os::cmd::expect_success_and_text 'openshift admin groups sync --help' 'external provider'
 os::cmd::expect_success_and_text 'openshift admin groups prune --help' 'external provider'
 os::cmd::expect_success_and_text 'openshift admin prune groups --help' 'external provider'
+
+os::test::junit::declare_suite_end

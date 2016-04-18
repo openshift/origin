@@ -7,8 +7,11 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
+os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
 
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
@@ -34,6 +37,28 @@ os::cmd::expect_success_and_not_text 'oc get rolebinding/cluster-admin --no-head
 
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
+
+
+os::cmd::expect_success 'oc policy add-role-to-user admin namespaced-user'
+# Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
+os::cmd::try_until_text              'oadm policy who-can create builds' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'namespaced-user'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/source' 'system:authenticated'
+# if this method for removing access to docker/custom/source builds changes, docs need to be updated as well
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-custom system:authenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated'
+# ensure build strategy permissions no longer exist
+os::cmd::try_until_failure           'oadm policy who-can create builds/source | grep system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
+
 
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
@@ -70,3 +95,4 @@ os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_
 os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempt to grant extra privileges"
 
 echo "policy: ok"
+os::test::junit::declare_suite_end

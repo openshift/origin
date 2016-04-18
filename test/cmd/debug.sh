@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -16,7 +18,7 @@ os::log::install_errexit
   exit 0
 ) &>/dev/null
 
-
+os::test::junit::declare_suite_start "cmd/debug"
 # This test validates the debug command
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
 os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml" '\- /bin/sh'
@@ -36,3 +38,4 @@ os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello
 os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
 # TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
 echo "debug: ok"
+os::test::junit::declare_suite_end

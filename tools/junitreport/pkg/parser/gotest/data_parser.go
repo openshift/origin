@@ -32,11 +32,11 @@ func (p *testDataParser) MarksBeginning(line string) bool {
 
 // ExtractName extracts the name of the test case from test output line
 func (p *testDataParser) ExtractName(line string) (string, bool) {
-	if matches := p.testStartPattern.FindStringSubmatch(line); len(matches) > 0 && len(matches[1]) > 0 {
+	if matches := p.testStartPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
 		return matches[1], true
 	}
 
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[2]) > 0 {
+	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 2 && len(matches[2]) > 0 {
 		return matches[2], true
 	}
 
@@ -45,7 +45,7 @@ func (p *testDataParser) ExtractName(line string) (string, bool) {
 
 // ExtractResult extracts the test result from a test output line
 func (p *testDataParser) ExtractResult(line string) (api.TestResult, bool) {
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 0 && len(matches[1]) > 0 {
+	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
 		switch matches[1] {
 		case "PASS":
 			return api.TestResultPass, true
@@ -60,7 +60,7 @@ func (p *testDataParser) ExtractResult(line string) (api.TestResult, bool) {
 
 // ExtractDuration extracts the test duration from a test output line
 func (p *testDataParser) ExtractDuration(line string) (string, bool) {
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 2 && len(matches[3]) > 0 {
+	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 3 && len(matches[3]) > 0 {
 		return matches[3] + "s", true
 	}
 	return "", false
@@ -88,7 +88,7 @@ type testSuiteDataParser struct {
 
 // ExtractName extracts the name of the test suite from a test output line
 func (p *testSuiteDataParser) ExtractName(line string) (string, bool) {
-	if matches := p.packageResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[2]) > 0 {
+	if matches := p.packageResultPattern.FindStringSubmatch(line); len(matches) > 2 && len(matches[2]) > 0 {
 		return matches[2], true
 	}
 	return "", false
@@ -96,7 +96,7 @@ func (p *testSuiteDataParser) ExtractName(line string) (string, bool) {
 
 // ExtractDuration extracts the package duration from a test output line
 func (p *testSuiteDataParser) ExtractDuration(line string) (string, bool) {
-	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 2 && len(resultMatches[3]) > 0 {
+	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 3 && len(resultMatches[3]) > 0 {
 		return resultMatches[3], true
 	}
 	return "", false
@@ -110,13 +110,13 @@ const (
 func (p *testSuiteDataParser) ExtractProperties(line string) (map[string]string, bool) {
 	// the only test suite properties that Go testing can create are coverage values, which can either
 	// be present on their own line or in the package result line
-	if matches := p.coverageOutputPattern.FindStringSubmatch(line); len(matches) > 0 && len(matches[1]) > 0 {
+	if matches := p.coverageOutputPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
 		return map[string]string{
 			coveragePropertyName: matches[1],
 		}, true
 	}
 
-	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 5 && len(resultMatches[6]) > 0 {
+	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 6 && len(resultMatches[6]) > 0 {
 		return map[string]string{
 			coveragePropertyName: resultMatches[6],
 		}, true

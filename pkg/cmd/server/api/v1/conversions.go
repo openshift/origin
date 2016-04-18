@@ -307,6 +307,15 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.Location = in.Location
 			return nil
 		},
+		func(in *MasterVolumeConfig, out *internal.MasterVolumeConfig, s conversion.Scope) error {
+			out.DynamicProvisioningEnabled = (in.DynamicProvisioningEnabled == nil) || (*in.DynamicProvisioningEnabled)
+			return nil
+		},
+		func(in *internal.MasterVolumeConfig, out *MasterVolumeConfig, s conversion.Scope) error {
+			enabled := in.DynamicProvisioningEnabled
+			out.DynamicProvisioningEnabled = &enabled
+			return nil
+		},
 		api.Convert_resource_Quantity_To_resource_Quantity,
 	)
 	if err != nil {

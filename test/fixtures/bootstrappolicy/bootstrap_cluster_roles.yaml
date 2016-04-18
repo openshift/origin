@@ -162,6 +162,45 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: system:build-strategy-docker
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/docker
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-custom
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/custom
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-source
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/source
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: admin
   rules:
   - apiGroups:
@@ -203,10 +242,7 @@ items:
     - buildlogs
     - builds
     - builds/clone
-    - builds/custom
-    - builds/docker
     - builds/log
-    - builds/source
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log
@@ -383,10 +419,7 @@ items:
     - buildlogs
     - builds
     - builds/clone
-    - builds/custom
-    - builds/docker
     - builds/log
-    - builds/source
     - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/log

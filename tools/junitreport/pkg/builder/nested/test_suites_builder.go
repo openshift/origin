@@ -1,26 +1,27 @@
 package nested
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
 	"github.com/openshift/origin/tools/junitreport/pkg/builder"
-	"github.com/openshift/origin/tools/junitreport/pkg/errors"
 )
 
 // NewTestSuitesBuilder returns a new nested test suites builder. All test suites consumed by
 // this builder will be added to a multitree of suites rooted at the suites with the given names.
 func NewTestSuitesBuilder(rootSuiteNames []string) builder.TestSuitesBuilder {
-	rootSuites := []*api.TestSuite{}
+	restrictedRoots := []*treeNode{}
+	nodes := map[string]*treeNode{}
 	for _, name := range rootSuiteNames {
-		rootSuites = append(rootSuites, &api.TestSuite{Name: name})
+		root := &treeNode{suite: &api.TestSuite{Name: name}}
+		restrictedRoots = append(restrictedRoots, root)
+		nodes[name] = root
 	}
 
 	return &nestedTestSuitesBuilder{
-		restrictedRoots: len(rootSuites) > 0, // i given they are the only roots allowed
-		testSuites: &api.TestSuites{
-			Suites: rootSuites,
-		},
+		restrictedRoots: restrictedRoots,
+		nodes:           nodes,
 	}
 }
 
@@ -31,86 +32,132 @@ const (
 
 // nestedTestSuitesBuilder is a test suites builder that nests suites under a root suite
 type nestedTestSuitesBuilder struct {
-	// restrictedRoots determines if the builder is able to add new roots to the tree or if all
-	// new suits are to be added only if they are leaves of the original set of roots created
-	// by the constructor
-	restrictedRoots bool
+	// restrictedRoots is the original set of roots created by the constructor, and is populated only
+	// if the builder is not able to add new roots to the tree, instead needing to add all nodes as
+	// children of these restricted roots
+	restrictedRoots []*treeNode
 
-	testSuites *api.TestSuites
+	nodes map[string]*treeNode
 }
 
-// AddSuite adds a test suite to the test suites collection being built if the suite is not in
-// the collection, otherwise it overwrites the current record of the suite in the collection. In
-// both cases, it updates the metrics of any parent suites to include those of the new suite. If
-// the parent of the test suite to be added is found in the collection, the test suite is added
-// as a child of that suite. Otherwise, parent suites are created by successively removing one
-// layer of package specificity until the root name is found. For instance, if the suite named
-// "root/package/subpackage/subsubpackage" were to be added to an empty collection, the suites
-// named "root", "root/package", and "root/package/subpackage" would be created and added first,
-// then the suite could be added as a child of the latter parent package. If roots are restricted,
-// then test suites to be added are asssumed to be nested under one of the root suites created by
-// the constructor method and the attempted addition of a suite not rooted in those suites will
-// fail silently to allow for selective tree-building given a root.
-func (b *nestedTestSuitesBuilder) AddSuite(suite *api.TestSuite) error {
-	if recordedSuite := b.findSuite(suite.Name); recordedSuite != nil {
-		// if we are trying to add a suite that already exists, we just need to overwrite our
-		// current record with the data in the new suite to be added
-		recordedSuite.NumTests = suite.NumTests
-		recordedSuite.NumSkipped = suite.NumSkipped
-		recordedSuite.NumFailed = suite.NumFailed
-		recordedSuite.Duration = suite.Duration
-		recordedSuite.Properties = suite.Properties
-		recordedSuite.TestCases = suite.TestCases
-		recordedSuite.Children = suite.Children
-		return nil
+type treeNode struct {
+	// suite is the test suite in this node
+	suite *api.TestSuite
+
+	// children are child nodes in the tree. this field will remain empty until the tree is built
+	children []*treeNode
+
+	// parent is the parent of this node. this field can be null
+	parent *treeNode
+}
+
+// AddSuite adds a suite, encapsulated in a treeNode, to the list of suites that this builder cares about.
+// If a suite already exists with the same name as that which is being added, the existing record is over-
+// written. If roots are restricted, then test suites to be added are asssumed to be nested under one of
+// the root suites created by the constructor method and the attempted addition of a suite not rooted in
+// those suites will fail silently to allow for selective tree-building given a root.
+func (b *nestedTestSuitesBuilder) AddSuite(suite *api.TestSuite) {
+	if !allowedToCreate(suite.Name, b.restrictedRoots) {
+		return
 	}
 
-	if err := b.addToParent(suite); err != nil {
-		if errors.IsSuiteOutOfBoundsError(err) {
-			// if we were trying to add something out of bounds, we ignore the request but do not
-			// throw an error so we can selectively build sub-trees with a set of specified roots
-			return nil
+	oldVersion, exists := b.nodes[suite.Name]
+	if exists {
+		oldVersion.suite = suite
+		return
+	}
+
+	b.nodes[suite.Name] = &treeNode{suite: suite}
+}
+
+// allowedToCreate determines if the given name is allowed to be created in light of the restricted roots
+func allowedToCreate(name string, restrictedRoots []*treeNode) bool {
+	if len(restrictedRoots) == 0 {
+		return true
+	}
+
+	for _, root := range restrictedRoots {
+		if strings.HasPrefix(name, root.suite.Name) {
+			return true
 		}
-		return err
 	}
 
-	b.updateMetrics(suite)
-
-	return nil
+	return false
 }
 
-// addToParent will find or create the parent for the test suite and add the given suite as a child
-func (b *nestedTestSuitesBuilder) addToParent(child *api.TestSuite) error {
-	name := child.Name
-	if !b.isChildOfRoots(name) && b.restrictedRoots {
-		// if we were asked to add a new test suite that isn't a child of any current root,
-		// and we aren't allowed to add new roots, we can't fulfill this request
-		return errors.NewSuiteOutOfBoundsError(name)
+// Build builds an api.TestSuites from the list of nodes that is contained in the builder.
+func (b *nestedTestSuitesBuilder) Build() *api.TestSuites {
+	// build a tree from our list of nodes
+	nodesToAdd := []*treeNode{}
+	for _, node := range b.nodes {
+		// make a copy of which nodes we're interested in, otherwise we'll be concurrently modifying b.nodes
+		nodesToAdd = append(nodesToAdd, node)
 	}
 
-	parentName := getParentName(name)
-	if len(parentName) == 0 {
-		// this suite does not have a parent, we just need to add it as a root
-		b.testSuites.Suites = append(b.testSuites.Suites, child)
-		return nil
-	}
-
-	parent := b.findSuite(parentName)
-	if parent == nil {
-		// no parent is currently registered, we need to create it and add it to the tree
-		parent = &api.TestSuite{
-			Name:     parentName,
-			Children: []*api.TestSuite{child},
+	for _, node := range nodesToAdd {
+		parentNode, exists := b.nodes[getParentName(node.suite.Name)]
+		if !exists {
+			makeParentsFor(node, b.nodes, b.restrictedRoots)
+			continue
 		}
 
-		return b.addToParent(parent)
+		parentNode.children = append(parentNode.children, node)
+		node.parent = parentNode
 	}
 
-	parent.Children = append(parent.Children, child)
-	return nil
+	// find the tree's roots
+	roots := []*treeNode{}
+	for _, node := range b.nodes {
+		if node.parent == nil {
+			roots = append(roots, node)
+		}
+	}
+
+	// update all metrics inside of test suites so they encompass those of their children
+	rootSuites := []*api.TestSuite{}
+	for _, root := range roots {
+		updateMetrics(root)
+		rootSuites = append(rootSuites, root.suite)
+	}
+
+	// we need to sort our children so that we can ensure reproducible output for testing
+	sort.Sort(api.ByName(rootSuites))
+
+	return &api.TestSuites{Suites: rootSuites}
 }
 
-// getParentName returns the name of the parent package, if it exists in the multitree
+// makeParentsFor recursively creates parents for the child node until a parent is created that doesn't
+// contain the delimiter in its name or a restricted root is reached.
+func makeParentsFor(child *treeNode, register map[string]*treeNode, restrictedRoots []*treeNode) {
+	parentName := getParentName(child.suite.Name)
+	if parentName == "" {
+		// if there is no parent for this child, we give up
+		return
+	}
+
+	if parentNode, exists := register[parentName]; exists {
+		// if the parent we're trying to add already exists, just use it
+		parentNode.children = append(parentNode.children, child)
+		child.parent = parentNode
+		return
+	}
+
+	if !allowedToCreate(parentName, restrictedRoots) {
+		// if the parent we're trying to create doesn't exist but we can't make it, give up
+		return
+	}
+
+	parentNode := &treeNode{
+		suite:    &api.TestSuite{Name: parentName},
+		children: []*treeNode{child},
+	}
+	child.parent = parentNode
+	register[parentName] = parentNode
+
+	makeParentsFor(parentNode, register, restrictedRoots)
+}
+
+// getParentName returns the name of the parent package, regardless of if it exists in the multitree
 func getParentName(name string) string {
 	if !strings.Contains(name, TestSuiteNameDelimiter) {
 		return ""
@@ -120,62 +167,19 @@ func getParentName(name string) string {
 	return name[0:delimeterIndex]
 }
 
-func (b *nestedTestSuitesBuilder) isChildOfRoots(name string) bool {
-	for _, rootSuite := range b.testSuites.Suites {
-		if strings.HasPrefix(name, rootSuite.Name) {
-			return true
-		}
-	}
-	return false
-}
-
-// findSuite finds a test suite in a collection of test suites
-func (b *nestedTestSuitesBuilder) findSuite(name string) *api.TestSuite {
-	return findSuite(b.testSuites.Suites, name)
-}
-
-// findSuite walks a test suite tree to find a test suite with the given name
-func findSuite(suites []*api.TestSuite, name string) *api.TestSuite {
-	for _, suite := range suites {
-		if suite.Name == name {
-			return suite
-		}
-
-		if strings.HasPrefix(name, suite.Name) {
-			return findSuite(suite.Children, name)
-		}
+// updateMetrics recursively updates all fields in a treeNode's TestSuite
+func updateMetrics(root *treeNode) {
+	for _, child := range root.children {
+		updateMetrics(child)
+		// we should be building a tree, so updates on children are independent and we can bring
+		// in the updated data for this child right away
+		root.suite.NumTests += child.suite.NumTests
+		root.suite.NumSkipped += child.suite.NumSkipped
+		root.suite.NumFailed += child.suite.NumFailed
+		root.suite.Duration += child.suite.Duration
+		root.suite.Children = append(root.suite.Children, child.suite)
 	}
 
-	return nil
-}
-
-// updateMetrics updates the metrics for all parents of a test suite
-func (b *nestedTestSuitesBuilder) updateMetrics(newSuite *api.TestSuite) {
-	updateMetrics(b.testSuites.Suites, newSuite)
-}
-
-// updateMetrics walks a test suite tree to update metrics of parents of the given suite
-func updateMetrics(suites []*api.TestSuite, newSuite *api.TestSuite) {
-	for _, suite := range suites {
-		if suite.Name == newSuite.Name || !strings.HasPrefix(newSuite.Name, suite.Name) {
-			// if we're considering the suite itself or another suite that is not a pure
-			// prefix of the new suite, we are not considering a parent suite and therefore
-			// do not need to update any metrics
-			continue
-		}
-
-		suite.NumTests += newSuite.NumTests
-		suite.NumSkipped += newSuite.NumSkipped
-		suite.NumFailed += newSuite.NumFailed
-		suite.Duration += newSuite.Duration
-		// we round to the millisecond on duration
-		suite.Duration = float64(int(suite.Duration*1000)) / 1000
-
-		updateMetrics(suite.Children, newSuite)
-	}
-}
-
-// Build releases the test suites collection being built at whatever current state it is in
-func (b *nestedTestSuitesBuilder) Build() *api.TestSuites {
-	return b.testSuites
+	// we need to sort our children so that we can ensure reproducible output for testing
+	sort.Sort(api.ByName(root.suite.Children))
 }

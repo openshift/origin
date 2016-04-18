@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -17,6 +19,7 @@ os::log::install_errexit
 ) &>/dev/null
 
 
+os::test::junit::declare_suite_start "cmd/secrets"
 # This test validates secret interaction
 os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefile' 'error: unknown secret type "blah"'
 os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
@@ -77,3 +80,4 @@ os::cmd::expect_success 'oc secret new-sshauth --help'
 os::cmd::expect_success 'oc secret add --help'
 
 echo "secrets: ok"
+os::test::junit::declare_suite_end
