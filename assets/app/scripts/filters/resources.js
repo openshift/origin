@@ -287,11 +287,12 @@ angular.module('openshiftConsole')
       });
     };
   })
-  .filter('isWebRoute', function(){
+  .filter('isWebRoute', function(routeHostFilter) {
     return function(route){
        //TODO: implement when we can tell if routes are http(s) or not web related which will drive
        // links in view
-       return true;
+       // For now, only return false if the host is not defined.
+       return !!routeHostFilter(route);
     };
   })
   .filter('routeWebURL', function(routeHostFilter){
@@ -310,7 +311,7 @@ angular.module('openshiftConsole')
       if (route.spec.path) {
         label += route.spec.path;
       }
-      return label;
+      return label || '<unknown host>';
     };
   })
   .filter('parameterPlaceholder', function() {

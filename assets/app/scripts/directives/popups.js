@@ -96,7 +96,7 @@ angular.module('openshiftConsole')
       link: function($scope) {
         var updateWarnings = function() {
           var warnings = $scope.warnings || RoutesService.getRouteWarnings($scope.route, $scope.service);
-          $scope.content = warnings.join('<br>');
+          $scope.content = _.map(warnings, _.escape).join('<br>');
         };
         $scope.$watch('route', updateWarnings, true);
         $scope.$watch('service', updateWarnings, true);

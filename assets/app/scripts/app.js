@@ -215,6 +215,10 @@ angular
         templateUrl: 'views/browse/routes.html',
         controller: 'RoutesController'
       })
+      .when('/project/:project/edit/routes/:route', {
+        templateUrl: 'views/edit/route.html',
+        controller: 'EditRouteController'
+      })
       .when('/project/:project/browse/routes/:route', {
         templateUrl: 'views/browse/route.html',
         controller: 'RouteController'

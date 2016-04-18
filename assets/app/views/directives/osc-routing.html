@@ -32,6 +32,31 @@
       </div>
     </div>
 
+    <div ng-if="services" class="form-group">
+      <label for="service-select" class="required">Service</label>
+      <select
+          id="service-select"
+          ng-model="route.service"
+          ng-options="service as service.metadata.name for service in services"
+          required
+          class="form-control"
+          aria-describedby="service-help">
+      </select>
+      <div>
+        <span id="service-help" class="help-block">Service to route to.</span>
+      </div>
+      <div ng-if="(services | hashSize) === 0" class="has-error">
+        <span class="help-block">There are no services in your project to expose with a route.</span>
+      </div>
+      <div ng-if="unnamedServicePort" class="has-warning">
+        <span class="help-block">
+          Service {{route.service.metadata.name}} has a single, unnamed port. A route cannot specifically target
+          an unnamed service port. If more service ports are added later, the route will also direct
+          traffic to them.
+        </span>
+      </div>
+    </div>
+
     <!-- Host -->
     <div class="form-group">
       <label for="host">Hostname</label>
@@ -102,7 +127,7 @@
           id="routeTargetPort"
           ng-if="route.portOptions.length"
           ng-model="route.targetPort"
-          ng-options="portOption.label for portOption in route.portOptions"
+          ng-options="portOption.port as portOption.label for portOption in route.portOptions"
           class="form-control"
           aria-describedby="target-port-help">
       </select>
@@ -183,21 +208,34 @@
         <div>
           <div class="form-group">
             <label>Certificate</label>
-            <osc-file-input model="route.tls.certificate" help-text="The PEM format certificate."></osc-file-input>
+            <osc-file-input
+                model="route.tls.certificate"
+                show-values="true"
+                help-text="The PEM format certificate.">
+            </osc-file-input>
           </div>
           <div class="form-group">
             <label>Private Key</label>
-            <osc-file-input model="route.tls.key" help-text="The PEM format key."></osc-file-input>
+            <osc-file-input
+                model="route.tls.key"
+                show-values="true"
+                help-text="The PEM format key.">
+            </osc-file-input>
           </div>
           <div class="form-group">
             <label>CA Certificate</label>
-            <osc-file-input model="route.tls.caCertificate" help-text="The PEM format CA certificate."></osc-file-input>
+            <osc-file-input
+                model="route.tls.caCertificate"
+                show-values="true"
+                help-text="The PEM format CA certificate.">
+            </osc-file-input>
           </div>
           <div class="form-group">
             <label>Destination CA Certificate</label>
             <osc-file-input
                 model="route.tls.destinationCACertificate"
                 help-text="The PEM format CA certificate to validate the endpoint certificate for re-encrypt termination."
+                show-values="true"
                 ng-disabled="route.tls.termination !== 'reencrypt'">
             </osc-file-input>
             <!-- Show a warning if the value won't be used, but only if we're

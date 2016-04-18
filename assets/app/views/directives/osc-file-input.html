@@ -28,3 +28,8 @@
 <div class="has-error" ng-show="uploadError">
   <span class="help-block">There was an error reading the file. Please copy the file content into the text area.</span>
 </div>
+
+<div ng-if="model && showValues && supportsFileUpload">
+  <pre ng-if="model && showValues && supportsFileUpload" class="clipped scroll">{{model}}</pre>
+</div>
+<a href="" ng-show="model || fileName" ng-click="model = ''; fileName = ''">Clear value</a>

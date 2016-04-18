@@ -142,7 +142,7 @@ angular.module("openshiftConsole")
                         label: servicePort.targetPort + "/" + servicePort.protocol
                       };
                     });
-                    scope.routing.targetPort = scope.routing.portOptions[0];
+                    scope.routing.targetPort = scope.routing.portOptions[0].port;
                   }
                 }, function(){
                     Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");

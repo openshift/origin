@@ -138,7 +138,7 @@ angular.module("openshiftConsole")
 
       if (input.routing.targetPort) {
         route.spec.port = {
-          targetPort: input.routing.targetPort.port
+          targetPort: input.routing.targetPort
         };
       }
 
