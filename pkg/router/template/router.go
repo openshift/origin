@@ -47,7 +47,8 @@ type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	reloadInterval   time.Duration
-	state            map[string]ServiceUnit
+	state            map[string]ServiceAliasConfig
+	serviceUnits	 map[string]ServiceUnit
 	certManager      certificateManager
 	// defaultCertificate is a concatenated certificate(s), their keys, and their CAs that should be used by the underlying
 	// implementation as the default certificate if no certificate is resolved by the normal matching mechanisms.  This is
@@ -99,7 +100,9 @@ type templateData struct {
 	// the directory that files will be written to, defaults to /var/lib/containers/router
 	WorkingDir string
 	// the routes
-	State map[string]ServiceUnit
+	State map[string](ServiceAliasConfig)
+	// the service lookup
+	ServiceUnits map[string]ServiceUnit
 	// full path and file name to the default certificate
 	DefaultCertificate string
 	// peers
@@ -136,7 +139,8 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
 		reloadInterval:         cfg.reloadInterval,
-		state:                  make(map[string]ServiceUnit),
+		state:                  make(map[string]ServiceAliasConfig),
+		serviceUnits:           make(map[string]ServiceUnit),
 		certManager:            certManager,
 		defaultCertificate:     cfg.defaultCertificate,
 		defaultCertificatePath: cfg.defaultCertificatePath,
@@ -204,7 +208,7 @@ func (r *templateRouter) readState() error {
 	data, err := ioutil.ReadFile(filepath.Join(r.dir, routeFile))
 	// TODO: rework
 	if err != nil {
-		r.state = make(map[string]ServiceUnit)
+		r.state = make(map[string]ServiceAliasConfig)
 		return nil
 	}
 
@@ -256,14 +260,12 @@ func (r *templateRouter) writeState() error {
 // writeConfig writes the config to disk
 func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
-	for _, serviceUnit := range r.state {
-		for k, cfg := range serviceUnit.ServiceAliasConfigs {
-			if err := r.writeCertificates(&cfg); err != nil {
-				return fmt.Errorf("error writing certificates for %s: %v", serviceUnit.Name, err)
-			}
-			cfg.Status = ServiceAliasConfigStatusSaved
-			serviceUnit.ServiceAliasConfigs[k] = cfg
+	for k, cfg := range r.state {
+		if err := r.writeCertificates(&cfg); err != nil {
+			return fmt.Errorf("error writing certificates for %s", k, err)
 		}
+		cfg.Status = ServiceAliasConfigStatusSaved
+		r.state[k] = cfg
 	}
 
 	for path, template := range r.templates {
@@ -275,6 +277,7 @@ func (r *templateRouter) writeConfig() error {
 		data := templateData{
 			WorkingDir:         r.dir,
 			State:              r.state,
+			ServiceUnits:	    r.serviceUnits,
 			DefaultCertificate: r.defaultCertificatePath,
 			PeerEndpoints:      r.peerEndpoints,
 			StatsUser:          r.statsUser,
@@ -314,7 +317,7 @@ func (r *templateRouter) reloadRouter() error {
 
 func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
-		r.state = make(map[string]ServiceUnit)
+		r.state = make(map[string]ServiceAliasConfig)
 	}
 	for k := range r.state {
 		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
@@ -331,30 +334,26 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 func (r *templateRouter) CreateServiceUnit(id string) {
 	service := ServiceUnit{
 		Name:                id,
-		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
 		EndpointTable:       []Endpoint{},
 	}
 
-	r.state[id] = service
+	r.serviceUnits[id] = service
 }
 
 // FindServiceUnit finds the service with the given id.
 func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
-	v, ok := r.state[id]
+	v, ok := r.serviceUnits[id]
 	return v, ok
 }
 
 // DeleteServiceUnit deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
-	svcUnit, ok := r.FindServiceUnit(id)
+	_, ok := r.FindServiceUnit(id)
 	if !ok {
 		return
 	}
 
-	for _, cfg := range svcUnit.ServiceAliasConfigs {
-		r.cleanUpServiceAliasConfig(&cfg)
-	}
-	delete(r.state, id)
+	delete(r.serviceUnits, id)
 }
 
 // DeleteEndpoints deletes the endpoints for the service with the given id.
@@ -365,7 +364,7 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	}
 	service.EndpointTable = []Endpoint{}
 
-	r.state[id] = service
+	r.serviceUnits[id] = service
 
 	// TODO: this is not safe (assuming that the subset of elements we are watching includes the peer endpoints)
 	// should be a DNS lookup for endpoints of our service name.
@@ -390,63 +389,69 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s_%s", route.Namespace, route.Name)
 }
 
-// AddRoute adds a route for the given id
+// AddRoute adds a route for the given service id
 func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
 	frontend, _ := r.FindServiceUnit(id)
 
 	backendKey := r.routeKey(route)
 
-	config := ServiceAliasConfig{
-		Host: host,
-		Path: route.Spec.Path,
-	}
+	config, ok := r.state[backendKey]
 
-	if route.Spec.Port != nil {
-		config.PreferPort = route.Spec.Port.TargetPort.String()
-	}
-
-	tls := route.Spec.TLS
-	if tls != nil && len(tls.Termination) > 0 {
-		config.TLSTermination = tls.Termination
-
-		if tls.Termination == routeapi.TLSTerminationEdge {
-			config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
+	if !ok {
+		config = ServiceAliasConfig{
+			Host: host,
+			Path: route.Spec.Path,
+			Annotations: route.Annotations,
+			ServiceUnitNames: make(map[string]string),
 		}
 
-		if tls.Termination != routeapi.TLSTerminationPassthrough {
-			if config.Certificates == nil {
-				config.Certificates = make(map[string]Certificate)
+		if route.Spec.Port != nil {
+			config.PreferPort = route.Spec.Port.TargetPort.String()
+		}
+
+		tls := route.Spec.TLS
+		if tls != nil && len(tls.Termination) > 0 {
+			config.TLSTermination = tls.Termination
+
+			if tls.Termination == routeapi.TLSTerminationEdge {
+				config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
 			}
 
-			if len(tls.Certificate) > 0 {
-				certKey := generateCertKey(&config)
-				cert := Certificate{
-					ID:         backendKey,
-					Contents:   tls.Certificate,
-					PrivateKey: tls.Key,
+			if tls.Termination != routeapi.TLSTerminationPassthrough {
+				if config.Certificates == nil {
+					config.Certificates = make(map[string]Certificate)
 				}
 
-				config.Certificates[certKey] = cert
-			}
+				if len(tls.Certificate) > 0 {
+					certKey := generateCertKey(&config)
+					cert := Certificate{
+						ID:         backendKey,
+						Contents:   tls.Certificate,
+						PrivateKey: tls.Key,
+					}
 
-			if len(tls.CACertificate) > 0 {
-				caCertKey := generateCACertKey(&config)
-				caCert := Certificate{
-					ID:       backendKey,
-					Contents: tls.CACertificate,
+					config.Certificates[certKey] = cert
 				}
 
-				config.Certificates[caCertKey] = caCert
-			}
+				if len(tls.CACertificate) > 0 {
+					caCertKey := generateCACertKey(&config)
+					caCert := Certificate{
+						ID:       backendKey,
+						Contents: tls.CACertificate,
+					}
 
-			if len(tls.DestinationCACertificate) > 0 {
-				destCertKey := generateDestCertKey(&config)
-				destCert := Certificate{
-					ID:       backendKey,
-					Contents: tls.DestinationCACertificate,
+					config.Certificates[caCertKey] = caCert
 				}
 
-				config.Certificates[destCertKey] = destCert
+				if len(tls.DestinationCACertificate) > 0 {
+					destCertKey := generateDestCertKey(&config)
+					destCert := Certificate{
+						ID:       backendKey,
+						Contents: tls.DestinationCACertificate,
+					}
+
+					config.Certificates[destCertKey] = destCert
+				}
 			}
 		}
 	}
@@ -455,45 +460,32 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
 
 	//create or replace
-	frontend.ServiceAliasConfigs[backendKey] = config
-	r.state[id] = frontend
-	r.cleanUpdates(id, backendKey)
+	config.ServiceUnitNames[frontend.Name] = frontend.Name
+	r.state[backendKey] = config
+	r.serviceUnits[id] = frontend
+	//r.cleanUpdates(id, backendKey)
 	return true
-}
-
-// cleanUpdates ensures the route is only under a single service key.  Backends are keyed
-// by route namespace and name.  Frontends are keyed by service namespace name.  This accounts
-// for times when someone updates the service name on a route which leaves the existing old service
-// in state.
-// TODO: remove this when we refactor the model to use existing objects and integrate this into
-// the api somehow.
-func (r *templateRouter) cleanUpdates(frontendKey string, backendKey string) {
-	for k, v := range r.state {
-		if k == frontendKey {
-			continue
-		}
-		for routeKey := range v.ServiceAliasConfigs {
-			if routeKey == backendKey {
-				delete(v.ServiceAliasConfigs, backendKey)
-			}
-		}
-	}
 }
 
 // RemoveRoute removes the given route for the given id.
 func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
-	serviceUnit, ok := r.state[id]
+	_, ok := r.serviceUnits[id]
 	if !ok {
 		return
 	}
 
 	routeKey := r.routeKey(route)
-	serviceAliasConfig, ok := serviceUnit.ServiceAliasConfigs[routeKey]
+	serviceAliasConfig, ok := r.state[routeKey]
 	if !ok {
 		return
 	}
+	delete(serviceAliasConfig.ServiceUnitNames, id)
+
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
-	delete(r.state[id].ServiceAliasConfigs, routeKey)
+
+	if len(serviceAliasConfig.ServiceUnitNames) == 0 {
+		delete(r.state, routeKey)
+	}
 }
 
 // AddEndpoints adds new Endpoints for the given id.
@@ -507,7 +499,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 	}
 
 	frontend.EndpointTable = endpoints
-	r.state[id] = frontend
+	r.serviceUnits[id] = frontend
 
 	if id == r.peerEndpointsKey {
 		r.peerEndpoints = frontend.EndpointTable

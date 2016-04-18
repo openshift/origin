@@ -159,26 +159,35 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	key := routeKey(route)
+	serviceKeys := routeKeys(route)
 
 	host := route.Spec.Host
 
 	switch eventType {
 	case watch.Added, watch.Modified:
-		if _, ok := p.Router.FindServiceUnit(key); !ok {
-			glog.V(4).Infof("Creating new frontend for key: %v", key)
-			p.Router.CreateServiceUnit(key)
+		// Delete the route first, because modify is to be treated as delete+add
+		for _, key := range serviceKeys {
+			p.Router.RemoveRoute(key, route)
 		}
+		// Now add it back again
+		for _, key := range serviceKeys {
+			if _, ok := p.Router.FindServiceUnit(key); !ok {
+				glog.V(4).Infof("Creating new frontend for key: %v", key)
+				p.Router.CreateServiceUnit(key)
+			}
 
-		glog.V(4).Infof("Modifying routes for %s", key)
-		commit := p.Router.AddRoute(key, route, host)
-		if commit {
-			p.Router.Commit()
+			glog.V(4).Infof("Modifying routes for %s", key)
+			commit := p.Router.AddRoute(key, route, host)
+			if commit {
+				p.Router.Commit()
+			}
 		}
 	case watch.Deleted:
-		glog.V(4).Infof("Deleting routes for %s", key)
-		p.Router.RemoveRoute(key, route)
-		p.Router.Commit()
+		for _, key := range serviceKeys {
+			glog.V(4).Infof("Deleting routes for %s", key)
+			p.Router.RemoveRoute(key, route)
+			p.Router.Commit()
+		}
 	}
 	return nil
 }
@@ -191,9 +200,14 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	return nil
 }
 
-// routeKey returns the internal router key to use for the given Route.
-func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+// routeKeys returns the internal router keys to use for the given Route.
+// A route can have several services that it can point to, now
+func routeKeys(route *routeapi.Route) []string {
+	keys := make([]string, 0)
+	for _, svc := range route.Spec.To {
+		keys = append(keys, fmt.Sprintf("%s/%s", route.Namespace, svc.Name))
+	}
+	return keys
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.

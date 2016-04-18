@@ -109,8 +109,16 @@ func DeepCopy_api_RoutePort(in RoutePort, out *RoutePort, c *conversion.Cloner) 
 func DeepCopy_api_RouteSpec(in RouteSpec, out *RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
-	if err := api.DeepCopy_api_ObjectReference(in.To, &out.To, c); err != nil {
-		return err
+	if in.To != nil {
+		in, out := in.To, &out.To
+		*out = make([]api.ObjectReference, len(in))
+		for i := range in {
+			if err := api.DeepCopy_api_ObjectReference(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.To = nil
 	}
 	if in.Port != nil {
 		in, out := in.Port, &out.Port

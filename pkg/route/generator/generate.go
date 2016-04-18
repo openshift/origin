@@ -62,6 +62,10 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		}
 	}
 
+	toSvcs := make([]kapi.ObjectReference, 0)
+	toSvcs = append(toSvcs, kapi.ObjectReference{
+					Name: params["default-name"],
+				})
 	route := &api.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -70,9 +74,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		Spec: api.RouteSpec{
 			Host: params["hostname"],
 			Path: params["path"],
-			To: kapi.ObjectReference{
-				Name: params["default-name"],
-			},
+			To: toSvcs,
 		},
 	}
 

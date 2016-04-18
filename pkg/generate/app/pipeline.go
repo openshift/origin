@@ -362,15 +362,17 @@ func AddRoutes(objects Objects) Objects {
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *kapi.Service:
+			toSvcs := make([]kapi.ObjectReference, 0)
+			toSvcs = append(toSvcs, kapi.ObjectReference{
+							Name: t.Name,
+						})
 			routes = append(routes, &route.Route{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:   t.Name,
 					Labels: t.Labels,
 				},
 				Spec: route.RouteSpec{
-					To: kapi.ObjectReference{
-						Name: t.Name,
-					},
+					To: toSvcs,
 				},
 			})
 		}

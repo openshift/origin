@@ -9,6 +9,16 @@ import (
 	"github.com/openshift/origin/pkg/route/api"
 )
 
+func createRouteSpecTo(name string, kind string) []kapi.ObjectReference {
+	svcs := make([]kapi.ObjectReference, 0)
+	svc := kapi.ObjectReference{
+			Name: name,
+			Kind: kind,
+		}
+	svcs = append(svcs, svc)
+	return svcs
+}
+
 // TestValidateRouteBad ensures not specifying a required field results in error and a fully specified
 // route passes successfully
 func TestValidateRoute(t *testing.T) {
@@ -25,10 +35,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 1,
@@ -41,10 +48,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 1,
@@ -57,10 +61,7 @@ func TestValidateRoute(t *testing.T) {
 					Namespace: "foo",
 				},
 				Spec: api.RouteSpec{
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 0,
@@ -74,10 +75,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "**",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 1,
@@ -91,9 +89,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
-					To: kapi.ObjectReference{
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 1,
@@ -107,9 +103,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-					},
+					To: createRouteSpecTo("serviceName", ""),
 				},
 			},
 			expectedErrors: 1,
@@ -123,10 +117,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 					Port: &api.RoutePort{
 						TargetPort: intstr.FromInt(0),
 					},
@@ -143,10 +134,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 					Port: &api.RoutePort{
 						TargetPort: intstr.FromString(""),
 					},
@@ -163,10 +151,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
 			expectedErrors: 0,
@@ -180,10 +165,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 					Path: "/test",
 				},
 			},
@@ -198,10 +180,7 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 					Path: "test",
 				},
 			},
@@ -217,10 +196,7 @@ func TestValidateRoute(t *testing.T) {
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
 					Path: "/test",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-						Kind: "Service",
-					},
+					To: createRouteSpecTo("serviceName", "Service"),
 					TLS: &api.TLSConfig{
 						Termination: api.TLSTerminationPassthrough,
 					},

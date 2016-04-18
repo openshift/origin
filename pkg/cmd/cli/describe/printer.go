@@ -483,7 +483,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	default:
 		policy = ""
 	}
-	svc := route.Spec.To.Name
+	svc := route.Spec.To[0].Name
 	if route.Spec.Port != nil {
 		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
 	}
