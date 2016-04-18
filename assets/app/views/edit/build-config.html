@@ -473,17 +473,32 @@
                         <h3>Triggers</h3>
                         <dl class="dl-horizontal left">
                           <div>
-                            <div class="checkbox" ng-if="sources.git" >
-                              <label>
-                                <input type="checkbox" ng-model="triggers.present.webhook"/>
-                                Enable the webhook build trigger
-                                <span class="help action-inline">
-                                  <a href>
-                                    <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed.">
-                                    </i>
-                                  </a>
-                                </span>
-                              </label>
+                            <div ng-if="sources.git">
+                              <div class="checkbox">
+                                <label>
+                                  <input type="checkbox" ng-model="triggers.present.githubWebhook"/>
+                                  Enable the GitHub webhook build trigger
+                                  <span class="help action-inline">
+                                    <a href>
+                                      <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="The GitHub source repository must be configured to use the webhook to trigger a build when source is committed.">
+                                      </i>
+                                    </a>
+                                  </span>
+                                </label>
+                              </div>
+
+                              <div class="checkbox">
+                                <label>
+                                  <input type="checkbox" ng-model="triggers.present.genericWebhook"/>
+                                  Enable the Generic webhook build trigger
+                                  <span class="help action-inline">
+                                    <a href>
+                                      <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="A generic webhook can be triggered by any system capable of making a web request.">
+                                      </i>
+                                    </a>
+                                  </span>
+                                </label>
+                              </div>
                             </div>
 
                             <div class="checkbox">

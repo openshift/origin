@@ -88,7 +88,8 @@ angular.module('openshiftConsole')
     // $scope.triggers.present.imageChange points to builder imageChange trigger.
     $scope.triggers = {
       present: {
-        "webhook": false,
+        "githubWebhook": false,
+        "genericWebhook": false,
         "imageChange": false,
         "configChange": false
       },
@@ -292,9 +293,10 @@ angular.module('openshiftConsole')
       triggers.forEach(function(trigger) {
         switch (trigger.type) {
           case "Generic":
+            triggerMap.present.genericWebhook = true;
             break;
           case "GitHub":
-            triggerMap.present.webhook = true;
+            triggerMap.present.githubWebhook = true;
             break;
           case "ImageChange":
             var imageChangeFrom = trigger.imageChange.from;
@@ -633,21 +635,32 @@ angular.module('openshiftConsole')
     };
 
     $scope.updateTriggers = function() {
+
+      // Helper for checking webhook objects in the buildConfig spec and creating if missing.
+      function reuseOrCreateWebhook(type) {
+        var webhooks = _.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === type})
+        if (_.isEmpty(webhooks)) {
+          var webhook = {
+            type: type
+          };
+          webhook[(type === "GitHub") ? "github" : "generic"] = {
+            secret: ApplicationGenerator._generateSecret()
+          };
+          webhooks.push(webhook);
+        }
+        return webhooks;
+      }
+
       var presentTriggers = $scope.triggers.present;
       var triggers = [];
-      if (presentTriggers.webhook) {
-        var webhooks = _.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === "GitHub" })
-        if (webhooks.length === 0) {
-          webhooks.push({
-            github: {
-              secret: ApplicationGenerator._generateSecret()
-            },
-            type: "GitHub"
-          });
-        }
-        triggers = triggers.concat(webhooks);
+
+      if (presentTriggers.githubWebhook) {
+        triggers = triggers.concat(reuseOrCreateWebhook("GitHub"));
       }
-      triggers = triggers.concat(_.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === "Generic" }));
+
+      if (presentTriggers.genericWebhook) {
+        triggers = triggers.concat(reuseOrCreateWebhook("Generic"));
+      }
 
       if (presentTriggers.configChange) {
         triggers.push({
