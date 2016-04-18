@@ -1803,8 +1803,8 @@ Update the triggers on a build or deployment config
   $ oc set triggers dc/registry --auto
 
   # Reset the GitHub webhook on a build to a new, generated secret
-  $ oc set triggers bc/webapp --from-github=
-  $ oc set triggers bc/webapp --from-webhook=
+  $ oc set triggers bc/webapp --from-github
+  $ oc set triggers bc/webapp --from-webhook
 
   # Remove all triggers
   $ oc set triggers bc/webapp --remove-all
