@@ -52,8 +52,8 @@ and generic). The config change trigger for a build config will only trigger the
   $ %[1]s triggers dc/registry --auto
 
   # Reset the GitHub webhook on a build to a new, generated secret
-  $ %[1]s triggers bc/webapp --from-github=
-  $ %[1]s triggers bc/webapp --from-webhook=
+  $ %[1]s triggers bc/webapp --from-github
+  $ %[1]s triggers bc/webapp --from-webhook
 
   # Remove all triggers
   $ %[1]s triggers bc/webapp --remove-all
