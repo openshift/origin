@@ -1240,6 +1240,23 @@ Display one or many resources
 ====
 
 
+== oc import docker-compose
+Import a docker-compose.yml project into OpenShift
+
+====
+
+[options="nowrap"]
+----
+  # Import a docker-compose.yml file into OpenShift
+  $ oc import docker-compose -f ./docker-compose.yml
+
+	# Turn a docker-compose.yml file into a template
+  $ oc import docker-compose -f ./docker-compose.yml -o yaml --as-template
+
+----
+====
+
+
 == oc import-image
 Imports images from a Docker registry
 
