@@ -19,9 +19,8 @@ type flatTestSuitesBuilder struct {
 }
 
 // AddSuite adds a test suite to the test suites collection being built
-func (b *flatTestSuitesBuilder) AddSuite(suite *api.TestSuite) error {
+func (b *flatTestSuitesBuilder) AddSuite(suite *api.TestSuite) {
 	b.testSuites.Suites = append(b.testSuites.Suites, suite)
-	return nil
 }
 
 // Build releases the test suites collection being built at whatever current state it is in

@@ -1,0 +1,10 @@
+Of 2 tests executed in 11.245s, 1 succeeded, 1 failed, and 0 were skipped.
+
+In suite "package/name", test case "package/name/file.sh:23: executing 'some command' expecting success" failed:
+=== BEGIN TEST CASE ===
+package/name/file.sh:23: executing 'some command' expecting success
+FAILURE after 0.1234s: package/name/file.sh:23: executing 'some command' expecting success: the command returned the wrong error code
+There was no output from the command.
+There was no error output from the command.
+=== END TEST CASE ===
+

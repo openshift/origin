@@ -30,9 +30,8 @@ func TestMarksTestBeginning(t *testing.T) {
 		},
 	}
 
+	parser := newTestDataParser()
 	for _, testCase := range testCases {
-		parser := newTestDataParser()
-
 		if !parser.MarksBeginning(testCase.testLine) {
 			t.Errorf("%s: did not correctly determine that line %q marked test beginning", testCase.name, testCase.testLine)
 		}
@@ -87,9 +86,8 @@ func TestExtractTestName(t *testing.T) {
 		},
 	}
 
+	parser := newTestDataParser()
 	for _, testCase := range testCases {
-		parser := newTestDataParser()
-
 		actual, contained := parser.ExtractName(testCase.testLine)
 		if !contained {
 			t.Errorf("%s: failed to extract name from line %q", testCase.name, testCase.testLine)
@@ -133,9 +131,8 @@ func TestExtractResult(t *testing.T) {
 		},
 	}
 
+	parser := newTestDataParser()
 	for _, testCase := range testCases {
-		parser := newTestDataParser()
-
 		actual, contained := parser.ExtractResult(testCase.testLine)
 		if !contained {
 			t.Errorf("%s: failed to extract result from line %q", testCase.name, testCase.testLine)
@@ -169,9 +166,8 @@ func TestExtractDuration(t *testing.T) {
 		},
 	}
 
+	parser := newTestDataParser()
 	for _, testCase := range testCases {
-		parser := newTestDataParser()
-
 		actual, contained := parser.ExtractDuration(testCase.testLine)
 		if !contained {
 			t.Errorf("%s: failed to extract duration from line %q", testCase.name, testCase.testLine)
@@ -220,9 +216,8 @@ func TestExtractSuiteName(t *testing.T) {
 		},
 	}
 
+	parser := newTestSuiteDataParser()
 	for _, testCase := range testCases {
-		parser := newTestSuiteDataParser()
-
 		actual, contained := parser.ExtractName(testCase.testLine)
 		if !contained {
 			t.Errorf("%s: failed to extract name from line %q", testCase.name, testCase.testLine)
@@ -256,9 +251,8 @@ func TestSuiteProperties(t *testing.T) {
 		},
 	}
 
+	parser := newTestSuiteDataParser()
 	for _, testCase := range testCases {
-		parser := newTestSuiteDataParser()
-
 		actual, contained := parser.ExtractProperties(testCase.testLine)
 		if !contained {
 			t.Errorf("%s: failed to extract properties from line %q", testCase.name, testCase.testLine)
@@ -296,9 +290,8 @@ func TestMarksCompletion(t *testing.T) {
 		},
 	}
 
+	parser := newTestSuiteDataParser()
 	for _, testCase := range testCases {
-		parser := newTestSuiteDataParser()
-
 		if !parser.MarksCompletion(testCase.testLine) {
 			t.Errorf("%s: did not correctly determine that line %q marked the end of a suite", testCase.name, testCase.testLine)
 		}

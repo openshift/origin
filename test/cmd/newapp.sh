@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
 os::log::install_errexit
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -17,6 +19,7 @@ os::log::install_errexit
 ) &>/dev/null
 
 
+os::test::junit::declare_suite_start "cmd/newapp"
 # This test validates the new-app command
 
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
@@ -241,3 +244,4 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --output-version=v1 -o=jsonpath="{.items[?(@.kind==\"BuildConfig\")].spec.source}"' 'dockerfile|binary'
 
 echo "new-app: ok"
+os::test::junit::declare_suite_end

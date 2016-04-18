@@ -180,6 +180,9 @@ For example, start the OpenShift server, create a "test" project, and then run
     $ oc new-project test
     $ test/cmd/newapp.sh
 
+In order to run the suite, generate a jUnit XML report, and see a summary of the test suite, use:
+
+    $ JUNIT_REPORT='true' hack/test-cmd.sh
 
 ### End-to-End (e2e) and Extended Tests
 

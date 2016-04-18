@@ -51,9 +51,10 @@ const (
 	junitReportUsageLong = `Consume test output to create jUnit XML files and summarize jUnit XML files.
 
 %[1]s consumes test output through Stdin and creates jUnit XML files. Currently, only the output of 'go test'
-is supported. jUnit XML can be build with nested or flat test suites. Sub-trees of test suites can be selected
-when using the nested test-suites representation to only build XML for some subset of the test output. This
-parser is greedy, so all output not directly related to a test suite is considered test case output.
+and the output of 'oscmd' functions with $JUNIT_REPORT_OUTPUT set are supported. jUnit XML can be build with
+nested or flat test suites. Sub-trees of test suites can be selected when using the nested test-suites represen-
+tation to only build XML for some subset of the test output. This parser is greedy, so all output not directly 
+related to a test suite is considered test case output.
 `
 
 	junitReportUsage = `Usage:
@@ -82,6 +83,9 @@ parser is greedy, so all output not directly related to a test suite is consider
 
   # Describe failures and skipped tests in an existing jUnit XML file
   $ cat report.xml | %[1]s summarize
+
+  # Consume 'os::cmd' output from to create a jUnit XML file
+  $ JUNIT_REPORT='true' hack/test-cmd.sh | junitreport --type=os::cmd > report.xml
 `
 )
 

@@ -47,3 +47,18 @@ func (t *TestSuite) SetDuration(duration string) error {
 	t.Duration = float64(int(parsedDuration.Seconds()*1000)) / 1000
 	return nil
 }
+
+// ByName implements sort.Interface for []*TestSuite based on the Name field
+type ByName []*TestSuite
+
+func (n ByName) Len() int {
+	return len(n)
+}
+
+func (n ByName) Swap(i, j int) {
+	n[i], n[j] = n[j], n[i]
+}
+
+func (n ByName) Less(i, j int) bool {
+	return n[i].Name < n[j].Name
+}
