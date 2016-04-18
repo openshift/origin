@@ -34,7 +34,15 @@ var (
 
 func init() {
 	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return newClusterResourceOverride(client, config)
+		pluginConfig, err := ReadConfig(config)
+		if err != nil {
+			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+			return nil, nil
+		}
+		return newClusterResourceOverride(client, pluginConfig)
 	})
 }
 
@@ -57,33 +65,14 @@ var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
-func newClusterResourceOverride(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-	parsed, err := ReadConfig(config)
-	if err != nil {
-		glog.V(5).Infof("%s admission controller loaded with error: (%T) %[2]v", api.PluginName, err)
-		return nil, err
-	}
-	if errs := validation.Validate(parsed); len(errs) > 0 {
-		return nil, errs.ToAggregate()
-	}
-
-	// we can't intercept and return a nil value or the upstream code will panic.  Changing the admission initialization API is
-	// too big for now.
-	// TODO fix properly
-	if parsed == nil {
-		glog.V(2).Infof("%s admission controller has no configuration, return no-op", api.PluginName)
-		return &clusterResourceOverridePlugin{
-			Handler: admission.NewHandler(),
-		}, nil
-	}
-
-	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, parsed)
+func newClusterResourceOverride(client clientset.Interface, config *api.ClusterResourceOverrideConfig) (admission.Interface, error) {
+	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
 	var internal *internalConfig
-	if parsed != nil {
+	if config != nil {
 		internal = &internalConfig{
-			limitCPUToMemoryRatio:     inf.NewDec(parsed.LimitCPUToMemoryPercent, 2),
-			cpuRequestToLimitRatio:    inf.NewDec(parsed.CPURequestToLimitPercent, 2),
-			memoryRequestToLimitRatio: inf.NewDec(parsed.MemoryRequestToLimitPercent, 2),
+			limitCPUToMemoryRatio:     inf.NewDec(config.LimitCPUToMemoryPercent, 2),
+			cpuRequestToLimitRatio:    inf.NewDec(config.CPURequestToLimitPercent, 2),
+			memoryRequestToLimitRatio: inf.NewDec(config.MemoryRequestToLimitPercent, 2),
 		}
 	}
 
@@ -128,6 +117,10 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
 	glog.V(5).Infof("%s config is: %v", api.PluginName, config)
+	if errs := validation.Validate(config); len(errs) > 0 {
+		return nil, errs.ToAggregate()
+	}
+
 	return config, nil
 }
 
