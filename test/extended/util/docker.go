@@ -27,6 +27,15 @@ func TagImage(tagee, tagor string) error {
 	return client.TagImage(tagor, opts)
 }
 
+//InspectImage initiates the equivalent of a `docker inspect` for the "name" parameter
+func InspectImage(name string) (*dockerClient.Image, error) {
+	client, err := tutil.NewDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return client.InspectImage(name)
+}
+
 //PullImage initiates the equivalent of a `docker pull` for the "name" parameter
 func PullImage(name string, authCfg dockerClient.AuthConfiguration) error {
 	client, err := tutil.NewDockerClient()

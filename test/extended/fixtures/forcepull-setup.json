@@ -38,6 +38,12 @@
 		"strategy": {
 		    "type": "Docker",
 		    "dockerStrategy": {
+			"env": [
+			    {
+				"name": "BUILD_LOGLEVEL",
+				"value": "5" 
+			    }
+			]
 		    }
 		},
 		"output":{
