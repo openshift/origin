@@ -68,6 +68,11 @@ type Controller struct {
 	reflectorMutex sync.RWMutex
 }
 
+type ControllerInterface interface {
+	Run(stopCh <-chan struct{})
+	HasSynced() bool
+}
+
 // New makes a new Controller from the given Config.
 func New(c *Config) *Controller {
 	ctlr := &Controller{

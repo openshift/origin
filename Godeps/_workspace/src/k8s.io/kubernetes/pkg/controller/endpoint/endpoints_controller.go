@@ -58,6 +58,46 @@ var (
 )
 
 // NewEndpointController returns a new *EndpointController.
+func NewEndpointControllerFromSharedInformer(podInformer framework.SharedInformer, client *clientset.Clientset) *EndpointController {
+	e := &EndpointController{
+		client: client,
+		queue:  workqueue.New(),
+	}
+
+	e.serviceStore.Store, e.serviceController = framework.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return e.client.Core().Services(api.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return e.client.Core().Services(api.NamespaceAll).Watch(options)
+			},
+		},
+		&api.Service{},
+		// TODO: Can we have much longer period here?
+		FullServiceResyncPeriod,
+		framework.ResourceEventHandlerFuncs{
+			AddFunc: e.enqueueService,
+			UpdateFunc: func(old, cur interface{}) {
+				e.enqueueService(cur)
+			},
+			DeleteFunc: e.enqueueService,
+		},
+	)
+
+	podInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    e.addPod,
+		UpdateFunc: e.updatePod,
+		DeleteFunc: e.deletePod,
+	})
+	e.podStore.Store = podInformer.GetStore()
+	e.podController = podInformer.GetController()
+	e.podStoreSynced = podInformer.HasSynced
+
+	return e
+}
+
+// NewEndpointController returns a new *EndpointController.
 func NewEndpointController(client *clientset.Clientset, resyncPeriod controller.ResyncPeriodFunc) *EndpointController {
 	e := &EndpointController{
 		client: client,
@@ -124,7 +164,7 @@ type EndpointController struct {
 	// Since we join two objects, we'll watch both of them with
 	// controllers.
 	serviceController *framework.Controller
-	podController     *framework.Controller
+	podController     framework.ControllerInterface
 	// podStoreSynced returns true if the pod store has been synced at least once.
 	// Added as a member to the struct to allow injection for testing.
 	podStoreSynced func() bool
