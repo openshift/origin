@@ -86,6 +86,8 @@ var defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
 // launch a router, including general parameters, type of router, and
 // type-specific parameters.
 type RouterConfig struct {
+	Action configcmd.BulkAction
+
 	// Name is the router name, set as an argument
 	Name string
 
@@ -247,7 +249,6 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
 	cmd.Flags().IntVar(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Exit with code 1 if the specified router does not exist.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "Use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
@@ -276,7 +277,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	// Deprecate credentials
 	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	cfg.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
@@ -528,28 +530,31 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	_, output, err := kcmdutil.PrinterForCommand(cmd)
-	if err != nil {
-		return fmt.Errorf("unable to configure printer: %v", err)
-	}
+	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.Out()
+	cfg.Action.Bulk.Op = configcmd.Create
 
+	var clusterIP string
+
+	output := cfg.Action.ShouldPrint()
 	generate := output
 	if !generate {
-		_, err = kClient.Services(namespace).Get(name)
+		service, err := kClient.Services(namespace).Get(name)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing router %q: %v", name, err)
 			}
+			if !output && cfg.Action.DryRun {
+				return fmt.Errorf("Router %q service does not exist", name)
+			}
 			generate = true
+		} else {
+			clusterIP = service.Spec.ClusterIP
 		}
 	}
 	if !generate {
 		fmt.Fprintf(out, "Router %q service exists\n", name)
 		return nil
-	}
-
-	if cfg.DryRun && !output {
-		return fmt.Errorf("router %q does not exist (no service)", name)
 	}
 
 	if len(cfg.ServiceAccount) == 0 {
@@ -558,7 +563,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	if err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
 		err = fmt.Errorf("router could not be created; %v", err)
-		if !output {
+		if !cfg.Action.ShouldPrint() {
 			return err
 		}
 		fmt.Fprintf(cmd.Out(), "error: %v\n", err)
@@ -604,7 +609,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
-		if !output {
+		if !cfg.Action.ShouldPrint() {
 			fmt.Fprintf(cmd.Out(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
@@ -735,6 +740,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	for i := range objects {
 		switch t := objects[i].(type) {
 		case *kapi.Service:
+			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {
 					if targetPort.ContainerPort == servicePort.Port && targetPort.HostPort != 0 {
@@ -747,7 +753,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	// TODO: label all created objects with the same label - router=<name>
 	list := &kapi.List{Items: objects}
 
-	if output {
+	if cfg.Action.ShouldPrint() {
 		mapper, _ := f.Object(false)
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
 		if err := fn(list); err != nil {
@@ -756,15 +762,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return defaultOutputErr
 	}
 
-	mapper, typer := f.Factory.Object(false)
-	bulk := configcmd.Bulk{
-		Mapper:            mapper,
-		Typer:             typer,
-		RESTClientFactory: f.Factory.ClientForMapping,
-
-		After: configcmd.NewPrintNameOrErrorAfter(mapper, kcmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
-	}
-	if errs := bulk.Create(list, namespace); len(errs) != 0 {
+	if errs := cfg.Action.WithMessage(fmt.Sprintf("Creating router %s", cfg.Name), "created").Run(list, namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 	return nil

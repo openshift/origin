@@ -142,16 +142,19 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	bulk := configcmd.Bulk{
-		Mapper: restMapper,
-		Typer:  kapi.Scheme,
-		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-			if latest.OriginKind(mapping.GroupVersionKind) {
-				return r.openshiftClient, nil
-			}
-			return r.kubeClient, nil
+		Mapper: &resource.Mapper{
+			RESTMapper:  restMapper,
+			ObjectTyper: kapi.Scheme,
+			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+				if latest.OriginKind(mapping.GroupVersionKind) {
+					return r.openshiftClient, nil
+				}
+				return r.kubeClient, nil
+			}),
 		},
+		Op: configcmd.Create,
 	}
-	if err := utilerrors.NewAggregate(bulk.Create(objectsToCreate, projectName)); err != nil {
+	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, projectName)); err != nil {
 		return nil, kapierror.NewInternalError(err)
 	}
 
