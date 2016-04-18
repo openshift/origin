@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c11331d07bdf2e00a149624366a963075ffa2aca
+%global commit c04db3b4d3592655f0710739e8ba08d8f33c2870
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.15-22-gc11331d -X github.com/openshift/origin/pkg/version.commitFromGit c11331d -X k8s.io/kubernetes/pkg/version.gitCommit c11331d -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.16-31-gc04db3b -X github.com/openshift/origin/pkg/version.commitFromGit c04db3b -X k8s.io/kubernetes/pkg/version.gitCommit c04db3b -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.16
+Version:        3.2.0.17
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,28 @@ fi
 
 
 %changelog
+* Mon Apr 18 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.17
+- Revert "oc status must show monopods" (ccoleman@redhat.com)
+- Refactor build strategy permissions into distinct roles (jliggitt@redhat.com)
+- Cleanup network test runner's use of conditionals (marun@redhat.com)
+- Copy config to dev cluster master's local storage (marun@redhat.com)
+- Cleanup network test runner error handling (marun@redhat.com)
+- Minimize image builds by the network test runner (marun@redhat.com)
+- Improve network test runner error handling (marun@redhat.com)
+- Reduce log verbosity of network test runner (marun@redhat.com)
+- Remove redundant extended networking sanity tests (marun@redhat.com)
+- [RPMS] Switch requires from docker-io to docker (sdodson@redhat.com)
+- extended: Allow to focus on particular tests (miminar@redhat.com)
+- Ensure stable route admission (marun@redhat.com)
+- Added provisioning flag and refactored VolumeConfig struct names
+  (mturansk@redhat.com)
+- UPSTREAM: 23793: Make ConfigMap volume readable as non-root
+  (pmorie@gmail.com)
+- added jUnit XML publishing step to exit trap (skuznets@redhat.com)
+- added support for os::cmd parsing to junitreport (skuznets@redhat.com)
+- refactored nested suites builder (skuznets@redhat.com)
+- configure test-cmd to emit parsable output for jUnit (skuznets@redhat.com)
+
 * Fri Apr 15 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.16
 - UPSTREAM: 24208: Honor starting resourceVersion in watch cache
   (agoldste@redhat.com)
