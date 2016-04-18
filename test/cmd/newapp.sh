@@ -21,7 +21,6 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/newapp"
 # This test validates the new-app command
-
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"php\" runs as the 'root' user which may not be permitted by your cluster administrator"
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'

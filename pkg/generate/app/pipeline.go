@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -24,8 +23,8 @@ import (
 type PipelineBuilder interface {
 	To(string) PipelineBuilder
 
-	NewBuildPipeline(string, *ComponentMatch, *SourceRepository) (*Pipeline, error)
-	NewImagePipeline(string, *ComponentMatch) (*Pipeline, error)
+	NewBuildPipeline(string, *ImageRef, *SourceRepository) (*Pipeline, error)
+	NewImagePipeline(string, *ImageRef) (*Pipeline, error)
 }
 
 // NewPipelineBuilder returns a PipelineBuilder using name as a base name. A
@@ -56,20 +55,7 @@ func (pb *pipelineBuilder) To(name string) PipelineBuilder {
 
 // NewBuildPipeline creates a new pipeline with components that are expected to
 // be built.
-func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *ComponentMatch, sourceRepository *SourceRepository) (*Pipeline, error) {
-	var input *ImageRef
-	if resolvedMatch != nil {
-		inputImage, err := InputImageFromMatch(resolvedMatch)
-		if err != nil {
-			return nil, fmt.Errorf("can't build %q: %v", from, err)
-		}
-		input = inputImage
-		if !input.AsImageStream && !resolvedMatch.Virtual {
-			msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
-			glog.Warningf(msg, resolvedMatch.Value)
-		}
-	}
-
+func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, sourceRepository *SourceRepository) (*Pipeline, error) {
 	strategy, source, err := StrategyAndSourceForRepository(sourceRepository, input)
 	if err != nil {
 		return nil, fmt.Errorf("can't build %q: %v", from, err)
@@ -144,16 +130,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *Componen
 
 // NewImagePipeline creates a new pipeline with components that are not expected
 // to be built.
-func (pb *pipelineBuilder) NewImagePipeline(from string, resolvedMatch *ComponentMatch) (*Pipeline, error) {
-	input, err := InputImageFromMatch(resolvedMatch)
-	if err != nil {
-		return nil, fmt.Errorf("can't include %q: %v", from, err)
-	}
-	if !input.AsImageStream {
-		msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the deployment to succeed."
-		glog.Warningf(msg, resolvedMatch.Value)
-	}
-
+func (pb *pipelineBuilder) NewImagePipeline(from string, input *ImageRef) (*Pipeline, error) {
 	name, err := pb.nameGenerator.Generate(input)
 	if err != nil {
 		return nil, err
@@ -296,12 +273,10 @@ func makeValidServiceName(name string) (string, string) {
 
 type sortablePorts []kapi.ContainerPort
 
-func (s sortablePorts) Len() int           { return len(s) }
-func (s sortablePorts) Less(i, j int) bool { return s[i].ContainerPort < s[j].ContainerPort }
-func (s sortablePorts) Swap(i, j int) {
-	p := s[i]
-	s[i] = s[j]
-	s[j] = p
+func (s sortablePorts) Len() int      { return len(s) }
+func (s sortablePorts) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s sortablePorts) Less(i, j int) bool {
+	return s[i].ContainerPort < s[j].ContainerPort
 }
 
 // portName returns a unique key for the given port and protocol which can be
@@ -313,49 +288,68 @@ func portName(port int, protocol kapi.Protocol) string {
 	return strings.ToLower(fmt.Sprintf("%d-%s", port, protocol))
 }
 
+// GenerateService creates a simple service for the provided elements.
+func GenerateService(meta kapi.ObjectMeta, selector map[string]string) *kapi.Service {
+	name, generateName := makeValidServiceName(meta.Name)
+	svc := &kapi.Service{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:         name,
+			GenerateName: generateName,
+			Labels:       meta.Labels,
+		},
+		Spec: kapi.ServiceSpec{
+			Selector: selector,
+		},
+	}
+	return svc
+}
+
+// AllContainerPorts creates a sorted list of all ports in all provided containers.
+func AllContainerPorts(containers ...kapi.Container) []kapi.ContainerPort {
+	var ports []kapi.ContainerPort
+	for _, container := range containers {
+		ports = append(ports, container.Ports...)
+	}
+	sort.Sort(sortablePorts(ports))
+	return ports
+}
+
+// UniqueContainerToServicePorts creates one service port for each unique container port.
+func UniqueContainerToServicePorts(ports []kapi.ContainerPort) []kapi.ServicePort {
+	var result []kapi.ServicePort
+	svcPorts := map[string]struct{}{}
+	for _, p := range ports {
+		name := portName(p.ContainerPort, p.Protocol)
+		_, exists := svcPorts[name]
+		if exists {
+			continue
+		}
+		svcPorts[name] = struct{}{}
+		result = append(result, kapi.ServicePort{
+			Name:       name,
+			Port:       p.ContainerPort,
+			Protocol:   p.Protocol,
+			TargetPort: intstr.FromInt(p.ContainerPort),
+		})
+	}
+	return result
+}
+
 // AddServices sets up services for the provided objects.
 func AddServices(objects Objects, firstPortOnly bool) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
-			name, generateName := makeValidServiceName(t.Name)
-			svc := &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:         name,
-					GenerateName: generateName,
-					Labels:       t.Labels,
-				},
-				Spec: kapi.ServiceSpec{
-					Selector: t.Spec.Selector,
-				},
-			}
-
-			svcPorts := map[string]struct{}{}
-			for _, container := range t.Spec.Template.Spec.Containers {
-				ports := sortablePorts(container.Ports)
-				sort.Sort(&ports)
-				for _, p := range ports {
-					name := portName(p.ContainerPort, p.Protocol)
-					_, exists := svcPorts[name]
-					if exists {
-						continue
-					}
-					svcPorts[name] = struct{}{}
-					svc.Spec.Ports = append(svc.Spec.Ports, kapi.ServicePort{
-						Name:       name,
-						Port:       p.ContainerPort,
-						Protocol:   p.Protocol,
-						TargetPort: intstr.FromInt(p.ContainerPort),
-					})
-					if firstPortOnly {
-						break
-					}
-				}
-			}
-			if len(svc.Spec.Ports) == 0 {
+			ports := UniqueContainerToServicePorts(AllContainerPorts(t.Spec.Template.Spec.Containers...))
+			if len(ports) == 0 {
 				continue
 			}
+			if firstPortOnly {
+				ports = ports[:1]
+			}
+			svc := GenerateService(t.ObjectMeta, t.Spec.Selector)
+			svc.Spec.Ports = ports
 			svcs = append(svcs, svc)
 		}
 	}

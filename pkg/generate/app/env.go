@@ -2,12 +2,27 @@ package app
 
 import (
 	"sort"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // Environment holds environment variables for new-app
 type Environment map[string]string
+
+// ParseEnvironment converts the provided strings in key=value form into environment
+// entries.
+func ParseEnvironment(vals ...string) Environment {
+	env := make(Environment)
+	for _, s := range vals {
+		if i := strings.Index(s, "="); i == -1 {
+			env[s] = ""
+		} else {
+			env[s[:i]] = env[s[i+1:]]
+		}
+	}
+	return env
+}
 
 // NewEnvironment returns a new set of environment variables based on all
 // the provided environment variables
