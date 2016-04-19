@@ -13,6 +13,7 @@ ORIGIN_ROOT=$(
   cd "${origin_root}"
   pwd
 )
+source ${ORIGIN_ROOT}/hack/common.sh
 source ${ORIGIN_ROOT}/contrib/vagrant/provision-util.sh
 
 # Passed as arguments to provisioning script
