@@ -77,8 +77,8 @@ function cleanup()
         | "${junitreport}" --type oscmd                        \
                            --suites nested                     \
                            --roots github.com/openshift/origin \
-                           --output "${LOG_DIR}/junit.xml"
-      cat "${LOG_DIR}/junit.xml" | "${junitreport}" summarize
+                           --output "${ARTIFACT_DIR}/report.xml"
+      cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
     fi 
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
