@@ -198,14 +198,14 @@ func TestShouldRetry(t *testing.T) {
 	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
 		t.Fatal(r)
 	}
-	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second/2) {
+	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
 		t.Fatal(r)
 	}
 	now = time.Unix(3, 0)
 	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
 		t.Fatal(r)
 	}
-	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second/2) {
+	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
 		t.Fatal(r)
 	}
 	if r.shouldRetry(errcode.ErrorCodeUnauthorized) {

@@ -252,11 +252,15 @@ type retryRepository struct {
 // unexpectedly return a 401 error due to the JWT token created by the hub being created at the same second,
 // but another server being in the previous second.
 func NewRetryRepository(repo distribution.Repository, retries int, interval time.Duration) distribution.Repository {
+	var wait time.Duration
+	if retries > 1 {
+		wait = interval / time.Duration(retries-1)
+	}
 	return &retryRepository{
 		Repository: repo,
 
 		retries: retries,
-		wait:    interval / time.Duration(retries),
+		wait:    wait,
 		limit:   interval,
 	}
 }
