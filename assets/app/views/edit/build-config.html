@@ -189,6 +189,11 @@
                                 }" ng-model="updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile" class="ace-bordered ace-inline"></div>
                             </div>
                           </div>
+                          <div ng-if="sources.none">
+                            <div class="form-group">
+                              <i>No source inputs have been defined for this build configuration.</i>
+                            </div>
+                          </div>
 
                           <div class="form-groups" ng-show="sources.images">
 
