@@ -62,6 +62,7 @@ type Endpoint struct {
 	Port       string
 	TargetName string
 	PortName   string
+	IdHash     string
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig
