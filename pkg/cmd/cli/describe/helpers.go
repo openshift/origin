@@ -136,48 +136,63 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatAnnotations(out, m, "")
 }
 
+// DescribeWebhook holds the URL information about a webhook and for generic
+// webhooks it tells us if we allow env variables.
 type DescribeWebhook struct {
 	URL      string
 	AllowEnv *bool
 }
 
-// webhookDescribe assembles a map with of webhook type as the key and a DescribeWebhook struct  as the value
-func webhookDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, cli client.BuildConfigsNamespacer) map[string]DescribeWebhook {
-	result := map[string]DescribeWebhook{}
+// webhookDescribe returns a map of webhook trigger types and its corresponding
+// information.
+func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, cli client.BuildConfigsNamespacer) map[string][]DescribeWebhook {
+	result := map[string][]DescribeWebhook{}
+
 	for _, trigger := range triggers {
-		whTrigger := ""
+		var webHookTrigger string
 		var allowEnv *bool
+
 		switch trigger.Type {
 		case buildapi.GitHubWebHookBuildTriggerType:
-			whTrigger = trigger.GitHubWebHook.Secret
+			webHookTrigger = trigger.GitHubWebHook.Secret
+
 		case buildapi.GenericWebHookBuildTriggerType:
-			whTrigger = trigger.GenericWebHook.Secret
+			webHookTrigger = trigger.GenericWebHook.Secret
 			allowEnv = &trigger.GenericWebHook.AllowEnv
-		}
-		if len(whTrigger) == 0 {
+
+		default:
 			continue
 		}
-		urlStr := ""
+		webHookDesc := result[string(trigger.Type)]
+
+		if len(webHookTrigger) == 0 {
+			continue
+		}
+
+		var urlStr string
 		url, err := cli.BuildConfigs(namespace).WebHookURL(name, &trigger)
 		if err != nil {
 			urlStr = fmt.Sprintf("<error: %s>", err.Error())
 		} else {
 			urlStr = url.String()
 		}
-		desc := DescribeWebhook{
-			URL:      urlStr,
-			AllowEnv: allowEnv,
-		}
 
-		result[string(trigger.Type)] = desc
+		webHookDesc = append(webHookDesc,
+			DescribeWebhook{
+				URL:      urlStr,
+				AllowEnv: allowEnv,
+			})
+		result[string(trigger.Type)] = webHookDesc
 	}
+
 	return result
 }
 
 var reLongImageID = regexp.MustCompile(`[a-f0-9]{60,}$`)
 
-// shortenImagePullSpec returns a version of the pull spec intended for display, which may
-// result in the image not being usable via cut-and-paste for users.
+// shortenImagePullSpec returns a version of the pull spec intended for
+// display, which may result in the image not being usable via cut-and-paste
+// for users.
 func shortenImagePullSpec(spec string) string {
 	if reLongImageID.MatchString(spec) {
 		return spec[:len(spec)-50] + "..."

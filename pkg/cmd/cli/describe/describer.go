@@ -62,7 +62,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 	return m
 }
 
-// List of all resource types we can describe
+// DescribableResources lists all resource types we can describe
 func DescribableResources() []string {
 	// Include describable resources in kubernetes
 	keys := kctl.DescribableResources()
@@ -363,7 +363,8 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
 }
 
-// DescribeTriggers generates information about the triggers associated with a buildconfig
+// DescribeTriggers generates information about the triggers associated with a
+// buildconfig
 func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
 	describeBuildTriggers(bc.Spec.Triggers, bc.Name, bc.Namespace, out, d)
 }
@@ -398,12 +399,14 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 	desc := strings.Join(labels, ", ")
 	formatString(w, "Triggered by", desc)
 
-	webhooks := webhookDescribe(triggers, name, namespace, d.Interface)
-	for whType, whDesc := range webhooks {
-		t := strings.Title(whType)
-		fmt.Fprintf(w, fmt.Sprintf("%s:\n\tURL:\t%s\n", "Webhook "+t, whDesc.URL))
-		if whType == string(buildapi.GenericWebHookBuildTriggerType) && whDesc.AllowEnv != nil {
-			fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *whDesc.AllowEnv))
+	webHooks := webHooksDescribe(triggers, name, namespace, d.Interface)
+	for webHookType, webHookDesc := range webHooks {
+		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
+		for _, trigger := range webHookDesc {
+			fmt.Fprintf(w, "\tURL:\t%s\n", trigger.URL)
+			if webHookType == string(buildapi.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
+				fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *trigger.AllowEnv))
+			}
 		}
 	}
 }
