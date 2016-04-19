@@ -307,6 +307,20 @@ func TestProjectStatus(t *testing.T) {
 				"You have no services, deployment configs, or build configs.",
 			},
 		},
+		"deploys single pod": {
+			Path: "../../../../test/fixtures/simple-deployment.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"dc/simple-deployment deploys docker.io/openshift/deployment-example:v1",
+				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()
