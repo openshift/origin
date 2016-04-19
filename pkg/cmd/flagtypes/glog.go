@@ -15,4 +15,16 @@ func GLog(flags *pflag.FlagSet) {
 		levelPtr := (*int32)(level)
 		flags.Int32Var(levelPtr, "loglevel", 0, "Set the level of log output (0-5)")
 	}
+	if flag := from.Lookup("vmodule"); flag != nil {
+		value := flag.Value
+		flags.Var(pflagValue{value}, "logspec", "Set per module logging with file|pattern=LEVEL,...")
+	}
+}
+
+type pflagValue struct {
+	flag.Value
+}
+
+func (pflagValue) Type() string {
+	return "string"
 }
