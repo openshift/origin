@@ -42,6 +42,9 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 			g.By("expecting the build is in Failed phase")
 			// note that success and fail functions are intentionally reversed because we want to wait for failure.
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-quota-1", exutil.CheckBuildFailedFn, exutil.CheckBuildSuccessFn)
+			if err != nil {
+				exutil.DumpBuildLogs("docker-build-quota", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build logs to contain the correct cgroups values")
