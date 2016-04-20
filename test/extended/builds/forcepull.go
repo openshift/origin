@@ -24,7 +24,7 @@ const (
 	buildPrefixTC = "ruby-sample-build-tc"
 	buildNameTC   = buildPrefixTC + "-1"
 
-	corruptor = "docker.io/openshift/origin-base"
+	corruptor = "docker.io/openshift/origin-deployer"
 
 	varSubSrc = "SERVICE_REGISTRY_IP"
 
@@ -46,7 +46,32 @@ func doTest(bldPrefix, bldName, debugStr string, same bool, oc *exutil.CLI) {
 
 	// kick off the app/lang build and verify the builder image accordingly
 	exutil.StartBuild(bldPrefix, oc)
-	exutil.WaitForBuild(debugStr, bldName, oc)
+	err := exutil.WaitForBuild(debugStr, bldName, oc)
+	// debug on error (information useful if subsequent image delta/equality check fails)
+	// don't fail test on error (use of corrupted image as the source/builder image will cause failures)
+	if err != nil {
+		bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bldPrefix).Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+		}
+
+		podOutput, err := oc.Run("get").Args("pod", "-o", "json").Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  pod dump: %s\n\n", podOutput)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on pod logs %v\n\n", err)
+		}
+
+		podOutput, err = oc.Run("describe").Args("pods").Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  pod describe: %s\n\n", podOutput)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on pod descr %v\n\n", err)
+		}
+	}
+
 	if same {
 		exutil.VerifyImagesSame(fullImageName, corruptor, debugStr)
 	} else {
@@ -56,7 +81,7 @@ func doTest(bldPrefix, bldName, debugStr string, same bool, oc *exutil.CLI) {
 	// reset corrupted tagging for next test
 	exutil.ResetImage(resetData)
 	// dump tags/hexids for debug
-	_, err := exutil.DumpAndReturnTagging(tags)
+	_, err = exutil.DumpAndReturnTagging(tags)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
@@ -83,6 +108,8 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		g.By("refresh corruptor, prep forcepull builder")
 		exutil.PullImage(corruptor, dockerClient.AuthConfiguration{})
 
+		exutil.DumpImage(corruptor)
+
 		// create the image streams and build configs for a test case specific builders
 		setupPath := exutil.FixturePath("fixtures", "forcepull-setup.json")
 		err := exutil.CreateResource(setupPath, oc)
@@ -90,7 +117,8 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		// kick off the build for the new builder image just for force pull so we can corrupt them without conflicting with
 		// any other tests potentially running in parallel
 		exutil.StartBuild(bldrPrefix, oc)
-		exutil.WaitForBuild("bldr build:  ", bldrPrefix+"-1", oc)
+		err = exutil.WaitForBuild("bldr build:  ", bldrPrefix+"-1", oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		serviceIP, err := oc.Run("get").Args("svc", "docker-registry", "-n", "default", "--config", exutil.KubeConfigPath()).Template("{{.spec.clusterIP}}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -106,6 +134,7 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		fullImageName = authCfg.ServerAddress + "/" + oc.Namespace() + "/" + bldr
 		err = exutil.PullImage(fullImageName, *authCfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		exutil.DumpImage(fullImageName)
 
 		//update the build configs in the json for the app/lang builds to point to the builder images in the internal docker registry
 		// and then create the build config resources
