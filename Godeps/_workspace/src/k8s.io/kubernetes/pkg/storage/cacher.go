@@ -269,7 +269,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion string, 
 
 	c.Lock()
 	defer c.Unlock()
-	watcher := newCacheWatcher(watchRV, initEvents, filterFunction(key, c.keyFunc, filter), forgetWatcher(c, c.watcherIdx))
+	watcher := newCacheWatcher(initEvents, filterFunction(key, c.keyFunc, filter), forgetWatcher(c, c.watcherIdx))
 	c.watchers[c.watcherIdx] = watcher
 	c.watcherIdx++
 	return watcher, nil
@@ -470,7 +470,7 @@ type cacheWatcher struct {
 	forget  func(bool)
 }
 
-func newCacheWatcher(resourceVersion uint64, initEvents []watchCacheEvent, filter FilterFunc, forget func(bool)) *cacheWatcher {
+func newCacheWatcher(initEvents []watchCacheEvent, filter FilterFunc, forget func(bool)) *cacheWatcher {
 	watcher := &cacheWatcher{
 		input:   make(chan watchCacheEvent, 10),
 		result:  make(chan watch.Event, 10),
@@ -478,7 +478,7 @@ func newCacheWatcher(resourceVersion uint64, initEvents []watchCacheEvent, filte
 		stopped: false,
 		forget:  forget,
 	}
-	go watcher.process(initEvents, resourceVersion)
+	go watcher.process(initEvents)
 	return watcher
 }
 
@@ -540,7 +540,7 @@ func (c *cacheWatcher) sendWatchCacheEvent(event watchCacheEvent) {
 	}
 }
 
-func (c *cacheWatcher) process(initEvents []watchCacheEvent, resourceVersion uint64) {
+func (c *cacheWatcher) process(initEvents []watchCacheEvent) {
 	defer utilruntime.HandleCrash()
 
 	for _, event := range initEvents {
@@ -553,9 +553,6 @@ func (c *cacheWatcher) process(initEvents []watchCacheEvent, resourceVersion uin
 		if !ok {
 			return
 		}
-		// only send events newer than resourceVersion
-		if event.ResourceVersion > resourceVersion {
-			c.sendWatchCacheEvent(event)
-		}
+		c.sendWatchCacheEvent(event)
 	}
 }

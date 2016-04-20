@@ -42,10 +42,9 @@ const (
 // the previous value of the object to enable proper filtering in the
 // upper layers.
 type watchCacheEvent struct {
-	Type            watch.EventType
-	Object          runtime.Object
-	PrevObject      runtime.Object
-	ResourceVersion uint64
+	Type       watch.EventType
+	Object     runtime.Object
+	PrevObject runtime.Object
 }
 
 // watchCacheElement is a single "watch event" stored in a cache.
@@ -180,7 +179,7 @@ func (w *watchCache) processEvent(event watch.Event, resourceVersion uint64, upd
 	if exists {
 		prevObject = previous.(runtime.Object)
 	}
-	watchCacheEvent := watchCacheEvent{event.Type, event.Object, prevObject, resourceVersion}
+	watchCacheEvent := watchCacheEvent{event.Type, event.Object, prevObject}
 	if w.onEvent != nil {
 		w.onEvent(watchCacheEvent)
 	}
