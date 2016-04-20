@@ -36,6 +36,15 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			g.By("starting the rootable-ruby build with --wait flag")
 			err = oc.Run("start-build").Args("rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture),
 				"--wait").Execute()
+			// debug for failures on jenkins
+			if err != nil {
+				bldOuput, derr := oc.Run("logs").Args("-f", "bc/rootable-ruby").Output()
+				if derr == nil {
+					fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
+				} else {
+					fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+				}
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a build that tries to gain root access via su")
@@ -44,6 +53,15 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 
 			g.By("start the root-access-build with the --wait flag")
 			err = oc.Run("start-build").Args("root-access-build", "--wait").Execute()
+			// debug for failures on jenkins
+			if err == nil {
+				bldOuput, derr := oc.Run("logs").Args("-f", "bc/root-access-build").Output()
+				if derr == nil {
+					fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
+				} else {
+					fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+				}
+			}
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")
