@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
@@ -60,9 +61,8 @@ func (strategy) AllowUnconditionalUpdate() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	build := obj.(*api.Build)
-	if len(build.Status.Phase) == 0 {
-		build.Status.Phase = api.BuildPhaseNew
-	}
+	build.Status = api.BuildStatus{}
+	build.Status.Phase = api.BuildPhaseNew
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
@@ -87,6 +87,23 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 // CheckGracefulDelete allows a build to be gracefully deleted.
 func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
 	return false
+}
+
+// Export prepares the object for exporting.
+func (s strategy) Export(obj runtime.Object, exact bool) error {
+	s.PrepareForCreate(obj)
+	build, ok := obj.(*api.Build)
+	if !ok {
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	oapi.ExportObjectMeta(&build.ObjectMeta, exact)
+	if exact {
+		return nil
+	}
+	if build.Status.Config != nil {
+		build.Status.Config = &kapi.ObjectReference{Name: build.Status.Config.Name}
+	}
+	return nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

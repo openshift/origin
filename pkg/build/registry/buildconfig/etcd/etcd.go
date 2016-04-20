@@ -41,6 +41,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		CreateStrategy:      buildconfig.Strategy,
 		UpdateStrategy:      buildconfig.Strategy,
 		DeleteStrategy:      buildconfig.Strategy,
+		ExportStrategy:      buildconfig.Strategy,
 		ReturnDeletedObject: false,
 	}
 

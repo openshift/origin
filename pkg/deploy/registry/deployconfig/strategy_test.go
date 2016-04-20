@@ -138,3 +138,23 @@ func expectedAfterByNewClient() *deployapi.DeploymentConfig {
 	dc.Generation++
 	return dc
 }
+
+func TestExport(t *testing.T) {
+	exported := deploytest.OkDeploymentConfig(1)
+	expected := &deployapi.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:       "config",
+			Generation: 1,
+		},
+		Spec:   deploytest.OkDeploymentConfigSpec(),
+		Status: deploytest.OkDeploymentConfigStatus(0),
+	}
+
+	if err := Strategy.Export(exported, false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !reflect.DeepEqual(exported, expected) {
+		t.Fatalf("expected:\n%#v\n\ngot:\n%#v", expected, exported)
+	}
+}

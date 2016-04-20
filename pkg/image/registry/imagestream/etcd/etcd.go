@@ -76,6 +76,13 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultR
 	internalStore.CreateStrategy = internalStrategy
 	internalStore.UpdateStrategy = internalStrategy
 
+	store.CreateStrategy = strategy
+	store.UpdateStrategy = strategy
+	store.ExportStrategy = strategy
+	store.Decorator = strategy.Decorate
+
+	rest.Etcd = &store
+
 	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}, nil
 }
 
