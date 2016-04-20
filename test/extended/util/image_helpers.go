@@ -88,10 +88,13 @@ func VerifyImagesDifferent(comp1, comp2, strategy string) {
 }
 
 //WaitForBuild is a wrapper for WaitForABuild in this package; adds some ginkgo based debug
-func WaitForBuild(context, buildName string, oc *CLI) error {
+func WaitForBuild(context, buildConfig, buildName string, oc *CLI) error {
 	fmt.Fprintf(g.GinkgoWriter, "%s:   waiting for %s", context, buildName)
 	err := WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFn, CheckBuildFailedFn)
 	fmt.Fprintf(g.GinkgoWriter, "%s   done waiting for %s", context, buildName)
+	if err != nil {
+		DumpBuildLogs(buildConfig, oc)
+	}
 	return err
 }
 

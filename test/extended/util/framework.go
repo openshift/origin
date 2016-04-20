@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -37,6 +38,37 @@ import (
 var TestContext e2e.TestContextType
 
 const pvPrefix = "pv-"
+
+// DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
+func DumpBuildLogs(bc string, oc *CLI) {
+	bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bc).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+	}
+
+	ExamineDiskUsage()
+}
+
+// ExamineDiskUsage will dump some df/du output; leveraging this as part of diagnosing
+// the registry's disk filling up during external tests on jenkins
+func ExamineDiskUsage() {
+	out, err := exec.Command("/bin/df", "-k").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n df -k output: %s\n\n", string(out))
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+	}
+	if _, err := os.Stat("/registry"); err == nil {
+		out, err = exec.Command("/bin/du", "-a", "/registry").Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n du -a /registry output: %s\n\n", string(out))
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+		}
+	}
+}
 
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.

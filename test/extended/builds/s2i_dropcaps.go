@@ -38,12 +38,7 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 				"--wait").Execute()
 			// debug for failures on jenkins
 			if err != nil {
-				bldOuput, derr := oc.Run("logs").Args("-f", "bc/rootable-ruby").Output()
-				if derr == nil {
-					fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
-				} else {
-					fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
-				}
+				exutil.DumpBuildLogs("rootable-ruby", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -55,12 +50,7 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			err = oc.Run("start-build").Args("root-access-build", "--wait").Execute()
 			// debug for failures on jenkins
 			if err == nil {
-				bldOuput, derr := oc.Run("logs").Args("-f", "bc/root-access-build").Output()
-				if derr == nil {
-					fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
-				} else {
-					fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
-				}
+				exutil.DumpBuildLogs("root-access-build", oc)
 			}
 			o.Expect(err).To(o.HaveOccurred())
 

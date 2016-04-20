@@ -50,6 +50,9 @@ var _ = g.Describe("[builds][Slow] source-to-image build with environment file i
 
 			g.By("expecting the build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("test", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")

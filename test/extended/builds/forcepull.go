@@ -46,31 +46,7 @@ func doTest(bldPrefix, bldName, debugStr string, same bool, oc *exutil.CLI) {
 
 	// kick off the app/lang build and verify the builder image accordingly
 	exutil.StartBuild(bldPrefix, oc)
-	err := exutil.WaitForBuild(debugStr, bldName, oc)
-	// debug on error (information useful if subsequent image delta/equality check fails)
-	// don't fail test on error (use of corrupted image as the source/builder image will cause failures)
-	if err != nil {
-		bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bldPrefix).Output()
-		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
-		}
-
-		podOutput, err := oc.Run("get").Args("pod", "-o", "json").Output()
-		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  pod dump: %s\n\n", podOutput)
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on pod logs %v\n\n", err)
-		}
-
-		podOutput, err = oc.Run("describe").Args("pods").Output()
-		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  pod describe: %s\n\n", podOutput)
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on pod descr %v\n\n", err)
-		}
-	}
+	err := exutil.WaitForBuild(debugStr, bldPrefix, bldName, oc)
 
 	if same {
 		exutil.VerifyImagesSame(fullImageName, corruptor, debugStr)
@@ -117,7 +93,7 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		// kick off the build for the new builder image just for force pull so we can corrupt them without conflicting with
 		// any other tests potentially running in parallel
 		exutil.StartBuild(bldrPrefix, oc)
-		err = exutil.WaitForBuild("bldr build:  ", bldrPrefix+"-1", oc)
+		err = exutil.WaitForBuild("bldr build:  ", bldrPrefix, bldrPrefix+"-1", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		serviceIP, err := oc.Run("get").Args("svc", "docker-registry", "-n", "default", "--config", exutil.KubeConfigPath()).Template("{{.spec.clusterIP}}").Output()

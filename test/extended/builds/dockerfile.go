@@ -47,6 +47,11 @@ USER 1001
 			buildName := "origin-base-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			//debug for failures on jenkins
+			if err != nil {
+				exutil.DumpBuildLogs("origin-base", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
@@ -72,6 +77,10 @@ USER 1001
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			//debug for failures on jenkins
+			if err != nil {
+				exutil.DumpBuildLogs("centos", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the built Docker image reference from ImageStream")
