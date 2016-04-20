@@ -21,6 +21,8 @@ angular.module("openshiftConsole")
         displayName: "@",
         // Set to true to disable the delete button.
         disableDelete: "=?",
+        // Force the user to enter the name before we'll delete the resource (e.g. for projects).
+        typeNameToConfirm: "=?",
         // Optional link label. Defaults to "Delete".
         label: "@?",
         // Only show a delete icon with no text.
