@@ -4,16 +4,72 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
+	gocontext "golang.org/x/net/context"
+
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 
+	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
 )
+
+type mockRetriever struct {
+	repo     distribution.Repository
+	insecure bool
+	err      error
+}
+
+func (r *mockRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+	r.insecure = insecure
+	return r.repo, r.err
+}
+
+type mockRepository struct {
+	repoErr, getErr, getByTagErr, tagsErr, err error
+
+	manifest *schema1.SignedManifest
+	tags     []string
+}
+
+func (r *mockRepository) Name() string { return "test" }
+
+func (r *mockRepository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
+	return r, r.repoErr
+}
+func (r *mockRepository) Blobs(ctx context.Context) distribution.BlobStore { return nil }
+func (r *mockRepository) Signatures() distribution.SignatureService        { return nil }
+func (r *mockRepository) Exists(dgst digest.Digest) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+func (r *mockRepository) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+	return r.manifest, r.getErr
+}
+func (r *mockRepository) Enumerate() ([]digest.Digest, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (r *mockRepository) Delete(dgst digest.Digest) error { return fmt.Errorf("not implemented") }
+func (r *mockRepository) Put(manifest *schema1.SignedManifest) error {
+	return fmt.Errorf("not implemented")
+}
+func (r *mockRepository) Tags() ([]string, error) { return r.tags, r.tagsErr }
+func (r *mockRepository) ExistsByTag(tag string) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+func (r *mockRepository) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
+	return r.manifest, r.getByTagErr
+}
 
 func TestImportNothing(t *testing.T) {
 	ctx := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
@@ -234,3 +290,83 @@ const etcdManifest = `
       }
    ]
 }`
+
+func TestSchema1ToImage(t *testing.T) {
+	m := &schema1.SignedManifest{}
+	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
+		t.Fatal(err)
+	}
+	image, err := schema1ToImage(m, digest.Digest("sha256:test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if image.DockerImageMetadata.ID != "sha256:test" {
+		t.Errorf("unexpected image: %#v", image.DockerImageMetadata.ID)
+	}
+}
+
+func TestDockerV1Fallback(t *testing.T) {
+	var uri *url.URL
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Docker-Endpoints", uri.Host)
+
+		// get all tags
+		if strings.HasSuffix(r.URL.Path, "/tags") {
+			fmt.Fprintln(w, `{"tag1":"image1", "test":"image2"}`)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/images") {
+			fmt.Fprintln(w, `{"tag1":"image1", "test":"image2"}`)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/json") {
+			fmt.Fprintln(w, `{"ID":"image2"}`)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		t.Logf("tried to access %s", r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	client := dockerregistry.NewClient(10*time.Second, false)
+	ctx := gocontext.WithValue(gocontext.Background(), ContextKeyV1RegistryClient, client)
+
+	uri, _ = url.Parse(server.URL)
+	isi := &api.ImageStreamImport{
+		Spec: api.ImageStreamImportSpec{
+			Repository: &api.RepositoryImportSpec{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: uri.Host + "/test:test"},
+				ImportPolicy: api.TagImportPolicy{Insecure: true},
+			},
+		},
+	}
+
+	retriever := &mockRetriever{err: fmt.Errorf("does not support v2 API")}
+	im := NewImageStreamImporter(retriever, 5, nil)
+	if err := im.Import(ctx, isi); err != nil {
+		t.Fatal(err)
+	}
+	if images := isi.Status.Repository.Images; len(images) != 2 || images[0].Tag != "tag1" || images[1].Tag != "test" {
+		t.Errorf("unexpected images: %#v", images)
+	}
+}
+
+func TestPing(t *testing.T) {
+	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials).(*repositoryRetriever)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	uri, _ := url.Parse(server.URL)
+
+	_, err := retriever.ping(*uri, true, retriever.context.InsecureTransport)
+	if !strings.Contains(err.Error(), "does not support v2 API") {
+		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	}
+
+	uri.Scheme = "https"
+	_, err = retriever.ping(*uri, true, retriever.context.InsecureTransport)
+	if !strings.Contains(err.Error(), "does not support v2 API") {
+		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	}
+}
