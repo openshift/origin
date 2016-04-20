@@ -811,7 +811,20 @@ angular.module('openshiftConsole')
     };
   })
   .filter('humanizeKind', function (startCaseFilter) {
-    return startCaseFilter;
+    // Changes "ReplicationController" to "replication controller".
+    // If useTitleCase, returns "Replication Controller".
+    return function(kind, useTitleCase) {
+      if (!kind) {
+        return kind;
+      }
+
+      var humanized = _.startCase(kind);
+      if (useTitleCase) {
+        return humanized;
+      }
+
+      return humanized.toLowerCase();
+    };
   })
   .filter('humanizeQuotaResource', function() {
     return function(resourceType) {

@@ -1,5 +1,5 @@
 <dl class="dl-horizontal left" style="margin-bottom: 10px;">
-  <dt ng-if-start="showScaleTarget && hpa.spec.scaleRef.kind && hpa.spec.scaleRef.name">{{hpa.spec.scaleRef.kind | humanizeKind}}:</dt>
+  <dt ng-if-start="showScaleTarget && hpa.spec.scaleRef.kind && hpa.spec.scaleRef.name">{{hpa.spec.scaleRef.kind | humanizeKind : true}}:</dt>
   <dd ng-if-end>
     <a ng-href="{{hpa.spec.scaleRef.name | navigateResourceURL : hpa.spec.scaleRef.kind : hpa.metadata.namespace}}">{{hpa.spec.scaleRef.name}}</a>
   </dd>

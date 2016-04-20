@@ -132,7 +132,7 @@ angular.module("openshiftConsole")
                 name: resourceName,
                 data: {
                   type: "success",
-                  message: formattedResource + " was marked for deletion."
+                  message: _.capitalize(formattedResource) + " was marked for deletion."
                 }
               });
 
@@ -157,7 +157,7 @@ angular.module("openshiftConsole")
               // called if failure to delete
               scope.alerts[resourceName] = {
                 type: "error",
-                message: formattedResource + "\'" + " could not be deleted.",
+                message: _.capitalize(formattedResource) + "\'" + " could not be deleted.",
                 details: $filter('getErrorDetails')(err)
               };
               Logger.error(formattedResource + " could not be deleted.", err);
