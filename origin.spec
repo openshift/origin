@@ -260,6 +260,10 @@ do
     ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
 
+# rsyslog example config
+install -d -m 755 %{buildroot}%{_sysconfdir}/rsyslog.d/
+install -m 0644 contrib/rsyslog/openshift.conf.example %{buildroot}%{_sysconfdir}/%{name}.conf.example
+
 ln -s oc %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
@@ -325,6 +329,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
+%{_sysconfdir}/rsyslog.d/%{name}.conf.example
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
