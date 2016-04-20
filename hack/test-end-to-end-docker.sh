@@ -88,7 +88,7 @@ sudo docker run -d --name="origin" \
 	--privileged --net=host --pid=host \
 	-v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
 	-v "${VOLUME_DIR}:${VOLUME_DIR}" -v "${VOLUME_DIR}/etcd":/var/lib/origin/openshift.local.etcd:rw \
-	"openshift/origin:${TAG}" start --loglevel=4 --volume-dir=${VOLUME_DIR} --images="${USE_IMAGES}"
+	"openshift/origin:${TAG}" start --dns="tcp://${API_HOST}":53 --loglevel=4 --volume-dir=${VOLUME_DIR} --images="${USE_IMAGES}"
 
 
 # the CA is in the container, log in as a different cluster admin to run the test
