@@ -140,12 +140,15 @@ readonly EXCLUDED_TESTS=(
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
 
 	# deployments are not yet enabled
-  "Deployment deployment" # Not enabled yet
-  "Deployment paused deployment" # Not enabled yet
-  "paused deployment should be ignored by the controller" # Not enabled yet
-  "deployment should create new pods" # Not enabled yet
-	"should create an rc or deployment from an image" # not enabled yet
-	"should create a deployment from an image" # not enabled yet
+  "Deployment deployment"
+  "Deployment paused deployment"
+  "paused deployment should be ignored by the controller"
+  "deployment should create new pods"
+	"should create an rc or deployment from an image"
+	"should create a deployment from an image"
+  "RollingUpdateDeployment should scale up and down in the right order"
+  "RollingUpdateDeployment should delete old pods and create new ones"
+  "RecreateDeployment should delete old pods and create new ones"
 
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
@@ -158,6 +161,8 @@ readonly EXCLUDED_TESTS=(
   "Ceph RBD"      # Works if ceph-common Binary installed (but we can't gaurantee this on all clusters).
   "GlusterFS" # May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
   "should support r/w" # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
+
+  "should allow starting 95 pods per node" # needs cherry-pick of https://github.com/kubernetes/kubernetes/pull/23945
 
   # Need fixing
   "Horizontal pod autoscaling" # needs heapster
@@ -191,6 +196,7 @@ readonly SERIAL_TESTS=(
   "\[Serial\]"
   "\[Feature:ManualPerformance\]" # requires isolation
   "Service endpoints latency" # requires low latency
+  "\[Feature:HighDensityPerformance\]" # requires no other namespaces
 )
 
 readonly CONFORMANCE_TESTS=(

@@ -130,12 +130,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 		namespace          *kapi.Namespace
 	}{
 		{
-			name:               "this thing even runs",
+			name:               "ignore pods that have no memory limit specified",
 			config:             testConfig(100, 50, 50),
-			object:             testPod("0", "0", "0", "0"),
+			object:             testBestEffortPod(),
 			expectedMemRequest: resource.MustParse("0"),
 			expectedCpuLimit:   resource.MustParse("0"),
 			expectedCpuRequest: resource.MustParse("0"),
+			namespace:          fakeNamespace(true),
+		},
+		{
+			name:               "test floor for memory and cpu",
+			config:             testConfig(100, 50, 50),
+			object:             testPod("1Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("1Mi"),
+			expectedCpuLimit:   resource.MustParse("1m"),
+			expectedCpuRequest: resource.MustParse("1m"),
 			namespace:          fakeNamespace(true),
 		},
 		{
@@ -184,12 +193,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			namespace:          fakeNamespace(true),
 		},
 		{
-			name:               "little values don't get lost",
+			name:               "little values mess things up",
 			config:             testConfig(500, 10, 10),
 			object:             testPod("1.024Mi", "0", "0", "0"),
-			expectedMemRequest: resource.MustParse(".0001Gi"),
+			expectedMemRequest: resource.MustParse("1Mi"),
 			expectedCpuLimit:   resource.MustParse("5m"),
-			expectedCpuRequest: resource.MustParse(".5m"),
+			expectedCpuRequest: resource.MustParse("1m"),
+			namespace:          fakeNamespace(true),
+		},
+		{
+			name:               "test fractional memory requests round up",
+			config:             testConfig(500, 10, 60),
+			object:             testPod("512Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("307Mi"),
+			expectedCpuLimit:   resource.MustParse("2.5"),
+			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          fakeNamespace(true),
 		},
 	}
@@ -228,6 +246,18 @@ func TestLimitRequestAdmission(t *testing.T) {
 		if actual := resources.Limits[kapi.ResourceCPU]; test.expectedCpuLimit.Cmp(actual) != 0 {
 			t.Errorf("%s: cpu limits do not match; %s should be %s", test.name, actual, test.expectedCpuLimit)
 		}
+	}
+}
+
+func testBestEffortPod() *kapi.Pod {
+	return &kapi.Pod{
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Resources: kapi.ResourceRequirements{},
+				},
+			},
+		},
 	}
 }
 

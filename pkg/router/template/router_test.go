@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"crypto/md5"
 	"fmt"
 	"testing"
 
@@ -47,9 +48,10 @@ func TestAddEndpoints(t *testing.T) {
 	}
 
 	endpoint := Endpoint{
-		ID:   "ep1",
-		IP:   "ip",
-		Port: "port",
+		ID:     "ep1",
+		IP:     "ip",
+		Port:   "port",
+		IdHash: fmt.Sprintf("%x", md5.Sum([]byte("ep1ipport"))),
 	}
 
 	router.AddEndpoints(suKey, []Endpoint{endpoint})
@@ -63,7 +65,7 @@ func TestAddEndpoints(t *testing.T) {
 			t.Errorf("Expected endpoint table to contain 1 entry")
 		} else {
 			actualEp := su.EndpointTable[0]
-			if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
+			if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port || endpoint.IdHash != actualEp.IdHash {
 				t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
 			}
 		}

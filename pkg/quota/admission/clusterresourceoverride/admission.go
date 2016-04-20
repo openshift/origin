@@ -26,7 +26,10 @@ const (
 )
 
 var (
-	zeroDec = inf.NewDec(0, 0)
+	zeroDec  = inf.NewDec(0, 0)
+	miDec    = inf.NewDec(1024*1024, 0)
+	cpuFloor = resource.MustParse("1m")
+	memFloor = resource.MustParse("1Mi")
 )
 
 func init() {
@@ -153,24 +156,37 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 		resources := container.Resources
 		memLimit, memFound := resources.Limits[kapi.ResourceMemory]
 		if memFound && a.config.memoryRequestToLimitRatio.Cmp(zeroDec) != 0 {
-			resources.Requests[kapi.ResourceMemory] = resource.Quantity{
-				Amount: multiply(memLimit.Amount, a.config.memoryRequestToLimitRatio),
-				Format: resource.BinarySI,
+			// memory is measured in whole bytes.
+			// the plugin rounds down to the nearest MiB rather than bytes to improve ease of use for end-users.
+			amount := multiply(memLimit.Amount, a.config.memoryRequestToLimitRatio)
+			roundDownToNearestMi := multiply(divide(amount, miDec, 0, inf.RoundDown), miDec)
+			value := resource.Quantity{Amount: roundDownToNearestMi, Format: resource.BinarySI}
+			if memFloor.Cmp(value) > 0 {
+				value = *(memFloor.Copy())
 			}
+			resources.Requests[kapi.ResourceMemory] = value
 		}
 		if memFound && a.config.limitCPUToMemoryRatio.Cmp(zeroDec) != 0 {
-			resources.Limits[kapi.ResourceCPU] = resource.Quantity{
-				// float math is necessary here as there is no way to create an inf.Dec to represent cpuBaseScaleFactor < 0.001
-				Amount: multiply(inf.NewDec(int64(float64(memLimit.Value())*cpuBaseScaleFactor), 3), a.config.limitCPUToMemoryRatio),
-				Format: resource.DecimalSI,
+			// float math is necessary here as there is no way to create an inf.Dec to represent cpuBaseScaleFactor < 0.001
+			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
+			amount := multiply(inf.NewDec(int64(float64(memLimit.Value())*cpuBaseScaleFactor), 3), a.config.limitCPUToMemoryRatio)
+			amount.Round(amount, 3, inf.RoundDown)
+			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
+			if cpuFloor.Cmp(value) > 0 {
+				value = *(cpuFloor.Copy())
 			}
+			resources.Limits[kapi.ResourceCPU] = value
 		}
 		cpuLimit, cpuFound := resources.Limits[kapi.ResourceCPU]
 		if cpuFound && a.config.cpuRequestToLimitRatio.Cmp(zeroDec) != 0 {
-			resources.Requests[kapi.ResourceCPU] = resource.Quantity{
-				Amount: multiply(cpuLimit.Amount, a.config.cpuRequestToLimitRatio),
-				Format: resource.DecimalSI,
+			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
+			amount := multiply(cpuLimit.Amount, a.config.cpuRequestToLimitRatio)
+			amount.Round(amount, 3, inf.RoundDown)
+			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
+			if cpuFloor.Cmp(value) > 0 {
+				value = *(cpuFloor.Copy())
 			}
+			resources.Requests[kapi.ResourceCPU] = value
 		}
 	}
 	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
@@ -179,4 +195,8 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 func multiply(x *inf.Dec, y *inf.Dec) *inf.Dec {
 	return inf.NewDec(0, 0).Mul(x, y)
+}
+
+func divide(x *inf.Dec, y *inf.Dec, s inf.Scale, r inf.Rounder) *inf.Dec {
+	return inf.NewDec(0, 0).QuoRound(x, y, s, r)
 }

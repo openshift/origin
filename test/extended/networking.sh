@@ -264,15 +264,22 @@ else
   ENABLE_SELINUX=0
   function cleanup-dind {
     local exit_code=$?
+    if [[ "${DIND_CLEANUP_REQUIRED}" = "1" ]]; then
+      os::log::info "Shutting down docker-in-docker cluster"
+      ${CLUSTER_CMD} stop || true
+    fi
+    enable-selinux || true
+    if [[ "${TEST_FAILURES}" = "0" ]]; then
+      os::log::info "No test failures were detected"
+    else
+      os::log::error "${TEST_FAILURES} plugin(s) failed one or more tests"
+    fi
     # Return non-zero for either command or test failures
     if [[ "${exit_code}" = "0" ]]; then
       exit_code="${TEST_FAILURES}"
+    else
+      os::log::error "Exiting with code ${exit_code}"
     fi
-    if [[ "${DIND_CLEANUP_REQUIRED}" = "1" ]]; then
-      os::log::info "Shutting down docker-in-docker cluster"
-      ${CLUSTER_CMD} stop
-    fi
-    enable-selinux
     exit $exit_code
   }
   trap "exit" INT TERM

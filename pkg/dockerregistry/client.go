@@ -535,6 +535,8 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 			delete(c.cached, repo.name)
 			// docker will not return a NotFound on any repository URL - for backwards compatibilty, return NotFound on the
 			// repo
+			body, _ := ioutil.ReadAll(resp.Body)
+			glog.V(4).Infof("passed valid auth token, but unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 			return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 		}
 		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
@@ -544,6 +546,8 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		repo.token = token
 		return repo.getTaggedImage(c, tag, userTag)
 	case code == http.StatusNotFound:
+		body, _ := ioutil.ReadAll(resp.Body)
+		glog.V(4).Infof("unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 		return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
@@ -638,6 +642,8 @@ func (repo *v1repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		if image, ok := allTags[tag]; ok {
 			return repo.getImage(c, image, "")
 		}
+		body, _ := ioutil.ReadAll(resp.Body)
+		glog.V(4).Infof("unable to find v1 tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 		return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry

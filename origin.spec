@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c04db3b4d3592655f0710739e8ba08d8f33c2870
+%global commit 1837ea02fc1712349335101de2e678e077a35132
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.16-31-gc04db3b -X github.com/openshift/origin/pkg/version.commitFromGit c04db3b -X k8s.io/kubernetes/pkg/version.gitCommit c04db3b -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.17-30-g1837ea0 -X github.com/openshift/origin/pkg/version.commitFromGit 1837ea0 -X k8s.io/kubernetes/pkg/version.gitCommit 1837ea0 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.17
+Version:        3.2.0.18
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -481,6 +481,26 @@ fi
 
 
 %changelog
+* Wed Apr 20 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.18
+- Revert "Retry import to the docker hub on 401" (ccoleman@redhat.com)
+- debug for failures on jenkins (gmontero@redhat.com)
+- Change the context being used when Stat-ing remote registry
+  (maszulik@redhat.com)
+- Update 1 - run to the entire interval (ccoleman@redhat.com)
+- Retry 401 unauthorized responses from registries within a window
+  (ccoleman@redhat.com)
+- Exclude deployment tests and set a perf test to serial (ccoleman@redhat.com)
+- Add client debugging for legacy dockerregistry code (ccoleman@redhat.com)
+- moved jUnit report for test-cmd to be consistent (skuznets@redhat.com)
+- remove trailing = from set trigger example (bparees@redhat.com)
+- haproxy obfuscated internal IP in routing cookie (pcameron@redhat.com)
+- Example CLI command (ccoleman@redhat.com)
+- Add summary status message to network test runner (marun@redhat.com)
+- dind: Clean up check for ready nodes (marun@redhat.com)
+- Fix precision of cpu to millicore and memory to bytes (decarr@redhat.com)
+- UPSTREAM: 23435: Fixed mounting with containerized kubelet
+  (jsafrane@redhat.com)
+
 * Mon Apr 18 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.17
 - Revert "oc status must show monopods" (ccoleman@redhat.com)
 - Refactor build strategy permissions into distinct roles (jliggitt@redhat.com)

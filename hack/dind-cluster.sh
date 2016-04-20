@@ -324,12 +324,26 @@ os::provision::install-cmds ${DEPLOYED_ROOT}"
 }
 
 function nodes-are-ready() {
-  # Skip the SDN node since nothing is intended to be scheduled on it.
-  local node_count=$(${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
-KUBECONFIG=${DEPLOYED_CONFIG_ROOT}/openshift.local.config/master/admin.kubeconfig \
-oc get nodes | grep -v ${SDN_NODE_NAME} | grep -v NotReady | grep Ready | wc -l")
-  node_count=$(echo "${node_count}" | tr -d '\r')
-  test "${node_count}" -ge "${NODE_COUNT}"
+  local oc="$(os::build::find-binary oc)"
+  local kc="$(os::provision::get-admin-config ${CONFIG_ROOT})"
+  read -d '' template <<'EOF'
+{{range $item := .items}}
+  {{if not .spec.unschedulable}}
+    {{range .status.conditions}}
+      {{if eq .type "Ready"}}
+        {{if eq .status "True"}}
+          {{printf "%s\\n" $item.metadata.name}}
+        {{end}}
+      {{end}}
+    {{end}}
+  {{end}}
+{{end}}
+EOF
+  # Remove formatting before use
+  template="$(echo "${template}" | tr -d '\n' | sed -e 's/} \+/}/g')"
+  local count="$("${oc}" --config="${kc}" get nodes \
+                         --template "${template}" | wc -l)"
+  test "${count}" -ge "${NODE_COUNT}"
 }
 
 function wait-for-cluster() {
