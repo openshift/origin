@@ -90,7 +90,7 @@ func (r *pullthroughBlobStore) proxyStat(ctx context.Context, retriever importer
 		return distribution.Descriptor{}, err
 	}
 	pullthroughBlobStore := repo.Blobs(ctx)
-	desc, err := pullthroughBlobStore.Stat(r.repo.ctx, dgst)
+	desc, err := pullthroughBlobStore.Stat(ctx, dgst)
 	if err != nil {
 		if err != distribution.ErrBlobUnknown {
 			context.GetLogger(r.repo.ctx).Errorf("Error getting pullthroughBlobStore for image %q: %v", ref.Exact(), err)
