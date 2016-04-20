@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"crypto/md5"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -230,6 +231,14 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 				} else {
 					ep.TargetName = ep.IP
 				}
+
+				// IdHash contains an obfuscated internal IP address
+				// that is the value passed in the cookie. The IP address
+				// is made more difficult to extract by including other
+				// internal information in the hash.
+				s := ep.ID + ep.TargetName + ep.PortName
+				ep.IdHash = fmt.Sprintf("%x", md5.Sum([]byte(s)))
+
 				out = append(out, ep)
 			}
 		}
