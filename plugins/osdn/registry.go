@@ -94,7 +94,7 @@ func (registry *Registry) DeleteSubnet(nodeName string) error {
 	return registry.oClient.HostSubnets().Delete(nodeName)
 }
 
-func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) error {
+func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*osapi.HostSubnet, error) {
 	hs := &osapi.HostSubnet{
 		TypeMeta:   unversioned.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
@@ -102,8 +102,7 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) erro
 		HostIP:     nodeIP,
 		Subnet:     subnetCIDR,
 	}
-	_, err := registry.oClient.HostSubnets().Create(hs)
-	return err
+	return registry.oClient.HostSubnets().Create(hs)
 }
 
 func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {

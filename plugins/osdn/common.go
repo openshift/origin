@@ -51,6 +51,8 @@ type OsdnController struct {
 // Called by plug factory functions to initialize the generic plugin instance
 func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string) error {
 
+	log.Infof("Starting with configured hostname '%s' (IP '%s')", hostname, selfIP)
+
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -279,4 +281,8 @@ func GetPodContainerID(pod *kapi.Pod) string {
 		}
 	}
 	return ""
+}
+
+func HostSubnetToString(subnet *osapi.HostSubnet) string {
+	return fmt.Sprintf("%s [host: '%s'] [ip: '%s'] [subnet: '%s']", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }
