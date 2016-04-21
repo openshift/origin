@@ -37,6 +37,9 @@ func TestHandle_createPodOk(t *testing.T) {
 			},
 		},
 		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return nil, kerrors.NewNotFound(kapi.Resource("pods"), name)
+			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				createdPod = pod
 				return pod, nil
@@ -138,6 +141,9 @@ func TestHandle_makeContainerFail(t *testing.T) {
 			},
 		},
 		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return nil, kerrors.NewNotFound(kapi.Resource("pods"), name)
+			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				t.Fatalf("unexpected call to create pod")
 				return nil, nil
@@ -179,6 +185,9 @@ func TestHandle_createPodFail(t *testing.T) {
 			},
 		},
 		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return nil, kerrors.NewNotFound(kapi.Resource("pods"), name)
+			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, fmt.Errorf("Failed to create pod %s", pod.Name)
 			},
