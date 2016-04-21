@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -48,25 +49,58 @@ func DumpBuildLogs(bc string, oc *CLI) {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
 	}
 
-	ExamineDiskUsage()
+	// if we suspect that we are filling up the registry file syste, call ExamineDiskUsage / ExaminePodDiskUsage
+	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
+	//ExamineDiskUsage()
+	//ExaminePodDiskUsage(oc)
 }
 
-// ExamineDiskUsage will dump some df/du output; leveraging this as part of diagnosing
+// ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {
-	out, err := exec.Command("/bin/df", "-k").Output()
+	out, err := exec.Command("/bin/df", "-m").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n df -k output: %s\n\n", string(out))
+		fmt.Fprintf(g.GinkgoWriter, "\n\n df -m output: %s\n\n", string(out))
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
 	}
-	if _, err := os.Stat("/registry"); err == nil {
-		out, err = exec.Command("/bin/du", "-a", "/registry").Output()
+}
+
+// ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing
+// the registry's disk filling up during external tests on jenkins
+func ExaminePodDiskUsage(oc *CLI) {
+	out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
+	var podName string
+	if err == nil {
+		b := []byte(out)
+		var list kapi.PodList
+		err = json.Unmarshal(b, &list)
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n du -a /registry output: %s\n\n", string(out))
+			for _, pod := range list.Items {
+				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
+				if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
+					podName = pod.ObjectMeta.Name
+					break
+				}
+			}
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
 		}
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	}
+
+	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n df from registry pod: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod df: %v\n", err)
+	}
+	out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n du from registry pod: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod du: %v\n", err)
 	}
 }
 
