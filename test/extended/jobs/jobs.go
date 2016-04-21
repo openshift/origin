@@ -14,36 +14,38 @@ import (
 
 var _ = g.Describe("[job] openshift can execute jobs", func() {
 	defer g.GinkgoRecover()
-	var (
-		configPath = exeutil.FixturePath("fixtures", "job-controller.yaml")
-		oc         = exeutil.NewCLI("job-controller", exeutil.KubeConfigPath())
-	)
+	oc := exeutil.NewCLI("job-controller", exeutil.KubeConfigPath())
+
 	g.Describe("controller", func() {
 		g.It("should create and run a job in user project", func() {
-			oc.SetOutputDir(exeutil.TestContext.OutputDir)
-			g.By(fmt.Sprintf("creating a job from %q", configPath))
-			err := oc.Run("create").Args("-f", configPath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			for _, ver := range []string{"v1beta1", "v1"} {
+				oc.SetOutputDir(exeutil.TestContext.OutputDir)
+				configPath := exeutil.FixturePath("fixtures", "jobs", fmt.Sprintf("%s.yaml", ver))
+				name := fmt.Sprintf("simple%s", ver)
+				labels := fmt.Sprintf("app=%s", name)
 
-			g.By(fmt.Sprintf("Waiting for pod..."))
-			podNames, err := exeutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie("app=pi"), exeutil.CheckPodIsSucceededFn, 1, 2*time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(len(podNames)).Should(o.Equal(1))
-			podName := podNames[0]
+				g.By(fmt.Sprintf("creating a job from %q...", configPath))
+				err := oc.Run("create").Args("-f", configPath).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("retrieving logs from pod " + podName)
-			logs, err := oc.Run("logs").Args(podName).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(logs).Should(o.Equal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068"))
+				g.By("waiting for a pod...")
+				podNames, err := exeutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie(labels), exeutil.CheckPodIsSucceededFn, 1, 2*time.Minute)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(podNames)).Should(o.Equal(1))
 
-			g.By("checking job status")
-			jobs, err := oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie("app=pi")})
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("checking job status...")
+				jobs, err := oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			o.Expect(len(jobs.Items)).Should(o.Equal(1))
-			job := jobs.Items[0]
-			o.Expect(len(job.Status.Conditions)).Should(o.Equal(1))
-			o.Expect(job.Status.Conditions[0].Type).Should(o.Equal(kapiextensions.JobComplete))
+				o.Expect(len(jobs.Items)).Should(o.Equal(1))
+				job := jobs.Items[0]
+				o.Expect(len(job.Status.Conditions)).Should(o.Equal(1))
+				o.Expect(job.Status.Conditions[0].Type).Should(o.Equal(kapiextensions.JobComplete))
+
+				g.By("removing a job...")
+				err = oc.Run("delete").Args(fmt.Sprintf("job/%s", name)).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		})
 	})
 })
