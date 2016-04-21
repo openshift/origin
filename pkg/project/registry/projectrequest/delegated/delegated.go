@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -15,9 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/client"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -32,15 +36,20 @@ type REST struct {
 
 	openshiftClient *client.Client
 	kubeClient      *kclient.Client
+
+	// policyBindings is an auth cache that is shared with the authorizer for the API server.
+	// we use this cache to detect when the authorizer has observed the change for the auth rules
+	policyBindings authorizationclient.PolicyBindingsReadOnlyNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache authorizationclient.PolicyBindingsReadOnlyNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
 		templateName:      templateName,
 		openshiftClient:   openshiftClient,
 		kubeClient:        kubeClient,
+		policyBindings:    policyBindingCache,
 	}
 }
 
@@ -104,15 +113,18 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	// one of the items in this list should be the project.  We are going to locate it, remove it from the list, create it separately
 	var projectFromTemplate *projectapi.Project
+	var lastRoleBinding *authorizationapi.RoleBinding
 	objectsToCreate := &kapi.List{}
 	for i := range list.Objects {
 		if templateProject, ok := list.Objects[i].(*projectapi.Project); ok {
 			projectFromTemplate = templateProject
+			// don't add this to the list to create.  We'll create the project separately.
+			continue
+		}
 
-			if len(list.Objects) > (i + 1) {
-				objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i+1:]...)
-			}
-			break
+		if roleBinding, ok := list.Objects[i].(*authorizationapi.RoleBinding); ok {
+			// keep track of the rolebinding, but still add it to the list
+			lastRoleBinding = roleBinding
 		}
 
 		objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i])
@@ -155,7 +167,36 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierror.NewInternalError(err)
 	}
 
+	// wait for a rolebinding if we created one
+	if lastRoleBinding != nil {
+		r.waitForRoleBinding(projectName, lastRoleBinding.Name)
+	}
+
 	return r.openshiftClient.Projects().Get(projectName)
+}
+
+func (r *REST) waitForRoleBinding(namespace, name string) {
+	// we have a rolebinding, the we check the cache we have to see if its been updated with this rolebinding
+	// if you share a cache with our authorizer (you should), then this will let you know when the authorizer is ready.
+	// doesn't matter if this failed.  When the call returns, return.  If we have access great.  If not, oh well.
+	backoff := kclient.DefaultBackoff
+	backoff.Steps = 6 // this effectively waits for 6-ish seconds
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		policyBindingList, _ := r.policyBindings.ReadOnlyPolicyBindings(namespace).List(nil)
+		for _, policyBinding := range policyBindingList.Items {
+			for roleBindingName := range policyBinding.RoleBindings {
+				if roleBindingName == name {
+					return true, nil
+				}
+			}
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		glog.V(4).Infof("authorization cache failed to update for %v %v: %v", namespace, name, err)
+	}
 }
 
 func (r *REST) getTemplate() (*templateapi.Template, error) {
