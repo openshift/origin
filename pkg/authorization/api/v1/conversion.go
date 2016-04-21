@@ -138,6 +138,7 @@ func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
+	out.Selector = in.Selector
 	out.APIGroups = in.APIGroups
 
 	out.Resources = sets.String{}
@@ -159,6 +160,7 @@ func convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRu
 	}
 
 	out.APIGroups = in.APIGroups
+	out.Selector = in.Selector
 
 	out.Resources = []string{}
 	out.Resources = append(out.Resources, in.Resources.List()...)

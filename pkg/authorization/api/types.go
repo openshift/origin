@@ -103,7 +103,7 @@ var (
 	}
 
 	// VerbsAllowingSelector is the list of special verbs that we know we can integrate with in admission to enforce label based policy
-	VerbsAllowingSelector = sets.NewString("create", "update", "delete")
+	VerbsAllowingSelector = sets.NewString("create", "update", "patch", "delete")
 )
 
 func init() {

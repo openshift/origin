@@ -163,6 +163,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					),
 				},
 				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("create", "update", "patch", "delete"),
+					Resources: sets.NewString("resourcequotas"),
+					Selector:  map[string]string{"foo": "bar"},
+				},
+				{
 					APIGroups: []string{api.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString(

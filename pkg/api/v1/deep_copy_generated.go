@@ -496,6 +496,14 @@ func deepCopy_v1_PolicyRule(in v1.PolicyRule, out *v1.PolicyRule, c *conversion.
 	} else {
 		out.NonResourceURLsSlice = nil
 	}
+	if in.Selector != nil {
+		out.Selector = make(map[string]string)
+		for key, val := range in.Selector {
+			out.Selector[key] = val
+		}
+	} else {
+		out.Selector = nil
+	}
 	return nil
 }
 

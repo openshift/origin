@@ -35,6 +35,9 @@ type PolicyRule struct {
 	// NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different.
 	NonResourceURLsSlice []string `json:"nonResourceURLs,omitempty"`
+
+	// Selector is a label query over to apply to the resource.  It is ONLY valid for create,update, and delete verbs.
+	Selector map[string]string `json:"selector,omitempty"`
 }
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed

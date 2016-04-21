@@ -153,7 +153,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	privilegedLoopbackKubeClient, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
+	privilegedLoopbackKubeClient, loopbackClientConfig, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -175,17 +175,25 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"ProjectRequestLimit", "OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
+	admissionControlPluginNames := []string{"LabelAuthorization", "ProjectRequestLimit", "OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
-	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		rulevalidation.PolicyGetter(policyClient),
+		rulevalidation.BindingLister(policyClient),
+		rulevalidation.ClusterPolicyGetter(policyClient),
+		rulevalidation.ClusterBindingLister(policyClient),
+	)
+	authorizer := newAuthorizer(ruleResolver, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
 		ProjectCache:    projectCache,
 		Authorizer:      authorizer,
+		RuleResolver:    ruleResolver,
+		ClientConfig:    *loopbackClientConfig,
 	}
 
 	plugins := []admission.Interface{}
@@ -364,13 +372,8 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 	return
 }
 
-func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(
-		rulevalidation.PolicyGetter(policyClient),
-		rulevalidation.BindingLister(policyClient),
-		rulevalidation.ClusterPolicyGetter(policyClient),
-		rulevalidation.ClusterBindingLister(policyClient),
-	), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, projectRequestDenyMessage string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(ruleResolver, authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 

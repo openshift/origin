@@ -341,6 +341,14 @@ func autoConvert_api_PolicyRule_To_v1_PolicyRule(in *authorizationapi.PolicyRule
 	// in.Resources has no peer in out
 	// in.ResourceNames has no peer in out
 	// in.NonResourceURLs has no peer in out
+	if in.Selector != nil {
+		out.Selector = make(map[string]string)
+		for key, val := range in.Selector {
+			out.Selector[key] = val
+		}
+	} else {
+		out.Selector = nil
+	}
 	return nil
 }
 
@@ -792,6 +800,14 @@ func autoConvert_v1_PolicyRule_To_api_PolicyRule(in *authorizationapiv1.PolicyRu
 	// in.Resources has no peer in out
 	// in.ResourceNames has no peer in out
 	// in.NonResourceURLsSlice has no peer in out
+	if in.Selector != nil {
+		out.Selector = make(map[string]string)
+		for key, val := range in.Selector {
+			out.Selector[key] = val
+		}
+	} else {
+		out.Selector = nil
+	}
 	return nil
 }
 

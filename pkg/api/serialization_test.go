@@ -481,7 +481,7 @@ func TestSpecificKind(t *testing.T) {
 	kapi.Scheme.Log(t)
 	defer kapi.Scheme.Log(nil)
 
-	kind := "DeploymentConfig"
+	kind := "Role"
 	item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)

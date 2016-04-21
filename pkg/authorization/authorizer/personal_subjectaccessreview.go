@@ -2,7 +2,6 @@ package authorizer
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -24,7 +23,8 @@ func IsPersonalAccessReview(a AuthorizationAttributes) (bool, error) {
 		return isPersonalAccessReviewFromLocalSAR(extendedAttributes), nil
 
 	default:
-		return false, fmt.Errorf("unexpected request attributes for checking personal access review: %v", extendedAttributes)
+		// I don't think we really care about erroring here.  It's just not a self-SAR
+		return false, nil
 
 	}
 }

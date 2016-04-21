@@ -1,7 +1,10 @@
 package admission
 
 import (
+	"k8s.io/kubernetes/pkg/client/restclient"
+
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/cache"
 )
@@ -28,4 +31,12 @@ type Validator interface {
 // need access to the Authorizer interface
 type WantsAuthorizer interface {
 	SetAuthorizer(authorizer.Authorizer)
+}
+
+type WantsAuthorizationRuleResolver interface {
+	SetAuthorizationRuleResolver(rulevalidation.AuthorizationRuleResolver)
+}
+
+type WantsClientConfig interface {
+	SetClientConfig(restclient.Config)
 }

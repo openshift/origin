@@ -138,6 +138,7 @@ func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.Pol
 		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
+	out.Selector = in.Selector
 	out.APIGroups = in.APIGroups
 
 	out.Resources = sets.String{}
@@ -159,6 +160,7 @@ func convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *Pol
 		return err
 	}
 
+	out.Selector = in.Selector
 	out.APIGroups = in.APIGroups
 
 	out.Resources = []string{}
