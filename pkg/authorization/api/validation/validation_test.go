@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -369,6 +370,19 @@ func TestValidateRole(t *testing.T) {
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.name",
+		},
+		"selector with bad verbs": {
+			A: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: kapi.NamespaceDefault},
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:    sets.NewString("create", "update", "list"),
+						Selector: map[string]string{"foo": "bar"},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[0].selector",
 		},
 	}
 	for k, v := range errorCases {

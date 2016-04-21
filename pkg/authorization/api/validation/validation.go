@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/labels"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -212,7 +213,30 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorLis
 }
 
 func validateRole(role *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
-	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	allErrs := validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	for i, rule := range role.Rules {
+		allErrs = append(allErrs, validatePolicyRule(rule, fldPath.Child("rules").Index(i))...)
+	}
+
+	return allErrs
+}
+
+func validatePolicyRule(rule authorizationapi.PolicyRule, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(rule.Selector) != 0 {
+		if disallowedVerbs := rule.Verbs.Difference(authorizationapi.VerbsAllowingSelector); len(disallowedVerbs) > 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), rule.Selector, fmt.Sprintf("may only be used with verbs %v, not %v", authorizationapi.VerbsAllowingSelector, disallowedVerbs)))
+		}
+
+		// I don't know all the rules for this conversion, so I want to be sure that if you've intended something, at least got something
+		selector := labels.Set(rule.Selector).AsSelector()
+		if selector.Empty() {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), rule.Selector, "is an empty selector"))
+		}
+	}
+
+	return allErrs
 }
 
 func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) field.ErrorList {

@@ -101,6 +101,9 @@ var (
 
 		NonEscalatingResourcesGroupName: {OpenshiftNonEscalatingViewableGroupName, KubeNonEscalatingViewableGroupName},
 	}
+
+	// VerbsAllowingSelector is the list of special verbs that we know we can integrate with in admission to enforce label based policy
+	VerbsAllowingSelector = sets.NewString("create", "update", "delete")
 )
 
 func init() {
@@ -131,6 +134,9 @@ type PolicyRule struct {
 	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// If an action is not a resource API request, then the URL is split on '/' and is checked against the NonResourceURLs to look for a match.
 	NonResourceURLs sets.String
+
+	// Selector is a label query over to apply to the resource.  It is ONLY valid for create,update, and delete verbs.
+	Selector map[string]string
 }
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
