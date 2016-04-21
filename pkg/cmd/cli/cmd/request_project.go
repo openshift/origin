@@ -126,9 +126,9 @@ func (o *NewProjectOptions) Run() error {
 	fmt.Fprintf(o.Out, `
 You can add applications to this project with the 'new-app' command. For example, try:
 
-    $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
+    $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
-to build a new hello-world application in Ruby.
+to build a new example application in Ruby.
 `, o.Name)
 
 	return nil
