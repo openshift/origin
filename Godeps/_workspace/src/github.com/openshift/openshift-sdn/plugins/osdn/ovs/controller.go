@@ -1,7 +1,6 @@
 package ovs
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/golang/glog"
 	"io/ioutil"
@@ -13,6 +12,7 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/pkg/ovs"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -334,13 +334,12 @@ func (plugin *ovsPlugin) GetName() string {
 }
 
 func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
-	glog.V(5).Infof("AddHostSubnetRules for %v", subnet)
-	cookie := generateCookie(subnet.HostIP)
+	glog.Infof("AddHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
 
-	otx.AddFlow("table=1, cookie=0x%s, priority=100, tun_src=%s, actions=goto_table:5", cookie, subnet.HostIP)
-	otx.AddFlow("table=8, cookie=0x%s, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, subnet.HostIP)
-	otx.AddFlow("table=8, cookie=0x%s, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, subnet.HostIP)
+	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
+	otx.AddFlow("table=8, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
+	otx.AddFlow("table=8, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
 
 	err := otx.EndTransaction()
 	if err != nil {
@@ -349,18 +348,15 @@ func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 }
 
 func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
-	glog.V(5).Infof("DeleteHostSubnetRules for %v", subnet)
+	glog.Infof("DeleteHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
 
 	otx := ovs.NewTransaction(BR)
-	otx.DeleteFlows("cookie=0x%s/0xffffffff", generateCookie(subnet.HostIP))
+	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
+	otx.DeleteFlows("table=8, nw_dst=%s", subnet.Subnet)
 	err := otx.EndTransaction()
 	if err != nil {
 		glog.Errorf("Error deleting OVS flows: %v", err)
 	}
-}
-
-func generateCookie(ip string) string {
-	return hex.EncodeToString(net.ParseIP(ip).To4())
 }
 
 func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) {
