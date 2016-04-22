@@ -75,7 +75,7 @@ func (r *mockRepository) GetByTag(tag string, options ...distribution.ManifestSe
 type mockBlobStore struct {
 	distribution.BlobStore
 
-	statErr, serveErr error
+	statErr, serveErr, openErr error
 }
 
 func (r *mockBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
@@ -84,6 +84,10 @@ func (r *mockBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribut
 
 func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	return r.serveErr
+}
+
+func (r *mockBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+	return nil, r.openErr
 }
 
 func TestSchema1ToImage(t *testing.T) {
@@ -284,6 +288,7 @@ func TestRetryFailure(t *testing.T) {
 		blobs: &mockBlobStore{
 			serveErr: errcode.ErrorCodeUnauthorized,
 			statErr:  errcode.ErrorCodeUnauthorized,
+			openErr:  errcode.ErrorCodeUnauthorized,
 		},
 	}
 	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
@@ -324,6 +329,10 @@ func TestRetryFailure(t *testing.T) {
 	}
 	r.retries = 2
 	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
+		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	}
+	r.retries = 2
+	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 }

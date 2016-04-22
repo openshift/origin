@@ -407,3 +407,13 @@ func (r retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, re
 		}
 	}
 }
+
+func (r retryBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+	for {
+		if rsc, err := r.BlobStore.Open(ctx, dgst); r.repo.shouldRetry(err) {
+			continue
+		} else {
+			return rsc, err
+		}
+	}
+}
