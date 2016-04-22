@@ -67,38 +67,12 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			}
 			break
 		}
-
-		// Generate a deployer pod spec.
-		podTemplate, err := c.makeDeployerPod(deployment)
-		if err != nil {
-			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
-		}
-
-		// Create the deployer pod.
-		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
-		if err == nil {
-			deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
-			nextStatus = deployapi.DeploymentStatusPending
-			glog.V(4).Infof("Created pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
-			break
-		}
-
-		// Retry on error.
-		if !kerrors.IsAlreadyExists(err) {
-			if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
-				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
-			} else {
-				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
-			}
-			return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
-		}
-
 		// If the pod already exists, it's possible that a previous CreatePod
 		// succeeded but the deployment state update failed and now we're re-
 		// entering. Ensure that the pod is the one we created by verifying the
 		// annotation on it, and throw a retryable error.
 		existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment.Name))
-		if err != nil {
+		if err != nil && !kerrors.IsNotFound(err) {
 			if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
 				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 			} else {
@@ -106,31 +80,52 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			}
 			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
-
-		// Do a stronger check to validate that the existing deployer pod is
-		// actually for this deployment, and if not, fail this deployment.
-		//
-		// TODO: Investigate checking the container image of the running pod and
-		// comparing with the intended deployer pod image. If we do so, we'll need
-		// to ensure that changes to 'unrelated' pods don't result in updates to
-		// the deployment. So, the image check will have to be done in other areas
-		// of the code as well.
-		if deployutil.DeploymentNameFor(existingPod) != deployment.Name {
-			nextStatus = deployapi.DeploymentStatusFailed
-			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
-			if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
-				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+		if err == nil && existingPod != nil {
+			// Do a stronger check to validate that the existing deployer pod is
+			// actually for this deployment, and if not, fail this deployment.
+			//
+			// TODO: Investigate checking the container image of the running pod and
+			// comparing with the intended deployer pod image. If we do so, we'll need
+			// to ensure that changes to 'unrelated' pods don't result in updates to
+			// the deployment. So, the image check will have to be done in other areas
+			// of the code as well.
+			if deployutil.DeploymentNameFor(existingPod) != deployment.Name {
+				nextStatus = deployapi.DeploymentStatusFailed
+				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
+				if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
+					c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+				} else {
+					c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+				}
+				glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
 			} else {
-				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+				// Update to pending relative to the existing validated deployer pod.
+				deployment.Annotations[deployapi.DeploymentPodAnnotation] = existingPod.Name
+				nextStatus = deployapi.DeploymentStatusPending
+				glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", existingPod.Name, deployutil.LabelForDeployment(deployment))
 			}
-			glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+			// Don't try and re-create the deployer pod.
 			break
 		}
-
-		// Update to pending relative to the existing validated deployer pod.
-		deployment.Annotations[deployapi.DeploymentPodAnnotation] = existingPod.Name
+		// Generate a deployer pod spec.
+		podTemplate, err := c.makeDeployerPod(deployment)
+		if err != nil {
+			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+		}
+		// Create the deployer pod.
+		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
+		// Retry on error.
+		if err != nil {
+			if config, decodeErr := c.decodeConfig(deployment); decodeErr == nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			} else {
+				c.recorder.Eventf(deployment, kapi.EventTypeWarning, "FailedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			}
+			return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+		}
+		deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
 		nextStatus = deployapi.DeploymentStatusPending
-		glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", existingPod.Name, deployutil.LabelForDeployment(deployment))
+		glog.V(4).Infof("Created pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
 	case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 		// If the deployer pod has vanished, consider the deployment a failure.
 		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
