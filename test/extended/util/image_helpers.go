@@ -9,25 +9,40 @@ import (
 
 //CorruptImage is a helper that tags the image to be corrupted, the corruptee, as the corruptor string, resulting in the wrong image being used when corruptee is referenced later on;  strategy is for ginkgo debug; ginkgo error checking leveraged
 func CorruptImage(corruptee, corruptor string) {
-	g.By(fmt.Sprintf("Calling docker tag to corrupt builder image %s by tagging %s", corruptee, corruptor))
+	fmt.Fprintf(g.GinkgoWriter, "Calling docker tag to corrupt builder image %s by tagging %s", corruptee, corruptor)
 
 	cerr := TagImage(corruptee, corruptor)
 
-	g.By(fmt.Sprintf("Tagging %s to %s complete with err %v", corruptor, corruptee, cerr))
+	fmt.Fprintf(g.GinkgoWriter, "Tagging %s to %s complete with err %v", corruptor, corruptee, cerr)
 	o.Expect(cerr).NotTo(o.HaveOccurred())
 	VerifyImagesSame(corruptee, corruptor, "image corruption")
 }
 
 //ResetImage is a helper the allows the programmer to undo any corruption performed by CorruptImage; ginkgo error checking leveraged
 func ResetImage(tags map[string]string) {
-	g.By(fmt.Sprintf("Calling docker tag to reset images"))
+	fmt.Fprintf(g.GinkgoWriter, "Calling docker tag to reset images")
 
 	for corruptedTag, goodTag := range tags {
 		err := TagImage(corruptedTag, goodTag)
-		g.By(fmt.Sprintf("Reset for %s to %s complete with err %v", corruptedTag, goodTag, err))
+		fmt.Fprintf(g.GinkgoWriter, "Reset for %s to %s complete with err %v", corruptedTag, goodTag, err)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
+}
+
+//DumpImage is a helper that inspects the image along with some ginkgo debug
+func DumpImage(name string) {
+	fmt.Fprintf(g.GinkgoWriter, "Calling docker inspect for image %s", name)
+
+	image, err := InspectImage(name)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if image != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Returned docker image %+v", image)
+		fmt.Fprintf(g.GinkgoWriter, "Container config %+v and user %s", image.ContainerConfig, image.ContainerConfig.User)
+		if image.Config != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Image config %+v and user %s", image.Config, image.Config.User)
+		}
+	}
 }
 
 //DumpAndReturnTagging takes and array of tags and obtains the hex image IDs, dumps them to ginkgo for printing, and then returns them
@@ -37,7 +52,7 @@ func DumpAndReturnTagging(tags []string) ([]string, error) {
 		return nil, err
 	}
 	for i, hexID := range hexIDs {
-		g.By(fmt.Sprintf("tag %s hex id %s ", tags[i], hexID))
+		fmt.Fprintf(g.GinkgoWriter, "tag %s hex id %s ", tags[i], hexID)
 	}
 	return hexIDs, nil
 }
@@ -51,7 +66,7 @@ func VerifyImagesSame(comp1, comp2, strategy string) {
 	retIDs, gerr := GetImageIDForTags(comps)
 
 	o.Expect(gerr).NotTo(o.HaveOccurred())
-	g.By(fmt.Sprintf("%s  compare image - %s, %s, %s, %s", strategy, tag1, tag2, retIDs[0], retIDs[1]))
+	fmt.Fprintf(g.GinkgoWriter, "%s  compare image - %s, %s, %s, %s", strategy, tag1, tag2, retIDs[0], retIDs[1])
 	o.Ω(len(retIDs[0])).Should(o.BeNumerically(">", 0))
 	o.Ω(len(retIDs[1])).Should(o.BeNumerically(">", 0))
 	o.Ω(retIDs[0]).Should(o.Equal(retIDs[1]))
@@ -66,18 +81,21 @@ func VerifyImagesDifferent(comp1, comp2, strategy string) {
 	retIDs, gerr := GetImageIDForTags(comps)
 
 	o.Expect(gerr).NotTo(o.HaveOccurred())
-	g.By(fmt.Sprintf("%s  compare image - %s, %s, %s, %s", strategy, tag1, tag2, retIDs[0], retIDs[1]))
+	fmt.Fprintf(g.GinkgoWriter, "%s  compare image - %s, %s, %s, %s", strategy, tag1, tag2, retIDs[0], retIDs[1])
 	o.Ω(len(retIDs[0])).Should(o.BeNumerically(">", 0))
 	o.Ω(len(retIDs[1])).Should(o.BeNumerically(">", 0))
 	o.Ω(retIDs[0] != retIDs[1]).Should(o.BeTrue())
 }
 
-//WaitForBuild is a wrapper for WaitForABuild in this package that takes in an oc/cli client; some ginkgo based debug along with ginkgo error checking
-func WaitForBuild(context, buildName string, oc *CLI) {
-	g.By(fmt.Sprintf("%s:   waiting for %s", context, buildName))
-	WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFn, CheckBuildFailedFn)
-	// do not care if build returned an error ... entirely possible ... we only check if the image was updated or left the same appropriately
-	g.By(fmt.Sprintf("%s   done waiting for %s", context, buildName))
+//WaitForBuild is a wrapper for WaitForABuild in this package; adds some ginkgo based debug
+func WaitForBuild(context, buildConfig, buildName string, oc *CLI) error {
+	fmt.Fprintf(g.GinkgoWriter, "%s:   waiting for %s", context, buildName)
+	err := WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFn, CheckBuildFailedFn)
+	fmt.Fprintf(g.GinkgoWriter, "%s   done waiting for %s", context, buildName)
+	if err != nil {
+		DumpBuildLogs(buildConfig, oc)
+	}
+	return err
 }
 
 //StartBuildFromJSON creates a build config from the supplied json file (not a template) and then starts a build, using the supplied oc/cli client for both operations; ginkgo error checking included

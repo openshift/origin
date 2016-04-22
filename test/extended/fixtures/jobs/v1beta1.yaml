@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Job
+metadata:
+  name: simplev1beta1
+spec:
+  template:
+    metadata:
+      name: simplev1beta1
+      labels:
+        app: simplev1beta1
+    spec:
+      containers:
+      - name: simplev1beta1
+        image: gcr.io/google_containers/busybox
+        command: ["/bin/sh", "-c", "exit 0"]
+      restartPolicy: Never

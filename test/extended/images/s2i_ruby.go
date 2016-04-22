@@ -32,6 +32,9 @@ var _ = g.Describe("[images][ruby][Slow] hot deploy for openshift ruby image", f
 
 			g.By("waiting for build to finish")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), dcName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("rails-postgresql-example", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
