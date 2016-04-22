@@ -88,10 +88,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.StringSliceVar(&args.APIServerCAFiles, prefix+"certificate-authority", args.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
 
-	nodes := []string{}
-	flags.StringSliceVar(&nodes, prefix+"nodes", nodes, "DEPRECATED: nodes now register themselves")
-	flags.MarkDeprecated(prefix+"nodes", "Nodes register themselves at startup, and are no longer statically registered")
-
 	flags.StringSliceVar(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", []string{}, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
 	// autocompletion hints
