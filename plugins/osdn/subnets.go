@@ -23,6 +23,8 @@ func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 		if err := oc.validateNode(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
 			log.Errorf("Failed to validate HostSubnet %s: %v", err)
+		} else {
+			log.Infof("Found existing HostSubnet %s", HostSubnetToString(&sub))
 		}
 	}
 
@@ -44,12 +46,12 @@ func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
 	if err != nil {
 		return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
 	}
-	err = oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
+	sub, err := oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
 	if err != nil {
 		return fmt.Errorf("Error writing subnet %v to etcd for node %s: %v", sn, nodeName, err)
 	}
 
-	log.Infof("Created HostSubnet %v for node %s (%s)", sn, nodeName, nodeIP)
+	log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
 	return nil
 }
 
@@ -68,7 +70,7 @@ func (oc *OsdnController) deleteNode(nodeName string) error {
 		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
 
-	log.Infof("Deleted HostSubnet %v for node %s", sub, nodeName)
+	log.Infof("Deleted HostSubnet %s", HostSubnetToString(sub))
 	return nil
 }
 
@@ -118,6 +120,7 @@ func (oc *OsdnController) initSelfSubnet() error {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
+	log.Infof("Found local HostSubnet %s", HostSubnetToString(subnet))
 	oc.localSubnet = subnet
 	return nil
 }
@@ -155,11 +158,12 @@ func watchNodes(oc *OsdnController) {
 						continue
 					}
 					if nodeErr == nil {
-						err = oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
+						_, err := oc.Registry.CreateSubnet(ev.Node.Name, nodeIP, sub.Subnet)
 						if err != nil {
 							log.Errorf("Error creating subnet for node %s, ip %s: %v", ev.Node.Name, sub.HostIP, err)
 							continue
 						}
+						log.Infof("Updated HostSubnet %s to HostIP %s", HostSubnetToString(sub), nodeIP)
 					} else {
 						log.Errorf("Ignoring creating invalid node %s/%s: %v", ev.Node.Name, nodeIP, nodeErr)
 					}
