@@ -275,17 +275,15 @@ function stop() {
   # The container will have created configuration as root
   sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
 
-  # Volume cleanup is not compatible with SELinux
-  check-selinux
-
   # Cleanup orphaned volumes
   #
   # See: https://github.com/jpetazzo/dind#important-warning-about-disk-usage
   #
   echo "Cleaning up volumes used by docker-in-docker daemons"
-  ${DOCKER_CMD} run -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes
-
+  local volume_ids="$(${DOCKER_CMD} volume ls -qf dangling=true)"
+  if [[ -n "${volume_ids}" ]]; then
+    ${DOCKER_CMD} volume rm ${volume_ids}
+  fi
 }
 
 # Build and deploy openshift binaries to an existing cluster
