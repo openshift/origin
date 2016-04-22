@@ -34,7 +34,9 @@ os::cmd::expect_success_and_text 'oc version' "kubernetes ${KUBE_GIT_VERSION}"
 os::cmd::expect_success_and_text 'openshift version' "openshift ${OS_GIT_VERSION_TO_MICRO}"
 os::cmd::expect_success_and_text 'openshift version' "kubernetes ${KUBE_GIT_VERSION}"
 os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${KUBE_GIT_VERSION}"
-os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${OS_GIT_VERSION_TO_MICRO}"
+if [[ "${KUBE_GIT_VERSION_TO_MICRO}" != "${OS_GIT_VERSION_TO_MICRO}" ]]; then
+  os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${OS_GIT_VERSION_TO_MICRO}"
+fi
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
 # 2. openshift kubectl (kube and openshift resources)

@@ -507,10 +507,18 @@ os::build::extract_tar() {
   local archive_file="$1"
   local change_dir="$2"
 
+  if [[ -z "${archive_file}" ]]; then
+    return 0
+  fi
+
   local tar_flags="--strip-components=1"
 
   # Unpack archive
   echo "++ Extracting $(basename ${archive_file})"
+  if [[ "${archive_file}" == *.zip ]]; then
+    unzip -o "${archive_file}" -d "${change_dir}"
+    return 0
+  fi
   if os::build::is_hardlink_supported "${change_dir}" ; then
     # Ensure that tar won't try to set an owner when extracting to an
     # nfs mount. Setting ownership on an nfs mount is likely to fail
@@ -571,19 +579,19 @@ os::build::detect_local_release_tars() {
   local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${primary}" | wc -l) -ne 1 || -z "${primary}" ]]; then
     echo "There should be exactly one ${platform} server tar in $OS_LOCAL_RELEASEPATH"
-    return 2
+    [[ -z "${WARN-}" ]] && return 2
   fi
 
   local client=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
-  if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${primary}" ]]; then
+  if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${client}" ]]; then
     echo "There should be exactly one ${platform} client tar in $OS_LOCAL_RELEASEPATH"
-    return 2
+    [[ -n "${WARN-}" ]] || return 2
   fi
 
   local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
-    return 2
+    [[ -n "${WARN-}" ]] || return 2
   fi
 
   export OS_PRIMARY_RELEASE_TAR="${primary}"
