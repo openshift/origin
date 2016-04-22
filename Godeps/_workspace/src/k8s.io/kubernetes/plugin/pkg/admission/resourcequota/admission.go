@@ -105,7 +105,7 @@ func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
 
 	// if we do not know how to evaluate use for this kind, just ignore
 	evaluators := q.registry.Evaluators()
-	evaluator, found := evaluators[a.GetKind()]
+	evaluator, found := evaluators[a.GetKind().GroupKind()]
 	if !found {
 		return nil
 	}
