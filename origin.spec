@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1837ea02fc1712349335101de2e678e077a35132
+%global commit 320f70f1d0043d88bdea241e5146190c3501d546
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.17-30-g1837ea0 -X github.com/openshift/origin/pkg/version.commitFromGit 1837ea0 -X k8s.io/kubernetes/pkg/version.gitCommit 1837ea0 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.18-17-g320f70f -X github.com/openshift/origin/pkg/version.commitFromGit 320f70f -X k8s.io/kubernetes/pkg/version.gitCommit 320f70f -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.18
+Version:        3.2.0.19
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -325,6 +325,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
+%defattr(0700,-,-)
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
@@ -350,6 +351,7 @@ fi
 %files master
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%defattr(0700,-,-)
 %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
@@ -404,7 +406,9 @@ fi
 %files node
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
+%defattr(0700,-,-)
 %config(noreplace) %{_sysconfdir}/origin/node
+%ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post node
@@ -481,6 +485,18 @@ fi
 
 
 %changelog
+* Fri Apr 22 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.19
+- Support extracting release binaries on other platforms (ccoleman@redhat.com)
+- When Kube and Origin version are the same, skip test (ccoleman@redhat.com)
+- All image references should be using full semantic version
+  (ccoleman@redhat.com)
+- Simplified and extended jobs tests (maszulik@redhat.com)
+- debug for ext test failures on jenkins (gmontero@redhat.com)
+- Fix branding in html title for oauth pages (jforrest@redhat.com)
+- force pull fixes / debug (gmontero@redhat.com)
+- Make /etc/origin /etc/origin/master /etc/origin/node 0700
+  (sdodson@redhat.com)
+
 * Wed Apr 20 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.18
 - Revert "Retry import to the docker hub on 401" (ccoleman@redhat.com)
 - debug for failures on jenkins (gmontero@redhat.com)
