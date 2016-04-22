@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -398,6 +399,12 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 	config := ServiceAliasConfig{
 		Host: host,
 		Path: route.Spec.Path,
+		Hash: backendKey,
+	}
+
+	// Possibly hash the name for later use in obsuring cookie ID
+	if os.Getenv("COOKIE_PREFIX_MAIN") + os.Getenv("COOKIE_PREFIX_EDGE") + os.Getenv("COOKIE_PREFIX_REENCRYPT") != "" {
+		config.Hash = fmt.Sprintf("%x", md5.Sum([]byte(backendKey)))
 	}
 
 	if route.Spec.Port != nil {
