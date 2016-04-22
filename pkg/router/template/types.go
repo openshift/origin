@@ -37,6 +37,8 @@ type ServiceAliasConfig struct {
 	// insecure connections to an edge-terminated route:
 	//   none (or disable), allow or redirect
 	InsecureEdgeTerminationPolicy routeapi.InsecureEdgeTerminationPolicyType
+	// Hash of the route name - used to obscure cookieId
+	RoutingKeyName string
 }
 
 type ServiceAliasConfigStatus string

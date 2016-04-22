@@ -217,9 +217,9 @@ backend be_edge_http_{{$cfgIdx}}
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
   {{ if (eq $cfg.TLSTermination "") }}
-    cookie OPENSHIFT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly
+    cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
   {{ else }}
-    cookie OPENSHIFT_EDGE_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+    cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
   {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
@@ -243,7 +243,7 @@ backend be_secure_{{$cfgIdx}}
   option redispatch
   balance leastconn
   timeout check 5000ms
-  cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}}
                 {{ end }}

@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -449,6 +450,9 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 			}
 		}
 	}
+
+	key := fmt.Sprintf("%s %s", config.TLSTermination, backendKey)
+	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
 
 	//create or replace
 	frontend.ServiceAliasConfigs[backendKey] = config
