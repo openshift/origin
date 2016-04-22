@@ -94,11 +94,10 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 			testGitAuth(gitServerFixture, sourceURLTemplate, func() string {
 				g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s --cacert=%s",
 					sourceSecretName, gitUserName, gitPassword, caCertPath))
-				err := oc.Run("secrets").
-					Args("new-basicauth", sourceSecretName,
-					fmt.Sprintf("--username=%s", gitUserName),
-					fmt.Sprintf("--password=%s", gitPassword),
-					fmt.Sprintf("--ca-cert=%s", caCertPath)).Execute()
+				gitUserNameFlag := fmt.Sprintf("--username=%s", gitUserName)
+				gitPasswordFlag := fmt.Sprintf("--password=%s", gitPassword)
+				caCertPathFlag := fmt.Sprintf("--ca-cert=%s", caCertPath)
+				err := oc.Run("secrets").Args("new-basicauth", sourceSecretName, gitUserNameFlag, gitPasswordFlag, caCertPathFlag).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return sourceSecretName
 			})

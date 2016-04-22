@@ -20,11 +20,11 @@ func main() {
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal(byt, &dat); err != nil {
-		log.Fatalf("ERROR: Invalid JSON file  '%v': %v\n", os.Args[1], err)
+	if unmarshalErr := json.Unmarshal(byt, &dat); unmarshalErr != nil {
+		log.Fatalf("ERROR: Invalid JSON file  '%v': %v\n", os.Args[1], unmarshalErr)
 	}
 
-	if output, err := json.MarshalIndent(dat, "", "  "); err != nil {
+	if output, marshalErr := json.MarshalIndent(dat, "", "  "); marshalErr != nil {
 		log.Fatalf("ERROR: Unable to indent JSON file: %v\n", os.Args[1])
 	} else {
 		os.Stdout.Write(append(output, '\n'))

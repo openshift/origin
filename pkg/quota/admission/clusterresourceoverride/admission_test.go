@@ -228,7 +228,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
 		attrs := admission.NewAttributesRecord(test.object, unversioned.GroupKind{}, test.namespace.Name, "name", kapi.Resource("pods"), "", admission.Create, fakeUser())
-		if err := c.Admit(attrs); err != nil {
+		if err = c.Admit(attrs); err != nil {
 			t.Errorf("%s: admission controller should not return error", test.name)
 		}
 		// if it's a pod, test that the resources are as expected

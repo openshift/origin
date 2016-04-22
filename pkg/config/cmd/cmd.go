@@ -83,8 +83,8 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 		}
 		obj, err := encodeAndCreate(info, namespace, item)
 		if err != nil && b.Retry != nil {
-			if obj := b.Retry(info, err); obj != nil {
-				obj, err = encodeAndCreate(info, namespace, obj)
+			if retried := b.Retry(info, err); retried != nil {
+				obj, err = encodeAndCreate(info, namespace, retried)
 			}
 		}
 		if err != nil {
