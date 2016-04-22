@@ -64,10 +64,7 @@ func Versions(key string) (string, bool) {
 		}
 		return s, true
 	case "version":
-		s := OverrideVersion.GitVersion
-		if strings.HasSuffix(s, "-dirty") {
-			s = strings.TrimSuffix(s, "-dirty")
-		}
+		s := OverrideVersion.LastSemanticVersion()
 		return s, true
 	default:
 		return "", false
