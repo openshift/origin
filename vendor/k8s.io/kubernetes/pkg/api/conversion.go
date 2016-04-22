@@ -23,6 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	utillabels "k8s.io/kubernetes/pkg/util/labels"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 func init() {
@@ -51,6 +53,8 @@ func init() {
 		Convert_labels_Selector_To_string,
 		Convert_fields_Selector_To_string,
 		Convert_resource_Quantity_To_resource_Quantity,
+		Convert_map_to_unversioned_LabelSelector,
+		Convert_unversioned_LabelSelector_to_map,
 	)
 }
 
@@ -135,6 +139,7 @@ func Convert_string_To_labels_Selector(in *string, out *labels.Selector, s conve
 	*out = selector
 	return nil
 }
+
 func Convert_string_To_fields_Selector(in *string, out *fields.Selector, s conversion.Scope) error {
 	selector, err := fields.ParseSelector(*in)
 	if err != nil {
@@ -143,6 +148,7 @@ func Convert_string_To_fields_Selector(in *string, out *fields.Selector, s conve
 	*out = selector
 	return nil
 }
+
 func Convert_labels_Selector_To_string(in *labels.Selector, out *string, s conversion.Scope) error {
 	if *in == nil {
 		return nil
@@ -150,6 +156,7 @@ func Convert_labels_Selector_To_string(in *labels.Selector, out *string, s conve
 	*out = (*in).String()
 	return nil
 }
+
 func Convert_fields_Selector_To_string(in *fields.Selector, out *string, s conversion.Scope) error {
 	if *in == nil {
 		return nil
@@ -157,7 +164,25 @@ func Convert_fields_Selector_To_string(in *fields.Selector, out *string, s conve
 	*out = (*in).String()
 	return nil
 }
+
 func Convert_resource_Quantity_To_resource_Quantity(in *resource.Quantity, out *resource.Quantity, s conversion.Scope) error {
 	*out = *in
 	return nil
+}
+
+func Convert_map_to_unversioned_LabelSelector(in *map[string]string, out *unversioned.LabelSelector, s conversion.Scope) error {
+	out = new(unversioned.LabelSelector)
+	for labelKey, labelValue := range *in {
+		utillabels.AddLabelToSelector(out, labelKey, labelValue)
+	}
+	return nil
+}
+
+func Convert_unversioned_LabelSelector_to_map(in *unversioned.LabelSelector, out *map[string]string, s conversion.Scope) error {
+	var err error
+	*out, err = unversioned.LabelSelectorAsMap(in)
+	if err != nil {
+		err = field.Invalid(field.NewPath("labelSelector"), *in, "cannot convert to old selector")
+	}
+	return err
 }
