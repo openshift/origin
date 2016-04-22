@@ -169,6 +169,13 @@ func DeepCopy_v1_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentCo
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	if in.RevisionHistoryLimit != nil {
+		in, out := in.RevisionHistoryLimit, &out.RevisionHistoryLimit
+		*out = new(int)
+		**out = *in
+	} else {
+		out.RevisionHistoryLimit = nil
+	}
 	out.Test = in.Test
 	out.Paused = in.Paused
 	if in.Selector != nil {

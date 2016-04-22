@@ -22,14 +22,15 @@ const deploymentRunTimeout = 5 * time.Minute
 var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture       = exutil.FixturePath("testdata", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("testdata", "deployment-simple.yaml")
-		customDeploymentFixture = exutil.FixturePath("testdata", "custom-deployment.yaml")
-		generationFixture       = exutil.FixturePath("testdata", "test-deployment.yaml")
-		pausedDeploymentFixture = exutil.FixturePath("testdata", "paused-deployment.yaml")
-		failedHookFixture       = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
-		brokenDeploymentFixture = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
+		oc                              = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
+		deploymentFixture               = exutil.FixturePath("testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture         = exutil.FixturePath("testdata", "deployment-simple.yaml")
+		customDeploymentFixture         = exutil.FixturePath("testdata", "custom-deployment.yaml")
+		generationFixture               = exutil.FixturePath("testdata", "test-deployment.yaml")
+		pausedDeploymentFixture         = exutil.FixturePath("testdata", "paused-deployment.yaml")
+		failedHookFixture               = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
+		brokenDeploymentFixture         = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
+		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployment-history-limit.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -510,6 +511,44 @@ var _ = g.Describe("deploymentconfigs", func() {
 			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("not found"))
+		})
+	})
+
+	g.Describe("with revision history limits", func() {
+		g.It("should never persist more old deployments than acceptable after being observed by the controller [Conformance]", func() {
+			revisionHistoryLimit := 3 // as specified in the fixture
+
+			_, err := oc.Run("create").Args("-f", historyLimitedDeploymentFixture).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			iterations := 10
+			for i := 0; i < iterations; i++ {
+				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
+					"the current deployment needs to have finished before attempting to trigger a new deployment through configuration change")
+				e2e.Logf("%02d: triggering a new deployment with config change", i)
+				out, err := oc.Run("set", "env").Args("dc/history-limit", fmt.Sprintf("A=%d", i)).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(out).To(o.ContainSubstring("updated"))
+			}
+
+			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, checkDeploymentConfigHasSynced)).NotTo(o.HaveOccurred(),
+				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
+			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			// sanity check to ensure that the following asertion on the amount of old deployments is valid
+			o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(revisionHistoryLimit))
+
+			// we need to filter out any deployments that we don't care about,
+			// namely the active deployment and any newer deployments
+			oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
+
+			// we should not have more deployments than acceptable
+			o.Expect(len(oldDeployments)).To(o.BeNumerically("<=", revisionHistoryLimit))
+
+			// the deployments we continue to keep should be the latest ones
+			for _, deployment := range oldDeployments {
+				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">", iterations-revisionHistoryLimit))
+			}
 		})
 	})
 })
