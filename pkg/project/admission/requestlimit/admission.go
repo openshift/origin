@@ -68,7 +68,7 @@ func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
 	if o.config == nil {
 		return nil
 	}
-	if a.GetResource() != projectapi.Resource("projectrequests") {
+	if a.GetResource().GroupResource() != projectapi.Resource("projectrequests") {
 		return nil
 	}
 	if _, isProjectRequest := a.GetObject().(*projectapi.ProjectRequest); !isProjectRequest {

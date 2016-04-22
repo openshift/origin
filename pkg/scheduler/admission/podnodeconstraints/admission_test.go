@@ -111,7 +111,7 @@ func TestPodNodeConstraints(t *testing.T) {
 			checkAdmitError(t, err, expectedError, errPrefix)
 			continue
 		}
-		attrs := admission.NewAttributesRecord(tc.resource, kapi.Kind("Pod"), ns, "test", kapi.Resource("pods"), "", admission.Create, tc.userinfo)
+		attrs := admission.NewAttributesRecord(tc.resource, kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, tc.userinfo)
 		if tc.expectedErrorMsg != "" {
 			expectedError = admission.NewForbidden(attrs, fmt.Errorf(tc.expectedErrorMsg))
 		}
@@ -131,7 +131,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
-	attrs := admission.NewAttributesRecord(nodeNamePod(), kapi.Kind("Pod"), ns, "test", kapi.Resource("pods"), "", admission.Update, serviceaccount.UserInfo("", "", ""))
+	attrs := admission.NewAttributesRecord(nodeNamePod(), kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Update, serviceaccount.UserInfo("", "", ""))
 	err = prc.Admit(attrs)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
@@ -147,7 +147,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
-	attrs := admission.NewAttributesRecord(resourceQuota(), kapi.Kind("ResourceQuota"), ns, "test", kapi.Resource("resourcequotas"), "", admission.Create, serviceaccount.UserInfo("", "", ""))
+	attrs := admission.NewAttributesRecord(resourceQuota(), kapi.Kind("ResourceQuota").WithVersion("version"), ns, "test", kapi.Resource("resourcequotas").WithVersion("version"), "", admission.Create, serviceaccount.UserInfo("", "", ""))
 	err = prc.Admit(attrs)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
@@ -253,7 +253,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 						checkAdmitError(t, err, expectedError, errPrefix)
 						continue
 					}
-					attrs := admission.NewAttributesRecord(tr.resource(tp.nodeselector), tr.kind, ns, "test", tr.groupresource, "", top.operation, tc.userinfo)
+					attrs := admission.NewAttributesRecord(tr.resource(tp.nodeselector), tr.kind.WithVersion("version"), ns, "test", tr.groupresource.WithVersion("version"), "", top.operation, tc.userinfo)
 					if tp.expectedErrorMsg != "" {
 						expectedError = admission.NewForbidden(attrs, fmt.Errorf(tp.expectedErrorMsg))
 					}

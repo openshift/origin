@@ -14,7 +14,7 @@ import (
 
 // IsBuildPod returns true if a pod is a pod generated for a Build
 func IsBuildPod(a admission.Attributes) bool {
-	if a.GetResource() != kapi.Resource("pods") {
+	if a.GetResource().GroupResource() != kapi.Resource("pods") {
 		return false
 	}
 	if len(a.GetSubresource()) != 0 {
