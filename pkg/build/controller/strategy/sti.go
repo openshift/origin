@@ -130,7 +130,7 @@ func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 		},
 	}
 	userInfo := serviceaccount.UserInfo(build.Namespace, build.Spec.ServiceAccount, "")
-	attrs := admission.NewAttributesRecord(pod, kapi.Kind("Pod"), pod.Namespace, pod.Name, kapi.Resource("pods"), "", admission.Create, userInfo)
+	attrs := admission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion(""), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion(""), "", admission.Create, userInfo)
 	err := bs.AdmissionControl.Admit(attrs)
 	if err != nil {
 		glog.V(2).Infof("Admit for root user returned error: %v", err)

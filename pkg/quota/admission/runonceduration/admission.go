@@ -67,7 +67,7 @@ var _ = oadmission.Validator(&runOnceDuration{})
 func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
 	switch {
 	case a.config == nil,
-		attributes.GetResource() != kapi.Resource("pods"),
+		attributes.GetResource().GroupResource() != kapi.Resource("pods"),
 		len(attributes.GetSubresource()) > 0:
 		return nil
 	}

@@ -59,7 +59,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if err != nil {
 		return err
 	}
-	mapping, err := groupMeta.RESTMapper.RESTMapping(a.GetKind())
+	mapping, err := groupMeta.RESTMapper.RESTMapping(a.GetKind().GroupKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil
@@ -93,7 +93,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	}
 
 	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource().Resource)) {
-		return apierrors.NewForbidden(a.GetResource(), name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
+		return apierrors.NewForbidden(a.GetResource().GroupResource(), name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
 	}
 
 	// in case of concurrency issues, we will retry this logic
@@ -152,5 +152,5 @@ var (
 )
 
 func isSubjectAccessReview(a admission.Attributes) bool {
-	return a.GetKind() == sar || a.GetKind() == lsar
+	return a.GetKind().GroupKind() == sar || a.GetKind().GroupKind() == lsar
 }

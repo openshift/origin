@@ -141,7 +141,7 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
-	if a.config == nil || attr.GetResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
+	if a.config == nil || attr.GetResource().GroupResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
 	}
 	pod, ok := attr.GetObject().(*kapi.Pod)
