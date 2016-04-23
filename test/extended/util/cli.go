@@ -14,8 +14,10 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -146,6 +148,17 @@ func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string
 	})
 	if err != nil {
 		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
+		return nil, err
+	}
+	if err := wait.ExponentialBackoff(kclient.DefaultBackoff, func() (bool, error) {
+		if _, err := c.KubeREST().Pods(c.Namespace()).List(kapi.ListOptions{}); err != nil {
+			if apierrs.IsForbidden(err) {
+				e2e.Logf("Waiting for user to have access to the namespace")
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
 		return nil, err
 	}
 	return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()}}, err
