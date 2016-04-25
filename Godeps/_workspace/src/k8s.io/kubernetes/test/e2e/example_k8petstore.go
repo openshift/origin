@@ -153,7 +153,12 @@ T:
 	Ω(totalTransactions).Should(BeNumerically(">", finalTransactionsExpected))
 }
 
-var _ = Describe("Pet Store [Feature:Example]", func() {
+var _ = KubeDescribe("Pet Store [Feature:Example]", func() {
+
+	BeforeEach(func() {
+		// The shell scripts in k8petstore break on jenkins... Pure golang rewrite is in progress.
+		SkipUnlessProviderIs("local")
+	})
 
 	// The number of nodes dictates total number of generators/transaction expectations.
 	var nodeCount int

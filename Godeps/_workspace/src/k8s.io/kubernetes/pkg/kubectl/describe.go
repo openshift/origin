@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/fields"
 	qosutil "k8s.io/kubernetes/pkg/kubelet/qos/util"
@@ -98,7 +99,7 @@ func describerMap(c *client.Client) map[unversioned.GroupKind]Describer {
 		extensions.Kind("HorizontalPodAutoscaler"):  &HorizontalPodAutoscalerDescriber{c},
 		autoscaling.Kind("HorizontalPodAutoscaler"): &HorizontalPodAutoscalerDescriber{c},
 		extensions.Kind("DaemonSet"):                &DaemonSetDescriber{c},
-		extensions.Kind("Deployment"):               &DeploymentDescriber{clientset.FromUnversionedClient(c)},
+		extensions.Kind("Deployment"):               &DeploymentDescriber{adapter.FromUnversionedClient(c)},
 		extensions.Kind("Job"):                      &JobDescriber{c},
 		batch.Kind("Job"):                           &JobDescriber{c},
 		extensions.Kind("Ingress"):                  &IngressDescriber{c},
@@ -634,8 +635,7 @@ func describePod(pod *api.Pod, events *api.EventList) (string, error) {
 		}
 		fmt.Fprintf(out, "IP:\t%s\n", pod.Status.PodIP)
 		fmt.Fprintf(out, "Controllers:\t%s\n", printControllers(pod.Annotations))
-		fmt.Fprintf(out, "Containers:\n")
-		describeContainers(pod.Spec.Containers, pod.Status.ContainerStatuses, EnvValueRetriever(pod), out)
+		describeContainers(pod.Spec.Containers, pod.Status.ContainerStatuses, EnvValueRetriever(pod), out, "")
 		if len(pod.Status.Conditions) > 0 {
 			fmt.Fprint(out, "Conditions:\n  Type\tStatus\n")
 			for _, c := range pod.Status.Conditions {
@@ -664,6 +664,7 @@ func printControllers(annotation map[string]string) string {
 	return "<none>"
 }
 
+// TODO: Do a better job at indenting, maybe by using a prefix writer
 func describeVolumes(volumes []api.Volume, out io.Writer, space string) {
 	if volumes == nil || len(volumes) == 0 {
 		fmt.Fprintf(out, "%sNo volumes.\n", space)
@@ -671,7 +672,11 @@ func describeVolumes(volumes []api.Volume, out io.Writer, space string) {
 	}
 	fmt.Fprintf(out, "%sVolumes:\n", space)
 	for _, volume := range volumes {
-		fmt.Fprintf(out, "  %v:\n", volume.Name)
+		nameIndent := ""
+		if len(space) > 0 {
+			nameIndent = " "
+		}
+		fmt.Fprintf(out, "  %s%v:\n", nameIndent, volume.Name)
 		switch {
 		case volume.VolumeSource.HostPath != nil:
 			printHostPathVolumeSource(volume.VolumeSource.HostPath, out)
@@ -888,17 +893,20 @@ func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string) (strin
 	})
 }
 
-// describeContainers is exported for consumers in other API groups that have container templates
-func describeContainers(containers []api.Container, containerStatuses []api.ContainerStatus, resolverFn EnvVarResolverFunc, out io.Writer) {
+// TODO: Do a better job at indenting, maybe by using a prefix writer
+func describeContainers(containers []api.Container, containerStatuses []api.ContainerStatus, resolverFn EnvVarResolverFunc, out io.Writer, space string) {
 	statuses := map[string]api.ContainerStatus{}
 	for _, status := range containerStatuses {
 		statuses[status.Name] = status
 	}
-
+	fmt.Fprintf(out, "%sContainers:\n", space)
 	for _, container := range containers {
 		status, ok := statuses[container.Name]
-
-		fmt.Fprintf(out, "  %v:\n", container.Name)
+		nameIndent := ""
+		if len(space) > 0 {
+			nameIndent = " "
+		}
+		fmt.Fprintf(out, "  %s%v:\n", nameIndent, container.Name)
 		if ok {
 			fmt.Fprintf(out, "    Container ID:\t%s\n", status.ContainerID)
 		}
@@ -965,7 +973,11 @@ func describeContainers(containers []api.Container, containerStatuses []api.Cont
 			probe := DescribeProbe(container.ReadinessProbe)
 			fmt.Fprintf(out, "    Readiness:\t%s\n", probe)
 		}
-		fmt.Fprintf(out, "    Environment Variables:\n")
+		none := ""
+		if len(container.Env) == 0 {
+			none = "\t<none>"
+		}
+		fmt.Fprintf(out, "    Environment Variables:%s\n", none)
 		for _, e := range container.Env {
 			if e.ValueFrom != nil && e.ValueFrom.FieldRef != nil {
 				var valueFrom string
@@ -1126,8 +1138,7 @@ func DescribePodTemplate(template *api.PodTemplateSpec, out io.Writer) {
 	if len(template.Spec.ServiceAccountName) > 0 {
 		fmt.Fprintf(out, "  Service Account:\t%s\n", template.Spec.ServiceAccountName)
 	}
-	fmt.Fprintf(out, "  Containers:\n")
-	describeContainers(template.Spec.Containers, nil, nil, out)
+	describeContainers(template.Spec.Containers, nil, nil, out, "  ")
 	describeVolumes(template.Spec.Volumes, out, "  ")
 }
 
@@ -1390,7 +1401,11 @@ func (i *IngressDescriber) describeIngress(ing *extensions.Ingress) (string, err
 func describeIngressTLS(out io.Writer, ingTLS []extensions.IngressTLS) {
 	fmt.Fprintf(out, "TLS:\n")
 	for _, t := range ingTLS {
-		fmt.Fprintf(out, "  %v terminates %v\n", t.SecretName, strings.Join(t.Hosts, ","))
+		if t.SecretName == "" {
+			fmt.Fprintf(out, "  SNI routes %v\n", strings.Join(t.Hosts, ","))
+		} else {
+			fmt.Fprintf(out, "  %v terminates %v\n", t.SecretName, strings.Join(t.Hosts, ","))
+		}
 	}
 	return
 }

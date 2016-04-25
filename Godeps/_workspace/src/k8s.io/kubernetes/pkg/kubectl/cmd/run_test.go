@@ -302,6 +302,7 @@ func TestGenerateService(t *testing.T) {
 		cmd.Flags().String("output", "", "")
 		cmd.Flags().Bool(cmdutil.ApplyAnnotationsFlag, false, "")
 		cmd.Flags().Bool("record", false, "Record current kubectl command in the resource annotation.")
+		cmdutil.AddInclude3rdPartyFlags(cmd)
 		addRunFlags(cmd)
 
 		if !test.expectPOST {
@@ -325,7 +326,7 @@ func TestGenerateService(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if test.expectPOST != sawPOST {
-			t.Error("expectPost: %v, sawPost: %v", test.expectPOST, sawPOST)
+			t.Errorf("expectPost: %v, sawPost: %v", test.expectPOST, sawPOST)
 		}
 	}
 }

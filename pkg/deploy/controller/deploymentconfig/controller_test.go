@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -685,7 +685,7 @@ func TestHandleScenarios(t *testing.T) {
 			expected, actual := expectedDeployments[i], actualDeployments[i]
 			if !kapi.Semantic.DeepEqual(expected, actual) {
 				anyDeploymentMismatches = true
-				t.Errorf("actual deployment don't match expected: %v", kutil.ObjectDiff(expected, actual))
+				t.Errorf("actual deployment don't match expected: %v", diff.ObjectDiff(expected, actual))
 			}
 		}
 		if anyDeploymentMismatches {

@@ -151,10 +151,10 @@ func runPortForward(ns, podName string, port int) *portForwardCommand {
 	}
 }
 
-var _ = Describe("Port forwarding", func() {
+var _ = KubeDescribe("Port forwarding", func() {
 	framework := NewDefaultFramework("port-forwarding")
 
-	Describe("With a server that expects a client request", func() {
+	KubeDescribe("With a server that expects a client request", func() {
 		It("should support a client that connects, sends no data, and disconnects [Conformance]", func() {
 			By("creating the target pod")
 			pod := pfPod("abc", "1", "1", "1")
@@ -255,7 +255,7 @@ var _ = Describe("Port forwarding", func() {
 			verifyLogMessage(logOutput, "^Done$")
 		})
 	})
-	Describe("With a server that expects no client request", func() {
+	KubeDescribe("With a server that expects no client request", func() {
 		It("should support a client that connects, sends no data, and disconnects [Conformance]", func() {
 			By("creating the target pod")
 			pod := pfPod("", "10", "10", "100")

@@ -49,9 +49,11 @@ type clusterResourceOverridePlugin struct {
 	ProjectCache *cache.ProjectCache
 	LimitRanger  admission.Interface
 }
+type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
 var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
+var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
@@ -85,7 +87,7 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, wrapLimit)
+	limitRanger, err := limitranger.NewLimitRanger(client, &limitRangerActions{})
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +99,14 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 	}, nil
 }
 
-func wrapLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	limitranger.Limit(limitRange, resourceName, obj)
-	// always return success so that all defaults will be applied.
-	// validation will occur after the overrides.
+// these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
+func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
+	return true
+}
+func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
+	return true
+}
+func (d *limitRangerActions) Limit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
 	return nil
 }
 

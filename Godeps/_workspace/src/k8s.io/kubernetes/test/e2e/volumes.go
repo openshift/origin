@@ -182,8 +182,6 @@ func volumeTestCleanup(client *client.Client, config VolumeTestConfig) {
 // and check that the pod sees the data from the server pod.
 func testVolumeClient(client *client.Client, config VolumeTestConfig, volume api.VolumeSource, fsGroup *int64, expectedContent string) {
 	By(fmt.Sprint("starting ", config.prefix, " client"))
-	podClient := client.Pods(config.namespace)
-
 	clientPod := &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
@@ -198,19 +196,21 @@ func testVolumeClient(client *client.Client, config VolumeTestConfig, volume api
 		Spec: api.PodSpec{
 			Containers: []api.Container{
 				{
-					Name:  config.prefix + "-client",
-					Image: "gcr.io/google_containers/nginx:1.7.9",
-					Ports: []api.ContainerPort{
-						{
-							Name:          "web",
-							ContainerPort: 80,
-							Protocol:      api.ProtocolTCP,
-						},
+					Name:       config.prefix + "-client",
+					Image:      "gcr.io/google_containers/busybox:1.24",
+					WorkingDir: "/opt",
+					// An imperative and easily debuggable container which reads vol contents for
+					// us to scan in the tests or by eye.
+					// We expect that /opt is empty in the minimal containers which we use in this test.
+					Command: []string{
+						"/bin/sh",
+						"-c",
+						"while true ; do cat /opt/index.html ; sleep 2 ; ls -altrh /opt/  ; sleep 2 ; done ",
 					},
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      config.prefix + "-volume",
-							MountPath: "/usr/share/nginx/html",
+							MountPath: "/opt/",
 						},
 					},
 				},
@@ -228,46 +228,25 @@ func testVolumeClient(client *client.Client, config VolumeTestConfig, volume api
 			},
 		},
 	}
+	podsNamespacer := client.Pods(config.namespace)
+
 	if fsGroup != nil {
 		clientPod.Spec.SecurityContext.FSGroup = fsGroup
 	}
-
-	if _, err := podClient.Create(clientPod); err != nil {
+	if _, err := podsNamespacer.Create(clientPod); err != nil {
 		Failf("Failed to create %s pod: %v", clientPod.Name, err)
 	}
 	expectNoError(waitForPodRunningInNamespace(client, clientPod.Name, config.namespace))
 
-	By("reading a web page from the client")
-	subResourceProxyAvailable, err := serverVersionGTE(subResourcePodProxyVersion, client)
-	if err != nil {
-		Failf("Failed to get server version: %v", err)
-	}
-	var body []byte
-	if subResourceProxyAvailable {
-		body, err = client.Get().
-			Namespace(config.namespace).
-			Resource("pods").
-			SubResource("proxy").
-			Name(clientPod.Name).
-			DoRaw()
-	} else {
-		body, err = client.Get().
-			Prefix("proxy").
-			Namespace(config.namespace).
-			Resource("pods").
-			Name(clientPod.Name).
-			DoRaw()
-	}
-	expectNoError(err, "Cannot read web page: %v", err)
-	Logf("body: %v", string(body))
-
-	By("checking the page content")
-	Expect(body).To(ContainSubstring(expectedContent))
+	By("Checking that text file contents are perfect.")
+	_, err := lookForStringInPodExec(config.namespace, clientPod.Name, []string{"cat", "/opt/index.html"}, expectedContent, time.Minute)
+	Expect(err).NotTo(HaveOccurred(), "failed: finding the contents of the mounted file.")
 
 	if fsGroup != nil {
-		By("Checking fsGroup")
-		_, err = lookForStringInPodExec(config.namespace, clientPod.Name, []string{"ls", "-ld", "/usr/share/nginx/html"}, strconv.Itoa(int(*fsGroup)), time.Minute)
-		Expect(err).NotTo(HaveOccurred(), "waiting for output from pod exec")
+
+		By("Checking fsGroup is correct.")
+		_, err = lookForStringInPodExec(config.namespace, clientPod.Name, []string{"ls", "-ld", "/opt"}, strconv.Itoa(int(*fsGroup)), time.Minute)
+		Expect(err).NotTo(HaveOccurred(), "failed: getting the right priviliges in the file %v", int(*fsGroup))
 	}
 }
 
@@ -352,7 +331,7 @@ func deleteCinderVolume(name string) error {
 
 // These tests need privileged containers, which are disabled by default.  Run
 // the test with "go run hack/e2e.go ... --ginkgo.focus=[Feature:Volumes]"
-var _ = Describe("Volumes [Feature:Volumes]", func() {
+var _ = KubeDescribe("Volumes [Feature:Volumes]", func() {
 	framework := NewDefaultFramework("volume")
 
 	// If 'false', the test won't clear its volumes upon completion. Useful for debugging,
@@ -371,7 +350,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// NFS
 	////////////////////////////////////////////////////////////////////////
 
-	Describe("NFS", func() {
+	KubeDescribe("NFS", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace:   namespace.Name,
@@ -405,7 +384,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// Gluster
 	////////////////////////////////////////////////////////////////////////
 
-	Describe("GlusterFS", func() {
+	KubeDescribe("GlusterFS", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace:   namespace.Name,
@@ -484,7 +463,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// are installed on all nodes!
 	// Run the test with "go run hack/e2e.go ... --ginkgo.focus=iSCSI"
 
-	Describe("iSCSI", func() {
+	KubeDescribe("iSCSI", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace:   namespace.Name,
@@ -526,7 +505,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// Ceph RBD
 	////////////////////////////////////////////////////////////////////////
 
-	Describe("Ceph RBD", func() {
+	KubeDescribe("Ceph RBD", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace:   namespace.Name,
@@ -599,7 +578,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// Ceph
 	////////////////////////////////////////////////////////////////////////
 
-	Describe("CephFS", func() {
+	KubeDescribe("CephFS", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace:   namespace.Name,
@@ -670,7 +649,7 @@ var _ = Describe("Volumes [Feature:Volumes]", func() {
 	// and that the usual OpenStack authentication env. variables are set
 	// (OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME at least).
 
-	Describe("Cinder", func() {
+	KubeDescribe("Cinder", func() {
 		It("should be mountable", func() {
 			config := VolumeTestConfig{
 				namespace: namespace.Name,

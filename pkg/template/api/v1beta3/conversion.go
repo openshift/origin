@@ -27,7 +27,7 @@ func convert_api_Template_To_v1beta3_Template(in *newer.Template, out *Template,
 			if err != nil {
 				return err
 			}
-			out.Objects[i] = runtime.RawExtension{RawJSON: bytes}
+			out.Objects[i] = runtime.RawExtension{Raw: bytes}
 		}
 	}
 	return nil

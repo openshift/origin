@@ -28,7 +28,7 @@ func TestLockAndUnlock(t *testing.T) {
 	}
 	f.Close()
 	defer func() {
-		err := os.Remove(f.Name())
+		err = os.Remove(f.Name())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,7 +78,7 @@ func TestLockAndUnlock(t *testing.T) {
 	select {
 	case <-locked:
 		t.Error("unexpected unblocking")
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	}
 
 	// unlock
@@ -90,7 +90,7 @@ func TestLockAndUnlock(t *testing.T) {
 	// the previously blocked routine should be unblocked
 	select {
 	case <-locked:
-	case <-time.After(20 * time.Millisecond):
+	case <-time.After(1 * time.Second):
 		t.Error("unexpected blocking")
 	}
 }

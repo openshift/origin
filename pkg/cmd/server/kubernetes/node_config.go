@@ -16,11 +16,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util"
+	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/oom"
 
@@ -33,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -88,7 +88,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
 	}
 
-	clientCAs, err := util.CertPoolFromFile(options.ServingInfo.ClientCA)
+	clientCAs, err := kcrypto.CertPoolFromFile(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +182,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 	// provide any config overrides
 	cfg.NodeName = options.NodeName
-	cfg.KubeClient = internalclientset.FromUnversionedClient(kubeClient)
-	cfg.EventClient = internalclientset.FromUnversionedClient(eventClient)
+	cfg.KubeClient = clientadapter.FromUnversionedClient(kubeClient)
+	cfg.EventClient = clientadapter.FromUnversionedClient(eventClient)
 	cfg.DockerExecHandler = dockerExecHandler
 
 	// docker-in-docker (dind) deployments are used for testing

@@ -327,7 +327,7 @@ func autoConvert_api_PolicyRule_To_v1_PolicyRule(in *authorizationapi.PolicyRule
 		defaulting.(func(*authorizationapi.PolicyRule))(in)
 	}
 	// in.Verbs has no peer in out
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := runtime.Convert_runtime_Object_To_runtime_RawExtension(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 	if in.APIGroups != nil {
@@ -778,7 +778,7 @@ func autoConvert_v1_PolicyRule_To_api_PolicyRule(in *authorizationapiv1.PolicyRu
 		defaulting.(func(*authorizationapiv1.PolicyRule))(in)
 	}
 	// in.Verbs has no peer in out
-	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+	if err := runtime.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 	if in.APIGroups != nil {
@@ -5902,7 +5902,7 @@ func autoConvert_api_Template_To_v1_Template(in *templateapi.Template, out *temp
 	if in.Objects != nil {
 		out.Objects = make([]runtime.RawExtension, len(in.Objects))
 		for i := range in.Objects {
-			if err := s.Convert(&in.Objects[i], &out.Objects[i], 0); err != nil {
+			if err := runtime.Convert_runtime_Object_To_runtime_RawExtension(&in.Objects[i], &out.Objects[i], s); err != nil {
 				return err
 			}
 		}
@@ -5965,7 +5965,7 @@ func autoConvert_v1_Template_To_api_Template(in *templateapiv1.Template, out *te
 	if in.Objects != nil {
 		out.Objects = make([]runtime.Object, len(in.Objects))
 		for i := range in.Objects {
-			if err := s.Convert(&in.Objects[i], &out.Objects[i], 0); err != nil {
+			if err := runtime.Convert_runtime_RawExtension_To_runtime_Object(&in.Objects[i], &out.Objects[i], s); err != nil {
 				return err
 			}
 		}

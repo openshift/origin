@@ -20,8 +20,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -157,7 +157,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			plugins = append(plugins, lifecycle.NewLifecycle(internalclientset.FromUnversionedClient(kubeClient), immortalNamespaces))
+			plugins = append(plugins, lifecycle.NewLifecycle(clientadapter.FromUnversionedClient(kubeClient), immortalNamespaces))
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
@@ -169,7 +169,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(internalclientset.FromUnversionedClient(kubeClient))
+			saAdmitter := saadmit.NewServiceAccount(clientadapter.FromUnversionedClient(kubeClient))
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			saAdmitter.Run()
 			plugins = append(plugins, saAdmitter)
@@ -179,7 +179,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			if err != nil {
 				return nil, err
 			}
-			plugin := admission.InitPlugin(pluginName, internalclientset.FromUnversionedClient(kubeClient), configFile)
+			plugin := admission.InitPlugin(pluginName, clientadapter.FromUnversionedClient(kubeClient), configFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}
@@ -268,9 +268,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 			RequestContextMapper: requestContextMapper,
 
-			APIGroupVersionOverrides: getAPIGroupVersionOverrides(options),
-			APIPrefix:                server.APIPrefix,
-			APIGroupPrefix:           server.APIGroupPrefix,
+			APIResourceConfigSource: getAPIResourceConfig(options),
+			APIPrefix:               server.APIPrefix,
+			APIGroupPrefix:          server.APIGroupPrefix,
 
 			MasterCount: server.MasterCount,
 
@@ -337,21 +337,25 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	return kmaster, nil
 }
 
-// getAPIGroupVersionOverrides builds the overrides in the format expected by master.Config.APIGroupVersionOverrides
-func getAPIGroupVersionOverrides(options configapi.MasterConfig) map[string]genericapiserver.APIGroupVersionOverride {
-	apiGroupVersionOverrides := map[string]genericapiserver.APIGroupVersionOverride{}
+// getAPIResourceConfig builds the config for enabling resources
+func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIResourceConfigSource {
+	resourceConfig := genericapiserver.NewResourceConfig()
+
+	for group := range configapi.KnownKubeAPIGroups {
+		for _, version := range configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+			gv := unversioned.GroupVersion{Group: group, Version: version}
+			resourceConfig.EnableVersions(gv)
+		}
+	}
+
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
 		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
 			gv := unversioned.GroupVersion{Group: group, Version: version}
-			if group == "" {
-				// TODO: when rebasing, check the parseRuntimeConfig impl to make sure we're still building the right magic container
-				// Create "disabled" key for v1 identically to k8s.io/kubernetes/cmd/kube-apiserver/app/server.go#parseRuntimeConfig
-				gv.Group = "api"
-			}
-			apiGroupVersionOverrides[gv.String()] = genericapiserver.APIGroupVersionOverride{Disable: true}
+			resourceConfig.DisableVersions(gv)
 		}
 	}
-	return apiGroupVersionOverrides
+
+	return resourceConfig
 }
 
 // NewEtcdStorage returns a storage interface for the provided storage version.

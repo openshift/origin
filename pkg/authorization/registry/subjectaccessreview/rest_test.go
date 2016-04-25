@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -159,7 +159,7 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	switch obj.(type) {
 	case *authorizationapi.SubjectAccessReviewResponse:
 		if !reflect.DeepEqual(expectedResponse, obj) {
-			t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedResponse, obj))
+			t.Errorf("diff %v", diff.ObjectGoPrintDiff(expectedResponse, obj))
 		}
 	case nil:
 		if len(r.authorizer.err) == 0 {
@@ -171,6 +171,6 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedAttributes, r.authorizer.actualAttributes) {
-		t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedAttributes, r.authorizer.actualAttributes))
+		t.Errorf("diff %v", diff.ObjectGoPrintDiff(expectedAttributes, r.authorizer.actualAttributes))
 	}
 }

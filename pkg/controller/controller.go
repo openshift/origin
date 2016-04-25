@@ -3,7 +3,7 @@ package controller
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -107,7 +107,7 @@ type QueueRetryManager struct {
 
 	// limits how fast retries can be enqueued to ensure you can't tight
 	// loop on retries.
-	limiter kutil.RateLimiter
+	limiter flowcontrol.RateLimiter
 }
 
 // Retry describes provides additional information regarding retries.
@@ -126,7 +126,7 @@ type ReQueue interface {
 }
 
 // NewQueueRetryManager safely creates a new QueueRetryManager.
-func NewQueueRetryManager(queue ReQueue, keyFn kcache.KeyFunc, retryFn RetryFunc, limiter kutil.RateLimiter) *QueueRetryManager {
+func NewQueueRetryManager(queue ReQueue, keyFn kcache.KeyFunc, retryFn RetryFunc, limiter flowcontrol.RateLimiter) *QueueRetryManager {
 	return &QueueRetryManager{
 		queue:     queue,
 		keyFunc:   keyFn,

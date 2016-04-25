@@ -13,6 +13,32 @@ import (
 	phttp "github.com/coreos/go-oidc/http"
 )
 
+func TestResponseTypesEqual(t *testing.T) {
+	tests := []struct {
+		r1, r2 string
+		want   bool
+	}{
+		{"code", "code", true},
+		{"id_token", "code", false},
+		{"code token", "token code", true},
+		{"code token", "code token", true},
+		{"foo", "bar code", false},
+		{"code token id_token", "token id_token code", true},
+		{"code token id_token", "token id_token code zoo", false},
+	}
+
+	for i, tt := range tests {
+		got1 := ResponseTypesEqual(tt.r1, tt.r2)
+		got2 := ResponseTypesEqual(tt.r2, tt.r1)
+		if got1 != got2 {
+			t.Errorf("case %d: got different answers with different orders", i)
+		}
+		if tt.want != got1 {
+			t.Errorf("case %d: want=%t, got=%t", i, tt.want, got1)
+		}
+	}
+}
+
 func TestParseAuthCodeRequest(t *testing.T) {
 	tests := []struct {
 		query   url.Values
@@ -132,10 +158,20 @@ func TestParseAuthCodeRequest(t *testing.T) {
 	}
 }
 
+type fakeBadClient struct {
+	Request *http.Request
+	err     error
+}
+
+func (f *fakeBadClient) Do(r *http.Request) (*http.Response, error) {
+	f.Request = r
+	return nil, f.err
+}
+
 func TestClientCredsToken(t *testing.T) {
-	hc := &phttp.RequestRecorder{Error: errors.New("error")}
+	hc := &fakeBadClient{nil, errors.New("error")}
 	cfg := Config{
-		Credentials: ClientCredentials{ID: "cid", Secret: "csecret"},
+		Credentials: ClientCredentials{ID: "c#id", Secret: "c secret"},
 		Scope:       []string{"foo-scope", "bar-scope"},
 		TokenURL:    "http://example.com/token",
 		AuthMethod:  AuthMethodClientSecretBasic,
@@ -169,11 +205,11 @@ func TestClientCredsToken(t *testing.T) {
 		t.Error("unexpected error parsing basic auth")
 	}
 
-	if cfg.Credentials.ID != cid {
+	if url.QueryEscape(cfg.Credentials.ID) != cid {
 		t.Errorf("wrong client ID, want=%v, got=%v", cfg.Credentials.ID, cid)
 	}
 
-	if cfg.Credentials.Secret != secret {
+	if url.QueryEscape(cfg.Credentials.Secret) != secret {
 		t.Errorf("wrong client secret, want=%v, got=%v", cfg.Credentials.Secret, secret)
 	}
 
@@ -212,16 +248,15 @@ func TestNewAuthenticatedRequest(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		hc := &phttp.HandlerClient{}
 		cfg := Config{
-			Credentials: ClientCredentials{ID: "cid", Secret: "csecret"},
+			Credentials: ClientCredentials{ID: "c#id", Secret: "c secret"},
 			Scope:       []string{"foo-scope", "bar-scope"},
 			TokenURL:    "http://example.com/token",
 			AuthURL:     "http://example.com/auth",
 			RedirectURL: "http://example.com/redirect",
 			AuthMethod:  tt.authMethod,
 		}
-		c, err := NewClient(hc, cfg)
+		c, err := NewClient(nil, cfg)
 		req, err := c.newAuthenticatedRequest(tt.url, tt.values)
 		if err != nil {
 			t.Errorf("case %d: unexpected error: %v", i, err)
@@ -238,10 +273,10 @@ func TestNewAuthenticatedRequest(t *testing.T) {
 				t.Errorf("case %d: !ok parsing Basic Auth headers", i)
 				continue
 			}
-			if cid != cfg.Credentials.ID {
+			if cid != url.QueryEscape(cfg.Credentials.ID) {
 				t.Errorf("case %d: want CID == %q, got CID == %q", i, cfg.Credentials.ID, cid)
 			}
-			if secret != cfg.Credentials.Secret {
+			if secret != url.QueryEscape(cfg.Credentials.Secret) {
 				t.Errorf("case %d: want secret == %q, got secret == %q", i, cfg.Credentials.Secret, secret)
 			}
 		} else if tt.authMethod == AuthMethodClientSecretPost {

@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/crypto"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -95,7 +95,7 @@ func (o CreateClientOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := util.CertPoolFromFile(caFile); err != nil {
+			if _, err := crypto.CertPoolFromFile(caFile); err != nil {
 				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
 			}
 		}

@@ -47,7 +47,7 @@ const (
 // the ginkgo.skip list (see driver.go).
 // To run this suite you must explicitly ask for it by setting the
 // -t/--test flag or ginkgo.focus flag.
-var _ = Describe("Load capacity", func() {
+var _ = KubeDescribe("Load capacity", func() {
 	var c *client.Client
 	var nodeCount int
 	var ns string
@@ -97,7 +97,7 @@ var _ = Describe("Load capacity", func() {
 	loadTests := []Load{
 		// The container will consume 1 cpu and 512mb of memory.
 		{podsPerNode: 3, image: "jess/stress", command: []string{"stress", "-c", "1", "-m", "2"}},
-		{podsPerNode: 30, image: "gcr.io/google_containers/serve_hostname:1.1"},
+		{podsPerNode: 30, image: "gcr.io/google_containers/serve_hostname:v1.4"},
 	}
 
 	for _, testArg := range loadTests {
@@ -126,17 +126,17 @@ var _ = Describe("Load capacity", func() {
 
 			// We would like to spread creating replication controllers over time
 			// to make it possible to create/schedule them in the meantime.
-			// Currently we assume 5 pods/second average throughput.
+			// Currently we assume 10 pods/second average throughput.
 			// We may want to revisit it in the future.
-			creatingTime := time.Duration(totalPods/5) * time.Second
+			creatingTime := time.Duration(totalPods/10) * time.Second
 			createAllRC(configs, creatingTime)
 			By("============================================================================")
 
 			// We would like to spread scaling replication controllers over time
 			// to make it possible to create/schedule & delete them in the meantime.
-			// Currently we assume that 5 pods/second average throughput.
+			// Currently we assume that 10 pods/second average throughput.
 			// The expected number of created/deleted pods is less than totalPods/3.
-			scalingTime := time.Duration(totalPods/15) * time.Second
+			scalingTime := time.Duration(totalPods/30) * time.Second
 			scaleAllRC(configs, scalingTime)
 			By("============================================================================")
 

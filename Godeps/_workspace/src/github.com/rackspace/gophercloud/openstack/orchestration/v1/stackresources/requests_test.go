@@ -1,6 +1,7 @@
 package stackresources
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/rackspace/gophercloud/pagination"
@@ -75,6 +76,9 @@ func TestListResourceTypes(t *testing.T) {
 		th.AssertNoErr(t, err)
 
 		th.CheckDeepEquals(t, ListTypesExpected, actual)
+		// test if sorting works
+		sort.Sort(actual)
+		th.CheckDeepEquals(t, SortedListTypesExpected, actual)
 
 		return true, nil
 	})
@@ -103,5 +107,5 @@ func TestGetResourceTemplate(t *testing.T) {
 	th.AssertNoErr(t, err)
 
 	expected := GetTemplateExpected
-	th.AssertDeepEquals(t, expected, actual)
+	th.AssertDeepEquals(t, expected, string(actual))
 }

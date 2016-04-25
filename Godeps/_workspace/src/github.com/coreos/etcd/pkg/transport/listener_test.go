@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 func createTempFile(b []byte) (string, error) {
@@ -44,7 +45,7 @@ func fakeCertificateParserFunc(cert tls.Certificate, err error) func(certPEMBloc
 }
 
 // TestNewListenerTLSInfo tests that NewListener with valid TLSInfo returns
-// a TLS listerner that accepts TLS connections.
+// a TLS listener that accepts TLS connections.
 func TestNewListenerTLSInfo(t *testing.T) {
 	tmp, err := createTempFile([]byte("XXX"))
 	if err != nil {
@@ -115,7 +116,7 @@ func TestNewTransportTLSInfo(t *testing.T) {
 
 	for i, tt := range tests {
 		tt.parseFunc = fakeCertificateParserFunc(tls.Certificate{}, nil)
-		trans, err := NewTransport(tt)
+		trans, err := NewTransport(tt, time.Second)
 		if err != nil {
 			t.Fatalf("Received unexpected error from NewTransport: %v", err)
 		}
@@ -239,4 +240,12 @@ func TestTLSInfoConfigFuncs(t *testing.T) {
 			t.Errorf("#%d: wantCAs=%t but RootCAs=%v", i, tt.wantCAs, sCfg.RootCAs)
 		}
 	}
+}
+
+func TestNewListenerUnixSocket(t *testing.T) {
+	l, err := NewListener("testsocket", "unix", TLSInfo{})
+	if err != nil {
+		t.Errorf("error listening on unix socket (%v)", err)
+	}
+	l.Close()
 }

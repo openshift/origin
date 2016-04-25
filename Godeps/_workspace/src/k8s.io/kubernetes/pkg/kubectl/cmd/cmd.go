@@ -23,7 +23,7 @@ import (
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/spf13/cobra"
 )
@@ -145,7 +145,7 @@ __custom_func() {
    * rolebindings
    * routes
    * secrets
-   * serviceaccounts
+   * serviceaccounts (aka 'sa')
    * services (aka 'svc')
    * users
 `
@@ -168,7 +168,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	f.BindExternalFlags(cmds.PersistentFlags())
 
 	// From this point and forward we get warnings on flags that contain "_" separators
-	cmds.SetGlobalNormalizationFunc(util.WarnWordSepNormalizeFunc)
+	cmds.SetGlobalNormalizationFunc(flag.WarnWordSepNormalizeFunc)
 
 	cmds.AddCommand(NewCmdGet(f, out))
 	cmds.AddCommand(NewCmdDescribe(f, out))

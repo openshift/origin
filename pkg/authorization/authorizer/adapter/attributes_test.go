@@ -12,7 +12,6 @@ import (
 )
 
 // ensure we satisfy both interfaces
-var _ = oauthorizer.AuthorizationAttributes(AdapterAttributes{})
 var _ = kauthorizer.Attributes(AdapterAttributes{})
 
 func TestRoundTrip(t *testing.T) {
@@ -99,7 +98,7 @@ func TestRoundTrip(t *testing.T) {
 func TestAttributeIntersection(t *testing.T) {
 	// These are the things we expect to be shared
 	// Everything in this list should be used by OriginAuthorizerAttributes
-	expectedIntersection := sets.NewString("GetVerb", "GetResource", "GetAPIGroup")
+	expectedIntersection := sets.NewString("GetVerb", "GetResource", "GetAPIGroup", "GetAPIVersion")
 
 	// These are the things we expect to only be in the Kubernetes interface
 	// Everything in this list should be used by OriginAuthorizerAttributes or derivative (like IsReadOnly)
@@ -109,7 +108,7 @@ func TestAttributeIntersection(t *testing.T) {
 		// Based on verb, derivative
 		"IsReadOnly",
 		// Non-matching, but used
-		"GetPath", "IsResourceRequest",
+		"GetPath", "IsResourceRequest", "GetName", "GetSubresource",
 	)
 
 	kattributesType := reflect.TypeOf((*kauthorizer.Attributes)(nil)).Elem()

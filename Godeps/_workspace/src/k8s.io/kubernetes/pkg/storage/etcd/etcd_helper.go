@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage/etcd/metrics"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/util"
+	utilcache "k8s.io/kubernetes/pkg/util/cache"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -128,7 +129,7 @@ func NewEtcdStorage(client etcd.Client, codec runtime.Codec, prefix string, quor
 		copier:         api.Scheme,
 		pathPrefix:     path.Join("/", prefix),
 		quorum:         quorum,
-		cache:          util.NewCache(maxEtcdCacheEntries),
+		cache:          utilcache.NewCache(maxEtcdCacheEntries),
 	}
 }
 
@@ -155,7 +156,7 @@ type etcdHelper struct {
 	// support multi-object transaction that will result in many objects with the same index.
 	// Number of entries stored in the cache is controlled by maxEtcdCacheEntries constant.
 	// TODO: Measure how much this cache helps after the conversion code is optimized.
-	cache util.Cache
+	cache utilcache.Cache
 }
 
 func init() {
@@ -216,7 +217,7 @@ func (h *etcdHelper) Create(ctx context.Context, key string, obj, out runtime.Ob
 	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	trace.Step("Object created")
 	if err != nil {
-		return err
+		return toStorageErr(err, key, 0)
 	}
 	if out != nil {
 		if _, err := conversion.EnforcePtr(out); err != nil {
@@ -263,7 +264,7 @@ func (h *etcdHelper) Set(ctx context.Context, key string, obj, out runtime.Objec
 		response, err = h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
 		metrics.RecordEtcdRequestLatency("compareAndSwap", getTypeName(obj), startTime)
 		if err != nil {
-			return err
+			return toStorageErr(err, key, int64(version))
 		}
 	}
 	if create {
@@ -275,7 +276,7 @@ func (h *etcdHelper) Set(ctx context.Context, key string, obj, out runtime.Objec
 		}
 		response, err = h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
 		if err != nil {
-			return err
+			return toStorageErr(err, key, 0)
 		}
 		metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	}
@@ -290,26 +291,76 @@ func (h *etcdHelper) Set(ctx context.Context, key string, obj, out runtime.Objec
 	return err
 }
 
+func checkPreconditions(preconditions *storage.Preconditions, out runtime.Object) error {
+	if preconditions == nil {
+		return nil
+	}
+	objMeta, err := api.ObjectMetaFor(out)
+	if err != nil {
+		return storage.NewInternalErrorf("can't enforce preconditions %v on un-introspectable object %v, got error: %v", *preconditions, out, err)
+	}
+	if preconditions.UID != nil && *preconditions.UID != objMeta.UID {
+		return etcd.Error{Code: etcd.ErrorCodeTestFailed, Message: fmt.Sprintf("the UID in the precondition (%s) does not match the UID in record (%s). The object might have been deleted and then recreated", *preconditions.UID, objMeta.UID)}
+	}
+	return nil
+}
+
 // Implements storage.Interface.
-func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object) error {
+func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object, preconditions *storage.Preconditions) error {
 	if ctx == nil {
 		glog.Errorf("Context is nil")
 	}
 	key = h.prefixEtcdKey(key)
-	if _, err := conversion.EnforcePtr(out); err != nil {
+	v, err := conversion.EnforcePtr(out)
+	if err != nil {
 		panic("unable to convert output object to pointer")
 	}
 
-	startTime := time.Now()
-	response, err := h.etcdKeysAPI.Delete(ctx, key, nil)
-	metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
-	if !etcdutil.IsEtcdNotFound(err) {
-		// if the object that existed prior to the delete is returned by etcd, update out.
-		if err != nil || response.PrevNode != nil {
-			_, _, err = h.extractObj(response, err, out, false, true)
+	if preconditions == nil {
+		startTime := time.Now()
+		response, err := h.etcdKeysAPI.Delete(ctx, key, nil)
+		metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
+		if !etcdutil.IsEtcdNotFound(err) {
+			// if the object that existed prior to the delete is returned by etcd, update the out object.
+			if err != nil || response.PrevNode != nil {
+				_, _, err = h.extractObj(response, err, out, false, true)
+			}
+		}
+		return toStorageErr(err, key, 0)
+	}
+
+	// Check the preconditions match.
+	obj := reflect.New(v.Type()).Interface().(runtime.Object)
+	for {
+		_, node, res, err := h.bodyAndExtractObj(ctx, key, obj, false)
+		if err != nil {
+			return toStorageErr(err, key, 0)
+		}
+		if err := checkPreconditions(preconditions, obj); err != nil {
+			return toStorageErr(err, key, 0)
+		}
+		index := uint64(0)
+		if node != nil {
+			index = node.ModifiedIndex
+		} else if res != nil {
+			index = res.Index
+		}
+		opt := etcd.DeleteOptions{PrevIndex: index}
+		startTime := time.Now()
+		response, err := h.etcdKeysAPI.Delete(ctx, key, &opt)
+		metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
+		if etcdutil.IsEtcdTestFailed(err) {
+			glog.Infof("deletion of %s failed because of a conflict, going to retry", key)
+		} else {
+			if !etcdutil.IsEtcdNotFound(err) {
+				// if the object that existed prior to the delete is returned by etcd, update the out object.
+				if err != nil || response.PrevNode != nil {
+					_, _, err = h.extractObj(response, err, out, false, true)
+				}
+			}
+			return toStorageErr(err, key, 0)
 		}
 	}
-	return err
 }
 
 // Implements storage.Interface.
@@ -366,12 +417,11 @@ func (h *etcdHelper) bodyAndExtractObj(ctx context.Context, key string, objPtr r
 
 	response, err := h.etcdKeysAPI.Get(ctx, key, opts)
 	metrics.RecordEtcdRequestLatency("get", getTypeName(objPtr), startTime)
-
 	if err != nil && !etcdutil.IsEtcdNotFound(err) {
-		return "", nil, nil, err
+		return "", nil, nil, toStorageErr(err, key, 0)
 	}
 	body, node, err = h.extractObj(response, err, objPtr, ignoreNotFound, false)
-	return body, node, response, err
+	return body, node, response, toStorageErr(err, key, 0)
 }
 
 func (h *etcdHelper) extractObj(response *etcd.Response, inErr error, objPtr runtime.Object, ignoreNotFound, prevNode bool) (body string, node *etcd.Node, err error) {
@@ -433,7 +483,7 @@ func (h *etcdHelper) GetToList(ctx context.Context, key string, filter storage.F
 		if etcdutil.IsEtcdNotFound(err) {
 			return nil
 		}
-		return err
+		return toStorageErr(err, key, 0)
 	}
 
 	nodes := make([]*etcd.Node, 0)
@@ -540,14 +590,14 @@ func (h *etcdHelper) listEtcdNode(ctx context.Context, key string) ([]*etcd.Node
 		if etcdutil.IsEtcdNotFound(err) {
 			return nodes, index, nil
 		} else {
-			return nodes, index, err
+			return nodes, index, toStorageErr(err, key, 0)
 		}
 	}
 	return result.Node.Nodes, result.Index, nil
 }
 
 // Implements storage.Interface.
-func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType runtime.Object, ignoreNotFound bool, tryUpdate storage.UpdateFunc) error {
+func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType runtime.Object, ignoreNotFound bool, preconditions *storage.Preconditions, tryUpdate storage.UpdateFunc) error {
 	if ctx == nil {
 		glog.Errorf("Context is nil")
 	}
@@ -561,7 +611,10 @@ func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType
 		obj := reflect.New(v.Type()).Interface().(runtime.Object)
 		origBody, node, res, err := h.bodyAndExtractObj(ctx, key, obj, ignoreNotFound)
 		if err != nil {
-			return err
+			return toStorageErr(err, key, 0)
+		}
+		if err := checkPreconditions(preconditions, obj); err != nil {
+			return toStorageErr(err, key, 0)
 		}
 		meta := storage.ResponseMeta{}
 		if node != nil {
@@ -574,7 +627,7 @@ func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType
 		// Get the object to be written by calling tryUpdate.
 		ret, newTTL, err := tryUpdate(obj, meta)
 		if err != nil {
-			return err
+			return toStorageErr(err, key, 0)
 		}
 
 		index := uint64(0)
@@ -622,7 +675,7 @@ func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType
 				continue
 			}
 			_, _, err = h.extractObj(response, err, ptrToType, false, false)
-			return err
+			return toStorageErr(err, key, 0)
 		}
 
 		if string(data) == origBody {
@@ -646,7 +699,7 @@ func (h *etcdHelper) GuaranteedUpdate(ctx context.Context, key string, ptrToType
 			continue
 		}
 		_, _, err = h.extractObj(response, err, ptrToType, false, false)
-		return err
+		return toStorageErr(err, key, int64(index))
 	}
 }
 
@@ -709,5 +762,23 @@ func (h *etcdHelper) addToCache(index uint64, obj runtime.Object) {
 	isOverwrite := h.cache.Add(index, objCopy)
 	if !isOverwrite {
 		metrics.ObserveNewEntry()
+	}
+}
+
+func toStorageErr(err error, key string, rv int64) error {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case etcdutil.IsEtcdNotFound(err):
+		return storage.NewKeyNotFoundError(key, rv)
+	case etcdutil.IsEtcdNodeExist(err):
+		return storage.NewKeyExistsError(key, rv)
+	case etcdutil.IsEtcdTestFailed(err):
+		return storage.NewResourceVersionConflictsError(key, rv)
+	case etcdutil.IsEtcdUnreachable(err):
+		return storage.NewUnreachableError(key, rv)
+	default:
+		return err
 	}
 }

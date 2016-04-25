@@ -129,7 +129,7 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
-		FilenameParam(false, abspath).
+		FilenameParam(false, false, abspath).
 		Flatten().
 		Do()
 

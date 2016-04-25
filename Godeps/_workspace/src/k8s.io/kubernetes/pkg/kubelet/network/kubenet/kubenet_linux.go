@@ -41,6 +41,8 @@ const (
 )
 
 type kubenetNetworkPlugin struct {
+	network.NoopNetworkPlugin
+
 	host      network.Host
 	netConfig *libcni.NetworkConfig
 	cniConfig *libcni.CNIConfig
@@ -91,7 +93,7 @@ func findMinMTU() (*net.Interface, error) {
 	}
 
 	if mtu >= 999999 || mtu < 576 || defIntfIndex < 0 {
-		return nil, fmt.Errorf("no suitable interface", BridgeName)
+		return nil, fmt.Errorf("no suitable interface: %v", BridgeName)
 	}
 
 	return &intfs[defIntfIndex], nil
@@ -139,6 +141,7 @@ func (plugin *kubenetNetworkPlugin) Event(name string, details map[string]interf
 		cidr.IP.To4()[3] += 1
 
 		json := fmt.Sprintf(NET_CONFIG_TEMPLATE, BridgeName, plugin.MTU, network.DefaultInterfaceName, podCIDR, cidr.IP.String())
+		glog.V(2).Infof("CNI network config set to %v", json)
 		plugin.netConfig, err = libcni.ConfFromBytes([]byte(json))
 		if err == nil {
 			glog.V(5).Infof("CNI network config:\n%s", json)
@@ -197,6 +200,7 @@ func (plugin *kubenetNetworkPlugin) SetUpPod(namespace string, name string, id k
 		return fmt.Errorf("Error building CNI config: %v", err)
 	}
 
+	glog.V(3).Infof("Calling cni plugins to add container to network with cni runtime: %+v", rt)
 	res, err := plugin.cniConfig.AddNetwork(plugin.netConfig, rt)
 	if err != nil {
 		return fmt.Errorf("Error adding container to network: %v", err)
@@ -252,6 +256,7 @@ func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, i
 	}
 	delete(plugin.podCIDRs, id)
 
+	glog.V(3).Infof("Calling cni plugins to remove container from network with cni runtime: %+v", rt)
 	if err := plugin.cniConfig.DelNetwork(plugin.netConfig, rt); err != nil {
 		return fmt.Errorf("Error removing container from network: %v", err)
 	}

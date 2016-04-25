@@ -36,7 +36,7 @@ func nextEnts(r *raft, s *MemoryStorage) (ents []pb.Entry) {
 	return ents
 }
 
-type Interface interface {
+type stateMachine interface {
 	Step(m pb.Message) error
 	readMessages() []pb.Message
 }
@@ -237,7 +237,7 @@ func TestProgressIsPaused(t *testing.T) {
 			ins:    newInflights(256),
 		}
 		if g := p.isPaused(); g != tt.w {
-			t.Errorf("#%d: shouldwait = %t, want %t", i, g, tt.w)
+			t.Errorf("#%d: paused= %t, want %t", i, g, tt.w)
 		}
 	}
 }
@@ -762,7 +762,7 @@ func TestIsElectionTimeout(t *testing.T) {
 
 	for i, tt := range tests {
 		sm := newTestRaft(1, []uint64{1}, 10, 1, NewMemoryStorage())
-		sm.elapsed = tt.elapse
+		sm.electionElapsed = tt.elapse
 		c := 0
 		for j := 0; j < 10000; j++ {
 			if sm.isElectionTimeout() {
@@ -780,7 +780,7 @@ func TestIsElectionTimeout(t *testing.T) {
 }
 
 // ensure that the Step function ignores the message from old term and does not pass it to the
-// acutal stepX function.
+// actual stepX function.
 func TestStepIgnoreOldTermMsg(t *testing.T) {
 	called := false
 	fakeStep := func(r *raft, m pb.Message) {
@@ -939,7 +939,7 @@ func TestHandleHeartbeatResp(t *testing.T) {
 	}
 }
 
-// TestMsgAppRespWaitReset verifies the waitReset behavior of a leader
+// TestMsgAppRespWaitReset verifies the resume behavior of a leader
 // MsgAppResp.
 func TestMsgAppRespWaitReset(t *testing.T) {
 	sm := newTestRaft(1, []uint64{1, 2, 3}, 5, 1, NewMemoryStorage())
@@ -957,8 +957,8 @@ func TestMsgAppRespWaitReset(t *testing.T) {
 		Type:  pb.MsgAppResp,
 		Index: 1,
 	})
-	if sm.Commit != 1 {
-		t.Fatalf("expected Commit to be 1, got %d", sm.Commit)
+	if sm.raftLog.committed != 1 {
+		t.Fatalf("expected committed to be 1, got %d", sm.raftLog.committed)
 	}
 	// Also consume the MsgApp messages that update Commit on the followers.
 	sm.readMessages()
@@ -977,7 +977,7 @@ func TestMsgAppRespWaitReset(t *testing.T) {
 		t.Fatalf("expected 1 message, got %d: %+v", len(msgs), msgs)
 	}
 	if msgs[0].Type != pb.MsgApp || msgs[0].To != 2 {
-		t.Errorf("expected MsgApp to node 2, got %s to %d", msgs[0].Type, msgs[0].To)
+		t.Errorf("expected MsgApp to node 2, got %v to %d", msgs[0].Type, msgs[0].To)
 	}
 	if len(msgs[0].Entries) != 1 || msgs[0].Entries[0].Index != 2 {
 		t.Errorf("expected to send entry 2, but got %v", msgs[0].Entries)
@@ -994,7 +994,7 @@ func TestMsgAppRespWaitReset(t *testing.T) {
 		t.Fatalf("expected 1 message, got %d: %+v", len(msgs), msgs)
 	}
 	if msgs[0].Type != pb.MsgApp || msgs[0].To != 3 {
-		t.Errorf("expected MsgApp to node 3, got %s to %d", msgs[0].Type, msgs[0].To)
+		t.Errorf("expected MsgApp to node 3, got %v to %d", msgs[0].Type, msgs[0].To)
 	}
 	if len(msgs[0].Entries) != 1 || msgs[0].Entries[0].Index != 2 {
 		t.Errorf("expected to send entry 2, but got %v", msgs[0].Entries)
@@ -1046,7 +1046,7 @@ func TestRecvMsgVote(t *testing.T) {
 		case StateLeader:
 			sm.step = stepLeader
 		}
-		sm.HardState = pb.HardState{Vote: tt.voteFor}
+		sm.Vote = tt.voteFor
 		sm.raftLog = &raftLog{
 			storage:  &MemoryStorage{ents: []pb.Entry{{}, {Index: 1, Term: 2}, {Index: 2, Term: 2}}},
 			unstable: unstable{offset: 3},
@@ -1172,6 +1172,41 @@ func TestAllServerStepdown(t *testing.T) {
 	}
 }
 
+func TestLeaderStepdownWhenQuorumActive(t *testing.T) {
+	sm := newTestRaft(1, []uint64{1, 2, 3}, 5, 1, NewMemoryStorage())
+
+	sm.checkQuorum = true
+
+	sm.becomeCandidate()
+	sm.becomeLeader()
+
+	for i := 0; i < sm.electionTimeout+1; i++ {
+		sm.Step(pb.Message{From: 2, Type: pb.MsgHeartbeatResp, Term: sm.Term})
+		sm.tick()
+	}
+
+	if sm.state != StateLeader {
+		t.Errorf("state = %v, want %v", sm.state, StateLeader)
+	}
+}
+
+func TestLeaderStepdownWhenQuorumLost(t *testing.T) {
+	sm := newTestRaft(1, []uint64{1, 2, 3}, 5, 1, NewMemoryStorage())
+
+	sm.checkQuorum = true
+
+	sm.becomeCandidate()
+	sm.becomeLeader()
+
+	for i := 0; i < sm.electionTimeout+1; i++ {
+		sm.tick()
+	}
+
+	if sm.state != StateFollower {
+		t.Errorf("state = %v, want %v", sm.state, StateFollower)
+	}
+}
+
 func TestLeaderAppResp(t *testing.T) {
 	// initial progress: match = 0; next = 3
 	tests := []struct {
@@ -1288,7 +1323,7 @@ func TestBcastBeat(t *testing.T) {
 	}
 }
 
-// tests the output of the statemachine when receiving MsgBeat
+// tests the output of the state machine when receiving MsgBeat
 func TestRecvMsgBeat(t *testing.T) {
 	tests := []struct {
 		state StateType
@@ -1400,7 +1435,7 @@ func TestSendAppendForProgressProbe(t *testing.T) {
 			t.Errorf("len(msg) = %d, want %d", len(msg), 1)
 		}
 		if msg[0].Type != pb.MsgHeartbeat {
-			t.Errorf("type = %s, want %s", msg[0].Type, pb.MsgHeartbeat)
+			t.Errorf("type = %v, want %v", msg[0].Type, pb.MsgHeartbeat)
 		}
 	}
 }
@@ -1528,8 +1563,7 @@ func TestRestoreIgnoreSnapshot(t *testing.T) {
 }
 
 func TestProvideSnap(t *testing.T) {
-	// restore the statemachin from a snapshot
-	// so it has a compacted log and a snapshot
+	// restore the state machine from a snapshot so it has a compacted log and a snapshot
 	s := pb.Snapshot{
 		Metadata: pb.SnapshotMetadata{
 			Index:     11, // magic number
@@ -1544,11 +1578,10 @@ func TestProvideSnap(t *testing.T) {
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
-	// force set the next of node 1, so that
-	// node 1 needs a snapshot
+	// force set the next of node 2, so that node 2 needs a snapshot
 	sm.prs[2].Next = sm.raftLog.firstIndex()
-
 	sm.Step(pb.Message{From: 2, To: 1, Type: pb.MsgAppResp, Index: sm.prs[2].Next - 1, Reject: true})
+
 	msgs := sm.readMessages()
 	if len(msgs) != 1 {
 		t.Fatalf("len(msgs) = %d, want 1", len(msgs))
@@ -1556,6 +1589,35 @@ func TestProvideSnap(t *testing.T) {
 	m := msgs[0]
 	if m.Type != pb.MsgSnap {
 		t.Errorf("m.Type = %v, want %v", m.Type, pb.MsgSnap)
+	}
+}
+
+func TestIgnoreProvidingSnap(t *testing.T) {
+	// restore the state machine from a snapshot so it has a compacted log and a snapshot
+	s := pb.Snapshot{
+		Metadata: pb.SnapshotMetadata{
+			Index:     11, // magic number
+			Term:      11, // magic number
+			ConfState: pb.ConfState{Nodes: []uint64{1, 2}},
+		},
+	}
+	storage := NewMemoryStorage()
+	sm := newTestRaft(1, []uint64{1}, 10, 1, storage)
+	sm.restore(s)
+
+	sm.becomeCandidate()
+	sm.becomeLeader()
+
+	// force set the next of node 2, so that node 2 needs a snapshot
+	// change node 2 to be inactive, expect node 1 ignore sending snapshot to 2
+	sm.prs[2].Next = sm.raftLog.firstIndex() - 1
+	sm.prs[2].RecentActive = false
+
+	sm.Step(pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{Data: []byte("somedata")}}})
+
+	msgs := sm.readMessages()
+	if len(msgs) != 0 {
+		t.Errorf("len(msgs) = %d, want 0", len(msgs))
 	}
 }
 
@@ -1589,8 +1651,18 @@ func TestSlowNodeRestore(t *testing.T) {
 	nt.storage[1].Compact(lead.raftLog.applied)
 
 	nt.recover()
+	// send heartbeats so that the leader can learn everyone is active.
+	// node 3 will only be considered as active when node 1 receives a reply from it.
+	for {
+		nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgBeat})
+		if lead.prs[3].RecentActive {
+			break
+		}
+	}
+
 	// trigger a snapshot
 	nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{}}})
+
 	follower := nt.peers[3].(*raft)
 
 	// trigger a commit
@@ -1751,6 +1823,92 @@ func TestRaftNodes(t *testing.T) {
 	}
 }
 
+func TestCampaignWhileLeader(t *testing.T) {
+	r := newTestRaft(1, []uint64{1}, 5, 1, NewMemoryStorage())
+	if r.state != StateFollower {
+		t.Errorf("expected new node to be follower but got %s", r.state)
+	}
+	// We don't call campaign() directly because it comes after the check
+	// for our current state.
+	r.Step(pb.Message{From: 1, To: 1, Type: pb.MsgHup})
+	if r.state != StateLeader {
+		t.Errorf("expected single-node election to become leader but got %s", r.state)
+	}
+	term := r.Term
+	r.Step(pb.Message{From: 1, To: 1, Type: pb.MsgHup})
+	if r.state != StateLeader {
+		t.Errorf("expected to remain leader but got %s", r.state)
+	}
+	if r.Term != term {
+		t.Errorf("expected to remain in term %v but got %v", term, r.Term)
+	}
+}
+
+// TestCommitAfterRemoveNode verifies that pending commands can become
+// committed when a config change reduces the quorum requirements.
+func TestCommitAfterRemoveNode(t *testing.T) {
+	// Create a cluster with two nodes.
+	s := NewMemoryStorage()
+	r := newTestRaft(1, []uint64{1, 2}, 5, 1, s)
+	r.becomeCandidate()
+	r.becomeLeader()
+
+	// Begin to remove the second node.
+	cc := pb.ConfChange{
+		Type:   pb.ConfChangeRemoveNode,
+		NodeID: 2,
+	}
+	ccData, err := cc.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Step(pb.Message{
+		Type: pb.MsgProp,
+		Entries: []pb.Entry{
+			{Type: pb.EntryConfChange, Data: ccData},
+		},
+	})
+	// Stabilize the log and make sure nothing is committed yet.
+	if ents := nextEnts(r, s); len(ents) > 0 {
+		t.Fatalf("unexpected committed entries: %v", ents)
+	}
+	ccIndex := r.raftLog.lastIndex()
+
+	// While the config change is pending, make another proposal.
+	r.Step(pb.Message{
+		Type: pb.MsgProp,
+		Entries: []pb.Entry{
+			{Type: pb.EntryNormal, Data: []byte("hello")},
+		},
+	})
+
+	// Node 2 acknowledges the config change, committing it.
+	r.Step(pb.Message{
+		Type:  pb.MsgAppResp,
+		From:  2,
+		Index: ccIndex,
+	})
+	ents := nextEnts(r, s)
+	if len(ents) != 2 {
+		t.Fatalf("expected two committed entries, got %v", ents)
+	}
+	if ents[0].Type != pb.EntryNormal || ents[0].Data != nil {
+		t.Fatalf("expected ents[0] to be empty, but got %v", ents[0])
+	}
+	if ents[1].Type != pb.EntryConfChange {
+		t.Fatalf("expected ents[1] to be EntryConfChange, got %v", ents[1])
+	}
+
+	// Apply the config change. This reduces quorum requirements so the
+	// pending command can now commit.
+	r.removeNode(2)
+	ents = nextEnts(r, s)
+	if len(ents) != 1 || ents[0].Type != pb.EntryNormal ||
+		string(ents[0].Data) != "hello" {
+		t.Fatalf("expected one committed EntryNormal, got %v", ents)
+	}
+}
+
 func ents(terms ...uint64) *raft {
 	storage := NewMemoryStorage()
 	for i, term := range terms {
@@ -1762,7 +1920,7 @@ func ents(terms ...uint64) *raft {
 }
 
 type network struct {
-	peers   map[uint64]Interface
+	peers   map[uint64]stateMachine
 	storage map[uint64]*MemoryStorage
 	dropm   map[connem]float64
 	ignorem map[pb.MessageType]bool
@@ -1772,11 +1930,11 @@ type network struct {
 // A nil node will be replaced with a new *stateMachine.
 // A *stateMachine will get its k, id.
 // When using stateMachine, the address list is always [1, n].
-func newNetwork(peers ...Interface) *network {
+func newNetwork(peers ...stateMachine) *network {
 	size := len(peers)
 	peerAddrs := idsBySize(size)
 
-	npeers := make(map[uint64]Interface, size)
+	npeers := make(map[uint64]stateMachine, size)
 	nstorage := make(map[uint64]*MemoryStorage, size)
 
 	for j, p := range peers {

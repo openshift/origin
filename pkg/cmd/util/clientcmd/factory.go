@@ -170,7 +170,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		clients:               clients,
 	}
 
-	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
+	w.Object = func(bool) (meta.RESTMapper, runtime.ObjectTyper) {
 
 		defaultMapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
 		defaultTyper := api.Scheme

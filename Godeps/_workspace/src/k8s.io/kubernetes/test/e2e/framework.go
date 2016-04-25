@@ -28,6 +28,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/release_1_2"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/release_1_2"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/metrics"
 
@@ -118,7 +119,7 @@ func (f *Framework) beforeEach() {
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Client = c
-	f.Clientset_1_2 = release_1_2.FromUnversionedClient(c)
+	f.Clientset_1_2 = adapter.FromUnversionedClient(c)
 
 	By("Building a namespace api object")
 	namespace, err := f.CreateNamespace(f.BaseName, map[string]string{
@@ -198,7 +199,7 @@ func (f *Framework) afterEach() {
 	summaries := make([]TestDataSummary, 0)
 	if testContext.GatherKubeSystemResourceUsageData && f.gatherer != nil {
 		By("Collecting resource usage data")
-		summaries = append(summaries, f.gatherer.stopAndSummarize([]int{90, 99}, f.addonResourceConstraints))
+		summaries = append(summaries, f.gatherer.stopAndSummarize([]int{90, 99, 100}, f.addonResourceConstraints))
 	}
 
 	if testContext.GatherLogsSizes {
@@ -411,4 +412,10 @@ func kubectlExec(namespace string, podName, containerName string, args ...string
 	Logf("Running '%s %s'", cmd.Path, strings.Join(cmd.Args, " "))
 	err := cmd.Run()
 	return stdout.Bytes(), stderr.Bytes(), err
+}
+
+// Wrapper function for ginkgo describe.  Adds namespacing.
+// TODO: Support type safe tagging as well https://github.com/kubernetes/kubernetes/pull/22401.
+func KubeDescribe(text string, body func()) bool {
+	return Describe("[k8s.io] "+text, body)
 }

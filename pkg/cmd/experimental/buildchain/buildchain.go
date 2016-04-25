@@ -95,7 +95,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	o.c, o.t = oc, oc
 
 	resource := unversioned.GroupResource{}
-	mapper, _ := f.Object()
+	mapper, _ := f.Object(false)
 	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err

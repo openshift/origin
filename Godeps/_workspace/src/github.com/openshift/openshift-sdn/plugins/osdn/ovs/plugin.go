@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	utilsets "k8s.io/kubernetes/pkg/util/sets"
 )
 
 type ovsPlugin struct {
@@ -113,6 +114,10 @@ func (plugin *ovsPlugin) Name() string {
 	} else {
 		return SingleTenantPluginName()
 	}
+}
+
+func (plugin *ovsPlugin) Capabilities() utilsets.Int {
+	return utilsets.NewInt(knetwork.NET_PLUGIN_CAPABILITY_SHAPING)
 }
 
 func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {

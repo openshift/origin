@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -398,7 +398,7 @@ func TestValidateImageStream(t *testing.T) {
 
 		errs := ValidateImageStream(&stream)
 		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: unexpected errors: %s", name, util.ObjectDiff(e, a))
+			t.Errorf("%s: unexpected errors: %s", name, diff.ObjectDiff(e, a))
 		}
 	}
 }
@@ -655,7 +655,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		}
 		errs := ValidateImageStreamImport(test.isi)
 		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: unexpected errors: %s", name, util.ObjectDiff(e, a))
+			t.Errorf("%s: unexpected errors: %s", name, diff.ObjectDiff(e, a))
 		}
 	}
 }

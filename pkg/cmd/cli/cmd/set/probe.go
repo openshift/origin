@@ -170,18 +170,18 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, o.Filenames...).
+		FilenameParam(explicit, false, o.Filenames...).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, resources...).
 		Flatten()
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
 	}
 
 	o.Encoder = f.JSONEncoder()

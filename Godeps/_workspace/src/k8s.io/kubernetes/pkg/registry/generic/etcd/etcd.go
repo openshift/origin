@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
-	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
+	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -188,7 +188,7 @@ func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher, options *api.Li
 	if name, ok := m.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
 			err := e.Storage.GetToList(ctx, key, filterFunc, list)
-			return list, etcderr.InterpretListError(err, e.QualifiedResource)
+			return list, storeerr.InterpretListError(err, e.QualifiedResource)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
@@ -197,7 +197,7 @@ func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher, options *api.Li
 		options = &api.ListOptions{ResourceVersion: "0"}
 	}
 	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), options.ResourceVersion, filterFunc, list)
-	return list, etcderr.InterpretListError(err, e.QualifiedResource)
+	return list, storeerr.InterpretListError(err, e.QualifiedResource)
 }
 
 // Create inserts a new item according to the unique key from the object.
@@ -219,7 +219,7 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 	}
 	out := e.NewFunc()
 	if err := e.Storage.Create(ctx, key, obj, out, ttl); err != nil {
-		err = etcderr.InterpretCreateError(err, e.QualifiedResource, name)
+		err = storeerr.InterpretCreateError(err, e.QualifiedResource, name)
 		err = rest.CheckGeneratedNameError(e.CreateStrategy, err, obj)
 		return nil, err
 	}
@@ -259,7 +259,17 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 	// TODO: expose TTL
 	creating := false
 	out := e.NewFunc()
-	err = e.Storage.GuaranteedUpdate(ctx, key, out, true, func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
+	meta, err := api.ObjectMetaFor(obj)
+	if err != nil {
+		return nil, false, kubeerr.NewInternalError(err)
+	}
+	var preconditions *storage.Preconditions
+	// If the UID of the new object is specified, we use it as an Update precondition.
+	if len(meta.UID) != 0 {
+		UIDCopy := meta.UID
+		preconditions = &storage.Preconditions{UID: &UIDCopy}
+	}
+	err = e.Storage.GuaranteedUpdate(ctx, key, out, true, preconditions, func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
 		// Since we return 'obj' from this function and it can be modified outside this
 		// function, we are resetting resourceVersion to the initial value here.
 		//
@@ -305,7 +315,7 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 				// TODO: The Invalid error should has a field for Resource.
 				// After that field is added, we should fill the Resource and
 				// leave the Kind field empty. See the discussion in #18526.
-				qualifiedKind := unversioned.GroupKind{e.QualifiedResource.Group, e.QualifiedResource.Resource}
+				qualifiedKind := unversioned.GroupKind{Group: e.QualifiedResource.Group, Kind: e.QualifiedResource.Resource}
 				fieldErrList := field.ErrorList{field.Invalid(field.NewPath("metadata").Child("resourceVersion"), newVersion, "must be specified for an update")}
 				return nil, nil, kubeerr.NewInvalid(qualifiedKind, name, fieldErrList)
 			}
@@ -328,10 +338,10 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 
 	if err != nil {
 		if creating {
-			err = etcderr.InterpretCreateError(err, e.QualifiedResource, name)
+			err = storeerr.InterpretCreateError(err, e.QualifiedResource, name)
 			err = rest.CheckGeneratedNameError(e.CreateStrategy, err, obj)
 		} else {
-			err = etcderr.InterpretUpdateError(err, e.QualifiedResource, name)
+			err = storeerr.InterpretUpdateError(err, e.QualifiedResource, name)
 		}
 		return nil, false, err
 	}
@@ -364,7 +374,7 @@ func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
 		return nil, err
 	}
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
-		return nil, etcderr.InterpretGetError(err, e.QualifiedResource, name)
+		return nil, storeerr.InterpretGetError(err, e.QualifiedResource, name)
 	}
 	if e.Decorator != nil {
 		if err := e.Decorator(obj); err != nil {
@@ -388,17 +398,29 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 
 	obj := e.NewFunc()
 	if err := e.Storage.Get(ctx, key, obj, false); err != nil {
-		return nil, etcderr.InterpretDeleteError(err, e.QualifiedResource, name)
+		return nil, storeerr.InterpretDeleteError(err, e.QualifiedResource, name)
 	}
 
 	// support older consumers of delete by treating "nil" as delete immediately
 	if options == nil {
 		options = api.NewDeleteOptions(0)
 	}
-	graceful, pendingGraceful, err := rest.BeforeDelete(e.DeleteStrategy, ctx, obj, options)
-	if err != nil {
-		return nil, err
+	var preconditions storage.Preconditions
+	if options.Preconditions != nil {
+		preconditions.UID = options.Preconditions.UID
 	}
+
+	// DeleteStrategy is doc'ed as optional, but without one you can't be graceful or you'll panic
+	// tolerate an optional field being optional
+	graceful := false
+	pendingGraceful := false
+	if e.DeleteStrategy != nil {
+		graceful, pendingGraceful, err = rest.BeforeDelete(e.DeleteStrategy, ctx, obj, options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if pendingGraceful {
 		return e.finalizeDelete(obj, false)
 	}
@@ -408,7 +430,7 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 		out := e.NewFunc()
 		lastGraceful := int64(0)
 		err := e.Storage.GuaranteedUpdate(
-			ctx, key, out, false,
+			ctx, key, out, false, &preconditions,
 			storage.SimpleUpdate(func(existing runtime.Object) (runtime.Object, error) {
 				graceful, pendingGraceful, err := rest.BeforeDelete(e.DeleteStrategy, ctx, existing, options)
 				if err != nil {
@@ -445,13 +467,13 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 		case errAlreadyDeleting:
 			return e.finalizeDelete(obj, true)
 		default:
-			return nil, etcderr.InterpretUpdateError(err, e.QualifiedResource, name)
+			return nil, storeerr.InterpretUpdateError(err, e.QualifiedResource, name)
 		}
 	}
 
 	// delete immediately, or no graceful deletion supported
 	out := e.NewFunc()
-	if err := e.Storage.Delete(ctx, key, out); err != nil {
+	if err := e.Storage.Delete(ctx, key, out, &preconditions); err != nil {
 		// Please refer to the place where we set ignoreNotFound for the reason
 		// why we ignore the NotFound error .
 		if storage.IsNotFound(err) && ignoreNotFound && lastExisting != nil {
@@ -459,7 +481,7 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 			// before its deletion, but it's the best approximation.
 			return e.finalizeDelete(lastExisting, true)
 		}
-		return nil, etcderr.InterpretDeleteError(err, e.QualifiedResource, name)
+		return nil, storeerr.InterpretDeleteError(err, e.QualifiedResource, name)
 	}
 	return e.finalizeDelete(out, true)
 }
@@ -629,17 +651,17 @@ func (e *Etcd) calculateTTL(obj runtime.Object, defaultTTL int64, update bool) (
 	return ttl, err
 }
 
-func exportObjectMeta(objMeta *api.ObjectMeta, exact bool) {
-	objMeta.UID = ""
+func exportObjectMeta(accessor meta.Object, exact bool) {
+	accessor.SetUID("")
 	if !exact {
-		objMeta.Namespace = ""
+		accessor.SetNamespace("")
 	}
-	objMeta.CreationTimestamp = unversioned.Time{}
-	objMeta.DeletionTimestamp = nil
-	objMeta.ResourceVersion = ""
-	objMeta.SelfLink = ""
-	if len(objMeta.GenerateName) > 0 && !exact {
-		objMeta.Name = ""
+	accessor.SetCreationTimestamp(unversioned.Time{})
+	accessor.SetDeletionTimestamp(nil)
+	accessor.SetResourceVersion("")
+	accessor.SetSelfLink("")
+	if len(accessor.GetGenerateName()) > 0 && !exact {
+		accessor.SetName("")
 	}
 }
 
@@ -649,8 +671,8 @@ func (e *Etcd) Export(ctx api.Context, name string, opts unversioned.ExportOptio
 	if err != nil {
 		return nil, err
 	}
-	if meta, err := api.ObjectMetaFor(obj); err == nil {
-		exportObjectMeta(meta, opts.Exact)
+	if accessor, err := meta.Accessor(obj); err == nil {
+		exportObjectMeta(accessor, opts.Exact)
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
 	}

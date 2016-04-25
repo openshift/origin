@@ -9,8 +9,10 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	"k8s.io/kubernetes/pkg/util"
+	utilconfig "k8s.io/kubernetes/pkg/util/config"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -23,8 +25,8 @@ func TestKubeletDefaults(t *testing.T) {
 		AuthPath:   util.NewStringFlag("/var/lib/kubelet/kubernetes_auth"),
 		KubeConfig: util.NewStringFlag("/var/lib/kubelet/kubeconfig"),
 
-		SystemReserved: util.ConfigurationMap{},
-		KubeReserved:   util.ConfigurationMap{},
+		SystemReserved: utilconfig.ConfigurationMap{},
+		KubeReserved:   utilconfig.ConfigurationMap{},
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
 			Address:                     "0.0.0.0", // overridden
 			AllowPrivileged:             false,     // overridden
@@ -69,7 +71,7 @@ func TestKubeletDefaults(t *testing.T) {
 			NodeLabels:                  map[string]string{},
 			OOMScoreAdj:                 -999,
 			LockFilePath:                "",
-			PodInfraContainerImage:      kubetypes.PodInfraContainerImage, // overridden
+			PodInfraContainerImage:      kubeletoptions.GetDefaultPodInfraContainerImage(), // overridden
 			Port:                           10250, // overridden
 			ReadOnlyPort:                   10255, // disabled
 			RegisterNode:                   true,
@@ -77,6 +79,7 @@ func TestKubeletDefaults(t *testing.T) {
 			RegistryBurst:                  10,
 			RegistryPullQPS:                5.0,
 			KubeletCgroups:                 "",
+			RktAPIEndpoint:                 rkt.DefaultRktAPIServiceEndpoint,
 			RktPath:                        "",
 			RktStage1Image:                 "",
 			RootDirectory:                  "/var/lib/kubelet", // overridden
@@ -98,7 +101,7 @@ func TestKubeletDefaults(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", util.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesNodeConfig and update expectedDefaults")
 	}
 }

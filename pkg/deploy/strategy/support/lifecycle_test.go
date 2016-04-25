@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -395,7 +395,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			sort.Sort(envByNameAsc(c.Env))
 		}
 		if !kapi.Semantic.DeepEqual(pod, test.expected) {
-			t.Errorf("unexpected pod diff: %v", kutil.ObjectDiff(pod, test.expected))
+			t.Errorf("unexpected pod diff: %v", diff.ObjectDiff(pod, test.expected))
 		}
 	}
 }

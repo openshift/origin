@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -216,7 +216,7 @@ func TestProcessValueEscape(t *testing.T) {
 	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
 	stringResult := strings.TrimSpace(string(result))
 	if expect != stringResult {
-		t.Errorf("unexpected output: %s", util.StringDiff(expect, stringResult))
+		t.Errorf("unexpected output: %s", diff.StringDiff(expect, stringResult))
 	}
 }
 
@@ -375,7 +375,7 @@ func TestEvaluateLabels(t *testing.T) {
 		expect = trailingWhitespace.ReplaceAllString(expect, "")
 		stringResult := strings.TrimSpace(string(result))
 		if expect != stringResult {
-			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, stringResult))
+			t.Errorf("%s: unexpected output: %s", k, diff.StringDiff(expect, stringResult))
 			continue
 		}
 	}
@@ -413,6 +413,6 @@ func TestProcessTemplateParameters(t *testing.T) {
 	exp, _ := runtime.Encode(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), &expectedTemplate)
 
 	if string(result) != string(exp) {
-		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
+		t.Errorf("unexpected output: %s", diff.StringDiff(string(exp), string(result)))
 	}
 }

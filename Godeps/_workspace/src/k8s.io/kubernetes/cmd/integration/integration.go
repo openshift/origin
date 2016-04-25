@@ -55,6 +55,8 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -200,7 +202,7 @@ func startComponents(firstManifestURL, secondManifestURL string) (string, string
 	go replicationcontroller.NewReplicationManager(clientset, controller.NoResyncPeriodFunc, replicationcontroller.BurstReplicas, 4096).
 		Run(3, wait.NeverStop)
 
-	nodeController := nodecontroller.NewNodeController(nil, clientset, 5*time.Minute, util.NewFakeAlwaysRateLimiter(), util.NewFakeAlwaysRateLimiter(),
+	nodeController := nodecontroller.NewNodeController(nil, clientset, 5*time.Minute, flowcontrol.NewFakeAlwaysRateLimiter(), flowcontrol.NewFakeAlwaysRateLimiter(),
 		40*time.Second, 60*time.Second, 5*time.Second, nil, false)
 	nodeController.Run(5 * time.Second)
 	cadvisorInterface := new(cadvisortest.Fake)
@@ -388,7 +390,7 @@ func runStaticPodTest(c *client.Client, configFilePath string) {
 id: static-pod-from-manifest
 containers:
   - name: static-container
-    image: kubernetes/pause`,
+    image: gcr.io/google_containers/pause:2.0`,
 		},
 		{
 			desc: "static-pod-from-spec",
@@ -401,7 +403,7 @@ containers:
 				"spec": {
 					"containers": [{
 						"name": "static-container",
-						"image": "kubernetes/pause"
+						"image": "gcr.io/google_containers/pause:2.0"
 					}]
 				}
 			}`,
@@ -972,7 +974,7 @@ func main() {
 	gruntime.GOMAXPROCS(gruntime.NumCPU())
 	addFlags(pflag.CommandLine)
 
-	util.InitFlags()
+	flag.InitFlags()
 	utilruntime.ReallyCrash = true
 	util.InitLogs()
 	defer util.FlushLogs()
@@ -1108,7 +1110,7 @@ const (
 			"containers": [
 				{
 					"name": "redis",
-					"image": "redis",
+					"image": "gcr.io/google_containers/redis:e2e",
 					"volumeMounts": [{
 						"name": "redis-data",
 						"mountPath": "/data"
@@ -1116,7 +1118,7 @@ const (
 				},
 				{
 					"name": "guestbook",
-					"image": "google/guestbook-python-redis",
+					"image": "gcr.io/google_samples/gb-frontend:v3",
 					"ports": [{
 						"name": "www",
 						"hostPort": 80,

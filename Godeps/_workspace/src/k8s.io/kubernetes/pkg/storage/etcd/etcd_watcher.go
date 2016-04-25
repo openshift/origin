@@ -42,6 +42,7 @@ const (
 	EtcdSet    = "set"
 	EtcdCAS    = "compareAndSwap"
 	EtcdDelete = "delete"
+	EtcdCAD    = "compareAndDelete"
 	EtcdExpire = "expire"
 )
 
@@ -221,7 +222,7 @@ func etcdGetInitialWatchState(ctx context.Context, client etcd.KeysAPI, key stri
 	if err != nil {
 		if !etcdutil.IsEtcdNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("watch was unable to retrieve the current index for the provided key (%q): %v", key, err))
-			return resourceVersion, err
+			return resourceVersion, toStorageErr(err, key, 0)
 		}
 		if etcdError, ok := err.(etcd.Error); ok {
 			resourceVersion = etcdError.Index
@@ -450,7 +451,7 @@ func (w *etcdWatcher) sendResult(res *etcd.Response) {
 		w.sendAdd(res)
 	case EtcdSet, EtcdCAS:
 		w.sendModify(res)
-	case EtcdDelete, EtcdExpire:
+	case EtcdDelete, EtcdExpire, EtcdCAD:
 		w.sendDelete(res)
 	default:
 		utilruntime.HandleError(fmt.Errorf("unknown action: %v", res.Action))

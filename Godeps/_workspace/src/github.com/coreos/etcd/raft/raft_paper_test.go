@@ -460,7 +460,7 @@ func TestLeaderCommitEntry(t *testing.T) {
 			t.Errorf("to = %x, want %x", m.To, w)
 		}
 		if m.Type != pb.MsgApp {
-			t.Errorf("type = %s, want %s", m.Type, pb.MsgApp)
+			t.Errorf("type = %v, want %v", m.Type, pb.MsgApp)
 		}
 		if m.Commit != li+1 {
 			t.Errorf("commit = %d, want %d", m.Commit, li+1)
@@ -913,7 +913,7 @@ func commitNoopEntry(r *raft, s *MemoryStorage) {
 		}
 		r.Step(acceptAndReply(m))
 	}
-	// ignore further messages to refresh followers' commmit index
+	// ignore further messages to refresh followers' commit index
 	r.readMessages()
 	s.Append(r.raftLog.unstableEntries())
 	r.raftLog.appliedTo(r.raftLog.committed)

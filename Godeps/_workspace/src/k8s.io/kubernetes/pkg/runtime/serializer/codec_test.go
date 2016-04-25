@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/ghodss/yaml"
 	"github.com/google/gofuzz"
@@ -173,7 +173,7 @@ func GetTestScheme() (*runtime.Scheme, runtime.Codec) {
 
 	s.AddUnversionedTypes(externalGV, &unversioned.Status{})
 
-	cf := newCodecFactory(s, testMetaFactory{})
+	cf := newCodecFactory(s, newSerializersForScheme(s, testMetaFactory{}))
 	codec := cf.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
 	return s, codec
 }
@@ -187,12 +187,12 @@ func objDiff(a, b interface{}) string {
 	if err != nil {
 		panic("b")
 	}
-	return util.StringDiff(string(ab), string(bb))
+	return diff.StringDiff(string(ab), string(bb))
 
 	// An alternate diff attempt, in case json isn't showing you
 	// the difference. (reflect.DeepEqual makes a distinction between
 	// nil and empty slices, for example.)
-	//return util.StringDiff(
+	//return diff.StringDiff(
 	//  fmt.Sprintf("%#v", a),
 	//  fmt.Sprintf("%#v", b),
 	//)
@@ -222,7 +222,7 @@ func runTest(t *testing.T, source interface{}) {
 		return
 	}
 	if !semantic.DeepEqual(source, obj2) {
-		t.Errorf("1: %v: diff: %v", name, util.ObjectGoPrintSideBySide(source, obj2))
+		t.Errorf("1: %v: diff: %v", name, diff.ObjectGoPrintSideBySide(source, obj2))
 		return
 	}
 	obj3 := reflect.New(reflect.TypeOf(source).Elem()).Interface()
@@ -263,7 +263,7 @@ func TestVersionedEncoding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cf := newCodecFactory(s, testMetaFactory{})
+	cf := newCodecFactory(s, newSerializersForScheme(s, testMetaFactory{}))
 	encoder, _ := cf.SerializerForFileExtension("json")
 
 	// codec that is unversioned uses the target version
@@ -326,7 +326,7 @@ func TestConvertTypesWhenDefaultNamesMatch(t *testing.T) {
 	}
 	expect := &TestType1{A: "test"}
 
-	codec := newCodecFactory(s, testMetaFactory{}).LegacyCodec(unversioned.GroupVersion{Version: "v1"})
+	codec := newCodecFactory(s, newSerializersForScheme(s, testMetaFactory{})).LegacyCodec(unversioned.GroupVersion{Version: "v1"})
 
 	obj, err := runtime.Decode(codec, data)
 	if err != nil {

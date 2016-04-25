@@ -9,7 +9,8 @@ import (
 	th "github.com/rackspace/gophercloud/testhelper"
 )
 
-func TestAuthenticate(t *testing.T) {
+func TestAuthenticateAndValidate(t *testing.T) {
+	// 1. TestAuthenticate
 	ao := v2AuthOptions(t)
 	service := unauthenticatedClient(t)
 
@@ -35,4 +36,19 @@ func TestAuthenticate(t *testing.T) {
 			t.Logf("      - region=[%s] publicURL=[%s]", endpoint.Region, endpoint.PublicURL)
 		}
 	}
+
+	// 2. TestValidate
+	client := authenticatedClient(t)
+
+	// Validate Token!
+	getResult := tokens2.Get(client, token.ID)
+
+	// Extract and print the user.
+	user, err := getResult.ExtractUser()
+	th.AssertNoErr(t, err)
+
+	t.Logf("Acquired User: [%s]", user.Name)
+	t.Logf("The User id: [%s]", user.ID)
+	t.Logf("The User username: [%s]", user.UserName)
+	t.Logf("The User roles: [%#v]", user.Roles)
 }

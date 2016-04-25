@@ -130,7 +130,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 	o.Namespace = namespace
 
 	// Set up client based support.
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	o.getBuilder = func() *resource.Builder {
 		return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 	}

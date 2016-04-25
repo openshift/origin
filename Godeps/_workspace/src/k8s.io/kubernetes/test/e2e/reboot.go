@@ -45,7 +45,7 @@ const (
 	rebootPodReadyAgainTimeout = 5 * time.Minute
 )
 
-var _ = Describe("Reboot [Disruptive] [Feature:Reboot]", func() {
+var _ = KubeDescribe("Reboot [Disruptive] [Feature:Reboot]", func() {
 	var f *Framework
 
 	BeforeEach(func() {
@@ -165,7 +165,7 @@ func printStatusAndLogsForNotReadyPods(c *client.Client, ns string, podNames []s
 			prefix = "Retrieving log for the last terminated container"
 		}
 		if err != nil {
-			Logf("%s %s, err: %v:\n%s\n", prefix, id, log)
+			Logf("%s %s, err: %v:\n%s\n", prefix, id, err, log)
 		} else {
 			Logf("%s %s:\n%s\n", prefix, id, log)
 		}

@@ -70,7 +70,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 	buildClient := client.Builds(namespace)
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	obj, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).
 		ResourceNames("builds", buildName).
@@ -117,7 +117,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 	fmt.Fprintf(out, "Build %s was cancelled.\n", build.Name)
 
-	// mapper, typer := f.Object()
+	// mapper, typer := f.Object(false)
 	// resourceMapper := &resource.Mapper{ObjectTyper: typer, RESTMapper: mapper, ClientMapper: f.ClientMapperForCommand()}
 	// shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
 

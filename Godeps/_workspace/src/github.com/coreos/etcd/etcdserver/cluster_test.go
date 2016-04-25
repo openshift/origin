@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/coreos/etcd/pkg/mock/mockstore"
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft/raftpb"
@@ -406,7 +407,7 @@ func TestClusterGenID(t *testing.T) {
 	}
 	previd := cs.ID()
 
-	cs.SetStore(&storeRecorder{})
+	cs.SetStore(mockstore.NewNop())
 	cs.AddMember(newTestMember(3, nil, "", nil))
 	cs.genID()
 	if cs.ID() == previd {
@@ -447,7 +448,7 @@ func TestNodeToMemberBad(t *testing.T) {
 }
 
 func TestClusterAddMember(t *testing.T) {
-	st := &storeRecorder{}
+	st := mockstore.NewRecorder()
 	c := newTestCluster(nil)
 	c.SetStore(st)
 	c.AddMember(newTestMember(1, nil, "node1", nil))
@@ -460,7 +461,7 @@ func TestClusterAddMember(t *testing.T) {
 				false,
 				`{"peerURLs":null}`,
 				false,
-				store.Permanent,
+				store.TTLOptionSet{ExpireTime: store.Permanent},
 			},
 		},
 	}
@@ -492,14 +493,14 @@ func TestClusterMembers(t *testing.T) {
 }
 
 func TestClusterRemoveMember(t *testing.T) {
-	st := &storeRecorder{}
+	st := mockstore.NewRecorder()
 	c := newTestCluster(nil)
 	c.SetStore(st)
 	c.RemoveMember(1)
 
 	wactions := []testutil.Action{
 		{Name: "Delete", Params: []interface{}{memberStoreKey(1), true, true}},
-		{Name: "Create", Params: []interface{}{removedMemberStoreKey(1), false, "", false, store.Permanent}},
+		{Name: "Create", Params: []interface{}{removedMemberStoreKey(1), false, "", false, store.TTLOptionSet{ExpireTime: store.Permanent}}},
 	}
 	if !reflect.DeepEqual(st.Action(), wactions) {
 		t.Errorf("actions = %v, want %v", st.Action(), wactions)
@@ -566,3 +567,168 @@ func newTestCluster(membs []*Member) *cluster {
 }
 
 func stringp(s string) *string { return &s }
+
+func TestIsReadyToAddNewMember(t *testing.T) {
+	tests := []struct {
+		members []*Member
+		want    bool
+	}{
+		{
+			// 0/3 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "", nil),
+				newTestMember(2, nil, "", nil),
+				newTestMember(3, nil, "", nil),
+			},
+			false,
+		},
+		{
+			// 1/2 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "", nil),
+			},
+			false,
+		},
+		{
+			// 1/3 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "", nil),
+				newTestMember(3, nil, "", nil),
+			},
+			false,
+		},
+		{
+			// 1/1 members ready, should succeed (special case of 1-member cluster for recovery)
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+			},
+			true,
+		},
+		{
+			// 2/3 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "", nil),
+			},
+			false,
+		},
+		{
+			// 3/3 members ready, should be fine to add one member and retain quorum
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "3", nil),
+			},
+			true,
+		},
+		{
+			// 3/4 members ready, should be fine to add one member and retain quorum
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "3", nil),
+				newTestMember(4, nil, "", nil),
+			},
+			true,
+		},
+		{
+			// empty cluster, it is impossible but should fail
+			[]*Member{},
+			false,
+		},
+	}
+	for i, tt := range tests {
+		c := newTestCluster(tt.members)
+		if got := c.isReadyToAddNewMember(); got != tt.want {
+			t.Errorf("%d: isReadyToAddNewMember returned %t, want %t", i, got, tt.want)
+		}
+	}
+}
+
+func TestIsReadyToRemoveMember(t *testing.T) {
+	tests := []struct {
+		members  []*Member
+		removeID uint64
+		want     bool
+	}{
+		{
+			// 1/1 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+			},
+			1,
+			false,
+		},
+		{
+			// 0/3 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "", nil),
+				newTestMember(2, nil, "", nil),
+				newTestMember(3, nil, "", nil),
+			},
+			1,
+			false,
+		},
+		{
+			// 1/2 members ready, should be fine to remove unstarted member
+			// (isReadyToRemoveMember() logic should return success, but operation itself would fail)
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "", nil),
+			},
+			2,
+			true,
+		},
+		{
+			// 2/3 members ready, should fail
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "", nil),
+			},
+			2,
+			false,
+		},
+		{
+			// 3/3 members ready, should be fine to remove one member and retain quorum
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "3", nil),
+			},
+			3,
+			true,
+		},
+		{
+			// 3/4 members ready, should be fine to remove one member
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "3", nil),
+				newTestMember(4, nil, "", nil),
+			},
+			3,
+			true,
+		},
+		{
+			// 3/4 members ready, should be fine to remove unstarted member
+			[]*Member{
+				newTestMember(1, nil, "1", nil),
+				newTestMember(2, nil, "2", nil),
+				newTestMember(3, nil, "3", nil),
+				newTestMember(4, nil, "", nil),
+			},
+			4,
+			true,
+		},
+	}
+	for i, tt := range tests {
+		c := newTestCluster(tt.members)
+		if got := c.isReadyToRemoveMember(tt.removeID); got != tt.want {
+			t.Errorf("%d: isReadyToAddNewMember returned %t, want %t", i, got, tt.want)
+		}
+	}
+}

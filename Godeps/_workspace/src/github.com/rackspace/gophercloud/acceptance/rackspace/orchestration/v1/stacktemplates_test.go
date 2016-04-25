@@ -49,21 +49,20 @@ func TestStackTemplates(t *testing.T) {
 	t.Logf("retrieved template: %+v\n", tmpl)
 
 	validateOpts := osStacktemplates.ValidateOpts{
-		Template: map[string]interface{}{
-			"heat_template_version": "2013-05-23",
+		Template: `{"heat_template_version": "2013-05-23",
 			"description":           "Simple template to test heat commands",
-			"parameters": map[string]interface{}{
-				"flavor": map[string]interface{}{
+			"parameters": {
+				"flavor": {
 					"default": "m1.tiny",
 					"type":    "string",
 				},
 			},
-			"resources": map[string]interface{}{
-				"hello_world": map[string]interface{}{
+			"resources": {
+				"hello_world": {
 					"type": "OS::Nova::Server",
-					"properties": map[string]interface{}{
+					"properties": {
 						"key_name": "heat_key",
-						"flavor": map[string]interface{}{
+						"flavor": {
 							"get_param": "flavor",
 						},
 						"image":     "ad091b52-742f-469e-8f3c-fd81cadf0743",
@@ -71,8 +70,7 @@ func TestStackTemplates(t *testing.T) {
 					},
 				},
 			},
-		},
-	}
+		}`}
 	validatedTemplate, err := stacktemplates.Validate(client, validateOpts).Extract()
 	th.AssertNoErr(t, err)
 	t.Logf("validated template: %+v\n", validatedTemplate)
