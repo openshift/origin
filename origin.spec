@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 320f70f1d0043d88bdea241e5146190c3501d546
+%global commit 8010edde7b14e3328775787762a0c3c885ea91c8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.18-17-g320f70f -X github.com/openshift/origin/pkg/version.commitFromGit 320f70f -X k8s.io/kubernetes/pkg/version.gitCommit 320f70f -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.19-14-g8010edd -X github.com/openshift/origin/pkg/version.commitFromGit 8010edd -X k8s.io/kubernetes/pkg/version.gitCommit 8010edd -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.19
+Version:        3.2.0.20
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -485,6 +485,17 @@ fi
 
 
 %changelog
+* Mon Apr 25 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.20
+- bump(github.com/openshift/openshift-sdn)
+  ba3087afd66cce7c7d918af10ad91197f8dfd74f (rpenta@redhat.com)
+- Open() is called in the pullthrough code path and needs retry
+  (ccoleman@redhat.com)
+- Improve parsing of semantic version for git tag (ccoleman@redhat.com)
+- Prevent deployer pod creation conflicts (ironcladlou@gmail.com)
+- Wait until user has access to project in extended (ccoleman@redhat.com)
+- Retry 401 unauthorized responses from registries within a window
+  (ccoleman@redhat.com)
+
 * Fri Apr 22 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.19
 - Support extracting release binaries on other platforms (ccoleman@redhat.com)
 - When Kube and Origin version are the same, skip test (ccoleman@redhat.com)
