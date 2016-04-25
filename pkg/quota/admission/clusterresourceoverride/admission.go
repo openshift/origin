@@ -64,7 +64,18 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 	if errs := validation.Validate(parsed); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
-	glog.V(5).Infof("%s admission controller loaded with config: %v", api.PluginName, parsed)
+
+	// we can't intercept and return a nil value or the upstream code will panic.  Changing the admission initialization API is
+	// too big for now.
+	// TODO fix properly
+	if parsed == nil {
+		glog.V(2).Infof("%s admission controller has no configuration, return no-op", api.PluginName)
+		return &clusterResourceOverridePlugin{
+			Handler: admission.NewHandler(),
+		}, nil
+	}
+
+	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, parsed)
 	var internal *internalConfig
 	if parsed != nil {
 		internal = &internalConfig{
