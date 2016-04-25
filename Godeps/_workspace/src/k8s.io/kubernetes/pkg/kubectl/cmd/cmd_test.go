@@ -249,7 +249,8 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 
 	f := &cmdutil.Factory{
 		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
-			return testapi.Default.RESTMapper(), api.Scheme
+			mapper := kubectl.ShortcutExpander{RESTMapper: testapi.Default.RESTMapper()}
+			return mapper, api.Scheme
 		},
 		Client: func() (*client.Client, error) {
 			// Swap out the HTTP client out of the client with the fake's version.

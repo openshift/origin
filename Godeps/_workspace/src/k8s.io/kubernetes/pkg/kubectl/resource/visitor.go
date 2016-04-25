@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -200,6 +201,37 @@ func (l EagerVisitorList) Visit(fn VisitorFunc) error {
 		}
 	}
 	return utilerrors.NewAggregate(errs)
+}
+
+// ComplacentVisitorList contains a sub visitor but it's complacent about
+// errors returned by the sub visitor if they match the Matcher condition.
+type ComplacentVisitorList struct {
+	Visitor
+	utilerrors.Matcher
+}
+
+// Visit implements Visitor, and logs errors that occur during processing
+// (never return them in the end) if they attend the given Matcher.
+func (l ComplacentVisitorList) Visit(fn VisitorFunc) error {
+	visitorErr := l.Visitor.Visit(fn)
+	if visitorErr != nil {
+		aggregated := utilerrors.NewAggregate([]error{visitorErr})
+		flattened := utilerrors.Flatten(aggregated)
+
+		unmatchedErrs := []error(nil)
+		for _, err := range flattened.Errors() {
+			if l.Matcher(err) {
+				glog.V(4).Infof("%v", err)
+				continue
+			}
+			unmatchedErrs = append(unmatchedErrs, err)
+		}
+
+		if len(unmatchedErrs) > 0 {
+			return utilerrors.NewAggregate(unmatchedErrs)
+		}
+	}
+	return nil
 }
 
 func ValidateSchema(data []byte, schema validation.Schema) error {

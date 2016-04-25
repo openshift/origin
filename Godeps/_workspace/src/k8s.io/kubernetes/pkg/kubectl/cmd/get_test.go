@@ -491,6 +491,46 @@ func TestGetMultipleTypeObjects(t *testing.T) {
 	}
 }
 
+func TestGetMultipleTypeWithAliasObjects(t *testing.T) {
+	pods, svc, rc := testData()
+
+	f, tf, codec := NewAPIFactory()
+	tf.Printer = &testPrinter{}
+	tf.Client = &fake.RESTClient{
+		Codec: codec,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch req.URL.Path {
+			case "/namespaces/test/pods":
+				return &http.Response{StatusCode: 200, Body: objBody(codec, pods)}, nil
+			case "/namespaces/test/services":
+				return &http.Response{StatusCode: 200, Body: objBody(codec, svc)}, nil
+			case "/namespaces/test/replicationcontrollers":
+				return &http.Response{StatusCode: 200, Body: objBody(codec, rc)}, nil
+			default:
+				return &http.Response{StatusCode: 404, Body: stringBody("")}, nil
+			}
+		}),
+	}
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+
+	cmd := NewCmdGet(f, buf)
+	cmd.SetOutput(buf)
+	cmd.Run(cmd, []string{"all"})
+
+	expected, err := extractResourceList([]runtime.Object{rc, svc, pods})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	actual := tf.Printer.(*testPrinter).Objects
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("unexpected object, expected: %#v, got: %#v", expected, actual)
+	}
+	if len(buf.String()) == 0 {
+		t.Errorf("unexpected empty output")
+	}
+}
+
 func TestGetMultipleTypeObjectsAsList(t *testing.T) {
 	pods, svc, _ := testData()
 
