@@ -87,7 +87,7 @@ func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *No
 	cmd := &cobra.Command{
 		Use:   "network",
 		Short: "Launch node network",
-		Long:  fmt.Sprintf(nodeLong, basename),
+		Long:  fmt.Sprintf(networkLong, basename),
 		Run:   options.Run,
 	}
 
@@ -310,7 +310,6 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	if components.Enabled(ComponentKubelet) {
 		config.RunKubelet()
 	}
-	// SDN plugins get the opportunity to filter service rules, so they start first
 	if components.Enabled(ComponentPlugins) {
 		config.RunPlugin()
 	}
