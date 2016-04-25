@@ -142,11 +142,14 @@ function start_os_server {
 
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 	ps -ef | grep openshift
+	local port_info="${LOG_DIR}/ports.log"
+	sudo "$( which lsof )" -i -P 2>&1 | tee "${port_info}"
+	echo "[INFO] Information about open ports written to ${port_info}"
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-	 --loglevel=4 \
+	 --loglevel=6 \
 	 --latest-images="${use_latest_images}" \
 	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
@@ -154,7 +157,7 @@ function start_os_server {
 	echo "[INFO] OpenShift server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+	CURL_EXTRA='-i' wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 120
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
@@ -195,17 +198,20 @@ function start_os_master {
 
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 	ps -ef | grep openshift
+	local port_info="${LOG_DIR}/ports.log"
+	sudo "$( which lsof )" -i -P 2>&1 | tee "${port_info}"
+	echo "[INFO] Information about open ports written to ${port_info}"
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-	 --loglevel=4 \
+	 --loglevel=6 \
 	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 160
+	CURL_EXTRA='-i' wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 160
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 160
 
 	echo "[INFO] OpenShift server health checks done at: "
@@ -361,13 +367,22 @@ function wait_for_url {
 
 	set_curl_args $wait $times
 
+	# set up a log file for verbose output useful when debugging
+	local logfile="${LOG_DIR}/wait-for-$( echo "${url}" | tr '/' '-' ).log"
+	
 	set +e
 	cmd="env -i CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-} $(which curl) ${clientcert_args} -fs ${url}"
 	for i in $(seq 1 $times); do
 		out=$(${cmd})
-		if [ $? -eq 0 ]; then
+		local result=$?
+
+		# dump all server output to the logfile for debugging
+		echo "${out}" >> "${logfile}"
+
+		if [ ${result} -eq 0 ]; then
 			set -e
 			echo "${prefix}${out}"
+			rm -f "${logfile}"
 			return 0
 		fi
 		sleep $wait
@@ -577,7 +592,7 @@ function cleanup_openshift {
 	# fi
 	journalctl --unit docker.service --since -15minutes > "${LOG_DIR}/docker.log"
 
-	delete_empty_logs
+	#delete_empty_logs
 	truncate_large_logs
 
 	echo "[INFO] Cleanup complete"
