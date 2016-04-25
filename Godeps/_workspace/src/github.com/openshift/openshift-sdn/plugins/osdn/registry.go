@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 
 	log "github.com/golang/glog"
 
@@ -28,6 +29,7 @@ type Registry struct {
 	oClient          *osclient.Client
 	kClient          *kclient.Client
 	podsByIP         map[string]*kapi.Pod
+	podTrackingLock  sync.Mutex
 	serviceNetwork   *net.IPNet
 	clusterNetwork   *net.IPNet
 	hostSubnetLength int
@@ -92,7 +94,7 @@ func (registry *Registry) DeleteSubnet(nodeName string) error {
 	return registry.oClient.HostSubnets().Delete(nodeName)
 }
 
-func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) error {
+func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*osapi.HostSubnet, error) {
 	hs := &osapi.HostSubnet{
 		TypeMeta:   unversioned.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
@@ -100,8 +102,7 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) erro
 		HostIP:     nodeIP,
 		Subnet:     subnetCIDR,
 	}
-	_, err := registry.oClient.HostSubnets().Create(hs)
-	return err
+	return registry.oClient.HostSubnets().Create(hs)
 }
 
 func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
@@ -472,7 +473,7 @@ EndpointLoop:
 					continue EndpointLoop
 				}
 				if clusterNetwork.Contains(IP) {
-					podInfo, ok := registry.podsByIP[addr.IP]
+					podInfo, ok := registry.getTrackedPod(addr.IP)
 					if !ok {
 						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop
@@ -490,11 +491,21 @@ EndpointLoop:
 	registry.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
 }
 
+func (registry *Registry) getTrackedPod(ip string) (*kapi.Pod, bool) {
+	registry.podTrackingLock.Lock()
+	defer registry.podTrackingLock.Unlock()
+
+	pod, ok := registry.podsByIP[ip]
+	return pod, ok
+}
+
 func (registry *Registry) trackPod(pod *kapi.Pod) {
 	if pod.Status.PodIP == "" {
 		return
 	}
 
+	registry.podTrackingLock.Lock()
+	defer registry.podTrackingLock.Unlock()
 	podInfo, ok := registry.podsByIP[pod.Status.PodIP]
 
 	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodRunning {
@@ -512,13 +523,16 @@ func (registry *Registry) trackPod(pod *kapi.Pod) {
 	} else if ok && podInfo.UID == pod.UID {
 		// If the UIDs match, then this pod is moving to a state that indicates it is not running
 		// so we need to remove it from the cache
-		registry.unTrackPod(pod)
+		delete(registry.podsByIP, pod.Status.PodIP)
 	}
 
 	return
 }
 
 func (registry *Registry) unTrackPod(pod *kapi.Pod) {
+	registry.podTrackingLock.Lock()
+	defer registry.podTrackingLock.Unlock()
+
 	// Only delete if the pod ID is the one we are tracking (in case there is a failed or complete
 	// pod lying around that gets deleted while there is a running pod with the same IP)
 	if podInfo, ok := registry.podsByIP[pod.Status.PodIP]; ok && podInfo.UID == pod.UID {

@@ -455,6 +455,7 @@ type v2repository struct {
 	name     string
 	endpoint url.URL
 	token    string
+	retries  int
 }
 
 // v2tags describes the tags/list returned by the Docker V2 registry.
@@ -482,6 +483,13 @@ func (repo *v2repository) getTags(c *connection) (map[string]string, error) {
 	switch code := resp.StatusCode; {
 	case code == http.StatusUnauthorized:
 		if len(repo.token) != 0 {
+			// The DockerHub returns JWT tokens that take effect at "now" at second resolution, which means clients can
+			// be rejected when requests are made near the time boundary.
+			if repo.retries > 0 {
+				repo.retries--
+				time.Sleep(time.Second / 2)
+				return repo.getTags(c)
+			}
 			delete(c.cached, repo.name)
 			// docker will not return a NotFound on any repository URL - for backwards compatibilty, return NotFound on the
 			// repo
@@ -491,6 +499,7 @@ func (repo *v2repository) getTags(c *connection) (map[string]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error getting image tags for %s: %v", repo.name, err)
 		}
+		repo.retries = 2
 		repo.token = token
 		return repo.getTags(c)
 
@@ -532,6 +541,13 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 	switch code := resp.StatusCode; {
 	case code == http.StatusUnauthorized:
 		if len(repo.token) != 0 {
+			// The DockerHub returns JWT tokens that take effect at "now" at second resolution, which means clients can
+			// be rejected when requests are made near the time boundary.
+			if repo.retries > 0 {
+				repo.retries--
+				time.Sleep(time.Second / 2)
+				return repo.getTaggedImage(c, tag, userTag)
+			}
 			delete(c.cached, repo.name)
 			// docker will not return a NotFound on any repository URL - for backwards compatibilty, return NotFound on the
 			// repo
@@ -543,6 +559,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		if err != nil {
 			return nil, fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err)
 		}
+		repo.retries = 2
 		repo.token = token
 		return repo.getTaggedImage(c, tag, userTag)
 	case code == http.StatusNotFound:
