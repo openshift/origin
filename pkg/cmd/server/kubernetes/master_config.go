@@ -178,6 +178,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
+	storageFactory.AddCohabitatingResources(extensions.Resource("replicasets"), kapi.Resource("replicationcontrollers"))
+
+	storageFactory.ForceStorageResource(kapi.Resource("replicationcontrollers"), kapi.Resource("replicationcontrollers"))
 
 	// Preserve previous behavior of using the first non-loopback address
 	// TODO: Deprecate this behavior and just require a valid value to be passed in
