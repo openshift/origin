@@ -22,7 +22,7 @@ Add users to a group.
 This command will append unique users to the list of members for a group.`
 
 	addExample = `  # Add user1 and user2 to my-group
-  $ %[1]s my-group user1 user2`
+  %[1]s my-group user1 user2`
 )
 
 const (
@@ -33,7 +33,7 @@ Remove users from a group.
 This command will remove users from the list of members for a group.`
 
 	removeExample = `  # Remove user1 and user2 from my-group
-  $ %[1]s my-group user1 user2`
+  %[1]s my-group user1 user2`
 )
 
 type GroupModificationOptions struct {

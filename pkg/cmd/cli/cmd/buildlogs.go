@@ -26,7 +26,7 @@ will no longer be available. If the build has not yet completed, the build logs 
 build completes or fails.`
 
 	buildLogsExample = `  # Stream logs from container
-  $ %[1]s build-logs 566bed879d2d`
+  %[1]s build-logs 566bed879d2d`
 )
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command

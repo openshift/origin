@@ -54,14 +54,14 @@ definition).
 You can see which cluster SCCs have recommended changes by choosing an output type.`
 
 	reconcileSCCExample = `  # Display the cluster SCCs that would be modified
-  $ %[1]s
+  %[1]s
 
   # Update cluster SCCs that don't match the current defaults preserving additional grants
   # for users and group and keeping any priorities that are already set
-  $ %[1]s --confirm
+  %[1]s --confirm
 
   # Replace existing users, groups, and priorities that do not match defaults
-  $ %[1]s --additive-only=false --confirm`
+  %[1]s --additive-only=false --confirm`
 )
 
 // NewDefaultReconcileSCCOptions provides a ReconcileSCCOptions with default settings.

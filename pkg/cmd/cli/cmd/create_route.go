@@ -52,11 +52,11 @@ Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	edgeRouteExample = `  # Create an edge route named "my-route" that exposes frontend service.
-  $ %[1]s create route edge my-route --service=frontend
+  %[1]s create route edge my-route --service=frontend
 
   # Create an edge route that exposes the frontend service and specify a path.
   # If the route name is omitted, the service name will be re-used.
-  $ %[1]s create route edge --service=frontend --path /assets`
+  %[1]s create route edge --service=frontend --path /assets`
 )
 
 // NewCmdCreateEdgeRoute is a macro command to create an edge route.
@@ -160,11 +160,11 @@ Specify the service (either just its name or using type/name syntax) that the
 generated route should expose via the --service flag.`
 
 	passthroughRouteExample = `  # Create a passthrough route named "my-route" that exposes the frontend service.
-  $ %[1]s create route passthrough my-route --service=frontend
+  %[1]s create route passthrough my-route --service=frontend
 
   # Create a passthrough route that exposes the frontend service and specify
   # a hostname. If the route name is omitted, the service name will be re-used.
-  $ %[1]s create route passthrough --service=frontend --hostname=www.example.com`
+  %[1]s create route passthrough --service=frontend --hostname=www.example.com`
 )
 
 // NewCmdCreatePassthroughRoute is a macro command to create a passthrough route.
@@ -246,11 +246,11 @@ generated route should expose via the --service flag. A destination CA certifica
 is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`
 
 	reencryptRouteExample = `  # Create a route named "my-route" that exposes the frontend service.
-  $ %[1]s create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
+  %[1]s create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
 
   # Create a reencrypt route that exposes the frontend service and re-use
   # the service name as the route name.
-  $ %[1]s create route reencrypt --service=frontend --dest-ca-cert cert.cert`
+  %[1]s create route reencrypt --service=frontend --dest-ca-cert cert.cert`
 )
 
 // NewCmdCreateReencryptRoute is a macro command to create a reencrypt route.

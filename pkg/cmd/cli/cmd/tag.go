@@ -55,16 +55,16 @@ Docker images.
 `
 
 	tagExample = `  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
-  $ %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
+  %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
 
   # Tag a specific image.
-  $ %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
+  %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
   # Tag an external Docker image.
-  $ %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
+  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
 
   # Remove the specified spec tag from an image stream.
-  $ %[1]s tag openshift/origin:latest -d`
+  %[1]s tag openshift/origin:latest -d`
 )
 
 // NewCmdTag implements the OpenShift cli tag command.

@@ -33,13 +33,13 @@ directly.`
 
 	rshExample = `
   # Open a shell session on the first container in pod 'foo'
-  $ %[1]s foo
+  %[1]s foo
 
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
-  $ %[1]s foo cat /etc/resolv.conf
+  %[1]s foo cat /etc/resolv.conf
 
   # See the configuration of your internal registry
-  $ %[1]s dc/docker-registry cat config.yml
+  %[1]s dc/docker-registry cat config.yml
 
   # Open a shell session on the container named 'index' inside a pod of your job
   # %[1]s -c index job/sheduled`

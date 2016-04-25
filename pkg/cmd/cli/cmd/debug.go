@@ -76,13 +76,13 @@ the shell.`
 
 	debugExample = `
   # Debug a currently running deployment
-  $ %[1]s dc/test
+  %[1]s dc/test
 
   # Debug a specific failing container by running the env command in the 'second' container
-  $ %[1]s dc/test -c second -- /bin/env
+  %[1]s dc/test -c second -- /bin/env
 
   # See the pod that would be created to debug
-  $ %[1]s dc/test -o yaml`
+  %[1]s dc/test -o yaml`
 
 	debugPodLabelName = "debug.openshift.io/name"
 

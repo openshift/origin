@@ -51,10 +51,10 @@ For advanced configuration, or to manage the contents of your config file, use t
 command.`
 
 	projectExample = `  # Switch to 'myapp' project
-  $ %[1]s myapp
+  %[1]s myapp
 
   # Display the project currently in use
-  $ %[1]s`
+  %[1]s`
 )
 
 // NewCmdProject implements the OpenShift cli rollback command

@@ -25,7 +25,7 @@ This command validates that a configuration file intended to be used for a node 
 `
 
 	valiateNodeConfigExample = ` // Validate node configuration file
-  $ %s openshift.local.config/master/node-config.yaml`
+  %s openshift.local.config/master/node-config.yaml`
 
 	validateNodeConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics NodeConfigCheck --node-config=path/to/config.yaml' instead.`
 )

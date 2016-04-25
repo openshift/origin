@@ -25,7 +25,7 @@ Create a deployment config that uses a given image.
 Deployment configs define the template for a pod and manages deploying new images or configuration changes.`
 
 	deploymentConfigExample = `  # Create an nginx deployment config named my-nginx
-  $ %[1]s my-nginx --image=nginx`
+  %[1]s my-nginx --image=nginx`
 )
 
 type CreateDeploymentConfigOptions struct {

@@ -50,19 +50,19 @@ This command will not remove any additional cluster role bindings.
 You can see which recommended cluster role bindings have changed by choosing an output type.`
 
 	reconcileBindingsExample = `  # Display the names of cluster role bindings that would be modified
-  $ %[1]s -o name
+  %[1]s -o name
 
   # Display the cluster role bindings that would be modified, removing any extra subjects
-  $ %[1]s --additive-only=false
+  %[1]s --additive-only=false
 
   # Update cluster role bindings that don't match the current defaults
-  $ %[1]s --confirm
+  %[1]s --confirm
 
   # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
-  $ %[1]s --confirm --exclude-groups=system:authenticated
+  %[1]s --confirm --exclude-groups=system:authenticated
 
   # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
-  $ %[1]s --confirm --additive-only=false`
+  %[1]s --confirm --additive-only=false`
 )
 
 // NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command

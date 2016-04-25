@@ -51,24 +51,24 @@ base image changes will use the source specified on the build config.
 `
 
 	startBuildExample = `  # Starts build from build config "hello-world"
-  $ %[1]s start-build hello-world
+  %[1]s start-build hello-world
 
   # Starts build from a previous build "hello-world-1"
-  $ %[1]s start-build --from-build=hello-world-1
+  %[1]s start-build --from-build=hello-world-1
 
   # Use the contents of a directory as build input
-  $ %[1]s start-build hello-world --from-dir=src/
+  %[1]s start-build hello-world --from-dir=src/
 
   # Send the contents of a Git repository to the server from tag 'v2'
-  $ %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
+  %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
 
   # Start a new build for build config "hello-world" and watch the logs until the build
   # completes or fails.
-  $ %[1]s start-build hello-world --follow
+  %[1]s start-build hello-world --follow
 
   # Start a new build for build config "hello-world" and wait until the build completes. It
   # exits with a non-zero return code if the build fails.
-  $ %[1]s start-build hello-world --wait`
+  %[1]s start-build hello-world --wait`
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command

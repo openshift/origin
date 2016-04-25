@@ -34,10 +34,10 @@ for the copy.`
 
 	rsyncExample = `
   # Synchronize a local directory with a pod directory
-  $ %[1]s ./local/dir/ POD:/remote/dir
+  %[1]s ./local/dir/ POD:/remote/dir
 
   # Synchronize a pod directory with a local directory
-  $ %[1]s POD:/remote/dir/ ./local/dir`
+  %[1]s POD:/remote/dir/ ./local/dir`
 
 	noRsyncUnixWarning    = "WARNING: rsync command not found in path. Please use your package manager to install it.\n"
 	noRsyncWindowsWarning = "WARNING: rsync command not found in path. Download cwRsync for Windows and add it to your PATH.\n"

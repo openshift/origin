@@ -58,31 +58,31 @@ Volume types include:
 For descriptions on other volume types, see https://docs.openshift.com`
 
 	volumeExample = `  # List volumes defined on all deployment configs in the current project
-  $ %[1]s volume dc --all
+  %[1]s volume dc --all
 
   # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
   # /var/lib/registry
-  $ %[1]s volume dc/registry --add --mount-path=/var/lib/registry
+  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
 
   # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
-  $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
   # Remove volume 'v1' from deployment config 'registry'
-  $ %[1]s volume dc/registry --remove --name=v1
+  %[1]s volume dc/registry --remove --name=v1
 
   # Create a new persistent volume claim that overwrites an existing volume 'v1'
-  $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
   # Change the mount point for volume 'v1' to /data
-  $ %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
+  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
 
   # Modify the deployment config by removing volume mount "v1" from container "c1"
   # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  $ %[1]s volume dc/registry --remove --name=v1 --containers=c1
+  %[1]s volume dc/registry --remove --name=v1 --containers=c1
 
   # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
   # Ceph, Gluster, NFS, ISCSI, ...)
-  $ %[1]s volume dc/registry --add -m /repo --source=<json-string>`
+  %[1]s volume dc/registry --add -m /repo --source=<json-string>`
 
 	volumePrefix = "volume-"
 )

@@ -28,7 +28,7 @@ Builds the provided directory with a Dockerfile into a single layered image.
 Requires that you have a working connection to a Docker engine.`
 
 	dockerbuildExample = `  # Build the current directory into a single layer and tag
-  $ %[1]s dockerbuild . myimage:latest`
+  %[1]s dockerbuild . myimage:latest`
 )
 
 type DockerbuildOptions struct {

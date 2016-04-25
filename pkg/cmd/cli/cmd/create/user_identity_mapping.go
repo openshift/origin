@@ -26,7 +26,7 @@ be manually established between an identity and a user, this command can be used
 to create a useridentitymapping object.`
 
 	userIdentityMappingExample = `  # Map the identity "acme_ldap:adamjones" to the user "ajones"
-  $ %[1]s acme_ldap:adamjones ajones`
+  %[1]s acme_ldap:adamjones ajones`
 )
 
 type CreateUserIdentityMappingOptions struct {

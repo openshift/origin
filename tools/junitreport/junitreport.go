@@ -53,7 +53,7 @@ const (
 %[1]s consumes test output through Stdin and creates jUnit XML files. Currently, only the output of 'go test'
 and the output of 'oscmd' functions with $JUNIT_REPORT_OUTPUT set are supported. jUnit XML can be build with
 nested or flat test suites. Sub-trees of test suites can be selected when using the nested test-suites represen-
-tation to only build XML for some subset of the test output. This parser is greedy, so all output not directly 
+tation to only build XML for some subset of the test output. This parser is greedy, so all output not directly
 related to a test suite is considered test case output.
 `
 
@@ -64,28 +64,28 @@ related to a test suite is considered test case output.
 
 	junitReportExamples = `Examples:
   # Consume 'go test' output to create a jUnit XML file
-  $ go test -v -cover ./... | %[1]s > report.xml
+  go test -v -cover ./... | %[1]s > report.xml
 
   # Consume 'go test' output to create a jUnit XML file, while also printing package output as it is generated
-  $ go test -v -cover ./... | %[1]s --stream > report.xml
+  go test -v -cover ./... | %[1]s --stream > report.xml
 
   # Consume 'go test' output from a file to create a jUnit XML file
-  $ %[1]s -f testoutput.txt > report.xml
+  %[1]s -f testoutput.txt > report.xml
 
   # Consume 'go test' output to create a specific jUnit XML file
-  $ %[1]s --output report.xml
+  %[1]s --output report.xml
 
   # Consume 'go test' output to create a jUnit XML file with nested test suites
-  $ go test -v -cover ./... | junitreport --suites=nested > report.xml
+  go test -v -cover ./... | junitreport --suites=nested > report.xml
 
   # Consume 'go test' output to create a jUnit XML file with nested test suites rooted at 'github.com/maintainer'
-  $ go test -v -cover ./... | junitreport --suites=nested --roots=github.com/maintainer > report.xml
+  go test -v -cover ./... | junitreport --suites=nested --roots=github.com/maintainer > report.xml
 
   # Describe failures and skipped tests in an existing jUnit XML file
-  $ cat report.xml | %[1]s summarize
+  cat report.xml | %[1]s summarize
 
   # Consume 'os::cmd' output from to create a jUnit XML file
-  $ JUNIT_REPORT='true' hack/test-cmd.sh | junitreport --type=os::cmd > report.xml
+  JUNIT_REPORT='true' hack/test-cmd.sh | junitreport --type=os::cmd > report.xml
 `
 )
 

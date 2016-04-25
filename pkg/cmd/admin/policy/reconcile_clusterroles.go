@@ -55,17 +55,17 @@ Cluster roles with the annotation %s set to "true" are skipped.
 You can see which cluster roles have recommended changed by choosing an output type.`
 
 	reconcileExample = `  # Display the names of cluster roles that would be modified
-  $ %[1]s -o name
+  %[1]s -o name
 
   # Add missing permissions to cluster roles that don't match the current defaults
-  $ %[1]s --confirm
+  %[1]s --confirm
 
-  # Add missing permissions and remove extra permissions from 
+  # Add missing permissions and remove extra permissions from
   # cluster roles that don't match the current defaults
-  $ %[1]s --additive-only=false --confirm
+  %[1]s --additive-only=false --confirm
 
   # Display the union of the default and modified cluster roles
-  $ %[1]s --additive-only`
+  %[1]s --additive-only`
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command

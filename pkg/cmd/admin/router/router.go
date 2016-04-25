@@ -51,19 +51,19 @@ running your router in production, you should pass --replicas=2 or higher to ens
 you have failover protection.`
 
 	routerExample = `  # Check the default router ("router")
-  $ %[1]s %[2]s --dry-run
+  %[1]s %[2]s --dry-run
 
   # See what the router would look like if created
-  $ %[1]s %[2]s -o yaml
+  %[1]s %[2]s -o yaml
 
   # Create a router with two replicas if it does not exist
-  $ %[1]s %[2]s router-west --replicas=2
+  %[1]s %[2]s router-west --replicas=2
 
   # Use a different router image
-  $ %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
+  %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ %[1]s %[2]s router-west --stats-port=0
+  %[1]s %[2]s router-west --stats-port=0
   `
 
 	secretsVolumeName = "secret-volume"

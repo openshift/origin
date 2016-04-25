@@ -30,7 +30,7 @@ Corresponding user and useridentitymapping objects must also be created
 to allow logging in with the created identity.`
 
 	identityExample = `  # Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
-  $ %[1]s acme_ldap:adamjones`
+  %[1]s acme_ldap:adamjones`
 )
 
 type CreateIdentityOptions struct {

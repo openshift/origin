@@ -36,19 +36,19 @@ Some resources may omit advanced details that you can see with '-o wide'.
 If you want an even more detailed view, use '%[1]s describe'.`
 
 	getExample = `  # List all pods in ps output format.
-  $ %[1]s get pods
+  %[1]s get pods
 
   # List a single replication controller with specified ID in ps output format.
-  $ %[1]s get rc redis
+  %[1]s get rc redis
 
   # List all pods and show more details about them.
-  $ %[1]s get -o wide pods
+  %[1]s get -o wide pods
 
   # List a single pod in JSON output format.
-  $ %[1]s get -o json pod redis-pod
+  %[1]s get -o json pod redis-pod
 
   # Return only the status value of the specified pod.
-  $ %[1]s get -o template pod redis-pod --template={{.currentState.status}}`
+  %[1]s get -o template pod redis-pod --template={{.currentState.status}}`
 )
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
@@ -66,13 +66,13 @@ const (
 JSON and YAML formats are accepted.`
 
 	replaceExample = `  # Replace a pod using the data in pod.json.
-  $ %[1]s replace -f pod.json
+  %[1]s replace -f pod.json
 
   # Replace a pod based on the JSON passed into stdin.
-  $ cat pod.json | %[1]s replace -f -
+  cat pod.json | %[1]s replace -f -
 
   # Force replace, delete and then re-create the resource
-  $ %[1]s replace --force -f pod.json`
+  %[1]s replace --force -f pod.json`
 )
 
 // NewCmdReplace is a wrapper for the Kubernetes cli replace command
@@ -89,7 +89,7 @@ const (
 JSON and YAML formats are accepted.`
 
 	patchExample = `  # Partially update a node using strategic merge patch
-  $ %[1]s patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'`
+  %[1]s patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'`
 )
 
 // NewCmdPatch is a wrapper for the Kubernetes cli patch command
@@ -113,19 +113,19 @@ submits an update to a resource right when you submit a delete, their update
 will be lost along with the rest of the resource.`
 
 	deleteExample = `  # Delete a pod using the type and ID specified in pod.json.
-  $ %[1]s delete -f pod.json
+  %[1]s delete -f pod.json
 
   # Delete a pod based on the type and ID in the JSON passed into stdin.
-  $ cat pod.json | %[1]s delete -f -
+  cat pod.json | %[1]s delete -f -
 
   # Delete pods and services with label name=myLabel.
-  $ %[1]s delete pods,services -l name=myLabel
+  %[1]s delete pods,services -l name=myLabel
 
   # Delete a pod with ID 1234-56-7890-234234-456456.
-  $ %[1]s delete pod 1234-56-7890-234234-456456
+  %[1]s delete pod 1234-56-7890-234234-456456
 
   # Delete all pods
-  $ %[1]s delete pods --all`
+  %[1]s delete pods --all`
 )
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
@@ -144,10 +144,10 @@ const (
 JSON and YAML formats are accepted.`
 
 	createExample = `  # Create a pod using the data in pod.json.
-  $ %[1]s create -f pod.json
+  %[1]s create -f pod.json
 
   # Create a pod based on the JSON passed into stdin.
-  $ cat pod.json | %[1]s create -f -`
+  cat pod.json | %[1]s create -f -`
 )
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
@@ -174,10 +174,10 @@ const (
 	execLong = `Execute a command in a container`
 
 	execExample = `  # Get output from running 'date' in ruby-container from pod 123456-7890
-  $ %[1]s exec -p 123456-7890 -c ruby-container date
+  %[1]s exec -p 123456-7890 -c ruby-container date
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-  $ %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il`
+  %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il`
 )
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
@@ -193,16 +193,16 @@ const (
 	portForwardLong = `Forward 1 or more local ports to a pod`
 
 	portForwardExample = `  # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  $ %[1]s port-forward -p mypod 5000 6000
+  %[1]s port-forward -p mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  $ %[1]s port-forward -p mypod 8888:5000
+  %[1]s port-forward -p mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  $ %[1]s port-forward -p mypod :5000
+  %[1]s port-forward -p mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  $ %[1]s port-forward -p mypod 0:5000`
+  %[1]s port-forward -p mypod 0:5000`
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
@@ -220,10 +220,10 @@ This command joins many API calls together to form a detailed description of a
 given resource.`
 
 	describeExample = `  # Provide details about the ruby-22-centos7 image repository
-  $ %[1]s describe imageRepository ruby-22-centos7
+  %[1]s describe imageRepository ruby-22-centos7
 
   # Provide details about the ruby-sample-build build configuration
-  $ %[1]s describe bc ruby-sample-build`
+  %[1]s describe bc ruby-sample-build`
 )
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
@@ -239,11 +239,11 @@ const (
 	proxyLong = `Run a proxy to the Kubernetes API server`
 
 	proxyExample = `  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
-  $ %[1]s proxy --port=8011 --www=./local/www/
+  %[1]s proxy --port=8011 --www=./local/www/
 
   # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
   # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
-  $ %[1]s proxy --api-prefix=k8s-api`
+  %[1]s proxy --api-prefix=k8s-api`
 )
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
@@ -266,14 +266,14 @@ Note that scaling a deployment configuration with no deployments will update the
 desired replicas in the configuration template.`
 
 	scaleExample = `  # Scale replication controller named 'foo' to 3.
-  $ %[1]s scale --replicas=3 replicationcontrollers foo
+  %[1]s scale --replicas=3 replicationcontrollers foo
 
   # If the replication controller named foo's current size is 2, scale foo to 3.
-  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo
+  %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo
 
   # Scale the latest deployment of 'bar'. In case of no deployment, bar's template
   # will be scaled instead.
-  $ %[1]s scale --replicas=10 dc bar`
+  %[1]s scale --replicas=10 dc bar`
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
@@ -294,10 +294,10 @@ this deployment config or replication controller as a reference. An autoscaler c
 increase or decrease number of pods deployed within the system as needed.`
 
 	autoScaleExample = `  # Auto scale a deployment config "foo", with the number of pods between 2 to 10, target CPU utilization at a default value that server applies:
-  $ %[1]s autoscale dc/foo --min=2 --max=10
+  %[1]s autoscale dc/foo --min=2 --max=10
 
   # Auto scale a replication controller "foo", with the number of pods between 1 to 5, target CPU utilization at 80%%
-  $ %[1]s autoscale rc/foo --max=5 --cpu-percent=80`
+  %[1]s autoscale rc/foo --max=5 --cpu-percent=80`
 )
 
 // NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
@@ -317,29 +317,29 @@ foreground for an interactive container execution.  You may pass 'run/v1' to
 --generator to create a replication controller instead of a deployment config.`
 
 	runExample = `  # Starts a single instance of nginx.
-  $ %[1]s run nginx --image=nginx
+  %[1]s run nginx --image=nginx
 
   # Starts a replicated instance of nginx.
-  $ %[1]s run nginx --image=nginx --replicas=5
+  %[1]s run nginx --image=nginx --replicas=5
 
   # Dry run. Print the corresponding API objects without creating them.
-  $ %[1]s run nginx --image=nginx --dry-run
+  %[1]s run nginx --image=nginx --dry-run
 
   # Start a single instance of nginx, but overload the spec of the replication
   # controller with a partial set of values parsed from JSON.
-  $ %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+  %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
-  $ %[1]s run -i --tty nginx --image=nginx --restart=Never`
+  %[1]s run -i --tty nginx --image=nginx --restart=Never`
 
 	// TODO: uncomment these when arguments are delivered upstream
 
 	// Start the nginx container using the default command, but use custom
 	// arguments (arg1 .. argN) for that command.
-	//$ %[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+	//%[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
 
 	// Start the nginx container using a different command and custom arguments
-	//$ %[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`
+	//%[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`
 )
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
@@ -363,14 +363,14 @@ Attach the current shell to a remote container, returning output or setting up a
 terminal session. Can be used to debug containers and invoke interactive commands.`
 
 	attachExample = `  # Get output from running pod 123456-7890, using the first container by default
-  $ %[1]s attach 123456-7890
+  %[1]s attach 123456-7890
 
   # Get output from ruby-container from pod 123456-7890
-  $ %[1]s attach 123456-7890 -c ruby-container
+  %[1]s attach 123456-7890 -c ruby-container
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
   # and sends stdout/stderr from 'bash' back to the client
-  $ %[1]s attach 123456-7890 -c ruby-container -i -t`
+  %[1]s attach 123456-7890 -c ruby-container -i -t`
 )
 
 // NewCmdAttach is a wrapper for the Kubernetes cli attach command
@@ -396,21 +396,21 @@ Run '%[1]s types' for a list of valid resources.`
 
 	annotateExample = `  # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
   # If the same annotation is set multiple times, only the last value will be applied
-  $ %[1]s annotate pods foo description='my frontend'
+  %[1]s annotate pods foo description='my frontend'
 
   # Update pod 'foo' with the annotation 'description' and the value
   # 'my frontend running nginx', overwriting any existing value.
-  $ %[1]s annotate --overwrite pods foo description='my frontend running nginx'
+  %[1]s annotate --overwrite pods foo description='my frontend running nginx'
 
   # Update all pods in the namespace
-  $ %[1]s annotate pods --all description='my frontend running nginx'
+  %[1]s annotate pods --all description='my frontend running nginx'
 
   # Update pod 'foo' only if the resource is unchanged from version 1.
-  $ %[1]s annotate pods foo description='my frontend running nginx' --resource-version=1
+  %[1]s annotate pods foo description='my frontend running nginx' --resource-version=1
 
   # Update pod 'foo' by removing an annotation named 'description' if it exists.
   # Does not require the --overwrite flag.
-  $ %[1]s annotate pods foo description-`
+  %[1]s annotate pods foo description-`
 )
 
 // NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
@@ -431,20 +431,20 @@ specified, then updates will use this resource version, otherwise the existing
 resource-version will be used.`
 
 	labelExample = `  # Update pod 'foo' with the label 'unhealthy' and the value 'true'.
-  $ %[1]s label pods foo unhealthy=true
+  %[1]s label pods foo unhealthy=true
 
   # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
-  $ %[1]s label --overwrite pods foo status=unhealthy
+  %[1]s label --overwrite pods foo status=unhealthy
 
   # Update all pods in the namespace
-  $ %[1]s label pods --all status=unhealthy
+  %[1]s label pods --all status=unhealthy
 
   # Update pod 'foo' only if the resource is unchanged from version 1.
-  $ %[1]s label pods foo status=unhealthy --resource-version=1
+  %[1]s label pods foo status=unhealthy --resource-version=1
 
   # Update pod 'foo' by removing a label named 'bar' if it exists.
   # Does not require the --overwrite flag.
-  $ %[1]s label pods foo bar-`
+  %[1]s label pods foo bar-`
 )
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
@@ -461,10 +461,10 @@ const (
 JSON and YAML formats are accepted.`
 
 	applyExample = `# Apply the configuration in pod.json to a pod.
-$ %[1]s apply -f ./pod.json
+%[1]s apply -f ./pod.json
 
 # Apply the JSON passed into stdin to a pod.
-$ cat pod.json | %[1]s apply -f -`
+cat pod.json | %[1]s apply -f -`
 )
 
 func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -483,10 +483,10 @@ limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc),
 resourcequotas (quota), namespaces (ns) or endpoints (ep).`
 
 	explainExample = `# Get the documentation of the resource and its fields
-$ %[1]s explain pods
+%[1]s explain pods
 
 # Get the documentation of a specific field of a resource
-$ %[1]s explain pods.spec.containers`
+%[1]s explain pods.spec.containers`
 )
 
 func NewCmdExplain(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -508,14 +508,14 @@ The default output will be printed to stdout in YAML format. One can use -o opti
 to change to output destination.
 `
 	convertExample = `# Convert 'pod.yaml' to latest version and print to stdout.
-$ %[1]s convert -f pod.yaml
+%[1]s convert -f pod.yaml
 
 # Convert the live state of the resource specified by 'pod.yaml' to the latest version
 # and print to stdout in json format.
-$ %[1]s convert -f pod.yaml --local -o json
+%[1]s convert -f pod.yaml --local -o json
 
 # Convert all files under current directory to latest version and create them all.
-$ %[1]s convert -f . | kubectl create -f -
+%[1]s convert -f . | kubectl create -f -
 `
 )
 
@@ -549,16 +549,16 @@ to apply your changes to the newer version of the resource, or update your tempo
 saved copy to include the latest resource version.`
 
 	editExample = `  # Edit the service named 'docker-registry':
-  $ %[1]s edit svc/docker-registry
+  %[1]s edit svc/docker-registry
 
   # Edit the DeploymentConfig named 'my-deployment':
-  $ %[1]s edit dc/my-deployment
+  %[1]s edit dc/my-deployment
 
   # Use an alternative editor
-  $ OC_EDITOR="nano" %[1]s edit dc/my-deployment
+  OC_EDITOR="nano" %[1]s edit dc/my-deployment
 
   # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-  $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
+  %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {

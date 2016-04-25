@@ -36,12 +36,12 @@ components such as the router, authentication server, etc.
 
 Example: Creating a secure router certificate.
 
-    $ CA=openshift.local.config/master
-	$ %[1]s --signer-cert=$CA/ca.crt \
+    CA=openshift.local.config/master
+	%[1]s --signer-cert=$CA/ca.crt \
 	          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
 	          --hostnames='*.cloudapps.example.com' \
 	          --cert=cloudapps.crt --key=cloudapps.key
-    $ cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
+    cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {

@@ -54,16 +54,16 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
   your registry persist data.`
 
 	registryExample = `  # Check if default Docker registry ("docker-registry") has been created
-  $ %[1]s %[2]s --dry-run
+  %[1]s %[2]s --dry-run
 
   # See what the registry will look like if created
-  $ %[1]s %[2]s -o yaml
+  %[1]s %[2]s -o yaml
 
   # Create a registry with two replicas if it does not exist
-  $ %[1]s %[2]s --replicas=2
+  %[1]s %[2]s --replicas=2
 
   # Use a different registry image
-  $ %[1]s %[2]s --images=myrepo/docker-registry:mytag`
+  %[1]s %[2]s --images=myrepo/docker-registry:mytag`
 )
 
 type RegistryConfig struct {

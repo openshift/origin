@@ -20,7 +20,7 @@ const apiLong = `Start the master API
 
 This command starts the master API.  Running
 
-  $ %[1]s start master %[2]s
+  %[1]s start master %[2]s
 
 will start the server listening for incoming API requests. The server
 will run in the foreground until you terminate the process.`

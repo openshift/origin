@@ -36,25 +36,25 @@ The output of the process command is always a list of one or more resources. You
 output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`
 
 	processExample = `  # Convert template.json file into resource list and pass to create
-  $ %[1]s process -f template.json | %[1]s create -f -
+  %[1]s process -f template.json | %[1]s create -f -
 
   # Process template while passing a user-defined label
-  $ %[1]s process -f template.json -l name=mytemplate
+  %[1]s process -f template.json -l name=mytemplate
 
   # Convert stored template into resource list
-  $ %[1]s process foo
+  %[1]s process foo
 
   # Convert stored template into resource list by setting/overriding parameter values
-  $ %[1]s process foo PARM1=VALUE1 PARM2=VALUE2
+  %[1]s process foo PARM1=VALUE1 PARM2=VALUE2
 
   # Convert template stored in different namespace into a resource list
-  $ %[1]s process openshift//foo
+  %[1]s process openshift//foo
 
   # Convert template.json into resource list
-  $ cat template.json | %[1]s process -f -
+  cat template.json | %[1]s process -f -
 
   # Combine multiple templates into single resource list
-  $ cat template.json second_template.json | %[1]s process -f -`
+  cat template.json second_template.json | %[1]s process -f -`
 )
 
 // NewCmdProcess implements the OpenShift cli process command

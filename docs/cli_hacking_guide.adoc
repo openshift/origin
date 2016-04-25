@@ -57,10 +57,10 @@ const (
 for my command.`
 
   mineExample = `  # Run my command's first action
-  $ %[1]s first
+  %[1]s first
 
   # Run my command's second action on latest stuff
-  $ %[1]s second --latest`
+  %[1]s second --latest`
 )
 
 // NewCmdMine implement the OpenShift cli mine command.
@@ -137,10 +137,10 @@ Example:
 [source,go,numbered,options="nowrap"]
 ----
   deployExample = `  # Display the latest deployment for the 'database' deployment config
-  $ %[1]s database
+  %[1]s database
 
   # Start a new deployment based on the 'database' deployment config
-  $ %[1]s database --latest`
+  %[1]s database --latest`
 ----
 ====
 
@@ -244,10 +244,10 @@ for the deploy command.`
 
   // 3.
   deployExample = `  # Display the latest deployment for the 'database' DeploymentConfig
-  $ %[1]s database
+  %[1]s database
 
   # Start a new deployment based on the 'database' DeploymentConfig
-  $ %[1]s database --latest`
+  %[1]s database --latest`
 )
 
 // 4.

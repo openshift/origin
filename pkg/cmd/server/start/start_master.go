@@ -58,7 +58,7 @@ const masterLong = `Start a master server
 
 This command helps you launch a master server.  Running
 
-  $ %[1]s start master
+  %[1]s start master
 
 will start a master listening on all interfaces, launch an etcd server to store
 persistent data, and launch the Kubernetes system components. The server will run in the

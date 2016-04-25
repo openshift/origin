@@ -28,19 +28,19 @@ evacuate: Migrate all/selected pod on the provided nodes.
 list-pods: List all/selected pods on given/selected nodes. It can list the output in json/yaml format.`
 
 	manageNodeExample = `	# Block accepting any pods on given nodes
-	$ %[1]s <mynode> --schedulable=false
+	%[1]s <mynode> --schedulable=false
 
 	# Mark selected nodes as schedulable
-	$ %[1]s --selector="<env=dev>" --schedulable=true
+	%[1]s --selector="<env=dev>" --schedulable=true
 
 	# Migrate selected pods
-	$ %[1]s <mynode> --evacuate --pod-selector="<service=myapp>"
+	%[1]s <mynode> --evacuate --pod-selector="<service=myapp>"
 
 	# Show pods that will be migrated
-	$ %[1]s <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+	%[1]s <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 
 	# List all pods on given nodes
-	$ %[1]s <mynode1> <mynode2> --list-pods`
+	%[1]s <mynode1> <mynode2> --list-pods`
 )
 
 var schedulable, evacuate, listpods bool

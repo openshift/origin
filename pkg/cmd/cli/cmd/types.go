@@ -208,16 +208,16 @@ var (
   `)
 
 	typesExample = `  # View all projects you have access to
-  $ %[1]s get projects
+  %[1]s get projects
 
   # See a list of all services in the current project
-  $ %[1]s get svc
+  %[1]s get svc
 
   # Describe a deployment configuration in detail
-  $ %[1]s describe dc mydeploymentconfig
+  %[1]s describe dc mydeploymentconfig
 
   # Show the images tagged into an image stream
-  $ %[1]s describe is ruby-centos7`
+  %[1]s describe is ruby-centos7`
 )
 
 func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

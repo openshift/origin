@@ -36,7 +36,7 @@ const (
 The %[3]s helps you build, deploy, and manage your applications on top of
 Docker containers. To start an all-in-one server with the default configuration, run:
 
-  $ %[1]s start &`
+  %[1]s start &`
 )
 
 // CommandFor returns the appropriate command for this base name,
