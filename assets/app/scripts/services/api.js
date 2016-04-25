@@ -40,7 +40,7 @@ ResourceGroupVersion.prototype.equals = function(resource, group, version) {
 
 
 angular.module('openshiftConsole')
-.factory('APIService', function(API_CFG, APIS_CFG, Constants, Logger, $q, $http, Navigate, $filter) {
+.factory('APIService', function(API_CFG, APIS_CFG, AuthService, Constants, Logger, $q, $http, Navigate, $filter) {
   // Set the default api versions the console will use if otherwise unspecified
   var defaultVersion = {
     "":           "v1",
@@ -183,6 +183,15 @@ angular.module('openshiftConsole')
   var apiInfo = function(resource) {
     // If API discovery had any failures, calls to api info should redirect to the error page
     if (APIS_CFG.API_DISCOVERY_ERRORS) {
+      var possibleCertFailure  = _.every(APIS_CFG.API_DISCOVERY_ERRORS, function(error){
+        return _.get(error, "data.status") === 0;
+      });
+      if (possibleCertFailure && !AuthService.isLoggedIn()) {
+        // will trigger a login flow which will redirect to the api server
+        AuthService.withUser();
+        return;
+      }
+      // Otherwise go to the error page, the server might be down.
       Navigate.toErrorPage("Unable to load details about the server. If the problem continues, please contact your system administrator.", "API_DISCOVERY", true);
       return;
     }

@@ -372,8 +372,8 @@ hawtioPluginLoader.registerPreBootstrapTask(function(next) {
   var apis = {};
   var API_DISCOVERY_ERRORS = [];
   var protocol = window.location.protocol + "//";
- 
- // Fetch /api/v1 for legacy k8s resources, we will never bump the version of these legacy apis so fetch version immediately
+  
+  // Fetch /api/v1 for legacy k8s resources, we will never bump the version of these legacy apis so fetch version immediately
   var k8sBaseURL = protocol + window.OPENSHIFT_CONFIG.api.k8s.hostPort + window.OPENSHIFT_CONFIG.api.k8s.prefix;
   var k8sDeferred = $.get(k8sBaseURL + "/v1")
   .done(function(data) {
