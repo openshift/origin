@@ -46,8 +46,8 @@
                 <span ng-if="newProjectMessage" ng-bind-html="newProjectMessage | linky" style="white-space:pre;"></span>
               </div>
               <div style="margin-top: 10px;">
-                A project admin can add you as an admin to a project by running the command
-                <code>oc policy add-role-to-user admin {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
+                A project admin can add you to a role on a project by running the command
+                <code>oc policy add-role-to-user &lt;role&gt; {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
               </div>
             </div>
           </div>
