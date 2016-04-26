@@ -23,9 +23,9 @@ import (
 )
 
 // NotFoundErr is returned when the imageStreamTag (ist) of interest cannot
-// be found in the graph. This doesn't mean though that the ist does not
+// be found in the graph. This doesn't mean though that the IST does not
 // exist. A user may have an image stream without a build configuration
-// pointing at it. In that case, the ist of interest simply doesn't have
+// pointing at it. In that case, the IST of interest simply doesn't have
 // other dependant ists
 type NotFoundErr string
 
@@ -79,7 +79,7 @@ func (d *ChainDescriber) MakeGraph() (osgraph.Graph, error) {
 // image stream tag (name:tag) in namespace. Namespace is needed here
 // because image stream tags with the same name can be found across
 // different namespaces.
-func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImages bool) (string, error) {
+func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImages, reverse bool) (string, error) {
 	g, err := d.MakeGraph()
 	if err != nil {
 		return "", err
@@ -96,8 +96,13 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImag
 		buildInputEdgeKinds = append(buildInputEdgeKinds, buildedges.BuildInputImageEdgeKind)
 	}
 
-	// Partition down to the subgraph containing the ist of interest
-	partitioned := partition(g, istNode, buildInputEdgeKinds)
+	// Partition down to the subgraph containing the imagestreamtag of interest
+	var partitioned osgraph.Graph
+	if reverse {
+		partitioned = partitionReverse(g, istNode, buildInputEdgeKinds)
+	} else {
+		partitioned = partition(g, istNode, buildInputEdgeKinds)
+	}
 
 	switch strings.ToLower(d.outputFormat) {
 	case "dot":
@@ -107,7 +112,7 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImag
 		}
 		return string(data), nil
 	case "":
-		return d.humanReadableOutput(partitioned, d.namer, istNode), nil
+		return d.humanReadableOutput(partitioned, d.namer, istNode, reverse), nil
 	}
 
 	return "", fmt.Errorf("unknown specified format %q", d.outputFormat)
@@ -124,7 +129,7 @@ func partition(g osgraph.Graph, root graph.Node, buildInputEdgeKinds []string) o
 	edgeFn := osgraph.EdgesOfKind(edgeKinds...)
 	sub := g.Subgraph(nodeFn, edgeFn)
 
-	// Filter out inbound edges to the ist of interest
+	// Filter out inbound edges to the IST of interest
 	edgeFn = osgraph.RemoveInboundEdges([]graph.Node{root})
 	sub = sub.Subgraph(nodeFn, edgeFn)
 
@@ -144,11 +149,46 @@ func partition(g osgraph.Graph, root graph.Node, buildInputEdgeKinds []string) o
 	return sub.SubgraphWithNodes(desired, osgraph.ExistingDirectEdge)
 }
 
+// partitionReverse the graph down to a subgraph starting from the given root
+func partitionReverse(g osgraph.Graph, root graph.Node, buildInputEdgeKinds []string) osgraph.Graph {
+	// Filter out all but BuildConfig and ImageStreamTag nodes
+	nodeFn := osgraph.NodesOfKind(buildgraph.BuildConfigNodeKind, imagegraph.ImageStreamTagNodeKind)
+	// Filter out all but BuildInputImage and BuildOutput edges
+	edgeKinds := []string{}
+	edgeKinds = append(edgeKinds, buildInputEdgeKinds...)
+	edgeKinds = append(edgeKinds, buildedges.BuildOutputEdgeKind)
+	edgeFn := osgraph.EdgesOfKind(edgeKinds...)
+	sub := g.Subgraph(nodeFn, edgeFn)
+
+	// Filter out inbound edges to the IST of interest
+	edgeFn = osgraph.RemoveOutboundEdges([]graph.Node{root})
+	sub = sub.Subgraph(nodeFn, edgeFn)
+
+	// Check all paths leading from the root node, collect any
+	// node found in them, and create the desired subgraph
+	desired := []graph.Node{root}
+	paths := path.DijkstraAllPaths(sub)
+	for _, node := range sub.Nodes() {
+		if node == root {
+			continue
+		}
+		path, _, _ := paths.Between(node, root)
+		if len(path) != 0 {
+			desired = append(desired, node)
+		}
+	}
+	return sub.SubgraphWithNodes(desired, osgraph.ExistingDirectEdge)
+}
+
 // humanReadableOutput traverses the provided graph using DFS and outputs it
 // in a human-readable format. It starts from the provided root, assuming it
 // is an imageStreamTag node and continues to the rest of the graph handling
 // only imageStreamTag and buildConfig nodes.
-func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, f osgraph.Namer, root graph.Node) string {
+func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, f osgraph.Namer, root graph.Node, reverse bool) string {
+	if reverse {
+		g = g.EdgeSubgraph(osgraph.ReverseExistingDirectEdge)
+	}
+
 	var singleNamespace bool
 	if len(d.namespaces) == 1 && !d.namespaces.Has(kapi.NamespaceAll) {
 		singleNamespace = true
