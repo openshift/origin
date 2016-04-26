@@ -241,8 +241,8 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 		}
 
 		// preserve labels and annotations
-		expected.Labels = mergeMaps(expected.Labels, actual.Labels)
-		expected.Annotations = mergeMaps(expected.Annotations, actual.Annotations)
+		expected.Labels = MergeMaps(expected.Labels, actual.Labels)
+		expected.Annotations = MergeMaps(expected.Annotations, actual.Annotations)
 	}
 
 	// sort volumes to remove variants in order
@@ -290,7 +290,10 @@ func sliceToFSType(s []string) []kapi.FSType {
 	return fsTypes
 }
 
-func mergeMaps(a, b map[string]string) map[string]string {
+// MergeMaps will merge to map[string]string instances, with
+// keys from the second argument overwriting keys from the
+// first argument, in case of duplicates.
+func MergeMaps(a, b map[string]string) map[string]string {
 	if a == nil && b == nil {
 		return nil
 	}
