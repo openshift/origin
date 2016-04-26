@@ -229,7 +229,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			// prefer the anyuid SCC over ones that force a uid
 			Priority: &securityContextConstraintsAnyUIDPriority,
 			// drops unsafe caps
-			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT"},
+			RequiredDropCapabilities: []kapi.Capability{"MKNOD", "SYS_CHROOT"},
 		},
 		// SecurityContextConstraintsHostNetwork allows host network and host ports
 		{
