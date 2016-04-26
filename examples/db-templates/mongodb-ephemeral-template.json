@@ -125,10 +125,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
