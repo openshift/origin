@@ -18,4 +18,6 @@ fi
 
 if [ "${quota}" == "-1" ]; then
 	cat /proc/self/cgroup
+	cat /proc/self/mountinfo
+	findmnt
 fi
