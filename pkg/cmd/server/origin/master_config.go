@@ -380,7 +380,16 @@ func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, policy
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")})
+	// Default API request resolver
+	requestInfoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	// Wrap with a resolver that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
+		requestContextMapper,
+		sets.NewString(bootstrappolicy.AuthenticatedGroup),
+		requestInfoResolver,
+	)
+
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, browserSafeRequestInfoResolver)
 	return authorizationAttributeBuilder
 }
 
