@@ -137,7 +137,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 		runOnceDuration := NewRunOnceDuration(tc.config)
 		runOnceDuration.(oadmission.WantsProjectCache).SetProjectCache(testCache(tc.projectAnnotations))
 		pod := tc.pod
-		attrs := admission.NewAttributesRecord(pod, kapi.Kind("Pod"), "default", "test", kapi.Resource("pods"), "", admission.Create, nil)
+		attrs := admission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "default", "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil)
 		err := runOnceDuration.Admit(attrs)
 		if err != nil {
 			t.Errorf("%s: unexpected admission error: %v", tc.name, err)

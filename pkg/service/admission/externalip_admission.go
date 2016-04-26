@@ -74,7 +74,7 @@ func (s networkSlice) Contains(ip net.IP) bool {
 
 // Admit determines if the service should be admitted based on the configured network CIDR.
 func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
-	if a.GetResource() != kapi.Resource("services") {
+	if a.GetResource().GroupResource() != kapi.Resource("services") {
 		return nil
 	}
 
@@ -104,7 +104,7 @@ func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
 		}
 	}
 	if len(errs) > 0 {
-		return apierrs.NewInvalid(a.GetKind(), a.GetName(), errs)
+		return apierrs.NewInvalid(a.GetKind().GroupKind(), a.GetName(), errs)
 	}
 	return nil
 }

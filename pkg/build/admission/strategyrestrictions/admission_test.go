@@ -147,7 +147,7 @@ func TestBuildAdmission(t *testing.T) {
 			client := fakeClient(test.expectedResource, test.reviewResponse, test.responseObject)
 			c := NewBuildByStrategy()
 			c.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
-			attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subResource, op, fakeUser())
+			attrs := admission.NewAttributesRecord(test.object, test.kind.WithVersion("version"), "default", "name", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
 			err := c.Admit(attrs)
 			if err != nil && test.expectAccept {
 				t.Errorf("%s: unexpected error: %v", test.name, err)

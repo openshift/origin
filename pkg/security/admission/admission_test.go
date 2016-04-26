@@ -133,7 +133,7 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 
 	plugin := NewTestAdmission(store, tc)
 
-	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 
 	if shouldPass && err != nil {
@@ -374,7 +374,7 @@ func TestAdmit(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 		err := p.Admit(attrs)
 
 		if v.shouldAdmit && err != nil {
@@ -448,7 +448,7 @@ func TestAdmit(t *testing.T) {
 
 	for k, v := range testCases {
 		if !v.shouldAdmit {
-			attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+			attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 			err := p.Admit(attrs)
 			if err != nil {
 				t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
@@ -823,7 +823,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		scc := v.scc()
 
 		// create the providers, this method only needs the namespace
-		attributes := kadmission.NewAttributesRecord(nil, kapi.Kind("Pod"), v.namespace.Name, "", kapi.Resource("pods"), "", kadmission.Create, nil)
+		attributes := kadmission.NewAttributesRecord(nil, kapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, nil)
 		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*kapi.SecurityContextConstraints{scc})
 
 		if !reflect.DeepEqual(scc, v.scc()) {
@@ -1465,7 +1465,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
-	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 	if err != nil {
 		t.Errorf("error admitting pod: %v", err)

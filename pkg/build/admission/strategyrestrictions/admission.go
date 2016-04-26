@@ -44,12 +44,12 @@ var (
 )
 
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {
-	if resource := attr.GetResource(); resource != buildsResource && resource != buildConfigsResource {
+	if resource := attr.GetResource().GroupResource(); resource != buildsResource && resource != buildConfigsResource {
 		return nil
 	}
 	// Explicitly exclude the builds/details subresource because it's only
 	// updating commit info and cannot change build type.
-	if attr.GetResource() == buildsResource && attr.GetSubresource() == "details" {
+	if attr.GetResource().GroupResource() == buildsResource && attr.GetSubresource() == "details" {
 		return nil
 	}
 	switch obj := attr.GetObject().(type) {
@@ -136,7 +136,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 }
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
-	switch attr.GetResource() {
+	switch attr.GetResource().GroupResource() {
 	case buildsResource:
 		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
