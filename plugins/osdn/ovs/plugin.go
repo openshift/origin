@@ -123,9 +123,9 @@ func (plugin *ovsPlugin) Capabilities() utilsets.Int {
 
 func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
 	if plugin.multitenant {
-		vnid, found := plugin.VNIDMap[namespace]
-		if !found {
-			return "", fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
+		vnid, err := plugin.WaitAndGetVNID(namespace)
+		if err != nil {
+			return "", err
 		}
 		return strconv.FormatUint(uint64(vnid), 10), nil
 	}
