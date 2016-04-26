@@ -27,11 +27,11 @@ type PluginHooks interface {
 
 	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
 
-	AddHostSubnetRules(subnet *osapi.HostSubnet)
-	DeleteHostSubnetRules(subnet *osapi.HostSubnet)
+	AddHostSubnetRules(subnet *osapi.HostSubnet) error
+	DeleteHostSubnetRules(subnet *osapi.HostSubnet) error
 
-	AddServiceRules(service *kapi.Service, netID uint)
-	DeleteServiceRules(service *kapi.Service)
+	AddServiceRules(service *kapi.Service, netID uint) error
+	DeleteServiceRules(service *kapi.Service) error
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }

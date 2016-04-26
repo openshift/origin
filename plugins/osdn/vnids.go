@@ -6,11 +6,16 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/openshift-sdn/pkg/netutils"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 const (
@@ -131,7 +136,7 @@ func (oc *OsdnController) VnidStartMaster() error {
 	// 'default' namespace is currently always an admin namespace
 	oc.adminNamespaces = append(oc.adminNamespaces, "default")
 
-	go watchNamespaces(oc)
+	go utilwait.Forever(oc.watchNamespaces, 0)
 	return nil
 }
 
@@ -218,20 +223,27 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	return nil
 }
 
-func watchNamespaces(oc *OsdnController) {
-	nsevent := make(chan *NamespaceEvent)
-	go oc.Registry.WatchNamespaces(nsevent)
+func (oc *OsdnController) watchNamespaces() {
+	eventQueue := oc.Registry.RunEventQueue(Namespaces)
+
 	for {
-		ev := <-nsevent
-		switch ev.Type {
-		case Added:
-			err := oc.assignVNID(ev.Namespace.Name)
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for namespaces: %v", err))
+			return
+		}
+		ns := obj.(*kapi.Namespace)
+		name := ns.ObjectMeta.Name
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			err := oc.assignVNID(name)
 			if err != nil {
 				log.Errorf("Error assigning netid: %v", err)
 				continue
 			}
-		case Deleted:
-			err := oc.revokeVNID(ev.Namespace.Name)
+		case watch.Deleted:
+			err := oc.revokeVNID(name)
 			if err != nil {
 				log.Errorf("Error revoking netid: %v", err)
 				continue
@@ -253,10 +265,9 @@ func (oc *OsdnController) VnidStartNode() error {
 		return err
 	}
 
-	go watchNetNamespaces(oc)
-	go watchPods(oc)
-	go watchServices(oc)
-
+	go utilwait.Forever(oc.watchNetNamespaces, 0)
+	go utilwait.Forever(oc.watchPods, 0)
+	go utilwait.Forever(oc.watchServices, 0)
 	return nil
 }
 
@@ -278,37 +289,51 @@ func (oc *OsdnController) updatePodNetwork(namespace string, netID uint) error {
 	if err != nil {
 		return err
 	}
+	errList := []error{}
 	for _, svc := range services {
-		oc.pluginHooks.DeleteServiceRules(&svc)
-		oc.pluginHooks.AddServiceRules(&svc, netID)
+		if err := oc.pluginHooks.DeleteServiceRules(&svc); err != nil {
+			log.Error(err)
+		}
+		if err := oc.pluginHooks.AddServiceRules(&svc, netID); err != nil {
+			errList = append(errList, err)
+		}
 	}
-	return nil
+	return kerrors.NewAggregate(errList)
 }
 
-func watchNetNamespaces(oc *OsdnController) {
-	netNsEvent := make(chan *NetNamespaceEvent)
-	go oc.Registry.WatchNetNamespaces(netNsEvent)
+func (oc *OsdnController) watchNetNamespaces() {
+	eventQueue := oc.Registry.RunEventQueue(NetNamespaces)
+
 	for {
-		ev := <-netNsEvent
-		switch ev.Type {
-		case Added:
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for network namespaces: %v", err))
+			return
+		}
+		netns := obj.(*osapi.NetNamespace)
+
+		switch eventType {
+		case watch.Added, watch.Modified:
 			// Skip this event if the old and new network ids are same
-			oldNetID, err := oc.GetVNID(ev.NetNamespace.NetName)
-			if (err == nil) && (oldNetID == ev.NetNamespace.NetID) {
+			oldNetID, err := oc.GetVNID(netns.NetName)
+			if (err == nil) && (oldNetID == netns.NetID) {
 				continue
 			}
-			oc.setVNID(ev.NetNamespace.Name, ev.NetNamespace.NetID)
+			oc.setVNID(netns.NetName, netns.NetID)
 
-			err = oc.updatePodNetwork(ev.NetNamespace.NetName, ev.NetNamespace.NetID)
+			err = oc.updatePodNetwork(netns.NetName, netns.NetID)
 			if err != nil {
-				log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
+				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
+				oc.setVNID(netns.NetName, oldNetID)
+				continue
 			}
-		case Deleted:
-			err := oc.updatePodNetwork(ev.NetNamespace.NetName, AdminVNID)
+		case watch.Deleted:
+			// updatePodNetwork needs vnid, so unset vnid after this call
+			err := oc.updatePodNetwork(netns.NetName, AdminVNID)
 			if err != nil {
-				log.Errorf("Failed to update pod network for namespace '%s', error: %s", ev.NetNamespace.NetName, err)
+				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
-			oc.unSetVNID(ev.NetNamespace.NetName)
+			oc.unSetVNID(netns.NetName)
 		}
 	}
 }
@@ -326,37 +351,72 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 	return true
 }
 
-func watchServices(oc *OsdnController) {
-	svcevent := make(chan *ServiceEvent)
+func (oc *OsdnController) watchServices() {
 	services := make(map[string]*kapi.Service)
-	go oc.Registry.WatchServices(svcevent)
+	eventQueue := oc.Registry.RunEventQueue(Services)
 
 	for {
-		ev := <-svcevent
-		switch ev.Type {
-		case Added:
-			netid, err := oc.WaitAndGetVNID(ev.Service.Namespace)
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for services: %v", err))
+			return
+		}
+		serv := obj.(*kapi.Service)
+
+		// Ignore headless services
+		if !kapi.IsServiceIPSet(serv) {
+			continue
+		}
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			oldsvc, exists := services[string(serv.UID)]
+			if exists {
+				if !isServiceChanged(oldsvc, serv) {
+					continue
+				}
+				if err := oc.pluginHooks.DeleteServiceRules(oldsvc); err != nil {
+					log.Error(err)
+				}
+			}
+
+			netid, err := oc.WaitAndGetVNID(serv.Namespace)
 			if err != nil {
-				log.Errorf("Skipped serviceEvent: %v, Error: %v", ev, err)
+				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
 				continue
 			}
 
-			oldsvc, exists := services[string(ev.Service.UID)]
-			if exists {
-				if !isServiceChanged(oldsvc, ev.Service) {
-					continue
-				}
-				oc.pluginHooks.DeleteServiceRules(oldsvc)
+			if err := oc.pluginHooks.AddServiceRules(serv, netid); err != nil {
+				log.Error(err)
+				continue
 			}
-			services[string(ev.Service.UID)] = ev.Service
-			oc.pluginHooks.AddServiceRules(ev.Service, netid)
-		case Deleted:
-			delete(services, string(ev.Service.UID))
-			oc.pluginHooks.DeleteServiceRules(ev.Service)
+			services[string(serv.UID)] = serv
+		case watch.Deleted:
+			delete(services, string(serv.UID))
+
+			if err := oc.pluginHooks.DeleteServiceRules(serv); err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
 
-func watchPods(oc *OsdnController) {
-	oc.Registry.WatchPods()
+func (oc *OsdnController) watchPods() {
+	eventQueue := oc.Registry.RunEventQueue(Pods)
+
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for pods: %v", err))
+			return
+		}
+		pod := obj.(*kapi.Pod)
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			oc.Registry.TrackPod(pod)
+		case watch.Deleted:
+			oc.Registry.UnTrackPod(pod)
+		}
+	}
 }
