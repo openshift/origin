@@ -93,6 +93,12 @@ func TestImport(t *testing.T) {
 				if status := isi.Status.Images[3].Status; status.Status != "" {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[3].Status)
 				}
+				expectedTags := []string{"latest", "", "", ""}
+				for i, image := range isi.Status.Images {
+					if image.Tag != expectedTags[i] {
+						t.Errorf("unexpected tag of status %d (%s != %s)", i, image.Tag, expectedTags[i])
+					}
+				}
 			},
 		},
 		{
@@ -130,6 +136,7 @@ func TestImport(t *testing.T) {
 				if len(isi.Status.Images) != 2 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
+				expectedTags := []string{"", "tag"}
 				for i, image := range isi.Status.Images {
 					if image.Status.Status != unversioned.StatusSuccess {
 						t.Errorf("unexpected status %d: %#v", i, image.Status)
@@ -141,6 +148,9 @@ func TestImport(t *testing.T) {
 					// the most specific reference is returned
 					if image.Image.DockerImageReference != "test@sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238" {
 						t.Errorf("unexpected ref %d: %#v", i, image.Image.DockerImageReference)
+					}
+					if image.Tag != expectedTags[i] {
+						t.Errorf("unexpected tag of status %d (%s != %s)", i, image.Tag, expectedTags[i])
 					}
 				}
 			},
@@ -166,9 +176,13 @@ func TestImport(t *testing.T) {
 				if len(isi.Status.Repository.Images) != 5 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
+				expectedTags := []string{"3", "v2", "v1", "3.1", "abc"}
 				for i, image := range isi.Status.Repository.Images {
 					if image.Status.Status != unversioned.StatusFailure || image.Status.Message != "Internal error occurred: no such tag" {
 						t.Errorf("unexpected status %d: %#v", i, isi.Status.Repository.Images)
+					}
+					if image.Tag != expectedTags[i] {
+						t.Errorf("unexpected tag of status %d (%s != %s)", i, image.Tag, expectedTags[i])
 					}
 				}
 			},

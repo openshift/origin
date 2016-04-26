@@ -153,7 +153,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 			}
 			for _, index := range tags[j] {
 				if tag.Err != nil {
-					setImageImportStatus(isi, index, tag.Err)
+					setImageImportStatus(isi, index, tag.Name, tag.Err)
 					continue
 				}
 				copied := *tag.Image
@@ -174,7 +174,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 			}
 			for _, index := range ids[j] {
 				if digest.Err != nil {
-					setImageImportStatus(isi, index, digest.Err)
+					setImageImportStatus(isi, index, "", digest.Err)
 					continue
 				}
 				image := &isi.Status.Images[index]
@@ -247,6 +247,7 @@ func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, 
 	status.Status.Status = unversioned.StatusSuccess
 	status.Images = make([]api.ImageImportStatus, len(repo.Tags))
 	for i, tag := range repo.Tags {
+		status.Images[i].Tag = tag.Name
 		if tag.Err != nil {
 			failures++
 			status.Images[i].Status = imageImportStatus(tag.Err, "", "repository")
@@ -257,7 +258,6 @@ func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, 
 		copied := *tag.Image
 		ref.Tag, ref.ID = tag.Name, copied.Name
 		copied.DockerImageReference = ref.MostSpecific().Exact()
-		status.Images[i].Tag = tag.Name
 		status.Images[i].Image = &copied
 	}
 	if failures > 0 {
@@ -578,7 +578,8 @@ func imageImportStatus(err error, kind, position string) unversioned.Status {
 	}
 }
 
-func setImageImportStatus(images *api.ImageStreamImport, i int, err error) {
+func setImageImportStatus(images *api.ImageStreamImport, i int, tag string, err error) {
+	images.Status.Images[i].Tag = tag
 	images.Status.Images[i].Status = imageImportStatus(err, "", "")
 }
 

@@ -177,6 +177,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	if spec := isi.Spec.Repository; spec != nil {
 		for i, status := range isi.Status.Repository.Images {
+			if checkImportFailure(status, stream, status.Tag, nextGeneration, now) {
+				continue
+			}
+
 			image := status.Image
 			ref, err := api.ParseDockerImageReference(image.DockerImageReference)
 			if err != nil {
@@ -195,10 +199,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			}
 			// we've imported a set of tags, ensure spec tag will point to this for later imports
 			from.ID, from.Tag = "", tag
-
-			if checkImportFailure(status, stream, tag, nextGeneration, now) {
-				continue
-			}
 
 			if updated, ok := r.importSuccessful(ctx, image, stream, tag, from.Exact(), nextGeneration, now, spec.ImportPolicy, importedImages, updatedImages); ok {
 				isi.Status.Repository.Images[i].Image = updated
@@ -278,6 +278,17 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 
 		LastTransitionTime: now,
 	}
+
+	if tag == "" {
+		if len(status.Tag) > 0 {
+			tag = status.Tag
+		} else if status.Image != nil {
+			if ref, err := api.ParseDockerImageReference(status.Image.DockerImageReference); err == nil {
+				tag = ref.Tag
+			}
+		}
+	}
+
 	if !api.HasTagCondition(stream, tag, condition) {
 		api.SetTagConditions(stream, tag, condition)
 		if tagRef, ok := stream.Spec.Tags[tag]; ok {
