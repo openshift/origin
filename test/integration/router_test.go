@@ -90,8 +90,6 @@ func TestRouter(t *testing.T) {
 
 	routeAddress := getRouteAddress()
 	routeTestAddress := fmt.Sprintf("%s/test", routeAddress)
-	routerEchoHttpAddress := fmt.Sprintf("%s:80/echo", routeAddress)
-	routerEchoHttpsAddress := fmt.Sprintf("%s:443/echo", routeAddress)
 
 	//run through test cases now that environment is set up
 	testCases := []struct {
@@ -256,7 +254,7 @@ func TestRouter(t *testing.T) {
 			routeEventType:    watch.Added,
 			protocol:          "ws",
 			expectedResponse:  "hello-websocket-unsecure",
-			routerUrl:         routerEchoHttpAddress,
+			routerUrl:         routeAddress,
 		},
 		{
 			name:              "ws edge termination",
@@ -273,7 +271,7 @@ func TestRouter(t *testing.T) {
 				Key:           tr.ExampleKey,
 				CACertificate: tr.ExampleCACert,
 			},
-			routerUrl: routerEchoHttpsAddress,
+			routerUrl: routeAddress,
 		},
 		{
 			name:              "ws passthrough termination",
@@ -287,28 +285,12 @@ func TestRouter(t *testing.T) {
 			routeTLS: &routeapi.TLSConfig{
 				Termination: routeapi.TLSTerminationPassthrough,
 			},
-			routerUrl: routerEchoHttpsAddress,
+			routerUrl: routeAddress,
 		},
 	}
 
 	ns := "rotorouter"
 	for _, tc := range testCases {
-		// The following is a workaround for the websocket client, which does not
-		// allow a "Host" header that is distinct from the address to which the
-		// client code attempts to connect—so if we are putting "www.example.com" in
-		// the "Host" header, the client will connect to "www.example.com".
-		//
-		// In the case where we use HAProxy (with the template router), it is
-		// possible to use 0.0.0.0, so we can do so as a workaround to get the tests
-		// passing with the template router.  In the case of the F5 router though,
-		// F5 BIG-IP would reject 0.0.0.0 as an invalid servername, so the only way
-		// to make the tests pass with the F5 router is to use a hostname and make
-		// that hostname resolve to the F5 BIG-IP host's IP address.
-		if getRouterImage() == defaultRouterImage &&
-			(tc.protocol == "ws" || tc.protocol == "wss") {
-			tc.routeAlias = "0.0.0.0"
-		}
-
 		// Simulate the events.
 		endpointEvent := &watch.Event{
 			Type: tc.endpointEventType,
@@ -422,6 +404,28 @@ func TestRouterPathSpecificity(t *testing.T) {
 
 	now := unversioned.Now()
 
+	protocols := []struct {
+		name string
+		port string
+	}{
+		{
+			name: "http",
+			port: "80",
+		},
+		{
+			name: "https",
+			port: "443",
+		},
+		{
+			name: "ws",
+			port: "80",
+		},
+		{
+			name: "wss",
+			port: "443",
+		},
+	}
+
 	//create path based route
 	endpointEvent := &watch.Event{
 		Type: watch.Added,
@@ -447,6 +451,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "myService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
@@ -457,16 +468,18 @@ func TestRouterPathSpecificity(t *testing.T) {
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-	//ensure you can curl path but not main host
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if _, err := getRoute(routeAddress, "www.example.com", "http", nil, ""); err != ErrUnavailable {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	//ensure you can curl path with port in Host header
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		//ensure you can curl path but not main host
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if _, err := getRoute(routeAddress, "www.example.com", proto.name, nil, ""); err != ErrUnavailable {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		//ensure you can curl path with port in Host header
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	//create newer, conflicting path based route
@@ -494,17 +507,26 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "altService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	//create host based route
@@ -521,20 +543,29 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "myService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-	//ensure you can curl path and host
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		//ensure you can curl path and host
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeAddress, "www.example.com", proto.name, nil, tr.HelloPod); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	//delete path based route
@@ -551,6 +582,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "myService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
@@ -562,14 +600,16 @@ func TestRouterPathSpecificity(t *testing.T) {
 	// same service, and that that service varies its response in accordance with
 	// the path, so we still get the tr.HelloPodPath response when we request
 	// /test even though we request using routeAddress.
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeAddress, "www.example.com", proto.name, nil, tr.HelloPod); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	// create newer, conflicting host based route that is ignored
@@ -586,19 +626,28 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "altService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeAddress, "www.example.com", proto.name, nil, tr.HelloPod); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodPath); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	//create old, conflicting host based route which should take over the route
@@ -615,19 +664,28 @@ func TestRouterPathSpecificity(t *testing.T) {
 				To: kapi.ObjectReference{
 					Name: "altService",
 				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+				},
 			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodAlternate); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPodAlternate); err != nil {
-		t.Fatalf("unexpected response: %q", err)
-	}
-	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodAlternate); err != nil {
-		t.Fatalf("unexpected response: %q", err)
+	for _, proto := range protocols {
+		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodAlternate); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeAddress, "www.example.com", proto.name, nil, tr.HelloPodAlternate); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
+		if err := waitForRoute(routeTestAddress, "www.example.com:"+proto.port, proto.name, nil, tr.HelloPodAlternate); err != nil {
+			t.Fatalf("unexpected response with protocol %s (port %s): %q", proto.name, proto.port, err)
+		}
 	}
 
 	// Clean up the host-based route and endpoint.
@@ -642,6 +700,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Host: "www.example.com",
 				To: kapi.ObjectReference{
 					Name: "myService",
+				},
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
+					Certificate:                   tr.ExampleCert,
+					Key:                           tr.ExampleKey,
+					CACertificate:                 tr.ExampleCACert,
+					InsecureEdgeTerminationPolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
 				},
 			},
 		},
@@ -997,6 +1062,20 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 	url := protocol + "://" + routerUrl
 	var tlsConfig *tls.Config
 
+	routerAddress := getRouteAddress()
+	dialer := func(network, addr string) (net.Conn, error) {
+		if _, port, err := net.SplitHostPort(addr); err == nil {
+			return net.Dial(network, fmt.Sprintf("%s:%s", routerAddress, port))
+		}
+		return net.Dial(network, fmt.Sprintf("%s:%s", routerAddress, "80"))
+	}
+	tlsDialer := func(network, addr string, config *tls.Config) (*tls.Conn, error) {
+		if _, port, err := net.SplitHostPort(addr); err == nil {
+			return tls.Dial(network, fmt.Sprintf("%s:%s", routerAddress, port), config)
+		}
+		return tls.Dial(network, fmt.Sprintf("%s:%s", routerAddress, "443"), config)
+	}
+
 	if protocol == "https" || protocol == "wss" {
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -1007,6 +1086,7 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 	switch protocol {
 	case "http", "https":
 		httpClient := &http.Client{Transport: knet.SetTransportDefaults(&http.Transport{
+			Dial:            dialer,
 			TLSClientConfig: tlsConfig,
 		}),
 		}
@@ -1048,16 +1128,25 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 		if protocol == "wss" {
 			port = 443
 		}
-		wsConfig.Location.Host = fmt.Sprintf("%s:%d", hostName, port)
-		wsConfig.TlsConfig = tlsConfig
+		if _, _, err := net.SplitHostPort(hostName); err == nil {
+			wsConfig.Location.Host = hostName
+		} else {
+			wsConfig.Location.Host = fmt.Sprintf("%s:%d", hostName, port)
+		}
 
-		ws, err := websocket.DialConfig(wsConfig)
+		var conn net.Conn
+		if tlsConfig == nil {
+			conn, err = dialer("tcp", wsConfig.Location.Host)
+		} else {
+			conn, err = tlsDialer("tcp", wsConfig.Location.Host, tlsConfig)
+		}
 		if err != nil {
-			if derr, ok := err.(*websocket.DialError); ok {
-				if derr.Err == websocket.ErrBadStatus {
-					// a better websocket library would know the difference here
-					return "", ErrUnavailable
-				}
+			return "", err
+		}
+		ws, err := websocket.NewClient(wsConfig, conn)
+		if err != nil {
+			if err == websocket.ErrBadStatus {
+				return "", ErrUnavailable
 			}
 			return "", err
 		}
