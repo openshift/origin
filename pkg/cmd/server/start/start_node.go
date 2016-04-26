@@ -316,10 +316,6 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	if components.Enabled(ComponentProxy) {
 		config.RunProxy()
 	}
-	// if we are running plugins in this process, reset the bridge ip rule
-	if components.Enabled(ComponentPlugins) {
-		config.ResetSysctlFromProxy()
-	}
 
 	return nil
 }

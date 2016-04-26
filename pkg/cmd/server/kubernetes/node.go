@@ -28,7 +28,6 @@ import (
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
-	"k8s.io/kubernetes/pkg/util/sysctl"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -308,18 +307,6 @@ func (c *NodeConfig) RunPlugin() {
 	}
 	if err := c.SDNPlugin.StartNode(c.MTU); err != nil {
 		glog.Fatalf("error: SDN node startup failed: %v", err)
-	}
-}
-
-// ResetSysctlFromProxy resets the bridge-nf-call-iptables systctl that the Kube proxy sets, which
-// is required for normal Docker containers to talk to the SDN plugin on the local system.
-// Resolution is https://github.com/kubernetes/kubernetes/pull/20647
-func (c *NodeConfig) ResetSysctlFromProxy() {
-	if c.SDNPlugin == nil {
-		return
-	}
-	if err := sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0); err != nil {
-		glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
 	}
 }
 
