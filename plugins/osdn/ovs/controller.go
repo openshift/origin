@@ -325,14 +325,6 @@ func (plugin *ovsPlugin) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesN
 	return true, nil
 }
 
-func (plugin *ovsPlugin) GetName() string {
-	if plugin.multitenant {
-		return MultiTenantPluginName()
-	} else {
-		return SingleTenantPluginName()
-	}
-}
-
 func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.Infof("AddHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
