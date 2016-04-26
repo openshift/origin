@@ -60,6 +60,7 @@ type LoginOptions struct {
 	Token string
 
 	PathOptions *kcmdconfig.PathOptions
+	Force       bool
 }
 
 // Gather all required information in a comprehensive order.
