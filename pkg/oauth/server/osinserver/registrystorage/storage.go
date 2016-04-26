@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/RangelReale/osin"
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -102,6 +103,10 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 // Optionally can return error if expired.
 func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	authorize, err := s.authorizetoken.GetAuthorizeToken(kapi.NewContext(), code)
+	if kerrors.IsNotFound(err) {
+		glog.V(5).Info("Authorization code not found")
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
