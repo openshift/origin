@@ -1,7 +1,9 @@
 [Unit]
 After=docker.service
 Before=origin-node.service
+PartOf=docker.service
 Requires=docker.service
+After=etcd.service
 
 
 [Service]
@@ -15,3 +17,4 @@ RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
+WantedBy=origin-node.service
