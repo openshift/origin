@@ -41,7 +41,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			params := trigger.ImageChangeParams
 
 			// Only automatic image change triggers should fire
-			if trigger.Type != deployapi.DeploymentTriggerOnImageChange || !params.Automatic {
+			if trigger.Type != deployapi.DeploymentTriggerOnImageChange {
 				continue
 			}
 
@@ -114,12 +114,6 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
 		return fmt.Errorf("error generating new version of DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
-	}
-
-	// No update occurred
-	if config.Status.LatestVersion == newConfig.Status.LatestVersion {
-		glog.V(5).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
-		return nil
 	}
 
 	// Persist the new config
