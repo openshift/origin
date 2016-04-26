@@ -150,7 +150,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.MaxPods = 110
 
 	switch server.NetworkPluginName {
-	case ovs.SingleTenantPluginName(), ovs.MultiTenantPluginName():
+	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 		server.ConfigureCBR0 = false
