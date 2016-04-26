@@ -357,11 +357,11 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 
 # set up pruner user
 os::cmd::expect_success 'oadm policy add-cluster-role-to-user system:image-pruner e2e-pruner'
+os::cmd::try_until_text 'oadm policy who-can list images' 'e2e-pruner'
 os::cmd::expect_success 'oc login -u e2e-pruner -p pass'
 
 # run image pruning
-os::cmd::expect_success "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm &> '${LOG_DIR}/prune-images.log'"
-os::cmd::expect_success_and_not_text "cat ${LOG_DIR}/prune-images.log" 'error'
+os::cmd::expect_success_and_not_text "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
 
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 # record the storage after pruning
