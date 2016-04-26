@@ -19,18 +19,19 @@ import (
 	utilsets "k8s.io/kubernetes/pkg/util/sets"
 )
 
+const (
+	SingleTenantPluginName string = "redhat/openshift-ovs-subnet"
+	MultiTenantPluginName  string = "redhat/openshift-ovs-multitenant"
+
+	IngressBandwidthAnnotation string = "kubernetes.io/ingress-bandwidth"
+	EgressBandwidthAnnotation  string = "kubernetes.io/egress-bandwidth"
+	AssignMacVlanAnnotation    string = "pod.network.openshift.io/assign-macvlan"
+)
+
 type ovsPlugin struct {
 	osdn.OsdnController
 
 	multitenant bool
-}
-
-func SingleTenantPluginName() string {
-	return "redhat/openshift-ovs-subnet"
-}
-
-func MultiTenantPluginName() string {
-	return "redhat/openshift-ovs-multitenant"
 }
 
 func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
@@ -110,9 +111,9 @@ func (plugin *ovsPlugin) Init(host knetwork.Host) error {
 
 func (plugin *ovsPlugin) Name() string {
 	if plugin.multitenant {
-		return MultiTenantPluginName()
+		return MultiTenantPluginName
 	} else {
-		return SingleTenantPluginName()
+		return SingleTenantPluginName
 	}
 }
 
@@ -151,14 +152,14 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 }
 
 func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error) {
-	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
+	str, found := pod.Annotations[IngressBandwidthAnnotation]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
 		if err != nil {
 			return -1, -1, err
 		}
 	}
-	str, found = pod.Annotations["kubernetes.io/egress-bandwidth"]
+	str, found = pod.Annotations[EgressBandwidthAnnotation]
 	if found {
 		egress, err = parseAndValidateBandwidth(str)
 		if err != nil {
@@ -169,7 +170,7 @@ func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error)
 }
 
 func wantsMacvlan(pod *kapi.Pod) (bool, error) {
-	val, found := pod.Annotations["pod.network.openshift.io/assign-macvlan"]
+	val, found := pod.Annotations[AssignMacVlanAnnotation]
 	if !found || val != "true" {
 		return false, nil
 	}
@@ -178,7 +179,7 @@ func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("Pod has 'pod.network.openshift.io/assign-macvlan' annotation but is not privileged")
+	return false, fmt.Errorf("Pod has %q annotation but is not privileged", AssignMacVlanAnnotation)
 }
 
 func isScriptError(err error) bool {
