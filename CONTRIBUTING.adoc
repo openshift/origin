@@ -337,6 +337,10 @@ openshift.local.config) can be supplied instead:
 
         $ OPENSHIFT_CONFIG_ROOT=[cluster config root] test/extended/networking.sh
 
+It's also possible to supply the path to a kubeconfig file:
+
+        $ OPENSHIFT_TEST_KUBECONFIG=./admin.kubeconfig test/extended/networking.sh
+
 See the script's inline documentation for further details.
 
 ==== Running Kubernetes e2e tests

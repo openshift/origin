@@ -132,6 +132,12 @@ function deploy-cluster() {
   return "${exit_status}"
 }
 
+function get-kubeconfig-from-root() {
+  local config_root=$1
+
+  echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
+}
+
 # Any non-zero exit code from any test run invoked by this script
 # should increment TEST_FAILURE so the total count of failed test runs
 # can be returned as the exit code.
@@ -153,8 +159,9 @@ function test-osdn-plugin() {
     os::log::info "Running networking e2e tests against the ${name} plugin"
     export TEST_REPORT_FILE_NAME="${name}-junit"
 
+    local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
     if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
-         run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"; then
+         run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
       tests_failed=1
       os::log::error "e2e tests failed for plugin: ${plugin}"
     fi
@@ -181,7 +188,7 @@ function test-osdn-plugin() {
 function join { local IFS="$1"; shift; echo "$*"; }
 
 function run-extended-tests() {
-  local config_root=$1
+  local kubeconfig=$1
   local log_path=${2:-}
 
   local focus_regex="${NETWORKING_E2E_FOCUS}"
@@ -191,7 +198,7 @@ function run-extended-tests() {
       skip_regex=$(join '|' "${DEFAULT_SKIP_LIST[@]}")
   fi
 
-  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
+  export KUBECONFIG="${kubeconfig}"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
   local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
@@ -251,9 +258,13 @@ TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
 os::log::info "Starting 'networking' extended tests"
 if [[ -n "${CONFIG_ROOT}" ]]; then
-  os::log::info "CONFIG_ROOT=${CONFIG_ROOT}"
+  KUBECONFIG="$(get-kubeconfig-from-root "${CONFIG_ROOT}")"
+  os::log::info "KUBECONFIG=${KUBECONFIG}"
+  run-extended-tests "${KUBECONFIG}"
+elif [[ -n "${OPENSHIFT_TEST_KUBECONFIG:-}" ]]; then
+  os::log::info "KUBECONFIG=${OPENSHIFT_TEST_KUBECONFIG}"
   # Run tests against an existing cluster
-  run-extended-tests "${CONFIG_ROOT}"
+  run-extended-tests "${OPENSHIFT_TEST_KUBECONFIG}"
 else
   # For each plugin, run tests against a test-managed cluster
 
