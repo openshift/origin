@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
+	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	"k8s.io/kubernetes/pkg/master"
 	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -124,7 +125,7 @@ func (c *MasterConfig) RunPersistentVolumeProvisioner(client *client.Client) {
 			c.CloudProvider,
 		)
 		if err != nil {
-			glog.Fatalf("Could not start Persistent Volume Provisioner: %+v", err)
+			glog.Fatalf("Unable to start persistent volume provisioner: %+v", err)
 		}
 		provisionerController.Run()
 	}
@@ -320,6 +321,18 @@ func (c *MasterConfig) RunNodeController() {
 	)
 
 	controller.Run(s.NodeSyncPeriod.Duration)
+}
+
+// RunServiceLoadBalancerController starts the service loadbalancer controller if the cloud provider is configured.
+func (c *MasterConfig) RunServiceLoadBalancerController(client *client.Client) {
+	if c.CloudProvider == nil {
+		glog.V(2).Infof("Service controller will not start - no cloud provider configured")
+		return
+	}
+	serviceController := servicecontroller.New(c.CloudProvider, clientadapter.FromUnversionedClient(client), c.ControllerManager.ClusterName)
+	if err := serviceController.Run(c.ControllerManager.ServiceSyncPeriod.Duration, c.ControllerManager.NodeSyncPeriod.Duration); err != nil {
+		glog.Fatalf("Unable to start service controller: %v", err)
+	}
 }
 
 func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {

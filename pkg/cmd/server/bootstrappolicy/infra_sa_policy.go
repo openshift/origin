@@ -45,6 +45,9 @@ const (
 
 	InfraGCControllerServiceAccountName = "gc-controller"
 	GCControllerRoleName                = "system:gc-controller"
+
+	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
+	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -558,6 +561,49 @@ func init() {
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("delete"),
 					Resources: sets.NewString("pods"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraServiceLoadBalancerControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceLoadBalancerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// ServiceController.cache.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("services"),
+				},
+				// ServiceController.processDelta needs to fetch the latest service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("services"),
+				},
+				// ServiceController.persistUpdate changes the status of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services/status"),
+				},
+				// ServiceController.nodeLister.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// ServiceController.eventRecorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},
