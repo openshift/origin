@@ -53,6 +53,7 @@ module.exports = function(config) {
       "bower_components/angular-ui-ace/ui-ace.js",
       "bower_components/angular-extension-registry/dist/angular-extension-registry.min.js",
       "bower_components/ng-sortable/dist/ng-sortable.js",
+      "bower_components/ui-select/dist/select.js",
       'app/config.js',
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',

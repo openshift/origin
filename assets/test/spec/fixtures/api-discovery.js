@@ -442,10 +442,11 @@ window.OPENSHIFT_CONFIG.api.openshift.resources = {
 window.OPENSHIFT_CONFIG.apis.groups = {
   "autoscaling": {
     "name": "autoscaling",
+    "preferredVersion": "v1",
     "versions": {
       "v1": {
-        "groupVersion": "autoscaling/v1",
         "version": "v1",
+        "groupVersion": "autoscaling/v1",
         "resources": {
           "horizontalpodautoscalers": {
             "name": "horizontalpodautoscalers",
@@ -459,18 +460,15 @@ window.OPENSHIFT_CONFIG.apis.groups = {
           }
         }
       }
-    },
-    "preferredVersion": {
-      "groupVersion": "autoscaling/v1",
-      "version": "v1"
     }
   },
   "batch": {
     "name": "batch",
+    "preferredVersion": "v1",
     "versions": {
       "v1": {
-        "groupVersion": "batch/v1",
         "version": "v1",
+        "groupVersion": "batch/v1",
         "resources": {
           "jobs": {
             "name": "jobs",
@@ -484,18 +482,15 @@ window.OPENSHIFT_CONFIG.apis.groups = {
           }
         }
       }
-    },
-    "preferredVersion": {
-      "groupVersion": "batch/v1",
-      "version": "v1"
     }
   },
   "extensions": {
     "name": "extensions",
+    "preferredVersion": "v1beta1",
     "versions": {
       "v1beta1": {
-        "groupVersion": "extensions/v1beta1",
         "version": "v1beta1",
+        "groupVersion": "extensions/v1beta1",
         "resources": {
           "daemonsets": {
             "name": "daemonsets",
@@ -584,10 +579,6 @@ window.OPENSHIFT_CONFIG.apis.groups = {
           }
         }
       }
-    },
-    "preferredVersion": {
-      "groupVersion": "extensions/v1beta1",
-      "version": "v1beta1"
     }
   }
 };
