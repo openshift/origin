@@ -35,6 +35,7 @@
     "ace-builds": "1.2.2",
     "yamljs": "0.1.5",
     "clipboard": "1.5.8",
+    "pathseg": "1.0.2",   
     "ansi_up": "1.3.0",
     "angular-extension-registry": "1.2.6",
     "ng-sortable": "1.3.4",
@@ -51,7 +52,8 @@
     "lodash": "3.10.1",
     "angular-bootstrap": "0.14.3",
     "moment": "2.10.6",
-    "matchHeight": "0.6.0"
+    "matchHeight": "0.6.0",
+    "font-awesome": "4.6.1"
   },
   "overrides": {
     "angular-patternfly": {
