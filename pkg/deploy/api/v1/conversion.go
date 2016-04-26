@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/conversion"
@@ -14,7 +15,11 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*DeploymentTriggerImageChangeParams))(in)
+	}
+
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -31,7 +36,7 @@ func convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImage
 	return nil
 }
 
-func convert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -48,7 +53,10 @@ func convert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImage
 	return nil
 }
 
-func convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*RollingDeploymentStrategyParams))(in)
+	}
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds
@@ -83,7 +91,7 @@ func convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategy
 	return nil
 }
 
-func convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *RollingDeploymentStrategyParams, s conversion.Scope) error {
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds
@@ -126,11 +134,11 @@ func convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategy
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
-		convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
-		convert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams,
+		Convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
+		Convert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams,
 
-		convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
-		convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
+		Convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
+		Convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
 	)
 	if err != nil {
 		panic(err)

@@ -354,7 +354,7 @@ type DeploymentDetails struct {
 	// Message is the user specified change message, if this deployment was triggered manually by the user
 	Message string
 	// Causes are extended data associated with all the causes for creating a new deployment
-	Causes []*DeploymentCause
+	Causes []DeploymentCause
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.

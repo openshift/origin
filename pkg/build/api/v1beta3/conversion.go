@@ -11,7 +11,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
+func Convert_v1beta3_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -37,14 +37,14 @@ func convert_v1beta3_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_BuildConfig_To_v1beta3_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
+func Convert_api_BuildConfig_To_v1beta3_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
+func Convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -57,14 +57,14 @@ func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBu
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
+func Convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
+func Convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -79,14 +79,14 @@ func convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBu
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
+func Convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
+func Convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -99,14 +99,14 @@ func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBu
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+func Convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1beta3_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
+func Convert_v1beta3_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -118,14 +118,14 @@ func convert_v1beta3_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.
 }
 
 // empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func convert_api_BuildOutput_To_v1beta3_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
+func Convert_api_BuildOutput_To_v1beta3_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
+func Convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigg
 	return nil
 }
 
-func convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
+func Convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
 		return err
 	}
@@ -155,14 +155,14 @@ func convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.Buil
 	return nil
 }
 
-func convert_v1beta3_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *newer.SourceRevision, s conversion.Scope) error {
+func Convert_v1beta3_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *newer.SourceRevision, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_api_SourceRevision_To_v1beta3_SourceRevision(in *newer.SourceRevision, out *SourceRevision, s conversion.Scope) error {
+func Convert_api_SourceRevision_To_v1beta3_SourceRevision(in *newer.SourceRevision, out *SourceRevision, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -170,14 +170,14 @@ func convert_api_SourceRevision_To_v1beta3_SourceRevision(in *newer.SourceRevisi
 	return nil
 }
 
-func convert_v1beta3_BuildSource_To_api_BuildSource(in *BuildSource, out *newer.BuildSource, s conversion.Scope) error {
+func Convert_v1beta3_BuildSource_To_api_BuildSource(in *BuildSource, out *newer.BuildSource, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_api_BuildSource_To_v1beta3_BuildSource(in *newer.BuildSource, out *BuildSource, s conversion.Scope) error {
+func Convert_api_BuildSource_To_v1beta3_BuildSource(in *newer.BuildSource, out *BuildSource, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -196,14 +196,14 @@ func convert_api_BuildSource_To_v1beta3_BuildSource(in *newer.BuildSource, out *
 	return nil
 }
 
-func convert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer.BuildStrategy, s conversion.Scope) error {
+func Convert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer.BuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	return nil
 }
 
-func convert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *newer.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
+func Convert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *newer.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -254,24 +254,24 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	}
 
 	scheme.AddConversionFuncs(
-		convert_v1beta3_BuildConfig_To_api_BuildConfig,
-		convert_api_BuildConfig_To_v1beta3_BuildConfig,
-		convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
-		convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
-		convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
-		convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy,
-		convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy,
-		convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy,
-		convert_v1beta3_BuildOutput_To_api_BuildOutput,
-		convert_api_BuildOutput_To_v1beta3_BuildOutput,
-		convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
-		convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
-		convert_v1beta3_SourceRevision_To_api_SourceRevision,
-		convert_api_SourceRevision_To_v1beta3_SourceRevision,
-		convert_v1beta3_BuildSource_To_api_BuildSource,
-		convert_api_BuildSource_To_v1beta3_BuildSource,
-		convert_v1beta3_BuildStrategy_To_api_BuildStrategy,
-		convert_api_BuildStrategy_To_v1beta3_BuildStrategy,
+		Convert_v1beta3_BuildConfig_To_api_BuildConfig,
+		Convert_api_BuildConfig_To_v1beta3_BuildConfig,
+		Convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
+		Convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
+		Convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
+		Convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy,
+		Convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy,
+		Convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy,
+		Convert_v1beta3_BuildOutput_To_api_BuildOutput,
+		Convert_api_BuildOutput_To_v1beta3_BuildOutput,
+		Convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
+		Convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
+		Convert_v1beta3_SourceRevision_To_api_SourceRevision,
+		Convert_api_SourceRevision_To_v1beta3_SourceRevision,
+		Convert_v1beta3_BuildSource_To_api_BuildSource,
+		Convert_api_BuildSource_To_v1beta3_BuildSource,
+		Convert_v1beta3_BuildStrategy_To_api_BuildStrategy,
+		Convert_api_BuildStrategy_To_v1beta3_BuildStrategy,
 	)
 
 	// Add field conversion funcs.
