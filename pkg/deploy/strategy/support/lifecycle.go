@@ -303,6 +303,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
 			Labels: map[string]string{
+				deployapi.DeploymentPodTypeLabel:        label,
 				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
 			},
 		},
