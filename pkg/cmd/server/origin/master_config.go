@@ -69,10 +69,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
-const (
-	unauthenticatedUsername = "system:anonymous"
-)
-
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
 	Options configapi.MasterConfig
