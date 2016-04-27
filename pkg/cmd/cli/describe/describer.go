@@ -187,7 +187,9 @@ func nameAndNamespace(ns, name string) string {
 }
 func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
+	noneType := true
 	if p.Source.Git != nil {
+		noneType = false
 		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
 			formatString(out, "Ref", p.Source.Git.Ref)
@@ -242,6 +244,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	}
 
 	if p.Source.Binary != nil {
+		noneType = false
 		if len(p.Source.Binary.AsFile) > 0 {
 			formatString(out, "Binary", fmt.Sprintf("provided as file %q on build", p.Source.Binary.AsFile))
 		} else {
@@ -257,16 +260,22 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		formatString(out, "Build Secrets", strings.Join(result, ","))
 	}
 	if len(p.Source.Images) == 1 && len(p.Source.Images[0].Paths) == 1 {
+		noneType = false
 		image := p.Source.Images[0]
 		path := image.Paths[0]
 		formatString(out, "Image Source", fmt.Sprintf("copies %s from %s to %s", path.SourcePath, nameAndNamespace(image.From.Namespace, image.From.Name), path.DestinationDir))
 	} else {
 		for _, image := range p.Source.Images {
+			noneType = false
 			formatString(out, "Image Source", fmt.Sprintf("%s", nameAndNamespace(image.From.Namespace, image.From.Name)))
 			for _, path := range image.Paths {
 				fmt.Fprintf(out, "\t- %s -> %s\n", path.SourcePath, path.DestinationDir)
 			}
 		}
+	}
+
+	if noneType {
+		formatString(out, "Empty Source", "no input source provided")
 	}
 
 	describePostCommitHook(p.PostCommit, out)

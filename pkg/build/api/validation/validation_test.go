@@ -40,6 +40,178 @@ func TestBuildValidationSuccess(t *testing.T) {
 	}
 }
 
+func checkDockerStrategyEmptySourceError(result field.ErrorList) bool {
+	for _, err := range result {
+		if err.Type == field.ErrorTypeInvalid && strings.Contains(err.Field, "spec.source") && strings.Contains(err.Detail, "must provide a value for at least one of source, binary, images, or dockerfile") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestBuildEmptySource(t *testing.T) {
+	builds := []buildapi.Build{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			Spec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "myimage:tag",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseNew,
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			Spec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					CustomStrategy: &buildapi.CustomBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "myimage:tag",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseNew,
+			},
+		},
+	}
+	for _, build := range builds {
+		if result := ValidateBuild(&build); len(result) > 0 {
+			t.Errorf("Unexpected validation error returned %v", result)
+		}
+	}
+
+	badBuild := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		Spec: buildapi.BuildSpec{
+			Source: buildapi.BuildSource{},
+			Strategy: buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
+			},
+		},
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
+	}
+	if result := ValidateBuild(badBuild); len(result) == 0 {
+		t.Error("An error should have occurred with a DockerStrategy / no source combo")
+	} else {
+		if !checkDockerStrategyEmptySourceError(result) {
+			t.Errorf("The correct error was not found: %v", result)
+		}
+	}
+
+}
+
+func TestBuildConfigEmptySource(t *testing.T) {
+	buildConfigs := []buildapi.BuildConfig{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						CustomStrategy: &buildapi.CustomBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, buildConfig := range buildConfigs {
+		if result := ValidateBuildConfig(&buildConfig); len(result) > 0 {
+			t.Errorf("Unexpected validation error returned %v", result)
+		}
+	}
+
+	badBuildConfig := buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+	}
+	if result := ValidateBuildConfig(&badBuildConfig); len(result) == 0 {
+		t.Error("An error should have occurred with a DockerStrategy / no source combo")
+	} else {
+		if !checkDockerStrategyEmptySourceError(result) {
+			t.Errorf("The correct error was not found: %v", result)
+		}
+	}
+
+}
+
 func TestBuildValidationFailure(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
