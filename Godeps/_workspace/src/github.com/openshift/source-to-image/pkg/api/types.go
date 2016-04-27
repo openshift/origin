@@ -188,6 +188,10 @@ type Config struct {
 	// ScriptDownloadProxyConfig optionally specifies the http and https proxy
 	// to use when downloading scripts
 	ScriptDownloadProxyConfig *ProxyConfig
+
+	// ExcludeRegExp contains a string representation of the regular expression desired for
+	// deciding which files to exclude from the tar stream
+	ExcludeRegExp string
 }
 
 type ProxyConfig struct {
