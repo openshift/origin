@@ -101,6 +101,9 @@
 
                         <!-- Show the route if present -->
                         <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
+                          <span ng-if="!otherRoutes">
+                            <route-warnings warnings="routeWarningsByService[serviceId][displayRouteByService[serviceId].metadata.name]"></route-warnings>
+                          </span>
                           <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
                             <!-- "route" class is present for e2e tests to check -->
                             <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route" target="_blank">{{displayRouteByService[serviceId] | routeLabel}}</a>
@@ -114,15 +117,12 @@
                             <a href="project/{{projectName}}/browse/routes"><span ng-if="otherRoutes === 1">one other route</span
                                 ><span ng-if="otherRoutes > 1">{{otherRoutes}} other routes</span></a>)
                           </span>
-                          <span ng-if="!otherRoutes">
-                            <route-warnings warnings="routeWarningsByService[serviceId][displayRouteByService[serviceId].metadata.name]"></route-warnings>
-                          </span>
                           <div ng-if="(routeWarningsByService[serviceId] | hashSize) > 0 && otherRoutes">
                             <small>
                               <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
                               This service has <a href="project/{{projectName}}/browse/routes">routes</a> with warnings.
                             </small>
-                          </div>                          
+                          </div>
                         </h2>
 
                         <!-- If no route is present, show the service name large -->
