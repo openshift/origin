@@ -132,15 +132,14 @@ func IsImageChangeControllerChange(newDc, oldDc deployapi.DeploymentConfig) bool
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
 	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
-	if decoded, err := runtime.Decode(decoder, encodedConfig); err == nil {
+	decoded, err := runtime.Decode(decoder, encodedConfig)
+	if err == nil {
 		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
 			return config, nil
-		} else {
-			return nil, fmt.Errorf("decoded DeploymentConfig from controller is not a DeploymentConfig: %v", err)
 		}
-	} else {
-		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
+		return nil, fmt.Errorf("decoded object from controller is not a DeploymentConfig")
 	}
+	return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
 }
 
 // EncodeDeploymentConfig encodes config as a string using codec.
