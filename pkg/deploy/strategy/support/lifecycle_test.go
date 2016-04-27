@@ -202,6 +202,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
+						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
@@ -274,6 +275,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
+						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
@@ -329,6 +331,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
+						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
 						"label1": "value1",
 					},
