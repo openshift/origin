@@ -8,6 +8,8 @@ angular.module('openshiftConsole')
         model: "=",
         required: "=",
         disabled: "=ngDisabled",
+        // Show the file contents below the file input.
+        showValues: "=",
         helpText: "@?"
       },
       templateUrl: 'views/directives/osc-file-input.html',

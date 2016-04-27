@@ -26,4 +26,12 @@ angular.module('openshiftConsole')
     return function(input) {
       return _.capitalize(input);
     };
+  })
+  .filter('isMultiline', function() {
+    return function(str) {
+      if (!str) {
+        return false;
+      }
+      return str.indexOf('\n') !== -1;
+    };
   });

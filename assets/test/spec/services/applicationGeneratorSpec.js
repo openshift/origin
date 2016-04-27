@@ -163,9 +163,7 @@ describe("ApplicationGenerator", function(){
       var routeInput = angular.copy(inputTemplate);
       routeInput.labels.app = routeInput.name;
       routeInput.annotations["openshift.io/generated-by"] = "OpenShiftWebConsole";
-      routeInput.routing.targetPort = {
-        port: 'tcp-80'
-      };
+      routeInput.routing.targetPort = 'tcp-80';
 
       var route = ApplicationGenerator._generateRoute(routeInput, routeInput.name, "theServiceName");
       expect(route).toEqual({

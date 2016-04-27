@@ -155,7 +155,7 @@ angular.module('openshiftConsole')
         };
 
         // breadcrumb must react depending on what we are attaching to (deployment or dc)
-        var rebuildBreadcrumb = function() {
+        function rebuildBreadcrumb() {
           $scope.breadcrumbs.splice(1, 0, {
             title: "Deployments",
             link: "project/" + $routeParams.project + "/browse/deployments"
@@ -184,7 +184,7 @@ angular.module('openshiftConsole')
               });
             }
           }
-        };
+        }
 
         validateRouteParams();
         load();

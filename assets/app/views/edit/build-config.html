@@ -13,7 +13,8 @@
             <alerts alerts="alerts"></alerts>
             <div ng-if="!loaded">Loading...</div>
             <h1>
-              Edit Build Config {{buildConfig.metadata.name}} - <small>{{strategyType}} Build Strategy</small>
+              Edit Build Config {{buildConfig.metadata.name}}
+              <small>&mdash; {{strategyType | startCase}} Build Strategy</small>
             </h1>
             <fieldset ng-disabled="disableInputs">
               <form class="edit-form" name="form" novalidate ng-submit="save()">
@@ -85,7 +86,7 @@
                                   fadeFoldWidgets: true,
                                   showPrintMargin: false
                                 }
-                              }" ng-model="updatedBuildConfig.spec.source.dockerfile" class="ace_editor-bordered dockerfile-editor dockerfile-mode"></div>
+                              }" ng-model="updatedBuildConfig.spec.source.dockerfile" class="ace-bordered ace-inline dockerfile-mode"></div>
                             </div>
 
                             <div class="form-group" ng-if="updatedBuildConfig.spec.strategy.dockerStrategy.dockerfilePath">
@@ -138,6 +139,59 @@
                                   autocapitalize="off"
                                   spellcheck="false">
                               </div>
+                            </div>
+                          </div>
+
+                          <div ng-if="updatedBuildConfig.spec.strategy.type === 'JenkinsPipeline'">
+                            <h3>Jenkins Pipeline Configuration</h3>
+                            <div class="form-group">
+                              <label for="jenkinsfile-type">Jenkinsfile Type</label>
+                              <select
+                                id="jenkinsfile-type"
+                                class="form-control"
+                                ng-model="jenkinsfileOptions.type"
+                                ng-options="type.id as type.title for type in jenkinsfileTypes"
+                                aria-describedby="jenkinsfile-type-help">
+                              </select>
+                              <div class="help-block" id="jenkinsfile-type-help">
+                                Use a Jenkinsfile from the source repository or specify the
+                                Jenkinsfile content directly in the build configuration.
+                              </div>
+                            </div>
+
+                            <div ng-if="jenkinsfileOptions.type === 'path'" class="form-group">
+                              <label for="jenkinsfilePath">Jenkinsfile Source Path</label>
+                              <input class="form-control"
+                                     id="jenkinsfilePath"
+                                     name="jenkinsfilePath"
+                                     type="text"
+                                     ng-model="updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath"
+                                     autocorrect="off"
+                                     autocapitalize="off"
+                                     spellcheck="false"
+                                     aria-describedby="jenkinsfile-path-help">
+                              <div class="help-block" id="jenkinsfile-path-help">
+                                Optional path to the Jenkinsfile relative to the context dir.
+                                Defaults to the Jenkinsfile in context dir.
+                              </div>
+                            </div>
+
+                            <div ng-if="jenkinsfileOptions.type === 'inline'">
+                              <label>Jenkinsfile</label>
+                                <div ui-ace="{
+                                  mode: 'groovy',
+                                  theme: 'eclipse',
+                                  onLoad: aceLoaded,
+                                  rendererOptions: {
+                                    fadeFoldWidgets: true,
+                                    showPrintMargin: false
+                                  }
+                                }" ng-model="updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile" class="ace-bordered ace-inline"></div>
+                            </div>
+                          </div>
+                          <div ng-if="sources.none">
+                            <div class="form-group">
+                              <i>No source inputs have been defined for this build configuration.</i>
                             </div>
                           </div>
 
@@ -269,7 +323,7 @@
                         </dl>
                       </div>
 
-                      <div class="section">
+                      <div ng-if="updatedBuildConfig.spec.strategy.type !== 'JenkinsPipeline'" class="section">
                         <h3>Image Configuration</h3>
                         <dl class="dl-horizontal left">
 
@@ -453,7 +507,7 @@
 
 
                     <div class="col-lg-6">
-                      <div class="section">
+                      <div ng-if="updatedBuildConfig.spec.strategy.type !== 'JenkinsPipeline'" class="section">
                         <h3>Environment Variables<span class="help action-inline">
                           <a href>
                           <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime."></i>
@@ -473,17 +527,32 @@
                         <h3>Triggers</h3>
                         <dl class="dl-horizontal left">
                           <div>
-                            <div class="checkbox" ng-if="sources.git" >
-                              <label>
-                                <input type="checkbox" ng-model="triggers.present.webhook"/>
-                                Enable the webhook build trigger
-                                <span class="help action-inline">
-                                  <a href>
-                                    <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed.">
-                                    </i>
-                                  </a>
-                                </span>
-                              </label>
+                            <div ng-if="sources.git">
+                              <div class="checkbox">
+                                <label>
+                                  <input type="checkbox" ng-model="triggers.present.githubWebhook"/>
+                                  Enable the GitHub webhook build trigger
+                                  <span class="help action-inline">
+                                    <a href>
+                                      <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="The GitHub source repository must be configured to use the webhook to trigger a build when source is committed.">
+                                      </i>
+                                    </a>
+                                  </span>
+                                </label>
+                              </div>
+
+                              <div class="checkbox">
+                                <label>
+                                  <input type="checkbox" ng-model="triggers.present.genericWebhook"/>
+                                  Enable the Generic webhook build trigger
+                                  <span class="help action-inline">
+                                    <a href>
+                                      <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="A generic webhook can be triggered by any system capable of making a web request.">
+                                      </i>
+                                    </a>
+                                  </span>
+                                </label>
+                              </div>
                             </div>
 
                             <div class="checkbox">
@@ -493,7 +562,7 @@
                               </label>
                             </div>
 
-                            <div class="checkbox">
+                            <div ng-if="updatedBuildConfig.spec.strategy.type !== 'JenkinsPipeline'" class="checkbox">
                               <label>
                                 <input type="checkbox" ng-model="triggers.present.imageChange" ng-disabled="builderOptions.pickedType === 'None'"/>
                                   Automatically build a new image when the builder image changes

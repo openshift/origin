@@ -41,6 +41,14 @@
                       <span ng-if="pod | isTroubledPod">
                         <pod-warnings pod="pod"></pod-warnings>
                       </span>
+                      <span ng-if="pod | debugLabel">
+                        <i class="fa fa-bug info-popover"
+                           aria-hidden="true"
+                           data-toggle="popover"
+                           data-trigger="hover"
+                           dynamic-content="Debugging pod {{pod | debugLabel}}"></i>
+                         <span class="sr-only">Debugging pod {{pod | debugLabel}}</span>
+                      </span>
                     </td>
                     <td data-title="Status">
                       <div row class="status">

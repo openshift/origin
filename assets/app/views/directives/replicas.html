@@ -1,12 +1,12 @@
-<div ng-show="!model.editing">
-  <span ng-if="status === undefined">{{spec}}</span>
+<span ng-show="!model.editing">
+  <span ng-if="status === undefined">{{spec}} replica<span ng-if="spec !== 1">s</span></span>
   <span ng-if="status !== undefined">{{status}} current / {{spec}} desired</span>
   <a href="" title="Edit" class="action-button" ng-if="!disableScaling && scaleFn" ng-click="model.desired = spec; model.editing = true">
     <i class="icon icon-pencil" style="margin-left: 5px;"></i>
     <span class="sr-only">Edit</span>
   </a>
-</div>
-<div ng-show="!disableScaling && model.editing">
+</span>
+<span ng-show="!disableScaling && model.editing">
   <form name="form.scaling" ng-submit="scale()" class="form-inline">
     <span ng-class="{'has-error': form.scaling.$invalid}">
       <input type="number"
@@ -44,4 +44,4 @@
       </div>
     </div>
   </form>
-</div>
+</span>

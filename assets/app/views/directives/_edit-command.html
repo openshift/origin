@@ -1,0 +1,100 @@
+<ng-form name="form">
+  <p ng-hide="input.args.length"><em>No command set.</em></p>
+  <p ng-show="input.args.length" as-sortable ng-model="input.args" class="command-args">
+    <span ng-repeat="arg in input.args" as-sortable-item class="form-group">
+      <span class="input-group">
+        <span as-sortable-item-handle class="input-group-addon drag-handle">
+          <!-- Use two kebabs to make a drag handle. -->
+          <i class="fa fa-ellipsis-v" aria-hidden="true"></i><i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+        </span>
+        <!-- Args with no newlines. -->
+        <input type="text"
+               ng-model="arg.value"
+               ng-if="!arg.multiline"
+               required
+               class="form-control"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false">
+        <!-- Args with newlines. -->
+        <textarea ng-model="arg.value"
+                  ng-if="arg.multiline"
+                  rows="5"
+                  required
+                  class="form-control"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false">
+        </textarea>
+        <a href="" ng-click="removeArg($index)" class="input-group-addon action-button remove-arg" title="Remove argument">
+          <span class="sr-only">Remove argument</span>
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </a>
+      </span>
+    </span>
+  </p>
+  <div class="form-group">
+    <label class="sr-only" ng-attr-for="{{id}}-add-arg">Add Argument</label>
+    <!-- Single-line entry -->
+    <span ng-show="!multiline" class="input-group">
+      <input type="text"
+             ng-model="nextArg"
+             name="nextArg"
+             ng-attr-id="{{id}}-add-arg"
+             on-enter="addArg()"
+             placeholder="Add argument"
+             class="form-control"
+             autocorrect="off"
+             autocapitalize="off"
+             spellcheck="false">
+      <span class="input-group-btn">
+        <!-- Must be a link rather than a button so that enter submits the parent form when other
+             fields are focused. Add an enter key handler for the input when focused using the
+             on-enter directive. -->
+        <a class="btn btn-default"
+           href=""
+           ng-click="addArg()"
+           ng-disabled="!nextArg"
+           ng-attr-aria-disabled="!nextArg"
+           role="button">Add</a>
+      </span>
+    </span>
+    <!-- Multiline entry -->
+    <span ng-show="multiline">
+      <textarea ng-model="nextArg"
+                name="nextArg"
+                rows="10"
+                ng-attr-id="{{id}}-add-arg"
+                placeholder="Add argument"
+                class="form-control"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false">
+      </textarea>
+      <div class="mar-top-md">
+        <a class="btn btn-default"
+           href=""
+           ng-click="addArg()"
+           ng-disabled="!nextArg"
+           ng-attr-aria-disabled="!nextArg"
+           role="button">Add</a>
+     </div>
+    </span>
+  </div>
+  <div class="help-block">
+    Enter the command to run inside the container. The command is considered successful if its exit code is 0.
+    Drag and drop command arguments to reorder them.
+  </div>
+  <div class="mar-top-sm mar-bottom-md">
+    <a href="" ng-click="multiline = !multiline">Switch to {{multiline ? 'single-line' : 'multiline'}} editor</a>
+    <span ng-show="input.args.length">
+      <span class="action-divider">|</span>
+      <a href="" ng-click="clear()" role="button">Clear command</a>
+    </span>
+  </div>
+  <!-- Add a hidden input to help with form validation. -->
+  <input type="hidden" name="command" ng-model="input.args" ng-required="isRequired">
+  <div ng-if="form.command.$dirty && form.command.$error.required" class="has-error">
+    <span class="help-block">A command is required.</span>
+  </div>
+</ng-form>

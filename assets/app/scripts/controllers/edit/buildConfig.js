@@ -18,6 +18,9 @@ angular.module('openshiftConsole')
     $scope.builderOptions = {};
     $scope.outputOptions = {};
     $scope.imageSourceOptions = {};
+    $scope.jenkinsfileOptions = {
+      type: 'path'
+    };
     $scope.selectTypes = {
       ImageStreamTag: "Image Stream Tag",
       ImageStreamImage: "Image Stream Image",
@@ -51,6 +54,13 @@ angular.module('openshiftConsole')
         "title": "--- None ---"
       }
     ];
+    $scope.jenkinsfileTypes = [{
+      "id": "path",
+      "title": "From Source Repository"
+    }, {
+      "id": "inline",
+      "title": "Inline"
+    }];
     $scope.breadcrumbs = [
       {
         title: $routeParams.project,
@@ -83,12 +93,14 @@ angular.module('openshiftConsole')
       "dockerfile": false,
       "git": false,
       "images": false,
-      "contextDir": false
+      "contextDir": false,
+      "none": true
     };
     // $scope.triggers.present.imageChange points to builder imageChange trigger.
     $scope.triggers = {
       present: {
-        "webhook": false,
+        "githubWebhook": false,
+        "genericWebhook": false,
         "imageChange": false,
         "configChange": false
       },
@@ -122,12 +134,16 @@ angular.module('openshiftConsole')
             $scope.triggers = $scope.getTriggerMap($scope.triggers, $scope.buildConfig.spec.triggers);
             $scope.sources = $scope.getSourceMap($scope.sources, $scope.buildConfig.spec.source);
 
+            if (_.has(buildConfig, 'spec.strategy.jenkinsPipelineStrategy.jenkinsfile')) {
+              $scope.jenkinsfileOptions.type = 'inline';
+            }
+
             if ($scope.buildStrategy.from) {
               var buildFrom = $scope.buildStrategy.from;
               $scope.builderOptions = $scope.setPickedVariables(
                 $scope.builderOptions,
                 buildFrom.kind,
-                buildFrom.namespace || buildConfig.metadata.namespace, 
+                buildFrom.namespace || buildConfig.metadata.namespace,
                 buildFrom.name.split(":")[0],
                 buildFrom.name.split(":")[1],
                 (buildFrom.kind === "ImageStreamImage") ? buildFrom.name : "",
@@ -137,7 +153,7 @@ angular.module('openshiftConsole')
             }
 
             if ($scope.updatedBuildConfig.spec.output.to) {
-              var pushTo = $scope.updatedBuildConfig.spec.output.to
+              var pushTo = $scope.updatedBuildConfig.spec.output.to;
               $scope.outputOptions = $scope.setPickedVariables(
                 $scope.outputOptions,
                 pushTo.kind,
@@ -212,15 +228,15 @@ angular.module('openshiftConsole')
             }
 
             $scope.buildFrom.projects = ["openshift"];
-            DataService.list("projects", $scope, function(projects) {
-              var projects = projects.by("metadata.name");
+            DataService.list("projects", $scope, function(response) {
+              var projects = response.by("metadata.name");
               for (var name in projects) {
                 $scope.buildFrom.projects.push(name);
                 $scope.pushTo.projects.push(name);
               }
               $scope.availableProjects = angular.copy($scope.buildFrom.projects);
 
-              // If builder or output image namespace is not part of users available namespaces, add it to 
+              // If builder or output image namespace is not part of users available namespaces, add it to
               // the namespace array anyway together with and call that checks the availability of the namespace.
               if (!$scope.buildFrom.projects.contains($scope.builderOptions.pickedNamespace)) {
                 $scope.checkNamespaceAvailability($scope.builderOptions.pickedNamespace);
@@ -249,7 +265,7 @@ angular.module('openshiftConsole')
                   $scope.imageSourceBuildFrom.projects.push($scope.imageSourceOptions.pickedNamespace);
                 }
                 if ($scope.imageSourceOptions.pickedType === "ImageStreamTag") {
-                  $scope.updateImageSourceImageStreams($scope.imageSourceOptions.pickedNamespace, false);                
+                  $scope.updateImageSourceImageStreams($scope.imageSourceOptions.pickedNamespace, false);
                 }
               }
               $scope.loaded = true;
@@ -285,16 +301,17 @@ angular.module('openshiftConsole')
       function isBuilder(imageChangeFrom, buildConfigFrom) {
         var imageChangeRef = $filter('imageObjectRef')(imageChangeFrom, $scope.projectName);
         var builderRef = $filter('imageObjectRef')(buildConfigFrom, $scope.projectName);
-        return imageChangeRef === builderRef
-      };
+        return imageChangeRef === builderRef;
+      }
       var buildConfigFrom = $filter('buildStrategy')($scope.buildConfig).from;
 
       triggers.forEach(function(trigger) {
         switch (trigger.type) {
           case "Generic":
+            triggerMap.present.genericWebhook = true;
             break;
           case "GitHub":
-            triggerMap.present.webhook = true;
+            triggerMap.present.githubWebhook = true;
             break;
           case "ImageChange":
             var imageChangeFrom = trigger.imageChange.from;
@@ -557,7 +574,9 @@ angular.module('openshiftConsole')
     $scope.clearSelectedTag = function(optionsModel, tagHash, isOutput) {
       var tags = tagHash[optionsModel.pickedImageStream];
       if (tags.length > 0) {
-        optionsModel.pickedTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0];
+        optionsModel.pickedTag = _.find(tags, function(tag) {
+          return tag === "latest";
+        }) || tags[0];
       } else if (isOutput) {
         optionsModel.pickedTag = "latest";
       } else {
@@ -565,12 +584,12 @@ angular.module('openshiftConsole')
       }
     };
 
-    // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable 
+    // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable
     $scope.checkNamespaceAvailability = function(namespace) {
       DataService.get("projects", namespace, {}, { errorNotification: false})
       .then(function() {
         $scope.availableProjects.push(namespace);
-      }, function(result) {
+      }, function() {
       });
     };
 
@@ -583,7 +602,7 @@ angular.module('openshiftConsole')
         };
         updatedImageSourcePath.push(env);
       });
-      return updatedImageSourcePath
+      return updatedImageSourcePath;
     };
 
     $scope.updateEnvVars = function(envVars) {
@@ -606,7 +625,7 @@ angular.module('openshiftConsole')
         } else {
           $scope.updatedBuildConfig.spec.source.binary = {};
         }
-      }      
+      }
     };
 
     $scope.constructImageObject = function(optionsModel) {
@@ -627,27 +646,38 @@ angular.module('openshiftConsole')
           kind: optionsModel.pickedType,
           namespace: optionsModel.pickedNamespace,
           name: optionsModel.pickedImageStreamImage
-        }
+        };
       }
       return imageObject;
     };
 
     $scope.updateTriggers = function() {
+
+      // Helper for checking webhook objects in the buildConfig spec and creating if missing.
+      function reuseOrCreateWebhook(type) {
+        var webhooks = _.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === type; });
+        if (_.isEmpty(webhooks)) {
+          var webhook = {
+            type: type
+          };
+          webhook[(type === "GitHub") ? "github" : "generic"] = {
+            secret: ApplicationGenerator._generateSecret()
+          };
+          webhooks.push(webhook);
+        }
+        return webhooks;
+      }
+
       var presentTriggers = $scope.triggers.present;
       var triggers = [];
-      if (presentTriggers.webhook) {
-        var webhooks = _.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === "GitHub" })
-        if (webhooks.length === 0) {
-          webhooks.push({
-            github: {
-              secret: ApplicationGenerator._generateSecret()
-            },
-            type: "GitHub"
-          });
-        }
-        triggers = triggers.concat(webhooks);
+
+      if (presentTriggers.githubWebhook) {
+        triggers = triggers.concat(reuseOrCreateWebhook("GitHub"));
       }
-      triggers = triggers.concat(_.filter($scope.buildConfig.spec.triggers, function(obj) { return obj.type === "Generic" }));
+
+      if (presentTriggers.genericWebhook) {
+        triggers = triggers.concat(reuseOrCreateWebhook("Generic"));
+      }
 
       if (presentTriggers.configChange) {
         triggers.push({
@@ -656,11 +686,13 @@ angular.module('openshiftConsole')
       }
 
       // Add all imageChange triggers to the triggers array. The imageChange trigger for the builder is added in getTriggerMap()
-      // method into imageChangeTriggers array, even if the buildConfig doesn't contain it. If builder imageChange trigger is checked, 
+      // method into imageChangeTriggers array, even if the buildConfig doesn't contain it. If builder imageChange trigger is checked,
       // keep the trigger, otherwise delete it.
-      triggers = triggers.concat($scope.triggers.imageChangeTriggers)
+      triggers = triggers.concat($scope.triggers.imageChangeTriggers);
       if (!presentTriggers.imageChange) {
-        _.remove(triggers, function(trigger) {return trigger === $scope.triggers.builderImageChangeTrigger})
+        _.remove(triggers, function(trigger) {
+          return trigger === $scope.triggers.builderImageChangeTrigger;
+        });
       }
 
       return triggers;
@@ -670,8 +702,18 @@ angular.module('openshiftConsole')
       $scope.disableInputs = true;
       // Update Configuration
       $filter('buildStrategy')($scope.updatedBuildConfig).forcePull = $scope.options.forcePull;
-      if ($scope.strategyType === "Docker") {
+
+      switch ($scope.strategyType) {
+      case 'Docker':
         $filter('buildStrategy')($scope.updatedBuildConfig).noCache = $scope.options.noCache;
+        break;
+      case 'JenkinsPipeline':
+        if ($scope.jenkinsfileOptions.type === 'path') {
+          delete $scope.updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile;
+        } else {
+          delete $scope.updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath;
+        }
+        break;
       }
 
       $scope.updateBinarySource();
@@ -690,12 +732,12 @@ angular.module('openshiftConsole')
         $filter('buildStrategy')($scope.updatedBuildConfig).from = $scope.constructImageObject($scope.builderOptions);
       }
 
-      // Construct updated output image object based on it's kind. Only Image Stream Tag, Docker Image and None can 
+      // Construct updated output image object based on it's kind. Only Image Stream Tag, Docker Image and None can
       // be specified for the output image. Not Image Stream Image since they are immutable.
       if ($scope.outputOptions.pickedType === "None") {
         // If user will change the output reference to 'None' shall the potential PushSecret be deleted as well?
         // This case won't delete them.
-        delete $scope.updatedBuildConfig.spec.output.to
+        delete $scope.updatedBuildConfig.spec.output.to;
       } else {
         $scope.updatedBuildConfig.spec.output.to = $scope.constructImageObject($scope.outputOptions);
       }
@@ -726,7 +768,7 @@ angular.module('openshiftConsole')
             type: "error",
             message: "An error occurred updating the build " + $scope.updatedBuildConfig.metadata.name + "Build Config",
             details: $filter('getErrorDetails')(result)
-          }
+          };
         }
       );
     };
@@ -738,7 +780,7 @@ angular.module('openshiftConsole')
     $scope.inspectNamespace = function(imageStreams, pickedImageStream) {
       if (imageStreams.length === 0) {
         return "empty";
-      } 
+      }
       if (imageStreams.length !== 0 && !imageStreams.contains(pickedImageStream)) {
         return "noMatch";
       }
@@ -749,7 +791,7 @@ angular.module('openshiftConsole')
       if (tagHash[pickedImageStream] && pickedImageStream !== '') {
         if (tagHash[pickedImageStream].length === 0) {
           return "empty";
-        } 
+        }
         if (tagHash[pickedImageStream].length !== 0 && !tagHash[pickedImageStream].contains(pickedTag)) {
           return "noMatch";
         }
@@ -767,6 +809,10 @@ angular.module('openshiftConsole')
     };
 
     $scope.getSourceMap = function(sourceMap, sources) {
+      if (sources.type === "None") {
+        return sourceMap
+      }
+      sourceMap.none = false;
       angular.forEach(sources, function(value, key) {
         sourceMap[key] = true;
       });

@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ErrorController', function ($scope) {
+  .controller('ErrorController', function ($scope, $window) {
     var params = URI(window.location.href).query(true);
     var error = params.error;
     var error_description = params.error_description;
@@ -31,4 +31,8 @@ angular.module('openshiftConsole')
     if (params.error_description) {
       $scope.errorDetails = params.error_description;
     }
+    
+    $scope.reloadConsole = function() {
+      $window.location.href = "/";
+    };
   });

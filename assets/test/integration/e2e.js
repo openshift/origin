@@ -67,8 +67,8 @@ describe('', function() {
         h.waitForPresence('.deployment-trigger', 'from image change');
 
         // Check the pod count inside the donut chart for each rc.
-        h.waitForPresence('#service-database .pod-count', '1');
-        h.waitForPresence('#service-frontend .pod-count', '2');
+        h.waitForPresence('#service-database .donut-title-big-pf', '1');
+        h.waitForPresence('#service-frontend .donut-title-big-pf', '2');
 
         // TODO: validate correlated images, builds, source
       });

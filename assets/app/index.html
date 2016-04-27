@@ -21,13 +21,15 @@
     <link rel="stylesheet" href="bower_components/kubernetes-topology-graph/dist/topology-graph.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-container-terminal/dist/container-terminal.css" />
     <link rel="stylesheet" href="bower_components/layout.attrs/dist/layout.attrs.css" />
+    <link rel="stylesheet" href="bower_components/ng-sortable/dist/ng-sortable.css" />
+    <link rel="stylesheet" href="bower_components/ui-select/dist/select.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
     <link rel="stylesheet" type="text/css" href="styles/main.css">
     <!-- endbuild -->
     <link rel="stylesheet" type="text/css" href="styles/extensions.css">
-     <style type="text/css">
+    <style type="text/css">
 
 
     </style>
@@ -76,21 +78,29 @@
     <script src="bower_components/angular-touch/angular-touch.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="bower_components/lodash/lodash.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/bootstrap-datepicker/js/bootstrap-datepicker.js"></script>
+    <script src="bower_components/bootstrap-select/dist/js/bootstrap-select.js"></script>
+    <script src="bower_components/bootstrap-switch/dist/js/bootstrap-switch.js"></script>
+    <script src="bower_components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
+    <script src="bower_components/d3/d3.js"></script>
+    <script src="bower_components/c3/c3.js"></script>
+    <script src="bower_components/datatables/media/js/jquery.dataTables.js"></script>
+    <script src="bower_components/datatables-colreorder/js/dataTables.colReorder.js"></script>
+    <script src="bower_components/datatables-colvis/js/dataTables.colVis.js"></script>
+    <script src="bower_components/matchHeight/jquery.matchHeight-min.js"></script>
+    <script src="bower_components/moment/moment.js"></script>
+    <script src="bower_components/moment-timezone/builds/moment-timezone-with-data-2010-2020.js"></script>
+    <script src="bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="bower_components/patternfly/dist/js/patternfly.js"></script>
     <script src="bower_components/angular-patternfly/dist/angular-patternfly.js"></script>
     <script src="bower_components/uri.js/src/URI.js"></script>
     <script src="bower_components/uri.js/src/URITemplate.js"></script>
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
     <script src="bower_components/uri.js/src/URI.fragmentURI.js"></script>
-    <script src="bower_components/moment/moment.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-combobox/js/bootstrap-combobox.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-select/dist/js/bootstrap-select.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
-    <script src="bower_components/patternfly/components/c3/c3.min.js"></script>
     <script src="bower_components/js-logger/src/logger.js"></script>
     <script src="bower_components/hawtio-core/hawtio-core.js"></script>
-    <script src="bower_components/lodash/lodash.js"></script>
     <script src="bower_components/hawtio-core-navigation/dist/hawtio-core-navigation.js"></script>
     <script src="bower_components/hawtio-extension-service/dist/hawtio-extension-service.js"></script>
     <script src="bower_components/sifter/sifter.js"></script>
@@ -100,7 +110,6 @@
     <script src="bower_components/messenger/build/js/messenger-theme-flat.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelSelector.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelFilter.js"></script>
-    <script src="bower_components/d3/d3.js"></script>
     <script src="bower_components/kubernetes-topology-graph/dist/topology-graph.js"></script>
     <script src="bower_components/term.js/src/term.js"></script>
     <script src="bower_components/kubernetes-container-terminal/dist/container-terminal.js"></script>
@@ -108,8 +117,9 @@
     <script src="bower_components/openshift-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/ace.js"></script>
-    <script src="bower_components/ace-builds/src-min-noconflict/mode-yaml.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/mode-dockerfile.js"></script>
+    <script src="bower_components/ace-builds/src-min-noconflict/mode-groovy.js"></script>
+    <script src="bower_components/ace-builds/src-min-noconflict/mode-yaml.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/theme-dreamweaver.js"></script>
     <script src="bower_components/ace-builds/src-min-noconflict/theme-eclipse.js"></script>
     <script src="bower_components/angular-ui-ace/ui-ace.js"></script>
@@ -117,6 +127,10 @@
     <script src="bower_components/clipboard/dist/clipboard.js"></script>
     <script src="bower_components/pathseg/pathseg.js"></script>
     <script src="bower_components/ansi_up/ansi_up.js"></script>
+    <script src="bower_components/angular-extension-registry/dist/angular-extension-registry.min.js"></script>
+    <script src="bower_components/angular-extension-registry/dist/compiled-templates.js"></script>
+    <script src="bower_components/ng-sortable/dist/ng-sortable.js"></script>
+    <script src="bower_components/ui-select/dist/select.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -124,6 +138,7 @@
     <script src="scripts/templates.js"></script>
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
+
         <script src="scripts/constants.js"></script>
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
@@ -152,6 +167,9 @@
         <script src="scripts/services/constants.js"></script>
         <script src="scripts/services/limits.js"></script>
         <script src="scripts/services/routes.js"></script>
+        <script src="scripts/services/charts.js"></script>
+        <script src="scripts/services/hpa.js"></script>
+        <script src="scripts/services/pods.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/pods.js"></script>
         <script src="scripts/controllers/pod.js"></script>
@@ -170,9 +188,13 @@
         <script src="scripts/controllers/routes.js"></script>
         <script src="scripts/controllers/route.js"></script>
         <script src="scripts/controllers/storage.js"></script>
+        <script src="scripts/controllers/otherResources.js"></script>
         <script src="scripts/controllers/persistentVolumeClaim.js"></script>
         <script src="scripts/controllers/setLimits.js"></script>
         <script src="scripts/controllers/edit/buildConfig.js"></script>
+        <script src="scripts/controllers/edit/autoscaler.js"></script>
+        <script src="scripts/controllers/edit/healthChecks.js"></script>
+        <script src="scripts/controllers/edit/route.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
         <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>
@@ -189,6 +211,7 @@
         <script src="scripts/controllers/modals/confirmScale.js"></script>
         <script src="scripts/controllers/modals/deleteModal.js"></script>
         <script src="scripts/controllers/modals/editModal.js"></script>
+        <script src="scripts/controllers/modals/debugTerminal.js"></script>
         <script src="scripts/controllers/about.js"></script>
         <script src="scripts/directives/date.js"></script>
         <script src="scripts/directives/deleteLink.js"></script>
@@ -201,6 +224,7 @@
         <script src="scripts/directives/oscKeyValues.js"></script>
         <script src="scripts/directives/oscRouting.js"></script>
         <script src="scripts/directives/oscUnique.js"></script>
+        <script src="scripts/directives/oscAutoscaling.js"></script>
         <script src="scripts/directives/replicas.js"></script>
         <script src="scripts/directives/resources.js"></script>
         <script src="scripts/directives/overviewDeployment.js"></script>
@@ -222,13 +246,20 @@
         <script src="scripts/directives/quotaUsageChart.js"></script>
         <script src="scripts/directives/buildTrendsChart.js"></script>
         <script src="scripts/directives/editRequestLimit.js"></script>
+        <script src="scripts/directives/editProbe.js"></script>
+        <script src="scripts/directives/editCommand.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>
         <script src="scripts/filters/strings.js"></script>
-        <script src="scripts/extensions/javaLink.js"></script>
         <script src="scripts/directives/affix.js"></script>
         <script src="scripts/services/logLinks.js"></script>
+
+        <!-- add bundled extensions here -->
+        <script src="scripts/extensions/javalink/javaLink.js"></script>
+        <script src="scripts/extensions/nav/helpDropdown.js"></script>
+        <script src="scripts/extensions/nav/userDropdown.js"></script>
+        <script src="scripts/extensions/nav/dropdownMobile.js"></script>
         <!-- endbuild -->
 
     <!-- Load any extensions last. -->

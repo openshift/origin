@@ -45,7 +45,9 @@
                     <td class="hidden-xs">&nbsp;</td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td data-title="Type">{{buildConfigs[buildConfigName].spec.strategy.type}}</td>
-                    <td data-title="Source"><span ng-if="buildConfigs[buildConfigName].spec.source.type == 'Git'" ng-bind-html='buildConfigs[buildConfigName].spec.source.git.uri | githubLink : buildConfigs[buildConfigName].spec.source.git.ref : buildConfigs[buildConfigName].spec.source.contextDir | linky'></span></td>
+                    <td data-title="Source">                        
+                      <span ng-if="buildConfigs[buildConfigName].spec.source.type == 'None'"><i>none</i></span>
+                      <span ng-if="buildConfigs[buildConfigName].spec.source.type == 'Git'" ng-bind-html='buildConfigs[buildConfigName].spec.source.git.uri | githubLink : buildConfigs[buildConfigName].spec.source.git.ref : buildConfigs[buildConfigName].spec.source.contextDir | linky'></span></td>
                   </tr>
                   <!-- Build config with builds, or builds whose build config has since been deleted -->
                   <!-- We only show the first build from a build config for now-->
@@ -95,6 +97,9 @@
                     <td data-title="Type">{{build.spec.strategy.type}}</td>
                     <td data-title="Source">
                       <span ng-if="build.spec.source">
+                        <span ng-if="build.spec.source.type == 'None'">
+                          <i>none</i>
+                        </span>
                         <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky' class="word-break"></span>
                       </span>
                     </td>

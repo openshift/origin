@@ -196,7 +196,7 @@
                             <dl class="dl-horizontal left">
                               <div>
                                 <dt>Build strategy:</dt>
-                                <dd>{{buildConfig.spec.strategy.type}}</dd>
+                                <dd>{{buildConfig.spec.strategy.type | startCase}}</dd>
                               </div>
                               <div ng-switch="buildConfig.spec.strategy.type">
                                 <div ng-switch-when="Source">
@@ -216,11 +216,17 @@
                                       mode: 'dockerfile',
                                       theme: 'dreamweaver',
                                       onLoad: aceLoaded,
+                                      highlightActiveLine: false,
+                                      showGutter: false,
                                       rendererOptions: {
                                         fadeFoldWidgets: true,
+                                        highlightActiveLine: false,
                                         showPrintMargin: false
+                                      },
+                                      advanced: {
+                                        highlightActiveLine: false
                                       }
-                                    }" readonly ng-model="buildConfig.spec.source.dockerfile" class="ace_editor-bordered dockerfile-editor dockerfile-mode"></div>
+                                    }" readonly ng-model="buildConfig.spec.source.dockerfile" class="ace-bordered ace-read-only ace-inline dockerfile-mode mar-top-md"></div>
                                   </div>
                                 </div>
                                 <div ng-switch-when="Custom">
@@ -239,6 +245,40 @@
                                   <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
                                   <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
                                   <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
+                                </div>
+                                <div ng-if="buildConfig.spec.strategy.type === 'JenkinsPipeline'">
+                                  <div ng-if="buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath">
+                                    <dt>Jenkinsfile Path:</dt>
+                                    <dd>{{buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath}}</dd>
+                                  </div>
+                                  <div ng-if="buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile">
+                                    <dt>Jenkinsfile:</dt><dd></dd>
+                                    <div ui-ace="{
+                                      mode: 'groovy',
+                                      theme: 'eclipse',
+                                      showGutter: false,
+                                      rendererOptions: {
+                                        fadeFoldWidgets: true,
+                                        highlightActiveLine: false,
+                                        showPrintMargin: false
+                                      },
+                                      advanced: {
+                                        highlightActiveLine: false
+                                      }
+                                    }" readonly ng-model="buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile" class="ace-bordered ace-inline ace-read-only mar-top-md"></div>
+                                  </div>
+                                </div>
+                                <div ng-if="buildConfig.spec.source.type == 'None'">
+                                  <dt>Source:</dt>
+                                  <dd>
+                                    <i>none</i>
+                                    <span class="help action-inline">
+                                      <a href>
+                                        <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="No source inputs have been defined for this build configuration.">
+                                        </i>
+                                      </a>
+                                    </span>
+                                  </dd>
                                 </div>
                                 <div ng-if="buildConfig.spec.source.images" class="image-sources">
                                   <dt>Image sources:</dt>
@@ -273,8 +313,7 @@
                                       <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
-                                      <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
-                                      <copy-to-clipboard-button clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
+                                      <copy-to-clipboard clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard>
                                     </dd>
                                 </div>
                                 <div ng-switch-when="Generic">
@@ -282,8 +321,7 @@
                                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
-                                      <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
-                                      <copy-to-clipboard-button clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
+                                      <copy-to-clipboard clipboard-text="buildConfig.metadata.name | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard>
                                     </dd>
                                 </div>
                                 <div ng-switch-when="ImageChange">
@@ -310,8 +348,7 @@
                               </a>
                             </dt>
                             <dd>
-                              <code>oc start-build {{buildConfig.metadata.name}} -n {{project.metadata.name}}</code>
-                              <copy-to-clipboard-button clipboard-text="'oc start-build ' + buildConfig.metadata.name + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
+                              <copy-to-clipboard clipboard-text="'oc start-build ' + buildConfig.metadata.name + ' -n ' + project.metadata.name"></copy-to-clipboard>
                             </dd>
                           </dl>
                         </div>

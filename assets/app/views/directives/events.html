@@ -13,7 +13,7 @@
     </div>
     <div class="vertical-divider"></div>
     <!-- TODO: Change to pf-sort in angular-patternfly 3.0 -->
-    <div pf-simple-sort config="sortConfig" class="sort-controls"></div>
+    <div pf-sort config="sortConfig" class="sort-controls"></div>
   </div>
   <table class="table table-bordered table-condensed table-mobile table-hover events-table">
     <thead>
@@ -52,11 +52,11 @@
       <tr>
         <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
         <td ng-if="!resourceKind || !resourceName" data-title="Name" class="event-time">
-          <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.involvedObject.kind | humanizeKind}}</div>
+          <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.involvedObject.kind | humanizeKind : true}}</div>
           {{event.involvedObject.name}}
         </td>
         <td ng-if="!resourceKind || !resourceName" class="hidden-sm hidden-md" data-title="Kind">
-          {{event.involvedObject.kind | humanizeKind}}</td>
+          {{event.involvedObject.kind | humanizeKind : true}}</td>
         <td data-title="Severity" class="hidden-xs hidden-sm hidden-md text-center severity-icon-td">
           <span class="sr-only">{{event.type}}</span>
           <span class="pficon pficon-warning-triangle-o" ng-show="event.type === 'Warning'" aria-hidden="true" data-toggle="tooltip" data-original-title="Warning"></span></td>

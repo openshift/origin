@@ -77,6 +77,17 @@
   }
 }
 
+/* Fix some styles with the angular-ui-select bootstrap theme that isn't right when combined with all of our styles */
+.ui-select-bootstrap {
+  .ui-select-placeholder {
+    font-weight: normal;
+  }
+  .ui-select-toggle > .caret {
+  font-style: normal;
+  margin-top: -5px;
+  }
+}
+
 /* Data toolbar
    - Includes customizations for label filter input and active filter
 ---------------------------------------------------------------------------- */
@@ -153,6 +164,21 @@
   // Use Patternfly secondary tab style on tabs
   // https://www.patternfly.org/widgets/#tabs
   .nav-tabs-pf;
+
+  // Make sure the tabs are left-aligned when they wrap. Apply the same style
+  // Patternfly uses for the first tab to all tabs, which prevents the extra
+  // left margin on the second line.
+  > li {
+    // Right padding keeps the same spacing between tabs as before.
+    padding-right: 15px;
+    // https://github.com/patternfly/patternfly/blob/v3.3.2/less/tabs.less#L82-L89
+    > a {
+      padding-left: 0;
+      &:before {
+        left: 0 !important;
+      }
+    }
+  }
 }
 
 .nav-tabs, .tab-content {
@@ -181,7 +207,7 @@
 }
 
 .empty-state-message {
-  margin: 60px auto @grid-gutter-width;
+  margin: 60px auto;
   max-width: 600px;
   padding: 0 (@grid-gutter-width / 2);
   .btn {
@@ -294,11 +320,16 @@
       }
     }
   }
-  .metrics-chart {
-    // The utilization chart floats some elements, so this is needed for proper padding.
-    clear: both;
-    max-width: 800px;
-    padding-top: 5px;
+  .metrics-donut,
+  .metrics-sparkline {
+    margin-top: 20px;
+  }
+
+  // Avoid overlapping tick text at mobile.
+  @media (max-width: 500px) {
+    .metrics-sparkline .c3-axis-x .tick {
+      display: none;
+    }
   }
 }
 
@@ -387,8 +418,7 @@ label.checkbox {
   }
 }
 
-.create-from-template,
-.create-from-image {
+.osc-form {
   .template-name {
     text-align: right;
     span.fa {
@@ -489,6 +519,30 @@ label.checkbox {
   margin-right: 10px;
 }
 
+// `edit-command` directive
+.command-args {
+  .input-group-addon.drag-handle {
+    padding-left: 4px;
+    padding-right: 4px;
+    .fa {
+      .text-muted();
+    }
+    .fa + .fa {
+      // 1px margin between the two kebabs that make the drag handle
+      margin-left: 1px;
+    }
+  }
+  textarea {
+    // Resize does not work well with drag and drop reordering.
+    resize: none;
+  }
+  .remove-arg {
+    border: 0;
+    background-color: inherit;
+    vertical-align: top;
+  }
+}
+
 .catalog {
   .flex-display(@display: flex);
 
@@ -530,8 +584,7 @@ label.checkbox {
 
 @create-form-md-width: 44%;
 @media (min-width: 767px) {
-  .create-from-template,
-  .create-from-image {
+  .osc-form {
     .flow > .flow-block {
       display: table-cell;
       &.right {
@@ -645,22 +698,6 @@ abbr[data-original-title], abbr[title] {
   }
   dd {
     &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
-  }
-  // FIXME: We should just set @dl-horizontal-breakpoint when we upgrade Bootstrap to 3.3.6.
-  // We want the definition list to display side-by-side after a smaller breakpoint than @screen-sm-min.
-  // Temporarily use the same styles as in
-  //   https://github.com/twbs/bootstrap/blob/5ea03fa259ccac4c7ea72f0a19b57f77957fe55d/less/type.less#L214-L225
-  @media (min-width: 415px) {
-    dt {
-      float: left;
-      width: (@dl-horizontal-offset - 20);
-      clear: left;
-      text-align: right;
-      .text-overflow();
-    }
-    dd {
-      margin-left: @dl-horizontal-offset;
-    }
   }
 }
 
@@ -850,8 +887,37 @@ a.disabled-link {
   }
 }
 
-.dockerfile-editor {
-  height: 200px;
+.debug-pod-action {
+  margin-top: 5px;
+}
+
+.modal-debug-terminal {
+  .modal-header {
+    padding: 0 18px 5px;
+    h2 {
+      margin-bottom: 5px;
+    }
+  }
+  .modal-body {
+    border-top: 1px solid #bbbbbb;
+    border-bottom: 1px solid #bbbbbb;
+    padding: 5px 15px 0;
+    .original-cmd-msg {
+      margin-bottom: 10px;
+    }
+    kubernetes-container-terminal {
+      .text-center();
+      overflow: hidden;
+    }
+    padding-bottom: 15px;
+  }
+  .modal-footer {
+    padding-top: 0;
+  }
+}
+
+.ace-inline {
+  height: 300px;
 }
 
 .edit-form {
@@ -890,6 +956,11 @@ pre.clipped {
   display: inline-block;
   margin-top: 10px;
   max-width: 100%;
+  &.scroll {
+    max-height: 150px;
+    overflow: auto;
+    width: 100%;
+  }
 }
 
 .k8s-label {
@@ -976,8 +1047,12 @@ h1 small.meta, .build-config-summary .meta {
   }
 }
 
-.ace_editor-bordered {
-  border: 1px solid #999999;
+.ace-bordered {
+  border: 1px solid #8b8d8f;
+  &.ace-read-only {
+    border-color: #d1d1d1;
+    background-color: #fafafa;
+  }
 }
 
 .action-divider {
@@ -1009,7 +1084,13 @@ h1 small.meta, .build-config-summary .meta {
   white-space: pre-wrap;
 }
 
-.warnings-popover {
+.info-popover, .warnings-popover {
   cursor: help;
   vertical-align: middle;
+  margin-left: 2px;
+}
+
+// don't allow copy-to-clipboard .input-groups get bigger than 600px so Github webhook secrets aren't revealed within the input-group
+copy-to-clipboard .input-group {
+  max-width: 300px;
 }

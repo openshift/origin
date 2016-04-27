@@ -1,7 +1,16 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $uibModal, $timeout, $filter, LabelFilter, DeploymentsService, Navigate, hashSizeFilter, isDeploymentFilter) {
+  .directive('overviewDeployment', function($filter,
+                                            $location,
+                                            $timeout,
+                                            $uibModal,
+                                            DeploymentsService,
+                                            HPAService,
+                                            LabelFilter,
+                                            Navigate,
+                                            hashSizeFilter,
+                                            isDeploymentFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -12,6 +21,9 @@ angular.module('openshiftConsole')
         deploymentConfigDifferentService: '=',
         deploymentConfig: '=',
         scalable: '=',
+        hpa: '=?',
+        limitRanges: '=',
+        project: '=',
 
         // Nested podTemplate fields
         imagesByDockerReference: '=',
@@ -28,6 +40,19 @@ angular.module('openshiftConsole')
         $scope.$watch("rc.spec.replicas", function() {
           $scope.desiredReplicas = null;
         });
+
+        var updateHPAWarnings = function() {
+            HPAService.getHPAWarnings($scope.rc, $scope.hpa, $scope.limitRanges, $scope.project)
+                      .then(function(warnings) {
+              // Create one string that we can show in a single popover.
+              $scope.hpaWarnings = _.map(warnings, function(warning) {
+                return _.escape(warning.message);
+              }).join('<br>');
+            });
+        };
+
+        $scope.$watchGroup(['limitRanges', 'hpa', 'project'], updateHPAWarnings);
+        $scope.$watch('rc.spec.template.spec.containers', updateHPAWarnings, true);
 
         // Debounce scaling so multiple clicks within 500 milliseconds only result in one request.
         var scale = _.debounce(function () {

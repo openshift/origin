@@ -7,7 +7,9 @@ angular.module("openshiftConsole")
       scope: {
         resource: "=",
         kind: "@",
-        alerts: "=?"
+        alerts: "=?",
+        // Optional callback when the edit succeeds
+        success: "=?"
       },
       templateUrl: "views/directives/edit-link.html",
       // Replace so ".dropdown-menu > li > a" styles are applied.
@@ -37,6 +39,9 @@ angular.module("openshiftConsole")
                 };
                 break;
               case 'save':
+                if (scope.success) {
+                  scope.success();
+                }
                 scope.alerts['edit-yaml'] = {
                   type: "success",
                   message: scope.resource.metadata.name + " was updated."

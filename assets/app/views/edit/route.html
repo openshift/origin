@@ -1,0 +1,45 @@
+<default-header class="top-header"></default-header>
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
+    <!-- Middle section -->
+    <div class="middle-section surface-shaded">
+      <div class="middle-container has-scroll">
+        <div class="middle-content">
+          <div class="container surface-shaded">
+            <div class="col-md-12">
+              <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+              <alerts alerts="alerts"></alerts>
+              <div class="row">
+                <div class="create-route-icon col-md-2 gutter-top hidden-sm hidden-xs">
+                  <span class="pficon pficon-route icon-xl"></span>
+                </div>
+                <div class="col-md-8">
+                  <h1>Edit Route {{routeName}}</h1>
+                  <div ng-if="loading">
+                    Loading...
+                  </div>
+                  <form name="form">
+                    <fieldset ng-disabled="disableInputs" ng-if="!loading">
+                      <osc-routing model="routing" services="services" show-name-input="false"></osc-routing>
+                      <div class="button-group gutter-top gutter-bottom">
+                        <button type="submit"
+                            class="btn btn-primary btn-lg"
+                            ng-click="updateRoute()"
+                            ng-disabled="form.$invalid || disableInputs"
+                            value="">Save</button>
+                        <a class="btn btn-default btn-lg" ng-href="{{routeURL}}">Cancel</a>
+                      </div>
+                    </fieldset>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
+  </div><!-- /middle -->
+</div><!-- /wrap -->

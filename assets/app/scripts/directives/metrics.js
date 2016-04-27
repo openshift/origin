@@ -1,7 +1,13 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('podMetrics', function($interval, $parse, MetricsService, usageValueFilter) {
+  .directive('podMetrics', function($interval,
+                                    $parse,
+                                    $timeout,
+                                    $q,
+                                    ChartsService,
+                                    MetricsService,
+                                    usageValueFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -9,6 +15,7 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/directives/_pod-metrics.html',
       link: function(scope) {
+        var donutByMetric = {}, sparklineByMetric = {};
         var intervalPromise;
         var getMemoryLimit = $parse('resources.limits.memory');
         var getCPULimit = $parse('resources.limits.cpu');
@@ -21,19 +28,53 @@ angular.module('openshiftConsole')
           return value / (1024 * 1024);
         }
 
+        scope.uniqueID = _.uniqueId('metrics-chart-');
+
         // Metrics to display.
         scope.metrics = [
           {
             label: "Memory",
-            id: "memory/usage",
             units: "MiB",
-            chartId: "memory-chart"
+            chartPrefix: "memory-",
+            convert: bytesToMiB,
+            containerMetric: true,
+            datasets: [
+              {
+                id: "memory/usage",
+                data: []
+              }
+            ]
           },
           {
             label: "CPU",
-            id: "cpu/usage",
             units: "millicores",
-            chartId: "cpu-chart"
+            chartPrefix: "cpu-",
+            containerMetric: true,
+            datasets: [
+              {
+                id: "cpu/usage",
+                data: []
+              }
+            ]
+          },
+          {
+            label: "Network",
+            units: "MiB",
+            chartPrefix: "network-",
+            chartType: "line",
+            convert: bytesToMiB,
+            datasets: [
+              {
+                id: "network/tx",
+                label: "Sent",
+                data: []
+              },
+              {
+                id: "network/rx",
+                label: "Received",
+                data: []
+              }
+            ]
           }
         ];
 
@@ -48,9 +89,6 @@ angular.module('openshiftConsole')
         // Relative time options.
         scope.options = {
           rangeOptions: [{
-            label: "Last 30 minutes",
-            value: 30
-          }, {
             label: "Last hour",
             value: 60
           }, {
@@ -60,105 +98,95 @@ angular.module('openshiftConsole')
             label: "Last day",
             value: 24 * 60
           }, {
+            label: "Last 3 days",
+            value: 3 * 24 * 60
+          }, {
             label: "Last week",
             value: 7 * 24 * 60
           }]
         };
-        // Show last 30 minutes by default.
+        // Show last hour by default.
         scope.options.timeRange = scope.options.rangeOptions[0];
 
-        scope.utilizationConfigByMetric = {};
-        scope.donutConfigByMetric = {};
-        scope.chartDataByMetric = {};
-        scope.sparklineConfigByMetric = {};
+        scope.usageByMetric = {};
 
-        // Base config for sparkline charts. It's copied to add in specific
-        // options like the units for the metric we're displaying.
-        var baseSparklineConfig = {
-          axis: {
-            x: {
-              show: true,
-              // With default padding you can have negative axis tick values.
-              padding: {
-                left: 0,
-                bottom: 0
-              },
-              tick: {
-                count: 30,
-                culling: {
-                  max: 7
-                },
-                fit: true,
-                type: 'timeseries',
-                format: '%H:%M'
-              }
-            },
-            y: {
-              label: {
-                position: 'outer-center'
-              },
-              min: 0,
-              // With default padding you can have negative axis tick values.
-              padding: {
-                left: 0,
-                top: 0,
-                bottom: 0
-              },
-              show: true,
-              tick: {
-                count: 5,
-                fit: true,
-                format: function(value) {
-                  return d3.round(value, 1);
-                }
-              }
-            }
-          },
-          point: {
-            show: false
-          }
+        scope.anyUsageByMetric = function(metric) {
+          return _.some(_.map(metric.datasets, 'id'), function(metricID) { return scope.usageByMetric[metricID] !== undefined; });
         };
 
-        // Initialize the chart configurations for each metric.
-        angular.forEach(scope.metrics, function(metric) {
-          scope.utilizationConfigByMetric[metric.id] = {
-            units: metric.units
+        var createDonutConfig = function(metric) {
+          var chartID = '#' + metric.chartPrefix + scope.uniqueID + '-donut';
+          return {
+            bindto: chartID,
+            onrendered: function() {
+              var used = scope.usageByMetric[metric.datasets[0].id].used;
+              ChartsService.updateDonutCenterText(chartID, used, metric.units);
+            },
+            donut: {
+              label: {
+                show: false
+              },
+              width: 10
+            },
+            legend: {
+              show: false
+            },
+            size: {
+              height: 175,
+              widht: 175
+            }
           };
+        };
 
-          scope.donutConfigByMetric[metric.id] = {
-            units: metric.units,
-            chartId: metric.chartId
+        var createSparklineConfig = function(metric) {
+          return {
+            bindto: '#' + metric.chartPrefix + scope.uniqueID + '-sparkline',
+            axis: {
+              x: {
+                show: true,
+                type: 'timeseries',
+                // With default padding you can have negative axis tick values.
+                padding: {
+                  left: 0,
+                  bottom: 0
+                },
+                tick: {
+                  type: 'timeseries',
+                  format: '%a %H:%M'
+                }
+              },
+              y: {
+                label: metric.units,
+                min: 0,
+                // With default padding you can have negative axis tick values.
+                padding: {
+                  left: 0,
+                  top: 0,
+                  bottom: 0
+                },
+                show: true,
+                tick: {
+                  format: function(value) {
+                    return d3.round(value, 2);
+                  }
+                }
+              }
+            },
+            legend: {
+              show: metric.datasets.length > 1
+            },
+            point: {
+              show: false
+            },
+            size: {
+              height: 160
+            }
           };
+        };
 
-          // Make a copy of the base sparkline config to modify for each metric later.
-          scope.sparklineConfigByMetric[metric.id] = angular.copy(baseSparklineConfig);
-        });
-
-
-        function updateSparklineConfig(metric, limit) {
-          var sparklineConfig = scope.sparklineConfigByMetric[metric.id];
-          sparklineConfig.chartId = metric.chartId;
-          sparklineConfig.units = metric.units;
-          sparklineConfig.axis.y.label = metric.units;
-
-          // If we're showing data from another day, add the abbreviated day name
-          // to the time format.
-          var start = moment().subtract(scope.options.timeRange.value, 'minutes');
-          if (start.isSame(moment(), 'day')) {
-            sparklineConfig.axis.x.tick.format = '%H:%M';
-          } else {
-            sparklineConfig.axis.x.tick.format = '%a %H:%M';
-          }
-
-          if (limit) {
-            // The utilization sparkline chart is compressed, so show fewer ticks.
-            sparklineConfig.axis.y.tick.count = 2;
-          }
-        }
-
-        function getLimit(metric) {
+        function getLimit(metricID) {
           var container = scope.options.selectedContainer;
-          switch (metric.id) {
+          switch (metricID) {
           case 'memory/usage':
             var memLimit = getMemoryLimit(container);
             if (memLimit) {
@@ -178,42 +206,101 @@ angular.module('openshiftConsole')
           return null;
         }
 
-        function updateChart(data, metric) {
-          var chartData = scope.chartDataByMetric[metric.id] = {
-            xData: ['dates'],
-            yData: [metric.units],
-            total: getLimit(metric)
-          };
-          updateSparklineConfig(metric, chartData.total);
+        function updateChart(metric) {
+          var dates, values = {};
 
-          var mostRecentValue = data[data.length - 1].value;
-          if (isNaN(mostRecentValue)) {
-            mostRecentValue = 0;
-          }
-          if (metric.id === 'memory/usage') {
-            mostRecentValue = bytesToMiB(mostRecentValue);
-          }
-          // Round to the closest whole number for the utilization chart.
-          // This avoids weird rounding errors in the patternfly utilization
-          // chart directive with floating point arithmetic.
-          chartData.used = d3.round(mostRecentValue);
+          angular.forEach(metric.datasets, function(dataset) {
+            var metricID = dataset.id, metricData = dataset.data;
 
-          angular.forEach(data, function(point) {
-            chartData.xData.push(point.timestamp);
-            if (point.value === undefined || point.value === null) {
-              // Don't attempt to round null values. These appear as gaps in the chart.
-              chartData.yData.push(point.value);
-            } else {
-              switch (metric.id) {
-                case 'memory/usage':
-                  chartData.yData.push(d3.round(bytesToMiB(point.value), 2));
-                break;
-                case 'cpu/usage':
-                  chartData.yData.push(d3.round(point.value));
-                break;
+            dates = ['dates'], values[metricID] = [dataset.label || metricID];
+
+            var usage = scope.usageByMetric[metricID] = {
+              total: getLimit(metricID)
+            };
+
+            var mostRecentValue = _.last(metricData).value;
+            if (isNaN(mostRecentValue)) {
+              mostRecentValue = 0;
+            }
+            if (metric.convert) {
+              mostRecentValue = metric.convert(mostRecentValue);
+            }
+
+            // Round to the closest whole number for the utilization chart.
+            usage.used = d3.round(mostRecentValue);
+            if (usage.total) {
+              usage.available = Math.max(usage.total - usage.used, 0);
+            }
+
+            angular.forEach(metricData, function(point) {
+              dates.push(point.timestamp);
+              if (point.value === undefined || point.value === null) {
+                // Don't attempt to round null values. These appear as gaps in the chart.
+                values[metricID].push(point.value);
+              } else {
+                var value = metric.convert ? metric.convert(point.value) : point.value;
+                switch (metricID) {
+                  case 'memory/usage':
+                  case 'network/rx':
+                  case 'network/tx':
+                    values[metricID].push(d3.round(value, 2));
+                    break;
+                  default:
+                    values[metricID].push(d3.round(value));
+                }
+              }
+            });
+
+            // Donut
+            var donutConfig, donutData;
+            if (usage.total) {
+              donutData = {
+                type: 'donut',
+                columns: [
+                  ['Used', usage.used],
+                  ['Available', usage.available]
+                ],
+                colors: {
+                  Used: "#0088ce",      // Blue
+                  Available: "#d1d1d1"  // Gray
+                }
+              };
+
+              if (!donutByMetric[metricID]) {
+                donutConfig = createDonutConfig(metric);
+                donutConfig.data = donutData;
+                $timeout(function() {
+                  donutByMetric[metricID] = c3.generate(donutConfig);
+                });
+              } else {
+                donutByMetric[metricID].load(donutData);
               }
             }
           });
+
+          var columns = [dates].concat(_.values(values));
+
+          // Sparkline
+          var sparklineConfig, sparklineData = {
+            type: metric.chartType || 'area',
+            x: 'dates',
+            columns: columns
+          };
+
+          var chartId = metric.chartPrefix + "sparkline";
+
+          if (!sparklineByMetric[chartId]) {
+            sparklineConfig = createSparklineConfig(metric);
+            sparklineConfig.data = sparklineData;
+            if (metric.chartDataColors) {
+              sparklineConfig.color = { pattern: metric.chartDataColors };
+            }
+            $timeout(function() {
+              sparklineByMetric[chartId] = c3.generate(sparklineConfig);
+            });
+          } else {
+            sparklineByMetric[chartId].load(sparklineData);
+          }
         }
 
         function update() {
@@ -229,22 +316,45 @@ angular.module('openshiftConsole')
           // time. This prevents an issue where the donut chart shows 0 for
           // current usage if the client clock is ahead of the server clock.
           angular.forEach(scope.metrics, function(metric) {
-            MetricsService.get({
-              pod: pod,
-              containerName: container.name,
-              metric: metric.id,
-              start: start
-            }).then(
+            var promises = [];
+
+            // On metrics that require more than one set of data (e.g. network
+            // incoming and outgoing traffic) we perform one request for each,
+            // but collect and handle all requests in one single promise below.
+            // It's important that every metric uses the same 'start' timestamp
+            // and number of buckets, so that the returned data for every metric
+            // fit in the same collection of 'dates' and can be displayed in
+            // exactly the same point in time in the graph.
+            angular.forEach(_.map(metric.datasets, 'id'), function(metricID) {
+              promises.push(MetricsService.get({
+                pod: pod,
+                // some metrics (network, disk) are not available at container
+                // level (only at pod and node level)
+                containerName: metric.containerMetric ? container.name : "pod",
+                metric: metricID,
+                start: start
+              }));
+            });
+
+            // Collect all promises from every metric requested into one, so we
+            // have all data the chart wants at the time of the chart creation
+            // (or timeout updates, etc).
+            $q.all(promises).then(
               // success
-              function(response) {
-                updateChart(response.data, metric);
+              function(responses) {
+                angular.forEach(responses, function(response) {
+                  _.find(metric.datasets, {'id': response.metricID}).data = response.data;
+                });
+                updateChart(metric);
               },
               // failure
-              function(response) {
-                scope.metricsError = {
-                  status: response.status,
-                  details: _.get(response, 'data.errorMsg') || response.statusText || "Status code " + response.status
-                };
+              function(responses) {
+                angular.forEach(responses, function(response) {
+                  scope.metricsError = {
+                    status: response.status,
+                    details: _.get(response, 'data.errorMsg') || response.statusText || "Status code " + response.status
+                  };
+                });
               }
             ).finally(function() {
               // Even on errors mark metrics as loaded to replace the
@@ -259,14 +369,24 @@ angular.module('openshiftConsole')
           delete scope.metricsError;
           update();
         }, true);
-        // Also update every 30 seconds.
-        intervalPromise = $interval(update, 30 * 1000, false);
+        // Also update every 15 seconds.
+        intervalPromise = $interval(update, 15 * 1000, false);
 
         scope.$on('$destroy', function() {
           if (intervalPromise) {
             $interval.cancel(intervalPromise);
             intervalPromise = null;
           }
+
+          angular.forEach(donutByMetric, function(chart) {
+            chart.destroy();
+          });
+          donutByMetric = null;
+
+          angular.forEach(sparklineByMetric, function(chart) {
+            chart.destroy();
+          });
+          sparklineByMetric = null;
         });
       }
     };

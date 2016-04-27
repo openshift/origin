@@ -163,23 +163,11 @@ window.OPENSHIFT_CONFIG = {
   api: {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",
-      prefixes: {
-        "v1": "{{ .MasterPrefix | js}}"
-      },
-      resources: {
-{{range $i,$e := .MasterResources}}{{if $i}},
-{{end}}        "{{$e | js}}": true{{end}}
-      }
+      prefix: "{{ .MasterPrefix | js}}"
     },
     k8s: {
       hostPort: "{{ .KubernetesAddr | js}}",
-      prefixes: {
-      	"v1": "{{ .KubernetesPrefix | js}}"
-      },
-      resources: {
-{{range $i,$e := .KubernetesResources}}{{if $i}},
-{{end}}        "{{$e | js}}": true{{end}}
-      }
+      prefix: "{{ .KubernetesPrefix | js}}"
     }
   },
   auth: {

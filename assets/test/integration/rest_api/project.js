@@ -50,7 +50,7 @@ var attachBuilderImageToSource = function(projectName, builderImageName) {
 var createFromSource = function(projectName, builderImageName, appName) {
   var uri = '/project/' + projectName + '/create/fromimage';
   h.waitForUri(uri);
-  expect(element(by.css('.create-from-image h1')).getText()).toEqual(builderImageName);
+  expect(element(by.css('.osc-form h1')).getText()).toEqual(builderImageName);
   expect(element(by.cssContainingText('h2', "Name")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Routing")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Deployment Configuration")).isPresent()).toBe(true);
@@ -66,7 +66,7 @@ var createFromSource = function(projectName, builderImageName, appName) {
 var createFromTemplate = function(projectName, templateName, parameterNames, labelNames) {
   var uri = '/project/' + projectName + '/create/fromtemplate';
   h.waitForUri(uri);
-  expect(element(by.css('.create-from-template h1')).getText()).toEqual(templateName);
+  expect(element(by.css('.osc-form h1')).getText()).toEqual(templateName);
   expect(element(by.cssContainingText('h2', "Images")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Parameters")).isPresent()).toBe(true);
   expect(element(by.cssContainingText('h2', "Labels")).isPresent()).toBe(true);
@@ -193,7 +193,10 @@ describe('', function() {
           h.goToPage('/project/' + project['name'] + '/settings');
           element(by.css('.actions-dropdown-btn')).click();
           element(by.css('.button-delete')).click();
-          element(by.cssContainingText(".modal-dialog .btn", "Delete")).click();
+          h.setInputValue('confirmName', project.name);
+          var deleteButton = element(by.cssContainingText(".modal-dialog .btn", "Delete"));
+          browser.wait(protractor.ExpectedConditions.elementToBeClickable(deleteButton), 2000);
+          deleteButton.click();
           h.waitForPresence(".alert-success", "marked for deletion");
         });
 

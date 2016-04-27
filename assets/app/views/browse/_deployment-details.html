@@ -52,7 +52,7 @@
       </dd>
       <dt ng-if-start="deployment | isDeployment">Deployment config:</dt>
       <dd ng-if-end>
-        <a href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
+        <a ng-href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
       </dd>
       <dt ng-if-start="deployment | annotation:'deploymentStatusReason'">Status reason:</dt>
       <dd ng-if-end>
@@ -72,27 +72,76 @@
       </dd>
       <dt>Replicas:</dt>
       <dd>
-        <!-- Enable scaling if this is a plain replication controller or it's the active deployment. -->
+        <!-- Enable scaling if this is a plain replication controller or it's the active deployment,
+             as long as it doesn't have an HPA. -->
         <replicas status="deployment.status.replicas"
                   spec="deployment.spec.replicas"
-                  disable-scaling="(deployment | isDeployment) && !deploymentConfigMissing && (!isActive || !deploymentConfig)"
+                  disable-scaling="((deployment | isDeployment) && !deploymentConfigMissing && (!isActive || !deploymentConfig)) || autoscalers.length"
                   scale-fn="scale(replicas)">
         </replicas>
+        <span ng-if="autoscalers.length">(autoscaled)</span>
       </dd>
     </dl>
   </div>
 </div>
 <annotations annotations="deployment.metadata.annotations"></annotations>
-<div class="deployment-detail">
-  <span>Pod template:</span>
-  <pod-template
-    pod-template="deployment.spec.template"
-    images-by-docker-reference="imagesByDockerReference"
-    builds="builds"
-    detailed="true"></pod-template>
-  <h4 style="margin-top: 20px;">Volumes</h4>
-  <p ng-if="!deployment.spec.template.spec.volumes.length">
-    <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
-  </p>
-  <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
+<div class="row">
+  <div class="col-lg-6">
+    <div class="deployment-detail">
+      <h3>Template</h3>
+      <pod-template
+        pod-template="deployment.spec.template"
+        images-by-docker-reference="imagesByDockerReference"
+        builds="builds"
+        detailed="true"
+        add-health-check-url="{{(!deploymentConfig || isActive) ? healthCheckURL : ''}}">
+      </pod-template>
+      <h4>Volumes</h4>
+      <p ng-if="!deployment.spec.template.spec.volumes.length">
+        <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}">Attach storage</a>
+      </p>
+      <volumes volumes="deployment.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
+    </div>
+  </div>
+</div>
+
+<!-- Autoscaling -->
+<div ng-if="!deploymentConfigName || autoscalers.length">
+  <h3>Autoscaling</h3>
+
+  <!-- Show any warnings. -->
+  <div ng-repeat="warning in hpaWarnings" class="alert alert-warning">
+    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+    <span class="sr-only">Warning:</span>
+    {{warning.message}}
+
+    <!-- If the CPU request is missing, add an action to set one. -->
+    <span ng-if="warning.reason === 'NoCPURequest'">
+      <!-- Prompt to set CPU request on the DC if this is a deployment. -->
+      <a ng-href="project/{{projectName}}/set-limits?dcName={{deploymentConfigName}}"
+         ng-if="deploymentConfigName && !deploymentConfigMissing"
+         role="button">Set resource
+        <span ng-if="!('cpu' | isRequestCalculated : project)">requests and</span> limits</a>
+      <!-- Prompt to set CPU request on the RC if not a deployment. -->
+      <a ng-href="project/{{projectName}}/set-limits?rcName={{deployment.metadata.name}}"
+         ng-if="!deploymentConfigName"
+         role="button">Set resource
+        <span ng-if="!('cpu' | isRequestCalculated : project)">requests and</span> limits</a>
+    </span>
+  </div>
+
+  <!-- Create autoscaler -->
+  <div ng-if="!autoscalers.length">
+    <a ng-href="project/{{projectName}}/edit/autoscaler?kind=ReplicationController&name={{deployment.metadata.name}}"
+       role="button">Add autoscaler</a>
+  </div>
+
+  <!-- HPA details -->
+  <div ng-repeat="hpa in autoscalers | orderBy : 'name'">
+    <h4>{{hpa.metadata.name}}</h4>
+    <hpa hpa="hpa"
+         show-scale-target="hpa.spec.scaleRef.kind !== 'ReplicationController'"
+         alerts="alerts">
+    </hpa>
+  </div>
 </div>

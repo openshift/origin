@@ -21,33 +21,17 @@
                   <div>
                     <span class="help-block">
                       Routing is a way to make your application publicly visible.
-                      <span ng-if="serviceName">Create a route to expose service {{serviceName}}.</span>
-                      <span ng-if="!serviceName">Select a service to expose and enter route details.</span>
                     </span>
                   </div>
-                  <div ng-show="!serviceName && !services">Loading...</div>
-                  <div ng-show="serviceName || services">
-                    <form name="createRouteForm">
+                  <form name="createRouteForm">
+                    <div ng-if="!services">Loading...</div>
+                    <div ng-if="services">
                       <fieldset ng-disabled="disableInputs">
-                        <div ng-if="!serviceName" class="form-group">
-                          <label for="service-select" class="required">Service</label>
-                          <select
-                              id="service-select"
-                              ng-model="routing.service"
-                              ng-options="service as service.metadata.name for service in services track by (service | uid)"
-                              required
-                              class="form-control"
-                              aria-describedby="service-help">
-                          </select>
-                          <div>
-                            <span id="service-help" class="help-block">Service to route to.</span>
-                          </div>
-                          <div ng-if="!services.length" class="has-error">
-                            <span class="help-block">There are no services in your project to expose with a route.</span>
-                          </div>
-                        </div>
-
-                        <osc-routing model="routing" show-name-input="true"></osc-routing>
+                        <osc-routing
+                            model="routing"
+                            services="services"
+                            show-name-input="true">
+                        </osc-routing>
                         <div class="button-group gutter-top gutter-bottom">
                           <button type="submit"
                               class="btn btn-primary btn-lg"
@@ -57,8 +41,8 @@
                           <a class="btn btn-default btn-lg" href="#" back>Cancel</a>
                         </div>
                       </fieldset>
-                    </form>
-                  </div>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>

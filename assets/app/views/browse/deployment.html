@@ -36,6 +36,11 @@
                       <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
                          role="button">Attach Storage</a>
                     </li>
+                    <!-- Only allow editing health checks if there is no deployment config or this
+                         is the active deployment. -->
+                    <li ng-if="!deploymentConfigName || isActive">
+                      <a ng-href="{{healthCheckURL}}" role="button">Edit Health Checks</a>
+                    </li>
                     <li>
                       <edit-link
                         resource="deployment"
@@ -50,7 +55,8 @@
                         resource-name="{{deployment.metadata.name}}"
                         project-name="{{deployment.metadata.namespace}}"
                         alerts="alerts"
-                        disable-delete="!!deployment.status.replicas">
+                        disable-delete="!!deployment.status.replicas"
+                        hpa-list="hpaForRC">
                       </delete-link>
                     </li>
                   </ul>

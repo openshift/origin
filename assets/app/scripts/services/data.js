@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
   // Handles attr with dot notation
   // TODO write lots of tests for this helper
   // Note: this lives outside the Data prototype for now so it can be used by the helper in DataService as well
-  var _objectByAttribute = function(obj, attr, map, action) {
+  function _objectByAttribute(obj, attr, map, action) {
     var subAttrs = attr.split(".");
     var attrValue = obj;
     for (var i = 0; i < subAttrs.length; i++) {
@@ -73,7 +73,7 @@ angular.module('openshiftConsole')
         map[attrValue] = obj;
       }
     }
-  };
+  }
 
   function DataService() {
     this._listCallbacksMap = {};
@@ -124,17 +124,31 @@ angular.module('openshiftConsole')
 // resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
 // context:   API context (e.g. {project: "..."})
-// opts:      http - options to pass to the inner $http call
+// opts:
+//   http - options to pass to the inner $http call
+//   gracePeriodSeconds - duration in seconds to wait before deleting the resource
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.delete = function(resource, name, context, opts) {
     resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
+    var data, headers = {};
+    // Differentiate between 0 and undefined
+    if (_.has(opts, 'gracePeriodSeconds')) {
+      data = {
+        kind: "DeleteOptions",
+        apiVersion: "v1",
+        gracePeriodSeconds: opts.gracePeriodSeconds
+      };
+      headers['Content-Type'] = 'application/json';
+    }
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
         auth: {},
+        data: data,
+        headers: headers,
         url: self._urlForResource(resource, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
@@ -1141,7 +1155,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     else {
       template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
     }
-    return URI.expand(template, templateOptions);
+    return URI.expand(template, templateOptions).toString();
   };
 
   DataService.prototype.url = function(options) {
@@ -1157,10 +1171,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
         group:    options.group,
         version:  options.version
       });
-      var u = this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
-      if (u) {
-        return u.toString();
-      }
+      return this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
     }
     return null;
   };

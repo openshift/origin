@@ -43,8 +43,21 @@
                          role="button">Attach Storage</a>
                     </li>
                     <li>
-                      <a href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
+                      <a ng-href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
                         role="button">Set Resource Limits</a>
+                    </li>
+                    <li ng-if="!autoscalers.length">
+                      <!-- Create a new HPA. -->
+                      <a ng-href="project/{{projectName}}/edit/autoscaler?kind=DeploymentConfig&name={{deploymentConfig.metadata.name}}"
+                         role="button">Add Autoscaler</a>
+                    </li>
+                    <li ng-if="autoscalers.length === 1">
+                      <!-- Edit an existing HPA. -->
+                      <a ng-href="project/{{projectName}}/edit/autoscaler?kind=HorizontalPodAutoscaler&group=extensions&name={{autoscalers[0].metadata.name}}"
+                        role="button">Edit Autoscaler</a>
+                    </li>
+                    <li>
+                      <a ng-href="{{healthCheckURL}}" role="button">Edit Health Checks</a>
                     </li>
                     <li>
                       <edit-link
@@ -58,7 +71,8 @@
                         kind="DeploymentConfig"
                         resource-name="{{deploymentConfig.metadata.name}}"
                         project-name="{{deploymentConfig.metadata.namespace}}"
-                        alerts="alerts">
+                        alerts="alerts"
+                        hpa-list="autoscalers">
                       </delete-link>
                     </li>
                   </ul>
@@ -82,6 +96,15 @@
                         <div class="col-lg-6">
                           <h3>Configuration</h3>
                           <dl class="dl-horizontal left">
+                            <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
+                            <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
+                            <dt>Replicas:</dt>
+                            <dd>
+                              <replicas spec="deploymentConfig.spec.replicas"
+                                        disable-scaling="autoscalers.length"
+                                        scale-fn="scale(replicas)"></replicas>
+                              <span ng-if="autoscalers.length">(autoscaled)</span>
+                            </dd>
                             <div ng-if="deploymentConfig.spec.strategy.type">
                                 <dt>Strategy:</dt>
                                 <dd>{{deploymentConfig.spec.strategy.type}}</dd>
@@ -101,27 +124,50 @@
                             <!-- TODO: Surface the parameters for the recreate and custom strategies -->
                           </dl>
                           <h3>Template</h3>
-                          <dl class="dl-horizontal left">
-                            <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
-                            <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
-                            <dt>Replicas:</dt>
-                            <dd>
-                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
-                            </dd>
-                            <dt>Pod template:</dt>
-                            <dd>&nbsp;</dd>
-                            <pod-template
-                                  pod-template="deploymentConfig.spec.template"
-                                  images-by-docker-reference="imagesByDockerReference"
-                                  builds="builds"
-                                  detailed="true"></pod-template>
-                          </dl>
-                          <h4 style="margin-top: 20px;">Volumes</h4>
+                          <pod-template
+                              pod-template="deploymentConfig.spec.template"
+                              images-by-docker-reference="imagesByDockerReference"
+                              builds="builds"
+                              detailed="true"
+                              add-health-check-url="{{healthCheckURL}}">
+                          </pod-template>
+                          <h4>Volumes</h4>
                           <p ng-if="!deploymentConfig.spec.template.spec.volumes.length">
                             <a ng-href="project/{{project.metadata.name}}/attach-pvc?deploymentconfig={{deploymentConfig.metadata.name}}">Attach storage</a>
                           </p>
                           <volumes volumes="deploymentConfig.spec.template.spec.volumes" namespace="project.metadata.name"></volumes>
                         </div>
+
+                        <!-- Autoscaling -->
+                        <div class="col-lg-6">
+                          <h3>Autoscaling</h3>
+
+                          <!-- Show any warnings. -->
+                          <div ng-repeat="warning in hpaWarnings" class="alert alert-warning">
+                            <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                            <span class="sr-only">Warning:</span>
+                            {{warning.message}}
+
+                            <!-- If the CPU request is missing, add an action to set one. -->
+                            <a ng-href="project/{{projectName}}/set-limits?dcName={{deploymentConfig.metadata.name}}"
+                               ng-if="warning.reason === 'NoCPURequest'"
+                               role="button">Set resource
+                              <span ng-if="!('cpu' | isRequestCalculated : project)">requests and</span> limits</a>
+                          </div>
+
+                          <!-- Create autoscaler -->
+                          <div ng-if="!autoscalers.length">
+                            <a ng-href="project/{{projectName}}/edit/autoscaler?kind=DeploymentConfig&name={{deploymentConfig.metadata.name}}"
+                               role="button">Add autoscaler</a>
+                          </div>
+
+                          <!-- HPA details -->
+                          <div ng-repeat="hpa in autoscalers">
+                            <h4>{{hpa.metadata.name}}</h4>
+                            <hpa hpa="hpa" project="project" show-scale-target="false" alerts="alerts"></hpa>
+                          </div>
+                        </div>
+
                         <div class="col-lg-6">
                           <h3>Triggers</h3>
                           <dl class="dl-horizontal left">
@@ -131,8 +177,7 @@
                               </a>
                             </dt>
                             <dd>
-                              <code>oc deploy {{deploymentConfig.metadata.name}} --latest -n {{project.metadata.name}}</code>
-                              <copy-to-clipboard-button clipboard-text="'oc deploy ' + deploymentConfig.metadata.name + ' --latest -n ' + project.metadata.name"></copy-to-clipboard-button>
+                              <copy-to-clipboard clipboard-text="'oc deploy ' + deploymentConfig.metadata.name + ' --latest -n ' + project.metadata.name"></copy-to-clipboard>
                             </dd>
                             <div ng-repeat="trigger in deploymentConfig.spec.triggers">
                               <span ng-switch="trigger.type">

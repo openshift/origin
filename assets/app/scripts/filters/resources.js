@@ -278,20 +278,21 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-      	// arbitrarily many subresources can be included
-      	// url encoding of the segments is handled by the url() function
-      	// subresource segments cannot contain '/'
+        // arbitrarily many subresources can be included
+        // url encoding of the segments is handled by the url() function
+        // subresource segments cannot contain '/'
         resource: "buildconfigs/webhooks/" + secret + "/" + type.toLowerCase(),
         name: buildConfig,
         namespace: project
       });
     };
   })
-  .filter('isWebRoute', function(){
+  .filter('isWebRoute', function(routeHostFilter) {
     return function(route){
        //TODO: implement when we can tell if routes are http(s) or not web related which will drive
        // links in view
-       return true;
+       // For now, only return false if the host is not defined.
+       return !!routeHostFilter(route);
     };
   })
   .filter('routeWebURL', function(routeHostFilter){
@@ -310,7 +311,7 @@ angular.module('openshiftConsole')
       if (route.spec.path) {
         label += route.spec.path;
       }
-      return label;
+      return label || '<unknown host>';
     };
   })
   .filter('parameterPlaceholder', function() {
@@ -804,14 +805,32 @@ angular.module('openshiftConsole')
           return build.spec.strategy.dockerStrategy;
         case 'Custom':
           return build.spec.strategy.customStrategy;
+        case 'JenkinsPipeline':
+          return build.spec.strategy.jenkinsPipelineStrategy;
         default:
           return null;
       }
     };
   })
   .filter('humanizeKind', function (startCaseFilter) {
-    return startCaseFilter;
+    // Changes "ReplicationController" to "replication controller".
+    // If useTitleCase, returns "Replication Controller".
+    return function(kind, useTitleCase) {
+      if (!kind) {
+        return kind;
+      }
+
+      var humanized = _.startCase(kind);
+      if (useTitleCase) {
+        return humanized;
+      }
+
+      return humanized.toLowerCase();
+    };
   })
+  .filter('kindToResource', function (APIService) {
+    return APIService.kindToResource;
+  })  
   .filter('humanizeQuotaResource', function() {
     return function(resourceType) {
       if (!resourceType) {
@@ -945,5 +964,90 @@ angular.module('openshiftConsole')
       });
 
       return oldestAdmittedIngress ? oldestAdmittedIngress.host : route.spec.host;
+    };
+  })
+  .filter('isRequestCalculated', function(LimitRangesService) {
+    return function(computeResource, project) {
+      return LimitRangesService.isRequestCalculated(computeResource, project);
+    };
+  })
+  .filter('isLimitCalculated', function(LimitRangesService) {
+    return function(computeResource, project) {
+      return LimitRangesService.isLimitCalculated(computeResource, project);
+    };
+  })
+  .filter('hpaCPUPercent', function(HPAService, LimitRangesService) {
+    // Convert between CPU request percentage and CPU limit percentage if
+    // necessary to display an HPA value. Values are shown as percentages
+    // of CPU limit if a request/limit override is set.
+    return function(targetCPU, project) {
+      if (!targetCPU) {
+        return targetCPU;
+      }
+
+      if (!LimitRangesService.isRequestCalculated('cpu', project)) {
+        return targetCPU;
+      }
+
+      return HPAService.convertRequestPercentToLimit(targetCPU, project);
+    };
+  })
+  .filter('hasHealthChecks', function() {
+    return function(podTemplate) {
+      // Returns true if every container has a readiness or liveness probe.
+      var containers = _.get(podTemplate, 'spec.containers', []);
+      return _.every(containers, function(container) {
+        return container.readinessProbe || container.livenessProbe;
+      });
+    };
+  })
+  .filter('debugLabel', function(PodsService) {
+    return function(pod) {
+      return PodsService.getDebugLabel(pod);
+    };
+  })
+  // Determines the container entrypoint command from the container and docker image metadata.
+  .filter('entrypoint', function() {
+    // If `cmd` is an array (exec form), converts it to a string for display.
+    var toShellForm = function(cmd) {
+      if (_.isArray(cmd)) {
+        return cmd.join(' ');
+      }
+
+      return cmd;
+    };
+
+    return function(container, image) {
+      if (!container || !image) {
+        return null;
+      }
+
+      // http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
+      var entrypoint,
+          cmd = toShellForm(container.command),
+          args = toShellForm(container.args);
+
+      // If `container.command` is specified, use that instead of image entrypoint. Add `container.args` if present.
+      if (cmd && args) {
+        return cmd + " " + args;
+      }
+
+      if (cmd) {
+        return cmd;
+      }
+
+      entrypoint = toShellForm(_.get(image, 'dockerImageMetadata.Config.Entrypoint') || ["/bin/sh", "-c"]);
+      // If `container.args` is supplied without `container.command`, use container args with the image entrypoint.
+      if (args) {
+        return entrypoint + " " + args;
+      }
+
+      // Otherwise, use container entrypoint with container command.
+      cmd = toShellForm(_.get(image, 'dockerImageMetadata.Config.Cmd'));
+      if (cmd) {
+        return entrypoint + " " + cmd;
+      }
+
+      return null;
     };
   });

@@ -7,7 +7,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodController', function ($scope, $routeParams, $timeout, DataService, ProjectsService, $filter, ImageStreamResolver, MetricsService) {
+  .controller('PodController', function ($scope,
+                                         $filter,
+                                         $routeParams,
+                                         $timeout,
+                                         $uibModal,
+                                         DataService,
+                                         ImageStreamResolver,
+                                         MetricsService,
+                                         PodsService,
+                                         ProjectsService) {
     $scope.projectName = $routeParams.project;
     $scope.pod = null;
     $scope.imageStreams = {};
@@ -138,6 +147,98 @@ angular.module('openshiftConsole')
           Logger.log("builds (subscribe)", $scope.builds);
         }));
 
+        var debugPodWatch;
+
+        // Delete the debug pod and any watches if they exist.
+        var cleanUpDebugPod = function() {
+          var debugPod = $scope.debugPod;
+
+          if (debugPodWatch) {
+            DataService.unwatch(debugPodWatch);
+            debugPodWatch = null;
+          }
+
+          $(window).off('beforeunload.debugPod');
+
+          if (debugPod) {
+            DataService.delete("pods", debugPod.metadata.name, context, {
+              gracePeriodSeconds: 0
+            }).then(
+              // success
+              _.noop,
+              // failure
+              function(result) {
+                $scope.alerts['debug-container-error'] = {
+                  type: "error",
+                  message: "Could not delete pod " + debugPod.metadata.name,
+                  details: "Reason: " + $filter('getErrorDetails')(result)
+                };
+              });
+            $scope.debugPod = null;
+          }
+        };
+
+        $scope.debugTerminal = function(containerName) {
+          var debugPod = PodsService.generateDebugPod($scope.pod, containerName);
+          if (!debugPod) {
+            $scope.alerts['debug-container-error'] = {
+              type: "error",
+              message: "Could not debug container " + containerName
+            };
+            return;
+          }
+
+          // Create the debug pod.
+          DataService.create("pods", null, debugPod, context).then(
+            function(pod) {
+              var container = _.find($scope.pod.spec.containers, { name: containerName });
+              $scope.debugPod = pod;
+
+              // Warn users when navigating away with the debug pod open. (Removed in `cleanUpDebugPod`.)
+              $(window).on('beforeunload.debugPod', function() {
+                return "Are you sure you want to leave with the debug terminal open? The debug pod will not be deleted unless you close the dialog.";
+              });
+
+              // Watch the pod so we know when it's running to connect.
+              // Keep the watch handle in a var outside the watches array so we
+              // can unwatch immediately when the terminal is closed.
+              debugPodWatch = DataService.watchObject("pods",
+                                                      debugPod.metadata.name,
+                                                      context,
+                                                      function(pod) {
+                $scope.debugPod = pod;
+              });
+
+              // Show the terminal in a modal window.
+              var modalInstance = $uibModal.open({
+                animation: true,
+                templateUrl: 'views/modals/debug-terminal.html',
+                controller: 'DebugTerminalModalController',
+                scope: $scope,
+                resolve: {
+                  container: function() {
+                    return container;
+                  },
+                  image: function() {
+                    return _.get($scope, ['imagesByDockerReference', container.image]);
+                  }
+                },
+                backdrop: 'static' // don't close modal when clicking backdrop
+              });
+
+              // On modal close, delete the pod.
+              modalInstance.result.then(cleanUpDebugPod);
+            },
+            //failure
+            function(result) {
+              $scope.alerts['debug-container-error'] = {
+                type: "error",
+                message: "Could not debug container " + containerName,
+                details: "Reason: " + $filter('getErrorDetails')(result)
+              };
+            });
+        };
+
         $scope.containersRunning = function(containerStatuses) {
           var running = 0;
           if (containerStatuses) {
@@ -152,7 +253,7 @@ angular.module('openshiftConsole')
 
         $scope.$on('$destroy', function(){
           DataService.unwatchAll(watches);
+          cleanUpDebugPod();
         });
-
     }));
   });

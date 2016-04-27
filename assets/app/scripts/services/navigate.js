@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module("openshiftConsole")
-  .service("Navigate", function($location, $timeout, annotationFilter, LabelFilter){
+  .service("Navigate", function($location, $window, $timeout, annotationFilter, LabelFilter){
     return {
       /**
        * Navigate and display the error page.
@@ -10,12 +10,17 @@ angular.module("openshiftConsole")
        * @param {type} errorCode  An optional error code to display
        * @returns {undefined}
        */
-      toErrorPage: function(message, errorCode) {
+      toErrorPage: function(message, errorCode, reload) {
         var redirect = URI('error').query({
           error_description: message,
           error: errorCode
         }).toString();
-        $location.url(redirect);
+        if (!reload) {
+          $location.url(redirect);
+        }
+        else {
+          $window.location.href = redirect;
+        }
       },
 
       /**
@@ -148,6 +153,13 @@ angular.module("openshiftConsole")
         });
 
         $location.url(redirect);
+      },
+      healthCheckURL: function(projectName, kind, name) {
+        return URI.expand("project/{projectName}/edit/health-checks?kind={kind}&name={name}", {
+          projectName: projectName,
+          kind: kind,
+          name: name
+        }).toString();
       }
     };
   });

@@ -27,6 +27,9 @@
                    data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
+                    <a ng-href="{{route | editResourceURL}}" role="button">Edit</a>
+                  </li>
+                  <li>
                     <edit-link
                       resource="route"
                       kind="Route"

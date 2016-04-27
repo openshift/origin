@@ -13,18 +13,21 @@ angular.module('openshiftConsole')
         limit: '=?',
         titleKind: '@?',   // optional, instead of putting kind into that part of the hover
                            // title, it will put this string instead, e.g. if you want 'builds for build config foo'
-        navigateUrl: '@?'  // optional to override the default
+        navigateUrl: '@?',  // optional to override the default
+        filterCurrentPage: '=?' //optional don't navigate, just filter here
       },
       templateUrl: 'views/directives/labels.html',
       link: function(scope) {
         scope.filterAndNavigate = function(key, value) {
           if (scope.kind && scope.projectName) {
-            $location.url(scope.navigateUrl || ("/project/" + scope.projectName + "/browse/" + scope.kind));
+            if (!scope.filterCurrentPage) {
+              $location.url(scope.navigateUrl || ("/project/" + scope.projectName + "/browse/" + scope.kind));
+            }
             $timeout(function() {
               var selector = {};
               selector[key] = value;
               LabelFilter.setLabelSelector(new LabelSelector(selector, true));
-            }, 1);            
+            }, 1);
           }
         };
       }
@@ -36,7 +39,11 @@ angular.module('openshiftConsole')
       scope: {
         labels: "=",
         expand: "=?",
-        canToggle: "=?"
+        canToggle: "=?",
+        // Delete policy for osc-key-values (default: "added")
+        deletePolicy: "@?",
+        // Optional help text to show with the label controls
+        helpText: "@?"
       },
       templateUrl: 'views/directives/label-editor.html',
       link: function(scope, element, attrs) {
