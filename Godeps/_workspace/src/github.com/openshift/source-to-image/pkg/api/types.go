@@ -188,6 +188,15 @@ type Config struct {
 	// ScriptDownloadProxyConfig optionally specifies the http and https proxy
 	// to use when downloading scripts
 	ScriptDownloadProxyConfig *ProxyConfig
+
+	// ExcludeRegExp contains a string representation of the regular expression desired for
+	// deciding which files to exclude from the tar stream
+	ExcludeRegExp string
+
+	// DisableImplicitBuild prevents s2i from performing a docker build operation
+	// if one is necessary to execute ONBUILD commands, or to layer source code into
+	// the container for images that don't have a tar binary available.
+	DisableImplicitBuild bool
 }
 
 type ProxyConfig struct {

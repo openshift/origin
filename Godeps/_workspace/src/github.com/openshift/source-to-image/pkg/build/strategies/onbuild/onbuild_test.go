@@ -129,3 +129,24 @@ func TestBuild(t *testing.T) {
 	checkDockerfile(fakeFs, t)
 	t.Logf("result: %v", result)
 }
+
+func TestBuildImplicitDisabled(t *testing.T) {
+	fakeRequest := &api.Config{
+		BuilderImage:         "fake:onbuild",
+		Tag:                  "fakeapp",
+		DisableImplicitBuild: true,
+	}
+	b := newFakeOnBuild()
+	fakeFs := &test.FakeFileSystem{
+		Files: []os.FileInfo{
+			&test.FakeFile{"config.ru", false, 0600},
+			&test.FakeFile{"app.rb", false, 0600},
+			&test.FakeFile{"run", false, 0777},
+		},
+	}
+	b.fs = fakeFs
+	_, err := b.Build(fakeRequest)
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but implicit Docker builds are disabled.") {
+		t.Errorf("expected error from onbuild due to disabled implicit builds, got: %v", err)
+	}
+}

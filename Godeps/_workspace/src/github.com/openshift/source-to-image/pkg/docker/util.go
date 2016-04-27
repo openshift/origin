@@ -1,13 +1,13 @@
 package docker
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
-
-	"bufio"
 
 	client "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -83,7 +83,7 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 		if err != nil {
 			// we're ignoring ErrClosedPipe, as this is information
 			// the docker container ended streaming logs
-			if err != io.ErrClosedPipe && err != io.EOF {
+			if glog.V(2) && err != io.ErrClosedPipe && err != io.EOF {
 				glog.Errorf("Error reading docker stderr, %v", err)
 			}
 			break
@@ -202,10 +202,11 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 	if uids == nil || uids.Empty() {
 		return nil
 	}
-	imageUser, err := d.GetImageUser(imageName)
+	imageUserSpec, err := d.GetImageUser(imageName)
 	if err != nil {
 		return err
 	}
+	imageUser := extractUser(imageUserSpec)
 	if !user.IsUserAllowed(imageUser, &uids) {
 		return errors.NewBuilderUserNotAllowedError(imageName, false)
 	}
@@ -214,11 +215,39 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 		if err != nil {
 			return err
 		}
-		if !user.IsOnbuildAllowed(cmds, &uids) {
+		if !isOnbuildAllowed(cmds, &uids) {
 			return errors.NewBuilderUserNotAllowedError(imageName, true)
 		}
 	}
 	return nil
+}
+
+var dockerLineDelim = regexp.MustCompile(`[\t\v\f\r ]+`)
+
+// isOnbuildAllowed checks a list of Docker ONBUILD instructions for
+// user directives. It ensures that any users specified by the directives
+// falls within the specified range list of users.
+func isOnbuildAllowed(directives []string, allowed *user.RangeList) bool {
+	for _, line := range directives {
+		parts := dockerLineDelim.Split(line, 2)
+		if strings.ToLower(parts[0]) != "user" {
+			continue
+		}
+		uname := extractUser(parts[1])
+		if !user.IsUserAllowed(uname, allowed) {
+			return false
+		}
+	}
+	return true
+}
+
+func extractUser(userSpec string) string {
+	user := userSpec
+	if strings.Contains(user, ":") {
+		parts := strings.SplitN(userSpec, ":", 2)
+		user = parts[0]
+	}
+	return strings.TrimSpace(user)
 }
 
 // IsReachable returns true if the Docker daemon is reachable from s2i

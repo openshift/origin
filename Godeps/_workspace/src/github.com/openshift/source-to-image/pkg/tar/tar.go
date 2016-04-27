@@ -22,9 +22,9 @@ import (
 // connections in which it would wait for a long time to untar and nothing would happen
 const defaultTimeout = 30 * time.Second
 
-// defaultExclusionPattern is the pattern of files that will not be included in a tar
+// DefaultExclusionPattern is the pattern of files that will not be included in a tar
 // file when creating one. By default it is any file inside a .git metadata directory
-var defaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
+var DefaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
 
 // Tar can create and extract tar files used in an STI build
 type Tar interface {
@@ -74,7 +74,7 @@ type Tar interface {
 // New creates a new Tar
 func New() Tar {
 	return &stiTar{
-		exclude: defaultExclusionPattern,
+		exclude: DefaultExclusionPattern,
 		timeout: defaultTimeout,
 	}
 }
@@ -174,7 +174,7 @@ func (t *stiTar) CreateTarFile(base, dir string) (string, error) {
 }
 
 func (t *stiTar) shouldExclude(path string) bool {
-	return t.exclude != nil && t.exclude.MatchString(path)
+	return t.exclude != nil && t.exclude.String() != "" && t.exclude.MatchString(path)
 }
 
 // CreateTarStream calls CreateTarStreamWithLogging with a nil logger
