@@ -277,6 +277,7 @@ backend be_secure_{{$cfgIdx}}
     os_edge_http_expose.map: contains a mapping of www.example.com -> <service name>.
     Map is used to also expose edge terminated routes via an insecure scheme
     (http) if acls match for routes with insecure option set to expose.
+    // TODO: Add go template code for cfg.InsecureTerminationPolicy
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
 {{   range $id, $serviceUnit := .State }}
@@ -292,6 +293,7 @@ backend be_secure_{{$cfgIdx}}
     os_edge_http_redirect.map: contains a mapping of www.example.com -> <service name>.
     Map is used to redirect insecure traffic to use a secure scheme (https)
     if acls match for routes that have the insecure option set to redirect.
+    // TODO: Add go template code for cfg.InsecureTerminationPolicy
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
 {{   range $id, $serviceUnit := .State }}

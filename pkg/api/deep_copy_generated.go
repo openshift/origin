@@ -2892,6 +2892,7 @@ func deepCopy_api_TLSConfig(in routeapi.TLSConfig, out *routeapi.TLSConfig, c *c
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
 	out.InsecureEdgeTerminationPolicy = in.InsecureEdgeTerminationPolicy
+	out.InsecureTerminationPolicy = in.InsecureTerminationPolicy
 	return nil
 }
 

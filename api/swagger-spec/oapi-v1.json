@@ -22360,6 +22360,10 @@
      "insecureEdgeTerminationPolicy": {
       "type": "string",
       "description": "InsecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to an edge-terminated route:\n  disable, allow or redirect"
+     },
+     "insecureTerminationPolicy": {
+      "type": "string",
+      "description": "InsecureTerminationPolicy indicates the desired behavior for insecure connections to one of the tls (edge,passthrough,reencrypt) route:\n  disable, allow or redirect"
      }
     }
    },

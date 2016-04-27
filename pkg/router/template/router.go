@@ -412,6 +412,8 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 			config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
 		}
 
+                // TODO: Add go code to check if tls.InsecureTerminationPolicy set
+
 		if tls.Termination != routeapi.TLSTerminationPassthrough {
 			if config.Certificates == nil {
 				config.Certificates = make(map[string]Certificate)

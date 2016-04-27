@@ -99,6 +99,7 @@ var map_TLSConfig = map[string]string{
 	"caCertificate":                 "CACertificate provides the cert authority certificate contents",
 	"destinationCACertificate":      "DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection",
 	"insecureEdgeTerminationPolicy": "InsecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to an edge-terminated route:\n  disable, allow or redirect",
+	"insecureTerminationPolicy": "InsecureTerminationPolicy indicates the desired behavior for insecure connections to one of the tls (edge,passthrough,reencrypt) route:\n  disable, allow or redirect",
 }
 
 func (TLSConfig) SwaggerDoc() map[string]string {

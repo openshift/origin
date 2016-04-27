@@ -133,19 +133,30 @@ type TLSConfig struct {
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection
 	DestinationCACertificate string
 
+        // DEPRECATED: Keep this for backward compatibility
 	// InsecureEdgeTerminationPolicy indicates the desired behavior for
 	// insecure connections to an edge-terminated route:
 	//   disable, allow or redirect
 	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType
+
+	// InsecureTerminationPolicy indicates the desired behavior for
+	// insecure connections to one of the tls (edge,passthrough,reencrypt) route:
+	//   disable, allow or redirect
+	InsecureTerminationPolicy InsecureTerminationPolicyType
 }
 
 // TLSTerminationType dictates where the secure communication will stop
 // TODO: Reconsider this type in v2
 type TLSTerminationType string
 
+// DEPRECATED: Keep this for backward compatibility
 // InsecureEdgeTerminationPolicyType dictates the behavior of insecure
 // connections to an edge-terminated route.
 type InsecureEdgeTerminationPolicyType string
+
+// InsecureTerminationPolicyType dictates the behavior of insecure
+// connections to one of the tls (edge,passthrough,reencrypt) route.
+type InsecureTerminationPolicyType string
 
 const (
 	// TLSTerminationEdge terminate encryption at the edge router.
@@ -155,6 +166,7 @@ const (
 	// TLSTerminationReencrypt terminate encryption at the edge router and re-encrypt it with a new certificate supplied by the destination
 	TLSTerminationReencrypt TLSTerminationType = "reencrypt"
 
+        // DEPRECATED: Keep this for backward compatibility
 	// InsecureEdgeTerminationPolicyNone disables insecure connections for an edge-terminated route.
 	InsecureEdgeTerminationPolicyNone InsecureEdgeTerminationPolicyType = "None"
 	// InsecureEdgeTerminationPolicyAllow allows insecure connections for an edge-terminated route.
@@ -163,4 +175,13 @@ const (
 	// As an example, for routers that support HTTP and HTTPS, the
 	// insecure HTTP connections will be redirected to use HTTPS.
 	InsecureEdgeTerminationPolicyRedirect InsecureEdgeTerminationPolicyType = "Redirect"
+
+	// InsecureTerminationPolicyNone disables insecure connections.
+	InsecureTerminationPolicyNone InsecureTerminationPolicyType = "None"
+	// InsecureTerminationPolicyAllow allows insecure connections.
+	InsecureTerminationPolicyAllow InsecureTerminationPolicyType = "Allow"
+	// InsecureTerminationPolicyRedirect redirects insecure connections.
+	// As an example, for routers that support HTTP and HTTPS, the
+	// insecure HTTP connections will be redirected to use HTTPS.
+	InsecureTerminationPolicyRedirect InsecureTerminationPolicyType = "Redirect"
 )

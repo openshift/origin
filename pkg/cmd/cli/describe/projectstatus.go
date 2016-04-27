@@ -588,8 +588,10 @@ func describeRouteExposed(host string, route *routeapi.Route, errors bool) strin
 	case route.Spec.TLS.Termination != routeapi.TLSTerminationEdge:
 		// future proof against other types of TLS termination being added
 		prefix = fmt.Sprintf("https://%s", host)
+        // TODO: Add go code
 	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyRedirect:
 		prefix = fmt.Sprintf("https://%s (redirects)", host)
+        // TODO: Add go code
 	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow:
 		prefix = fmt.Sprintf("https://%s (and http)", host)
 	default:
