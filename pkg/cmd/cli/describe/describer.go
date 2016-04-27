@@ -89,21 +89,6 @@ type BuildDescriber struct {
 	kubeClient kclient.Interface
 }
 
-// DescribeUser formats the description of a user
-func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u buildapi.SourceControlUser) {
-	if len(u.Name) > 0 && len(u.Email) > 0 {
-		formatString(out, label, fmt.Sprintf("%s <%s>", u.Name, u.Email))
-		return
-	}
-	if len(u.Name) > 0 {
-		formatString(out, label, u.Name)
-		return
-	}
-	if len(u.Email) > 0 {
-		formatString(out, label, u.Email)
-	}
-}
-
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	c := d.osClient.Builds(namespace)
