@@ -67,6 +67,8 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 )
 
 type RegistryConfig struct {
+	Action configcmd.BulkAction
+
 	Name           string
 	Type           string
 	ImageTemplate  variable.ImageTemplate
@@ -88,8 +90,6 @@ type RegistryConfig struct {
 
 // randomSecretSize is the number of random bytes to generate.
 const randomSecretSize = 32
-
-var errExit = fmt.Errorf("exit")
 
 const (
 	defaultLabel = "docker-registry=default"
@@ -128,7 +128,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Example: fmt.Sprintf(registryExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRegistry(f, cmd, out, cfg, args)
-			if err != errExit {
+			if err != cmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {
 				os.Exit(1)
@@ -144,7 +144,6 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the registry and its components.")
 	cmd.Flags().StringVar(&cfg.Volume, "volume", cfg.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
 	cmd.Flags().StringVar(&cfg.HostMount, "mount-host", cfg.HostMount, "If set, the registry volume will be created as a host-mount at this path.")
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Check if the registry exists instead of creating.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the registry pod.")
@@ -158,7 +157,8 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	// Deprecate credentials
 	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the registry will use to make API calls")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	cfg.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
@@ -215,31 +215,32 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	_, output, err := kcmdutil.PrinterForCommand(cmd)
-	if err != nil {
-		return fmt.Errorf("unable to configure printer: %v", err)
-	}
+	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.Out()
+	cfg.Action.Bulk.Op = configcmd.Create
 
 	var clusterIP string
-	generate := output
 
-	service, err := kClient.Services(namespace).Get(name)
-	if err != nil {
-		if !errors.IsNotFound(err) && !generate {
-			return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
+	output := cfg.Action.ShouldPrint()
+	generate := output
+	if !generate {
+		service, err := kClient.Services(namespace).Get(name)
+		if err != nil {
+			if !errors.IsNotFound(err) && !generate {
+				return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
+			}
+			if !output && cfg.Action.DryRun {
+				return fmt.Errorf("Docker registry %q service does not exist", name)
+			}
+			generate = true
+		} else {
+			clusterIP = service.Spec.ClusterIP
 		}
-		generate = true
-	} else {
-		clusterIP = service.Spec.ClusterIP
 	}
 
 	if !generate {
 		fmt.Fprintf(out, "Docker registry %q service exists\n", name)
 		return nil
-	}
-
-	if cfg.DryRun && !output {
-		return fmt.Errorf("docker-registry %q does not exist (no service).", name)
 	}
 
 	// create new registry
@@ -404,7 +405,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 	// TODO: label all created objects with the same label
 	list := &kapi.List{Items: objects}
 
-	if output {
+	if cfg.Action.ShouldPrint() {
 		mapper, _ := f.Object(false)
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
 		if err := fn(list); err != nil {
@@ -413,16 +414,8 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		return nil
 	}
 
-	mapper, typer := f.Factory.Object(false)
-	bulk := configcmd.Bulk{
-		Mapper:            mapper,
-		Typer:             typer,
-		RESTClientFactory: f.Factory.ClientForMapping,
-
-		After: configcmd.NewPrintNameOrErrorAfter(mapper, kcmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
-	}
-	if errs := bulk.Create(list, namespace); len(errs) != 0 {
-		return errExit
+	if errs := cfg.Action.WithMessage(fmt.Sprintf("Creating registry %s", cfg.Name), "created").Run(list, namespace); len(errs) > 0 {
+		return cmdutil.ErrExit
 	}
 	return nil
 }

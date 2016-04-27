@@ -2,6 +2,7 @@ package ipfailover
 
 import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 )
 
 const (
@@ -26,6 +27,8 @@ const (
 
 // IPFailoverConfigCmdOptions are options supported by the IP Failover admin command.
 type IPFailoverConfigCmdOptions struct {
+	Action configcmd.BulkAction
+
 	Type           string
 	ImageTemplate  variable.ImageTemplate
 	Credentials    string
@@ -40,6 +43,4 @@ type IPFailoverConfigCmdOptions struct {
 	WatchPort        int
 	VRRPIDOffset     int
 	Replicas         int
-
-	ShortOutput bool
 }

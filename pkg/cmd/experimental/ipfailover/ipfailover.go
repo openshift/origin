@@ -3,12 +3,16 @@ package ipfailover
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
 )
@@ -45,8 +49,12 @@ value that matches the number of nodes for the given labeled selector.`
   $ %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
 )
 
-func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
+		Action: configcmd.BulkAction{
+			Out:    out,
+			ErrOut: errout,
+		},
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		Selector:         ipfailover.DefaultSelector,
 		ServicePort:      ipfailover.DefaultServicePort,
@@ -62,9 +70,11 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 		Long:    ipFailover_long,
 		Example: fmt.Sprintf(ipFailover_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			options.ShortOutput = cmdutil.GetFlagString(cmd, "output") == "name"
-			err := processCommand(f, options, cmd, args, out)
-			cmdutil.CheckErr(err)
+			err := Run(f, options, cmd, args)
+			if err == cmdutil.ErrExit {
+				os.Exit(1)
+			}
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -87,7 +97,9 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 	// autocompletion hints
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
-	cmdutil.AddPrinterFlags(cmd)
+	options.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
+
 	return cmd
 }
 
@@ -108,7 +120,7 @@ func getConfigurationName(args []string) (string, error) {
 }
 
 //  Get the configurator based on the ipfailover type.
-func getConfigurator(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, out io.Writer) (*ipfailover.Configurator, error) {
+func getPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (ipfailover.IPFailoverConfiguratorPlugin, error) {
 	//  Currently, the only supported plugin is keepalived (default).
 	plugin, err := keepalived.NewIPFailoverConfiguratorPlugin(name, f, options)
 
@@ -124,59 +136,45 @@ func getConfigurator(name string, f *clientcmd.Factory, options *ipfailover.IPFa
 		return nil, fmt.Errorf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
 	}
 
-	return ipfailover.NewConfigurator(name, plugin, out), nil
+	return plugin, nil
 }
 
-//  Preview the configuration if required - returns true|false and errors.
-func previewConfiguration(c *ipfailover.Configurator, cmd *cobra.Command, out io.Writer) (bool, error) {
-	p, output, err := cmdutil.PrinterForCommand(cmd)
-	if err != nil {
-		return true, fmt.Errorf("Error configuring printer: %v", err)
-	}
-
-	// Check if we are outputting info.
-	if !output {
-		return false, nil
-	}
-
-	configList, err := c.Generate()
-	if err != nil {
-		return true, fmt.Errorf("Error generating config: %v", err)
-	}
-
-	if err := p.PrintObj(configList, out); err != nil {
-		return true, fmt.Errorf("Unable to print object: %v", err)
-	}
-
-	return true, nil
-}
-
-//  Process the ipfailover command.
-func processCommand(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string, out io.Writer) error {
+// Run runs the ipfailover command.
+func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string) error {
 	name, err := getConfigurationName(args)
 	if err != nil {
 		return err
 	}
 
-	c, err := getConfigurator(name, f, options, out)
+	options.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	options.Action.Bulk.Op = configcmd.Create
+
+	if err := ipfailover.ValidateCmdOptions(options); err != nil {
+		return err
+	}
+
+	p, err := getPlugin(name, f, options)
 	if err != nil {
 		return err
 	}
 
-	//  First up, validate all the command line options.
-	if err := ipfailover.ValidateCmdOptions(options, c); err != nil {
+	list, err := p.Generate()
+	if err != nil {
 		return err
 	}
 
-	//  Check if we are just previewing the config.
-	previewFlag, err := previewConfiguration(c, cmd, out)
-	if previewFlag {
+	if options.Action.ShouldPrint() {
+		mapper, _ := f.Object(false)
+		return cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, options.Action.Out)(list)
+	}
+
+	namespace, _, err := f.DefaultNamespace()
+	if err != nil {
 		return err
 	}
 
-	if options.Create {
-		return c.Create()
+	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {
+		return cmdutil.ErrExit
 	}
-
 	return nil
 }

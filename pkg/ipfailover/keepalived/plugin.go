@@ -2,8 +2,6 @@ package keepalived
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
 	"github.com/golang/glog"
@@ -12,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/ipfailover"
@@ -127,34 +124,4 @@ func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 	glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %q - generated config: %+v", p.Name, configList)
 
 	return configList, nil
-}
-
-// Create the config and services associated with this IP Failover configuration.
-func (p *KeepalivedPlugin) Create(out io.Writer) error {
-	namespace, err := p.GetNamespace()
-	if err != nil {
-		return fmt.Errorf("error getting Namespace: %v", err)
-	}
-
-	mapper, typer := p.Factory.Factory.Object(false)
-	bulk := configcmd.Bulk{
-		Mapper:            mapper,
-		Typer:             typer,
-		RESTClientFactory: p.Factory.Factory.ClientForMapping,
-
-		After: configcmd.NewPrintNameOrErrorAfter(mapper, p.Options.ShortOutput, "created", out, os.Stderr),
-	}
-
-	configList, err := p.Generate()
-	if err != nil {
-		return fmt.Errorf("error generating config: %v", err)
-	}
-
-	if errs := bulk.Create(configList, namespace); len(errs) != 0 {
-		return fmt.Errorf("error creating config: %+v", errs)
-	}
-
-	glog.V(4).Infof("Created KeepAlived IP Failover DeploymentConfig: %q", p.Name)
-
-	return nil
 }

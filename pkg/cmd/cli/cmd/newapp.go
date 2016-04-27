@@ -23,7 +23,6 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -119,6 +118,7 @@ To search templates, image streams, and Docker images that match the arguments p
 )
 
 type NewAppOptions struct {
+	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
 	CommandPath string
@@ -175,16 +175,9 @@ func NewCmdNewApplication(commandName string, f *clientcmd.Factory, out io.Write
 	cmd.Flags().BoolVar(&config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", false, "If true, indicates that image stream tags that don't exist should still be used.")
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
-	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 
-	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
-	// Need a better solution.
-	// kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|template|templatefile.")
-	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
-	cmd.Flags().String("output-template", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
-	cmd.MarkFlagFilename("output-template")
+	options.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
@@ -202,6 +195,15 @@ func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *co
 		o.Config.Out = ioutil.Discard
 	}
 	o.Config.ErrOut = o.ErrOut
+
+	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
+	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	o.Action.Bulk.Op = configcmd.Create
+	// Retry is used to support previous versions of the API server that will
+	// consider the presence of an unknown trigger type to be an error.
+	o.Action.Bulk.Retry = retryBuildConfig
+
+	o.Config.DryRun = o.Action.DryRun
 
 	o.CommandPath = c.CommandPath()
 	o.CommandName = commandName
@@ -221,8 +223,6 @@ func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *co
 func (o *NewAppOptions) Run() error {
 	config := o.Config
 	out := o.Out
-	output := o.Output
-	shortOutput := output == "name"
 
 	if config.Querying() {
 		result, err := config.RunQuery()
@@ -230,7 +230,7 @@ func (o *NewAppOptions) Run() error {
 			return handleRunError(err, o.CommandName, o.CommandPath)
 		}
 
-		if len(output) != 0 {
+		if o.Action.ShouldPrint() {
 			return o.PrintObject(result.List)
 		}
 
@@ -258,44 +258,25 @@ func (o *NewAppOptions) Run() error {
 		return err
 	}
 
-	indent := "    "
-	switch {
-	case shortOutput:
-		indent = ""
-	case len(output) != 0:
+	if o.Action.ShouldPrint() {
 		return o.PrintObject(result.List)
-	case !result.GeneratedJobs:
-		if len(config.Labels) > 0 {
-			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
-		} else {
-			fmt.Fprintf(out, "--> Creating resources ...\n")
-		}
 	}
-	if config.DryRun {
-		fmt.Fprintf(out, "--> Success (DRY RUN)\n")
+
+	if result.GeneratedJobs {
+		o.Action.Compact()
+	}
+
+	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
+		return cmdutil.ErrExit
+	}
+
+	if !o.Action.Verbose() || o.Action.DryRun {
 		return nil
-	}
-
-	var afterFn configcmd.AfterFunc
-	switch {
-	// only print success if we don't have installables
-	case !result.GeneratedJobs:
-		afterFn = configcmd.NewPrintNameOrErrorAfterIndent(config.Mapper, shortOutput, "created", out, config.ErrOut, indent)
-	default:
-		afterFn = configcmd.NewPrintErrorAfter(config.Mapper, config.ErrOut)
-		afterFn = configcmd.HaltOnError(afterFn)
-	}
-
-	if err := createObjects(config, afterFn, result); err != nil {
-		return err
-	}
-
-	if !shortOutput && !result.GeneratedJobs {
-		fmt.Fprintf(out, "--> Success\n")
 	}
 
 	hasMissingRepo := false
 	installing := []*kapi.Pod{}
+	indent := o.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *kapi.Pod:
@@ -325,10 +306,6 @@ func (o *NewAppOptions) Run() error {
 				fmt.Fprintf(out, "%sWARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
 			}
 		}
-	}
-
-	if shortOutput {
-		return nil
 	}
 
 	switch {
@@ -570,23 +547,6 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 		}
 		bc.Spec.Triggers = triggers
 		return bc
-	}
-	return nil
-}
-
-func createObjects(config *newcmd.AppConfig, after configcmd.AfterFunc, result *newcmd.AppResult) error {
-	bulk := configcmd.Bulk{
-		Mapper:            config.Mapper,
-		Typer:             config.Typer,
-		RESTClientFactory: config.ClientMapper.ClientForMapping,
-
-		After: after,
-		// Retry is used to support previous versions of the API server that will
-		// consider the presence of an unknown trigger type to be an error.
-		Retry: retryBuildConfig,
-	}
-	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
-		return cmdutil.ErrExit
 	}
 	return nil
 }

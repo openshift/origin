@@ -478,6 +478,15 @@ func getPorts(spec api.PodSpec) []string {
 	return result
 }
 
+func ResourceMapper(f *Factory) *resource.Mapper {
+	mapper, typer := f.Object(false)
+	return &resource.Mapper{
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
+		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
+	}
+}
+
 // UpdateObjectEnvironment update the environment variables in object specification.
 func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error) {
 	switch t := obj.(type) {

@@ -56,7 +56,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 			Message: "Install Commands:",
 			Commands: []*cobra.Command{
 				router.NewCmdRouter(f, fullName, "router", out),
-				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out),
+				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout),
 				registry.NewCmdRegistry(f, fullName, "registry", out),
 			},
 		},

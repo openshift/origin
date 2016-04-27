@@ -20,7 +20,6 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const (
@@ -80,6 +79,7 @@ on the Docker Hub.
 )
 
 type NewBuildOptions struct {
+	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
 	CommandPath string
@@ -131,11 +131,12 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmd.Flags().BoolVar(&config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", false, "If true, indicates that image stream tags that don't exist should still be used.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
 	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
 	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
 	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
-	kcmdutil.AddPrinterFlags(cmd)
+
+	options.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
@@ -153,6 +154,15 @@ func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cob
 		o.Config.Out = ioutil.Discard
 	}
 	o.Config.ErrOut = o.ErrOut
+
+	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
+	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	o.Action.Bulk.Op = configcmd.Create
+	// Retry is used to support previous versions of the API server that will
+	// consider the presence of an unknown trigger type to be an error.
+	o.Action.Bulk.Retry = retryBuildConfig
+
+	o.Config.DryRun = o.Action.DryRun
 
 	o.CommandPath = c.CommandPath()
 	o.CommandName = fullName
@@ -179,8 +189,6 @@ func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cob
 func (o *NewBuildOptions) Run() error {
 	config := o.Config
 	out := o.Out
-	output := o.Output
-	shortOutput := output == "name"
 
 	result, err := config.Run()
 	if err != nil {
@@ -198,34 +206,19 @@ func (o *NewBuildOptions) Run() error {
 		return err
 	}
 
-	indent := "    "
-	switch {
-	case shortOutput:
-		indent = ""
-	case len(output) != 0:
+	if o.Action.ShouldPrint() {
 		return o.PrintObject(result.List)
-	default:
-		if len(config.Labels) > 0 {
-			fmt.Fprintf(out, "--> Creating resources with label %s ...\n", labels.SelectorFromSet(config.Labels).String())
-		} else {
-			fmt.Fprintf(out, "--> Creating resources ...\n")
-		}
 	}
-	if config.DryRun {
-		fmt.Fprintf(out, "--> Success (DRY RUN)\n")
+
+	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
+		return cmdutil.ErrExit
+	}
+
+	if !o.Action.Verbose() || o.Action.DryRun {
 		return nil
 	}
 
-	afterFn := configcmd.NewPrintNameOrErrorAfterIndent(config.Mapper, shortOutput, "created", out, config.ErrOut, indent)
-	if err := createObjects(config, afterFn, result); err != nil {
-		return err
-	}
-
-	if shortOutput {
-		return nil
-	}
-
-	fmt.Fprintf(out, "--> Success\n")
+	indent := o.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:

@@ -139,6 +139,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 func newExperimentalCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
+	errout := os.Stderr
 
 	experimental := &cobra.Command{
 		Use:   name,
@@ -154,7 +155,7 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	f := clientcmd.New(experimental.PersistentFlags())
 
 	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
