@@ -60,7 +60,10 @@ You can see which cluster role have recommended changed by choosing an output ty
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
 func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	o := &ReconcileClusterRolesOptions{Out: out}
+	o := &ReconcileClusterRolesOptions{
+		Out:   out,
+		Union: true,
+	}
 
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",

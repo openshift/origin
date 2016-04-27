@@ -185,7 +185,7 @@ os::cmd::expect_success 'oadm policy reconcile-cluster-roles --additive-only --c
 os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-label'
 os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-annotation'
 os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'groups'
-os::cmd::expect_success 'oadm policy reconcile-cluster-roles --confirm'
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --additive-only=false --confirm'
 os::cmd::expect_success_and_not_text 'oc get clusterroles/basic-user -o yaml' 'groups'
 echo "admin-reconcile-cluster-roles: ok"
 os::test::junit::declare_suite_end
