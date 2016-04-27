@@ -13,6 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/create"
 	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -157,6 +158,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 
 	// create subcommands
 	cmd.AddCommand(NewCmdCreateRoute(parentName, f, out))
+	cmd.AddCommand(create.NewCmdCreatePolicyBinding(create.PolicyBindingRecommendedName, parentName+" create "+create.PolicyBindingRecommendedName, f, out))
 
 	adjustCmdExamples(cmd, parentName, "create")
 
