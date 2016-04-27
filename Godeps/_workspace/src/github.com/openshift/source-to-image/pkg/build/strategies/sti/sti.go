@@ -84,6 +84,8 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 	}
 
 	inst := scripts.NewInstaller(req.BuilderImage, req.ScriptsURL, req.ScriptDownloadProxyConfig, docker, req.PullAuthentication)
+	tarHandler := tar.New()
+	tarHandler.SetExclusionPattern(regexp.MustCompile(req.ExcludeRegExp))
 
 	b := &STI{
 		installer:         inst,
@@ -92,7 +94,7 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 		incrementalDocker: incrementalDocker,
 		git:               git.New(),
 		fs:                util.NewFileSystem(),
-		tar:               tar.New(),
+		tar:               tarHandler,
 		callbackInvoker:   util.NewCallbackInvoker(),
 		requiredScripts:   []string{api.Assemble, api.Run},
 		optionalScripts:   []string{api.SaveArtifacts},
@@ -156,7 +158,7 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	if b.incremental {
 		if err := b.artifacts.Save(config); err != nil {
 			glog.Warningf("Clean build will be performed because of error saving previous build artifacts")
-			glog.V(2).Infof("ERROR: %v", err)
+			glog.V(2).Infof("error: %v", err)
 		}
 	}
 
@@ -415,6 +417,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
 		User:            user,
+		Entrypoint:      []string{"/bin/env"},
 		ExternalScripts: b.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
@@ -461,9 +464,10 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 	}
 
 	opts := dockerpkg.RunContainerOptions{
-		Image:  config.BuilderImage,
-		Stdout: outWriter,
-		Stderr: errWriter,
+		Image:      config.BuilderImage,
+		Entrypoint: []string{"/bin/env"},
+		Stdout:     outWriter,
+		Stderr:     errWriter,
 		// The PullImage is false because the PullImage function should be called
 		// before we run the container
 		PullImage:       false,
@@ -567,7 +571,7 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 			if err != nil {
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
-				if glog.V(2) && err != io.ErrClosedPipe {
+				if glog.V(2) && err != io.ErrClosedPipe && err != io.EOF {
 					glog.Errorf("Error reading docker stdout, %v", err)
 				}
 				break

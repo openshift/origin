@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -118,6 +119,7 @@ type RunContainerOptions struct {
 	Command          string
 	CommandOverrides func(originalCmd string) string
 	Env              []string
+	Entrypoint       []string
 	Stdin            io.Reader
 	Stdout           io.Writer
 	Stderr           io.Writer
@@ -137,6 +139,7 @@ func (rco RunContainerOptions) asDockerConfig() docker.Config {
 		Image:        getImageName(rco.Image),
 		User:         rco.User,
 		Env:          rco.Env,
+		Entrypoint:   rco.Entrypoint,
 		OpenStdin:    rco.Stdin != nil,
 		StdinOnce:    rco.Stdin != nil,
 		AttachStdout: rco.Stdout != nil,
@@ -544,8 +547,8 @@ func runContainerTar(opts RunContainerOptions, imageMetadata *docker.Image) (cmd
 	return cmd, tarDestination
 }
 
-// this funtion simply abstracts out the running of the newly produced image when the --run=true option is provided
-func runContainerDockerRun(container *docker.Container, d *stiDocker, image string) {
+// dumpContainerInfo dumps information about a running container (port/IP/etc).
+func dumpContainerInfo(container *docker.Container, d *stiDocker, image string) {
 	cont, icerr := d.client.InspectContainer(container.ID)
 	liveports := "\n\nPort Bindings:  "
 	if icerr == nil {
@@ -560,15 +563,7 @@ func runContainerDockerRun(container *docker.Container, d *stiDocker, image stri
 		}
 		liveports = liveports + "\n"
 	}
-
 	glog.Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's glog output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
-
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-
-	// Block until user sends SIGINT.
-	signal := <-signalChan
-	glog.V(2).Infof("\nReceived signal '%s', stopping services...\n", signal)
 }
 
 // RunContainer creates and starts a container using the image specified in opts
@@ -608,51 +603,56 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	containerName := containerNameOrID(container)
 
-	// Container was created, so we defer its removal.
-	defer func() {
+	// Container was created, so we defer its removal, and also remove it if we get a SIGINT/SIGTERM/SIGQUIT/SIGHUP.
+	removeContainer := func() {
 		glog.V(4).Infof("Removing container %q ...", containerName)
 		if err := d.RemoveContainer(container.ID); err != nil {
 			glog.Warningf("Failed to remove container %q: %v", containerName, err)
 		} else {
 			glog.V(4).Infof("Removed container %q", containerName)
 		}
-	}()
-
-	// Attach to the container.
-	glog.V(2).Infof("Attaching to container %q ...", containerName)
-	attachOpts := opts.asDockerAttachToContainerOptions()
-	attachOpts.Container = container.ID
-	if _, err = d.client.AttachToContainerNonBlocking(attachOpts); err != nil {
-		glog.Errorf("Unable to attach to container %q with options %+v: %v", containerName, attachOpts, err)
-		return err
 	}
-
-	// Start the container.
-	glog.V(2).Infof("Starting container %q ...", containerName)
-	if err := util.TimeoutAfter(DefaultDockerTimeout, "timeout after waiting %v for Docker to start container", func() error {
-		return d.client.StartContainer(container.ID, nil)
-	}); err != nil {
-		return err
+	dumpStack := func(signal os.Signal) {
+		if signal == syscall.SIGQUIT {
+			buf := make([]byte, 1<<16)
+			runtime.Stack(buf, true)
+			fmt.Printf("%s", buf)
+		}
+		os.Exit(1)
 	}
+	return util.NewInterruptHandler(dumpStack, removeContainer).Run(func() error {
+		// Attach to the container.
+		glog.V(2).Infof("Attaching to container %q ...", containerName)
+		attachOpts := opts.asDockerAttachToContainerOptions()
+		attachOpts.Container = container.ID
+		if _, err = d.client.AttachToContainerNonBlocking(attachOpts); err != nil {
+			glog.Errorf("Unable to attach to container %q with options %+v: %v", containerName, attachOpts, err)
+			return err
+		}
 
-	// Run OnStart hook if defined. OnStart might block, so we run it in a
-	// new goroutine, and wait for it to be done later on.
-	onStartDone := make(chan error, 1)
-	if opts.OnStart != nil {
-		go func() {
-			onStartDone <- opts.OnStart(container.ID)
-		}()
-	}
+		// Start the container.
+		glog.V(2).Infof("Starting container %q ...", containerName)
+		if err := util.TimeoutAfter(DefaultDockerTimeout, "timeout after waiting %v for Docker to start container", func() error {
+			return d.client.StartContainer(container.ID, nil)
+		}); err != nil {
+			return err
+		}
 
-	// We either block waiting for a user-originated SIGINT, or wait for the
-	// container to terminate. When TargetImage is true, we're dealing with
-	// an invocation of `s2i build ... --run` so this will, e.g., run a web
-	// server and block until the user interrupts it. The other case is seen
-	// when running the assemble script or other commands that are meant to
-	// terminate in a finite amount of time.
-	if opts.TargetImage {
-		runContainerDockerRun(container, d, image)
-	} else {
+		// Run OnStart hook if defined. OnStart might block, so we run it in a
+		// new goroutine, and wait for it to be done later on.
+		onStartDone := make(chan error, 1)
+		if opts.OnStart != nil {
+			go func() {
+				onStartDone <- opts.OnStart(container.ID)
+			}()
+		}
+
+		if opts.TargetImage {
+			// When TargetImage is true, we're dealing with an invocation of `s2i build ... --run`
+			// so this will, e.g., run a web server and block until the user interrupts it (or
+			// the container exits normally).  dump port/etc information for the user.
+			dumpContainerInfo(container, d, image)
+		}
 		// Return an error if the exit code of the container is
 		// non-zero.
 		glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
@@ -663,36 +663,36 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		if exitCode != 0 {
 			return errors.NewContainerError(container.Name, exitCode, "")
 		}
-	}
 
-	// FIXME: If Stdout or Stderr can be closed, close it to notify that
-	// there won't be any more writes. This is a hack to close the write
-	// half of a pipe so that the read half sees io.EOF.
-	// In particular, this is needed to eventually terminate code that runs
-	// on OnStart and blocks reading from the pipe.
-	if c, ok := opts.Stdout.(io.Closer); ok {
-		c.Close()
-	}
-	if c, ok := opts.Stderr.(io.Closer); ok {
-		c.Close()
-	}
-
-	// OnStart must be done before we move on.
-	if opts.OnStart != nil {
-		if err := <-onStartDone; err != nil {
-			return err
+		// FIXME: If Stdout or Stderr can be closed, close it to notify that
+		// there won't be any more writes. This is a hack to close the write
+		// half of a pipe so that the read half sees io.EOF.
+		// In particular, this is needed to eventually terminate code that runs
+		// on OnStart and blocks reading from the pipe.
+		if c, ok := opts.Stdout.(io.Closer); ok {
+			c.Close()
 		}
-	}
-
-	// Run PostExec hook if defined.
-	if opts.PostExec != nil {
-		glog.V(2).Infof("Invoking postExecution function")
-		if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {
-			return err
+		if c, ok := opts.Stderr.(io.Closer); ok {
+			c.Close()
 		}
-	}
 
-	return nil
+		// OnStart must be done before we move on.
+		if opts.OnStart != nil {
+			if err := <-onStartDone; err != nil {
+				return err
+			}
+		}
+		// Run PostExec hook if defined.
+		if opts.PostExec != nil {
+			glog.V(2).Infof("Invoking postExecution function")
+			if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 }
 
 // containerName returns the name of a container or its ID if the name is empty.

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/golang/glog"
@@ -35,11 +36,13 @@ func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overr
 	if err != nil {
 		return nil, err
 	}
+	tarHandler := tar.New()
+	tarHandler.SetExclusionPattern(regexp.MustCompile(config.ExcludeRegExp))
 	return &Layered{
 		docker:  d,
 		config:  config,
 		fs:      util.NewFileSystem(),
-		tar:     tar.New(),
+		tar:     tarHandler,
 		scripts: scripts,
 	}, nil
 }
@@ -172,7 +175,7 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 			if err != nil {
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
-				if glog.V(2) && err != io.ErrClosedPipe {
+				if glog.V(2) && err != io.ErrClosedPipe && err != io.EOF {
 					glog.Errorf("Error reading docker stdout, %v", err)
 				}
 				break

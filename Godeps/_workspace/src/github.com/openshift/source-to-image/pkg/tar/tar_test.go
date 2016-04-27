@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -119,7 +120,7 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc, links []link
 	}
 
 	if len(filesToVerify) > 0 || len(linksToVerify) > 0 {
-		t.Errorf("Did not find all expected files in tar: %v, %v", filesToVerify, linksToVerify)
+		t.Errorf("Did not find all expected files in tar: fileToVerify %v, linksToVerify %v", filesToVerify, linksToVerify)
 	}
 }
 
@@ -179,6 +180,78 @@ func TestCreateTar(t *testing.T) {
 		{"link/errfilelink", "../dir01/missing.target"},
 		{"link/okdirlink", "../dir01/dir02"},
 		{"link/errdirlink", "../dir01/.git"},
+	}
+	if err := createTestLinks(tempDir, testLinks); err != nil {
+		t.Fatalf("Cannot create link files: %v", err)
+	}
+
+	tarFile, err := th.CreateTarFile("", tempDir)
+	defer os.Remove(tarFile)
+	if err != nil {
+		t.Fatalf("Unable to create new tar upload file: %v", err)
+	}
+	verifyTarFile(t, tarFile, testFiles, testLinks)
+}
+
+func TestCreateTarIncludeDotGit(t *testing.T) {
+	th := New()
+	th.SetExclusionPattern(regexp.MustCompile("test3.txt"))
+	tempDir, err := ioutil.TempDir("", "testtar")
+	defer os.RemoveAll(tempDir)
+	if err != nil {
+		t.Fatalf("Cannot create temp directory for test: %v", err)
+	}
+	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
+	testFiles := []fileDesc{
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", true, ""},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Allow .git content", false, ""},
+	}
+	if err := createTestFiles(tempDir, testFiles); err != nil {
+		t.Fatalf("Cannot create test files: %v", err)
+	}
+	testLinks := []linkDesc{
+		{"link/okfilelink", "../dir01/dir02/test1.txt"},
+		{"link/errfilelink", "../dir01/missing.target"},
+		{"link/okdirlink", "../dir01/dir02"},
+		{"link/okdirlink2", "../dir01/.git"},
+	}
+	if err := createTestLinks(tempDir, testLinks); err != nil {
+		t.Fatalf("Cannot create link files: %v", err)
+	}
+
+	tarFile, err := th.CreateTarFile("", tempDir)
+	defer os.Remove(tarFile)
+	if err != nil {
+		t.Fatalf("Unable to create new tar upload file: %v", err)
+	}
+	verifyTarFile(t, tarFile, testFiles, testLinks)
+}
+
+func TestCreateTarEmptyRegexp(t *testing.T) {
+	th := New()
+	th.SetExclusionPattern(regexp.MustCompile(""))
+	tempDir, err := ioutil.TempDir("", "testtar")
+	defer os.RemoveAll(tempDir)
+	if err != nil {
+		t.Fatalf("Cannot create temp directory for test: %v", err)
+	}
+	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
+	testFiles := []fileDesc{
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Allow .git content", false, ""},
+	}
+	if err := createTestFiles(tempDir, testFiles); err != nil {
+		t.Fatalf("Cannot create test files: %v", err)
+	}
+	testLinks := []linkDesc{
+		{"link/okfilelink", "../dir01/dir02/test1.txt"},
+		{"link/errfilelink", "../dir01/missing.target"},
+		{"link/okdirlink", "../dir01/dir02"},
+		{"link/okdirlink2", "../dir01/.git"},
 	}
 	if err := createTestLinks(tempDir, testLinks); err != nil {
 		t.Fatalf("Cannot create link files: %v", err)
