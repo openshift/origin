@@ -193,7 +193,10 @@ describe('', function() {
           h.goToPage('/project/' + project['name'] + '/settings');
           element(by.css('.actions-dropdown-btn')).click();
           element(by.css('.button-delete')).click();
-          element(by.cssContainingText(".modal-dialog .btn", "Delete")).click();
+          h.setInputValue('confirmName', project.name);
+          var deleteButton = element(by.cssContainingText(".modal-dialog .btn", "Delete"));
+          browser.wait(protractor.ExpectedConditions.elementToBeClickable(deleteButton), 2000);
+          deleteButton.click();
           h.waitForPresence(".alert-success", "marked for deletion");
         });
 
