@@ -161,7 +161,11 @@ module.exports = function (grunt) {
         options: {
           jshintrc: 'test/.jshintrc'
         },
-        src: ['test/spec/{,*/}*.js','test/integration/**/*.js']
+        src: [
+          'test/spec/{,*/}*.js',
+          'test/integration/**/*.js',
+          'test/e2e/**/*.js'
+        ]
       }
     },
 
@@ -611,7 +615,7 @@ module.exports = function (grunt) {
     // 'coverage' - add back if we want to enforce coverage percentages
   ]);
 
-  grunt.registerTask('test-integration', [
+  grunt.registerTask('test-e2e', [
     'clean:server',
     'concurrent:server',
     'autoprefixer',
