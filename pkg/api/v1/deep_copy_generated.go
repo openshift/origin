@@ -1386,6 +1386,7 @@ func deepCopy_v1_SourceBuildStrategy(in apiv1.SourceBuildStrategy, out *apiv1.So
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	out.DisableImplicitBuild = in.DisableImplicitBuild
 	return nil
 }
 

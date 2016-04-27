@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -54,9 +56,9 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	}
 	switch obj := attr.GetObject().(type) {
 	case *buildapi.Build:
-		return a.checkBuildAuthorization(obj, attr)
+		return a.checkAndSetBuildAuthorization(obj, attr)
 	case *buildapi.BuildConfig:
-		return a.checkBuildConfigAuthorization(obj, attr)
+		return a.checkAndSetBuildConfigAuthorization(obj, attr)
 	case *buildapi.BuildRequest:
 		return a.checkBuildRequestAuthorization(obj, attr)
 	default:
@@ -95,7 +97,35 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 	return objectMeta.Name
 }
 
-func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
+// setImplicitBuildPermission determines if the user has permission to perform
+// docker builds, which is needed if an s2i build needs to perform a docker
+// build to add content to the builder image.  If they do not have permission,
+// prevent s2i from doing an implicit docker build during the s2i build process.
+// Mutates strategy argument.
+func (a *buildByStrategy) setImplicitBuildPermission(strategy *buildapi.BuildStrategy, attr admission.Attributes) error {
+	if strategy.SourceStrategy != nil && !strategy.SourceStrategy.DisableImplicitBuild {
+		resource := buildapi.Resource(authorizationapi.DockerBuildResource)
+		subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "create",
+				Group:    resource.Group,
+				Resource: resource.Resource,
+			},
+			User:   attr.GetUserInfo().GetName(),
+			Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
+		}
+		resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
+		if err != nil {
+			return err
+		}
+		if !resp.Allowed {
+			glog.V(5).Infof("Setting DisableImplicitBuild to true")
+			strategy.SourceStrategy.DisableImplicitBuild = true
+		}
+	}
+	return nil
+}
+func (a *buildByStrategy) checkAndSetBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
 	strategy := build.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
@@ -112,10 +142,13 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 		User:   attr.GetUserInfo().GetName(),
 		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
-	return a.checkAccess(strategy, subjectAccessReview, attr)
+	if err := a.checkAccess(strategy, subjectAccessReview, attr); err != nil {
+		return err
+	}
+	return a.setImplicitBuildPermission(&build.Spec.Strategy, attr)
 }
 
-func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
+func (a *buildByStrategy) checkAndSetBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
 	strategy := buildConfig.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
@@ -132,7 +165,10 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 		User:   attr.GetUserInfo().GetName(),
 		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
-	return a.checkAccess(strategy, subjectAccessReview, attr)
+	if err := a.checkAccess(strategy, subjectAccessReview, attr); err != nil {
+		return err
+	}
+	return a.setImplicitBuildPermission(&buildConfig.Spec.Strategy, attr)
 }
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
@@ -142,13 +178,13 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 		if err != nil {
 			return err
 		}
-		return a.checkBuildAuthorization(build, attr)
+		return a.checkAndSetBuildAuthorization(build, attr)
 	case buildConfigsResource:
-		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
+		buildcfg, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
 			return err
 		}
-		return a.checkBuildConfigAuthorization(build, attr)
+		return a.checkAndSetBuildConfigAuthorization(buildcfg, attr)
 	default:
 		return admission.NewForbidden(attr, fmt.Errorf("Unknown resource type %s for BuildRequest", attr.GetResource()))
 	}

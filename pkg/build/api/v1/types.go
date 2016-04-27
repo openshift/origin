@@ -402,6 +402,11 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty"`
+
+	// disableImplicitBuild prevents source-to-image from performing a Docker build operation
+	// when one is needed to execute ONBUILD statements in the builder image, or because
+	// the builder image does not include a prereq such as "sh" or "tar"
+	DisableImplicitBuild bool `json:"disableImplicitBuild,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -662,7 +667,7 @@ type BuildRequest struct {
 	Env []kapi.EnvVar `json:"env,omitempty"`
 }
 
-// BinaryBuildRequestOptions are the options required to fully speficy a binary build request
+// BinaryBuildRequestOptions are the options required to fully specify a binary build request
 type BinaryBuildRequestOptions struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
