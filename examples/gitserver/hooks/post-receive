@@ -7,48 +7,77 @@ set -o pipefail
 function key {
   git config --local --get "${1}"
 }
+
 function addkey {
   git config --local --add "${1}" "${2}"
 }
 
 function detect {
-  if detected=$(key openshift.io.detect); then
-    exit 0
+  local repoURL="$1"
+  local repoName="$2"
+  local detectionScript=${DETECTION_SCRIPT:-}
+  # The purpose of using a custom detection script is that users can customize the 
+  # 'detect-language' script to return the image that's appropriate for their needs. 
+  # It is possible to just have new-app do code detection. In that case, just set
+  # the DETECTION_SCRIPT variable to an empty string.
+  if [[ -z $detectionScript ]]; then
+    oc new-app "${repoURL}"
+  else
+    if ! lang=$($(dirname $0)/${detectionScript}); then
+      return
+    fi
+    echo "detect: found language ${lang} for ${repoName}"
+    oc new-app "${lang}~${repoURL}"
   fi
-  if ! url=$(key gitserver.self.url); then
-    echo "detect: no self url set"
-    exit 0
-  fi
-
-  # TODO: make it easier to find the build config name created
-  # by oc new-app
-  name=$(basename "${url}")
-  name="${name%.*}"
-
-  if ! lang=$($(dirname $0)/detect-language); then
-    exit 0
-  fi
-  echo "detect: found language ${lang} for ${name}"
-
-  if ! oc=$(which oc); then
-    echo "detect: oc is not installed"
-    addkey openshift.io.detect 1
-    exit 0
-  fi
-  oc new-app "${lang}~${url}"
-  if webhook=$(oc start-build --list-webhooks="generic" "${name}" | head -n 1); then
-    addkey openshift.io.webhook "${webhook}"
-  fi
-  addkey openshift.io.detect 1
+  # TODO: when a command to set a secret is available,
+  # set an optional secret on the resulting build configuration
 }
 
-cat > /tmp/postreceived
+# If the 'oc' command is not found, exit
+if ! oc=$(which oc); then
+  echo "detect: oc is not installed"
+  exit 0
+fi
 
-detect
+# If the current repository has no self.url, exit
+if ! url=$(key gitserver.self.url); then
+  echo "post-receive: no self url set"
+  exit 0
+fi
 
-if webhook=$(key openshift.io.webhook); then
-  # TODO: print output from the server about the hook status
-  oc start-build --from-webhook="${webhook}"
-  # TODO: follow logs
-  echo "build: started"
+# Save received commits to a temporary file
+commits=$(mktemp)
+cat > ${commits}
+
+# Extract the name of the repository from the URL
+name=$(basename "${url}")
+name="${name%.*}"
+
+foundbc=false
+# Loop through build configurations that match this git repository
+while read bc ref
+do
+  foundbc=true
+  # If a generic webhook exists on the build config, determine if one of the received
+  # commits affects the reference in the build configuration
+  if webhook=$(oc start-build --list-webhooks="generic" "${bc}" | head -n 1); then
+    # Loop through the commits received by the hook. If the build configuration's git ref is an
+    # ancestor for the received commit, then start a new build for it.
+    while read old_commit new_commit ref_name
+    do
+      if $(git merge-base --is-ancestor "${ref}" "${new_commit}"); then
+        oc start-build --from-webhook="${webhook}" && echo "build: started on build configuration '${bc}'"
+        break
+      fi
+    done < "${commits}"
+  fi
+done < <(gitrepo-buildconfigs "${name}")
+
+if $foundbc; then
+  exit 0
+fi
+
+generate_artifacts=${GENERATE_ARTIFACTS:-}
+if [ "${generate_artifacts}" == "true" ]; then
+  detect "$url" "$name"
 fi
