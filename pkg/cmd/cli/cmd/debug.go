@@ -406,10 +406,13 @@ func (o *DebugOptions) Debug() error {
 		func() {
 			fmt.Fprintf(o.Attach.Err, "\nRemoving debug pod ...\n")
 			if err := o.Attach.Client.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
-				fmt.Fprintf(o.Attach.Err, "error: unable to delete the debug pod %q: %v", pod.Name, err)
+				if !kapierrors.IsNotFound(err) {
+					fmt.Fprintf(o.Attach.Err, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
+				}
 			}
 		},
 	)
+
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
 		w, err := o.Attach.Client.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
@@ -418,6 +421,13 @@ func (o *DebugOptions) Debug() error {
 		}
 		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
 		switch _, err := Until(o.Timeout, w, PodContainerRunning(o.Attach.ContainerName)); {
+		// api didn't error right away but the pod wasn't even created
+		case kapierrors.IsNotFound(err):
+			msg := fmt.Sprintf("unable to create the debug pod %q", pod.Name)
+			if len(o.NodeName) > 0 {
+				msg += fmt.Sprintf(" on node %q", o.NodeName)
+			}
+			return fmt.Errorf(msg)
 		// switch to logging output
 		case err == ErrPodCompleted, !o.Attach.Stdin:
 			_, err := kcmd.LogsOptions{
