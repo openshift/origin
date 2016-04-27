@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"strings"
 	"testing"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
@@ -106,10 +107,33 @@ func TestImageStreamTagMissing(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
+	var actualImportOrBuild, actualImportOnly, actualSpecificHex int
+	expectedImportOrBuild := 2
+	expectedImportOnly := 1
+	expectedSpecificHex := 1
 	for _, marker := range markers {
 		if got, expected1, expected2 := marker.Key, MissingImageStreamImageWarning, MissingImageStreamTagWarning; got != expected1 && got != expected2 {
 			t.Fatalf("expected marker key %q or %q, got %q", expected1, expected2, got)
+		} else {
+			if strings.Contains(marker.Suggestion.String(), "oc start-build") {
+				actualImportOrBuild++
+			}
+			if strings.Contains(marker.Suggestion.String(), "needs to be imported.") {
+				actualImportOnly++
+			}
+			if strings.Contains(marker.Suggestion.String(), "hexadecimal ID") {
+				actualSpecificHex++
+			}
 		}
+	}
+	if actualImportOnly != expectedImportOnly {
+		t.Fatalf("expected %d import only suggestions but got %d", expectedImportOnly, actualImportOnly)
+	}
+	if actualImportOrBuild != expectedImportOrBuild {
+		t.Fatalf("expected %d import or build suggestions but got %d", expectedImportOrBuild, actualImportOrBuild)
+	}
+	if actualSpecificHex != expectedSpecificHex {
+		t.Fatalf("expected %d import specific image suggestions but got %d", expectedSpecificHex, actualSpecificHex)
 	}
 }
 

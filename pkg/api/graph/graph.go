@@ -41,8 +41,12 @@ func (n UniqueName) UniqueName() string {
 	return string(n)
 }
 
+func (n UniqueName) String() string {
+	return string(n)
+}
+
 type uniqueNamer interface {
-	UniqueName() string
+	UniqueName() UniqueName
 }
 
 type NodeFinder interface {
@@ -122,7 +126,7 @@ var DefaultNamer Namer = namer{}
 func (namer) ResourceName(obj interface{}) string {
 	switch t := obj.(type) {
 	case uniqueNamer:
-		return t.UniqueName()
+		return t.UniqueName().String()
 	default:
 		return reflect.TypeOf(obj).String()
 	}
@@ -573,7 +577,7 @@ func (g typedGraph) Name(node graph.Node) string {
 	case fmt.Stringer:
 		return t.String()
 	case uniqueNamer:
-		return t.UniqueName()
+		return t.UniqueName().String()
 	default:
 		return fmt.Sprintf("<unknown:%d>", node.ID())
 	}
