@@ -18,8 +18,10 @@ package watch
 
 import (
 	"sync"
+	"time"
 
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 // Interface can be implemented by anything that knows how to watch and report changes.
@@ -126,4 +128,63 @@ func (f *FakeWatcher) Error(errValue runtime.Object) {
 // Action sends an event of the requested type, for table-based testing.
 func (f *FakeWatcher) Action(action EventType, obj runtime.Object) {
 	f.result <- Event{action, obj}
+}
+
+// ConditionFunc returns true if the condition has been reached, false if it has not been reached yet,
+// or an error if the condition cannot be checked and should terminate. In general, it is better to define
+// level driven conditions over edge driven conditions (pod has ready=true, vs pod modified and ready changed
+// from false to true).
+type ConditionFunc func(event Event) (bool, error)
+
+// Until reads items from the watch until each provided condition succeeds, and then returns the last watch
+// encountered. The first condition that returns an error terminates the watch (and the event is also returned).
+// If no event has been received, the returned event will be nil.
+// Conditions are satisfied sequentially so as to provide a useful primitive for higher level composition.
+func Until(timeout time.Duration, watcher Interface, conditions ...ConditionFunc) (*Event, error) {
+	ch := watcher.ResultChan()
+	defer watcher.Stop()
+	var after <-chan time.Time
+	if timeout > 0 {
+		after = time.After(timeout)
+	} else {
+		ch := make(chan time.Time)
+		close(ch)
+		after = ch
+	}
+	var lastEvent *Event
+	for _, condition := range conditions {
+		// check the next condition against the previous event and short circuit waiting for the next watch
+		if lastEvent != nil {
+			done, err := condition(*lastEvent)
+			if err != nil {
+				return lastEvent, err
+			}
+			if done {
+				break
+			}
+		}
+	ConditionSucceeded:
+		for {
+			select {
+			case event, ok := <-ch:
+				if !ok {
+					return lastEvent, wait.ErrWaitTimeout
+				}
+				lastEvent = &event
+
+				// TODO: check for watch expired error and retry watch from latest point?
+				done, err := condition(event)
+				if err != nil {
+					return lastEvent, err
+				}
+				if done {
+					break ConditionSucceeded
+				}
+
+			case <-after:
+				return lastEvent, wait.ErrWaitTimeout
+			}
+		}
+	}
+	return lastEvent, nil
 }
