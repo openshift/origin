@@ -46,13 +46,38 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	// Limit to kind/name
 	// TODO: convert to LocalObjectReference
 	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+	err := s.allocateHost(route)
+	if err != nil {
+		// TODO: this will be changed when moved to a controller
+		utilruntime.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
+	}
+}
+
+func (s routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	route := obj.(*api.Route)
+	oldRoute := old.(*api.Route)
+	route.Status = oldRoute.Status
+	// Limit to kind/name
+	// TODO: convert to LocalObjectReference
+	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+
+	// if the route host has been updated to empty we should allocate the host
+	err := s.allocateHost(route)
+	if err != nil {
+		// TODO: this will be changed when moved to a controller
+		utilruntime.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
+	}
+}
+
+// allocateHost allocates a host name ONLY if the host name on the route is empty and an allocator
+// is configured.  It must first allocate the shard and may return an error if shard allocation
+// fails.
+func (s routeStrategy) allocateHost(route *api.Route) error {
 	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
 		if err != nil {
-			// TODO: this will be changed when moved to a controller
-			utilruntime.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
-			return
+			return errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, route))
 		}
 		route.Spec.Host = s.RouteAllocator.GenerateHostname(route, shard)
 		if route.Annotations == nil {
@@ -60,15 +85,7 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 		}
 		route.Annotations[HostGeneratedAnnotationKey] = "true"
 	}
-}
-
-func (routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
-	route := obj.(*api.Route)
-	oldRoute := old.(*api.Route)
-	route.Status = oldRoute.Status
-	// Limit to kind/name
-	// TODO: convert to LocalObjectReference
-	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+	return nil
 }
 
 func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
