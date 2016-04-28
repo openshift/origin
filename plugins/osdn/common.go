@@ -268,7 +268,7 @@ func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
 }
 
 func GetNodeIP(node *kapi.Node) (string, error) {
-	if len(node.Status.Addresses) > 0 {
+	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
 		return node.Status.Addresses[0].Address, nil
 	} else {
 		return netutils.GetNodeIP(node.Name)
