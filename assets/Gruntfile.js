@@ -201,12 +201,9 @@ module.exports = function (grunt) {
         src: ['<%= yeoman.app %>/index.html'],
         ignorePath:  /\.\.\//,
         exclude: [
-          'bower_components/uri.js/src/IPv6.js',
-          'bower_components/uri.js/src/SecondLevelDomains.js',
-          'bower_components/uri.js/src/punycode.js',
-          'bower_components/uri.js/src/URI.min.js',
-          'bower_components/uri.js/src/jquery.URI.min.js',
-          'bower_components/uri.js/src/URI.fragmentQuery.js',
+          
+          // bower registration error? we get 2x versions of uri.js/urijs
+          'bower_components/urijs/',
           'bower_components/messenger/build/css/messenger.css',
           'bower_components/messenger/build/css/messenger-theme-future.css',
           'bower_components/messenger/build/css/messenger-theme-block.css',
