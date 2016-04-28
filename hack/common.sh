@@ -816,10 +816,23 @@ os::build::gen-docs() {
   echo "Assets generated in ${dest}"
 }
 
+os::build::get-bin-output-path() {
+  local os_root="${1:-}"
+
+  if [[ -n "${os_root}" ]]; then
+    os_root="${os_root}/"
+  fi
+  echo ${os_root}_output/local/bin/$(os::build::host_platform)
+}
+
 # os::build::find-binary locates a locally built binary for the current
-# platform and returns the path to the binary.
+# platform and returns the path to the binary.  The base path to search
+# from will default to the current working directory but can be
+# overridden via the optional second argument.
 os::build::find-binary() {
   local bin="$1"
-  local path=$( (ls -t _output/local/bin/$(os::build::host_platform)/${bin}) 2>/dev/null || true | head -1 )
+  local os_root="${2:-}"
+
+  local path=$( (ls -t $(os::build::get-bin-output-path "${os_root}")/${bin}) 2>/dev/null || true | head -1 )
   echo "$path"
 }

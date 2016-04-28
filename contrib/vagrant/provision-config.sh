@@ -63,12 +63,12 @@ done
 LOG_LEVEL=${OPENSHIFT_LOG_LEVEL:-5}
 
 NODE_IPS=(${NODE_IPS//,/ })
-if [ "${CONFIG_ROOT}" = "/" ]; then
+if [[ "${CONFIG_ROOT}" = "/" ]]; then
   CONFIG_ROOT=""
 fi
 
-NETWORK_PLUGIN=$(os::provision::get-network-plugin "${NETWORK_PLUGIN}" \
-  "${DIND_MANAGEMENT_SCRIPT:-false}")
+NETWORK_PLUGIN="$(os::provision::get-network-plugin "${NETWORK_PLUGIN}" \
+  "${DIND_MANAGEMENT_SCRIPT:-false}")"
 if [[ "${NETWORK_PLUGIN}" =~ redhat/ ]]; then
   SDN_NODE="true"
 else

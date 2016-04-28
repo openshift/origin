@@ -36,7 +36,7 @@ function set_env {
   # login and bashrc is loaded by bash_profile anyway.
   TARGET="${USER_DIR}/.bashrc"
   OUTPUT_PATH="${ORIGIN_ROOT}/_output/local"
-  if [[ $(grep ${OUTPUT_PATH} ${TARGET}) = "" ]]; then
+  if [[ -z "$(grep ${OUTPUT_PATH} ${TARGET})" ]]; then
     echo "export GOPATH=${OUTPUT_PATH}/go" >> ${TARGET}
     # Binpath for origin binaries
     echo "export PATH=${OUTPUT_PATH}/bin/linux/amd64:\$PATH" >> ${TARGET}

@@ -78,8 +78,8 @@ source $(dirname "${BASH_SOURCE}")/../contrib/vagrant/provision-config.sh
 # Enable xtrace for container script invocations if it is enabled
 # for this script.
 BASH_CMD=
-if [ "$(set | grep xtrace)" ]; then
-    BASH_CMD="bash -x"
+if set +o | grep -q '\-o xtrace'; then
+  BASH_CMD="bash -x"
 fi
 
 DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
@@ -98,7 +98,7 @@ DEPLOYED_ROOT="/data/src/github.com/openshift/origin"
 SCRIPT_ROOT="${DEPLOYED_ROOT}/contrib/vagrant"
 
 function check-selinux() {
-  if [ "$(getenforce)" = "Enforcing" ]; then
+  if [[ "$(getenforce)" = "Enforcing" ]]; then
     >&2 echo "Error: This script is not compatible with SELinux enforcing mode."
     exit 1
   fi
@@ -121,14 +121,14 @@ function build-image() {
 function build-images() {
   # Building images is done by default but can be disabled to allow
   # separation of image build from cluster creation.
-  if [ "${BUILD_IMAGES}" = "1" ]; then
+  if [[ "${BUILD_IMAGES}" = "1" ]]; then
     echo "Building container images"
-    if [ -n "${IMAGE_REGISTRY}" ]; then
+    if [[ -n "${IMAGE_REGISTRY}" ]]; then
       # Failure to cache is assumed to not be worth failing the build.
       ${DOCKER_CMD} pull "${DIND_IMAGE}" || true
     fi
     build-image "${ORIGIN_ROOT}/images/dind" "${DIND_IMAGE}"
-    if [ -n "${IMAGE_REGISTRY}" ]; then
+    if [[ -n "${IMAGE_REGISTRY}" ]]; then
       ${DOCKER_CMD} push "${DIND_IMAGE}" || true
     fi
   fi
@@ -160,7 +160,7 @@ function start() {
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
   mkdir -p "${CONFIG_ROOT}"
 
-  if [ "${SKIP_BUILD}" = "true" ]; then
+  if [[ "${SKIP_BUILD}" = "true" ]]; then
     echo "WARNING: Skipping image build due to OPENSHIFT_SKIP_BUILD=true"
   else
     build-images
@@ -172,24 +172,24 @@ function start() {
   local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
   local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
 
-  local master_cid=$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
-    --hostname="${MASTER_NAME}" "${DIND_IMAGE}")
-  local master_ip=$(get-docker-ip "${master_cid}")
+  local master_cid="$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
+      --hostname="${MASTER_NAME}" "${DIND_IMAGE}")"
+  local master_ip="$(get-docker-ip "${master_cid}")"
 
   local node_cids=()
   local node_ips=()
   for name in "${NODE_NAMES[@]}"; do
-    local cid=$(${base_run_cmd} --privileged --name="${name}" \
-      --hostname="${name}" "${DIND_IMAGE}")
+    local cid="$(${base_run_cmd} --privileged --name="${name}" \
+        --hostname="${name}" "${DIND_IMAGE}")"
     node_cids+=( "${cid}" )
-    node_ips+=( $(get-docker-ip "${cid}") )
+    node_ips+=( "$(get-docker-ip "${cid}")" )
   done
-  node_ips=$(os::provision::join , ${node_ips[@]})
+  node_ips="$(os::provision::join , ${node_ips[@]})"
 
   ## Provision containers
   local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
 -n ${NETWORK_PLUGIN}"
-  if [ "${SKIP_BUILD}" = "true" ]; then
+  if [[ "${SKIP_BUILD}" = "true" ]]; then
       args="${args} -s"
   fi
 
@@ -198,10 +198,10 @@ function start() {
 ${DEPLOYED_CONFIG_ROOT}"
   docker-exec-script "${master_cid}" "${cmd}"
 
-  if [ "${DEPLOY_SSH}" = "true" ]; then
+  if [[ "${DEPLOY_SSH}" = "true" ]]; then
     ${DOCKER_CMD} exec -t "${master_cid}" ssh-keygen -N '' -q -f /root/.ssh/id_rsa
     cmd="cat /root/.ssh/id_rsa.pub"
-    local public_key=$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})
+    local public_key="$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})"
     cmd="cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys"
     ${DOCKER_CMD} exec -t "${master_cid}" ${cmd}
     ${DOCKER_CMD} exec -t "${master_cid}" systemctl start sshd
@@ -223,7 +223,7 @@ ${DEPLOYED_CONFIG_ROOT}"
 ${DEPLOYED_CONFIG_ROOT}"
     docker-exec-script "${cid}" "${cmd}"
 
-    if [ "${DEPLOY_SSH}" = "true" ]; then
+    if [[ "${DEPLOY_SSH}" = "true" ]]; then
       ${DOCKER_CMD} exec -t "${cid}" mkdir -p /root/.ssh
       cmd="echo ${public_key} > /root/.ssh/authorized_keys"
       ${DOCKER_CMD} exec -t "${cid}" bash -c "${cmd}"
@@ -232,19 +232,22 @@ ${DEPLOYED_CONFIG_ROOT}"
   done
 
   local rc_file="dind-${INSTANCE_PREFIX}.rc"
-  local admin_config=$(os::provision::get-admin-config ${CONFIG_ROOT})
-  local origin_bin_path="${ORIGIN_ROOT}/_output/local/bin/linux/amd64"
-  echo "export KUBECONFIG=${admin_config}
-export PATH=\$PATH:${origin_bin_path}" > "${rc_file}"
+  local admin_config="$(os::provision::get-admin-config ${CONFIG_ROOT})"
+  local bin_path="$(os::build::get-bin-output-path "${ORIGIN_ROOT}")"
+  cat >"${rc_file}" <<EOF
+export KUBECONFIG=${admin_config}
+export PATH=\$PATH:${bin_path}
+EOF
 
   # Disable the sdn node as late as possible to allow time for the
   # node to register itself.
-  if [ "${SDN_NODE}" = "true" ]; then
-    export PATH="${PATH}:${origin_bin_path}"
-    os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
+  if [[ "${SDN_NODE}" = "true" ]]; then
+    os::provision::disable-node "${ORIGIN_ROOT}" "${CONFIG_ROOT}" \
+        "${SDN_NODE_NAME}"
   fi
 
-  if [ "${KUBECONFIG:-}" != "${admin_config}" ]; then
+  if [[ "${KUBECONFIG:-}" != "${admin_config}"  ||
+          ":${PATH}:" != *":${bin_path}:"* ]]; then
     echo ""
     echo "Before invoking the openshift cli, make sure to source the
 cluster's rc file to configure the bash environment:
@@ -258,12 +261,12 @@ cluster's rc file to configure the bash environment:
 function stop() {
   echo "Cleaning up docker-in-docker containers"
 
-  local master_cid=$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")
+  local master_cid="$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")"
   if [[ "${master_cid}" ]]; then
     ${DOCKER_CMD} rm -f "${master_cid}"
   fi
 
-  local node_cids=$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")
+  local node_cids="$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")"
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
@@ -298,7 +301,7 @@ os::provision::build-origin ${DEPLOYED_ROOT} ${SKIP_BUILD}"
 
   echo "Stopping ${MASTER_NAME} service(s)"
   ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${MASTER_NAME}"
-  if [ "${SDN_NODE}" = "true" ]; then
+  if [[ "${SDN_NODE}" = "true" ]]; then
     ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${node_service}"
   fi
   echo "Updating ${MASTER_NAME} binaries"
@@ -307,7 +310,7 @@ os::provision::build-origin ${DEPLOYED_ROOT} ${SKIP_BUILD}"
 os::provision::install-cmds ${DEPLOYED_ROOT}"
   echo "Starting ${MASTER_NAME} service(s)"
   ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${MASTER_NAME}"
-  if [ "${SDN_NODE}" = "true" ]; then
+  if [[ "${SDN_NODE}" = "true" ]]; then
     ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${node_service}"
   fi
 

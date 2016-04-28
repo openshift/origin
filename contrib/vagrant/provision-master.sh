@@ -9,7 +9,7 @@ os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
 
 os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
 
-if [ "${SDN_NODE}" = "true" ]; then
+if [[ "${SDN_NODE}" = "true" ]]; then
   # Running an sdn node on the master when using an openshift sdn
   # plugin ensures connectivity between the openshift service and
   # pods.  This enables kube API calls that query a service and
@@ -38,14 +38,14 @@ else
 fi
 
 echo "Launching openshift daemons"
-NODE_LIST=$(os::provision::join , ${NODE_NAMES[@]})
+NODE_LIST="$(os::provision::join , ${NODE_NAMES[@]})"
 cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --master=https://${MASTER_IP}:8443 \
  --network-plugin=${NETWORK_PLUGIN}"
 os::provision::start-os-service "openshift-master" "OpenShift Master" \
     "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
 
-if [ "${SDN_NODE}" = "true" ]; then
+if [[ "${SDN_NODE}" = "true" ]]; then
   os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \
       "${SDN_NODE_NAME}"
 
@@ -56,7 +56,7 @@ if [ "${SDN_NODE}" = "true" ]; then
   # as possible for the node to register itself.  Vagrant can deploy
   # in parallel but dind deploys serially for simplicity.
   if ! os::provision::in-container; then
-    os::provision::disable-sdn-node "${DEPLOYED_CONFIG_ROOT}" \
+    os::provision::disable-node "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
         "${SDN_NODE_NAME}"
   fi
 fi
