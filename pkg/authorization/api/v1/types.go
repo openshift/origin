@@ -116,6 +116,23 @@ type NamedRoleBinding struct {
 	RoleBinding RoleBinding `json:"roleBinding"`
 }
 
+// SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
+type SelfSubjectRulesReview struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Status is completed by the server to tell which permissions you have
+	Status SubjectRulesReviewStatus `json:"status,omitempty"`
+}
+
+// SubjectRulesReviewStatus is contains the result of a rules check
+type SubjectRulesReviewStatus struct {
+	// Rules is the list of rules (no particular sort) that are allowed for the subject
+	Rules []PolicyRule `json:"rules"`
+	// EvaluationError can appear in combination with Rules.  It means some error happened during evaluation
+	// that may have prevented additional rules from being populated.
+	EvaluationError string `json:"evaluationError,omitempty"`
+}
+
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
 	unversioned.TypeMeta `json:",inline"`

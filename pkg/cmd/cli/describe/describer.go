@@ -1101,9 +1101,9 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range sets.StringKeySet(policy.Roles).List() {
 			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
+			fmt.Fprint(out, key+"\t"+PolicyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "\t")
+				DescribePolicyRule(out, rule, "\t")
 			}
 		}
 
@@ -1111,9 +1111,9 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const policyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
+const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
 
-func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
+func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
 	if rule.AttributeRestrictions != nil {
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
@@ -1155,9 +1155,9 @@ func DescribeRole(role *authorizationapi.Role) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, role.ObjectMeta)
 
-		fmt.Fprint(out, policyRuleHeadings+"\n")
+		fmt.Fprint(out, PolicyRuleHeadings+"\n")
 		for _, rule := range role.Rules {
-			describePolicyRule(out, rule, "")
+			DescribePolicyRule(out, rule, "")
 
 		}
 
@@ -1248,9 +1248,9 @@ func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *author
 			formatString(out, "Policy Rules", fmt.Sprintf("error: %v", err))
 
 		case role != nil:
-			fmt.Fprint(out, policyRuleHeadings+"\n")
+			fmt.Fprint(out, PolicyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "")
+				DescribePolicyRule(out, rule, "")
 			}
 
 		default:

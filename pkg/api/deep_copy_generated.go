@@ -632,6 +632,18 @@ func deepCopy_api_RoleList(in api.RoleList, out *api.RoleList, c *conversion.Clo
 	return nil
 }
 
+func deepCopy_api_SelfSubjectRulesReview(in api.SelfSubjectRulesReview, out *api.SelfSubjectRulesReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if err := deepCopy_api_SubjectRulesReviewStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
+	return nil
+}
+
 func deepCopy_api_SubjectAccessReview(in api.SubjectAccessReview, out *api.SubjectAccessReview, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -666,6 +678,21 @@ func deepCopy_api_SubjectAccessReviewResponse(in api.SubjectAccessReviewResponse
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
 	out.Reason = in.Reason
+	return nil
+}
+
+func deepCopy_api_SubjectRulesReviewStatus(in api.SubjectRulesReviewStatus, out *api.SubjectRulesReviewStatus, c *conversion.Cloner) error {
+	if in.Rules != nil {
+		out.Rules = make([]api.PolicyRule, len(in.Rules))
+		for i := range in.Rules {
+			if err := deepCopy_api_PolicyRule(in.Rules[i], &out.Rules[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Rules = nil
+	}
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 
@@ -3316,8 +3343,10 @@ func init() {
 		deepCopy_api_RoleBinding,
 		deepCopy_api_RoleBindingList,
 		deepCopy_api_RoleList,
+		deepCopy_api_SelfSubjectRulesReview,
 		deepCopy_api_SubjectAccessReview,
 		deepCopy_api_SubjectAccessReviewResponse,
+		deepCopy_api_SubjectRulesReviewStatus,
 		deepCopy_api_BinaryBuildRequestOptions,
 		deepCopy_api_BinaryBuildSource,
 		deepCopy_api_Build,

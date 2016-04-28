@@ -44,6 +44,7 @@ type Interface interface {
 	ResourceAccessReviews
 	SubjectAccessReviews
 	LocalSubjectAccessReviewsNamespacer
+	SelfSubjectRulesReviewsNamespacer
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
 	OAuthAccessTokensInterface
@@ -220,6 +221,10 @@ func (c *Client) LocalSubjectAccessReviews(namespace string) LocalSubjectAccessR
 // SubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) SubjectAccessReviews() SubjectAccessReviewInterface {
 	return newSubjectAccessReviews(c)
+}
+
+func (c *Client) SelfSubjectRulesReviews(namespace string) SelfSubjectRulesReviewInterface {
+	return newSelfSubjectRulesReviews(c, namespace)
 }
 
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens

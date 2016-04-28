@@ -13,6 +13,10 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
+func ValidateSelfSubjectRulesReview(review *authorizationapi.SelfSubjectRulesReview) field.ErrorList {
+	return field.ErrorList{}
+}
+
 func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) field.ErrorList {
 	allErrs := field.ErrorList{}
 

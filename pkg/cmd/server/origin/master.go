@@ -101,6 +101,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -389,6 +390,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
+	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver)
+
 	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
@@ -528,6 +531,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"subjectAccessReviews":       subjectAccessReviewStorage,
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
+		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,

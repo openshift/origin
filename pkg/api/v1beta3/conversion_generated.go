@@ -460,6 +460,20 @@ func Convert_api_RoleList_To_v1beta3_RoleList(in *authorizationapi.RoleList, out
 	return autoConvert_api_RoleList_To_v1beta3_RoleList(in, out, s)
 }
 
+func autoConvert_api_SelfSubjectRulesReview_To_v1beta3_SelfSubjectRulesReview(in *authorizationapi.SelfSubjectRulesReview, out *authorizationapiv1beta3.SelfSubjectRulesReview, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*authorizationapi.SelfSubjectRulesReview))(in)
+	}
+	if err := Convert_api_SubjectRulesReviewStatus_To_v1beta3_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_SelfSubjectRulesReview_To_v1beta3_SelfSubjectRulesReview(in *authorizationapi.SelfSubjectRulesReview, out *authorizationapiv1beta3.SelfSubjectRulesReview, s conversion.Scope) error {
+	return autoConvert_api_SelfSubjectRulesReview_To_v1beta3_SelfSubjectRulesReview(in, out, s)
+}
+
 func autoConvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *authorizationapi.SubjectAccessReview, out *authorizationapiv1beta3.SubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*authorizationapi.SubjectAccessReview))(in)
@@ -482,6 +496,28 @@ func autoConvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewR
 
 func Convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *authorizationapi.SubjectAccessReviewResponse, out *authorizationapiv1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
 	return autoConvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in, out, s)
+}
+
+func autoConvert_api_SubjectRulesReviewStatus_To_v1beta3_SubjectRulesReviewStatus(in *authorizationapi.SubjectRulesReviewStatus, out *authorizationapiv1beta3.SubjectRulesReviewStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*authorizationapi.SubjectRulesReviewStatus))(in)
+	}
+	if in.Rules != nil {
+		out.Rules = make([]authorizationapiv1beta3.PolicyRule, len(in.Rules))
+		for i := range in.Rules {
+			if err := authorizationapiv1beta3.Convert_api_PolicyRule_To_v1beta3_PolicyRule(&in.Rules[i], &out.Rules[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Rules = nil
+	}
+	out.EvaluationError = in.EvaluationError
+	return nil
+}
+
+func Convert_api_SubjectRulesReviewStatus_To_v1beta3_SubjectRulesReviewStatus(in *authorizationapi.SubjectRulesReviewStatus, out *authorizationapiv1beta3.SubjectRulesReviewStatus, s conversion.Scope) error {
+	return autoConvert_api_SubjectRulesReviewStatus_To_v1beta3_SubjectRulesReviewStatus(in, out, s)
 }
 
 func autoConvert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *authorizationapiv1beta3.ClusterPolicy, out *authorizationapi.ClusterPolicy, s conversion.Scope) error {
@@ -918,6 +954,20 @@ func Convert_v1beta3_RoleList_To_api_RoleList(in *authorizationapiv1beta3.RoleLi
 	return autoConvert_v1beta3_RoleList_To_api_RoleList(in, out, s)
 }
 
+func autoConvert_v1beta3_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in *authorizationapiv1beta3.SelfSubjectRulesReview, out *authorizationapi.SelfSubjectRulesReview, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*authorizationapiv1beta3.SelfSubjectRulesReview))(in)
+	}
+	if err := Convert_v1beta3_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta3_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in *authorizationapiv1beta3.SelfSubjectRulesReview, out *authorizationapi.SelfSubjectRulesReview, s conversion.Scope) error {
+	return autoConvert_v1beta3_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in, out, s)
+}
+
 func autoConvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *authorizationapiv1beta3.SubjectAccessReview, out *authorizationapi.SubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*authorizationapiv1beta3.SubjectAccessReview))(in)
@@ -940,6 +990,28 @@ func autoConvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewR
 
 func Convert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *authorizationapiv1beta3.SubjectAccessReviewResponse, out *authorizationapi.SubjectAccessReviewResponse, s conversion.Scope) error {
 	return autoConvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in, out, s)
+}
+
+func autoConvert_v1beta3_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in *authorizationapiv1beta3.SubjectRulesReviewStatus, out *authorizationapi.SubjectRulesReviewStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*authorizationapiv1beta3.SubjectRulesReviewStatus))(in)
+	}
+	if in.Rules != nil {
+		out.Rules = make([]authorizationapi.PolicyRule, len(in.Rules))
+		for i := range in.Rules {
+			if err := authorizationapiv1beta3.Convert_v1beta3_PolicyRule_To_api_PolicyRule(&in.Rules[i], &out.Rules[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Rules = nil
+	}
+	out.EvaluationError = in.EvaluationError
+	return nil
+}
+
+func Convert_v1beta3_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in *authorizationapiv1beta3.SubjectRulesReviewStatus, out *authorizationapi.SubjectRulesReviewStatus, s conversion.Scope) error {
+	return autoConvert_v1beta3_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in, out, s)
 }
 
 func autoConvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *v1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
@@ -6880,11 +6952,13 @@ func init() {
 		autoConvert_api_SecretBuildSource_To_v1beta3_SecretBuildSource,
 		autoConvert_api_SecretSpec_To_v1beta3_SecretSpec,
 		autoConvert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
+		autoConvert_api_SelfSubjectRulesReview_To_v1beta3_SelfSubjectRulesReview,
 		autoConvert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
 		autoConvert_api_SourceControlUser_To_v1beta3_SourceControlUser,
 		autoConvert_api_SourceRevision_To_v1beta3_SourceRevision,
 		autoConvert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse,
 		autoConvert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
+		autoConvert_api_SubjectRulesReviewStatus_To_v1beta3_SubjectRulesReviewStatus,
 		autoConvert_api_TCPSocketAction_To_v1beta3_TCPSocketAction,
 		autoConvert_api_TLSConfig_To_v1beta3_TLSConfig,
 		autoConvert_api_TagImageHook_To_v1beta3_TagImageHook,
@@ -7023,11 +7097,13 @@ func init() {
 		autoConvert_v1beta3_SecretBuildSource_To_api_SecretBuildSource,
 		autoConvert_v1beta3_SecretSpec_To_api_SecretSpec,
 		autoConvert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
+		autoConvert_v1beta3_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview,
 		autoConvert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		autoConvert_v1beta3_SourceControlUser_To_api_SourceControlUser,
 		autoConvert_v1beta3_SourceRevision_To_api_SourceRevision,
 		autoConvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
 		autoConvert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
+		autoConvert_v1beta3_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus,
 		autoConvert_v1beta3_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1beta3_TLSConfig_To_api_TLSConfig,
 		autoConvert_v1beta3_TagImageHook_To_api_TagImageHook,

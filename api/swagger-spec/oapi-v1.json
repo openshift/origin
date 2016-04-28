@@ -15686,6 +15686,102 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/selfsubjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SelfSubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SelfSubjectRulesReview",
+      "nickname": "createNamespacedSelfSubjectRulesReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SelfSubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SelfSubjectRulesReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/selfsubjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SelfSubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SelfSubjectRulesReview",
+      "nickname": "createNamespacedSelfSubjectRulesReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SelfSubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SelfSubjectRulesReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/subjectaccessreviews",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -22607,6 +22703,44 @@
      "lastTransitionTime": {
       "type": "string",
       "description": "RFC 3339 date and time when this condition last transitioned"
+     }
+    }
+   },
+   "v1.SelfSubjectRulesReview": {
+    "id": "v1.SelfSubjectRulesReview",
+    "description": "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "status": {
+      "$ref": "v1.SubjectRulesReviewStatus",
+      "description": "Status is completed by the server to tell which permissions you have"
+     }
+    }
+   },
+   "v1.SubjectRulesReviewStatus": {
+    "id": "v1.SubjectRulesReviewStatus",
+    "description": "SubjectRulesReviewStatus is contains the result of a rules check",
+    "required": [
+     "rules"
+    ],
+    "properties": {
+     "rules": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PolicyRule"
+      },
+      "description": "Rules is the list of rules (no particular sort) that are allowed for the subject"
+     },
+     "evaluationError": {
+      "type": "string",
+      "description": "EvaluationError can appear in combination with Rules.  It means some error happened during evaluation that may have prevented additional rules from being populated."
      }
     }
    },

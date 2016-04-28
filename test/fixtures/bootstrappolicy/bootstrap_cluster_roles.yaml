@@ -105,6 +105,7 @@ items:
     - routes
     - routes/status
     - securitycontextconstraints
+    - selfsubjectrulesreviews
     - serviceaccounts
     - services
     - subjectaccessreviews
@@ -710,6 +711,12 @@ items:
     resources:
     - localsubjectaccessreviews
     - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - selfsubjectrulesreviews
     verbs:
     - create
 - apiVersion: v1
