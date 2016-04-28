@@ -6,6 +6,8 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -23,6 +25,10 @@ func init() {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "RunOnceDuration")
+			return nil, nil
 		}
 		return NewRunOnceDuration(pluginConfig), nil
 	})
