@@ -13,7 +13,9 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
+os::cmd::expect_success_and_text 'oc whoami --as deads' "deads"
 
+# This test validates user level policy
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'

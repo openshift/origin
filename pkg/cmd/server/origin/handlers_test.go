@@ -1,14 +1,244 @@
 package origin
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
+
+type impersonateAuthorizer struct{}
+
+func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+	user, exists := kapi.UserFrom(ctx)
+	if !exists {
+		return false, "missing user", nil
+	}
+
+	switch {
+	case user.GetName() == "system:admin":
+		return true, "", nil
+
+	case user.GetName() == "tester":
+		return false, "", fmt.Errorf("works on my machine")
+
+	case user.GetName() == "deny-me":
+		return false, "denied", nil
+	}
+
+	if len(user.GetGroups()) == 1 && user.GetGroups()[0] == "wheel" && a.GetVerb() == "impersonate" && a.GetResource() == "systemusers" {
+		return true, "", nil
+	}
+
+	if len(user.GetGroups()) == 1 && user.GetGroups()[0] == "sa-impersonater" && a.GetVerb() == "impersonate" && a.GetResource() == "serviceaccounts" {
+		return true, "", nil
+	}
+
+	if len(user.GetGroups()) == 1 && user.GetGroups()[0] == "regular-impersonater" && a.GetVerb() == "impersonate" && a.GetResource() == "users" {
+		return true, "", nil
+	}
+
+	return false, "deny by default", nil
+}
+
+func (impersonateAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+	return nil, nil, nil
+}
+
+type groupCache struct {
+}
+
+func (*groupCache) ListGroups(ctx kapi.Context, options *kapi.ListOptions) (*userapi.GroupList, error) {
+	return &userapi.GroupList{}, nil
+}
+func (*groupCache) GetGroup(ctx kapi.Context, name string) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) CreateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) UpdateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) DeleteGroup(ctx kapi.Context, name string) error {
+	return nil
+}
+func (*groupCache) WatchGroups(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+	return watch.NewFake(), nil
+}
+
+func TestImpersonationFilter(t *testing.T) {
+	testCases := []struct {
+		name                string
+		user                user.Info
+		impersonationString string
+		expectedUser        user.Info
+		expectedCode        int
+	}{
+		{
+			name: "not-impersonating",
+			user: &user.DefaultInfo{
+				Name: "tester",
+			},
+			expectedUser: &user.DefaultInfo{
+				Name: "tester",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "impersonating-error",
+			user: &user.DefaultInfo{
+				Name: "tester",
+			},
+			impersonationString: "anyone",
+			expectedUser: &user.DefaultInfo{
+				Name: "tester",
+			},
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name: "allowed-systemusers-impersonation",
+			user: &user.DefaultInfo{
+				Name:   "dev",
+				Groups: []string{"wheel"},
+			},
+			impersonationString: "system:admin",
+			expectedUser: &user.DefaultInfo{
+				Name:   "system:admin",
+				Groups: []string{"system:authenticated"},
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "allowed-users-impersonation",
+			user: &user.DefaultInfo{
+				Name:   "dev",
+				Groups: []string{"regular-impersonater"},
+			},
+			impersonationString: "tester",
+			expectedUser: &user.DefaultInfo{
+				Name:   "tester",
+				Groups: []string{"system:authenticated", "system:authenticated:oauth"},
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "disallowed-impersonating",
+			user: &user.DefaultInfo{
+				Name:   "dev",
+				Groups: []string{"sa-impersonater"},
+			},
+			impersonationString: "tester",
+			expectedUser: &user.DefaultInfo{
+				Name:   "dev",
+				Groups: []string{"sa-impersonater"},
+			},
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name: "allowed-sa-impersonating",
+			user: &user.DefaultInfo{
+				Name:   "dev",
+				Groups: []string{"sa-impersonater"},
+			},
+			impersonationString: "system:serviceaccount:foo:default",
+			expectedUser: &user.DefaultInfo{
+				Name:   "system:serviceaccount:foo:default",
+				Groups: []string{"system:serviceaccounts", "system:serviceaccounts:foo", "system:authenticated"},
+			},
+			expectedCode: http.StatusOK,
+		},
+	}
+
+	config := MasterConfig{}
+	config.RequestContextMapper = kapi.NewRequestContextMapper()
+	config.Authorizer = impersonateAuthorizer{}
+	config.GroupCache = usercache.NewGroupCache(&groupCache{})
+	var ctx kapi.Context
+	var actualUser user.Info
+	var lock sync.Mutex
+
+	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		currentCtx, _ := config.RequestContextMapper.Get(req)
+		user, exists := kapi.UserFrom(currentCtx)
+		if !exists {
+			actualUser = nil
+			return
+		}
+
+		actualUser = user
+	})
+	handler := func(delegate http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Recovered %v", r)
+				}
+			}()
+			lock.Lock()
+			defer lock.Unlock()
+			config.RequestContextMapper.Update(req, ctx)
+			currentCtx, _ := config.RequestContextMapper.Get(req)
+
+			user, exists := kapi.UserFrom(currentCtx)
+			if !exists {
+				actualUser = nil
+				return
+			} else {
+				actualUser = user
+			}
+
+			delegate.ServeHTTP(w, req)
+		})
+	}(config.impersonationFilter(doNothingHandler))
+	handler, _ = kapi.NewRequestContextFilter(config.RequestContextMapper, handler)
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	for _, tc := range testCases {
+		func() {
+			lock.Lock()
+			defer lock.Unlock()
+			ctx = kapi.WithUser(kapi.NewContext(), tc.user)
+		}()
+
+		req, err := http.NewRequest("GET", server.URL, nil)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", tc.name, err)
+			continue
+		}
+		req.Header.Add("Impersonate-User", tc.impersonationString)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", tc.name, err)
+			continue
+		}
+		if resp.StatusCode != tc.expectedCode {
+			t.Errorf("%s: expected %v, actual %v", tc.name, tc.expectedCode, resp.StatusCode)
+			continue
+		}
+
+		if !reflect.DeepEqual(actualUser, tc.expectedUser) {
+			t.Errorf("%s: expected %#v, actual %#v", tc.name, tc.expectedUser, actualUser)
+			continue
+		}
+	}
+}
 
 var (
 	currentOCKubeResources                 = "oc/v1.2.0 (linux/amd64) kubernetes/bc4550d"
