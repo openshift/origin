@@ -4,11 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/util/fsnotification"
 )
 
 const (
@@ -70,6 +75,7 @@ type RsyncOptions struct {
 	StrategyName  string
 	Quiet         bool
 	Delete        bool
+	Watch         bool
 
 	RsyncInclude  string
 	RsyncExclude  string
@@ -111,6 +117,7 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	cmd.Flags().StringVar(&o.RsyncInclude, "include", "", "rsync - include files matching specified pattern")
 	cmd.Flags().BoolVar(&o.RsyncProgress, "progress", false, "rsync - show progress during transfer")
 	cmd.Flags().BoolVar(&o.RsyncNoPerms, "no-perms", false, "rsync - do not transfer permissions")
+	cmd.Flags().BoolVarP(&o.Watch, "watch", "w", false, "Watch directory for changes and resync automatically")
 	return cmd
 }
 
@@ -220,6 +227,9 @@ func (o *RsyncOptions) Validate() error {
 		return errors.New("rsync is only valid between a local directory and a pod directory; " +
 			"specify a pod directory as [PODNAME]:[DIR]")
 	}
+	if o.Destination.Local() && o.Watch {
+		return errors.New("\"--watch\" can only be used with a local source directory")
+	}
 	if err := o.Strategy.Validate(); err != nil {
 		return err
 	}
@@ -229,7 +239,92 @@ func (o *RsyncOptions) Validate() error {
 
 // RunRsync copies files from source to destination
 func (o *RsyncOptions) RunRsync() error {
-	return o.Strategy.Copy(o.Source, o.Destination, o.Out, o.ErrOut)
+	if err := o.Strategy.Copy(o.Source, o.Destination, o.Out, o.ErrOut); err != nil {
+		return err
+	}
+
+	if !o.Watch {
+		return nil
+	}
+	return o.WatchAndSync()
+}
+
+// WatchAndSync sets up a recursive filesystem watch on the sync path
+// and invokes rsync each time the path changes.
+func (o *RsyncOptions) WatchAndSync() error {
+
+	// these variables must be accessed while holding the changeLock
+	// mutex as they are shared between goroutines to communicate
+	// sync state/events.
+	var (
+		changeLock sync.Mutex
+		dirty      bool
+		lastChange time.Time
+		watchError error
+	)
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("error setting up filesystem watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				changeLock.Lock()
+				glog.V(5).Infof("filesystem watch event: %s", event)
+				lastChange = time.Now()
+				dirty = true
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					if e := watcher.Remove(event.Name); e != nil {
+						glog.V(5).Infof("error removing watch for %s: %v", event.Name, e)
+					}
+				} else {
+					if e := fsnotification.AddRecursiveWatch(watcher, event.Name); e != nil && watchError == nil {
+						watchError = e
+					}
+				}
+				changeLock.Unlock()
+			case err := <-watcher.Errors:
+				changeLock.Lock()
+				watchError = fmt.Errorf("error watching filesystem for changes: %v", err)
+				changeLock.Unlock()
+			}
+		}
+	}()
+
+	err = fsnotification.AddRecursiveWatch(watcher, o.Source.Path)
+	if err != nil {
+		return fmt.Errorf("error watching source path %s: %v", o.Source.Path, err)
+	}
+
+	delay := 2 * time.Second
+	ticker := time.NewTicker(delay)
+	defer ticker.Stop()
+	for {
+		changeLock.Lock()
+		if watchError != nil {
+			return watchError
+		}
+		// if a change happened more than 'delay' seconds ago, sync it now.
+		// if a change happened less than 'delay' seconds ago, sleep for 'delay' seconds
+		// and see if more changes happen, we don't want to sync when
+		// the filesystem is in the middle of changing due to a massive
+		// set of changes (such as a local build in progress).
+		if dirty && time.Now().After(lastChange.Add(delay)) {
+			glog.V(1).Info("Synchronizing filesystem changes...")
+			err = o.Strategy.Copy(o.Source, o.Destination, o.Out, o.ErrOut)
+			if err != nil {
+				return err
+			}
+			glog.V(1).Info("Done.")
+			dirty = false
+		}
+		changeLock.Unlock()
+		<-ticker.C
+	}
 }
 
 // PodName returns the name of the pod as specified in either the
