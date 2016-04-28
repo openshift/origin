@@ -789,6 +789,7 @@ find_files() {
 		-o -wholename './.*' \
 		-o -wholename './pkg/assets/bindata.go' \
 		-o -wholename './pkg/assets/*/bindata.go' \
+		-o -wholename './pkg/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
 		-o -wholename '*/Godeps/*' \
 		-o -wholename './assets/bower_components/*' \
