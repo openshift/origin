@@ -182,3 +182,13 @@ func TestBuildErrorBadImageName(t *testing.T) {
 		t.Errorf("An docker spec parse error was expected, but got different: %v", err)
 	}
 }
+
+func TestBuildErrorImplicitBuildDisabled(t *testing.T) {
+	l := newFakeLayered()
+	l.config.BuilderImage = "test/image"
+	l.config.DisableImplicitBuild = true
+	_, err := l.Build(l.config)
+	if err == nil || !strings.Contains(err.Error(), "builder image is missing basic requirements (sh or tar), but implicit Docker builds are disabled so a layered build cannot be performed.") {
+		t.Errorf("An implicit build disabled error was expected, but got: %v", err)
+	}
+}
