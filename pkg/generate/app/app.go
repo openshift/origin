@@ -12,6 +12,7 @@ import (
 
 	"github.com/pborman/uuid"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -24,6 +25,8 @@ import (
 
 const (
 	volumeNameInfix = "volume"
+
+	GenerationWarningAnnotation = "app.generate.openshift.io/warnings"
 )
 
 // NameSuggester is an object that can suggest a name for itself
@@ -438,4 +441,63 @@ func LabelsFromSpec(spec []string) (map[string]string, []string, error) {
 		}
 	}
 	return labels, remove, nil
+}
+
+// TODO: move to pkg/runtime or pkg/api
+func AsVersionedObjects(objects []runtime.Object, typer runtime.ObjectTyper, convertor runtime.ObjectConvertor, versions ...unversioned.GroupVersion) []error {
+	var errs []error
+	for i, object := range objects {
+		kinds, err := typer.ObjectKinds(object)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if kindsInVersions(kinds, versions) {
+			continue
+		}
+		if !isInternalOnly(kinds) {
+			continue
+		}
+		converted, err := tryConvert(convertor, object, versions)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		objects[i] = converted
+	}
+	return errs
+}
+
+func isInternalOnly(kinds []unversioned.GroupVersionKind) bool {
+	for _, kind := range kinds {
+		if kind.Version != runtime.APIVersionInternal {
+			return false
+		}
+	}
+	return true
+}
+
+func kindsInVersions(kinds []unversioned.GroupVersionKind, versions []unversioned.GroupVersion) bool {
+	for _, kind := range kinds {
+		for _, version := range versions {
+			if kind.GroupVersion() == version {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// tryConvert attempts to convert the given object to the provided versions in order.
+func tryConvert(convertor runtime.ObjectConvertor, object runtime.Object, versions []unversioned.GroupVersion) (runtime.Object, error) {
+	var last error
+	for _, version := range versions {
+		obj, err := convertor.ConvertToVersion(object, version.String())
+		if err != nil {
+			last = err
+			continue
+		}
+		return obj, nil
+	}
+	return nil, last
 }

@@ -116,6 +116,27 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 	}, nil
 }
 
+// NewSourceRepositoryWithDockerfile creates a reference to a local source code repository with
+// the provided relative Dockerfile path (defaults to "Dockerfile").
+func NewSourceRepositoryWithDockerfile(s, dockerfilePath string) (*SourceRepository, error) {
+	r, err := NewSourceRepository(s)
+	if err != nil {
+		return nil, err
+	}
+	if len(dockerfilePath) == 0 {
+		dockerfilePath = "Dockerfile"
+	}
+	f, err := NewDockerfileFromFile(filepath.Join(s, dockerfilePath))
+	if err != nil {
+		return nil, err
+	}
+	if r.info == nil {
+		r.info = &SourceRepositoryInfo{}
+	}
+	r.info.Dockerfile = f
+	return r, nil
+}
+
 // NewSourceRepositoryForDockerfile creates a source repository that is set up to use
 // the contents of a Dockerfile as the input of the build.
 func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error) {

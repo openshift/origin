@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -205,7 +206,7 @@ func TestAddServices(t *testing.T) {
 			},
 			expectedServices: Objects{
 				expectedService("multidc1", portDesc{100, "tcp"}, portDesc{200, "udp"}, portDesc{300, "tcp"}),
-				expectedService("multidc2", portDesc{300, "tcp"}, portDesc{200, "udp"}),
+				expectedService("multidc2", portDesc{200, "udp"}, portDesc{300, "tcp"}),
 			},
 		},
 		{
@@ -226,8 +227,8 @@ func TestAddServices(t *testing.T) {
 		output := AddServices(test.input, test.firstOnly)
 		services := getServices(output)
 		if !reflect.DeepEqual(services, test.expectedServices) {
-			t.Errorf("%s: did not get expected output.\nExpected:\n%s.\nGot:\n%s.",
-				test.name, objsToString(test.expectedServices), objsToString(services))
+			t.Errorf("%s: did not get expected output: %s",
+				test.name, diff.ObjectGoPrintDiff(test.expectedServices, services))
 		}
 	}
 }

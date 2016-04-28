@@ -140,19 +140,24 @@ type ImageRef struct {
 	OutputImage     bool
 	Insecure        bool
 	HasEmptyDir     bool
-	// If true, create the image stream using a tag for this reference, not a bulk
+	// TagDirectly will create the image stream using a tag for this reference, not a bulk
 	// import.
 	TagDirectly bool
-	// If set, the default tag for other components that reference this image
+	// Tag defines tag that other components will reference this image by if set. Must be
+	// set with TagDirectly (otherwise tag remapping is not possible).
+	Tag string
+	// InternalDefaultTag is the default tag for other components that reference this image
 	InternalDefaultTag string
-
+	// Env represents a set of additional environment to add to this image.
 	Env Environment
-
 	// ObjectName overrides the name of the ImageStream produced
 	// but does not affect the DockerImageReference
 	ObjectName string
 
-	// This should *only* be set if the image stream already exists
+	// ContainerFn overrides normal container generation with a custom function.
+	ContainerFn func(*kapi.Container)
+
+	// Stream and Info should *only* be set if the image stream already exists
 	Stream *imageapi.ImageStream
 	Info   *imageapi.DockerImage
 }
@@ -186,7 +191,10 @@ func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 }
 
 func (r *ImageRef) InternalTag() string {
-	tag := r.Reference.Tag
+	tag := r.Tag
+	if len(tag) == 0 {
+		tag = r.Reference.Tag
+	}
 	if len(tag) == 0 {
 		tag = r.InternalDefaultTag
 	}
@@ -353,6 +361,12 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	container = &kapi.Container{
 		Name:  name,
 		Image: r.PullSpec(),
+		Env:   r.Env.List(),
+	}
+
+	if r.ContainerFn != nil {
+		r.ContainerFn(container)
+		return container, triggers, nil
 	}
 
 	// If imageInfo present, append ports
@@ -389,10 +403,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 			})
 			i++
 		}
-		// TODO: Append environment variables
 	}
-
-	container.Env = append(container.Env, r.Env.List()...)
 
 	return container, triggers, nil
 }

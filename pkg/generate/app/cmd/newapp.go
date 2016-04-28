@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/template"
 	outil "github.com/openshift/origin/pkg/util"
 )
 
@@ -267,23 +266,47 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		for _, ref := range group {
 			refInput := ref.Input()
 			from := refInput.String()
-			var (
-				pipeline *app.Pipeline
-				err      error
-			)
+			var pipeline *app.Pipeline
+
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
 				if err := refInput.Uses.AddBuildSecrets(c.Secrets, refInput.Uses.IsDockerBuild()); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
 				}
+
+				var (
+					image *app.ImageRef
+					err   error
+				)
+				if refInput.ResolvedMatch != nil {
+					inputImage, err := app.InputImageFromMatch(refInput.ResolvedMatch)
+					if err != nil {
+						return nil, fmt.Errorf("can't build %q: %v", from, err)
+					}
+					if !inputImage.AsImageStream && from != "scratch" {
+						msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
+						glog.Warningf(msg, from)
+					}
+					image = inputImage
+				}
+
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
-				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, refInput.ResolvedMatch, refInput.Uses); err != nil {
+				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)
 				}
 			default:
+				inputImage, err := app.InputImageFromMatch(refInput.ResolvedMatch)
+				if err != nil {
+					return nil, fmt.Errorf("can't include %q: %v", from, err)
+				}
+				if !inputImage.AsImageStream {
+					msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the deployment to succeed."
+					glog.Warningf(msg, from)
+				}
+
 				glog.V(4).Infof("will include %q", ref)
-				if pipeline, err = pipelineBuilder.NewImagePipeline(from, refInput.ResolvedMatch); err != nil {
+				if pipeline, err = pipelineBuilder.NewImagePipeline(from, inputImage); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
 			}
@@ -314,29 +337,13 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 		tpl := ref.Input().ResolvedMatch.Template
 
 		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
-		for _, env := range environment.List() {
-			// only set environment values that match what's expected by the template.
-			if v := template.GetParameterByName(tpl, env.Name); v != nil {
-				v.Value = env.Value
-				v.Generate = ""
-				template.AddParameter(tpl, *v)
-			} else {
-				return nil, fmt.Errorf("unexpected parameter name %q", env.Name)
-			}
-		}
-
-		result, err := c.OSClient.TemplateConfigs(c.OriginNamespace).Create(tpl)
+		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, environment)
 		if err != nil {
-			return nil, fmt.Errorf("error processing template %s/%s: %v", c.OriginNamespace, tpl.Name, err)
-		}
-		errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder())
-		if len(errs) > 0 {
-			err = errors.NewAggregate(errs)
-			return nil, fmt.Errorf("error processing template %s/%s: %v", c.OriginNamespace, tpl.Name, errs)
+			return nil, err
 		}
 		objects = append(objects, result.Objects...)
 
-		describeGeneratedTemplate(c.Out, ref, result, c.OriginNamespace)
+		DescribeGeneratedTemplate(c.Out, ref.Input().String(), result, c.OriginNamespace)
 	}
 	return objects, nil
 }
