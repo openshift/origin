@@ -464,6 +464,10 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if _, err := getRoute(routeAddress, "www.example.com", "http", nil, ""); err != ErrUnavailable {
 		t.Fatalf("unexpected response: %q", err)
 	}
+	//ensure you can curl path with port in Host header
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
 
 	//create newer, conflicting path based route
 	endpointEvent = &watch.Event{
@@ -499,6 +503,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if err := waitForRoute(routeTestAddress, "www.example.com", "http", nil, tr.HelloPodPath); err != nil {
 		t.Fatalf("unexpected response: %q", err)
 	}
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
 
 	//create host based route
 	routeEvent = &watch.Event{
@@ -524,6 +531,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("unexpected response: %q", err)
 	}
 	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
 		t.Fatalf("unexpected response: %q", err)
 	}
 
@@ -558,6 +568,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
 		t.Fatalf("unexpected response: %q", err)
 	}
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
 
 	// create newer, conflicting host based route that is ignored
 	routeEvent = &watch.Event{
@@ -584,6 +597,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPod); err != nil {
 		t.Fatalf("unexpected response: %q", err)
 	}
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
 
 	//create old, conflicting host based route which should take over the route
 	routeEvent = &watch.Event{
@@ -608,6 +624,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("unexpected response: %q", err)
 	}
 	if err := waitForRoute(routeAddress, "www.example.com", "http", nil, tr.HelloPodAlternate); err != nil {
+		t.Fatalf("unexpected response: %q", err)
+	}
+	if err := waitForRoute(routeTestAddress, "www.example.com:80", "http", nil, tr.HelloPodAlternate); err != nil {
 		t.Fatalf("unexpected response: %q", err)
 	}
 
