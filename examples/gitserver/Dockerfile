@@ -5,14 +5,14 @@
 #
 FROM openshift/origin
 
-ADD bin/gitserver /usr/bin/gitserver
-ADD hooks/ /var/lib/git-hooks/
+COPY bin/gitserver /usr/bin/gitserver
+COPY hooks/ /var/lib/git-hooks/
+COPY gitconfig /var/lib/gitconfig/.gitconfig
 RUN mkdir -p /var/lib/git && \
     mkdir -p /var/lib/gitconfig && \
     chmod 777 /var/lib/gitconfig && \
     ln -s /usr/bin/gitserver /usr/bin/gitrepo-buildconfigs
-ADD gitconfig /var/lib/gitconfig/.gitconfig
-ENV HOME=/var/lib/gitconfig
 VOLUME /var/lib/git
+ENV HOME=/var/lib/gitconfig
 
 ENTRYPOINT ["/usr/bin/gitserver"]

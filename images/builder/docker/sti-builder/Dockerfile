@@ -1,5 +1,5 @@
 #
-# This is the image that executes a STI build inside Origin. It expects the
+# This is the image that executes a S2I build inside Origin. It expects the
 # following environment variables:
 #
 #   BUILD - JSON string containing the openshift build object
@@ -12,5 +12,6 @@
 #
 FROM openshift/origin
 
-ENV HOME /root
+LABEL io.k8s.display-name="OpenShift Origin S2I Builder" \
+      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing source-to-image (s2i) image builds."
 ENTRYPOINT ["/usr/bin/openshift-sti-build"]

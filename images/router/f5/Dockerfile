@@ -5,4 +5,6 @@
 #
 FROM openshift/origin
 
+LABEL io.k8s.display-name="OpenShift Origin F5 Router" \
+      io.k8s.description="This is a component of OpenShift Origin and programs a BigIP F5 router to expose services within the cluster."
 ENTRYPOINT ["/usr/bin/openshift-f5-router"]

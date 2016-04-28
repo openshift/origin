@@ -68,8 +68,6 @@ function ln_or_cp {
 
 # Link or copy primary binaries to the appropriate locations.
 ln_or_cp "${imagedir}/openshift" images/origin/bin
-ln_or_cp "${imagedir}/openshift" images/router/haproxy/bin
-ln_or_cp "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Link or copy image binaries to the appropriate locations.
 ln_or_cp "${imagedir}/pod"             images/pod/bin
@@ -77,7 +75,6 @@ ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
 ln_or_cp "${imagedir}/deployment"      examples/deployment/bin
 ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
-ln_or_cp "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
@@ -113,8 +110,6 @@ image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 image openshift/origin-f5-router             images/router/f5
 image openshift/node                         images/node
-# unpublished images
-image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift              examples/hello-openshift

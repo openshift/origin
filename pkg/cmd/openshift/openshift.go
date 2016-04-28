@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -58,6 +59,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
+	case "openshift-recycle":
+		cmd = recycle.NewCommandRecycle(basename, out)
 	case "openshift-sti-build":
 		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
@@ -123,6 +126,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		irouter.NewCommandTemplateRouter("router"),
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
+		recycle.NewCommandRecycle("recycle", out),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),

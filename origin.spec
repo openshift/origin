@@ -151,13 +151,6 @@ Summary:        %{product_name} Pod
 %description pod
 %{summary}
 
-%package recycle
-Summary:        %{product_name} Recycler
-Requires:       %{name} = %{version}-%{release}
-
-%description recycle
-%{summary}
-
 %package sdn-ovs
 Summary:          %{product_name} SDN Plugin for Open vSwitch
 Requires:         openvswitch >= %{openvswitch_version}
@@ -196,7 +189,7 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry recycle
+for cmd in oc openshift dockerregistry
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
@@ -218,7 +211,7 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry recycle
+for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
@@ -253,6 +246,7 @@ for cmd in \
     openshift-deploy \
     openshift-docker-build \
     openshift-f5-router \
+    openshift-recycle \
     openshift-router \
     openshift-sti-build \
     origin
@@ -318,6 +312,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-docker-build
 %{_bindir}/openshift-f5-router
+%{_bindir}/openshift-recycle
 %{_bindir}/openshift-router
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
@@ -479,10 +474,6 @@ fi
 
 %files pod
 %{_bindir}/pod
-
-%files recycle
-%{_bindir}/recycle
-
 
 %changelog
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9

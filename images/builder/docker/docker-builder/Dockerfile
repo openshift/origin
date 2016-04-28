@@ -12,5 +12,6 @@
 #
 FROM openshift/origin
 
-ENV HOME /root
+LABEL io.k8s.display-name="OpenShift Origin Docker Builder" \
+      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing Docker image builds."
 ENTRYPOINT ["/usr/bin/openshift-docker-build"]

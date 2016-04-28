@@ -15355,6 +15355,23 @@ _openshift_infra_deploy()
     must_have_one_noun=()
 }
 
+_openshift_infra_recycle()
+{
+    last_command="openshift_infra_recycle"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--google-json-key=")
+    flags+=("--log-flush-frequency=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_infra_sti-build_version()
 {
     last_command="openshift_infra_sti-build_version"
@@ -15451,6 +15468,7 @@ _openshift_infra()
     commands+=("router")
     commands+=("f5-router")
     commands+=("deploy")
+    commands+=("recycle")
     commands+=("sti-build")
     commands+=("docker-build")
     commands+=("diagnostic-pod")
