@@ -66,6 +66,19 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: SudoerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups:     []string{kapi.GroupName},
+					Verbs:         sets.NewString("impersonate"),
+					Resources:     sets.NewString(authorizationapi.SystemUserResource),
+					ResourceNames: sets.NewString(SystemAdminUsername),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: ClusterReaderRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -163,6 +176,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					),
 				},
 				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("impersonate"),
+					Resources: sets.NewString("serviceaccounts"),
+				},
+				{
 					APIGroups: []string{api.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"),
 					Resources: sets.NewString(
@@ -224,6 +242,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 						"services/proxy",
 						"replicationcontrollers/scale",
 					),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("impersonate"),
+					Resources: sets.NewString("serviceaccounts"),
 				},
 				{
 					APIGroups: []string{api.GroupName},
@@ -858,7 +881,11 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 			RoleRef: kapi.ObjectReference{
 				Name: ClusterAdminRoleName,
 			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: ClusterAdminGroup}},
+			Subjects: []kapi.ObjectReference{
+				{Kind: authorizationapi.SystemGroupKind, Name: ClusterAdminGroup},
+				// add system:admin to this binding so that members of the sudoer group can use --as=system:admin to run a command as a cluster-admin
+				{Kind: authorizationapi.SystemUserKind, Name: SystemAdminUsername},
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
