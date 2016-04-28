@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/builder/parser"
+	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -241,15 +242,10 @@ func (r *SourceRepository) LocalPath() (string, error) {
 		localURL := r.url
 		ref := localURL.Fragment
 		localURL.Fragment = ""
-		if err = gitRepo.Clone(r.localDir, localURL.String()); err != nil {
-			return "", fmt.Errorf("cannot clone repository %s: %v", localURL.String(), err)
+		r.localDir, err = CloneAndCheckoutSources(gitRepo, localURL.String(), ref, r.localDir, r.contextDir)
+		if err != nil {
+			return "", err
 		}
-		if len(ref) > 0 {
-			if err = gitRepo.Checkout(r.localDir, ref); err != nil {
-				return "", fmt.Errorf("cannot checkout ref %s of repository %s: %v", ref, localURL.String(), err)
-			}
-		}
-		r.localDir = filepath.Join(r.localDir, r.contextDir)
 	}
 	return r.localDir, nil
 }
@@ -507,4 +503,32 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 	}
 
 	return strategy, source, nil
+}
+
+// CloneAndCheckoutSources clones the remote repository using either regulare
+// git clone operation or shallow git clone, based on the "ref" provided (you
+// cannot shallow clone using the 'ref').
+// This function will return the full path to the buildable sources, including
+// the context directory if specified.
+func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, contextDir string) (string, error) {
+	if len(ref) == 0 {
+		glog.V(5).Infof("No source ref specified, using shallow git clone")
+		if err := repo.CloneWithOptions(localDir, remote, git.CloneOptions{Recursive: true, Shallow: true}); err != nil {
+			return "", fmt.Errorf("shallow cloning repository %q to %q failed: %v", remote, localDir, err)
+		}
+	} else {
+		glog.V(5).Infof("Requested ref %q, performing full git clone and git checkout", ref)
+		if err := repo.Clone(localDir, remote); err != nil {
+			return "", fmt.Errorf("cloning repository %q to %q failed: %v", remote, localDir, err)
+		}
+	}
+	if len(ref) > 0 {
+		if err := repo.Checkout(localDir, ref); err != nil {
+			return "", fmt.Errorf("unable to checkout ref %q in %q repository: %v", ref, remote, err)
+		}
+	}
+	if len(contextDir) > 0 {
+		glog.V(5).Infof("Using context directory %q. The full source path is %q", contextDir, filepath.Join(localDir, contextDir))
+	}
+	return filepath.Join(localDir, contextDir), nil
 }
