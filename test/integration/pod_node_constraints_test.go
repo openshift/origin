@@ -80,7 +80,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
-	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForPodCreationServiceAccounts(kubeClient, testutil.Namespace()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	return openShiftClient, kubeClient

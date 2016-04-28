@@ -37,6 +37,10 @@ import (
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
 
+// PodCreationWaitTimeout is used to determine how long to wait after the service account token
+// is available for the admission control cache to catch up and allow pod creation
+const PodCreationWaitTimeout = 10 * time.Second
+
 // RequireServer verifies if the etcd and the OpenShift server are
 // available and you can successfully connect to them.
 func RequireServer(t *testing.T) {
@@ -393,6 +397,37 @@ func serviceAccountSecretsExist(client *kclient.Client, namespace string, sa *ka
 		}
 	}
 	return foundTokenSecret && foundDockercfgSecret
+}
+
+// WaitForPodCreationServiceAccounts ensures that the service account needed for pod creation exists
+// and that the cache for the admission control that checks for pod tokens has caught up to allow
+// pod creation.
+func WaitForPodCreationServiceAccounts(client *kclient.Client, namespace string) error {
+	if err := WaitForServiceAccounts(client, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		return err
+	}
+
+	testPod := &kapi.Pod{}
+	testPod.GenerateName = "test"
+	testPod.Spec.Containers = []kapi.Container{
+		{
+			Name:  "container",
+			Image: "openshift/origin-pod:latest",
+		},
+	}
+
+	return wait.PollImmediate(time.Second, PodCreationWaitTimeout, func() (bool, error) {
+		pod, err := client.Pods(namespace).Create(testPod)
+		if err != nil {
+			glog.Warningf("Error attempting to create test pod: %v", err)
+			return false, nil
+		}
+		err = client.Pods(namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
 }
 
 // WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
