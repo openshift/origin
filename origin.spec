@@ -196,7 +196,7 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry recycle
+for cmd in oc openshift dockerregistry
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
@@ -253,6 +253,7 @@ for cmd in \
     openshift-deploy \
     openshift-docker-build \
     openshift-f5-router \
+    openshift-recycle \
     openshift-router \
     openshift-sti-build \
     origin
@@ -481,7 +482,7 @@ fi
 %{_bindir}/pod
 
 %files recycle
-%{_bindir}/recycle
+%{_bindir}/openshift-recycle
 
 
 %changelog
