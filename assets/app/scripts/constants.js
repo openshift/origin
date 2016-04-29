@@ -36,6 +36,9 @@ window.OPENSHIFT_CONSTANTS = {
       "Binding",
       "Ingress",
       "ReplicaSet",
+
+      // These are kinds that end users are not allowed to List by default
+      "ThirdPartyResource",
    
       // These are things like SARs that aren't actually persisted resources
       "LocalResourceAccessReview",
@@ -43,6 +46,6 @@ window.OPENSHIFT_CONSTANTS = {
       "ResourceAccessReview",
       "SubjectAccessReview",
       "ReplicationControllerDummy",
-      "DeploymentConfigRollback"    
+      "DeploymentConfigRollback"
   ]
 };
