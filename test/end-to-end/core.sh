@@ -189,7 +189,6 @@ os::cmd::expect_success "oc create -f ${OS_ROOT}/test/fixtures/complete-dc-hooks
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
-exit
 # test the pre hook on a rolling deployment
 oc create -f test/fixtures/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
