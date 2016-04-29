@@ -102,13 +102,10 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 	}
 }
 
-func printEnv(out io.Writer, env map[string]string) {
-	if len(env) == 0 {
-		return
-	}
+func printEnv(out io.Writer, env api.EnvironmentList) {
 	result := []string{}
-	for k, v := range env {
-		result = append(result, fmt.Sprintf("%s=%s", k, v))
+	for _, e := range env {
+		result = append(result, strings.Join([]string{e.Name, e.Value}, "="))
 	}
 	fmt.Fprintf(out, "Environment:\t%s\n", strings.Join(result, ","))
 }
