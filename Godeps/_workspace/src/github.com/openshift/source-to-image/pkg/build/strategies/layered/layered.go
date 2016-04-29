@@ -126,9 +126,6 @@ func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 
 //Build handles the `docker build` equivalent execution, returning the success/failure details
 func (b *Layered) Build(config *api.Config) (*api.Result, error) {
-	if config.DisableImplicitBuild {
-		return nil, fmt.Errorf("builder image is missing basic requirements (sh or tar), but implicit Docker builds are disabled so a layered build cannot be performed.")
-	}
 	if err := b.CreateDockerfile(config); err != nil {
 		return nil, err
 	}
