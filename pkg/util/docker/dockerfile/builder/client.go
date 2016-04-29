@@ -38,6 +38,9 @@ type ClientExecutor struct {
 	// Container is optional and can be set to a container to use as
 	// the execution environment for a build.
 	Container *docker.Container
+	// Command, if set, will be used as the entrypoint for the new
+	// container. This is ignored if Container is set.
+	Command []string
 	// Image is optional and may be set to control which image is used
 	// as a base for this build. Otherwise the FROM value from the
 	// Dockerfile is read (will be pulled if not locally present).
@@ -123,8 +126,14 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		}
 		if mustStart {
 			// TODO: windows support
-			opts.Config.Cmd = []string{"sleep 86400"}
-			opts.Config.Entrypoint = []string{"/bin/sh", "-c"}
+			if len(e.Command) > 0 {
+				opts.Config.Cmd = e.Command
+				opts.Config.Entrypoint = nil
+			} else {
+				// TODO; replace me with a better default command
+				opts.Config.Cmd = []string{"sleep 86400"}
+				opts.Config.Entrypoint = []string{"/bin/sh", "-c"}
+			}
 		}
 		if len(opts.Config.Cmd) == 0 {
 			opts.Config.Entrypoint = []string{"/bin/sh", "-c", "# NOP"}
