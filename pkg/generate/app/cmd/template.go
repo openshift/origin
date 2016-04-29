@@ -20,7 +20,7 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := template.GetParameterByName(tpl, k)
-		if v != nil {
+		if v == nil {
 			return nil, fmt.Errorf("unexpected parameter name %q", k)
 		}
 		v.Value = value
