@@ -90,6 +90,7 @@ import (
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
+	clusterquotastorage "github.com/openshift/origin/pkg/authorization/registry/clusterquota/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
@@ -485,6 +486,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		},
 	)
 
+	clusterQuota, clusterQuotaStatus := clusterquotastorage.NewREST(c.EtcdHelper)
+
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
 		"imageStreams/secrets": imageStreamSecretsStorage,
@@ -538,6 +541,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+
+		"clusterResourceQuotas":        clusterQuota,
+		"clusterResourceQuotas/status": clusterQuotaStatus,
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {

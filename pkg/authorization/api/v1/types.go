@@ -6,6 +6,31 @@ import (
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 )
 
+type ClusterResourceQuota struct {
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
+
+	// Spec defines the desired quota
+	Spec ClusterResourceQuotaSpec `json:"spec,omitempty"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status kapi.ResourceQuotaStatus `json:"status,omitempty"`
+}
+
+type ClusterResourceQuotaSpec struct {
+	Selector map[string]string `json:"selector,omitempty"`
+	// Spec defines the desired quota
+	Quota kapi.ResourceQuotaSpec `json:"quota,omitempty"`
+}
+
+type ClusterResourceQuotaList struct {
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of roles
+	Items []ClusterResourceQuota `json:",items"`
+}
+
 // Authorization is calculated against
 // 1. all deny RoleBinding PolicyRules in the master namespace - short circuit on match
 // 2. all allow RoleBinding PolicyRules in the master namespace - short circuit on match

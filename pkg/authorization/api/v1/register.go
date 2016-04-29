@@ -44,8 +44,14 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&ClusterPolicyBindingList{},
 		&ClusterRoleBindingList{},
 		&ClusterRoleList{},
+
+		&ClusterResourceQuota{},
+		&ClusterResourceQuotaList{},
 	)
 }
+
+func (obj *ClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ClusterResourceQuota) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
 
 func (obj *ClusterRoleList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *ClusterRoleBindingList) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }

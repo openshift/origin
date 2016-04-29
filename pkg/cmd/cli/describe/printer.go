@@ -1,6 +1,7 @@
 package describe
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -60,6 +61,8 @@ var (
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns   = []string{"NAME", "NETID"}
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
+
+	resourceQuotaColumns = []string{"NAME", "AGE"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -130,7 +133,101 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
 
+	p.Handler(resourceQuotaColumns, printResourceQuota)
+	p.Handler(resourceQuotaColumns, printResourceQuotaList)
+
 	return p
+}
+
+func printResourceQuota(resourceQuota *authorizationapi.ClusterResourceQuota, w io.Writer, options kctl.PrintOptions) error {
+	name := resourceQuota.Name
+	namespace := resourceQuota.Namespace
+
+	if options.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintf(
+		w, "%s\t%s",
+		name,
+		translateTimestamp(resourceQuota.CreationTimestamp),
+	); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprint(w, appendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {
+		return err
+	}
+	_, err := fmt.Fprint(w, appendAllLabels(options.ShowLabels, resourceQuota.Labels))
+	return err
+}
+
+// Prints the ResourceQuotaList in a human-friendly format.
+func printResourceQuotaList(list *authorizationapi.ClusterResourceQuotaList, w io.Writer, options kctl.PrintOptions) error {
+	for i := range list.Items {
+		if err := printResourceQuota(&list.Items[i], w, options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func shortHumanDuration(d time.Duration) string {
+	// Allow deviation no more than 2 seconds(excluded) to tolerate machine time
+	// inconsistence, it can be considered as almost now.
+	if seconds := int(d.Seconds()); seconds < -1 {
+		return fmt.Sprintf("<invalid>")
+	} else if seconds < 0 {
+		return fmt.Sprintf("0s")
+	} else if seconds < 60 {
+		return fmt.Sprintf("%ds", seconds)
+	} else if minutes := int(d.Minutes()); minutes < 60 {
+		return fmt.Sprintf("%dm", minutes)
+	} else if hours := int(d.Hours()); hours < 24 {
+		return fmt.Sprintf("%dh", hours)
+	} else if hours < 24*364 {
+		return fmt.Sprintf("%dd", hours/24)
+	}
+	return fmt.Sprintf("%dy", int(d.Hours()/24/365))
+}
+
+// translateTimestamp returns the elapsed time since timestamp in
+// human-readable approximation.
+func translateTimestamp(timestamp unversioned.Time) string {
+	if timestamp.IsZero() {
+		return "<unknown>"
+	}
+	return shortHumanDuration(time.Now().Sub(timestamp.Time))
+}
+
+func appendLabels(itemLabels map[string]string, columnLabels []string) string {
+	var buffer bytes.Buffer
+
+	for _, cl := range columnLabels {
+		buffer.WriteString(fmt.Sprint("\t"))
+		if il, ok := itemLabels[cl]; ok {
+			buffer.WriteString(fmt.Sprint(il))
+		} else {
+			buffer.WriteString("<none>")
+		}
+	}
+
+	return buffer.String()
+}
+
+// Append all labels to a single column. We need this even when show-labels flag* is
+// false, since this adds newline delimiter to the end of each row.
+func appendAllLabels(showLabels bool, itemLabels map[string]string) string {
+	var buffer bytes.Buffer
+
+	if showLabels {
+		buffer.WriteString(fmt.Sprint("\t"))
+		buffer.WriteString(labels.FormatLabels(itemLabels))
+	}
+	buffer.WriteString("\n")
+
+	return buffer.String()
 }
 
 const templateDescriptionLen = 80

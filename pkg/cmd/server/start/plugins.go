@@ -3,6 +3,7 @@ package start
 import (
 
 	// Admission control plug-ins used by OpenShift
+	_ "github.com/openshift/origin/pkg/authorization/admission/clusterquota"
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
