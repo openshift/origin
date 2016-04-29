@@ -249,7 +249,7 @@ function os::build::build_static_binaries() {
 }
 readonly -f os::build::build_static_binaries
 
-# Build binaries targets specified
+# Build binary targets specified
 #
 # Input:
 #   $@ - targets and go flags.  If no targets are set then all binaries targets
@@ -257,8 +257,19 @@ readonly -f os::build::build_static_binaries
 #   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
 #     then just the host architecture is built.
 function os::build::build_binaries() {
+  local -a binaries=( "$@" )
   # Create a sub-shell so that we don't pollute the outer environment
-  (
+  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )  
+}
+
+# Build binary targets specified. Should always be run in a sub-shell so we don't leak GOBIN
+#
+# Input:
+#   $@ - targets and go flags.  If no targets are set then all binaries targets
+#     are built.
+#   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
+#     then just the host architecture is built.
+os::build::internal::build_binaries() {
     # Check for `go` binary and set ${GOPATH}.
     os::build::setup_env
 
@@ -325,7 +336,6 @@ function os::build::build_binaries() {
           "$(dirname ${test})"
       done
     done
-  )
 }
 readonly -f os::build::build_binaries
 
