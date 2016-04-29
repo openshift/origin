@@ -202,11 +202,12 @@ func (BuildStatus) SwaggerDoc() map[string]string {
 }
 
 var map_BuildStrategy = map[string]string{
-	"":               "BuildStrategy contains the details of how to perform a build.",
-	"type":           "type is the kind of build strategy.",
-	"dockerStrategy": "dockerStrategy holds the parameters to the Docker build strategy.",
-	"sourceStrategy": "sourceStrategy holds the parameters to the Source build strategy.",
-	"customStrategy": "customStrategy holds the parameters to the Custom build strategy",
+	"":                        "BuildStrategy contains the details of how to perform a build.",
+	"type":                    "type is the kind of build strategy.",
+	"dockerStrategy":          "dockerStrategy holds the parameters to the Docker build strategy.",
+	"sourceStrategy":          "sourceStrategy holds the parameters to the Source build strategy.",
+	"customStrategy":          "customStrategy holds the parameters to the Custom build strategy",
+	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is experimental.",
 }
 
 func (BuildStrategy) SwaggerDoc() map[string]string {
@@ -326,6 +327,16 @@ var map_ImageSourcePath = map[string]string{
 
 func (ImageSourcePath) SwaggerDoc() map[string]string {
 	return map_ImageSourcePath
+}
+
+var map_JenkinsPipelineBuildStrategy = map[string]string{
+	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is experimental.",
+	"jenkinsfilePath": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.",
+	"jenkinsfile":     "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
+}
+
+func (JenkinsPipelineBuildStrategy) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineBuildStrategy
 }
 
 var map_SecretBuildSource = map[string]string{

@@ -333,6 +333,10 @@ type BuildStrategy struct {
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy
+
+	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// This strategy is experimental.
+	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -423,6 +427,18 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
+}
+
+// JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
+// This strategy is experimental.
+type JenkinsPipelineBuildStrategy struct {
+	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
+	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
+	// both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.
+	JenkinsfilePath string
+
+	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	Jenkinsfile string
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
