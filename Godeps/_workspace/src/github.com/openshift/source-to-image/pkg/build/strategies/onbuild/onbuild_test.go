@@ -63,7 +63,10 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 func TestCreateDockerfile(t *testing.T) {
 	fakeRequest := &api.Config{
 		BuilderImage: "fake:onbuild",
-		Environment:  map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
+		Environment: api.EnvironmentList{
+			{Name: "FOO", Value: "BAR"},
+			{Name: "TEST", Value: "A VALUE"},
+		},
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
@@ -128,4 +131,25 @@ func TestBuild(t *testing.T) {
 	}
 	checkDockerfile(fakeFs, t)
 	t.Logf("result: %v", result)
+}
+
+func TestBuildImplicitDisabled(t *testing.T) {
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Tag:          "fakeapp",
+		BlockOnBuild: true,
+	}
+	b := newFakeOnBuild()
+	fakeFs := &test.FakeFileSystem{
+		Files: []os.FileInfo{
+			&test.FakeFile{"config.ru", false, 0600},
+			&test.FakeFile{"app.rb", false, 0600},
+			&test.FakeFile{"run", false, 0777},
+		},
+	}
+	b.fs = fakeFs
+	_, err := b.Build(fakeRequest)
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is blocked.") {
+		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
+	}
 }

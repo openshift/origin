@@ -599,10 +599,8 @@ func (b *STI) Execute(command string, user string, config *api.Config) error {
 }
 
 func (b *STI) generateConfigEnv() (configEnv []string) {
-	if len(b.config.Environment) > 0 {
-		for key, val := range b.config.Environment {
-			configEnv = append(configEnv, key+"="+val)
-		}
+	for _, e := range b.config.Environment {
+		configEnv = append(configEnv, strings.Join([]string{e.Name, e.Value}, "="))
 	}
 	return
 }

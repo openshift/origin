@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
@@ -117,7 +118,7 @@ type Config struct {
 	RemovePreviousImage bool
 
 	// Environment is a map of environment variables to be passed to the image.
-	Environment map[string]string
+	Environment EnvironmentList
 
 	// EnvironmentFile provides the path to a file with list of environment
 	// variables.
@@ -188,7 +189,26 @@ type Config struct {
 	// ScriptDownloadProxyConfig optionally specifies the http and https proxy
 	// to use when downloading scripts
 	ScriptDownloadProxyConfig *ProxyConfig
+
+	// ExcludeRegExp contains a string representation of the regular expression desired for
+	// deciding which files to exclude from the tar stream
+	ExcludeRegExp string
+
+	// BlockOnBuild prevents s2i from performing a docker build operation
+	// if one is necessary to execute ONBUILD commands, or to layer source code into
+	// the container for images that don't have a tar binary available, if the
+	// image contains ONBUILD commands that would be executed.
+	BlockOnBuild bool
 }
+
+// EnvironmentSpec specifies a single environment variable.
+type EnvironmentSpec struct {
+	Name  string
+	Value string
+}
+
+// EnvironmentList contains list of environment variables.
+type EnvironmentList []EnvironmentSpec
 
 type ProxyConfig struct {
 	HTTPProxy  *url.URL
@@ -413,5 +433,35 @@ func (il *InjectionList) String() string {
 
 // Type implements the Type() function of pflags.Value interface.
 func (il *InjectionList) Type() string {
+	return "string"
+}
+
+// Set implements the Set() function of pflags.Value interface.
+func (e *EnvironmentList) Set(value string) error {
+	parts := strings.SplitN(value, "=", 2)
+	if len(parts) != 2 || len(parts[0]) == 0 {
+		return fmt.Errorf("invalid environment format %q, must be NAME=VALUE", value)
+	}
+	if strings.Contains(parts[1], ",") && strings.Contains(parts[1], "=") {
+		glog.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", parts[1])
+	}
+	*e = append(*e, EnvironmentSpec{
+		Name:  strings.TrimSpace(parts[0]),
+		Value: strings.TrimSpace(parts[1]),
+	})
+	return nil
+}
+
+// String implements the String() function of pflags.Value interface.
+func (e *EnvironmentList) String() string {
+	result := []string{}
+	for _, i := range *e {
+		result = append(result, strings.Join([]string{i.Name, i.Value}, "="))
+	}
+	return strings.Join(result, ",")
+}
+
+// Type implements the Type() function of pflags.Value interface.
+func (e *EnvironmentList) Type() string {
 	return "string"
 }
