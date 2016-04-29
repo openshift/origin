@@ -15,7 +15,7 @@
 // examples/quickstarts/rails-postgresql.json
 // DO NOT EDIT!
 
-package boostrap
+package bootstrap
 
 import (
 	"fmt"
