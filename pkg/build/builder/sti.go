@@ -190,6 +190,7 @@ func (s *S2IBuilder) Build() error {
 		CGroupLimits:              s.cgLimits,
 		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
+		DisableImplicitBuild:      s.build.Spec.Strategy.SourceStrategy.DisableImplicitBuild,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {

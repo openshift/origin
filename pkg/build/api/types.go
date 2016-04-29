@@ -423,6 +423,11 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
+
+	// DisableImplicitBuild prevents source-to-image from performing a Docker build operation
+	// when one is needed to execute ONBUILD statements in the builder image, or because
+	// the builder image does not include a prereq such as "sh" or "tar"
+	DisableImplicitBuild bool
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook

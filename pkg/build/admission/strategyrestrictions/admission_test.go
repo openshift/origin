@@ -37,7 +37,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:           testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
-			reviewResponse:   reviewResponse(true, ""),
+			reviewResponse:   newReviewResponse(true, ""),
 			expectedResource: authorizationapi.SourceBuildResource,
 			expectAccept:     true,
 		},
@@ -48,7 +48,7 @@ func TestBuildAdmission(t *testing.T) {
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
 			subResource:      "clone",
-			reviewResponse:   reviewResponse(true, ""),
+			reviewResponse:   newReviewResponse(true, ""),
 			expectedResource: authorizationapi.SourceBuildResource,
 			expectAccept:     true,
 		},
@@ -57,7 +57,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:           testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
-			reviewResponse:   reviewResponse(false, "cannot create build of type docker build"),
+			reviewResponse:   newReviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:     false,
 			expectedResource: authorizationapi.DockerBuildResource,
 		},
@@ -68,7 +68,7 @@ func TestBuildAdmission(t *testing.T) {
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
 			subResource:      "clone",
-			reviewResponse:   reviewResponse(false, "cannot create build of type docker build"),
+			reviewResponse:   newReviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:     false,
 			expectedResource: authorizationapi.DockerBuildResource,
 		},
@@ -77,7 +77,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:           testBuild(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildsResource,
-			reviewResponse:   reviewResponse(true, ""),
+			reviewResponse:   newReviewResponse(true, ""),
 			expectedResource: authorizationapi.CustomBuildResource,
 			expectAccept:     true,
 		},
@@ -86,7 +86,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:           testBuildConfig(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
 			kind:             buildapi.Kind("BuildConfig"),
 			resource:         buildConfigsResource,
-			reviewResponse:   reviewResponse(true, ""),
+			reviewResponse:   newReviewResponse(true, ""),
 			expectAccept:     true,
 			expectedResource: authorizationapi.DockerBuildResource,
 		},
@@ -97,7 +97,7 @@ func TestBuildAdmission(t *testing.T) {
 			kind:             buildapi.Kind("Build"),
 			resource:         buildConfigsResource,
 			subResource:      "instantiate",
-			reviewResponse:   reviewResponse(true, ""),
+			reviewResponse:   newReviewResponse(true, ""),
 			expectAccept:     true,
 			expectedResource: authorizationapi.DockerBuildResource,
 		},
@@ -106,7 +106,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:           testBuildConfig(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
 			kind:             buildapi.Kind("Build"),
 			resource:         buildConfigsResource,
-			reviewResponse:   reviewResponse(false, ""),
+			reviewResponse:   newReviewResponse(false, ""),
 			expectAccept:     false,
 			expectedResource: authorizationapi.CustomBuildResource,
 		},
@@ -117,7 +117,7 @@ func TestBuildAdmission(t *testing.T) {
 			kind:             buildapi.Kind("Build"),
 			resource:         buildConfigsResource,
 			subResource:      "instantiate",
-			reviewResponse:   reviewResponse(false, ""),
+			reviewResponse:   newReviewResponse(false, ""),
 			expectAccept:     false,
 			expectedResource: authorizationapi.CustomBuildResource,
 		},
@@ -126,7 +126,7 @@ func TestBuildAdmission(t *testing.T) {
 			object:         &fakeObject{},
 			kind:           buildapi.Kind("BuildConfig"),
 			resource:       buildConfigsResource,
-			reviewResponse: reviewResponse(true, ""),
+			reviewResponse: newReviewResponse(true, ""),
 			expectAccept:   false,
 			expectedError:  "Internal error occurred: [Unrecognized request object &admission.fakeObject{}, couldn't find ObjectMeta field in admission.fakeObject{}]",
 		},
@@ -136,7 +136,7 @@ func TestBuildAdmission(t *testing.T) {
 			kind:           buildapi.Kind("Build"),
 			resource:       buildsResource,
 			subResource:    "details",
-			reviewResponse: reviewResponse(false, "cannot create build of type docker build"),
+			reviewResponse: newReviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:   true,
 		},
 	}
@@ -163,6 +163,86 @@ func TestBuildAdmission(t *testing.T) {
 	}
 }
 
+func TestImplicitBuildAdmission(t *testing.T) {
+	tests := []struct {
+		name                  string
+		kind                  unversioned.GroupKind
+		resource              unversioned.GroupResource
+		object                runtime.Object
+		dockerReviewResponse  *authorizationapi.SubjectAccessReviewResponse
+		otherReviewResponse   *authorizationapi.SubjectAccessReviewResponse
+		expectedResource      string
+		expectDisableImplicit bool
+	}{
+		{
+			name:                  "allowed implicit build",
+			object:                testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{DisableImplicitBuild: false}}),
+			kind:                  buildapi.Kind("Build"),
+			resource:              buildsResource,
+			dockerReviewResponse:  newReviewResponse(true, ""),
+			otherReviewResponse:   newReviewResponse(true, ""),
+			expectedResource:      authorizationapi.SourceBuildResource,
+			expectDisableImplicit: false,
+		},
+		{
+			name:                  "allowed implicit build config",
+			object:                testBuildConfig(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{DisableImplicitBuild: false}}),
+			kind:                  buildapi.Kind("BuildConfig"),
+			resource:              buildConfigsResource,
+			dockerReviewResponse:  newReviewResponse(true, ""),
+			otherReviewResponse:   newReviewResponse(true, ""),
+			expectedResource:      authorizationapi.SourceBuildResource,
+			expectDisableImplicit: false,
+		},
+		{
+			name:                  "disallowed implicit build",
+			object:                testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{DisableImplicitBuild: false}}),
+			kind:                  buildapi.Kind("Build"),
+			resource:              buildsResource,
+			dockerReviewResponse:  newReviewResponse(false, ""),
+			otherReviewResponse:   newReviewResponse(true, ""),
+			expectedResource:      authorizationapi.SourceBuildResource,
+			expectDisableImplicit: true,
+		},
+		{
+			name:                  "disallowed implicit build config",
+			object:                testBuildConfig(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{DisableImplicitBuild: false}}),
+			kind:                  buildapi.Kind("BuildConfig"),
+			resource:              buildConfigsResource,
+			dockerReviewResponse:  newReviewResponse(false, ""),
+			otherReviewResponse:   newReviewResponse(true, ""),
+			expectedResource:      authorizationapi.SourceBuildResource,
+			expectDisableImplicit: true,
+		},
+	}
+
+	ops := []admission.Operation{admission.Create, admission.Update}
+	for _, test := range tests {
+		for _, op := range ops {
+			client := fakeClient2(test.expectedResource, test.dockerReviewResponse, test.otherReviewResponse, nil)
+			c := NewBuildByStrategy()
+			c.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
+			attrs := admission.NewAttributesRecord(test.object, test.kind.WithVersion("version"), "default", "name", test.resource.WithVersion("version"), "", op, fakeUser())
+			err := c.Admit(attrs)
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", test.name, err)
+			}
+
+			switch obj := attrs.GetObject().(type) {
+			case *buildapi.Build:
+				if obj.Spec.Strategy.SourceStrategy.DisableImplicitBuild != test.expectDisableImplicit {
+					t.Errorf("%s: expected implicit value %v, got %v", test.name, test.expectDisableImplicit, obj.Spec.Strategy.SourceStrategy.DisableImplicitBuild)
+				}
+			case *buildapi.BuildConfig:
+				if obj.Spec.Strategy.SourceStrategy.DisableImplicitBuild != test.expectDisableImplicit {
+					t.Errorf("%s: expected implicit value %v, got %v", test.name, test.expectDisableImplicit, obj.Spec.Strategy.SourceStrategy.DisableImplicitBuild)
+				}
+			}
+
+		}
+	}
+}
+
 type fakeObject struct{}
 
 func (*fakeObject) GetObjectKind() unversioned.ObjectKind { return nil }
@@ -182,11 +262,35 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 		if !ok {
 			return true, emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 		}
-		if review.Action.Resource != expectedResource {
+		// source builds will see two resource checks, one against source, and the other against docker (to see if
+		// implicit docker builds should be allowed for s2i builds)
+		if review.Action.Resource != expectedResource &&
+			(expectedResource == authorizationapi.SourceBuildResource && review.Action.Resource != authorizationapi.DockerBuildResource) {
 			return true, emptyResponse, fmt.Errorf("unexpected resource received: %s. expected: %s",
 				review.Action.Resource, expectedResource)
 		}
 		return true, reviewResponse, nil
+	})
+	fake.AddReactor("get", "buildconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, obj, nil
+	})
+	fake.AddReactor("get", "builds", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, obj, nil
+	})
+
+	return fake
+}
+
+func fakeClient2(expectedResource string, dockerReviewResponse *authorizationapi.SubjectAccessReviewResponse, otherReviewResponse *authorizationapi.SubjectAccessReviewResponse, obj runtime.Object) client.Interface {
+	fake := &testclient.Fake{}
+	fake.AddReactor("create", "localsubjectaccessreviews", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		review, _ := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
+		// source builds will see two resource checks, one against source, and the other against docker (to see if
+		// implicit docker builds should be allowed for s2i builds)
+		if review.Action.Resource == authorizationapi.DockerBuildResource {
+			return true, dockerReviewResponse, nil
+		}
+		return true, otherReviewResponse, nil
 	})
 	fake.AddReactor("get", "buildconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		return true, obj, nil
@@ -222,7 +326,7 @@ func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	}
 }
 
-func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {
+func newReviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {
 	return &authorizationapi.SubjectAccessReviewResponse{
 		Allowed: allowed,
 		Reason:  msg,

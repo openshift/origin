@@ -1732,6 +1732,7 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *buildapi.
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	out.DisableImplicitBuild = in.DisableImplicitBuild
 	return nil
 }
 
@@ -2576,6 +2577,7 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *v1.Source
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	out.DisableImplicitBuild = in.DisableImplicitBuild
 	return nil
 }
 
