@@ -400,11 +400,6 @@ func InferBuildTypes(components app.ComponentReferences, g *GenerationInputs) (a
 			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
 			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
 			continue
-		case input.ExpectToBuild && !input.ResolvedMatch.Builder && input.Uses != nil && !input.Uses.IsDockerBuild():
-			if len(g.Strategy) == 0 {
-				errs = append(errs, fmt.Errorf("the resolved match %q for component %q cannot build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", input.ResolvedMatch.Name, ref))
-				continue
-			}
 		}
 	}
 	if len(components) == 0 && g.BinaryBuild {
@@ -500,7 +495,6 @@ func AddMissingComponentsToRefBuilder(
 		case info == nil:
 			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
 			continue
-
 		case info.Dockerfile != nil && (len(g.Strategy) == 0 || g.Strategy == "docker"):
 			node := info.Dockerfile.AST()
 			baseImage := dockerfileutil.LastBaseImage(node)
