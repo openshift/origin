@@ -305,6 +305,10 @@ type BuildStrategy struct {
 
 	// customStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
+
+	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// This strategy is experimental.
+	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy `json:"jenkinsPipelineStrategy,omitempty"`
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -321,6 +325,9 @@ const (
 
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
+
+	// JenkinsPipelineBuildStrategyType indicates the build will run via Jenkine Pipeline.
+	JenkinsPipelineBuildStrategyType BuildStrategyType = "JenkinsPipeline"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -402,6 +409,18 @@ type SourceBuildStrategy struct {
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty"`
+}
+
+// JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
+// This strategy is experimental.
+type JenkinsPipelineBuildStrategy struct {
+	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
+	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
+	// both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.
+	JenkinsfilePath string `json:"jenkinsfilePath,omitempty"`
+
+	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	Jenkinsfile string `json:"jenkinsfile,omitempty"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
