@@ -56,6 +56,7 @@ verify: build
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
+	hack/verify-bootstrap-bindata.sh
 	VERIFY=true hack/update-generated-swagger-descriptions.sh
 .PHONY: verify
 
