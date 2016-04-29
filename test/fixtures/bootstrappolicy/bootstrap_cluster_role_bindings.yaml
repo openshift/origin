@@ -249,5 +249,18 @@ items:
   - kind: SystemGroup
     name: system:authenticated
   userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-jenkinspipeline-binding
+  roleRef:
+    name: system:build-strategy-jenkinspipeline
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
 kind: List
 metadata: {}

@@ -222,6 +222,8 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		describeSourceStrategy(p.Strategy.SourceStrategy, out)
 	case p.Strategy.CustomStrategy != nil:
 		describeCustomStrategy(p.Strategy.CustomStrategy, out)
+	case p.Strategy.JenkinsPipelineStrategy != nil:
+		describeJenkinsPipelineStrategy(p.Strategy.JenkinsPipelineStrategy, out)
 	}
 
 	if p.Output.To != nil {
@@ -356,6 +358,9 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 			formatString(out, "", formatEnv(env))
 		}
 	}
+}
+
+func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
 }
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig

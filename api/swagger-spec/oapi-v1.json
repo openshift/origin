@@ -17700,6 +17700,10 @@
      "customStrategy": {
       "$ref": "v1.CustomBuildStrategy",
       "description": "CustomStrategy holds the parameters to the Custom build strategy"
+     },
+     "jenkinsPipelineStrategy": {
+      "$ref": "v1.JenkinsPipelineBuildStrategy",
+      "description": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is experimental."
      }
     }
    },
@@ -17920,6 +17924,20 @@
      "mountPath": {
       "type": "string",
       "description": "MountPath is the path at which to mount the secret"
+     }
+    }
+   },
+   "v1.JenkinsPipelineBuildStrategy": {
+    "id": "v1.JenkinsPipelineBuildStrategy",
+    "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is experimental.",
+    "properties": {
+     "jenkinsfilePath": {
+      "type": "string",
+      "description": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the context (contextDir). If both JenkinsfilePath \u0026 Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified contextDir."
+     },
+     "jenkinsfile": {
+      "type": "string",
+      "description": "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build."
      }
     }
    },

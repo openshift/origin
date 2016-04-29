@@ -45,18 +45,22 @@ os::cmd::try_until_text              'oadm policy who-can create builds' 'namesp
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'namespaced-user'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'namespaced-user'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinspipeline' 'namespaced-user'
 os::cmd::expect_success_and_text     'oadm policy who-can create builds/docker' 'system:authenticated'
 os::cmd::expect_success_and_text     'oadm policy who-can create builds/custom' 'system:authenticated'
 os::cmd::expect_success_and_text     'oadm policy who-can create builds/source' 'system:authenticated'
-# if this method for removing access to docker/custom/source builds changes, docs need to be updated as well
+os::cmd::expect_success_and_text     'oadm policy who-can create builds/jenkinspipeline' 'system:authenticated'
+# if this method for removing access to docker/custom/source/jenkinspipeline builds changes, docs need to be updated as well
 os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-custom system:authenticated'
 os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated'
 os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated'
+os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated'
 # ensure build strategy permissions no longer exist
 os::cmd::try_until_failure           'oadm policy who-can create builds/source | grep system:authenticated'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'system:authenticated'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'system:authenticated'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
 
 

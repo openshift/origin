@@ -129,7 +129,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 }
 
 func buildStrategyTypes() []string {
-	return []string{"source", "docker", "custom"}
+	return []string{"source", "docker", "custom", "jenkinspipeline"}
 }
 
 func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
@@ -202,7 +202,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 
 func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	// remove resources from role so that certain build strategies are forbidden
-	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName} {
+	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
 		remove := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
@@ -215,13 +215,16 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectA
 	}
 
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.SourceBuildResource), false); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), false); err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), false); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -236,6 +239,8 @@ func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
 	case "source":
 		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
 		buildStrategy.SourceStrategy.From.Name = "builderimage:latest"
+	case "jenkinspipeline":
+		buildStrategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
 	default:
 		t.Fatalf("unknown strategy: %#v", strategy)
 	}

@@ -63,9 +63,10 @@ const (
 	RegistryViewerRoleName = "registry-viewer"
 	RegistryEditorRoleName = "registry-editor"
 
-	BuildStrategyDockerRoleName = "system:build-strategy-docker"
-	BuildStrategyCustomRoleName = "system:build-strategy-custom"
-	BuildStrategySourceRoleName = "system:build-strategy-source"
+	BuildStrategyDockerRoleName          = "system:build-strategy-docker"
+	BuildStrategyCustomRoleName          = "system:build-strategy-custom"
+	BuildStrategySourceRoleName          = "system:build-strategy-source"
+	BuildStrategyJenkinsPipelineRoleName = "system:build-strategy-jenkinspipeline"
 
 	ImageAuditorRoleName      = "system:image-auditor"
 	ImagePullerRoleName       = "system:image-puller"
@@ -118,9 +119,10 @@ const (
 	RegistryViewerRoleBindingName    = RegistryViewerRoleName + "s"
 	RegistryEditorRoleBindingName    = RegistryEditorRoleName + "s"
 
-	BuildStrategyDockerRoleBindingName = BuildStrategyDockerRoleName + "-binding"
-	BuildStrategyCustomRoleBindingName = BuildStrategyCustomRoleName + "-binding"
-	BuildStrategySourceRoleBindingName = BuildStrategySourceRoleName + "-binding"
+	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
+	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
+	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
+	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )
