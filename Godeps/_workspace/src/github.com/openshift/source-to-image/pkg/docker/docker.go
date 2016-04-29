@@ -119,7 +119,6 @@ type RunContainerOptions struct {
 	Command          string
 	CommandOverrides func(originalCmd string) string
 	Env              []string
-	Entrypoint       []string
 	Stdin            io.Reader
 	Stdout           io.Writer
 	Stderr           io.Writer
@@ -139,7 +138,6 @@ func (rco RunContainerOptions) asDockerConfig() docker.Config {
 		Image:        getImageName(rco.Image),
 		User:         rco.User,
 		Env:          rco.Env,
-		Entrypoint:   rco.Entrypoint,
 		OpenStdin:    rco.Stdin != nil,
 		StdinOnce:    rco.Stdin != nil,
 		AttachStdout: rco.Stdout != nil,
