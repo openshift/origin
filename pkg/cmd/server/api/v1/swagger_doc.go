@@ -266,12 +266,12 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 }
 
 var map_JenkinsPipelineConfig = map[string]string{
-	"":             "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
-	"disabled":     "Disabled disables the Jenkins Pipeline auto-instantiation of Jenkins template. The ServiceName is still used to verify the project already have the Jenkins available. When not specified (default), this option defaults to false",
-	"namespace":    "Namespace contains the namespace name where the Jenkins template is stored",
-	"templateName": "TemplateName is the name of the default Jenkins template",
-	"serviceName":  "ServiceName is the name of the Jenkins service OpenShift use for Jenkins pipeline",
-	"parameters":   "Parameters specifies a set of optional parameters to the Jenkins template",
+	"":                  "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"enabled":           "If the enabled flag is set, a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+	"templateNamespace": "TemplateNamespace contains the namespace name where the Jenkins template is stored",
+	"templateName":      "TemplateName is the name of the default Jenkins template",
+	"serviceName":       "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+	"parameters":        "Parameters specifies a set of optional parameters to the Jenkins template.",
 }
 
 func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {

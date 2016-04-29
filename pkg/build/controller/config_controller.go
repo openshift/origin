@@ -12,8 +12,8 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	"github.com/openshift/origin/pkg/build/controller/jenkins"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	osclient "github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -64,8 +64,7 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 			return nil
 		}
 
-		isDisabled := c.JenkinsConfig.Disabled
-		if isDisabled != nil && *isDisabled {
+		if b := c.JenkinsConfig.Enabled; b == nil || !*b {
 			glog.V(4).Infof("Provisioning Jenkins Pipeline from a template is disabled in master configuration")
 			return nil
 		}
@@ -80,18 +79,18 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 			return fmt.Errorf("unable to get openshift client from %v", c.KubeClient)
 		}
 
-		jenkinsTemplate := buildutil.NewJenkinsPipelineTemplate(bc.Namespace, c.JenkinsConfig, kc, oc)
+		jenkinsTemplate := jenkins.NewPipelineTemplate(bc.Namespace, c.JenkinsConfig, kc, oc)
 		objects, errs := jenkinsTemplate.Process()
 		if len(errs) > 0 {
 			for _, err := range errs {
-				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Processing %s/%s error: %v", c.JenkinsConfig.Namespace, c.JenkinsConfig.TemplateName, err)
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Processing %s/%s error: %v", c.JenkinsConfig.TemplateNamespace, c.JenkinsConfig.TemplateName, err)
 			}
 			return fmt.Errorf("processing Jenkins pipeline template failed")
 		}
 
 		if errs := jenkinsTemplate.Instantiate(objects); len(errs) > 0 {
 			for _, err := range errs {
-				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Instantiating %s/%s error: %v", c.JenkinsConfig.Namespace, c.JenkinsConfig.TemplateName, err)
+				c.Recorder.Eventf(bc, kapi.EventTypeWarning, "Failed", "Instantiating %s/%s error: %v", c.JenkinsConfig.TemplateNamespace, c.JenkinsConfig.TemplateName, err)
 			}
 			return fmt.Errorf("instantiating Jenkins pipeline template failed")
 		}

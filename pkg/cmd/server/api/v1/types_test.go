@@ -146,6 +146,12 @@ imagePolicyConfig:
   maxImagesBulkImportedPerRepository: 0
   maxScheduledImageImportsPerMinute: 0
   scheduledImageImportMinimumIntervalSeconds: 0
+jenkinsPipelineConfig:
+  enabled: null
+  parameters: null
+  serviceName: ""
+  templateName: ""
+  templateNamespace: ""
 kind: MasterConfig
 kubeletClientInfo:
   ca: ""

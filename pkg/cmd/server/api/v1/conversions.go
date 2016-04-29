@@ -32,8 +32,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
-			if len(obj.JenkinsPipelineConfig.Namespace) == 0 {
-				obj.JenkinsPipelineConfig.Namespace = "openshift"
+			if len(obj.JenkinsPipelineConfig.TemplateNamespace) == 0 {
+				obj.JenkinsPipelineConfig.TemplateNamespace = "openshift"
 			}
 			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
 				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
@@ -41,9 +41,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
 				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
-			if obj.JenkinsPipelineConfig.Disabled == nil {
-				disabled := false
-				obj.JenkinsPipelineConfig.Disabled = &disabled
+			if obj.JenkinsPipelineConfig.Enabled == nil {
+				v := true
+				obj.JenkinsPipelineConfig.Enabled = &v
 			}
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed

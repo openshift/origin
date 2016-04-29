@@ -1742,6 +1742,7 @@ func TestValidateBuildSpec(t *testing.T) {
 			},
 		},
 		// 25
+		// path must be shorter than 100k
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
 			&buildapi.BuildSpec{
@@ -1752,23 +1753,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 				Strategy: buildapi.BuildStrategy{
 					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
-						Jenkinsfile: longString,
-					},
-				},
-			},
-		},
-		// 26
-		{
-			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
-			&buildapi.BuildSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-				},
-				Strategy: buildapi.BuildStrategy{
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
-						Jenkinsfile: longString,
+						Jenkinsfile: longString + longString,
 					},
 				},
 			},
