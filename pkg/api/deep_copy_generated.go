@@ -1124,6 +1124,14 @@ func deepCopy_api_BuildStrategy(in buildapi.BuildStrategy, out *buildapi.BuildSt
 	} else {
 		out.CustomStrategy = nil
 	}
+	if in.JenkinsPipelineStrategy != nil {
+		out.JenkinsPipelineStrategy = new(buildapi.JenkinsPipelineBuildStrategy)
+		if err := deepCopy_api_JenkinsPipelineBuildStrategy(*in.JenkinsPipelineStrategy, out.JenkinsPipelineStrategy, c); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -1311,6 +1319,12 @@ func deepCopy_api_ImageSource(in buildapi.ImageSource, out *buildapi.ImageSource
 func deepCopy_api_ImageSourcePath(in buildapi.ImageSourcePath, out *buildapi.ImageSourcePath, c *conversion.Cloner) error {
 	out.SourcePath = in.SourcePath
 	out.DestinationDir = in.DestinationDir
+	return nil
+}
+
+func deepCopy_api_JenkinsPipelineBuildStrategy(in buildapi.JenkinsPipelineBuildStrategy, out *buildapi.JenkinsPipelineBuildStrategy, c *conversion.Cloner) error {
+	out.JenkinsfilePath = in.JenkinsfilePath
+	out.Jenkinsfile = in.Jenkinsfile
 	return nil
 }
 
@@ -3328,6 +3342,7 @@ func init() {
 		deepCopy_api_ImageChangeTrigger,
 		deepCopy_api_ImageSource,
 		deepCopy_api_ImageSourcePath,
+		deepCopy_api_JenkinsPipelineBuildStrategy,
 		deepCopy_api_SecretBuildSource,
 		deepCopy_api_SecretSpec,
 		deepCopy_api_SourceBuildStrategy,
