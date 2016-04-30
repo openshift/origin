@@ -1854,6 +1854,16 @@ func TestValidateTrigger(t *testing.T) {
 			},
 			expected: []*field.Error{field.Required(field.NewPath("github"), "")},
 		},
+		"GitHub trigger with allow env": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
+					Secret:   "secret101",
+					AllowEnv: true,
+				},
+			},
+			expected: []*field.Error{field.Invalid(field.NewPath("github", "allowEnv"), "", "")},
+		},
 		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
 			expected: []*field.Error{field.Required(field.NewPath("generic"), "")},

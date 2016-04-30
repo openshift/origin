@@ -1396,8 +1396,7 @@ func autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 	out.Type = v1beta3.BuildTriggerType(in.Type)
 	// unable to generate simple pointer conversion for api.WebHookTrigger -> v1beta3.WebHookTrigger
 	if in.GitHubWebHook != nil {
-		out.GitHubWebHook = new(v1beta3.WebHookTrigger)
-		if err := Convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in.GitHubWebHook, out.GitHubWebHook, s); err != nil {
+		if err := s.Convert(&in.GitHubWebHook, &out.GitHubWebHook, 0); err != nil {
 			return err
 		}
 	} else {
@@ -1405,8 +1404,7 @@ func autoConvert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *builda
 	}
 	// unable to generate simple pointer conversion for api.WebHookTrigger -> v1beta3.WebHookTrigger
 	if in.GenericWebHook != nil {
-		out.GenericWebHook = new(v1beta3.WebHookTrigger)
-		if err := Convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in.GenericWebHook, out.GenericWebHook, s); err != nil {
+		if err := s.Convert(&in.GenericWebHook, &out.GenericWebHook, 0); err != nil {
 			return err
 		}
 	} else {
@@ -1704,18 +1702,6 @@ func autoConvert_api_SourceRevision_To_v1beta3_SourceRevision(in *buildapi.Sourc
 		out.Git = nil
 	}
 	return nil
-}
-
-func autoConvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *v1beta3.WebHookTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapi.WebHookTrigger))(in)
-	}
-	out.Secret = in.Secret
-	return nil
-}
-
-func Convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTrigger, out *v1beta3.WebHookTrigger, s conversion.Scope) error {
-	return autoConvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in, out, s)
 }
 
 func autoConvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *v1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
@@ -2174,8 +2160,7 @@ func autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *v1beta
 	out.Type = buildapi.BuildTriggerType(in.Type)
 	// unable to generate simple pointer conversion for v1beta3.WebHookTrigger -> api.WebHookTrigger
 	if in.GitHubWebHook != nil {
-		out.GitHubWebHook = new(buildapi.WebHookTrigger)
-		if err := Convert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in.GitHubWebHook, out.GitHubWebHook, s); err != nil {
+		if err := s.Convert(&in.GitHubWebHook, &out.GitHubWebHook, 0); err != nil {
 			return err
 		}
 	} else {
@@ -2183,8 +2168,7 @@ func autoConvert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *v1beta
 	}
 	// unable to generate simple pointer conversion for v1beta3.WebHookTrigger -> api.WebHookTrigger
 	if in.GenericWebHook != nil {
-		out.GenericWebHook = new(buildapi.WebHookTrigger)
-		if err := Convert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in.GenericWebHook, out.GenericWebHook, s); err != nil {
+		if err := s.Convert(&in.GenericWebHook, &out.GenericWebHook, 0); err != nil {
 			return err
 		}
 	} else {
@@ -2483,18 +2467,6 @@ func autoConvert_v1beta3_SourceRevision_To_api_SourceRevision(in *v1beta3.Source
 		out.Git = nil
 	}
 	return nil
-}
-
-func autoConvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *v1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.WebHookTrigger))(in)
-	}
-	out.Secret = in.Secret
-	return nil
-}
-
-func Convert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in *v1beta3.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
-	return autoConvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger(in, out, s)
 }
 
 func autoConvert_api_DeploymentCause_To_v1beta3_DeploymentCause(in *deployapi.DeploymentCause, out *deployapiv1beta3.DeploymentCause, s conversion.Scope) error {
@@ -6923,7 +6895,6 @@ func init() {
 		autoConvert_api_VolumeMount_To_v1beta3_VolumeMount,
 		autoConvert_api_VolumeSource_To_v1beta3_VolumeSource,
 		autoConvert_api_Volume_To_v1beta3_Volume,
-		autoConvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger,
 		autoConvert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource,
 		autoConvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions,
 		autoConvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource,
@@ -7067,7 +7038,6 @@ func init() {
 		autoConvert_v1beta3_VolumeMount_To_api_VolumeMount,
 		autoConvert_v1beta3_VolumeSource_To_api_VolumeSource,
 		autoConvert_v1beta3_Volume_To_api_Volume,
-		autoConvert_v1beta3_WebHookTrigger_To_api_WebHookTrigger,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

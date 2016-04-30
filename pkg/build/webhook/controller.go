@@ -20,7 +20,7 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, bool, error)
+	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, bool, error)
 }
 
 // controller used for processing webhook requests.
@@ -71,7 +71,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
-	revision, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
+	revision, envvars, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
 		glog.V(2).Infof("Failed to extract information from webhook: %v", err)
 		badRequest(w, err.Error())
@@ -83,6 +83,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: buildCfg.Name},
 		Revision:   revision,
+		Env:        envvars,
 	}
 	if _, err := c.buildConfigInstantiator.Instantiate(uv.namespace, request); err != nil {
 		glog.V(2).Infof("Failed to generate new Build from BuildConfig %s/%s: %v", buildCfg.Namespace, buildCfg.Name, err)

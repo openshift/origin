@@ -90,11 +90,12 @@ type TriggersOptions struct {
 	Manual    bool
 	Reset     bool
 
-	ContainerNames string
-	FromConfig     bool
-	FromGitHub     *bool
-	FromWebHook    *bool
-	FromImage      string
+	ContainerNames      string
+	FromConfig          bool
+	FromGitHub          *bool
+	FromWebHook         *bool
+	FromWebHookAllowEnv *bool
+	FromImage           string
 	// FromImageNamespace is the namespace for the FromImage
 	FromImageNamespace string
 }
@@ -138,6 +139,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	cmd.Flags().StringVar(&options.FromImage, "from-image", options.FromImage, "An image stream tag to trigger off of")
 	options.FromGitHub = cmd.Flags().Bool("from-github", false, "A GitHub webhook - a secret value will be generated automatically")
 	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "A generic webhook - a secret value will be generated automatically")
+	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "A generic webhook which can provide environment variables - a secret value will be generated automatically")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -155,6 +157,9 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	}
 	if !cmd.Flags().Lookup("from-webhook").Changed {
 		o.FromWebHook = nil
+	}
+	if !cmd.Flags().Lookup("from-webhook-allow-env").Changed {
+		o.FromWebHookAllowEnv = nil
 	}
 
 	if len(o.FromImage) > 0 {
@@ -211,6 +216,9 @@ func (o *TriggersOptions) count() int {
 		count++
 	}
 	if o.FromWebHook != nil {
+		count++
+	}
+	if o.FromWebHookAllowEnv != nil {
 		count++
 	}
 	if len(o.FromImage) > 0 {
@@ -383,6 +391,10 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		if o.FromWebHook != nil && *o.FromWebHook {
 			triggers.WebHooks = nil
 		}
+		if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
+			triggers.WebHooks = nil
+			triggers.WebHooksAllowEnv = false
+		}
 		if o.FromGitHub != nil && *o.FromGitHub {
 			triggers.GitHubWebHooks = nil
 		}
@@ -428,6 +440,10 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 	if o.FromWebHook != nil && *o.FromWebHook {
 		triggers.WebHooks = []string{app.GenerateSecret(20)}
 	}
+	if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
+		triggers.WebHooks = []string{app.GenerateSecret(20)}
+		triggers.WebHooksAllowEnv = true
+	}
 	if o.FromGitHub != nil && *o.FromGitHub {
 		triggers.GitHubWebHooks = []string{app.GenerateSecret(20)}
 	}
@@ -448,10 +464,11 @@ type ImageChangeTrigger struct {
 
 // TriggerDefinition is the abstract representation of triggers for builds and deploymnet configs.
 type TriggerDefinition struct {
-	ConfigChange   bool
-	ImageChange    []ImageChangeTrigger
-	WebHooks       []string
-	GitHubWebHooks []string
+	ConfigChange     bool
+	ImageChange      []ImageChangeTrigger
+	WebHooks         []string
+	WebHooksAllowEnv bool
+	GitHubWebHooks   []string
 }
 
 // defaultNamespace returns an empty string if the provided namespace matches the default namespace, or
@@ -492,6 +509,7 @@ func NewBuildConfigTriggers(config *buildapi.BuildConfig) *TriggerDefinition {
 			t.ConfigChange = true
 		case buildapi.GenericWebHookBuildTriggerType:
 			t.WebHooks = append(t.WebHooks, trigger.GenericWebHook.Secret)
+			t.WebHooksAllowEnv = trigger.GenericWebHook.AllowEnv
 		case buildapi.GitHubWebHookBuildTriggerType:
 			t.GitHubWebHooks = append(t.GitHubWebHooks, trigger.GitHubWebHook.Secret)
 		case buildapi.ImageChangeBuildTriggerType:
@@ -575,7 +593,8 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
-					Secret: trigger,
+					Secret:   trigger,
+					AllowEnv: t.WebHooksAllowEnv,
 				},
 			})
 		}

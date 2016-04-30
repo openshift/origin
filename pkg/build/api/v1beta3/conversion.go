@@ -126,7 +126,7 @@ func Convert_api_BuildOutput_To_v1beta3_BuildOutput(in *newer.BuildOutput, out *
 }
 
 func Convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	switch in.Type {
@@ -141,7 +141,7 @@ func Convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigg
 }
 
 func Convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 	switch in.Type {

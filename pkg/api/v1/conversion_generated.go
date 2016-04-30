@@ -1769,6 +1769,7 @@ func autoConvert_api_WebHookTrigger_To_v1_WebHookTrigger(in *buildapi.WebHookTri
 		defaulting.(func(*buildapi.WebHookTrigger))(in)
 	}
 	out.Secret = in.Secret
+	out.AllowEnv = in.AllowEnv
 	return nil
 }
 
@@ -2614,6 +2615,7 @@ func autoConvert_v1_WebHookTrigger_To_api_WebHookTrigger(in *v1.WebHookTrigger, 
 		defaulting.(func(*v1.WebHookTrigger))(in)
 	}
 	out.Secret = in.Secret
+	out.AllowEnv = in.AllowEnv
 	return nil
 }
 

@@ -573,6 +573,10 @@ type BuildConfigStatus struct {
 type WebHookTrigger struct {
 	// Secret used to validate requests.
 	Secret string
+
+	// AllowEnv determines whether the webhook can set environment variables; can only
+	// be set to true for GenericWebHook
+	AllowEnv bool
 }
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
@@ -657,6 +661,9 @@ type BuildConfigList struct {
 type GenericWebHookEvent struct {
 	// Git is the git information, if any.
 	Git *GitInfo
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
 }
 
 // GitInfo is the aggregated git information for a generic webhook post

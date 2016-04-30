@@ -32,18 +32,27 @@ func (i *buildConfigInstantiator) Instantiate(namespace string, request *api.Bui
 type plugin struct {
 	Secret, Path string
 	Err          error
+	Env          []kapi.EnvVar
 }
 
-func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
+func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
 	p.Secret, p.Path = secret, path
-	return nil, true, p.Err
+	return nil, p.Env, true, p.Err
 }
 
 func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigRegistry) {
 	mockRegistry := &test.BuildConfigRegistry{}
 	bci := &buildConfigInstantiator{}
 	hook := NewWebHookREST(mockRegistry, bci, map[string]webhook.Plugin{
-		"ok":        &plugin{},
+		"ok": &plugin{},
+		"okenv": &plugin{
+			Env: []kapi.EnvVar{
+				{
+					Name:  "foo",
+					Value: "bar",
+				},
+			},
+		},
 		"errsecret": &plugin{Err: webhook.ErrSecretMismatch},
 		"errhook":   &plugin{Err: webhook.ErrHookNotEnabled},
 		"err":       &plugin{Err: fmt.Errorf("test error")},
@@ -90,6 +99,7 @@ func TestConnectWebHook(t *testing.T) {
 		RegErr error
 		ErrFn  func(error) bool
 		WFn    func(*httptest.ResponseRecorder) bool
+		EnvLen int
 	}{
 		"hook returns generic error": {
 			Name: "test",
@@ -122,6 +132,16 @@ func TestConnectWebHook(t *testing.T) {
 			WFn: func(w *httptest.ResponseRecorder) bool {
 				return w.Code == http.StatusOK
 			},
+		},
+		"hook returns 200 for okenv hook": {
+			Name:  "test",
+			Path:  "secret/okenv/extra",
+			Obj:   &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			ErrFn: func(err error) bool { return err == nil },
+			WFn: func(w *httptest.ResponseRecorder) bool {
+				return w.Code == http.StatusOK
+			},
+			EnvLen: 1,
 		},
 	}
 	for k, testCase := range testCases {
@@ -162,6 +182,9 @@ func TestConnectWebHook(t *testing.T) {
 				t.Errorf("%s: instantiator should not be invoked: %#v", k, bci)
 				continue
 			}
+		}
+		if bci.Request != nil && testCase.EnvLen != len(bci.Request.Env) {
+			t.Errorf("%s: build request does not have correct env vars:  %+v \n", k, bci.Request)
 		}
 	}
 }

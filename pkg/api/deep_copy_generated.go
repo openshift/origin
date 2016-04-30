@@ -1387,6 +1387,7 @@ func deepCopy_api_SourceRevision(in buildapi.SourceRevision, out *buildapi.Sourc
 
 func deepCopy_api_WebHookTrigger(in buildapi.WebHookTrigger, out *buildapi.WebHookTrigger, c *conversion.Cloner) error {
 	out.Secret = in.Secret
+	out.AllowEnv = in.AllowEnv
 	return nil
 }
 
