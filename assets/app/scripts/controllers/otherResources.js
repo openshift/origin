@@ -86,7 +86,10 @@ angular.module('openshiftConsole')
       });   
     }
     $scope.loadKind = loadKind;
-    $scope.$watch("kindSelector.selected", loadKind);
+    $scope.$watch("kindSelector.selected", function() {
+      $scope.alerts = {};
+      loadKind();
+    });
     
     var humanizeKind = $filter("humanizeKind");
     $scope.matchKind = function(kind, search) {     
