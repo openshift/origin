@@ -113,7 +113,7 @@ func init() {
 				// Create permission on virtual build type resources allows builds of those types to be updated
 				{
 					Verbs:     sets.NewString("create"),
-					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom"),
+					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline"),
 				},
 				// BuildController.ImageStreamClient (ControllerClient)
 				{

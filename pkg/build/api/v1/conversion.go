@@ -203,6 +203,8 @@ func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 		out.Type = DockerBuildStrategyType
 	case in.CustomStrategy != nil:
 		out.Type = CustomBuildStrategyType
+	case in.JenkinsPipelineStrategy != nil:
+		out.Type = JenkinsPipelineBuildStrategyType
 	}
 	return nil
 }

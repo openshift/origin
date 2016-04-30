@@ -24,10 +24,7 @@ func WaitForPolicyUpdate(c *client.Client, namespace, verb string, resource unve
 		if err != nil {
 			return false, err
 		}
-		if response.Allowed != allowed {
-			return false, nil
-		}
-		return true, nil
+		return response.Allowed == allowed, nil
 	})
 	return err
 }

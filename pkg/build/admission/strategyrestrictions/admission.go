@@ -83,6 +83,8 @@ func resourceForStrategyType(strategy buildapi.BuildStrategy) (unversioned.Group
 		return buildapi.Resource(authorizationapi.CustomBuildResource), nil
 	case strategy.SourceStrategy != nil:
 		return buildapi.Resource(authorizationapi.SourceBuildResource), nil
+	case strategy.JenkinsPipelineStrategy != nil:
+		return buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), nil
 	default:
 		return unversioned.GroupResource{}, fmt.Errorf("unrecognized build strategy: %#v", strategy)
 	}
