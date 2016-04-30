@@ -21,7 +21,7 @@ pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -nometadata -prefix "bootstrap" -pkg "boostrap" \
+  Godeps/_workspace/bin/go-bindata -nocompress -nometadata -prefix "bootstrap" -pkg "bootstrap" \
                                    -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" -ignore "README.md" \
                                    ${EXAMPLES}/image-streams/... \
                                    ${EXAMPLES}/db-templates/... \
