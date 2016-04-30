@@ -322,7 +322,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{Verbs: sets.NewString("get"), Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
 				{Verbs: sets.NewString("list"), Resources: sets.NewString("projectrequests")},
 				{Verbs: sets.NewString("list", "get"), Resources: sets.NewString("clusterroles")},
-				{Verbs: sets.NewString("list"), Resources: sets.NewString("projects")},
+				{Verbs: sets.NewString("list", "watch"), Resources: sets.NewString("projects")},
 				{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			},
 		},

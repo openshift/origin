@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -123,6 +124,9 @@ type AuthorizationCache struct {
 	reviewer Reviewer
 
 	syncHandler func(request *reviewRequest, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) error
+
+	watchers    []CacheWatcher
+	watcherLock sync.Mutex
 }
 
 // NewAuthorizationCache creates a new AuthorizationCache
@@ -143,6 +147,8 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.Namespa
 
 		reviewer: reviewer,
 		skip:     &neverSkipSynchronizer{},
+
+		watchers: []CacheWatcher{},
 	}
 	result.syncHandler = result.syncRequest
 	return result
@@ -170,6 +176,30 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	ac.skip = &statelessSkipSynchronizer{}
 
 	go utilwait.Forever(func() { ac.synchronize() }, period)
+}
+
+func (ac *AuthorizationCache) AddWatcher(watcher CacheWatcher) {
+	ac.watcherLock.Lock()
+	defer ac.watcherLock.Unlock()
+
+	ac.watchers = append(ac.watchers, watcher)
+}
+
+func (ac *AuthorizationCache) RemoveWatcher(watcher CacheWatcher) {
+	ac.watcherLock.Lock()
+	defer ac.watcherLock.Unlock()
+
+	lastIndex := len(ac.watchers) - 1
+	for i := 0; i < len(ac.watchers); i++ {
+		if ac.watchers[i] == watcher {
+			if i < lastIndex {
+				// if we're not the last element, shift
+				copy(ac.watchers[i:], ac.watchers[i+1:])
+			}
+			ac.watchers = ac.watchers[:lastIndex-1]
+			break
+		}
+	}
 }
 
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
@@ -345,6 +375,7 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 	addSubjectsToNamespace(userSubjectRecordStore, review.Users(), namespace)
 	addSubjectsToNamespace(groupSubjectRecordStore, review.Groups(), namespace)
 	cacheReviewRecord(request, lastKnownValue, review, reviewRecordStore)
+	ac.notifyWatchers(namespace, lastKnownValue, sets.NewString(review.Users()...), sets.NewString(review.Groups()...))
 	return nil
 }
 
@@ -452,6 +483,27 @@ func addSubjectsToNamespace(subjectRecordStore cache.Store, subjects []string, n
 			subjectRecordStore.Add(item)
 		}
 		item.namespaces.Insert(namespace)
+	}
+}
+
+func (ac *AuthorizationCache) notifyWatchers(namespace string, exists *reviewRecord, latestUsers, latestGroups sets.String) {
+	existingGroups := sets.String{}
+	existingUsers := sets.String{}
+	if exists != nil {
+		existingGroups = sets.NewString(exists.groups...)
+		existingUsers = sets.NewString(exists.users...)
+	}
+
+	// calculate once to avoid fanning out.
+	removedUsers := existingUsers.Difference(latestUsers)
+	removedGroups := existingGroups.Difference(latestGroups)
+	addedUsers := latestUsers.Difference(existingUsers)
+	addedGroups := latestGroups.Difference(existingGroups)
+
+	ac.watcherLock.Lock()
+	defer ac.watcherLock.Unlock()
+	for _, watcher := range ac.watchers {
+		watcher.GroupMembershipChanged(namespace, latestUsers, latestGroups, removedUsers, removedGroups, addedUsers, addedGroups)
 	}
 }
 

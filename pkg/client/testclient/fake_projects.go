@@ -3,6 +3,7 @@ package testclient
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/watch"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -52,4 +53,8 @@ func (c *FakeProjects) Update(inObj *projectapi.Project) (*projectapi.Project, e
 func (c *FakeProjects) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("projects", name), &projectapi.Project{})
 	return err
+}
+
+func (c *FakeProjects) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("projects", opts))
 }

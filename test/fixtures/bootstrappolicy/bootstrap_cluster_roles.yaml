@@ -689,6 +689,7 @@ items:
     - projects
     verbs:
     - list
+    - watch
   - apiGroups: null
     attributeRestrictions:
       apiVersion: v1
