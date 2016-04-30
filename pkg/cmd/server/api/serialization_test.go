@@ -81,6 +81,22 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
+		func(obj *configapi.JenkinsPipelineConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			if obj.Enabled == nil {
+				v := c.RandBool()
+				obj.Enabled = &v
+			}
+			if len(obj.TemplateNamespace) == 0 {
+				obj.TemplateNamespace = "value"
+			}
+			if len(obj.TemplateName) == 0 {
+				obj.TemplateName = "anothervalue"
+			}
+			if len(obj.ServiceName) == 0 {
+				obj.ServiceName = "thirdvalue"
+			}
+		},
 		func(obj *configapi.NodeConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
 			// Defaults/migrations for NetworkConfig

@@ -288,6 +288,28 @@ type MasterConfig struct {
 
 	// VolumeConfig contains options for configuring volumes on the node.
 	VolumeConfig MasterVolumeConfig
+
+	// JenkinsPipelineConfig holds information about the default Jenkins template
+	// used for JenkinsPipeline build strategy.
+	JenkinsPipelineConfig JenkinsPipelineConfig
+}
+
+// JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
+type JenkinsPipelineConfig struct {
+	// If the enabled flag is set, a Jenkins server will be spawned from the provided
+	// template when the first build config in the project with type JenkinsPipeline
+	// is created. When not specified this option defaults to true.
+	Enabled *bool
+	// TemplateNamespace contains the namespace name where the Jenkins template is stored
+	TemplateNamespace string
+	// TemplateName is the name of the default Jenkins template
+	TemplateName string
+	// ServiceName is the name of the Jenkins service OpenShift uses to detect
+	// whether a Jenkins pipeline handler has already been installed in a project.
+	// This value *must* match a service name in the provided template.
+	ServiceName string
+	// Parameters specifies a set of optional parameters to the Jenkins template.
+	Parameters map[string]string
 }
 
 type ImagePolicyConfig struct {
@@ -296,13 +318,13 @@ type ImagePolicyConfig struct {
 	// importing large numbers of images accidentally. Set -1 for no limit.
 	MaxImagesBulkImportedPerRepository int
 	// DisableScheduledImport allows scheduled background import of images to be disabled.
-	DisableScheduledImport bool `json:"disableScheduledImport"`
+	DisableScheduledImport bool
 	// ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams
 	// scheduled for background import are checked against the upstream repository. The default value is 15 minutes.
-	ScheduledImageImportMinimumIntervalSeconds int `json:"scheduledImageImportMinimumIntervalSeconds"`
+	ScheduledImageImportMinimumIntervalSeconds int
 	// MaxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute.
 	// The default value is 60. Set to -1 for unlimited.
-	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
+	MaxScheduledImageImportsPerMinute int
 }
 
 type ProjectConfig struct {
@@ -401,7 +423,7 @@ type MasterNetworkConfig struct {
 	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
 	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
 	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
-	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
+	ExternalIPNetworkCIDRs []string
 }
 
 type ImageConfig struct {

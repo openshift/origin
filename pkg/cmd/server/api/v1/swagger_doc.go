@@ -265,6 +265,19 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 	return map_ImagePolicyConfig
 }
 
+var map_JenkinsPipelineConfig = map[string]string{
+	"":                  "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"enabled":           "If the enabled flag is set, a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+	"templateNamespace": "TemplateNamespace contains the namespace name where the Jenkins template is stored",
+	"templateName":      "TemplateName is the name of the default Jenkins template",
+	"serviceName":       "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+	"parameters":        "Parameters specifies a set of optional parameters to the Jenkins template.",
+}
+
+func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineConfig
+}
+
 var map_KeystonePasswordIdentityProvider = map[string]string{
 	"":           "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
 	"domainName": "Domain Name is required for keystone v3",
@@ -409,6 +422,7 @@ var map_MasterConfig = map[string]string{
 	"routingConfig":          "RoutingConfig holds information about routing and route generation",
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
 	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {

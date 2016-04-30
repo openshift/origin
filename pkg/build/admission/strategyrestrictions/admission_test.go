@@ -139,6 +139,26 @@ func TestBuildAdmission(t *testing.T) {
 			reviewResponse: reviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:   true,
 		},
+		{
+			name:             "allowed jenkins pipeline build",
+			object:           testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.JenkinsPipelineBuildResource,
+			expectAccept:     true,
+		},
+		{
+			name:             "allowed jenkins pipeline build clone",
+			object:           testBuildRequest("buildname"),
+			responseObject:   testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			subResource:      "clone",
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.JenkinsPipelineBuildResource,
+			expectAccept:     true,
+		},
 	}
 
 	ops := []admission.Operation{admission.Create, admission.Update}
