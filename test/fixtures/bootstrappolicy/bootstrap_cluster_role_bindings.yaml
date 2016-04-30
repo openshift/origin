@@ -41,7 +41,10 @@ items:
   subjects:
   - kind: SystemGroup
     name: system:cluster-admins
-  userNames: null
+  - kind: SystemUser
+    name: system:admin
+  userNames:
+  - system:admin
 - apiVersion: v1
   groupNames:
   - system:cluster-readers

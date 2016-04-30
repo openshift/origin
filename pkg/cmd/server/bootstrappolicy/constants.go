@@ -16,9 +16,10 @@ const (
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
 
-	MasterUsername   = "system:" + MasterUnqualifiedUsername
-	RouterUsername   = "system:" + RouterUnqualifiedUsername
-	RegistryUsername = "system:" + RegistryUnqualifiedUsername
+	MasterUsername      = "system:" + MasterUnqualifiedUsername
+	RouterUsername      = "system:" + RouterUnqualifiedUsername
+	RegistryUsername    = "system:" + RegistryUnqualifiedUsername
+	SystemAdminUsername = "system:admin"
 
 	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
 	// Should not be changed without considering impact to pods that may be verifying this identity by default
@@ -51,6 +52,7 @@ const (
 // Roles
 const (
 	ClusterAdminRoleName    = "cluster-admin"
+	SudoerRoleName          = "sudoer"
 	ClusterReaderRoleName   = "cluster-reader"
 	AdminRoleName           = "admin"
 	EditRoleName            = "edit"

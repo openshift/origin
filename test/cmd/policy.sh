@@ -15,6 +15,21 @@ os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
 os::cmd::expect_success_and_text 'oc whoami --as deads' "deads"
 
+os::cmd::expect_success 'oadm policy add-cluster-role-to-user sudoer wheel'
+os::cmd::expect_success 'oc login -u wheel -p pw'
+os::cmd::expect_success_and_text 'oc whoami' "wheel"
+os::cmd::expect_failure 'oc whoami --as deads'
+os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
+
+os::cmd::expect_success 'oc login -u local-admin -p pw'
+os::cmd::expect_success 'oc new-project foo'
+os::cmd::expect_failure 'oc whoami --as=system:admin'
+os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:foo:default' "system:serviceaccount:foo:default"
+os::cmd::expect_failure 'oc whoami --as=system:serviceaccount:another:default'
+os::cmd::expect_success 'oc login -u system:admin -n cmd-policy'
+os::cmd::expect_success 'oc delete project foo'
+
+
 # This test validates user level policy
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
