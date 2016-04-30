@@ -258,7 +258,7 @@ angular.module('openshiftConsole')
 
               var options = angular.extend({
                 follow: true,
-                tailLines: 1000,
+                tailLines: 5000,
                 limitBytes: 10 * 1024 * 1024 // Limit log size to 10 MiB
               }, $scope.options);
 
