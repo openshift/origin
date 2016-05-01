@@ -11,7 +11,7 @@ fi
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') && -z "${FORCE_VERIFY-}"  ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping golint."
   exit 0
 fi
@@ -38,10 +38,10 @@ if [ "$arg" == "-m" ]; then
   fi
   set -e
 else
-  bad_files=$(find_files | 
-                sort -u | 
-                sed 's/^.{2}//' | 
-                xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n" | 
+  bad_files=$(find_files |
+                sort -u |
+                sed 's/^.{2}//' |
+                xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n" |
                 xargs -n1 golint)
 fi
 
