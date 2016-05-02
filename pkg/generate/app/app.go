@@ -276,13 +276,18 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}, nil
 }
 
+type DeploymentHook struct {
+	Shell string
+}
+
 // DeploymentConfigRef is a reference to a deployment configuration
 type DeploymentConfigRef struct {
-	Name   string
-	Images []*ImageRef
-	Env    Environment
-	Labels map[string]string
-	AsTest bool
+	Name     string
+	Images   []*ImageRef
+	Env      Environment
+	Labels   map[string]string
+	AsTest   bool
+	PostHook *DeploymentHook
 }
 
 // DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
@@ -348,7 +353,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		template.Containers[i].Env = append(template.Containers[i].Env, r.Env.List()...)
 	}
 
-	return &deployapi.DeploymentConfig{
+	dc := &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: r.Name,
 		},
@@ -365,7 +370,21 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 			},
 			Triggers: triggers,
 		},
-	}, nil
+	}
+	if r.PostHook != nil {
+		//dc.Spec.Strategy.Type = "Rolling"
+		if len(r.PostHook.Shell) > 0 {
+			dc.Spec.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
+				Post: &deployapi.LifecycleHook{
+					ExecNewPod: &deployapi.ExecNewPodHook{
+						Command: []string{"/bin/sh", "-c", r.PostHook.Shell},
+					},
+				},
+			}
+		}
+	}
+
+	return dc, nil
 }
 
 // GenerateSecret generates a random secret string

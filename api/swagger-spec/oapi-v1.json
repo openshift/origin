@@ -22499,7 +22499,7 @@
      },
      "generate": {
       "type": "string",
-      "description": "Generate specifies the generator to be used to generate random string from an input value specified by From field. The result string is stored into Value field. If empty, no generator is being used, leaving the result Value untouched. Optional."
+      "description": "generate specifies the generator to be used to generate random string from an input value specified by From field. The result string is stored into Value field. If empty, no generator is being used, leaving the result Value untouched. Optional.\n\nThe only supported generator is \"expression\", which accepts a \"from\" value in the form of a simple regular expression containing the range expression \"[a-zA-Z0-9]\", and the length expression \"a{length}\".\n\nExamples:\n\nfrom             | value"
      },
      "from": {
       "type": "string",
