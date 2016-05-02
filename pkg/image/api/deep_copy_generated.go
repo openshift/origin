@@ -5,7 +5,6 @@
 package api
 
 import (
-	distribution "github.com/docker/distribution"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
@@ -13,6 +12,7 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
+		DeepCopy_api_Descriptor,
 		DeepCopy_api_DockerConfig,
 		DeepCopy_api_DockerFSLayer,
 		DeepCopy_api_DockerHistory,
@@ -48,6 +48,13 @@ func init() {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func DeepCopy_api_Descriptor(in Descriptor, out *Descriptor, c *conversion.Cloner) error {
+	out.MediaType = in.MediaType
+	out.Size = in.Size
+	out.Digest = in.Digest
+	return nil
 }
 
 func DeepCopy_api_DockerConfig(in DockerConfig, out *DockerConfig, c *conversion.Cloner) error {
@@ -225,16 +232,16 @@ func DeepCopy_api_DockerImageManifest(in DockerImageManifest, out *DockerImageMa
 	}
 	if in.Layers != nil {
 		in, out := in.Layers, &out.Layers
-		*out = make([]distribution.Descriptor, len(in))
+		*out = make([]Descriptor, len(in))
 		for i := range in {
-			if err := distribution.DeepCopy_distribution_Descriptor(in[i], &(*out)[i], c); err != nil {
+			if err := DeepCopy_api_Descriptor(in[i], &(*out)[i], c); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Layers = nil
 	}
-	if err := distribution.DeepCopy_distribution_Descriptor(in.Config, &out.Config, c); err != nil {
+	if err := DeepCopy_api_Descriptor(in.Config, &out.Config, c); err != nil {
 		return err
 	}
 	return nil
