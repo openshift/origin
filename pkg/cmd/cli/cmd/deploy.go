@@ -211,6 +211,9 @@ func (o DeployOptions) RunDeploy() error {
 // deploy launches a new deployment unless there's already a deployment
 // process in progress for config.
 func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot deploy a paused deployment config")
+	}
 	// TODO: This implies that deploymentconfig.status.latestVersion is always synced. Currently,
 	// that's the case because clients (oc, trigger controllers) are updating the status directly.
 	// Clients should be acting either on spec or on annotations and status updates should be a
@@ -244,6 +247,9 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 // the deployment to be retried. An error is returned if the deployment is not
 // currently in a failed state.
 func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot retry a paused deployment config")
+	}
 	if config.Status.LatestVersion == 0 {
 		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
@@ -297,6 +303,9 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 
 // cancel cancels any deployment process in progress for config.
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot cancel a paused deployment config")
+	}
 	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return err

@@ -119,6 +119,11 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		}
 		return c.reconcileDeployments(existingDeployments, config)
 	}
+	// If the config is paused we shouldn't create new deployments for it.
+	// TODO: Make sure cleanup policy will work for paused configs.
+	if config.Spec.Paused {
+		return c.updateStatus(config)
+	}
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
 	deployment, err := deployutil.MakeDeployment(config, c.codec)

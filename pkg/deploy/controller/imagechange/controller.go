@@ -54,7 +54,7 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 			// be able to work and not try to pull non-existent images from DockerHub.
 			// Deployments with automatic set to false that have been deployed at least
 			// once shouldn't have their images updated.
-			if !params.Automatic && len(params.LastTriggeredImage) > 0 {
+			if (!params.Automatic || config.Spec.Paused) && len(params.LastTriggeredImage) > 0 {
 				continue
 			}
 
