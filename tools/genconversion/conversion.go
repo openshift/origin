@@ -1,90 +1,69 @@
+// conversion-gen is a tool for auto-generating Conversion functions.
+//
+// Structs in the input directories with the below line in their comments
+// will be ignored during generation.
+// // +genconversion=false
 package main
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"runtime"
-	"sort"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
-
 	"github.com/golang/glog"
-	flag "github.com/spf13/pflag"
 
-	_ "github.com/openshift/origin/pkg/api"
-	_ "github.com/openshift/origin/pkg/api/v1"
-	_ "github.com/openshift/origin/pkg/api/v1beta3"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
-)
-
-var (
-	functionDest = flag.StringP("funcDest", "f", "-", "Output for conversion functions; '-' means stdout")
-	group        = flag.StringP("group", "g", "", "Group for conversion.")
-	version      = flag.StringP("version", "v", "v1beta3", "Version for conversion.")
+	"k8s.io/kubernetes/cmd/libs/go2idl/args"
+	"k8s.io/kubernetes/cmd/libs/go2idl/conversion-gen/generators"
+	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	flag.Parse()
-	log.SetOutput(os.Stderr)
+	arguments := args.Default()
 
-	var funcOut io.Writer
-	if *functionDest == "-" {
-		funcOut = os.Stdout
-	} else {
-		file, err := os.Create(*functionDest)
-		if err != nil {
-			glog.Fatalf("Couldn't open %v: %v", *functionDest, err)
-		}
-		defer file.Close()
-		funcOut = file
+	// Override defaults. These are Kubernetes specific input locations.
+	arguments.InputDirs = []string{
+		"k8s.io/kubernetes/pkg/api/v1",
+		"k8s.io/kubernetes/pkg/api",
+		"k8s.io/kubernetes/pkg/runtime",
+		"k8s.io/kubernetes/pkg/conversion",
+		"github.com/openshift/origin/pkg/authorization/api/v1",
+		"github.com/openshift/origin/pkg/authorization/api",
+		"github.com/openshift/origin/pkg/build/api/v1",
+		"github.com/openshift/origin/pkg/build/api",
+		"github.com/openshift/origin/pkg/deploy/api/v1",
+		"github.com/openshift/origin/pkg/deploy/api",
+		"github.com/openshift/origin/pkg/image/api/v1",
+		"github.com/openshift/origin/pkg/image/api",
+		"github.com/openshift/origin/pkg/oauth/api/v1",
+		"github.com/openshift/origin/pkg/oauth/api",
+		"github.com/openshift/origin/pkg/project/api/v1",
+		"github.com/openshift/origin/pkg/project/api",
+		"github.com/openshift/origin/pkg/route/api/v1",
+		"github.com/openshift/origin/pkg/route/api",
+		"github.com/openshift/origin/pkg/sdn/api/v1",
+		"github.com/openshift/origin/pkg/sdn/api",
+		"github.com/openshift/origin/pkg/template/api/v1",
+		"github.com/openshift/origin/pkg/template/api",
+		"github.com/openshift/origin/pkg/user/api/v1",
+		"github.com/openshift/origin/pkg/user/api",
 	}
 
-	generator := pkg_runtime.NewConversionGenerator(api.Scheme, "github.com/openshift/origin/pkg/api")
-	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")
-	generator.AddImport("k8s.io/kubernetes/pkg/api/resource")
-	generator.AssumePrivateConversions()
-	// TODO(wojtek-t): Change the overwrites to a flag.
-	generator.OverwritePackage(*version, "")
-	gv := unversioned.GroupVersion{Group: *group, Version: *version}
+	arguments.GoHeaderFilePath = "hack/boilerplate.txt"
 
-	knownTypes := api.Scheme.KnownTypes(gv)
-	knownTypeKeys := []string{}
-	for key := range knownTypes {
-		knownTypeKeys = append(knownTypeKeys, key)
+	if err := arguments.Execute(
+		generators.NameSystems(),
+		generators.DefaultNameSystem(),
+		func(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
+			pkgs := generators.Packages(context, arguments)
+			var include generator.Packages
+			for _, pkg := range pkgs {
+				if strings.HasPrefix(pkg.Path(), "k8s.io/") {
+					continue
+				}
+				include = append(include, pkg)
+			}
+			return include
+		},
+	); err != nil {
+		glog.Fatalf("Error: %v", err)
 	}
-	sort.Strings(knownTypeKeys)
-
-	for _, knownTypeKey := range knownTypeKeys {
-		knownType := knownTypes[knownTypeKey]
-		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
-			continue
-		}
-		if err := generator.GenerateConversionsForType(gv, knownType); err != nil {
-			glog.Errorf("error while generating conversion functions for %v: %v", knownType, err)
-		}
-	}
-
-	// generator.RepackImports(sets.NewString("k8s.io/kubernetes/pkg/runtime"))
-	// the repack changes the name of the import
-	apiShort = generator.AddImport("k8s.io/kubernetes/pkg/api")
-
-	if err := generator.WriteImports(funcOut); err != nil {
-		glog.Fatalf("error while writing imports: %v", err)
-	}
-	if err := generator.WriteConversionFunctions(funcOut); err != nil {
-		glog.Fatalf("Error while writing conversion functions: %v", err)
-	}
-	if err := generator.RegisterConversionFunctions(funcOut, fmt.Sprintf("%s.Scheme", apiShort)); err != nil {
-		glog.Fatalf("Error while writing conversion functions: %v", err)
-	}
+	glog.Info("Completed successfully.")
 }

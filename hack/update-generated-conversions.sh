@@ -12,32 +12,15 @@ cd "${OS_ROOT}"
 
 os::build::setup_env
 
-function generate_version() {
-	local version=$1
-	local TMPFILE="/tmp/conversion_generated.$(date +%s).go"
+hack/build-go.sh tools/genconversion
+genconversion="$( os::build::find-binary genconversion )"
 
-	echo "Generating for version ${version}"
+if [[ -z "${genconversion}" ]]; then
+	echo "It looks as if you don't have a compiled genconversion binary."
+	echo
+	echo "If you are running from a clone of the git repo, please run"
+	echo "'./hack/build-go.sh tools/genconversion'."
+	exit 1
+fi
 
-	cat >> $TMPFILE <<EOF
-package ${version}
-
-// AUTO-GENERATED FUNCTIONS START HERE
-EOF
-
-	go run tools/genconversion/conversion.go -v ${version} -f - >>  $TMPFILE
-
-	cat >> $TMPFILE <<EOF
-// AUTO-GENERATED FUNCTIONS END HERE
-EOF
-	
-	mv $TMPFILE $2
-}
-
-DESTINATION_FILE_REL=${1:-""}
-DESTINATION_FILE_ROOT="${OS_ROOT}/${DESTINATION_FILE_REL}/pkg/api"
-VERSIONS="v1beta3 v1"
-for ver in $VERSIONS; do
-	mkdir -p "${DESTINATION_FILE_ROOT}/${ver}" || echo $? > /dev/null
-	DESTINATION_FILE="${DESTINATION_FILE_ROOT}/${ver}/conversion_generated.go"
-	generate_version "${ver}" "${DESTINATION_FILE}"
-done
+${genconversion} --output-base="${OS_GOPATH}/src" "$@"

@@ -1,85 +1,96 @@
+/*
+Copyright 2015 The Kubernetes Authors All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// deepcopy-gen is a tool for auto-generating DeepCopy functions.
+//
+// Structs in the input directories with the below line in their comments
+// will be ignored during generation.
+// // +gencopy=false
 package main
 
 import (
-	"fmt"
-	"io"
-	"os"
-	"runtime"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-
 	"github.com/golang/glog"
-	flag "github.com/spf13/pflag"
 
-	_ "github.com/openshift/origin/pkg/api"
-	_ "github.com/openshift/origin/pkg/api/v1"
-	_ "github.com/openshift/origin/pkg/api/v1beta3"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
-)
-
-var (
-	functionDest = flag.StringP("func-dest", "f", "-", "Output for deep copy functions; '-' means stdout")
-	group        = flag.StringP("group", "g", "", "Group for deep copies.")
-	version      = flag.StringP("version", "v", "v1beta3", "Version for deep copies.")
-	overwrites   = flag.StringP("overwrites", "o", "", "Comma-separated overwrites for package names")
+	"k8s.io/kubernetes/cmd/libs/go2idl/args"
+	"k8s.io/kubernetes/cmd/libs/go2idl/deepcopy-gen/generators"
+	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	flag.Parse()
+	arguments := args.Default()
 
-	var funcOut io.Writer
-	if *functionDest == "-" {
-		funcOut = os.Stdout
-	} else {
-		file, err := os.Create(*functionDest)
-		if err != nil {
-			glog.Fatalf("Couldn't open %v: %v", *functionDest, err)
-		}
-		defer file.Close()
-		funcOut = file
+	// Override defaults. These are Kubernetes specific input locations.
+	arguments.InputDirs = []string{
+		"k8s.io/kubernetes/pkg/api",
+		"k8s.io/kubernetes/pkg/api/unversioned",
+		"k8s.io/kubernetes/pkg/api/v1",
+		"k8s.io/kubernetes/pkg/apis/authorization",
+		"k8s.io/kubernetes/pkg/apis/authorization/v1beta1",
+		"k8s.io/kubernetes/pkg/apis/autoscaling",
+		"k8s.io/kubernetes/pkg/apis/autoscaling/v1",
+		"k8s.io/kubernetes/pkg/apis/batch",
+		"k8s.io/kubernetes/pkg/apis/batch/v1",
+		"k8s.io/kubernetes/pkg/apis/componentconfig",
+		"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1",
+		"k8s.io/kubernetes/pkg/apis/extensions",
+		"k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
+		"k8s.io/kubernetes/pkg/apis/metrics",
+		"k8s.io/kubernetes/pkg/apis/metrics/v1alpha1",
+		"github.com/openshift/origin/pkg/authorization/api/v1",
+		"github.com/openshift/origin/pkg/authorization/api",
+		"github.com/openshift/origin/pkg/build/api/v1",
+		"github.com/openshift/origin/pkg/build/api",
+		"github.com/openshift/origin/pkg/deploy/api/v1",
+		"github.com/openshift/origin/pkg/deploy/api",
+		"github.com/openshift/origin/pkg/image/api/v1",
+		"github.com/openshift/origin/pkg/image/api",
+		"github.com/openshift/origin/pkg/oauth/api/v1",
+		"github.com/openshift/origin/pkg/oauth/api",
+		"github.com/openshift/origin/pkg/project/api/v1",
+		"github.com/openshift/origin/pkg/project/api",
+		"github.com/openshift/origin/pkg/route/api/v1",
+		"github.com/openshift/origin/pkg/route/api",
+		"github.com/openshift/origin/pkg/sdn/api/v1",
+		"github.com/openshift/origin/pkg/sdn/api",
+		"github.com/openshift/origin/pkg/template/api/v1",
+		"github.com/openshift/origin/pkg/template/api",
+		"github.com/openshift/origin/pkg/user/api/v1",
+		"github.com/openshift/origin/pkg/user/api",
 	}
 
-	knownGroupVersion := unversioned.GroupVersion{Group: *group, Version: *version}
-	if knownGroupVersion.Version == "api" {
-		knownGroupVersion.Version = pkg_runtime.APIVersionInternal
-	}
-	generator := pkg_runtime.NewDeepCopyGenerator(api.Scheme, "github.com/openshift/origin/pkg/api", sets.NewString("github.com/openshift/origin"))
-	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")
-	generator.ReplaceType("k8s.io/kubernetes/pkg/util/sets", "empty", struct{}{})
+	arguments.GoHeaderFilePath = "hack/boilerplate.txt"
 
-	for _, overwrite := range strings.Split(*overwrites, ",") {
-		vals := strings.Split(overwrite, "=")
-		generator.OverwritePackage(vals[0], vals[1])
+	if err := arguments.Execute(
+		generators.NameSystems(),
+		generators.DefaultNameSystem(),
+		func(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
+			pkgs := generators.Packages(context, arguments)
+			var include generator.Packages
+			for _, pkg := range pkgs {
+				if strings.HasPrefix(pkg.Path(), "k8s.io/") {
+					continue
+				}
+				include = append(include, pkg)
+			}
+			return include
+		},
+	); err != nil {
+		glog.Fatalf("Error: %v", err)
 	}
-	for _, knownType := range api.Scheme.KnownTypes(knownGroupVersion) {
-		if !strings.Contains(knownType.PkgPath(), "openshift/origin") {
-			continue
-		}
-		if err := generator.AddType(knownType); err != nil {
-			glog.Errorf("error while generating deep copy functions for %v: %v", knownType, err)
-		}
-	}
-
-	generator.RepackImports()
-	// the repack changes the name of the import
-	apiShort = generator.AddImport("k8s.io/kubernetes/pkg/api")
-
-	if err := generator.WriteImports(funcOut); err != nil {
-		glog.Fatalf("error while writing imports: %v", err)
-	}
-	if err := generator.WriteDeepCopyFunctions(funcOut); err != nil {
-		glog.Fatalf("error while writing deep copy functions: %v", err)
-	}
-	if err := generator.RegisterDeepCopyFunctions(funcOut, fmt.Sprintf("%s.Scheme", apiShort)); err != nil {
-		glog.Fatalf("error while registering deep copy functions: %v", err)
-	}
+	glog.Info("Completed successfully.")
 }
