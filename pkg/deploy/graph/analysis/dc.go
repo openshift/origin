@@ -6,6 +6,8 @@ import (
 	"github.com/gonum/graph"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
@@ -27,43 +29,60 @@ const (
 func FindDeploymentConfigTriggerErrors(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
-dc:
 	for _, uncastDcNode := range g.NodesByKind(deploygraph.DeploymentConfigNodeKind) {
-		for _, uncastIstNode := range g.PredecessorNodesByEdgeKind(uncastDcNode, deployedges.TriggersDeploymentEdgeKind) {
-			if istNode := uncastIstNode.(*imagegraph.ImageStreamTagNode); !istNode.Found() {
-				dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
-
-				// The image stream for the tag of interest does not exist.
-				// TODO: Suggest `oc create imagestream` once we have that.
-				if isNode, exists := doesImageStreamExist(g, uncastIstNode); !exists {
-					markers = append(markers, osgraph.Marker{
-						Node:         uncastDcNode,
-						RelatedNodes: []graph.Node{uncastIstNode, isNode},
-
-						Severity: osgraph.ErrorSeverity,
-						Key:      MissingImageStreamErr,
-						Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
-							f.ResourceName(dcNode), f.ResourceName(isNode)),
-					})
-					continue dc
-				}
-
-				// The image stream tag of interest does not exist.
-				markers = append(markers, osgraph.Marker{
-					Node:         uncastDcNode,
-					RelatedNodes: []graph.Node{uncastIstNode},
-
-					Severity: osgraph.WarningSeverity,
-					Key:      MissingImageStreamTagWarning,
-					Message: fmt.Sprintf("The image trigger for %s will have no effect until %s is imported or created by a build.",
-						f.ResourceName(dcNode), f.ResourceName(istNode)),
-				})
-				continue dc
-			}
+		dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
+		marker := ictMarker(g, f, dcNode)
+		if marker != nil {
+			markers = append(markers, *marker)
 		}
 	}
 
 	return markers
+}
+
+// ictMarker inspects the image change triggers for the provided deploymentconfig and returns
+// a marker in case of the following two scenarios:
+//
+// 1. The image stream pointed by the dc trigger doen not exist.
+// 2. The image stream tag pointed by the dc trigger does not exist and there is no build in
+// 	  flight that could push to the tag.
+func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *deploygraph.DeploymentConfigNode) *osgraph.Marker {
+	for _, uncastIstNode := range g.PredecessorNodesByEdgeKind(dcNode, deployedges.TriggersDeploymentEdgeKind) {
+		if istNode := uncastIstNode.(*imagegraph.ImageStreamTagNode); !istNode.Found() {
+			// The image stream for the tag of interest does not exist.
+			if isNode, exists := doesImageStreamExist(g, uncastIstNode); !exists {
+				return &osgraph.Marker{
+					Node:         dcNode,
+					RelatedNodes: []graph.Node{uncastIstNode, isNode},
+
+					Severity: osgraph.ErrorSeverity,
+					Key:      MissingImageStreamErr,
+					Message: fmt.Sprintf("The image trigger for %s will have no effect because %s does not exist.",
+						f.ResourceName(dcNode), f.ResourceName(isNode)),
+					// TODO: Suggest `oc create imagestream` once we have that.
+				}
+			}
+
+			if bcNode := buildedges.BuildConfigForTag(g, istNode); bcNode != nil {
+				// Avoid warning for the dc image trigger in case there is a build in flight.
+				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildutil.IsBuildComplete(latestBuild.Build) {
+					return nil
+				}
+			}
+
+			// The image stream tag of interest does not exist.
+			return &osgraph.Marker{
+				Node:         dcNode,
+				RelatedNodes: []graph.Node{uncastIstNode},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      MissingImageStreamTagWarning,
+				Message: fmt.Sprintf("The image trigger for %s will have no effect until %s is imported or created by a build.",
+					f.ResourceName(dcNode), f.ResourceName(istNode)),
+			}
+		}
+	}
+	return nil
 }
 
 func doesImageStreamExist(g osgraph.Graph, istag graph.Node) (graph.Node, bool) {
@@ -76,7 +95,8 @@ func doesImageStreamExist(g osgraph.Graph, istag graph.Node) (graph.Node, bool) 
 	return nil, false
 }
 
-// FindDeploymentConfigReadinessWarnings
+// FindDeploymentConfigReadinessWarnings inspects deploymentconfigs and reports those that
+// don't have readiness probes set up.
 func FindDeploymentConfigReadinessWarnings(g osgraph.Graph, f osgraph.Namer, setProbeCommand string) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
