@@ -546,9 +546,33 @@ type BuildConfigSpec struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers"`
 
+	// RunPolicy describes how the new build created from this build
+	// configuration will be scheduled for execution.
+	// This is optional, if not specified we default to "Serial".
+	RunPolicy BuildRunPolicy `json:"runPolicy,omitempty"`
+
 	// BuildSpec is the desired build specification
 	BuildSpec `json:",inline"`
 }
+
+// BuildRunPolicy defines the behaviour of how the new builds are executed
+// from the existing build configuration.
+type BuildRunPolicy string
+
+const (
+	// BuildRunPolicyParallel schedules new builds immediately after they are
+	// created. Builds will be executed in parallel.
+	BuildRunPolicyParallel BuildRunPolicy = "Parallel"
+
+	// BuildRunPolicySerial schedules new builds to execute in a sequence as
+	// they are created. Every build gets queued up and will execute when the
+	// previous build completes. This is the default policy.
+	BuildRunPolicySerial BuildRunPolicy = "Serial"
+
+	// BuildRunPolicySerialLatestOnly schedules only the latest build to execute,
+	// cancelling all the previously queued build.
+	BuildRunPolicySerialLatestOnly BuildRunPolicy = "SerialLatestOnly"
+)
 
 // BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatus struct {
