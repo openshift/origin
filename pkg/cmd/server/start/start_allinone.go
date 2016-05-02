@@ -34,6 +34,7 @@ type AllInOneOptions struct {
 	NodeConfigFile     string
 	PrintIP            bool
 	ServiceNetworkCIDR string
+	Output             io.Writer
 }
 
 const allInOneLong = `
@@ -59,7 +60,7 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{MasterOptions: &MasterOptions{Output: out}}
+	options := &AllInOneOptions{Output: out, MasterOptions: &MasterOptions{Output: out}}
 	options.MasterOptions.DefaultsFromName(basename)
 
 	cmds := &cobra.Command{
@@ -227,7 +228,7 @@ func (o AllInOneOptions) StartAllInOne() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.MasterOptions.Output, "%s\n", host)
+		fmt.Fprintf(o.Output, "%s\n", host)
 		return nil
 	}
 	masterOptions := *o.MasterOptions
