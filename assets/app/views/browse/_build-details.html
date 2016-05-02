@@ -7,12 +7,16 @@
         <dd>
           <status-icon status="build.status.phase"></status-icon>
           {{build.status.phase}}
+          <span ng-if="build | jenkinsLogURL">
+            <span class="text-muted">&ndash;</span>
+            <a ng-href="{{build | jenkinsLogURL}}">View Log</a>
+          </span>
         </dd>
         <dt>Started:</dt>
         <dd>
           <span ng-if="build.status.startTimestamp">
             <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
-            <span>- {{build.status.startTimestamp | date : 'short'}}</span>
+            <span><span class="text-muted">&ndash;</span> {{build.status.startTimestamp | date : 'short'}}</span>
           </span>
           <span ng-if="!build.status.startTimestamp"><em>not started</em></span>
         </dd>
@@ -34,9 +38,9 @@
       <h3>Configuration <span class="small" ng-if="buildConfigName">created from <a href="{{buildConfigName | navigateResourceURL : 'BuildConfig' : build.metadata.namespace}}">{{buildConfigName}}</a></span></h3>
       <dl class="dl-horizontal left">
         <dt>Build strategy:</dt>
-        <dd>{{build.spec.strategy.type}}</dd>
-        <dt>Builder image:</dt>
-        <dd class="truncate">{{(build | buildStrategy).from | imageObjectRef : build.metadata.namespace}}<span ng-if="!(build | buildStrategy).from"><em>none</em></span></dd>
+        <dd>{{build.spec.strategy.type | startCase}}</dd>
+        <dt ng-if-start="(build | buildStrategy).from">Builder image:</dt>
+        <dd ng-if-end class="truncate">{{(build | buildStrategy).from | imageObjectRef : build.metadata.namespace}}<span ng-if="!(build | buildStrategy).from"><em>none</em></span></dd>
         <dt>Source type:</dt>
         <dd>{{build.spec.source.type}}</dd>
         <dt ng-if-start="build.spec.source.git.uri">Source repo:</dt>
@@ -49,6 +53,27 @@
         <dd ng-if-end>{{build.spec.output.to | imageObjectRef : build.metadata.namespace}}</dd>
         <dt ng-if-start="build.spec.output.pushSecret.name">Push secret:</dt>
         <dd ng-if-end>{{build.spec.output.pushSecret.name}}</dd>
+        <dt ng-if-start="build.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath">
+          Jenkinsfile Path:
+        </dt>
+        <dd ng-if-end>{{buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath}}</dd>
+        <dt ng-if-start="build.spec.strategy.jenkinsPipelineStrategy.jenkinsfile">
+          Jenkinsfile:
+        </dt>
+        <dd></dd>
+        <div ng-if-end ui-ace="{
+          mode: 'groovy',
+          theme: 'eclipse',
+          showGutter: false,
+          rendererOptions: {
+            fadeFoldWidgets: true,
+            highlightActiveLine: false,
+            showPrintMargin: false
+          },
+          advanced: {
+            highlightActiveLine: false
+          }
+        }" readonly ng-model="buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile" class="ace-bordered ace-inline ace-read-only mar-top-md"></div>
       </dl>
     </div>
   </div>

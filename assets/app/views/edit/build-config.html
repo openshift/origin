@@ -142,7 +142,7 @@
                             </div>
                           </div>
 
-                          <div ng-if="updatedBuildConfig.spec.strategy.type === 'JenkinsPipeline'">
+                          <div ng-if="updatedBuildConfig | isJenkinsPipelineStrategy">
                             <h3>Jenkins Pipeline Configuration</h3>
                             <div class="form-group">
                               <label for="jenkinsfile-type">Jenkinsfile Type</label>
@@ -507,7 +507,7 @@
 
 
                     <div class="col-lg-6">
-                      <div ng-if="updatedBuildConfig.spec.strategy.type !== 'JenkinsPipeline'" class="section">
+                      <div ng-if="!(updatedBuildConfig | isJenkinsPipelineStrategy)" class="section">
                         <h3>Environment Variables<span class="help action-inline">
                           <a href>
                           <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime."></i>
@@ -562,7 +562,7 @@
                               </label>
                             </div>
 
-                            <div ng-if="updatedBuildConfig.spec.strategy.type !== 'JenkinsPipeline'" class="checkbox">
+                            <div ng-if="!(updatedBuildConfig | isJenkinsPipelineStrategy)" class="checkbox">
                               <label>
                                 <input type="checkbox" ng-model="triggers.present.imageChange" ng-disabled="builderOptions.pickedType === 'None'"/>
                                   Automatically build a new image when the builder image changes
