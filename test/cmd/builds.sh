@@ -128,6 +128,7 @@ os::cmd::expect_success 'oc delete all -l build=docker'
 echo "buildConfig: ok"
 os::test::junit::declare_suite_end
 
+
 os::test::junit::declare_suite_start "cmd/builds/start-build"
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
@@ -140,14 +141,26 @@ echo "start-build: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/cancel-build"
-os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "Restarted build ${started}."
+os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "restarted build \"${started}\""
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
-os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'Build ruby-sample-build-1 was cancelled.'
+os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build "ruby-sample-build-1" cancelled'
 # Make sure canceling already cancelled build returns proper message
-os::cmd::try_until_text 'oc cancel-build build/ruby-sample-build-1' 'A cancellation event was already triggered for the build ruby-sample-build-1.'
+os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
+# Cancel all builds from a build configuration
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+lastbuild=$(oc start-build bc/ruby-sample-build)
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build \"${lastbuild}\" cancelled"
+os::cmd::expect_success_and_text "oc get builds ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
+for state in $builds; do
+  os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"
+done
+# Running this command again when all builds are cancelled should be no-op.
+os::cmd::expect_success 'oc cancel-build bc/ruby-sample-build'
 os::cmd::expect_success 'oc delete all --all'
 echo "cancel-build: ok"
 os::test::junit::declare_suite_end

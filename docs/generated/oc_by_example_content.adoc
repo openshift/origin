@@ -627,20 +627,26 @@ Autoscale a deployment config or replication controller
 
 
 == oc cancel-build
-Cancel a pending or running build
+Cancel running, pending, or new builds
 
 ====
 
 [options="nowrap"]
 ----
   # Cancel the build with the given name
-  $ oc cancel-build 1da32cvq
+  $ oc cancel-build ruby-build-2
 
   # Cancel the named build and print the build logs
-  $ oc cancel-build 1da32cvq --dump-logs
+  $ oc cancel-build ruby-build-2 --dump-logs
 
   # Cancel the named build and create a new one with the same parameters
-  $ oc cancel-build 1da32cvq --restart
+  $ oc cancel-build ruby-build-2 --restart
+
+  # Cancel multiple builds
+  $ oc cancel-build ruby-build-1 ruby-build-2 ruby-build-3
+
+  # Cancel all builds created from 'ruby-build' build configuration that are in 'new' state
+  $ oc cancel-build bc/ruby-build --state=new
 ----
 ====
 
