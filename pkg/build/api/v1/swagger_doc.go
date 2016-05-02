@@ -63,8 +63,9 @@ func (BuildConfigList) SwaggerDoc() map[string]string {
 }
 
 var map_BuildConfigSpec = map[string]string{
-	"":         "BuildConfigSpec describes when and how builds are created",
-	"triggers": "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation.",
+	"":          "BuildConfigSpec describes when and how builds are created",
+	"triggers":  "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation.",
+	"runPolicy": "RunPolicy describes how the new build created from this build configuration will be scheduled for execution. This is optional, if not specified we default to \"Serial\".",
 }
 
 func (BuildConfigSpec) SwaggerDoc() map[string]string {

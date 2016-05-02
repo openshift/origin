@@ -220,9 +220,10 @@ func (c *MasterConfig) RunBuildController() {
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		OSClient:     osclient,
 		KubeClient:   kclient,
+		OSClient:     osclient,
 		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
+		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)

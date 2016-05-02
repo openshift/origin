@@ -298,6 +298,7 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicyParallel,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type: buildapi.GitHubWebHookBuildTriggerType,
@@ -338,6 +339,7 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicyParallel,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type: buildapi.GitHubWebHookBuildTriggerType,

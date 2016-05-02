@@ -429,6 +429,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 			formatString(out, "Latest Version", strconv.Itoa(buildConfig.Status.LastVersion))
 		}
 		describeBuildSpec(buildConfig.Spec.BuildSpec, out)
+		formatString(out, "\nBuild Run Policy", string(buildConfig.Spec.RunPolicy))
 		d.DescribeTriggers(buildConfig, out)
 		if len(buildList.Items) == 0 {
 			return nil

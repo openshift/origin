@@ -17512,6 +17512,10 @@
       },
       "description": "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation."
      },
+     "runPolicy": {
+      "type": "string",
+      "description": "RunPolicy describes how the new build created from this build configuration will be scheduled for execution. This is optional, if not specified we default to \"Serial\"."
+     },
      "serviceAccount": {
       "type": "string",
       "description": "serviceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount"

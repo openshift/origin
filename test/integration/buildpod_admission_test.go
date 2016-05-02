@@ -92,7 +92,12 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 }
 
 func buildPodAdmissionTestCustomBuild() *buildapi.Build {
-	build := &buildapi.Build{}
+	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+		Labels: map[string]string{
+			buildapi.BuildConfigLabel:    "mock-build-config",
+			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		},
+	}}
 	build.Name = "test-custom-build"
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
 	build.Spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
@@ -102,7 +107,12 @@ func buildPodAdmissionTestCustomBuild() *buildapi.Build {
 }
 
 func buildPodAdmissionTestDockerBuild() *buildapi.Build {
-	build := &buildapi.Build{}
+	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+		Labels: map[string]string{
+			buildapi.BuildConfigLabel:    "mock-build-config",
+			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		},
+	}}
 	build.Name = "test-build"
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
 	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}

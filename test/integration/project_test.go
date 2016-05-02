@@ -116,7 +116,14 @@ func TestProjectMustExist(t *testing.T) {
 	}
 
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "buildid",
+			Namespace: "default",
+			Labels: map[string]string{
+				buildapi.BuildConfigLabel:    "mock-build-config",
+				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+			},
+		},
 		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{

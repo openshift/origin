@@ -770,6 +770,7 @@ func deepCopy_api_BuildConfigSpec(in buildapi.BuildConfigSpec, out *buildapi.Bui
 	} else {
 		out.Triggers = nil
 	}
+	out.RunPolicy = in.RunPolicy
 	if err := deepCopy_api_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
 		return err
 	}

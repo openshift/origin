@@ -19,6 +19,8 @@ const (
 	BuildPodNameAnnotation = "openshift.io/build.pod-name"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
+	// BuildRunPolicyLabel represents the start policy used to to start the build.
+	BuildRunPolicyLabel = "openshift.io/build.start-policy"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
 	// OriginVersion is an environment variable key that indicates the version of origin that
@@ -30,6 +32,15 @@ const (
 	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
 	// executing a Source build
 	DropCapabilities = "DROP_CAPS"
+	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
+	// on which the Build is based.
+	BuildConfigLabel = "openshift.io/build-config.name"
+	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
+	// We keep it for backward compatibility.
+	BuildConfigLabelDeprecated = "buildconfig"
+	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
+	// New Builds cannot be instantiated from a paused BuildConfig.
+	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -545,18 +556,6 @@ type BuildOutput struct {
 	PushSecret *kapi.LocalObjectReference
 }
 
-const (
-	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-	// on which the Build is based.
-	BuildConfigLabel = "openshift.io/build-config.name"
-	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
-	// We keep it for backward compatibility.
-	BuildConfigLabelDeprecated = "buildconfig"
-	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
-	// New Builds cannot be instantiated from a paused BuildConfig.
-	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
-)
-
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	unversioned.TypeMeta
@@ -575,9 +574,33 @@ type BuildConfigSpec struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy
 
+	// RunPolicy describes how the new build created from this build
+	// configuration will be scheduled for execution.
+	// This is optional, if not specified we default to "Serial".
+	RunPolicy BuildRunPolicy
+
 	// BuildSpec is the desired build specification
 	BuildSpec
 }
+
+// BuildRunPolicy defines the behaviour of how the new builds are executed
+// from the existing build configuration.
+type BuildRunPolicy string
+
+const (
+	// BuildRunPolicyParallel schedules new builds immediately after they are
+	// created. Builds will be executed in parallel.
+	BuildRunPolicyParallel BuildRunPolicy = "Parallel"
+
+	// BuildRunPolicySerial schedules new builds to execute in a sequence as
+	// they are created. Every build gets queued up and will execute when the
+	// previous build completes. This is the default policy.
+	BuildRunPolicySerial BuildRunPolicy = "Serial"
+
+	// BuildRunPolicySerialLatestOnly schedules only the latest build to execute,
+	// cancelling all the previously queued build.
+	BuildRunPolicySerialLatestOnly BuildRunPolicy = "SerialLatestOnly"
+)
 
 // BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatus struct {

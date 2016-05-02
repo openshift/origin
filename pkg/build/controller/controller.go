@@ -13,6 +13,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -21,10 +22,12 @@ import (
 // BuildController watches build resources and manages their state
 type BuildController struct {
 	BuildUpdater      buildclient.BuildUpdater
+	BuildLister       buildclient.BuildLister
 	PodManager        podManager
 	BuildStrategy     BuildStrategy
 	ImageStreamClient imageStreamClient
 	Recorder          record.EventRecorder
+	RunPolicies       []policy.RunPolicy
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -79,25 +82,42 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 // HandleBuild deletes pods for cancelled builds and takes new builds and puts
 // them in the pending state after creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
-	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
+	// these builds are processed/updated/etc by the jenkins sync plugin
+	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
+		return nil
+	}
+	glog.V(4).Infof("Handling build %s/%s (%s)", build.Namespace, build.Name, build.Status.Phase)
+
+	runPolicy := policy.ForBuild(build, bc.RunPolicies)
+	if runPolicy == nil {
+		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
+	}
+
+	if buildutil.IsBuildComplete(build) {
+		if err := runPolicy.OnComplete(build); err != nil {
+			return err
+		}
+		return nil
+	}
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
 	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
+		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
 			return fmt.Errorf("Failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
 		}
 	}
 
-	// these builds are processed/updated/etc by the jenkins sync plugin
-	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
-		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
+	// Handle only new builds from this point
+	if build.Status.Phase != buildapi.BuildPhaseNew {
 		return nil
 	}
 
-	// Handle new builds
-	if build.Status.Phase != buildapi.BuildPhaseNew {
-		return nil
+	// The runPolicy decides whether to execute this build or not.
+	if run, err := runPolicy.IsRunnable(build); err != nil || !run {
+		return err
 	}
 
 	if err := bc.nextBuildPhase(build); err != nil {

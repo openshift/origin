@@ -220,6 +220,11 @@ func Convert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *newer.BuildStrategy,
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
+		func(config *BuildConfigSpec) {
+			if len(config.RunPolicy) == 0 {
+				config.RunPolicy = BuildRunPolicySerial
+			}
+		},
 		func(strategy *BuildStrategy) {
 			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
 				//  initialize DockerStrategy to a default state if it's not set.

@@ -82,6 +82,13 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 		fromRefs[fromKey] = struct{}{}
 	}
 
+	switch config.Spec.RunPolicy {
+	case buildapi.BuildRunPolicyParallel, buildapi.BuildRunPolicySerial, buildapi.BuildRunPolicySerialLatestOnly:
+	default:
+		allErrs = append(allErrs, field.Invalid(specPath.Child("runPolicy"), config.Spec.RunPolicy,
+			"run policy must Parallel, Serial, or SerialLatestOnly"))
+	}
+
 	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec, specPath)...)
 
 	return allErrs

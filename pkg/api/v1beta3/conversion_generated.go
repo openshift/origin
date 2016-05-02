@@ -1049,6 +1049,7 @@ func autoConvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec(in *buildapi.Bui
 	} else {
 		out.Triggers = nil
 	}
+	out.RunPolicy = v1beta3.BuildRunPolicy(in.RunPolicy)
 	if err := Convert_api_BuildSpec_To_v1beta3_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
 		return err
 	}
@@ -1812,6 +1813,7 @@ func autoConvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec(in *v1beta3.Buil
 	} else {
 		out.Triggers = nil
 	}
+	out.RunPolicy = buildapi.BuildRunPolicy(in.RunPolicy)
 	if err := Convert_v1beta3_BuildSpec_To_api_BuildSpec(&in.BuildSpec, &out.BuildSpec, s); err != nil {
 		return err
 	}

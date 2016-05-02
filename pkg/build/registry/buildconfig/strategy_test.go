@@ -19,6 +19,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					GitHubWebHook: &buildapi.WebHookTrigger{Secret: "12345"},

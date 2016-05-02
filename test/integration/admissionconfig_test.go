@@ -125,7 +125,12 @@ func admissionTestPod() *kapi.Pod {
 }
 
 func admissionTestBuild() *buildapi.Build {
-	build := &buildapi.Build{}
+	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+		Labels: map[string]string{
+			buildapi.BuildConfigLabel:    "mock-build-config",
+			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		},
+	}}
 	build.Name = "test-build"
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://build.uri/build"}
 	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}

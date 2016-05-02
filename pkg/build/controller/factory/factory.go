@@ -21,6 +21,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller"
+	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -63,6 +64,7 @@ type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclient.Interface
 	BuildUpdater        buildclient.BuildUpdater
+	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -81,8 +83,10 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
 		BuildUpdater:      factory.BuildUpdater,
+		BuildLister:       factory.BuildLister,
 		ImageStreamClient: client,
 		PodManager:        client,
+		RunPolicies:       policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
 			SourceBuildStrategy: factory.SourceBuildStrategy,
