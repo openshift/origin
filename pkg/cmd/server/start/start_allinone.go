@@ -206,13 +206,6 @@ func (o *AllInOneOptions) Complete() error {
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
 	o.NodeArgs.MasterCertDir = o.MasterOptions.MasterArgs.ConfigDir.Value()
 
-	// in the all-in-one, default ClusterDNS to the master's address
-	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
-		if ip := net.ParseIP(host); ip != nil {
-			o.NodeArgs.ClusterDNS = ip
-		}
-	}
-
 	return nil
 }
 
