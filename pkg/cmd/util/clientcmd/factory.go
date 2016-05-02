@@ -295,16 +295,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return ret
 	}
-	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
-	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
-		switch t := object.(type) {
-		case *deployapi.DeploymentConfig:
-			return kubectl.MakeLabels(t.Spec.Selector), nil
-		default:
-			return kPodSelectorForObjectFunc(object)
-		}
-	}
-
 	kMapBasedSelectorForObjectFunc := w.Factory.MapBasedSelectorForObject
 	w.MapBasedSelectorForObject = func(object runtime.Object) (string, error) {
 		switch t := object.(type) {
@@ -313,9 +303,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		default:
 			return kMapBasedSelectorForObjectFunc(object)
 		}
-
 	}
-
 	kPortsForObjectFunc := w.Factory.PortsForObject
 	w.PortsForObject = func(object runtime.Object) ([]string, error) {
 		switch t := object.(type) {
