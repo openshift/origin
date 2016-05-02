@@ -14,35 +14,36 @@ import (
 	"github.com/openshift/origin/pkg/util/rest"
 )
 
+// NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
 func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, plugins map[string]webhook.Plugin) *rest.WebHook {
-	controller := &controller{
+	hook := &WebHook{
 		registry:     registry,
 		instantiator: instantiator,
 		plugins:      plugins,
 	}
-	return rest.NewWebHook(controller, false)
+	return rest.NewWebHook(hook, false)
 }
 
-type controller struct {
+type WebHook struct {
 	registry     Registry
 	instantiator client.BuildConfigInstantiator
 	plugins      map[string]webhook.Plugin
 }
 
 // ServeHTTP implements rest.HookHandler
-func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kapi.Context, name, subpath string) error {
+func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx kapi.Context, name, subpath string) error {
 	parts := strings.Split(subpath, "/")
-	if len(parts) < 2 {
+	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))
 	}
 	secret, hookType := parts[0], parts[1]
 
-	plugin, ok := c.plugins[hookType]
+	plugin, ok := w.plugins[hookType]
 	if !ok {
 		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
 	}
 
-	config, err := c.registry.GetBuildConfig(ctx, name)
+	config, err := w.registry.GetBuildConfig(ctx, name)
 	if err != nil {
 		// clients should not be able to find information about build configs in the system unless the config exists
 		// and the secret matches
@@ -67,7 +68,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kap
 		Revision:   revision,
 		Env:        envvars,
 	}
-	if _, err := c.instantiator.Instantiate(config.Namespace, request); err != nil {
+	if _, err := w.instantiator.Instantiate(config.Namespace, request); err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}
 	return nil
