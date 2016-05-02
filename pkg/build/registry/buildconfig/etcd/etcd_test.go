@@ -29,6 +29,7 @@ func validBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "configid"},
 		Spec: api.BuildConfigSpec{
+			RunPolicy: api.BuildRunPolicySerial,
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{

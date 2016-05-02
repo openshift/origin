@@ -8,7 +8,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 
+	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 )
 
 const (
@@ -72,6 +74,33 @@ func IsPaused(bc *buildapi.BuildConfig) bool {
 	return strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true"
 }
 
+// BuildNumber returns the given build number.
+func BuildNumber(build *buildapi.Build) (int64, error) {
+	annotations := build.GetAnnotations()
+	if stringNumber, ok := annotations[buildapi.BuildNumberAnnotation]; ok {
+		return strconv.ParseInt(stringNumber, 10, 64)
+	}
+	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildapi.BuildNumberAnnotation)
+}
+
+// BuildRunPolicy returns the scheduling policy for the build based on the
+// "queued" label.
+func BuildRunPolicy(build *buildapi.Build) buildapi.BuildRunPolicy {
+	labels := build.GetLabels()
+	if value, found := labels[buildapi.BuildRunPolicyLabel]; found {
+		switch value {
+		case "Parallel":
+			return buildapi.BuildRunPolicyParallel
+		case "Serial":
+			return buildapi.BuildRunPolicySerial
+		case "SerialLatestOnly":
+			return buildapi.BuildRunPolicySerialLatestOnly
+		}
+	}
+	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)")
+	return buildapi.BuildRunPolicySerial
+}
+
 // BuildNameForConfigVersion returns the name of the version-th build
 // for the config that has the provided name.
 func BuildNameForConfigVersion(name string, version int) string {
@@ -88,6 +117,30 @@ func BuildConfigSelector(name string) labels.Selector {
 // all builds for a BuildConfig that use the deprecated labels.
 func BuildConfigSelectorDeprecated(name string) labels.Selector {
 	return labels.Set{buildapi.BuildConfigLabelDeprecated: name}.AsSelector()
+}
+
+type buildFilter func(buildapi.Build) bool
+
+// BuildConfigBuilds return a list of builds for the given build config.
+// Optionally you can specify a filter function to select only builds that
+// matches your criteria.
+func BuildConfigBuilds(c buildclient.BuildLister, namespace, name string, filterFunc buildFilter) (*buildapi.BuildList, error) {
+	result, err := c.List(namespace, kapi.ListOptions{
+		LabelSelector: BuildConfigSelector(name),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if filterFunc == nil {
+		return result, nil
+	}
+	filteredList := &buildapi.BuildList{TypeMeta: result.TypeMeta, ListMeta: result.ListMeta}
+	for _, b := range result.Items {
+		if filterFunc(b) {
+			filteredList.Items = append(filteredList.Items, b)
+		}
+	}
+	return filteredList, nil
 }
 
 // ConfigNameForBuild returns the name of the build config from a

@@ -137,6 +137,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: buildapi.BuildConfigSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
 				BuildSpec: buildapi.BuildSpec{
 					Source: buildapi.BuildSource{},
 					Strategy: buildapi.BuildStrategy{
@@ -159,6 +160,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: buildapi.BuildConfigSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
 				BuildSpec: buildapi.BuildSpec{
 					Source: buildapi.BuildSource{},
 					Strategy: buildapi.BuildStrategy{
@@ -188,6 +190,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 	badBuildConfig := buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{},
 				Strategy: buildapi.BuildStrategy{
@@ -384,6 +387,7 @@ func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
@@ -424,6 +428,7 @@ func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
@@ -467,6 +472,7 @@ func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
@@ -738,6 +744,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 		buildConfig := &buildapi.BuildConfig{
 			ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
 			Spec: buildapi.BuildConfigSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
 				BuildSpec: buildapi.BuildSpec{
 					Source: buildapi.BuildSource{
 						Git: &buildapi.GitBuildSource{
@@ -782,6 +789,7 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: ""},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{

@@ -218,6 +218,11 @@ func Convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
+		func(config *BuildConfigSpec) {
+			if len(config.RunPolicy) == 0 {
+				config.RunPolicy = BuildRunPolicySerial
+			}
+		},
 		func(source *BuildSource) {
 			if (source != nil) && (source.Type == BuildSourceBinary) && (source.Binary == nil) {
 				source.Binary = &BinaryBuildSource{}

@@ -113,6 +113,7 @@ func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *build
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicyParallel,
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{

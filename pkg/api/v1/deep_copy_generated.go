@@ -790,6 +790,7 @@ func deepCopy_v1_BuildConfigSpec(in apiv1.BuildConfigSpec, out *apiv1.BuildConfi
 	} else {
 		out.Triggers = nil
 	}
+	out.RunPolicy = in.RunPolicy
 	if err := deepCopy_v1_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
 		return err
 	}

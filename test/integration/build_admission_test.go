@@ -249,6 +249,10 @@ func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
 
 func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy string) (*buildapi.Build, error) {
 	build := &buildapi.Build{}
+	build.ObjectMeta.Labels = map[string]string{
+		buildapi.BuildConfigLabel:    "mock-build-config",
+		buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+	}
 	build.GenerateName = strings.ToLower(string(strategy)) + "-build-"
 	build.Spec.Strategy = strategyForType(t, strategy)
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
@@ -263,6 +267,7 @@ func updateBuild(t *testing.T, buildInterface client.BuildInterface, build *buil
 
 func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
 	buildConfig := &buildapi.BuildConfig{}
+	buildConfig.Spec.RunPolicy = buildapi.BuildRunPolicyParallel
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
 	buildConfig.Spec.Strategy = strategyForType(t, strategy)
 	buildConfig.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}

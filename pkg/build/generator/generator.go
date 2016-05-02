@@ -421,6 +421,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	}
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = bcCopy.Name
 	build.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
+	build.Labels[buildapi.BuildRunPolicyLabel] = string(bc.Spec.RunPolicy)
 
 	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace, serviceAccount)
 	if err != nil {

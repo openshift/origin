@@ -1,0 +1,30 @@
+---
+  kind: "List"
+  apiVersion: "v1"
+  metadata: {}
+  items: 
+    - 
+      kind: "BuildConfig"
+      apiVersion: "v1"
+      metadata: 
+        name: "sample-serial-latest-only-build"
+      spec: 
+        runPolicy: "SerialLatestOnly"
+        triggers: 
+          - 
+            type: "imageChange"
+            imageChange: {}
+        source: 
+          type: "Git"
+          git: 
+            uri: "git://github.com/openshift/ruby-hello-world.git"
+        strategy: 
+          type: "Source"
+          sourceStrategy: 
+            from: 
+              kind: "DockerImage"
+              name: "centos/ruby-22-centos7"
+        resources: {}
+      status: 
+        lastVersion: 0
+

@@ -51,8 +51,10 @@ func mockBuild() *buildapi.Build {
 		ObjectMeta: kapi.ObjectMeta{
 			GenerateName: "mock-build",
 			Labels: map[string]string{
-				"label1": "value1",
-				"label2": "value2",
+				"label1":                     "value1",
+				"label2":                     "value2",
+				buildapi.BuildConfigLabel:    "mock-build-config",
+				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
 			},
 		},
 		Spec: buildapi.BuildSpec{

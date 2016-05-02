@@ -3,6 +3,7 @@ package client
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // BuildConfigGetter provides methods for getting BuildConfigs
@@ -41,6 +42,11 @@ type BuildUpdater interface {
 	Update(namespace string, build *buildapi.Build) error
 }
 
+// BuildLister provides methods for listing the Builds.
+type BuildLister interface {
+	List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error)
+}
+
 // OSClientBuildClient deletes build create and update operations to the OpenShift client interface
 type OSClientBuildClient struct {
 	Client osclient.Interface
@@ -55,6 +61,11 @@ func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
 func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
 	_, e := c.Client.Builds(namespace).Update(build)
 	return e
+}
+
+// List lists the builds using the OpenShift client.
+func (c OSClientBuildClient) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+	return c.Client.Builds(namespace).List(opts)
 }
 
 // BuildCloner provides methods for cloning builds
