@@ -804,6 +804,19 @@ Create a configMap from a local file, directory or literal value.
 ====
 
 
+== oc create identity
+Manually create an identity (only needed if automatic creation is disabled).
+
+====
+
+[options="nowrap"]
+----
+  # Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
+  $ oc create identity acme_ldap:adamjones
+----
+====
+
+
 == oc create namespace
 Create a namespace with the specified name.
 
@@ -922,6 +935,32 @@ Create a service account with the specified name.
 ----
   # Create a new service account named my-service-account
   $ oc create serviceaccount my-service-account
+----
+====
+
+
+== oc create user
+Manually create a user (only needed if automatic creation is disabled).
+
+====
+
+[options="nowrap"]
+----
+  # Create a user with the username "ajones" and the display name "Adam Jones"
+  $ oc create user ajones --full-name="Adam Jones"
+----
+====
+
+
+== oc create useridentitymapping
+Manually map an identity to a user.
+
+====
+
+[options="nowrap"]
+----
+  # Map the identity "acme_ldap:adamjones" to the user "ajones"
+  $ oc create useridentitymapping acme_ldap:adamjones ajones
 ----
 ====
 

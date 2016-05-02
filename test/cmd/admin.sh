@@ -437,4 +437,13 @@ os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue,myoth
 echo "serviceacounts: ok"
 os::test::junit::declare_suite_end
 
+# user creation
+os::test::junit::declare_suite_start "cmd/admin/user-creation"
+os::cmd::expect_success 'oc create user                test-cmd-user'
+os::cmd::expect_success 'oc create identity            test-idp:test-uid'
+os::cmd::expect_success 'oc create useridentitymapping test-idp:test-uid test-cmd-user'
+os::cmd::expect_success_and_text 'oc describe identity test-idp:test-uid' 'test-cmd-user'
+os::cmd::expect_success_and_text 'oc describe user     test-cmd-user' 'test-idp:test-uid'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end
