@@ -36,13 +36,6 @@
       border-top-width: 1px;
     }
   }
-  tr {
-    @media (min-width: @screen-md-min) {
-      td.event-time {
-        white-space: nowrap;
-      }
-    }
-  }
 }
 
 .table-borderless>tbody>tr>th,
@@ -146,4 +139,25 @@
   border-left: 1px solid @table-border-color;
   border-right: 1px solid @table-border-color;
   background-color: #f9f9f9;
+}
+
+// table for events
+.events-table {
+  table-layout: fixed;
+  th:nth-child(1) {width:90px;} // time
+  th:nth-child(2) {width:190px;} // name
+  th:nth-child(3) {width:160px;} // kind
+  th:nth-child(4) {width:10px;padding:0;} // icon
+  th:nth-child(5) {width:150px;} // reason
+  th:last-child   {width:100%;} // message; ensures it gets remaining width
+  td:nth-child(2),td:last-child {
+    .word-break;
+  }
+  .pficon {
+    vertical-align: middle;
+  }
+  .severity-icon-td {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }

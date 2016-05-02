@@ -24,7 +24,7 @@
         <div>
           <span class="pficon pficon-image" aria-hidden="true"></span>
         </div>
-        <div flex>
+        <div flex class="word-break">
           <span class="pod-template-key">Image:</span>
           <span ng-if="!imagesByDockerReference[container.image]">{{container.image | imageStreamName}}</span>
           <span ng-if="imagesByDockerReference[container.image]">
@@ -41,7 +41,7 @@
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>
           </div>
-          <div flex>
+          <div flex class="word-break">
             <span class="pod-template-key">Build:</span>
             <span ng-if="build.metadata.labels.buildconfig">
               <a ng-href="{{build.metadata.labels.buildconfig | navigateResourceURL : 'BuildConfig' : build.metadata.namespace}}">{{build.metadata.labels.buildconfig}}</a>,
@@ -86,7 +86,7 @@
         <div>
           <span data-icon="" aria-hidden="true" style="font-size:16px;line-height:normal"></span>
         </div>
-        <div flex>
+        <div flex class="word-break">
           <span class="pod-template-key">Ports:</span>
           <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
             <span class="nowrap">{{port.containerPort}}/{{port.protocol}}<span ng-if="port.name">&thinsp;({{port.name}})</span><span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
@@ -98,10 +98,10 @@
         <div>
           <span aria-hidden="true" class="fa fa-database"></span>
         </div>
-        <div flex>
+        <div flex class="word-break">
           <span class="pod-template-key">Mount:</span>
           <span>
-            {{mount.name}}&#8201;&#8594;&#8201;<span class="word-break">{{mount.mountPath}}</span>
+            {{mount.name}}&#8201;&#8594;&#8201;<span>{{mount.mountPath}}</span>
           </span>
         </div>
       </div>

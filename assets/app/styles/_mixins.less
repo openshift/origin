@@ -38,11 +38,25 @@
   font-family: Menlo, Monaco, "Liberation Mono", Consolas, monospace;
 }
 
+// word-break and word-break-all test cases http://codepen.io/sg00dwin/pen/WwKMmP
 
-.word-break() {
- -ms-word-break: break-all; // ms
-     word-wrap: break-word;
-  overflow-wrap: break-word; // new name as per the CSS3 spec
+.word-break-all {
+  // USAGE: Breaks long non-breaking strings if within a table not set to table-layout: fixed, fieldset or a flex container only eg <div style="display:flex"><div class="word-break-all">...
+  // Guarantees the string will wrap. word-break: break-all; is used by firefox and IE to break in the usage cases.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=587438, https://bugzilla.mozilla.org/show_bug.cgi?id=1136818
+    word-break: break-all;  // firefox, IE
+    word-break: break-word; // non-standard for webkit
+ overflow-wrap: break-word; // new name as per the CSS3 spec
+}
+
+.word-break {
+  // USAGE: Breaks long non-breaking strings within a div or a flexed item that is within a flex container eg <div style="display:flex"><div style="flex:1" class="word-break">...
+  // An unbreakable "word" may be broken at an arbitrary point if there are no otherwise-acceptable break points in the line.
+  // (1) https://bugzilla.mozilla.org/show_bug.cgi?id=1136818#c2
+     word-wrap: break-word; // firefox, IE
+    word-break: break-word; // non-standard for webkit
+ overflow-wrap: break-word; // new name as per the CSS3 spec
+     min-width: 0;          // firefox (1)
 }
 
 // Linear-gradient stripes

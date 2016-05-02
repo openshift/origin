@@ -95,12 +95,12 @@
                       <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
                     </td>
                     <td data-title="Type">{{build.spec.strategy.type}}</td>
-                    <td data-title="Source">
+                    <td data-title="Source" class="word-break-all">
                       <span ng-if="build.spec.source">
                         <span ng-if="build.spec.source.type == 'None'">
                           <i>none</i>
                         </span>
-                        <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky' class="word-break"></span>
+                        <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky'></span>
                       </span>
                     </td>
                   </tr>
