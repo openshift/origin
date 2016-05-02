@@ -159,6 +159,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 	// create subcommands
 	cmd.AddCommand(NewCmdCreateRoute(parentName, f, out))
 	cmd.AddCommand(create.NewCmdCreatePolicyBinding(create.PolicyBindingRecommendedName, parentName+" create "+create.PolicyBindingRecommendedName, f, out))
+	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, out))
 
 	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, parentName+" create "+create.UserRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, out))

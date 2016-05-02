@@ -139,6 +139,14 @@ os::cmd::expect_success 'oc get nodes'
 echo "nodes: ok"
 os::test::junit::declare_suite_end
 
+
+os::test::junit::declare_suite_start "cmd/basicresources/create"
+os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
+os::cmd::expect_success 'oc delete dc my-nginx'
+echo "create subcommands: ok"
+os::test::junit::declare_suite_end
+
+
 os::test::junit::declare_suite_start "cmd/basicresources/routes"
 os::cmd::expect_success 'oc get routes'
 os::cmd::expect_success 'oc create -f test/integration/fixtures/test-route.json'
