@@ -52,6 +52,7 @@ type StatusOptions struct {
 	logsCommandName             string
 	securityPolicyCommandFormat string
 	setProbeCommandName         string
+	patchCommandName            string
 }
 
 // NewCmdStatus implements the OpenShift cli status command.

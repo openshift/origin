@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -55,6 +56,9 @@ func init() {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&kapi.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
+		panic(err)
+	}
+	if err := RegisterEnsureNode(&extensions.HorizontalPodAutoscaler{}, kubegraph.EnsureHorizontalPodAutoscalerNode); err != nil {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&routeapi.Route{}, routegraph.EnsureRouteNode); err != nil {
