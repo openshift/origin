@@ -18,9 +18,15 @@ os::log::install_errexit
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+"${OS_ROOT}/hack/build-go.sh" cmd/oc
+oc="$(os::build::find-binary oc)"
+function build() {
+  oc ex dockerbuild $2 $1
+}
+
 # Build the images
-docker build --tag openshift/origin-base                   "${OS_ROOT}/images/base"
-docker build --tag openshift/origin-haproxy-router-base    "${OS_ROOT}/images/router/haproxy-base"
-docker build --tag openshift/origin-release                "${OS_ROOT}/images/release"
+build openshift/origin-base                   "${OS_ROOT}/images/base"
+build openshift/origin-haproxy-router-base    "${OS_ROOT}/images/router/haproxy-base"
+build openshift/origin-release                "${OS_ROOT}/images/release"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

@@ -3,9 +3,11 @@ package set
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -13,12 +15,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"net"
-	"strings"
 )
 
 const (

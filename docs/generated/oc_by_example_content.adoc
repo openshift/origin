@@ -1061,6 +1061,19 @@ DEPRECATED: set env
 ====
 
 
+== oc ex dockerbuild
+Perform a direct Docker build
+
+====
+
+[options="nowrap"]
+----
+  # Build the current directory into a single layer and tag
+  $ oc dockerbuild . myimage:latest
+----
+====
+
+
 == oc exec
 Execute a command in a container.
 

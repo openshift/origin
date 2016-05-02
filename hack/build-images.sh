@@ -35,7 +35,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 	os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
   echo
 else
-# Get the latest Linux release
+  # Get the latest Linux release
   if [[ ! -d _output/local/releases ]]; then
     echo "No release has been built. Run hack/build-release.sh"
     exit 1
@@ -54,6 +54,12 @@ else
   os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${imagedir}"
   os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
 fi
+
+"${OS_ROOT}/hack/build-go.sh" cmd/oc
+oc="$(os::build::find-binary oc)"
+function build() {
+  oc ex dockerbuild $2 $1
+}
 
 # Create link to file if the FS supports hardlinks, otherwise copy the file
 function ln_or_cp {
@@ -85,7 +91,8 @@ cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 function image {
   local STARTTIME=$(date +%s)
   echo "--- $1 ---"
-  docker build -t $1:latest $2
+  build $1:latest $2
+  #docker build -t $1:latest $2
   docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
   git clean -fdx $2
   local ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
