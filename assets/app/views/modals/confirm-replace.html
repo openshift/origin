@@ -1,0 +1,23 @@
+<div class="modal-resource-action">
+  <div class="modal-body">
+    <div ng-if="resourceList.length === 1">
+      <h1>{{resourceKind | humanizeKind}} '<strong>{{resourceName}}</strong>' already exists</h1>
+      <p>Do you want to replace with the new content?</p>
+    </div>
+    
+    <div ng-if="resourceList.length > 1">
+      <h1>Some items already exist:</h1>
+      <dl class="dl-horizontal">
+        <dt ng-repeat-start="resource in updateResources">{{resource.kind}}</dt>
+        <dd ng-repeat-end>{{resource.metadata.name}}</dd>
+      </dl>
+      <p>Do you want to replace the existing resources?</p>
+    </div>
+    
+    
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="replace();">Replace</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel();">Cancel</button>
+  </div>
+</div>

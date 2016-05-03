@@ -236,24 +236,27 @@ angular.module('openshiftConsole')
 
   // objects:   Array of API object data(eg. [{ kind: "Build", parameters: { ... } }] )
   // context:   API context (e.g. {project: "..."})
-  // opts:      http - options to pass to the inner $http call
+  // opts:      action - defines the REST action that will be called
+  //                   - available actions: create, update
+  //            http - options to pass to the inner $http call
   // Returns a promise resolved with an an object like: { success: [], failure: [] }
   // where success and failure contain an array of results from the individual
   // create calls.
-  DataService.prototype.createList = function(objects, context, opts) {
-    var result = $q.defer();
-    var successResults = [];
-    var failureResults = [];
-    var self = this;
-    var remaining = objects.length;
+  DataService.prototype.batch = function(objects, context, action, opts) {
+    var deferred = $q.defer(),
+        successResults = [],
+        failureResults = [],
+        self = this,
+        remaining = objects.length;
+    action = action || 'create';
 
     function _checkDone() {
       if (remaining === 0) {
-        result.resolve({ success: successResults, failure: failureResults });
+        deferred.resolve({ success: successResults, failure: failureResults });
       }
     }
 
-    objects.forEach(function(object) {
+    _.each(objects, function(object) {
       var resource = APIService.objectToResourceGroupVersion(object);
       if (!resource) {
         // include the original object, so the error handler can display the kind/name
@@ -270,24 +273,40 @@ angular.module('openshiftConsole')
         return;
       }
 
-      self.create(resource, null, object, context, opts).then(
-        function (data) {
-          // include the original object, so the error handler can display the kind/name
-          data.object = object;
-          successResults.push(data);
-          remaining--;
-          _checkDone();
-        },
-        function (data) {
-          // include the original object, so the handler can display the kind/name
-          data.object = object;
-          failureResults.push(data);
-          remaining--;
-          _checkDone();
-        }
-      );
+      var success = function(data) {
+        // include the original object, so the error handler can display the kind/name
+        data.object = object;
+        successResults.push(data);
+        remaining--;
+        _checkDone();
+      };
+      var failure = function(data) {
+        // include the original object, so the handler can display the kind/name
+        data.object = object;
+        failureResults.push(data);
+        remaining--;
+        _checkDone();
+      };
+
+      switch(action) {
+      case "create":
+        self.create(resource, null, object, context, opts).then(success, failure);
+        break;
+      case "update":
+        self.update(resource, object.metadata.name, object, context, opts).then(success, failure);
+        break;
+      default:
+        // default case to prevent unspecified actions and typos
+        return deferred.reject({
+          data: "Invalid '" + action + "'  action.",
+          status: 400,
+          headers: function() { return null; },
+          config: {},
+          object: object
+        });
+      }
     });
-    return result.promise;
+    return deferred.promise;
   };
 
 // resource:  API resource (e.g. "pods")

@@ -44,6 +44,20 @@ angular.module("openshiftConsole")
       },
 
       /**
+       * Return the URL for the fromTemplate page for the picked template
+       *
+       * @param {String}      projectName  Project name
+       * @param {String}      name         Template name
+       * @param {String}      namespace    Namespace from which the Template should be loaded
+       * @returns {String} a URL string for the fromTemplate page. If the namespace is not set
+       * read the template from TemplateService.
+       */
+      fromTemplateURL: function(projectName, name, namespace){
+        namespace = namespace || "";
+        return "project/" + encodeURIComponent(projectName) + "/create/fromtemplate?name=" + name + "&namespace=" + namespace;
+      },
+
+      /**
        * Navigate and display the next steps after creation page.
        *
        * @param {type} projectName  the project name

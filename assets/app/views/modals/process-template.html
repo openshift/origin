@@ -1,0 +1,25 @@
+<div class="modal-resource-action">
+  <div class="modal-body">
+    <h1>Add Template</h1>
+    <p>What would you like to do?</p>
+
+    <div>
+      <label>
+        <input type="checkbox" ng-model="templateOptions.process"/>
+        <strong>Process the template</strong>
+      </label>
+      <span id="helpBlock" class="help-block">Create the objects defined in the template. You will have an opportunity to fill in template parameters.</span>
+    </div>
+    <div>
+      <label>
+        <input type="checkbox" ng-model="templateOptions.add"/>
+        <strong>Save template</strong>
+      </label>
+      <span id="helpBlock" class="help-block">Save the template to the project. This will make the template available to anyone who can view the project.</span> 
+    </div>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="continue();" ng-disabled="!templateOptions.process && !templateOptions.add">Continue</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel();">Cancel</button>
+  </div>
+</div>

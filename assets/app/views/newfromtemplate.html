@@ -9,6 +9,7 @@
       <div id="scrollable-content" class="middle-container has-scroll">
         <div class="middle-content">
           <div class="container surface-shaded">
+            <tasks></tasks>
             <div class="row">
               <div class="col-md-12">
                 <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
@@ -19,6 +20,7 @@
                     </div>
                     <div class="col-md-9">
                       <fieldset ng-disabled="disableInputs">
+                        <alerts alerts="alerts"></alerts>
                         <osc-image-summary resource="template"></osc-image-summary>
                         <div ng-if="templateImages.length" class="images">
                           <h2>Images</h2>
@@ -37,7 +39,6 @@
                               can-toggle="false"
                               help-text="Each label is applied to each created resource.">
                           </label-editor>
-                          <alerts alerts="alerts"></alerts>
                           <div class="buttons gutter-top-bottom">
                             <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
                             <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>

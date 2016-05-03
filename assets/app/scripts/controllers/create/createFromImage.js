@@ -242,7 +242,7 @@ angular.module("openshiftConsole")
           TaskList.clear();
           TaskList.add(titles, helpLinks, function(){
             var d = $q.defer();
-            DataService.createList(resources, context)
+            DataService.batch(resources, context)
               //refactor these helpers to be common for 'newfromtemplate'
               .then(function(result) {
                     var alerts = [];

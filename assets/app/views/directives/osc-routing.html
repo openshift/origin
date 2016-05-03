@@ -204,38 +204,45 @@
           </span>
         </span>
       </div>
-      <fieldset ng-disabled="!route.tls.termination || route.tls.termination === 'passthrough'">
+      <fieldset>
         <div>
-          <div class="form-group">
+          <div class="form-group" id="certificate-file">
             <label>Certificate</label>
-            <osc-file-input
-                model="route.tls.certificate"
-                show-values="true"
-                help-text="The PEM format certificate.">
+            <osc-file-input 
+              model="route.tls.certificate"
+              drop-zone-id="certificate-file"
+              show-values="true"
+              help-text="The PEM format certificate. Upload file by dragging & dropping, or selecting it."
+              ng-disabled="disableCertificateInputs()">
             </osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="private-key-file">
             <label>Private Key</label>
-            <osc-file-input
-                model="route.tls.key"
-                show-values="true"
-                help-text="The PEM format key.">
-            </osc-file-input>
+            <osc-file-input 
+              model="route.tls.key"
+              drop-zone-id="private-key-file"
+              show-values="true"
+              help-text="The PEM format key. Upload file by dragging & dropping, or selecting it."
+              ng-disabled="disableCertificateInputs()">
+          </osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="ca-certificate-file">
             <label>CA Certificate</label>
-            <osc-file-input
-                model="route.tls.caCertificate"
-                show-values="true"
-                help-text="The PEM format CA certificate.">
+            <osc-file-input 
+              model="route.tls.caCertificate"
+              drop-zone-id="ca-certificate-file"
+              show-values="true"
+              help-text="The PEM format CA certificate. Upload file by dragging & dropping, or selecting it."
+              ng-disabled="disableCertificateInputs()">
             </osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="dest-ca-certificate-file">
             <label>Destination CA Certificate</label>
             <osc-file-input
                 model="route.tls.destinationCACertificate"
-                help-text="The PEM format CA certificate to validate the endpoint certificate for re-encrypt termination."
                 show-values="true"
+                drop-zone-id="dest-ca-certificate-file"
+                help-text="The PEM format CA certificate to validate the endpoint certificate for re-encrypt termination. Upload file by dragging & dropping, or selecting it."
                 ng-disabled="route.tls.termination !== 'reencrypt'">
             </osc-file-input>
             <!-- Show a warning if the value won't be used, but only if we're

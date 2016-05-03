@@ -390,6 +390,38 @@ label.checkbox {
   }
 }
 
+.drag-and-drop-zone {
+  position: absolute;
+  border-width: 3px;
+  visibility: hidden;
+}
+
+.show-drag-and-drop-zone {
+  border-style: dashed;
+  visibility: visible;
+  border-color:  rgb(136, 136, 136);
+  margin-left: -3px;
+  background-color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  vertical-align: middle;
+  p {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    font-size: 24px;
+    font-weight: 400;
+    margin: 0;
+  }
+}
+
+.highlight-drag-and-drop-zone {
+  border-color: #0099d3;
+  p {
+    color: #0099d3;
+  }
+}
+
 .icon-xl {
   font-size: 128px;
 }
@@ -759,7 +791,6 @@ select:invalid {
     margin: auto;
   }
 }
-
 .learn-more-block {
   display: block;
   font-size: @font-size-small;
@@ -816,7 +847,7 @@ a.disabled-link {
   vertical-align: middle;
 }
 
-.modal-resource-delete, .modal-confirm-scale {
+.modal-resource-action {
   background-color: @gray-lighter;
   h1 {
     font-size: 21px;
@@ -904,6 +935,10 @@ a.disabled-link {
 
 .ace-inline {
   height: 300px;
+}
+
+#from-file .editor {
+  height: 350px;
 }
 
 .edit-form {
