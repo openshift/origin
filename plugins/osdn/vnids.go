@@ -3,6 +3,7 @@ package osdn
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -26,11 +27,20 @@ const (
 	AdminVNID = uint(0)
 )
 
-func (oc *OsdnController) GetVNID(name string) (uint, error) {
-	oc.vnidLock.Lock()
-	defer oc.vnidLock.Unlock()
+type vnidMap struct {
+	ids  map[string]uint
+	lock sync.Mutex
+}
 
-	if id, ok := oc.vnidMap[name]; ok {
+func newVnidMap() vnidMap {
+	return vnidMap{ids: make(map[string]uint)}
+}
+
+func (vmap vnidMap) GetVNID(name string) (uint, error) {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
+
+	if id, ok := vmap.ids[name]; ok {
 		return id, nil
 	}
 	// In case of error, return some value which is not a valid VNID
@@ -43,12 +53,12 @@ func (oc *OsdnController) GetVNID(name string) (uint, error) {
 // and if service/pod-setup tries to lookup vnid map then it may fail.
 // So, use this method to alleviate this problem. This method will
 // retry vnid lookup before giving up.
-func (oc *OsdnController) WaitAndGetVNID(name string) (uint, error) {
+func (vmap vnidMap) WaitAndGetVNID(name string) (uint, error) {
 	// Try few times up to 2 seconds
 	retries := 20
 	retryInterval := 100 * time.Millisecond
 	for i := 0; i < retries; i++ {
-		if id, err := oc.GetVNID(name); err == nil {
+		if id, err := vmap.GetVNID(name); err == nil {
 			return id, nil
 		}
 		time.Sleep(retryInterval)
@@ -58,33 +68,33 @@ func (oc *OsdnController) WaitAndGetVNID(name string) (uint, error) {
 	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
-func (oc *OsdnController) setVNID(name string, id uint) {
-	oc.vnidLock.Lock()
-	defer oc.vnidLock.Unlock()
+func (vmap vnidMap) SetVNID(name string, id uint) {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
 
-	oc.vnidMap[name] = id
+	vmap.ids[name] = id
 	log.Infof("Associate netid %d to namespace %q", id, name)
 }
 
-func (oc *OsdnController) unSetVNID(name string) (id uint, err error) {
-	oc.vnidLock.Lock()
-	defer oc.vnidLock.Unlock()
+func (vmap vnidMap) UnsetVNID(name string) (id uint, err error) {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
 
-	id, found := oc.vnidMap[name]
+	id, found := vmap.ids[name]
 	if !found {
 		// In case of error, return some value which is not a valid VNID
 		return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 	}
-	delete(oc.vnidMap, name)
+	delete(vmap.ids, name)
 	log.Infof("Dissociate netid %d from namespace %q", id, name)
 	return id, nil
 }
 
-func (oc *OsdnController) checkVNID(id uint) bool {
-	oc.vnidLock.Lock()
-	defer oc.vnidLock.Unlock()
+func (vmap vnidMap) CheckVNID(id uint) bool {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
 
-	for _, netid := range oc.vnidMap {
+	for _, netid := range vmap.ids {
 		if netid == id {
 			return true
 		}
@@ -92,13 +102,13 @@ func (oc *OsdnController) checkVNID(id uint) bool {
 	return false
 }
 
-func (oc *OsdnController) getAllocatedVNIDs() []uint {
-	oc.vnidLock.Lock()
-	defer oc.vnidLock.Unlock()
+func (vmap vnidMap) GetAllocatedVNIDs() []uint {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
 
 	ids := []uint{}
 	idSet := sets.Int{}
-	for _, id := range oc.vnidMap {
+	for _, id := range vmap.ids {
 		if id != AdminVNID {
 			if !idSet.Has(int(id)) {
 				ids = append(ids, id)
@@ -109,27 +119,27 @@ func (oc *OsdnController) getAllocatedVNIDs() []uint {
 	return ids
 }
 
-func populateVNIDMap(oc *OsdnController) error {
-	nets, err := oc.Registry.GetNetNamespaces()
+func (vmap vnidMap) PopulateVNIDs(registry *Registry) error {
+	nets, err := registry.GetNetNamespaces()
 	if err != nil {
 		return err
 	}
 
 	for _, net := range nets {
-		oc.setVNID(net.Name, net.NetID)
+		vmap.SetVNID(net.Name, net.NetID)
 	}
 	return nil
 }
 
 func (oc *OsdnController) VnidStartMaster() error {
-	err := populateVNIDMap(oc)
+	err := oc.vnids.PopulateVNIDs(oc.Registry)
 	if err != nil {
 		return err
 	}
 
 	// VNID: 0 reserved for default namespace and can reach any network in the cluster
 	// VNID: 1 to 9 are internally reserved for any special cases in the future
-	oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxVNID, oc.getAllocatedVNIDs())
+	oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxVNID, oc.vnids.GetAllocatedVNIDs())
 	if err != nil {
 		return err
 	}
@@ -152,14 +162,14 @@ func (oc *OsdnController) isAdminNamespace(nsName string) bool {
 
 func (oc *OsdnController) assignVNID(namespaceName string) error {
 	// Nothing to do if the netid is in the vnid map
-	if _, err := oc.GetVNID(namespaceName); err == nil {
+	if _, err := oc.vnids.GetVNID(namespaceName); err == nil {
 		return nil
 	}
 
 	// If NetNamespace is present, update vnid map
 	netns, err := oc.Registry.GetNetNamespace(namespaceName)
 	if err == nil {
-		oc.setVNID(namespaceName, netns.NetID)
+		oc.vnids.SetVNID(namespaceName, netns.NetID)
 		return nil
 	}
 
@@ -184,14 +194,14 @@ func (oc *OsdnController) assignVNID(namespaceName string) error {
 		}
 		return err
 	}
-	oc.setVNID(namespaceName, netid)
+	oc.vnids.SetVNID(namespaceName, netid)
 	return nil
 }
 
 func (oc *OsdnController) revokeVNID(namespaceName string) error {
 	// Remove NetID from vnid map
 	netid_found := true
-	netid, err := oc.unSetVNID(namespaceName)
+	netid, err := oc.vnids.UnsetVNID(namespaceName)
 	if err != nil {
 		log.Error(err)
 		netid_found = false
@@ -212,7 +222,7 @@ func (oc *OsdnController) revokeVNID(namespaceName string) error {
 
 	// Check if this netid is used by any other namespaces
 	// If not, then release the netid
-	if !oc.checkVNID(netid) {
+	if !oc.vnids.CheckVNID(netid) {
 		err = oc.netIDManager.ReleaseNetID(netid)
 		if err != nil {
 			return fmt.Errorf("Error while releasing netid %d for namespace %q, %v", netid, namespaceName, err)
@@ -256,7 +266,7 @@ func (oc *OsdnController) watchNamespaces() {
 
 func (oc *OsdnController) VnidStartNode() error {
 	// Populate vnid map synchronously so that existing services can fetch vnid
-	err := populateVNIDMap(oc)
+	err := oc.vnids.PopulateVNIDs(oc.Registry)
 	if err != nil {
 		return err
 	}
@@ -311,16 +321,16 @@ func (oc *OsdnController) watchNetNamespaces() {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			// Skip this event if the old and new network ids are same
-			oldNetID, err := oc.GetVNID(netns.NetName)
+			oldNetID, err := oc.vnids.GetVNID(netns.NetName)
 			if (err == nil) && (oldNetID == netns.NetID) {
 				continue
 			}
-			oc.setVNID(netns.NetName, netns.NetID)
+			oc.vnids.SetVNID(netns.NetName, netns.NetID)
 
 			err = oc.updatePodNetwork(netns.NetName, netns.NetID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
-				oc.setVNID(netns.NetName, oldNetID)
+				oc.vnids.SetVNID(netns.NetName, oldNetID)
 				continue
 			}
 		case watch.Deleted:
@@ -329,7 +339,7 @@ func (oc *OsdnController) watchNetNamespaces() {
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
-			oc.unSetVNID(netns.NetName)
+			oc.vnids.UnsetVNID(netns.NetName)
 		}
 	}
 }
@@ -377,7 +387,7 @@ func (oc *OsdnController) watchServices() {
 				}
 			}
 
-			netid, err := oc.WaitAndGetVNID(serv.Namespace)
+			netid, err := oc.vnids.WaitAndGetVNID(serv.Namespace)
 			if err != nil {
 				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
 				continue

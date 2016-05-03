@@ -72,7 +72,7 @@ func (plugin *OsdnController) Capabilities() utilsets.Int {
 
 func (plugin *OsdnController) getVNID(namespace string) (string, error) {
 	if plugin.multitenant {
-		vnid, err := plugin.WaitAndGetVNID(namespace)
+		vnid, err := plugin.vnids.WaitAndGetVNID(namespace)
 		if err != nil {
 			return "", err
 		}

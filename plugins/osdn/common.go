@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -32,8 +31,7 @@ type OsdnController struct {
 	HostName           string
 	subnetAllocator    *netutils.SubnetAllocator
 	podNetworkReady    chan struct{}
-	vnidMap            map[string]uint
-	vnidLock           sync.Mutex
+	vnids              vnidMap
 	netIDManager       *netutils.NetIDAllocator
 	adminNamespaces    []string
 	iptablesSyncPeriod time.Duration
@@ -84,7 +82,7 @@ func createPlugin(osClient *osclient.Client, kClient *kclient.Client, pluginName
 		Registry:           NewRegistry(osClient, kClient),
 		localIP:            selfIP,
 		HostName:           hostname,
-		vnidMap:            make(map[string]uint),
+		vnids:              newVnidMap(),
 		podNetworkReady:    make(chan struct{}),
 		adminNamespaces:    make([]string, 0),
 		iptablesSyncPeriod: iptablesSyncPeriod,
