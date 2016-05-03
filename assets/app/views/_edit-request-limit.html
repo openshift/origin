@@ -33,7 +33,7 @@
       default-value="limits.defaultLimit"
       limit-range-min="limits.min"
       limit-range-max="limits.max"
-      request="requestCalculated ? undefined : resources.requests[type] || limits.defaultRequest"
+      request="requestCalculated ? undefined : resources.requests[type]"
       max-limit-request-ratio="limits.maxLimitRequestRatio"
       ng-if="!hideLimit">
   </compute-resource>
