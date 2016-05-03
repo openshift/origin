@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiserver "k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
@@ -15,6 +16,10 @@ type Authorizer interface {
 
 type AuthorizationAttributeBuilder interface {
 	GetAttributes(request *http.Request) (AuthorizationAttributes, error)
+}
+
+type RequestInfoResolver interface {
+	GetRequestInfo(req *http.Request) (kapiserver.RequestInfo, error)
 }
 
 type AuthorizationAttributes interface {
