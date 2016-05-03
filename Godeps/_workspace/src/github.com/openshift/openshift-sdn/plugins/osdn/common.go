@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -26,11 +27,11 @@ type PluginHooks interface {
 
 	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
 
-	AddHostSubnetRules(subnet *osapi.HostSubnet)
-	DeleteHostSubnetRules(subnet *osapi.HostSubnet)
+	AddHostSubnetRules(subnet *osapi.HostSubnet) error
+	DeleteHostSubnetRules(subnet *osapi.HostSubnet) error
 
-	AddServiceRules(service *kapi.Service, netID uint)
-	DeleteServiceRules(service *kapi.Service)
+	AddServiceRules(service *kapi.Service, netID uint) error
+	DeleteServiceRules(service *kapi.Service) error
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
@@ -43,7 +44,8 @@ type OsdnController struct {
 	HostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	podNetworkReady chan struct{}
-	VNIDMap         map[string]uint
+	vnidMap         map[string]uint
+	vnidLock        sync.Mutex
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 }
@@ -83,7 +85,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.Registry = registry
 	oc.localIP = selfIP
 	oc.HostName = hostname
-	oc.VNIDMap = make(map[string]uint)
+	oc.vnidMap = make(map[string]uint)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
 
@@ -266,7 +268,7 @@ func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
 }
 
 func GetNodeIP(node *kapi.Node) (string, error) {
-	if len(node.Status.Addresses) > 0 {
+	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
 		return node.Status.Addresses[0].Address, nil
 	} else {
 		return netutils.GetNodeIP(node.Name)
