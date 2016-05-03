@@ -1247,7 +1247,8 @@ items:
     creationTimestamp: null
     name: registry-admin
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -1265,15 +1266,30 @@ items:
     - patch
     - update
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
     - resourceaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - rolebindings
     - roles
-    - subjectaccessreviews
     verbs:
     - create
     - delete
@@ -1283,14 +1299,8 @@ items:
     - patch
     - update
     - watch
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - imagestreams/layers
-    verbs:
-    - get
-    - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - policies
@@ -1299,10 +1309,65 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - delete
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: registry-editor
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreamimports
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - projects
     verbs:
     - get
@@ -1312,7 +1377,8 @@ items:
     creationTimestamp: null
     name: registry-viewer
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -1324,52 +1390,27 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - imagestreams/layers
-    - namespaces
-    - projects
-    verbs:
-    - get
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    creationTimestamp: null
-    name: registry-editor
-  rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - namespaces
-    - projects
-    verbs:
-    - get
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - imagestreamimages
-    - imagestreamimports
-    - imagestreammappings
-    - imagestreams
-    - imagestreams/secrets
-    - imagestreamtags
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
-    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
