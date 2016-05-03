@@ -1,12 +1,7 @@
 package netnamespace
 
 import (
-	"fmt"
-
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -22,8 +17,6 @@ type sdnStrategy struct {
 // Strategy is the default logic that applies when creating and updating NetNamespace
 // objects via the REST API.
 var Strategy = sdnStrategy{kapi.Scheme}
-
-func (sdnStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // Canonicalize normalizes the object after validation.
 func (sdnStrategy) Canonicalize(obj runtime.Object) {
@@ -41,9 +34,7 @@ func (sdnStrategy) GenerateName(base string) string {
 func (sdnStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
-// Validate validates a new NetNamespace
-func (sdnStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateNetNamespace(obj.(*api.NetNamespace))
+func (sdnStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // AllowCreateOnUpdate is false for NetNamespace
@@ -55,18 +46,10 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-// ValidateUpdate is the default update validation for a NetNamespace
+// Validate validates a new NetNamespace
 func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateNetNamespaceUpdate(obj.(*api.NetNamespace), old.(*api.NetNamespace))
-}
-
-// Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		ns, ok := obj.(*api.NetNamespace)
-		if !ok {
-			return false, fmt.Errorf("not a NetNamespace")
-		}
-		return label.Matches(labels.Set(ns.Labels)) && field.Matches(api.NetNamespaceToSelectableFields(ns)), nil
-	})
+	newObj := obj.(*api.NetNamespace)
+	oldObj := old.(*api.NetNamespace)
+	errList := validation.ValidateNetNamespace(newObj)
+	return append(errList, validation.ValidateNetNamespaceUpdate(newObj, oldObj)...)
 }

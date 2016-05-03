@@ -75,7 +75,7 @@ import (
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
-	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
+	netnamespace "github.com/openshift/origin/pkg/sdn/registry/netnamespace"
 	"github.com/openshift/origin/pkg/service"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
@@ -391,13 +391,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator)
 	checkStorageErr(err)
 
-	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
-	checkStorageErr(err)
-	netNamespaceStorage, err := netnamespaceetcd.NewREST(c.RESTOptionsGetter)
-	checkStorageErr(err)
-	clusterNetworkStorage, err := clusternetworketcd.NewREST(c.RESTOptionsGetter)
-	checkStorageErr(err)
-
 	userStorage, err := useretcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -493,6 +486,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
 		GRFn: deployRollback.GenerateRollback,
 	}
+
+	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	netNamespaceStorage := netnamespace.NewREST(kclient.Namespaces())
+	clusterNetworkStorage, err := clusternetworketcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
