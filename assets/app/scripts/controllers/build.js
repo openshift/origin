@@ -49,10 +49,10 @@ angular.module('openshiftConsole')
     };
 
     var updateCanBuild = function() {
-      if (!$scope.buildConfig || !$scope.buildConfigBuildsInProgress) {
+      if (!$scope.buildConfig) {
         $scope.canBuild = false;
       } else {
-        $scope.canBuild = BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
+        $scope.canBuild = BuildsService.canBuild($scope.buildConfig);
       }
     };
 
@@ -128,20 +128,6 @@ angular.module('openshiftConsole')
           if (build) {
             buildConfigName = build.metadata.labels.buildconfig;
             buildName = build.metadata.name;
-          }
-
-          if (!action) {
-            // Loading of the page that will create buildConfigBuildsInProgress structure, which will associate running build to his buildConfig.
-            $scope.buildConfigBuildsInProgress = BuildsService.associateRunningBuildToBuildConfig($scope.builds);
-          } else if (action === 'ADDED'){
-            // When new build id instantiated/cloned associate him to his buildConfig and add him into buildConfigBuildsInProgress structure.
-            $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
-            $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
-          } else if (action === 'MODIFIED'){
-            // After the build ends remove him from the buildConfigBuildsInProgress structure.
-            if (!$filter('isIncompleteBuild')(build)){
-              delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
-            }
           }
 
           updateCanBuild();
