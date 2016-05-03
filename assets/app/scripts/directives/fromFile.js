@@ -36,7 +36,6 @@ angular.module("openshiftConsole")
 
         // Determine whats the input format (JSON/YAML) and set appropriate view mode
         var updateEditorMode = _.debounce(function(){
-          $scope.$apply(checkErrorAnnotations);
           try {
             JSON.parse($scope.editorContent);
             aceEditorSession.setMode("ace/mode/json");
@@ -44,10 +43,9 @@ angular.module("openshiftConsole")
             try {
               YAML.parse($scope.editorContent);
               aceEditorSession.setMode("ace/mode/yaml");
-            } catch (e) {
-              return;
-            }
+            } catch (e) {}
           }
+          $scope.$apply(checkErrorAnnotations);
         }, 300);
 
         // Check if the editor isn't empty to disable the 'Add' button. Also check in what format the input is in (JSON/YAML) and change
