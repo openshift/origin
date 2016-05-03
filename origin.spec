@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2a06686bebaa76768be43bd59a5fb312dc67808a
+%global commit d3754e3a1af9ca0883252ae54598f45ecd3e7b14
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.20-4-g2a06686 -X github.com/openshift/origin/pkg/version.commitFromGit 2a06686 -X k8s.io/kubernetes/pkg/version.gitCommit 2a06686 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.40-12-gd3754e3 -X github.com/openshift/origin/pkg/version.commitFromGit d3754e3 -X k8s.io/kubernetes/pkg/version.gitCommit d3754e3 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.0.40
+Version:        3.2.0.41
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -485,6 +485,19 @@ fi
 
 
 %changelog
+* Tue May 03 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.41
+- UPSTREAM: 24933: Validate deletion timestamp doesn't change on update
+  (jliggitt@redhat.com)
+- policy unsafe proxy requests separately (jliggitt@redhat.com)
+- Add login csrf prompts (jliggitt@redhat.com)
+- Enable the gcs, oss, and inmemory storage drivers in registry
+  (ccoleman@redhat.com)
+- Limit queryparam auth to websockets (jliggitt@redhat.com)
+- Web console: don't validate limit against request default
+  (spadgett@redhat.com)
+- Bug 1330364 - add user to role message has 'admin' role hardcoded, should
+  just have a placeholder (jforrest@redhat.com)
+
 * Tue Apr 26 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.40
 - Update version for first hotfix (tdawson@redhat.com)
 - Merge pull request #184 from ironcladlou/deployment-quota-fix
