@@ -13,13 +13,6 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
-const (
-	// TODO: We are unable to consolidate constants with ovs/controller.go as golang doesn't allow import cycle
-	// Fix this once we land https://github.com/openshift/openshift-sdn/pull/305
-	TUN        = "tun0"
-	VXLAN_PORT = "4789"
-)
-
 type FirewallRule struct {
 	table string
 	chain string

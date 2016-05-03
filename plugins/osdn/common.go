@@ -91,9 +91,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 }
 
 func (oc *OsdnController) validateNetworkConfig(ni *NetworkInfo) error {
-	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
-	// This will ensure both the kube/multitenant scripts and master validations use the same name.
-	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
+	hostIPNets, err := netutils.GetHostIPNetworks([]string{TUN, LBR})
 	if err != nil {
 		return err
 	}

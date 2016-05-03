@@ -1,4 +1,4 @@
-package ovs
+package osdn
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -19,14 +18,14 @@ import (
 )
 
 type ovsProxyPlugin struct {
-	registry  *osdn.Registry
+	registry  *Registry
 	podsByIP  map[string]*kapi.Pod
 	podsMutex sync.Mutex
 
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 }
 
-func CreateProxyPlugin(registry *osdn.Registry) (api.FilteringEndpointsConfigHandler, error) {
+func CreateProxyPlugin(registry *Registry) (api.FilteringEndpointsConfigHandler, error) {
 	return &ovsProxyPlugin{
 		registry: registry,
 		podsByIP: make(map[string]*kapi.Pod),
@@ -54,7 +53,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 }
 
 func (proxy *ovsProxyPlugin) watchPods() {
-	eventQueue := proxy.registry.RunEventQueue(osdn.Pods)
+	eventQueue := proxy.registry.RunEventQueue(Pods)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
