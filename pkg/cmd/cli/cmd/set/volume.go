@@ -237,11 +237,22 @@ func (v *VolumeOptions) Validate(args []string) error {
 
 func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 	if isAddOp {
+		if len(a.MountPath) == 0 {
+			return errors.New("must provide --mount-path for --add operation")
+		}
+
 		if len(a.Type) == 0 && (len(a.ClaimName) > 0 || len(a.ClaimSize) > 0) {
 			a.Type = "persistentvolumeclaim"
 			a.TypeChanged = true
 		}
-
+		if len(a.Type) == 0 && (len(a.SecretName) > 0) {
+			a.Type = "secret"
+			a.TypeChanged = true
+		}
+		if len(a.Type) == 0 && (len(a.Path) > 0) {
+			a.Type = "hostpath"
+			a.TypeChanged = true
+		}
 		if len(a.Type) == 0 {
 			a.Type = "emptydir"
 		}

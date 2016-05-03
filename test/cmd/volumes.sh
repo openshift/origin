@@ -28,12 +28,13 @@ os::cmd::expect_success_and_text 'oc volume dc/test-deployment-config --list' 'v
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --name=vol0 -m /opt5'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
 os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol10 --secret-name='my-secret' -m /data-2"
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol1 --type=emptyDir -m /data --overwrite'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
 os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
 os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite"
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --name=vol3 -o yaml' 'name: vol3'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --name=vol3 -m=/anywhere -o yaml' 'name: vol3'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
