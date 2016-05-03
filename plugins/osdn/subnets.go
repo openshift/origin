@@ -147,27 +147,27 @@ func (master *OsdnMaster) watchNodes() {
 	}
 }
 
-func (oc *OsdnNode) SubnetStartNode(mtu uint) (bool, error) {
-	err := oc.initSelfSubnet()
+func (node *OsdnNode) SubnetStartNode(mtu uint) (bool, error) {
+	err := node.initSelfSubnet()
 	if err != nil {
 		return false, err
 	}
 
 	// Assume we are working with IPv4
-	ni, err := oc.Registry.GetNetworkInfo()
+	ni, err := node.registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
 	}
-	networkChanged, err := oc.SetupSDN(oc.localSubnet.Subnet, ni.ClusterNetwork.String(), ni.ServiceNetwork.String(), mtu)
+	networkChanged, err := node.SetupSDN(node.localSubnet.Subnet, ni.ClusterNetwork.String(), ni.ServiceNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
 
-	go utilwait.Forever(oc.watchSubnets, 0)
+	go utilwait.Forever(node.watchSubnets, 0)
 	return networkChanged, nil
 }
 
-func (oc *OsdnNode) initSelfSubnet() error {
+func (node *OsdnNode) initSelfSubnet() error {
 	// timeout: 30 secs
 	retries := 60
 	retryInterval := 500 * time.Millisecond
@@ -177,30 +177,30 @@ func (oc *OsdnNode) initSelfSubnet() error {
 	// Try every retryInterval and bail-out if it exceeds max retries
 	for i := 0; i < retries; i++ {
 		// Get subnet for current node
-		subnet, err = oc.Registry.GetSubnet(oc.HostName)
+		subnet, err = node.registry.GetSubnet(node.hostName)
 		if err == nil {
 			break
 		}
-		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", oc.HostName)
+		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
 		time.Sleep(retryInterval)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", oc.HostName, err)
+		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", node.hostName, err)
 	}
 
-	if err := oc.Registry.ValidateNodeIP(subnet.HostIP); err != nil {
+	if err := node.registry.ValidateNodeIP(subnet.HostIP); err != nil {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
 	log.Infof("Found local HostSubnet %s", HostSubnetToString(subnet))
-	oc.localSubnet = subnet
+	node.localSubnet = subnet
 	return nil
 }
 
 // Only run on the nodes
-func (oc *OsdnNode) watchSubnets() {
+func (node *OsdnNode) watchSubnets() {
 	subnets := make(map[string]*osapi.HostSubnet)
-	eventQueue := oc.Registry.RunEventQueue(HostSubnets)
+	eventQueue := node.registry.RunEventQueue(HostSubnets)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()
@@ -210,7 +210,7 @@ func (oc *OsdnNode) watchSubnets() {
 		}
 		hs := obj.(*osapi.HostSubnet)
 
-		if hs.HostIP == oc.localIP {
+		if hs.HostIP == node.localIP {
 			continue
 		}
 
@@ -223,17 +223,17 @@ func (oc *OsdnNode) watchSubnets() {
 					continue
 				} else {
 					// Delete old subnet rules
-					if err := oc.DeleteHostSubnetRules(oldSubnet); err != nil {
+					if err := node.DeleteHostSubnetRules(oldSubnet); err != nil {
 						log.Error(err)
 					}
 				}
 			}
-			if err := oc.Registry.ValidateNodeIP(hs.HostIP); err != nil {
+			if err := node.registry.ValidateNodeIP(hs.HostIP); err != nil {
 				log.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				continue
 			}
 
-			if err := oc.AddHostSubnetRules(hs); err != nil {
+			if err := node.AddHostSubnetRules(hs); err != nil {
 				log.Error(err)
 				continue
 			}
@@ -241,7 +241,7 @@ func (oc *OsdnNode) watchSubnets() {
 		case watch.Deleted:
 			delete(subnets, string(hs.UID))
 
-			if err := oc.DeleteHostSubnetRules(hs); err != nil {
+			if err := node.DeleteHostSubnetRules(hs); err != nil {
 				log.Error(err)
 			}
 		}

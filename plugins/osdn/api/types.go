@@ -8,7 +8,7 @@ import (
 type OsdnNodePlugin interface {
 	knetwork.NetworkPlugin
 
-	Start(mtu uint) error
+	Start() error
 }
 
 type FilteringEndpointsConfigHandler interface {
