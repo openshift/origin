@@ -92,7 +92,8 @@ var (
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews" /* cluster scoped*/, "subjectaccessreviews" /* cluster scoped*/, "localresourceaccessreviews", "localsubjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
 		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
-			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests", "builds/details", "imagestreams/secrets"},
+			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests", "builds/details", "imagestreams/secrets",
+			"selfsubjectrulesreviews"},
 		OpenshiftStatusGroupName: {"imagestreams/status", "routes/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
@@ -197,6 +198,23 @@ type PolicyBinding struct {
 	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
 	RoleBindings map[string]*RoleBinding
+}
+
+// SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
+type SelfSubjectRulesReview struct {
+	unversioned.TypeMeta
+
+	// Status is completed by the server to tell which permissions you have
+	Status SubjectRulesReviewStatus
+}
+
+// SubjectRulesReviewStatus is contains the result of a rules check
+type SubjectRulesReviewStatus struct {
+	// Rules is the list of rules (no particular sort) that are allowed for the subject
+	Rules []PolicyRule
+	// EvaluationError can appear in combination with Rules.  It means some error happened during evaluation
+	// that may have prevented additional rules from being populated.
+	EvaluationError string
 }
 
 // ResourceAccessReviewResponse describes who can perform the action

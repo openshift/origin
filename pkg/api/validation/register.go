@@ -36,6 +36,7 @@ func init() {
 }
 
 func registerAll() {
+	Validator.MustRegister(&authorizationapi.SelfSubjectRulesReview{}, authorizationvalidation.ValidateSelfSubjectRulesReview, nil)
 	Validator.MustRegister(&authorizationapi.SubjectAccessReview{}, authorizationvalidation.ValidateSubjectAccessReview, nil)
 	Validator.MustRegister(&authorizationapi.ResourceAccessReview{}, authorizationvalidation.ValidateResourceAccessReview, nil)
 	Validator.MustRegister(&authorizationapi.LocalSubjectAccessReview{}, authorizationvalidation.ValidateLocalSubjectAccessReview, nil)

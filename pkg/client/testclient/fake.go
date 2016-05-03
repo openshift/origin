@@ -256,6 +256,10 @@ func (c *Fake) PolicyBindings(namespace string) client.PolicyBindingInterface {
 	return &FakePolicyBindings{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) SelfSubjectRulesReviews(namespace string) client.SelfSubjectRulesReviewInterface {
+	return &FakeSelfSubjectRulesReviews{Fake: c, Namespace: namespace}
+}
+
 // LocalResourceAccessReviews provides a fake REST client for ResourceAccessReviews
 func (c *Fake) LocalResourceAccessReviews(namespace string) client.LocalResourceAccessReviewInterface {
 	return &FakeLocalResourceAccessReviews{Fake: c}

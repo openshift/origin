@@ -7217,6 +7217,46 @@ _oc_policy_who-can()
     must_have_one_noun=()
 }
 
+_oc_policy_what-can-i-do()
+{
+    last_command="oc_policy_what-can-i-do"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--api-version=")
+    flags+=("--as=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oc_policy_add-role-to-user()
 {
     last_command="oc_policy_add-role-to-user"
@@ -7470,6 +7510,7 @@ _oc_policy()
     last_command="oc_policy"
     commands=()
     commands+=("who-can")
+    commands+=("what-can-i-do")
     commands+=("add-role-to-user")
     commands+=("remove-role-from-user")
     commands+=("remove-user")

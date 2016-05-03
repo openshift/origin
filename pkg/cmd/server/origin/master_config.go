@@ -73,6 +73,7 @@ import (
 type MasterConfig struct {
 	Options configapi.MasterConfig
 
+	RuleResolver                  rulevalidation.AuthorizationRuleResolver
 	Authenticator                 authenticator.Request
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
@@ -177,7 +178,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
-	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		rulevalidation.PolicyGetter(policyClient),
+		rulevalidation.BindingLister(policyClient),
+		rulevalidation.ClusterPolicyGetter(policyClient),
+		rulevalidation.ClusterBindingLister(policyClient),
+	)
+	authorizer := newAuthorizer(ruleResolver, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
@@ -214,6 +221,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	config := &MasterConfig{
 		Options: options,
 
+		RuleResolver:                  ruleResolver,
 		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs, groupCache),
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
@@ -363,13 +371,8 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 	return
 }
 
-func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(
-		rulevalidation.PolicyGetter(policyClient),
-		rulevalidation.BindingLister(policyClient),
-		rulevalidation.ClusterPolicyGetter(policyClient),
-		rulevalidation.ClusterBindingLister(policyClient),
-	), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, projectRequestDenyMessage string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(ruleResolver, authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 

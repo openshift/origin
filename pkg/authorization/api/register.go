@@ -37,6 +37,7 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&RoleBindingList{},
 		&RoleList{},
 
+		&SelfSubjectRulesReview{},
 		&ResourceAccessReview{},
 		&SubjectAccessReview{},
 		&LocalResourceAccessReview{},
@@ -72,6 +73,7 @@ func (obj *LocalSubjectAccessReview) GetObjectKind() unversioned.ObjectKind     
 func (obj *LocalResourceAccessReview) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
 func (obj *SubjectAccessReview) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
 func (obj *ResourceAccessReview) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *SelfSubjectRulesReview) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
 
 func (obj *RoleList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *RoleBindingList) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }

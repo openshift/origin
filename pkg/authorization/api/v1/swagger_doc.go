@@ -291,6 +291,15 @@ func (RoleList) SwaggerDoc() map[string]string {
 	return map_RoleList
 }
 
+var map_SelfSubjectRulesReview = map[string]string{
+	"":       "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
+	"status": "Status is completed by the server to tell which permissions you have",
+}
+
+func (SelfSubjectRulesReview) SwaggerDoc() map[string]string {
+	return map_SelfSubjectRulesReview
+}
+
 var map_SubjectAccessReview = map[string]string{
 	"":       "SubjectAccessReview is an object for requesting information about whether a user or group can perform an action",
 	"user":   "User is optional. If both User and Groups are empty, the current authenticated user is used.",
@@ -310,4 +319,14 @@ var map_SubjectAccessReviewResponse = map[string]string{
 
 func (SubjectAccessReviewResponse) SwaggerDoc() map[string]string {
 	return map_SubjectAccessReviewResponse
+}
+
+var map_SubjectRulesReviewStatus = map[string]string{
+	"":                "SubjectRulesReviewStatus is contains the result of a rules check",
+	"rules":           "Rules is the list of rules (no particular sort) that are allowed for the subject",
+	"evaluationError": "EvaluationError can appear in combination with Rules.  It means some error happened during evaluation that may have prevented additional rules from being populated.",
+}
+
+func (SubjectRulesReviewStatus) SwaggerDoc() map[string]string {
+	return map_SubjectRulesReviewStatus
 }
