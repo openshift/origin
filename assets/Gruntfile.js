@@ -9,6 +9,7 @@
 // 'test/spec/**/*.js'
 
 var modRewrite = require('connect-modrewrite');
+var serveStatic = require('serve-static');
 
 module.exports = function (grunt) {
 
@@ -107,16 +108,16 @@ module.exports = function (grunt) {
           middleware: function (connect) {
             return [
               modRewrite(['!^/(config.js|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
-              connect.static('.tmp'),
+              serveStatic('.tmp'),
               connect().use(
                 '/java',
-                connect.static('./openshift-jvm')
+                serveStatic('./openshift-jvm')
               ),
               connect().use(
                 '/bower_components',
-                connect.static('./bower_components')
+                serveStatic('./bower_components')
               ),
-              connect.static(appConfig.app)
+              serveStatic(appConfig.app)
             ];
           }
         }
@@ -126,13 +127,13 @@ module.exports = function (grunt) {
           middleware: function (connect) {
             return [
               modRewrite(['!^/(config.js|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
-              connect.static('.tmp'),
-              connect.static('test'),
+              serveStatic('.tmp'),
+              serveStatic('test'),
               connect().use(
                 '/bower_components',
-                connect.static('./bower_components')
+                serveStatic('./bower_components')
               ),
-              connect.static(appConfig.app)
+              serveStatic(appConfig.app)
             ];
           }
         }
@@ -201,12 +202,15 @@ module.exports = function (grunt) {
         src: ['<%= yeoman.app %>/index.html'],
         ignorePath:  /\.\.\//,
         exclude: [
+          // choosing uri.js over urijs
           'bower_components/uri.js/src/IPv6.js',
           'bower_components/uri.js/src/SecondLevelDomains.js',
           'bower_components/uri.js/src/punycode.js',
           'bower_components/uri.js/src/URI.min.js',
           'bower_components/uri.js/src/jquery.URI.min.js',
           'bower_components/uri.js/src/URI.fragmentQuery.js',
+          // bower registration error? we get 2x versions of uri.js/urijs
+          'bower_components/urijs/',
           'bower_components/messenger/build/css/messenger.css',
           'bower_components/messenger/build/css/messenger-theme-future.css',
           'bower_components/messenger/build/css/messenger-theme-block.css',
@@ -257,19 +261,6 @@ module.exports = function (grunt) {
       }
     },
 
-    // Renames files for browser caching purposes
-    filerev: {
-      dist: {
-        src: [
-          // We do not need digest filenames as our files are loaded from
-          // a commit-based path
-          //'<%= yeoman.dist %>/scripts/{,*/}*.js',
-          //'<%= yeoman.dist %>/styles/{,*/}*.css',
-          //'<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-          //'<%= yeoman.dist %>/styles/fonts/*'
-        ]
-      }
-    },
 
     // Reads HTML for usemin blocks to enable smart builds that automatically
     // concat, minify and revision files. Creates configurations in memory so
@@ -650,7 +641,6 @@ module.exports = function (grunt) {
     'less',
     'cssmin',
     'uglify',
-    'filerev',
     'usemin',
     'htmlmin'
   ]);

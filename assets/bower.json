@@ -56,6 +56,11 @@
     "font-awesome": "4.6.1"
   },
   "overrides": {
+    "angular" : {
+      "dependencies" : {
+        "jquery" : "2.1.4"
+      }
+    },
     "angular-patternfly": {
       "main": [
         "dist/styles/angular-patternfly.css",
