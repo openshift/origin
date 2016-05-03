@@ -130,7 +130,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (plugin *OsdnController) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
+func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -327,7 +327,7 @@ func (plugin *OsdnController) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serv
 	return true, nil
 }
 
-func (plugin *OsdnController) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("AddHostSubnetRules for %s", HostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
 
@@ -342,7 +342,7 @@ func (plugin *OsdnController) AddHostSubnetRules(subnet *osapi.HostSubnet) error
 	return nil
 }
 
-func (plugin *OsdnController) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("DeleteHostSubnetRules for %s", HostSubnetToString(subnet))
 
 	otx := ovs.NewTransaction(BR)
@@ -355,7 +355,7 @@ func (plugin *OsdnController) DeleteHostSubnetRules(subnet *osapi.HostSubnet) er
 	return nil
 }
 
-func (plugin *OsdnController) AddServiceRules(service *kapi.Service, netID uint) error {
+func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -373,7 +373,7 @@ func (plugin *OsdnController) AddServiceRules(service *kapi.Service, netID uint)
 	return nil
 }
 
-func (plugin *OsdnController) DeleteServiceRules(service *kapi.Service) error {
+func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
 	if !plugin.multitenant {
 		return nil
 	}

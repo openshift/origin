@@ -5,11 +5,14 @@ import (
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 )
 
-type OsdnPlugin interface {
+type OsdnMasterPlugin interface {
+	Start(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+}
+
+type OsdnNodePlugin interface {
 	knetwork.NetworkPlugin
 
-	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
-	StartNode(mtu uint) error
+	Start(mtu uint) error
 }
 
 type FilteringEndpointsConfigHandler interface {
