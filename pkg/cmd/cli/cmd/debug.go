@@ -420,7 +420,7 @@ func (o *DebugOptions) Debug() error {
 			return err
 		}
 		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
-		switch _, err := Until(o.Timeout, w, PodContainerRunning(o.Attach.ContainerName)); {
+		switch containerRunningEvent, err := Until(o.Timeout, w, PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
 		case kapierrors.IsNotFound(err):
 			msg := fmt.Sprintf("unable to create the debug pod %q", pod.Name)
@@ -444,6 +444,12 @@ func (o *DebugOptions) Debug() error {
 		case err != nil:
 			return err
 		default:
+			// TODO this doesn't do us much good for remote debugging sessions, but until we get a local port
+			// set up to proxy, this is what we've got.
+			if podWithStatus, ok := containerRunningEvent.Object.(*kapi.Pod); ok {
+				fmt.Fprintf(o.Attach.Err, "Pod IP: %s\n", podWithStatus.Status.PodIP)
+			}
+
 			// TODO: attach can race with pod completion, allow attach to switch to logs
 			return o.Attach.Run()
 		}
