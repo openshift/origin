@@ -117,7 +117,7 @@
                             <span ng-switch-default>is {{latestBuild.status.phase | lowercase}}.</span>
                           </span>
                         </span>
-                        <a ng-href="{{latestBuild | navigateResourceURL}}?tab=logs">View Log</a>
+                        <a ng-href="{{build | buildLogURL}}" ng-if="build | buildLogURL">View Log</a>
                       </div>
                       <div class="latest-build-timestamp meta text-muted">
                         <span ng-if="!latestBuild.status.startTimestamp">
@@ -246,7 +246,7 @@
                                   <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
                                   <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
                                 </div>
-                                <div ng-if="buildConfig.spec.strategy.type === 'JenkinsPipeline'">
+                                <div ng-if="buildConfig | isJenkinsPipelineStrategy">
                                   <div ng-if="buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath">
                                     <dt>Jenkinsfile Path:</dt>
                                     <dd>{{buildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath}}</dd>
@@ -356,7 +356,7 @@
                       <annotations annotations="buildConfig.metadata.annotations"></annotations>
                     </div>
                   </uib-tab>
-                  <uib-tab heading="Environment" active="selectedTab.environment" ng-if="buildConfig">
+                  <uib-tab heading="Environment" active="selectedTab.environment" ng-if="buildConfig && !(buildConfig | isJenkinsPipelineStrategy)">
                     <uib-tab-heading>Environment</uib-tab-heading>
                     <environment env-vars="(buildConfig | buildStrategy).env"></environment>
                     <em ng-if="!(buildConfig | buildStrategy).env">The build strategy had no environment variables defined.</em>

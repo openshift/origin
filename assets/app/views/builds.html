@@ -44,8 +44,8 @@
                     <td data-title="Last Build"><em>No builds</em></td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td class="hidden-xs">&nbsp;</td>
-                    <td data-title="Type">{{buildConfigs[buildConfigName].spec.strategy.type}}</td>
-                    <td data-title="Source">                        
+                    <td data-title="Type">{{buildConfigs[buildConfigName].spec.strategy.type | startCase}}</td>
+                    <td data-title="Source">
                       <span ng-if="buildConfigs[buildConfigName].spec.source.type == 'None'"><i>none</i></span>
                       <span ng-if="buildConfigs[buildConfigName].spec.source.type == 'Git'" ng-bind-html='buildConfigs[buildConfigName].spec.source.git.uri | githubLink : buildConfigs[buildConfigName].spec.source.git.ref : buildConfigs[buildConfigName].spec.source.contextDir | linky'></span></td>
                   </tr>
@@ -94,7 +94,7 @@
                       <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
                       <span>- {{build.metadata.creationTimestamp | date : 'short'}}</span>
                     </td>
-                    <td data-title="Type">{{build.spec.strategy.type}}</td>
+                    <td data-title="Type">{{build.spec.strategy.type | startCase}}</td>
                     <td data-title="Source" class="word-break-all">
                       <span ng-if="build.spec.source">
                         <span ng-if="build.spec.source.type == 'None'">

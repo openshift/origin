@@ -31,7 +31,8 @@ angular.module('openshiftConsole')
         "displayName":              ["openshift.io/display-name"],
         "description":              ["openshift.io/description"],
         "buildNumber":              ["openshift.io/build.number"],
-        "buildPod":                 ["openshift.io/build.pod-name"]
+        "buildPod":                 ["openshift.io/build.pod-name"],
+        "jenkinsLogURL":            ["openshift.io/jenkins-log-url"]
       };
       return annotationMap[annotationKey] || null;
     };
@@ -810,6 +811,32 @@ angular.module('openshiftConsole')
         default:
           return null;
       }
+    };
+  })
+  .filter('isJenkinsPipelineStrategy', function() {
+    return function(/* build or build config */ resource) {
+      return _.get(resource, 'spec.strategy.type') === 'JenkinsPipeline';
+    };
+  })
+  .filter('jenkinsLogURL', function(annotationFilter) {
+    return function(build) {
+      return annotationFilter(build, 'jenkinsLogURL');
+    };
+  })
+  .filter('buildLogURL', function(isJenkinsPipelineStrategyFilter,
+                                  jenkinsLogURLFilter,
+                                  navigateResourceURLFilter) {
+    return function(build) {
+      if (isJenkinsPipelineStrategyFilter(build)) {
+        return jenkinsLogURLFilter(build);
+      }
+
+      var navURL = navigateResourceURLFilter(build);
+      if (!navURL) {
+        return null;
+      }
+
+      return new URI(navURL).addSearch('tab', 'logs').toString();
     };
   })
   .filter('humanizeKind', function (startCaseFilter) {

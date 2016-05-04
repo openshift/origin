@@ -70,15 +70,18 @@ angular.module("openshiftConsole")
       DataService.create("builds/clone", buildName, req, context).then(
         function(build) { //success
             $scope.alerts = $scope.alerts || {};
-            $scope.alerts["rebuild"] =
-            {
+            var logLink = $filter('buildLogURL')(build);
+            var alert = {
               type: "success",
-              message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + ".",
-              links: [{
-                href: $filter('navigateResourceURL')(build) + "?tab=logs",
-                label: "View Log"
-              }]
+              message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + "."
             };
+            if (logLink) {
+              alert.links = [{
+                href: logLink,
+                label: "View Log"
+              }];
+            }
+            $scope.alerts["rebuild"] = alert;
         },
         function(result) { //failure
           $scope.alerts = $scope.alerts || {};
