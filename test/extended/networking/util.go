@@ -5,6 +5,9 @@ import (
 	"os"
 	"time"
 
+	testexutil "github.com/openshift/origin/test/extended/util"
+	testutil "github.com/openshift/origin/test/util"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -154,6 +157,16 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 
 func pluginIsolatesNamespaces() bool {
 	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
+}
+
+func makeNamespaceGlobal(ns *api.Namespace) {
+	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
+	expectNoError(err)
+	netns, err := client.NetNamespaces().Get(ns.Name)
+	expectNoError(err)
+	netns.NetID = 0
+	_, err = client.NetNamespaces().Update(netns)
+	expectNoError(err)
 }
 
 func skipIfSingleTenant() {
