@@ -457,17 +457,18 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
 
 			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
-			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
+			oauthRedirector, oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected error: %v", err)
 			}
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors.Add(identityProvider.Name, oauthHandler)
+				redirectors.Add(identityProvider.Name, oauthRedirector)
 			}
 			if identityProvider.UseAsChallenger {
-				return nil, errors.New("oauth identity providers cannot issue challenges")
+				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
+				challengers["basic-challenge"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
 		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
@@ -670,6 +671,18 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 				return nil, err
 			}
 			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(identityProvider.Name, passwordAuthenticator, true))
+
+		} else if identityProvider.UseAsChallenger && configapi.IsOAuthIdentityProvider(identityProvider) {
+			oauthProvider, err := c.getOAuthProvider(identityProvider)
+			if err != nil {
+				return nil, err
+			}
+			oauthPasswordAuthenticator, err := external.NewOAuthPasswordAuthenticator(oauthProvider, identityMapper)
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error: %v", err)
+			}
+
+			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(identityProvider.Name, oauthPasswordAuthenticator, true))
 
 		} else {
 			switch provider := identityProvider.Provider.(type) {
