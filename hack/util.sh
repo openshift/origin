@@ -30,7 +30,7 @@
 # Returns:
 #  - export ADMIN_KUBECONFIG
 #  - export CLUSTER_ADMIN_CONTEXT
-function configure_os_server {
+function configure_os_server() {
 	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
 		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
@@ -120,7 +120,7 @@ function configure_os_server {
 #  None
 # Returns:
 #  - export OS_PID
-function start_os_server {
+function start_os_server() {
 	local sudo="${USE_SUDO:+sudo}"
 
 	local use_latest_images
@@ -182,7 +182,7 @@ function start_os_server {
 #  None
 # Returns:
 #  - export OS_PID
-function start_os_master {
+function start_os_master() {
 	local sudo="${USE_SUDO:+sudo}"
 
 	echo "[INFO] `openshift version`"
@@ -215,7 +215,7 @@ function start_os_master {
 }
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.
-function ensure_iptables_or_die {
+function ensure_iptables_or_die() {
 	if [[ -z "$(which iptables)" ]]; then
 		echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
 		exit 1
@@ -236,7 +236,7 @@ function ensure_iptables_or_die {
 }
 
 # tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
-function tryuntil {
+function tryuntil() {
 	timeout=$(($(date +%s) + 90))
 	echo "++ Retrying until success or timeout: ${@}"
 	while [ 1 ]; do
@@ -262,7 +262,7 @@ function tryuntil {
 # $2 - Optional maximum time to wait in ms before giving up (Default: 10000ms)
 # $3 - Optional alternate command to determine if the wait should
 #		exit before the max_wait
-function wait_for_command {
+function wait_for_command() {
 	STARTTIME=$(date +%s)
 	cmd=$1
 	msg="Waiting for command to finish: '${cmd}'..."
@@ -305,7 +305,7 @@ function wait_for_command {
 # $1 - The URL to check
 # $2 - Optional prefix to use when echoing a successful result
 # $3 - Optional maximum time to wait before giving up (Default: 10s)
-function wait_for_url_timed {
+function wait_for_url_timed() {
 	STARTTIME=$(date +%s)
 	url=$1
 	prefix=${2:-}
@@ -334,7 +334,7 @@ function wait_for_url_timed {
 # $1 - The file to check for existence
 # $2 - Optional time to sleep between attempts (Default: 0.2s)
 # $3 - Optional number of attemps to make (Default: 10)
-function wait_for_file {
+function wait_for_file() {
 	file=$1
 	wait=${2:-0.2}
 	times=${3:-10}
@@ -355,7 +355,7 @@ function wait_for_file {
 # $2 - Optional prefix to use when echoing a successful result
 # $3 - Optional time to sleep between attempts (Default: 0.2s)
 # $4 - Optional number of attemps to make (Default: 10)
-function wait_for_url {
+function wait_for_url() {
 	url=$1
 	prefix=${2:-}
 	wait=${3:-0.2}
@@ -387,7 +387,7 @@ function wait_for_url {
 #
 # $1 - Optional time to sleep between attempts (Default: 0.2s)
 # $2 - Optional number of attemps to make (Default: 10)
-function set_curl_args {
+function set_curl_args() {
 	wait=${1:-0.2}
 	times=${2:-10}
 
@@ -420,7 +420,7 @@ function set_curl_args {
 #
 # $1 - a valid URL (e.g.: http://127.0.0.1:8080)
 # $2 - a regular expression or text
-function validate_response {
+function validate_response() {
 	url=$1
 	expected_response=$2
 	wait=${3:-0.2}
@@ -449,7 +449,7 @@ function validate_response {
 # the test.
 #
 # $1 expression for which the mounts should be checked
-reset_tmp_dir() {
+function reset_tmp_dir() {
 	local sudo="${USE_SUDO:+sudo}"
 
 	set +e
@@ -466,8 +466,7 @@ reset_tmp_dir() {
 
 # kill_all_processes function will kill all
 # all processes created by the test script.
-function kill_all_processes()
-{
+function kill_all_processes() {
 	local sudo="${USE_SUDO:+sudo}"
 
 	pids=($(jobs -pr))
@@ -478,14 +477,12 @@ function kill_all_processes()
 }
 
 # time_now return the time since the epoch in millis
-function time_now()
-{
+function time_now() {
 	echo $(date +%s000)
 }
 
 # dump_container_logs writes container logs to $LOG_DIR
-function dump_container_logs()
-{
+function dump_container_logs() {
 	if ! docker version >/dev/null 2>&1; then
 		return
 	fi
@@ -528,12 +525,12 @@ function truncate_large_logs() {
 ######
 
 # exit run if ginkgo not installed
-function ensure_ginkgo_or_die {
+function ensure_ginkgo_or_die() {
 	which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
 }
 
 # cleanup_openshift saves container logs, saves resources, and kills all processes and containers
-function cleanup_openshift {
+function cleanup_openshift() {
 	ADMIN_KUBECONFIG="${ADMIN_KUBECONFIG:-${BASETMPDIR}/openshift.local.config/master/admin.kubeconfig}"
 	LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	ARTIFACT_DIR="${ARTIFACT_DIR:-${LOG_DIR}}"
@@ -588,7 +585,7 @@ function cleanup_openshift {
 }
 
 # create a .gitconfig for test-cmd secrets
-function create_gitconfig {
+function create_gitconfig() {
 	USERNAME=sample-user
 	PASSWORD=password
 	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
@@ -599,7 +596,7 @@ function create_gitconfig {
 	echo ${GITCONFIG_DIR}/.gitconfig
 }
 
-function create_valid_file {
+function create_valid_file() {
 	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
 	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
 	touch ${FILE_DIR}/${1}
@@ -607,7 +604,7 @@ function create_valid_file {
 }
 
 # install the router for the extended tests
-function install_router {
+function install_router() {
 	echo "[INFO] Installing the router"
 	oadm policy add-scc-to-user privileged -z router --config="${ADMIN_KUBECONFIG}"
         # Create a TLS certificate for the router
@@ -634,13 +631,13 @@ function install_router {
 }
 
 # install registry for the extended tests
-function install_registry {
+function install_registry() {
 	# The --mount-host option is provided to reuse local storage.
 	echo "[INFO] Installing the registry"
 	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
 }
 
-function wait_for_registry {
+function wait_for_registry() {
 	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
 
@@ -674,7 +671,7 @@ function os::build:wait_for_end() {
 # environment where it is not already enabled.
 SELINUX_DISABLED=0
 
-function enable-selinux {
+function enable-selinux() {
   if [ "${SELINUX_DISABLED}" = "1" ]; then
     os::log::info "Re-enabling selinux enforcement"
     sudo setenforce 1
@@ -682,7 +679,7 @@ function enable-selinux {
   fi
 }
 
-function disable-selinux {
+function disable-selinux() {
   if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
     os::log::info "Temporarily disabling selinux enforcement"
     sudo setenforce 0
@@ -696,7 +693,7 @@ function disable-selinux {
 
 # Handler for when we exit automatically on an error.
 # Borrowed from https://gist.github.com/ahendrix/7030300
-os::log::errexit() {
+function os::log::errexit() {
 	local err="${PIPESTATUS[@]}"
 
 	# If the shell we are in doesn't have errexit set (common in subshells) then
@@ -708,7 +705,7 @@ os::log::errexit() {
 	os::log::error_exit "'${BASH_COMMAND}' exited with status $err" "${1:-1}" 1
 }
 
-os::log::install_errexit() {
+function os::log::install_errexit() {
 	# trap ERR to provide an error handler whenever a command exits nonzero this
 	# is a more verbose version of set -o errexit
 	trap 'os::log::errexit' ERR
@@ -722,7 +719,7 @@ os::log::install_errexit() {
 #
 # Args:
 #	 $1 The number of stack frames to skip when printing.
-os::log::stack() {
+function os::log::stack() {
 	local stack_skip=${1:-0}
 	stack_skip=$((stack_skip + 1))
 	if [[ ${#FUNCNAME[@]} -gt $stack_skip ]]; then
@@ -744,7 +741,7 @@ os::log::stack() {
 #	 $1 Message to log with the error
 #	 $2 The error code to return
 #	 $3 The number of stack frames to skip when printing.
-os::log::error_exit() {
+function os::log::error_exit() {
 	local message="${1:-}"
 	local code="${2:-1}"
 	local stack_skip="${3:-0}"
@@ -763,26 +760,26 @@ os::log::error_exit() {
 	exit "${code}"
 }
 
-os::log::with-severity() {
+function os::log::with-severity() {
   local msg=$1
   local severity=$2
 
   echo "[$2] ${1}"
 }
 
-os::log::info() {
+function os::log::info() {
   os::log::with-severity "${1}" "INFO"
 }
 
-os::log::warn() {
+function os::log::warn() {
   os::log::with-severity "${1}" "WARNING"
 }
 
-os::log::error() {
+function os::log::error() {
   os::log::with-severity "${1}" "ERROR"
 }
 
-find_files() {
+function find_files() {
 	find . -not \( \
 		\( \
 		-wholename './_output' \
@@ -800,11 +797,11 @@ find_files() {
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
-os::util::host_platform() {
+function os::util::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
-os::util::sed() {
+function os::util::sed() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
   	sed -i '' "$@"
   else
@@ -812,7 +809,7 @@ os::util::sed() {
   fi
 }
 
-os::util::base64decode() {
+function os::util::base64decode() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
   	base64 -D $@
   else
@@ -820,7 +817,7 @@ os::util::base64decode() {
   fi
 }
 
-os::util::get_object_assert() {
+function os::util::get_object_assert() {
   local object=$1
   local request=$2
   local expected=$3
