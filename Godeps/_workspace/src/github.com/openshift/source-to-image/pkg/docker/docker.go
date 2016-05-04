@@ -129,6 +129,7 @@ type RunContainerOptions struct {
 	User             string
 	CGroupLimits     *api.CGroupLimits
 	CapDrop          []string
+	Binds            []string
 }
 
 // asDockerConfig converts a RunContainerOptions into a Config understood by the
@@ -151,6 +152,7 @@ func (rco RunContainerOptions) asDockerHostConfig() docker.HostConfig {
 		CapDrop:         rco.CapDrop,
 		PublishAllPorts: rco.TargetImage,
 		NetworkMode:     rco.NetworkMode,
+		Binds:           rco.Binds,
 	}
 	if rco.CGroupLimits != nil {
 		hostConfig.Memory = rco.CGroupLimits.MemoryLimitBytes

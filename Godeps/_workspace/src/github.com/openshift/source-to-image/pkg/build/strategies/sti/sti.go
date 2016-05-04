@@ -326,7 +326,7 @@ func (builder *STI) PostExecute(containerID, location string) error {
 
 	imageID, err := builder.docker.CommitContainer(opts)
 	if err != nil {
-		return errors.NewBuildError(builder.config.Tag, err)
+		return errors.NewCommitError(builder.config.Tag, err)
 	}
 
 	builder.result.Success = true
@@ -479,6 +479,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
 		CapDrop:         config.DropCapabilities,
+		Binds:           config.BuildVolumes.AsBinds(),
 	}
 
 	// If there are injections specified, override the original assemble script
@@ -514,13 +515,13 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 			}
 			glog.V(2).Info("starting the injections uploading ...")
 			for _, s := range config.Injections {
-				if err := builder.docker.UploadToContainer(s.SourcePath, s.DestinationDir, containerID); err != nil {
+				if err := builder.docker.UploadToContainer(s.Source, s.Destination, containerID); err != nil {
 					injectionError = util.HandleInjectionError(s, err)
 					return err
 				}
 			}
 			if err := builder.docker.UploadToContainer(rmScript, "/tmp/rm-injections", containerID); err != nil {
-				injectionError = util.HandleInjectionError(api.InjectPath{SourcePath: rmScript, DestinationDir: "/tmp/rm-injections"}, err)
+				injectionError = util.HandleInjectionError(api.VolumeSpec{Source: rmScript, Destination: "/tmp/rm-injections"}, err)
 				return err
 			}
 			if originalOnStart != nil {

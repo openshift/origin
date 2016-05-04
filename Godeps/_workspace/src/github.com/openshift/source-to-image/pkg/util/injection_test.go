@@ -44,7 +44,7 @@ func TestExpandInjectedFiles(t *testing.T) {
 		t.Errorf("Unable to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tmp)
-	list := api.InjectionList{{SourcePath: tmp, DestinationDir: "/foo"}}
+	list := api.VolumeList{{Source: tmp, Destination: "/foo"}}
 	f1, _ := ioutil.TempFile(tmp, "foo")
 	f2, _ := ioutil.TempFile(tmpNested, "bar")
 	files, err := ExpandInjectedFiles(list)
