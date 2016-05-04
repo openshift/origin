@@ -77,7 +77,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 	for _, p := range context.Universe {
 		copyableType := false
 		for _, t := range p.Types {
-			if copyableWithinPackage(t) {
+			if copyableWithinPackage(t) && inputs.Has(t.Name.Package) {
 				copyableType = true
 			}
 		}
@@ -115,6 +115,8 @@ type genDeepCopy struct {
 	imports          namer.ImportTracker
 	typesForInit     []*types.Type
 	generateInitFunc bool
+
+	globalVariables map[string]interface{}
 }
 
 func NewGenDeepCopy(sanitizedName, targetPackage string, generateInitFunc bool) generator.Generator {
@@ -144,9 +146,6 @@ func (g *genDeepCopy) Filter(c *generator.Context, t *types.Type) bool {
 }
 
 func copyableWithinPackage(t *types.Type) bool {
-	if !strings.HasPrefix(t.Name.Package, "k8s.io/kubernetes/") {
-		return false
-	}
 	if types.ExtractCommentTags("+", t.CommentLines)["gencopy"] == "false" {
 		return false
 	}
@@ -173,12 +172,6 @@ func (g *genDeepCopy) isOtherPackage(pkg string) bool {
 
 func (g *genDeepCopy) Imports(c *generator.Context) (imports []string) {
 	importLines := []string{}
-	if g.isOtherPackage(apiPackagePath) && g.generateInitFunc {
-		importLines = append(importLines, "api \""+apiPackagePath+"\"")
-	}
-	if g.isOtherPackage(conversionPackagePath) {
-		importLines = append(importLines, "conversion \""+conversionPackagePath+"\"")
-	}
 	for _, singleImport := range g.imports.ImportLines() {
 		if g.isOtherPackage(singleImport) {
 			importLines = append(importLines, singleImport)
@@ -187,7 +180,16 @@ func (g *genDeepCopy) Imports(c *generator.Context) (imports []string) {
 	return importLines
 }
 
-func argsFromType(t *types.Type) interface{} {
+func (g *genDeepCopy) withGlobals(args map[string]interface{}) map[string]interface{} {
+	for k, v := range g.globalVariables {
+		if _, ok := args[k]; !ok {
+			args[k] = v
+		}
+	}
+	return args
+}
+
+func argsFromType(t *types.Type) map[string]interface{} {
 	return map[string]interface{}{
 		"type": t,
 	}
@@ -203,19 +205,26 @@ func (g *genDeepCopy) funcNameTmpl(t *types.Type) string {
 }
 
 func (g *genDeepCopy) Init(c *generator.Context, w io.Writer) error {
+	cloner := c.Universe.Type(types.Name{Package: conversionPackagePath, Name: "Cloner"})
+	g.imports.AddType(cloner)
+	g.globalVariables = map[string]interface{}{
+		"Cloner": cloner,
+	}
 	if !g.generateInitFunc {
 		// TODO: We should come up with a solution to register all generated
 		// deep-copy functions. However, for now, to avoid import cycles
 		// we register only those explicitly requested.
 		return nil
 	}
+	scheme := c.Universe.Variable(types.Name{Package: apiPackagePath, Name: "Scheme"})
+	g.imports.AddType(scheme)
+	g.globalVariables["scheme"] = scheme
+
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	sw.Do("func init() {\n", nil)
-	if g.targetPackage == apiPackagePath {
-		sw.Do("if err := Scheme.AddGeneratedDeepCopyFuncs(\n", nil)
-	} else {
-		sw.Do("if err := api.Scheme.AddGeneratedDeepCopyFuncs(\n", nil)
-	}
+	sw.Do("if err := $.scheme|raw$.AddGeneratedDeepCopyFuncs(\n", map[string]interface{}{
+		"scheme": scheme,
+	})
 	for _, t := range g.typesForInit {
 		sw.Do(fmt.Sprintf("%s,\n", g.funcNameTmpl(t)), argsFromType(t))
 	}
@@ -230,11 +239,7 @@ func (g *genDeepCopy) Init(c *generator.Context, w io.Writer) error {
 func (g *genDeepCopy) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	funcName := g.funcNameTmpl(t)
-	if g.targetPackage == conversionPackagePath {
-		sw.Do(fmt.Sprintf("func %s(in $.type|raw$, out *$.type|raw$, c *Cloner) error {\n", funcName), argsFromType(t))
-	} else {
-		sw.Do(fmt.Sprintf("func %s(in $.type|raw$, out *$.type|raw$, c *conversion.Cloner) error {\n", funcName), argsFromType(t))
-	}
+	sw.Do(fmt.Sprintf("func %s(in $.type|raw$, out *$.type|raw$, c *$.Cloner|raw$) error {\n", funcName), g.withGlobals(argsFromType(t)))
 	g.generateFor(t, sw)
 	sw.Do("return nil\n", nil)
 	sw.Do("}\n\n", nil)
