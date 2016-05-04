@@ -24,11 +24,12 @@ import (
 const defaultDestination = "/tmp"
 
 type Layered struct {
-	config  *api.Config
-	docker  docker.Docker
-	fs      util.FileSystem
-	tar     tar.Tar
-	scripts build.ScriptsHandler
+	config     *api.Config
+	docker     docker.Docker
+	fs         util.FileSystem
+	tar        tar.Tar
+	scripts    build.ScriptsHandler
+	hasOnBuild bool
 }
 
 func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
@@ -67,10 +68,10 @@ func checkValidDirWithContents(name string) bool {
 
 //CreateDockerfile takes the various inputs and creates the Dockerfile used by the docker cmd
 // to create the image produces by s2i
-func (b *Layered) CreateDockerfile(config *api.Config) error {
+func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	buffer := bytes.Buffer{}
 
-	user, err := b.docker.GetImageUser(b.config.BuilderImage)
+	user, err := builder.docker.GetImageUser(builder.config.BuilderImage)
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 		filepath.Join(getDestination(config), "src"),
 	}
 
-	buffer.WriteString(fmt.Sprintf("FROM %s\n", b.config.BuilderImage))
+	buffer.WriteString(fmt.Sprintf("FROM %s\n", builder.config.BuilderImage))
 	// only COPY scripts dir if required scripts are present, i.e. the dir is not empty;
 	// even if the "scripts" dir exists, the COPY would fail if it was empty
 	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
@@ -105,8 +106,8 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 		buffer.WriteString(fmt.Sprintf("USER %s\n", user))
 	}
 
-	uploadDir := filepath.Join(b.config.WorkingDir, "upload")
-	if err := b.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes()); err != nil {
+	uploadDir := filepath.Join(builder.config.WorkingDir, "upload")
+	if err := builder.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes()); err != nil {
 		return err
 	}
 	glog.V(2).Infof("Writing custom Dockerfile to %s", uploadDir)
@@ -115,29 +116,33 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 
 // TODO: this should stop generating a file, and instead stream the tar.
 //SourceTar returns a stream to the source tar file
-func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
+func (builder *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload")
-	tarFileName, err := b.tar.CreateTarFile(b.config.WorkingDir, uploadDir)
+	tarFileName, err := builder.tar.CreateTarFile(builder.config.WorkingDir, uploadDir)
 	if err != nil {
 		return nil, err
 	}
-	return b.fs.Open(tarFileName)
+	return builder.fs.Open(tarFileName)
 }
 
 //Build handles the `docker build` equivalent execution, returning the success/failure details
-func (b *Layered) Build(config *api.Config) (*api.Result, error) {
-	if err := b.CreateDockerfile(config); err != nil {
+func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
+	if config.HasOnBuild && config.BlockOnBuild {
+		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed.")
+	}
+
+	if err := builder.CreateDockerfile(config); err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Info("Creating application source code image")
-	tarStream, err := b.SourceTar(config)
+	tarStream, err := builder.SourceTar(config)
 	if err != nil {
 		return nil, err
 	}
 	defer tarStream.Close()
 
-	dockerImageReference, err := docker.ParseDockerImageReference(b.config.BuilderImage)
+	dockerImageReference, err := docker.ParseDockerImageReference(builder.config.BuilderImage)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +152,7 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	// construct the new image name
 	var newBuilderImage string
 	if len(dockerImageReference.ID) == 0 {
-		newBuilderImage = fmt.Sprintf("%s-%d", b.config.BuilderImage, time.Now().UnixNano())
+		newBuilderImage = fmt.Sprintf("%s-%d", builder.config.BuilderImage, time.Now().UnixNano())
 	} else {
 		if len(dockerImageReference.Registry) > 0 {
 			newBuilderImage = fmt.Sprintf("%s/", dockerImageReference.Registry)
@@ -185,31 +190,31 @@ func (b *Layered) Build(config *api.Config) (*api.Result, error) {
 	}(outReader)
 
 	glog.V(2).Infof("Building new image %s with scripts and sources already inside", newBuilderImage)
-	if err = b.docker.BuildImage(opts); err != nil {
+	if err = builder.docker.BuildImage(opts); err != nil {
 		return nil, err
 	}
 
 	// upon successful build we need to modify current config
-	b.config.LayeredBuild = true
+	builder.config.LayeredBuild = true
 	// new image name
-	b.config.BuilderImage = newBuilderImage
+	builder.config.BuilderImage = newBuilderImage
 	// see CreateDockerfile, conditional copy, location of scripts
 	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
 	glog.V(2).Infof("Scripts dir has contents %v", scriptsIncluded)
 	if scriptsIncluded {
-		b.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
+		builder.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
 	} else {
-		b.config.ScriptsURL, err = b.docker.GetScriptsURL(newBuilderImage)
+		builder.config.ScriptsURL, err = builder.docker.GetScriptsURL(newBuilderImage)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	glog.V(2).Infof("Building %s using sti-enabled image", b.config.Tag)
-	if err := b.scripts.Execute(api.Assemble, config.AssembleUser, b.config); err != nil {
+	glog.V(2).Infof("Building %s using sti-enabled image", builder.config.Tag)
+	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, builder.config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:
-			return nil, errors.NewAssembleError(b.config.Tag, e.Output, e)
+			return nil, errors.NewAssembleError(builder.config.Tag, e.Output, e)
 		default:
 			return nil, err
 		}

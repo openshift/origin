@@ -133,7 +133,7 @@ func TestBuild(t *testing.T) {
 	t.Logf("result: %v", result)
 }
 
-func TestBuildImplicitDisabled(t *testing.T) {
+func TestBuildOnBuildBlocked(t *testing.T) {
 	fakeRequest := &api.Config{
 		BuilderImage: "fake:onbuild",
 		Tag:          "fakeapp",
@@ -149,7 +149,7 @@ func TestBuildImplicitDisabled(t *testing.T) {
 	}
 	b.fs = fakeFs
 	_, err := b.Build(fakeRequest)
-	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is blocked.") {
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed.") {
 		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
 	}
 }
