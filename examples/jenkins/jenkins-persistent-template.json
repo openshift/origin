@@ -130,7 +130,7 @@
                 },
                 "livenessProbe": {
                     "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
+                    "initialDelaySeconds": 60,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
