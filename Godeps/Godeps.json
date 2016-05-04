@@ -45,7 +45,7 @@
 		},
 		{
 			"ImportPath": "github.com/RangelReale/osincli",
-			"Rev": "23618ea0fc3faa3f43954ce8ff48e31f5c784212"
+			"Rev": "05659f31e8b694f522f44226839a66bd8b7c08cc"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
