@@ -124,6 +124,11 @@ will be lost along with the rest of the resource.`
   # Delete a pod with ID 1234-56-7890-234234-456456.
   %[1]s delete pod 1234-56-7890-234234-456456
 
+  # Delete all resources associated with a running app, includes
+  # buildconfig,deploymentconfig,service,imagestream,route and pod,
+  # where 'appName' is listed in 'Labels' of 'oc describe [resource] [resource name]' output.
+  %[1]s delete all -l app=appName
+
   # Delete all pods
   %[1]s delete pods --all`
 )
