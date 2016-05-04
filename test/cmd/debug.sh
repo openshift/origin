@@ -38,5 +38,10 @@ os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod
 os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
 # TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
+
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image: openshift/wildfly-100-centos7'
+
 echo "debug: ok"
 os::test::junit::declare_suite_end

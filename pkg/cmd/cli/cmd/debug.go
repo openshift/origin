@@ -25,6 +25,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -531,17 +532,18 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 		if pod.Labels == nil {
 			pod.Labels = make(map[string]string)
 		}
-		pod.Labels[debugPodLabelName] = pod.Name
 	} else {
-		pod.Labels = map[string]string{debugPodLabelName: pod.Name}
+		pod.Labels = map[string]string{}
 	}
 	// always clear the NodeName
 	pod.Spec.NodeName = o.NodeName
 
 	pod.ResourceVersion = ""
 	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
-	// TODO: shorten segments, make incrementing?
-	pod.Name = fmt.Sprintf("%s-debug", pod.Name)
+
+	// shorten segments to handle long names and names with bad characters
+	pod.Name, _ = app.NewUniqueNameGenerator(fmt.Sprintf("%s-debug", pod.Name)).Generate(nil)
+
 	pod.Status = kapi.PodStatus{}
 	pod.UID = ""
 	pod.CreationTimestamp = unversioned.Time{}
