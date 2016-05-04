@@ -140,7 +140,8 @@ angular.module("openshiftConsole")
             };
             return false;
           }
-          if (!item.metadata.name) {
+          // Validate if resource has 'name' field in its 'metadata', but it's not a List
+          if (!item.metadata.name && !item.kind.endsWith("List")) {
             $scope.error = {
               message: "Resource name is missing in metadata field."
             };
