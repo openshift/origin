@@ -24,6 +24,7 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 	origPath = trimLeadingPath(origPath)
 	// Deal with wildcards
 	if allowWildcards && containsWildcards(origPath) {
+		matchPath := filepath.Join(rootPath, origPath)
 		var copyInfos []CopyInfo
 		if err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -33,13 +34,13 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 				// Why are we doing this check?
 				return nil
 			}
-			if match, _ := filepath.Match(origPath, path); !match {
+			if match, _ := filepath.Match(matchPath, path); !match {
 				return nil
 			}
 
 			// Note we set allowWildcards to false in case the name has
 			// a * in it
-			subInfos, err := CalcCopyInfo(path, rootPath, allowLocalDecompression, false)
+			subInfos, err := CalcCopyInfo(trimLeadingPath(strings.TrimPrefix(path, rootPath)), rootPath, allowLocalDecompression, false)
 			if err != nil {
 				return err
 			}
@@ -70,6 +71,7 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 		return nil, err
 	}
 
+	origPath = trimTrailingDot(origPath)
 	return []CopyInfo{{FileInfo: fi, Path: origPath, Decompress: allowLocalDecompression}}, nil
 }
 
@@ -126,6 +128,13 @@ func trimLeadingPath(origPath string) string {
 		origPath = origPath[1:]
 	}
 	origPath = strings.TrimPrefix(origPath, "."+string(os.PathSeparator))
+	return origPath
+}
+
+func trimTrailingDot(origPath string) string {
+	if strings.HasSuffix(origPath, string(os.PathSeparator)+".") {
+		return strings.TrimSuffix(origPath, ".")
+	}
 	return origPath
 }
 

@@ -388,14 +388,29 @@ func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownl
 		return nil, nil, err
 	}
 
+	options := archiveOptionsFor(infos, dst, e.Excludes)
+
+	glog.V(4).Infof("Tar of directory %s %#v", base, options)
+	rc, err := archive.TarWithOptions(base, options)
+	closer = append(closer, rc.Close)
+	return rc, closer, err
+}
+
+func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
 	dst = trimLeadingPath(dst)
-	patterns, patDirs, _, _ := fileutils.CleanPatterns(e.Excludes)
-	options := &archive.TarOptions{RebaseNames: make(map[string]string)}
+	patterns, patDirs, _, _ := fileutils.CleanPatterns(excludes)
+	options := &archive.TarOptions{}
 	for _, info := range infos {
 		if ok, _ := fileutils.OptimizedMatches(info.Path, patterns, patDirs); ok {
 			continue
 		}
 		options.IncludeFiles = append(options.IncludeFiles, info.Path)
+		if len(dst) == 0 {
+			continue
+		}
+		if options.RebaseNames == nil {
+			options.RebaseNames = make(map[string]string)
+		}
 		if info.FromDir || strings.HasSuffix(dst, "/") || strings.HasSuffix(dst, "/.") || dst == "." {
 			if strings.HasSuffix(info.Path, "/") {
 				options.RebaseNames[info.Path] = dst
@@ -406,10 +421,6 @@ func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownl
 			options.RebaseNames[info.Path] = dst
 		}
 	}
-	options.ExcludePatterns = e.Excludes
-
-	glog.V(4).Infof("Tar of directory %s %#v", base, options)
-	rc, err := archive.TarWithOptions(base, options)
-	closer = append(closer, rc.Close)
-	return rc, closer, err
+	options.ExcludePatterns = excludes
+	return options
 }
