@@ -312,11 +312,20 @@ func (e *ClientExecutor) Run(run Run, config docker.Config) error {
 	if err != nil {
 		return err
 	}
-	err = e.Client.StartExec(exec.ID, docker.StartExecOptions{
+	if err := e.Client.StartExec(exec.ID, docker.StartExecOptions{
 		OutputStream: e.Out,
 		ErrorStream:  e.ErrOut,
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	status, err := e.Client.InspectExec(exec.ID)
+	if err != nil {
+		return err
+	}
+	if status.ExitCode != 0 {
+		return fmt.Errorf("running '%s' failed with exit code %d", strings.Join(args, " "), status.ExitCode)
+	}
+	return nil
 }
 
 func (e *ClientExecutor) Copy(copies ...Copy) error {
