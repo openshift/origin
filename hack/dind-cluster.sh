@@ -104,9 +104,7 @@ function check-selinux() {
   fi
 }
 
-IMAGE_REGISTRY="${OPENSHIFT_TEST_IMAGE_REGISTRY:-}"
-IMAGE_TAG="${OPENSHIFT_TEST_IMAGE_TAG:-}"
-DIND_IMAGE="${IMAGE_REGISTRY}openshift/dind${IMAGE_TAG}"
+DIND_IMAGE="openshift/dind"
 BUILD_IMAGES="${OPENSHIFT_DIND_BUILD_IMAGES:-1}"
 
 function build-image() {
@@ -123,14 +121,7 @@ function build-images() {
   # separation of image build from cluster creation.
   if [[ "${BUILD_IMAGES}" = "1" ]]; then
     echo "Building container images"
-    if [[ -n "${IMAGE_REGISTRY}" ]]; then
-      # Failure to cache is assumed to not be worth failing the build.
-      ${DOCKER_CMD} pull "${DIND_IMAGE}" || true
-    fi
     build-image "${ORIGIN_ROOT}/images/dind" "${DIND_IMAGE}"
-    if [[ -n "${IMAGE_REGISTRY}" ]]; then
-      ${DOCKER_CMD} push "${DIND_IMAGE}" || true
-    fi
   fi
 }
 
