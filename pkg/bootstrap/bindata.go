@@ -1209,7 +1209,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p $MONGODB_ADMIN_PASSWORD -n 1 --noheaders"]
+                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
                   }
                 },
                 "livenessProbe": {
@@ -1461,7 +1461,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p $MONGODB_ADMIN_PASSWORD -n 1 --noheaders"]
+                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
                   }
                 },
                 "livenessProbe": {
