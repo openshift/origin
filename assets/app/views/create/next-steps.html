@@ -71,7 +71,7 @@ oc status</pre>
               <div ng-if="createdBuildConfig" class="col-md-6">
                 <h2>Making code changes</h2>
                 <p ng-if="fromSampleRepo">
-                  You are set up to use the example git repository. If you would like to modify the source code, fork the <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}">{{createdBuildConfig.spec.source.git.uri | githubLink}}</a> repository to an OpenShift-visible git account and <a href="{{createdBuildConfig | editResourceURL}}">edit the <strong>{{createdBuildConfig.metadata.name}}</strong> build config</a> to point to your fork.
+                  You are set up to use the example git repository. If you would like to modify the source code, fork the <a class="word-break" target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}">{{createdBuildConfig.spec.source.git.uri | githubLink}}</a> repository to an OpenShift-visible git account and <a href="{{createdBuildConfig | editResourceURL}}">edit the <strong>{{createdBuildConfig.metadata.name}}</strong> build config</a> to point to your fork.
                   <span ng-if="createdBuildConfigWithConfigChangeTrigger()">Note that this will start a new build.</span>
                 </p>
                 <div ng-repeat="trigger in createdBuildConfig.spec.triggers" ng-if="trigger.type == 'GitHub'">
@@ -82,7 +82,7 @@ oc status</pre>
                   	You can configure the webhook in the forked repository's settings, using the following payload URL:
                   </p>
                   <p ng-if="!fromSampleRepo">
-                    You can now set up the webhook in the GitHub repository settings if you own it, in <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:
+                    You can now set up the webhook in the GitHub repository settings if you own it, in <a target="_blank" class="word-break" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:
                   </p>
 									<pre class="code">{{createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName}}</pre>
                 </div>

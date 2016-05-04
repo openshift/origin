@@ -85,7 +85,7 @@
                         Start a new build to create an image from
                         <span ng-if="buildConfig.spec.source.type === 'Git'">
                           source repository
-                          <span ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></span>
+                          <span class="word-break" ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></span>
                         </span>
                         <span ng-if="buildConfig.spec.source.type !== 'Git'">
                           build configuration {{buildConfig.metadata.name}}.
@@ -240,7 +240,7 @@
                               <div ng-if="buildConfig.spec.source">
                                 <div ng-if="buildConfig.spec.source.type == 'Git'">
                                   <dt>Source repo:</dt>
-                                  <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
+                                  <dd class="word-break" ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
                                   <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
                                   <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
                                   <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
