@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
@@ -769,23 +770,65 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					APIGroups: []string{imageapi.GroupName},
 					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
 				},
 				{
-					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
-					Resources: sets.NewString("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews", "rolebindings", "roles", "subjectaccessreviews"),
-				},
-				{
 					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{imageapi.GroupName},
 					Resources: sets.NewString("imagestreams/layers"),
 				},
 				{
+					Verbs:     sets.NewString("create"),
+					APIGroups: []string{authorizationapi.GroupName},
+					Resources: sets.NewString("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews", "subjectaccessreviews"),
+				},
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					APIGroups: []string{authorizationapi.GroupName},
+					Resources: sets.NewString("rolebindings", "roles"),
+				},
+				{
 					Verbs:     sets.NewString("get", "list", "watch"),
+					APIGroups: []string{authorizationapi.GroupName},
 					Resources: sets.NewString("policies", "policybindings"),
 				},
 				{
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("namespaces", "projects"),
+					APIGroups: []string{kapi.GroupName},
+					Resources: sets.NewString("namespaces"),
+				},
+				{
+					Verbs:     sets.NewString("get", "delete"),
+					APIGroups: []string{projectapi.GroupName},
+					Resources: sets.NewString("projects"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: RegistryEditorRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
+					APIGroups: []string{imageapi.GroupName},
+					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{imageapi.GroupName},
+					Resources: sets.NewString("imagestreams/layers"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					APIGroups: []string{kapi.GroupName},
+					Resources: sets.NewString("namespaces"),
+				},
+				{
+					Verbs:     sets.NewString("get"),
+					APIGroups: []string{projectapi.GroupName},
+					Resources: sets.NewString("projects"),
 				},
 			},
 		},
@@ -796,30 +839,23 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
+					APIGroups: []string{imageapi.GroupName},
 					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreamtags"),
 				},
 				{
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("imagestreams/layers", "namespaces", "projects"),
+					APIGroups: []string{imageapi.GroupName},
+					Resources: sets.NewString("imagestreams/layers"),
 				},
-			},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: RegistryEditorRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("namespaces", "projects"),
+					APIGroups: []string{kapi.GroupName},
+					Resources: sets.NewString("namespaces"),
 				},
 				{
-					Verbs:     sets.NewString("create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"),
-					Resources: sets.NewString("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("imagestreams/layers"),
+					Verbs:     sets.NewString("get"),
+					APIGroups: []string{projectapi.GroupName},
+					Resources: sets.NewString("projects"),
 				},
 			},
 		},
