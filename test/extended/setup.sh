@@ -134,7 +134,6 @@ readonly EXCLUDED_TESTS=(
   Monitoring              # Not installed, should be
   "Cluster level logging" # Not installed yet
   Kibana                  # Not installed
-  DNS                     # Can't depend on kube-dns
   Ubernetes               # Can't set zone labels today
   kube-ui                 # Not installed by default
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
