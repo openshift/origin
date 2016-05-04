@@ -199,6 +199,9 @@ type Config struct {
 	// the container for images that don't have a tar binary available, if the
 	// image contains ONBUILD commands that would be executed.
 	BlockOnBuild bool
+
+	// HasOnBuild will be set to true if the builder image contains ONBUILD instructions
+	HasOnBuild bool
 }
 
 // EnvironmentSpec specifies a single environment variable.
