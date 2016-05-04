@@ -182,3 +182,13 @@ func TestBuildErrorBadImageName(t *testing.T) {
 		t.Errorf("An docker spec parse error was expected, but got different: %v", err)
 	}
 }
+
+func TestBuildErrorOnBuildBlocked(t *testing.T) {
+	l := newFakeLayered()
+	l.config.BlockOnBuild = true
+	l.config.HasOnBuild = true
+	_, err := l.Build(l.config)
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed.") {
+		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
+	}
+}
