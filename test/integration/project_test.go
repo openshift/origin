@@ -277,4 +277,34 @@ func TestProjectWatch(t *testing.T) {
 		}
 	}
 
+	// test the "start from beginning watch"
+	beginningWatch, err := bobClient.Projects().Watch(kapi.ListOptions{ResourceVersion: "0"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	select {
+	case event := <-beginningWatch.ResultChan():
+		if event.Type != watch.Added {
+			t.Errorf("expected added, got %v", event)
+		}
+		project := event.Object.(*projectapi.Project)
+		if project.Name != "ns-01" {
+			t.Fatalf("expected %v, got %#v", "ns-01", project)
+		}
+
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+
+	fromNowWatch, err := bobClient.Projects().Watch(kapi.ListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	select {
+	case event := <-fromNowWatch.ResultChan():
+		t.Fatalf("unexpected event %v", event)
+
+	case <-time.After(3 * time.Second):
+	}
+
 }

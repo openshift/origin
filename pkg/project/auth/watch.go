@@ -58,7 +58,8 @@ type userProjectWatcher struct {
 	projectCache *projectcache.ProjectCache
 	authCache    WatchableCache
 
-	knownProjects sets.String
+	initialProjects []kapi.Namespace
+	knownProjects   sets.String
 }
 
 var (
@@ -67,12 +68,18 @@ var (
 	watchChannelHWM etcd.HighWaterMark
 )
 
-func NewUserProjectWatcher(username string, groups []string, projectCache *projectcache.ProjectCache, authCache WatchableCache) *userProjectWatcher {
+func NewUserProjectWatcher(username string, groups []string, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool) *userProjectWatcher {
 	userInfo := &user.DefaultInfo{Name: username, Groups: groups}
 	namespaces, _ := authCache.List(userInfo)
 	knownProjects := sets.String{}
 	for _, namespace := range namespaces.Items {
 		knownProjects.Insert(namespace.Name)
+	}
+
+	// this is optional.  If they don't request it, don't include it.
+	initialProjects := []kapi.Namespace{}
+	if includeAllExistingProjects {
+		initialProjects = append(initialProjects, namespaces.Items...)
 	}
 
 	w := &userProjectWatcher{
@@ -84,9 +91,10 @@ func NewUserProjectWatcher(username string, groups []string, projectCache *proje
 		outgoing:      make(chan watch.Event),
 		userStop:      make(chan struct{}),
 
-		projectCache:  projectCache,
-		authCache:     authCache,
-		knownProjects: knownProjects,
+		projectCache:    projectCache,
+		authCache:       authCache,
+		initialProjects: initialProjects,
+		knownProjects:   knownProjects,
 	}
 	w.emit = func(e watch.Event) {
 		select {
@@ -158,16 +166,26 @@ func (w *userProjectWatcher) Watch() {
 	}()
 	defer utilruntime.HandleCrash()
 
+	// start by emitting all the `initialProjects`
+	for i := range w.initialProjects {
+		// keep this check here to sure we don't keep this open in the case of failures
+		select {
+		case err := <-w.cacheError:
+			w.emit(makeErrorEvent(err))
+			return
+		default:
+		}
+
+		w.emit(watch.Event{
+			Type:   watch.Added,
+			Object: projectutil.ConvertNamespace(&w.initialProjects[i]),
+		})
+	}
+
 	for {
 		select {
 		case err := <-w.cacheError:
-			w.emit(watch.Event{
-				Type: watch.Error,
-				Object: &unversioned.Status{
-					Status:  unversioned.StatusFailure,
-					Message: err.Error(),
-				},
-			})
+			w.emit(makeErrorEvent(err))
 			return
 
 		case <-w.userStop:
@@ -181,6 +199,16 @@ func (w *userProjectWatcher) Watch() {
 
 			w.emit(event)
 		}
+	}
+}
+
+func makeErrorEvent(err error) watch.Event {
+	return watch.Event{
+		Type: watch.Error,
+		Object: &unversioned.Status{
+			Status:  unversioned.StatusFailure,
+			Message: err.Error(),
+		},
 	}
 }
 

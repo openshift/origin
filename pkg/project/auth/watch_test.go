@@ -27,7 +27,7 @@ func newTestWatcher(user string, groups []string, namespaces ...*kapi.Namespace)
 	projectCache.Run()
 	fakeAuthCache := &fakeAuthCache{}
 
-	return NewUserProjectWatcher(user, groups, projectCache, fakeAuthCache), fakeAuthCache
+	return NewUserProjectWatcher(user, groups, projectCache, fakeAuthCache, false), fakeAuthCache
 }
 
 type fakeAuthCache struct {

@@ -196,7 +196,7 @@ func (ac *AuthorizationCache) RemoveWatcher(watcher CacheWatcher) {
 				// if we're not the last element, shift
 				copy(ac.watchers[i:], ac.watchers[i+1:])
 			}
-			ac.watchers = ac.watchers[:lastIndex-1]
+			ac.watchers = ac.watchers[:lastIndex]
 			break
 		}
 	}
