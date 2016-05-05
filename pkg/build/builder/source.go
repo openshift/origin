@@ -106,7 +106,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 // Since this is calling the 'git' binary, the proxy settings should be
 // available for this command.
 func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) error {
-	glog.V(4).Infof("git ls-remote %s --heads", url)
+	glog.V(4).Infof("git ls-remote --heads %s", url)
 
 	var (
 		out    string
