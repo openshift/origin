@@ -88,7 +88,10 @@ func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interfa
 	if !exists {
 		return nil, fmt.Errorf("no user")
 	}
-	watcher := projectauth.NewUserProjectWatcher(userInfo.GetName(), userInfo.GetGroups(), s.projectCache, s.authCache)
+
+	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
+
+	watcher := projectauth.NewUserProjectWatcher(userInfo.GetName(), userInfo.GetGroups(), s.projectCache, s.authCache, includeAllExistingProjects)
 	s.authCache.AddWatcher(watcher)
 
 	go watcher.Watch()

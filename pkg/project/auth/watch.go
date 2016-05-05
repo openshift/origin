@@ -58,7 +58,9 @@ type userProjectWatcher struct {
 	projectCache *projectcache.ProjectCache
 	authCache    WatchableCache
 
-	knownProjects sets.String
+	initialProjects []kapi.Namespace
+	// knownProjects maps name to resourceVersion
+	knownProjects map[string]string
 }
 
 var (
@@ -67,12 +69,18 @@ var (
 	watchChannelHWM etcd.HighWaterMark
 )
 
-func NewUserProjectWatcher(username string, groups []string, projectCache *projectcache.ProjectCache, authCache WatchableCache) *userProjectWatcher {
+func NewUserProjectWatcher(username string, groups []string, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool) *userProjectWatcher {
 	userInfo := &user.DefaultInfo{Name: username, Groups: groups}
 	namespaces, _ := authCache.List(userInfo)
-	knownProjects := sets.String{}
+	knownProjects := map[string]string{}
 	for _, namespace := range namespaces.Items {
-		knownProjects.Insert(namespace.Name)
+		knownProjects[namespace.Name] = namespace.ResourceVersion
+	}
+
+	// this is optional.  If they don't request it, don't include it.
+	initialProjects := []kapi.Namespace{}
+	if includeAllExistingProjects {
+		initialProjects = append(initialProjects, namespaces.Items...)
 	}
 
 	w := &userProjectWatcher{
@@ -84,9 +92,10 @@ func NewUserProjectWatcher(username string, groups []string, projectCache *proje
 		outgoing:      make(chan watch.Event),
 		userStop:      make(chan struct{}),
 
-		projectCache:  projectCache,
-		authCache:     authCache,
-		knownProjects: knownProjects,
+		projectCache:    projectCache,
+		authCache:       authCache,
+		initialProjects: initialProjects,
+		knownProjects:   knownProjects,
 	}
 	w.emit = func(e watch.Event) {
 		select {
@@ -103,10 +112,10 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, latest
 
 	switch {
 	case removed:
-		if !w.knownProjects.Has(namespaceName) {
+		if _, known := w.knownProjects[namespaceName]; !known {
 			return
 		}
-		w.knownProjects.Delete(namespaceName)
+		delete(w.knownProjects, namespaceName)
 
 		select {
 		case w.cacheIncoming <- watch.Event{
@@ -125,16 +134,22 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, latest
 			utilruntime.HandleError(err)
 			return
 		}
+
 		event := watch.Event{
 			Type:   watch.Added,
 			Object: projectutil.ConvertNamespace(namespace),
 		}
 
 		// if we already have this in our list, then we're getting notified because the object changed
-		if w.knownProjects.Has(namespaceName) {
+		if lastResourceVersion, known := w.knownProjects[namespaceName]; known {
 			event.Type = watch.Modified
+
+			// if we've already notified for this particular resourceVersion, there's no work to do
+			if lastResourceVersion == namespace.ResourceVersion {
+				return
+			}
 		}
-		w.knownProjects.Insert(namespace.Name)
+		w.knownProjects[namespaceName] = namespace.ResourceVersion
 
 		select {
 		case w.cacheIncoming <- event:
@@ -158,16 +173,26 @@ func (w *userProjectWatcher) Watch() {
 	}()
 	defer utilruntime.HandleCrash()
 
+	// start by emitting all the `initialProjects`
+	for i := range w.initialProjects {
+		// keep this check here to sure we don't keep this open in the case of failures
+		select {
+		case err := <-w.cacheError:
+			w.emit(makeErrorEvent(err))
+			return
+		default:
+		}
+
+		w.emit(watch.Event{
+			Type:   watch.Added,
+			Object: projectutil.ConvertNamespace(&w.initialProjects[i]),
+		})
+	}
+
 	for {
 		select {
 		case err := <-w.cacheError:
-			w.emit(watch.Event{
-				Type: watch.Error,
-				Object: &unversioned.Status{
-					Status:  unversioned.StatusFailure,
-					Message: err.Error(),
-				},
-			})
+			w.emit(makeErrorEvent(err))
 			return
 
 		case <-w.userStop:
@@ -181,6 +206,16 @@ func (w *userProjectWatcher) Watch() {
 
 			w.emit(event)
 		}
+	}
+}
+
+func makeErrorEvent(err error) watch.Event {
+	return watch.Event{
+		Type: watch.Error,
+		Object: &unversioned.Status{
+			Status:  unversioned.StatusFailure,
+			Message: err.Error(),
+		},
 	}
 }
 
