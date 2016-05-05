@@ -10,6 +10,15 @@ import (
 type ProjectRequestLimitConfig struct {
 	unversioned.TypeMeta
 	Limits []ProjectLimitBySelector
+
+	// MaxProjectsForSystemUsers controls how many projects a certificate user may have.  Certificate
+	// users do not have any labels associated with them for more fine grained control
+	MaxProjectsForSystemUsers *int
+
+	// MaxProjectsForServiceAccounts controls how many projects a service account may have.  Service
+	// accounts can't create projects by default, but if they are allowed to create projects, you cannot
+	// trust any labels placed on them since project editors can manipulate those labels
+	MaxProjectsForServiceAccounts *int
 }
 
 // ProjectLimitBySelector specifies the maximum number of projects allowed for a given user label selector

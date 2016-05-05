@@ -12,6 +12,12 @@ func ValidateProjectRequestLimitConfig(config *api.ProjectRequestLimitConfig) fi
 	for i, projectLimit := range config.Limits {
 		allErrs = append(allErrs, ValidateProjectLimitBySelector(projectLimit, field.NewPath("limits").Index(i))...)
 	}
+	if config.MaxProjectsForSystemUsers != nil && *config.MaxProjectsForSystemUsers < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("maxProjectsForSystemUsers"), *config.MaxProjectsForSystemUsers, "cannot be a negative number"))
+	}
+	if config.MaxProjectsForServiceAccounts != nil && *config.MaxProjectsForServiceAccounts < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("maxProjectsForServiceAccounts"), *config.MaxProjectsForServiceAccounts, "cannot be a negative number"))
+	}
 	return allErrs
 }
 
