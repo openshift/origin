@@ -111,6 +111,8 @@ func projectRequestLimitSingleDefaultConfig() *requestlimit.ProjectRequestLimitC
 				MaxProjects: intPointer(1),
 			},
 		},
+
+		MaxProjectsForSystemUsers: intPointer(1),
 	}
 }
 
@@ -165,6 +167,23 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 		"silver":  false,
 		"gold":    true,
 	})
+}
+
+// we had a bug where this failed on ` uenxpected error: metadata.name: Invalid value: "system:admin": may not contain ":"`
+// make sure we never have that bug again and that project limits for them work
+func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
+	_, oclient, _ := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+
+	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+	}); err != nil {
+		t.Errorf("uenxpected error: %v", err)
+	}
+	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
+	}); !apierrors.IsForbidden(err) {
+		t.Errorf("missing error: %v", err)
+	}
 }
 
 func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientConfig *restclient.Config, tests map[string]bool) {
