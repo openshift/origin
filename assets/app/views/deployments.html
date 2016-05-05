@@ -36,7 +36,7 @@
                   <!-- If there are no deployment configs, and if the only 'deployments' are just replication controllers -->
                   <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
                 </tbody>
-                <tbody ng-repeat="(deploymentConfigName, deploymentConfigDeployments) in deploymentsByDeploymentConfig" ng-if="deploymentConfigs[deploymentConfigName] || !unfilteredDeploymentConfigs[deploymentConfigName]">
+                <tbody ng-repeat="(deploymentConfigName, deploymentConfigDeployments) in deploymentsByDeploymentConfig" ng-if="deploymentConfigName && (deploymentConfigs[deploymentConfigName] || !unfilteredDeploymentConfigs[deploymentConfigName])">
                   <!-- Deployment config with no deployments-->
                   <tr ng-if="(deploymentConfigDeployments | hashSize) == 0 && deploymentConfigName">
                     <td data-title="Name">
