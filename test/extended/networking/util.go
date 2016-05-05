@@ -5,8 +5,7 @@ import (
 	"os"
 	"time"
 
-	testexutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
+	"github.com/openshift/openshift-sdn/pkg/netid"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -159,13 +158,9 @@ func pluginIsolatesNamespaces() bool {
 	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
 }
 
-func makeNamespaceGlobal(ns *api.Namespace) {
-	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
-	expectNoError(err)
-	netns, err := client.NetNamespaces().Get(ns.Name)
-	expectNoError(err)
-	netns.NetID = 0
-	_, err = client.NetNamespaces().Update(netns)
+func makeNamespaceGlobal(f *e2e.Framework) {
+	netid.SetVNID(f.Namespace, 0)
+	_, err := f.Client.Namespaces().Update(f.Namespace)
 	expectNoError(err)
 }
 

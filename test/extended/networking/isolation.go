@@ -42,19 +42,19 @@ var _ = Describe("[networking] network isolation", func() {
 		// multi-tenant plugin since the single-tenant one doesn't create NetNamespaces at
 		// all (and so there's not really any point in even running these tests anyway).
 		It("should allow communication from default to non-default namespace on the same node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(f2)
 			Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
 		})
 		It("should allow communication from default to non-default namespace on a different node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(f2)
 			Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
 		})
 		It("should allow communication from non-default to default namespace on the same node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(f1)
 			Expect(checkPodIsolation(f1, f2, 1)).To(Succeed())
 		})
 		It("should allow communication from non-default to default namespace on a different node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(f1)
 			Expect(checkPodIsolation(f1, f2, 2)).To(Succeed())
 		})
 	})
