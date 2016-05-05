@@ -117,6 +117,17 @@ func NewBuildError(name string, err error) error {
 	}
 }
 
+// NewCommitError returns a new error which indicates there was a problem
+// committing the image
+func NewCommitError(name string, err error) error {
+	return Error{
+		Message:    fmt.Sprintf("building %s failed when committing the image due to error: %v", name, err),
+		Details:    err,
+		ErrorCode:  BuildError,
+		Suggestion: "check the build output for errors",
+	}
+}
+
 // NewTarTimeoutError returns a new error which indicates there was a problem
 // when sending or receiving tar stream
 func NewTarTimeoutError() error {

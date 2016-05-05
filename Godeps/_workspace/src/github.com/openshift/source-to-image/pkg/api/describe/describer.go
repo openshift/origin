@@ -68,9 +68,16 @@ func DescribeConfig(config *api.Config) string {
 		if len(config.Injections) > 0 {
 			result := []string{}
 			for _, i := range config.Injections {
-				result = append(result, fmt.Sprintf("%s->%s", i.SourcePath, i.DestinationDir))
+				result = append(result, fmt.Sprintf("%s->%s", i.Source, i.Destination))
 			}
 			fmt.Fprintf(out, "Injections:\t%s\n", strings.Join(result, ","))
+		}
+		if len(config.BuildVolumes) > 0 {
+			result := []string{}
+			for _, i := range config.BuildVolumes {
+				result = append(result, fmt.Sprintf("%s->%s", i.Source, i.Destination))
+			}
+			fmt.Fprintf(out, "Bind mounts:\t%s\n", strings.Join(result, ","))
 		}
 		return nil
 	})

@@ -325,7 +325,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 // the secrets is "<secretName>:<destinationDir>". The destinationDir is
 // optional and when not specified the default is the current working directory.
 func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool) error {
-	injections := s2iapi.InjectionList{}
+	injections := s2iapi.VolumeList{}
 	r.secrets = []buildapi.SecretBuildSource{}
 	for _, in := range secrets {
 		if err := injections.Set(in); err != nil {
@@ -341,18 +341,18 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool)
 		return false
 	}
 	for _, in := range injections {
-		if isDockerBuild && filepath.IsAbs(in.DestinationDir) {
-			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.DestinationDir)
+		if isDockerBuild && filepath.IsAbs(in.Destination) {
+			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.Destination)
 		}
-		if ok, _ := validation.ValidateSecretName(in.SourcePath, false); !ok {
-			return fmt.Errorf("the %q must be valid secret name", in.SourcePath)
+		if ok, _ := validation.ValidateSecretName(in.Source, false); !ok {
+			return fmt.Errorf("the %q must be valid secret name", in.Source)
 		}
-		if secretExists(in.SourcePath) {
-			return fmt.Errorf("the %q secret can be used just once", in.SourcePath)
+		if secretExists(in.Source) {
+			return fmt.Errorf("the %q secret can be used just once", in.Source)
 		}
 		r.secrets = append(r.secrets, buildapi.SecretBuildSource{
-			Secret:         kapi.LocalObjectReference{Name: in.SourcePath},
-			DestinationDir: in.DestinationDir,
+			Secret:         kapi.LocalObjectReference{Name: in.Source},
+			DestinationDir: in.Destination,
 		})
 	}
 	return nil

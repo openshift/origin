@@ -148,13 +148,13 @@ func (s *S2IBuilder) Build() error {
 		Fragment: ref,
 	}
 
-	injections := s2iapi.InjectionList{}
+	injections := s2iapi.VolumeList{}
 	for _, s := range s.build.Spec.Source.Secrets {
 		glog.V(3).Infof("Injecting secret %q into a build into %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
 		secretSourcePath := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		injections = append(injections, s2iapi.InjectPath{
-			SourcePath:     secretSourcePath,
-			DestinationDir: s.DestinationDir,
+		injections = append(injections, s2iapi.VolumeSpec{
+			Source:      secretSourcePath,
+			Destination: s.DestinationDir,
 		})
 	}
 

@@ -177,7 +177,7 @@ type Config struct {
 	// Injections specifies a list source/destination folders that are injected to
 	// the container that runs assemble.
 	// All files we inject will be truncated after the assemble script finishes.
-	Injections InjectionList
+	Injections VolumeList
 
 	// CGroupLimits describes the cgroups limits that will be applied to any containers
 	// run by s2i.
@@ -202,6 +202,10 @@ type Config struct {
 
 	// HasOnBuild will be set to true if the builder image contains ONBUILD instructions
 	HasOnBuild bool
+
+	// BuildVolumes specifies a list of volumes to mount to container running the
+	// build.
+	BuildVolumes VolumeList
 }
 
 // EnvironmentSpec specifies a single environment variable.
@@ -226,14 +230,14 @@ type CGroupLimits struct {
 	MemorySwap       int64
 }
 
-// InjectPath contains definition of source directory and the injection path.
-type InjectPath struct {
-	SourcePath     string
-	DestinationDir string
+// Volume represents a single volume mount point
+type VolumeSpec struct {
+	Source      string
+	Destination string
 }
 
-// InjectionList contains list of InjectPath.
-type InjectionList []InjectPath
+// VolumeList contains list of VolumeSpec.
+type VolumeList []VolumeSpec
 
 // DockerConfig contains the configuration for a Docker connection.
 type DockerConfig struct {
@@ -403,7 +407,7 @@ func IsInvalidFilename(name string) bool {
 // This function parses the string that contains source:destination pair.
 // When the destination is not specified, the source get copied into current
 // working directory in container.
-func (il *InjectionList) Set(value string) error {
+func (l *VolumeList) Set(value string) error {
 	mount := strings.Split(value, ":")
 	switch len(mount) {
 	case 0:
@@ -417,25 +421,25 @@ func (il *InjectionList) Set(value string) error {
 	default:
 		return fmt.Errorf("invalid source:path definition")
 	}
-	s := InjectPath{SourcePath: filepath.Clean(mount[0]), DestinationDir: filepath.Clean(mount[1])}
-	if IsInvalidFilename(s.SourcePath) || IsInvalidFilename(s.DestinationDir) {
+	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.Clean(mount[1])}
+	if IsInvalidFilename(s.Source) || IsInvalidFilename(s.Destination) {
 		return fmt.Errorf("invalid characters in filename: %q", value)
 	}
-	*il = append(*il, s)
+	*l = append(*l, s)
 	return nil
 }
 
 // String implements the String() function of pflags.Value interface.
-func (il *InjectionList) String() string {
+func (l *VolumeList) String() string {
 	result := []string{}
-	for _, i := range *il {
-		result = append(result, strings.Join([]string{i.SourcePath, i.DestinationDir}, ":"))
+	for _, i := range *l {
+		result = append(result, strings.Join([]string{i.Source, i.Destination}, ":"))
 	}
 	return strings.Join(result, ",")
 }
 
 // Type implements the Type() function of pflags.Value interface.
-func (il *InjectionList) Type() string {
+func (l *VolumeList) Type() string {
 	return "string"
 }
 
@@ -467,4 +471,14 @@ func (e *EnvironmentList) String() string {
 // Type implements the Type() function of pflags.Value interface.
 func (e *EnvironmentList) Type() string {
 	return "string"
+}
+
+// AsBinds converts the list of volume definitions to go-dockerclient compatible
+// list of bind mounts.
+func (l *VolumeList) AsBinds() []string {
+	result := make([]string, len(*l))
+	for index, v := range *l {
+		result[index] = strings.Join([]string{v.Source, v.Destination}, ":")
+	}
+	return result
 }
