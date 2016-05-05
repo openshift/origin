@@ -386,7 +386,7 @@ func (SourceControlUser) SwaggerDoc() map[string]string {
 
 var map_SourceRevision = map[string]string{
 	"":     "SourceRevision is the revision or commit information from the source for the build",
-	"type": "type of the build source",
+	"type": "type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'",
 	"git":  "Git contains information about git-based build source",
 }
 

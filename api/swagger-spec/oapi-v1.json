@@ -17896,7 +17896,7 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of the build source"
+      "description": "type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'"
      },
      "git": {
       "$ref": "v1.GitSourceRevision",

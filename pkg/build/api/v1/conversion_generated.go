@@ -55,6 +55,7 @@ func init() {
 		Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
 		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
 		Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
+		Convert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent,
 		Convert_v1_GitBuildSource_To_api_GitBuildSource,
 		Convert_api_GitBuildSource_To_v1_GitBuildSource,
 		Convert_v1_GitInfo_To_api_GitInfo,
@@ -246,6 +247,10 @@ func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *build_api.BuildConfig, ou
 		return err
 	}
 	return nil
+}
+
+func Convert_api_BuildConfig_To_v1_BuildConfig(in *build_api.BuildConfig, out *BuildConfig, s conversion.Scope) error {
+	return autoConvert_api_BuildConfig_To_v1_BuildConfig(in, out, s)
 }
 
 func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *BuildConfigList, out *build_api.BuildConfigList, s conversion.Scope) error {
@@ -630,6 +635,10 @@ func autoConvert_api_BuildOutput_To_v1_BuildOutput(in *build_api.BuildOutput, ou
 	return nil
 }
 
+func Convert_api_BuildOutput_To_v1_BuildOutput(in *build_api.BuildOutput, out *BuildOutput, s conversion.Scope) error {
+	return autoConvert_api_BuildOutput_To_v1_BuildOutput(in, out, s)
+}
+
 func autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *BuildPostCommitSpec, out *build_api.BuildPostCommitSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*BuildPostCommitSpec))(in)
@@ -830,6 +839,75 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest,
 
 func Convert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest, out *BuildRequest, s conversion.Scope) error {
 	return autoConvert_api_BuildRequest_To_v1_BuildRequest(in, out, s)
+}
+
+func autoConvert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *build_api.BuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*BuildSource))(in)
+	}
+	if in.Binary != nil {
+		in, out := &in.Binary, &out.Binary
+		*out = new(build_api.BinaryBuildSource)
+		if err := Convert_v1_BinaryBuildSource_To_api_BinaryBuildSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
+	if in.Dockerfile != nil {
+		in, out := &in.Dockerfile, &out.Dockerfile
+		*out = new(string)
+		**out = **in
+	} else {
+		out.Dockerfile = nil
+	}
+	if in.Git != nil {
+		in, out := &in.Git, &out.Git
+		*out = new(build_api.GitBuildSource)
+		if err := Convert_v1_GitBuildSource_To_api_GitBuildSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Git = nil
+	}
+	if in.Images != nil {
+		in, out := &in.Images, &out.Images
+		*out = make([]build_api.ImageSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ImageSource_To_api_ImageSource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Images = nil
+	}
+	out.ContextDir = in.ContextDir
+	if in.SourceSecret != nil {
+		in, out := &in.SourceSecret, &out.SourceSecret
+		*out = new(api.LocalObjectReference)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SourceSecret = nil
+	}
+	if in.Secrets != nil {
+		in, out := &in.Secrets, &out.Secrets
+		*out = make([]build_api.SecretBuildSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1_SecretBuildSource_To_api_SecretBuildSource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
+	return nil
+}
+
+func Convert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *build_api.BuildSource, s conversion.Scope) error {
+	return autoConvert_v1_BuildSource_To_api_BuildSource(in, out, s)
 }
 
 func autoConvert_api_BuildSource_To_v1_BuildSource(in *build_api.BuildSource, out *BuildSource, s conversion.Scope) error {
@@ -1075,6 +1153,53 @@ func Convert_api_BuildStatus_To_v1_BuildStatus(in *build_api.BuildStatus, out *B
 	return autoConvert_api_BuildStatus_To_v1_BuildStatus(in, out, s)
 }
 
+func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *build_api.BuildStrategy, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*BuildStrategy))(in)
+	}
+	if in.DockerStrategy != nil {
+		in, out := &in.DockerStrategy, &out.DockerStrategy
+		*out = new(build_api.DockerBuildStrategy)
+		if err := Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DockerStrategy = nil
+	}
+	if in.SourceStrategy != nil {
+		in, out := &in.SourceStrategy, &out.SourceStrategy
+		*out = new(build_api.SourceBuildStrategy)
+		if err := Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.SourceStrategy = nil
+	}
+	if in.CustomStrategy != nil {
+		in, out := &in.CustomStrategy, &out.CustomStrategy
+		*out = new(build_api.CustomBuildStrategy)
+		if err := Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.CustomStrategy = nil
+	}
+	if in.JenkinsPipelineStrategy != nil {
+		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
+		*out = new(build_api.JenkinsPipelineBuildStrategy)
+		if err := Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
+	return nil
+}
+
+func Convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *build_api.BuildStrategy, s conversion.Scope) error {
+	return autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in, out, s)
+}
+
 func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *build_api.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*build_api.BuildStrategy))(in)
@@ -1188,6 +1313,10 @@ func autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.B
 	return nil
 }
 
+func Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
+	return autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in, out, s)
+}
+
 func autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *build_api.CustomBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*CustomBuildStrategy))(in)
@@ -1282,6 +1411,10 @@ func autoConvert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build_api
 	return nil
 }
 
+func Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build_api.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+	return autoConvert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in, out, s)
+}
+
 func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *build_api.DockerBuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*DockerBuildStrategy))(in)
@@ -1364,6 +1497,42 @@ func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build_api
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
 	return nil
+}
+
+func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build_api.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
+	return autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in, out, s)
+}
+
+func autoConvert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWebHookEvent, out *build_api.GenericWebHookEvent, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*GenericWebHookEvent))(in)
+	}
+	if in.Git != nil {
+		in, out := &in.Git, &out.Git
+		*out = new(build_api.GitInfo)
+		if err := Convert_v1_GitInfo_To_api_GitInfo(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Git = nil
+	}
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]api.EnvVar, len(*in))
+		for i := range *in {
+			// TODO: Inefficient conversion - can we improve it?
+			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	return nil
+}
+
+func Convert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWebHookEvent, out *build_api.GenericWebHookEvent, s conversion.Scope) error {
+	return autoConvert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in, out, s)
 }
 
 func autoConvert_v1_GitBuildSource_To_api_GitBuildSource(in *GitBuildSource, out *build_api.GitBuildSource, s conversion.Scope) error {
@@ -1779,6 +1948,10 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	return nil
 }
 
+func Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
+	return autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in, out, s)
+}
+
 func autoConvert_v1_SourceControlUser_To_api_SourceControlUser(in *SourceControlUser, out *build_api.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*SourceControlUser))(in)
@@ -1803,6 +1976,26 @@ func autoConvert_api_SourceControlUser_To_v1_SourceControlUser(in *build_api.Sou
 
 func Convert_api_SourceControlUser_To_v1_SourceControlUser(in *build_api.SourceControlUser, out *SourceControlUser, s conversion.Scope) error {
 	return autoConvert_api_SourceControlUser_To_v1_SourceControlUser(in, out, s)
+}
+
+func autoConvert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *build_api.SourceRevision, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SourceRevision))(in)
+	}
+	if in.Git != nil {
+		in, out := &in.Git, &out.Git
+		*out = new(build_api.GitSourceRevision)
+		if err := Convert_v1_GitSourceRevision_To_api_GitSourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Git = nil
+	}
+	return nil
+}
+
+func Convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *build_api.SourceRevision, s conversion.Scope) error {
+	return autoConvert_v1_SourceRevision_To_api_SourceRevision(in, out, s)
 }
 
 func autoConvert_api_SourceRevision_To_v1_SourceRevision(in *build_api.SourceRevision, out *SourceRevision, s conversion.Scope) error {

@@ -35,16 +35,8 @@ func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.Build
 	return nil
 }
 
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_BuildConfig_To_v1_BuildConfig(in *newer.BuildConfig, out *BuildConfig, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in, out, s); err != nil {
 		return err
 	}
 	switch in.From.Kind {
@@ -55,16 +47,8 @@ func Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildSt
 	return nil
 }
 
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in, out, s); err != nil {
 		return err
 	}
 	if in.From != nil {
@@ -77,30 +61,14 @@ func Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildSt
 	return nil
 }
 
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in, out, s); err != nil {
 		return err
 	}
 	switch in.From.Kind {
 	case "ImageStream":
 		out.From.Kind = "ImageStreamTag"
 		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-	}
-	return nil
-}
-
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
 	}
 	return nil
 }
@@ -112,22 +80,6 @@ func Convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.Build
 	if in.To != nil && (in.To.Kind == "ImageStream" || len(in.To.Kind) == 0) {
 		out.To.Kind = "ImageStreamTag"
 		out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, "")
-	}
-	return nil
-}
-
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_BuildOutput_To_v1_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
-// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
-func Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
-		return err
 	}
 	return nil
 }
@@ -155,15 +107,8 @@ func Convert_api_SourceRevision_To_v1_SourceRevision(in *newer.SourceRevision, o
 	return nil
 }
 
-func Convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *newer.SourceRevision, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *BuildSource, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_BuildSource_To_v1_BuildSource(in, out, s); err != nil {
 		return err
 	}
 	switch {
@@ -185,15 +130,8 @@ func Convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *Build
 	return nil
 }
 
-func Convert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *newer.BuildSource, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in, out, s); err != nil {
 		return err
 	}
 	switch {
@@ -205,13 +143,8 @@ func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 		out.Type = CustomBuildStrategyType
 	case in.JenkinsPipelineStrategy != nil:
 		out.Type = JenkinsPipelineBuildStrategyType
-	}
-	return nil
-}
-
-func Convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *newer.BuildStrategy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
+	default:
+		out.Type = ""
 	}
 	return nil
 }
