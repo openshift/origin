@@ -37,8 +37,13 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_overview-deployment.html',
       controller: function($scope) {
+        var scaleRequestPending = false;
+
         $scope.$watch("rc.spec.replicas", function() {
-          $scope.desiredReplicas = null;
+          // Only reset desiredReplicas if we've already requested that value.
+          if (!scaleRequestPending) {
+            $scope.desiredReplicas = null;
+          }
         });
 
         var updateHPAWarnings = function() {
@@ -56,6 +61,8 @@ angular.module('openshiftConsole')
 
         // Debounce scaling so multiple clicks within 500 milliseconds only result in one request.
         var scale = _.debounce(function () {
+          scaleRequestPending = false;
+
           if (!angular.isNumber($scope.desiredReplicas)) {
             return;
           }
@@ -76,7 +83,7 @@ angular.module('openshiftConsole')
           } else {
             DeploymentsService.scaleRC($scope.rc, $scope.desiredReplicas).then(_.noop, showScalingError);
           }
-        }, 500);
+        }, 1000);
 
         $scope.viewPodsForDeployment = function(deployment) {
           if (hashSizeFilter($scope.pods) === 0) {
@@ -94,6 +101,7 @@ angular.module('openshiftConsole')
           $scope.desiredReplicas = $scope.getDesiredReplicas();
           $scope.desiredReplicas++;
           scale();
+          scaleRequestPending = true;
         };
 
         $scope.scaleDown = function() {
@@ -132,6 +140,7 @@ angular.module('openshiftConsole')
               // getDesiredReplicas() again.
               $scope.desiredReplicas = $scope.getDesiredReplicas() - 1;
               scale();
+              scaleRequestPending = true;
             });
 
             return;
