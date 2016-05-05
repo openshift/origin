@@ -84,7 +84,7 @@ oc status</pre>
                   <p ng-if="!fromSampleRepo">
                     You can now set up the webhook in the GitHub repository settings if you own it, in <a target="_blank" class="word-break" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:
                   </p>
-									<pre class="code">{{createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName}}</pre>
+                  <copy-to-clipboard clipboard-text="createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName"></copy-to-clipboard>
                 </div>
               </div>
             </div>
