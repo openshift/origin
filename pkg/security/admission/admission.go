@@ -63,7 +63,7 @@ func NewConstraint(kclient clientset.Interface) *constraint {
 	)
 
 	return &constraint{
-		Handler: kadmission.NewHandler(kadmission.Create),
+		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
 		client:  kclient,
 
 		store:     store,
@@ -94,8 +94,14 @@ func (a *constraint) Stop() {
 // 5.  Try to generate and validate an SCC with providers.  If we find one then admit the pod
 //     with the validated SCC.  If we don't find any reject the pod and give all errors from the
 //     failed attempts.
+// On updates, the BeforeUpdate of the pod strategy only zeroes out the status.  That means that
+// any change that claims the pod is no longer privileged will be removed.  That should hold until
+// we get a true old/new set of objects in.
 func (c *constraint) Admit(a kadmission.Attributes) error {
 	if a.GetResource().GroupResource() != kapi.Resource("pods") {
+		return nil
+	}
+	if len(a.GetSubresource()) != 0 {
 		return nil
 	}
 
