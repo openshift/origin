@@ -43,3 +43,40 @@ func TestInjectionListSet(t *testing.T) {
 		}
 	}
 }
+
+func TestEnvironmentSet(t *testing.T) {
+	table := map[string][]EnvironmentSpec{
+		"FOO=bar":  {{Name: "FOO", Value: "bar"}},
+		"FOO=":     {{Name: "FOO", Value: ""}},
+		"FOO":      {},
+		"=":        {},
+		"FOO=bar,": {{Name: "FOO", Value: "bar,"}},
+		// Users should get a deprecation warning in this case
+		// TODO: Create fake glog interface to be able to verify this.
+		"FOO=bar,BAR=foo": {{Name: "FOO", Value: "bar,BAR=foo"}},
+	}
+
+	for v, expected := range table {
+		got := EnvironmentList{}
+		err := got.Set(v)
+		if len(expected) == 0 && err == nil {
+			t.Errorf("Expected error for env %q", v)
+			continue
+		}
+		if len(expected) != len(got) {
+			t.Errorf("got %d items, expected %d items in the list for %q", len(got), len(expected), v)
+			continue
+		}
+		for _, exp := range expected {
+			found := false
+			for _, g := range got {
+				if g.Name == exp.Name && g.Value == exp.Value {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("Expected %+v environment found in %#v list", exp, got)
+			}
+		}
+	}
+}

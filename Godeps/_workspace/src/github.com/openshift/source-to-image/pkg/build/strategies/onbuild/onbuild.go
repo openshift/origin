@@ -43,7 +43,7 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := &OnBuild{
+	builder := &OnBuild{
 		docker: dockerHandler,
 		git:    git.New(),
 		fs:     util.NewFileSystem(),
@@ -63,45 +63,48 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 		config.Source = sourceURL
 	}
 
-	b.source = onBuildSourceHandler{
+	builder.source = onBuildSourceHandler{
 		Downloader: downloader,
 		Preparer:   s,
 		Ignorer:    &ignore.DockerIgnorer{},
 	}
 
-	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
-	return b, nil
+	builder.garbage = &build.DefaultCleaner{builder.fs, builder.docker}
+	return builder, nil
 }
 
 // SourceTar produces a tar archive containing application source and stream it
-func (b *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
+func (builder *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload", "src")
-	tarFileName, err := b.tar.CreateTarFile(config.WorkingDir, uploadDir)
+	tarFileName, err := builder.tar.CreateTarFile(config.WorkingDir, uploadDir)
 	if err != nil {
 		return nil, err
 	}
-	return b.fs.Open(tarFileName)
+	return builder.fs.Open(tarFileName)
 }
 
 // Build executes the ONBUILD kind of build
-func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
+func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
+	if config.BlockOnBuild {
+		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed.")
+	}
 	glog.V(2).Info("Preparing the source code for build")
 	// Change the installation directory for this config to store scripts inside
 	// the application root directory.
-	if err := b.source.Prepare(config); err != nil {
+	if err := builder.source.Prepare(config); err != nil {
 		return nil, err
 	}
 
 	// If necessary, copy the STI scripts into application root directory
-	b.copySTIScripts(config)
+	builder.copySTIScripts(config)
 
 	glog.V(2).Info("Creating application Dockerfile")
-	if err := b.CreateDockerfile(config); err != nil {
+	if err := builder.CreateDockerfile(config); err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Info("Creating application source code image")
-	tarStream, err := b.SourceTar(config)
+	tarStream, err := builder.SourceTar(config)
 	if err != nil {
 		return nil, err
 	}
@@ -115,17 +118,17 @@ func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	glog.V(2).Info("Building the application source")
-	if err := b.docker.BuildImage(opts); err != nil {
+	if err := builder.docker.BuildImage(opts); err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Info("Cleaning up temporary containers")
-	b.garbage.Cleanup(config)
+	builder.garbage.Cleanup(config)
 
 	var imageID string
 
 	if len(opts.Name) > 0 {
-		if imageID, err = b.docker.GetImageID(opts.Name); err != nil {
+		if imageID, err = builder.docker.GetImageID(opts.Name); err != nil {
 			return nil, err
 		}
 	}
@@ -138,11 +141,11 @@ func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
 }
 
 // CreateDockerfile creates the ONBUILD Dockerfile
-func (b *OnBuild) CreateDockerfile(config *api.Config) error {
+func (builder *OnBuild) CreateDockerfile(config *api.Config) error {
 	buffer := bytes.Buffer{}
 	uploadDir := filepath.Join(config.WorkingDir, "upload", "src")
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", config.BuilderImage))
-	entrypoint, err := GuessEntrypoint(b.fs, uploadDir)
+	entrypoint, err := GuessEntrypoint(builder.fs, uploadDir)
 	if err != nil {
 		return err
 	}
@@ -154,31 +157,31 @@ func (b *OnBuild) CreateDockerfile(config *api.Config) error {
 	}
 	// If there is an assemble script present, run it as part of the build process
 	// as the last thing.
-	if b.hasAssembleScript(config) {
+	if builder.hasAssembleScript(config) {
 		buffer.WriteString(fmt.Sprintf("RUN sh assemble\n"))
 	}
 	// FIXME: This assumes that the WORKDIR is set to the application source root
 	//        directory.
 	buffer.WriteString(fmt.Sprintf(`ENTRYPOINT ["./%s"]`+"\n", entrypoint))
-	return b.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes())
+	return builder.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes())
 }
 
-func (b *OnBuild) copySTIScripts(config *api.Config) {
+func (builder *OnBuild) copySTIScripts(config *api.Config) {
 	scriptsPath := filepath.Join(config.WorkingDir, "upload", "scripts")
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
-	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
+	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
 		glog.V(3).Infof("Found S2I 'run' script, copying to application source dir")
-		b.fs.Copy(filepath.Join(scriptsPath, api.Run), filepath.Join(sourcePath, api.Run))
+		builder.fs.Copy(filepath.Join(scriptsPath, api.Run), filepath.Join(sourcePath, api.Run))
 	}
-	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
+	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
 		glog.V(3).Infof("Found S2I 'assemble' script, copying to application source dir")
-		b.fs.Copy(filepath.Join(scriptsPath, api.Assemble), filepath.Join(sourcePath, api.Assemble))
+		builder.fs.Copy(filepath.Join(scriptsPath, api.Assemble), filepath.Join(sourcePath, api.Assemble))
 	}
 }
 
 // hasAssembleScript checks if the the assemble script is available
-func (b *OnBuild) hasAssembleScript(config *api.Config) bool {
+func (builder *OnBuild) hasAssembleScript(config *api.Config) bool {
 	assemblePath := filepath.Join(config.WorkingDir, "upload", "src", "assemble")
-	_, err := b.fs.Stat(assemblePath)
+	_, err := builder.fs.Stat(assemblePath)
 	return err == nil
 }

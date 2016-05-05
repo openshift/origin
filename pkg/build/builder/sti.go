@@ -190,6 +190,7 @@ func (s *S2IBuilder) Build() error {
 		CGroupLimits:              s.cgLimits,
 		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
+		BlockOnBuild:              true,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
@@ -343,13 +344,13 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 // 2. In case of repeated Keys, the last Value takes precedence right here,
 //    instead of deferring what to do with repeated environment variables to the
 //    Docker runtime.
-func buildEnvVars(build *api.Build) map[string]string {
+func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
 	bi := buildInfo(build)
-	envVars := make(map[string]string, len(bi))
+	envVars := &s2iapi.EnvironmentList{}
 	for _, item := range bi {
-		envVars[item.Key] = item.Value
+		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))
 	}
-	return envVars
+	return *envVars
 }
 
 // scriptProxyConfig determines a proxy configuration for downloading
