@@ -59,7 +59,8 @@ type userProjectWatcher struct {
 	authCache    WatchableCache
 
 	initialProjects []kapi.Namespace
-	knownProjects   sets.String
+	// knownProjects maps name to resourceVersion
+	knownProjects map[string]string
 }
 
 var (
@@ -71,9 +72,9 @@ var (
 func NewUserProjectWatcher(username string, groups []string, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool) *userProjectWatcher {
 	userInfo := &user.DefaultInfo{Name: username, Groups: groups}
 	namespaces, _ := authCache.List(userInfo)
-	knownProjects := sets.String{}
+	knownProjects := map[string]string{}
 	for _, namespace := range namespaces.Items {
-		knownProjects.Insert(namespace.Name)
+		knownProjects[namespace.Name] = namespace.ResourceVersion
 	}
 
 	// this is optional.  If they don't request it, don't include it.
@@ -111,10 +112,10 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, latest
 
 	switch {
 	case removed:
-		if !w.knownProjects.Has(namespaceName) {
+		if _, known := w.knownProjects[namespaceName]; !known {
 			return
 		}
-		w.knownProjects.Delete(namespaceName)
+		delete(w.knownProjects, namespaceName)
 
 		select {
 		case w.cacheIncoming <- watch.Event{
@@ -133,16 +134,22 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, latest
 			utilruntime.HandleError(err)
 			return
 		}
+
 		event := watch.Event{
 			Type:   watch.Added,
 			Object: projectutil.ConvertNamespace(namespace),
 		}
 
 		// if we already have this in our list, then we're getting notified because the object changed
-		if w.knownProjects.Has(namespaceName) {
+		if lastResourceVersion, known := w.knownProjects[namespaceName]; known {
 			event.Type = watch.Modified
+
+			// if we've already notified for this particular resourceVersion, there's no work to do
+			if lastResourceVersion == namespace.ResourceVersion {
+				return
+			}
 		}
-		w.knownProjects.Insert(namespace.Name)
+		w.knownProjects[namespaceName] = namespace.ResourceVersion
 
 		select {
 		case w.cacheIncoming <- event:

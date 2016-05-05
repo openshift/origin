@@ -194,42 +194,6 @@ func TestProjectWatch(t *testing.T) {
 		t.Fatalf("timeout")
 	}
 
-	select {
-	case event := <-w.ResultChan():
-		if event.Type != watch.Modified {
-			t.Errorf("expected Modified, got %v", event)
-		}
-		project := event.Object.(*projectapi.Project)
-		if project.Name != "ns-01" {
-			t.Fatalf("expected %v, got %#v", "ns-01", project)
-		}
-		project.Annotations[projectapi.ProjectDisplayName] = "whatever"
-		_, err := bobClient.Projects().Update(project)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
-	}
-
-	select {
-	case event := <-w.ResultChan():
-		if event.Type != watch.Modified {
-			t.Errorf("expected Modified, got %v", event)
-		}
-		project := event.Object.(*projectapi.Project)
-		if project.Name != "ns-01" {
-			t.Errorf("expected %v, got %#v", "ns-01", project)
-		}
-		if project.Annotations[projectapi.ProjectDisplayName] != "whatever" {
-			t.Errorf("expected %v, got %#v", "whatever", project)
-		}
-
-	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
-	}
-
 	joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

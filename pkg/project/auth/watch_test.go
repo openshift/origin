@@ -116,17 +116,12 @@ func TestAddModifyDeleteEventsByUser(t *testing.T) {
 		t.Fatalf("timeout")
 	}
 
+	// the object didn't change, we shouldn't observe it
 	watcher.GroupMembershipChanged("ns-01", sets.NewString("bob"), sets.String{}, sets.String{}, sets.String{}, sets.String{}, sets.String{})
 	select {
 	case event := <-watcher.ResultChan():
-		if event.Type != watch.Modified {
-			t.Errorf("expected Modified, got %v", event)
-		}
-		if event.Object.(*projectapi.Project).Name != "ns-01" {
-			t.Errorf("expected %v, got %#v", "ns-01", event.Object)
-		}
+		t.Fatalf("unexpected event %v", event)
 	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
 	}
 
 	watcher.GroupMembershipChanged("ns-01", sets.NewString("alice"), sets.String{}, sets.NewString("bob"), sets.String{}, sets.String{}, sets.String{})
@@ -160,17 +155,12 @@ func TestAddModifyDeleteEventsByGroup(t *testing.T) {
 		t.Fatalf("timeout")
 	}
 
+	// the object didn't change, we shouldn't observe it
 	watcher.GroupMembershipChanged("ns-01", sets.String{}, sets.NewString("group-one"), sets.String{}, sets.String{}, sets.String{}, sets.String{})
 	select {
 	case event := <-watcher.ResultChan():
-		if event.Type != watch.Modified {
-			t.Errorf("expected Modified, got %v", event)
-		}
-		if event.Object.(*projectapi.Project).Name != "ns-01" {
-			t.Errorf("expected %v, got %#v", "ns-01", event.Object)
-		}
+		t.Fatalf("unexpected event %v", event)
 	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
 	}
 
 	watcher.GroupMembershipChanged("ns-01", sets.String{}, sets.NewString("group-two"), sets.String{}, sets.NewString("group-one"), sets.String{}, sets.String{})
