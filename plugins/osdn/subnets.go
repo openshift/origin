@@ -50,52 +50,34 @@ func (oc *OsdnController) addNode(nodeName string, nodeIP string) error {
 	}
 
 	// Check if subnet needs to be created or updated
-	subnetCIDR := ""
 	sub, err := oc.Registry.GetSubnet(nodeName)
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nil
 		} else {
-			// Node IP changed, delete old subnet
-			// TODO: We should add Update REST endpoint for HostSubnet
-			err = oc.Registry.DeleteSubnet(nodeName)
+			// Node IP changed, update old subnet
+			sub.HostIP = nodeIP
+			sub, err = oc.Registry.UpdateSubnet(sub)
 			if err != nil {
-				return fmt.Errorf("Error deleting subnet for node %s, old ip %s", nodeName, sub.HostIP)
+				return fmt.Errorf("Error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
-			subnetCIDR = sub.Subnet
+			log.Infof("Updated HostSubnet %s", HostSubnetToString(sub))
+			return nil
 		}
 	}
 
-	// Get new subnet if needed
-	subnetAllocated := false
-	if subnetCIDR == "" {
-		sn, err := oc.subnetAllocator.GetNetwork()
-		if err != nil {
-			return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
-		}
-		subnetAllocated = true
-		subnetCIDR = sn.String()
-	}
-
-	sub, err = oc.Registry.CreateSubnet(nodeName, nodeIP, subnetCIDR)
+	// Create new subnet
+	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
-		// Release subnet if needed
-		if subnetAllocated {
-			_, ipnet, er := net.ParseCIDR(subnetCIDR)
-			if er != nil {
-				log.Errorf("Failed to release subnet %q for node %q: %v", subnetCIDR, nodeName, er)
-			} else {
-				oc.subnetAllocator.ReleaseNetwork(ipnet)
-			}
-		}
-		return fmt.Errorf("Error writing subnet %s to etcd for node %s: %v", subnetCIDR, nodeName, err)
+		return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
 	}
 
-	if subnetAllocated {
-		log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
-	} else {
-		log.Infof("Updated HostSubnet %s", HostSubnetToString(sub))
+	sub, err = oc.Registry.CreateSubnet(nodeName, nodeIP, sn.String())
+	if err != nil {
+		oc.subnetAllocator.ReleaseNetwork(sn)
+		return fmt.Errorf("Error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
 	}
+	log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
 	return nil
 }
 
@@ -232,8 +214,15 @@ func (oc *OsdnController) watchSubnets() {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			oldSubnet, exists := subnets[string(hs.UID)]
-			if exists && (oldSubnet.HostIP == hs.HostIP) {
-				continue
+			if exists {
+				if oldSubnet.HostIP == hs.HostIP {
+					continue
+				} else {
+					// Delete old subnet rules
+					if err := oc.pluginHooks.DeleteHostSubnetRules(oldSubnet); err != nil {
+						log.Error(err)
+					}
+				}
 			}
 			if err := oc.validateNode(hs.HostIP); err != nil {
 				log.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
