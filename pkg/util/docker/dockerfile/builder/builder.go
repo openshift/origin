@@ -119,7 +119,7 @@ func (b *Builder) Run(step *Step, exec Executor) error {
 	for _, run := range runs {
 		config := b.Config()
 		if err := exec.Run(run, *config); err != nil {
-			return nil
+			return err
 		}
 	}
 

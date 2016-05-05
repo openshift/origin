@@ -24,7 +24,7 @@ import (
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 
 	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 var compareLayers = flag.Bool("compare-layers", false, "If true, compare each generated layer for equivalence")
@@ -406,7 +406,7 @@ func equivalentImages(t *testing.T, c *docker.Client, a, b string, testFilesyste
 	}
 
 	if !metadataFn(imageA.Config, imageB.Config) {
-		t.Errorf("generated image metadata did not match: %s", util.ObjectDiff(imageA.Config, imageB.Config))
+		t.Errorf("generated image metadata did not match: %s", diff.ObjectDiff(imageA.Config, imageB.Config))
 		return false
 	}
 
@@ -422,7 +422,7 @@ func equivalentImages(t *testing.T, c *docker.Client, a, b string, testFilesyste
 				delete(differs, k)
 				continue
 			}
-			t.Errorf("%s %s differs: %s", a, k, util.ObjectDiff(v[0], v[1]))
+			t.Errorf("%s %s differs: %s", a, k, diff.ObjectDiff(v[0], v[1]))
 		}
 		for k, v := range onlyA {
 			if ignoreFuncs(ignoreFns).Ignore(v, nil) {
