@@ -34,6 +34,7 @@ type conformanceTest struct {
 	Git        string
 	ContextDir string
 	Ignore     []ignoreFunc
+	PostClone  func(dir string) error
 }
 
 // TestConformance* compares the result of running the direct build against a
@@ -107,6 +108,9 @@ func TestConformanceExternal(t *testing.T) {
 			// Tests Non-default location dockerfile
 			Dockerfile: "Dockerfile.build",
 			Git:        "https://github.com/docker-library/hello-world.git",
+			PostClone: func(dir string) error {
+				return os.Remove(filepath.Join(dir, ".dockerignore"))
+			},
 		},
 		{
 			// Tests COPY and other complex interactions of ENV
@@ -165,6 +169,13 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 		if err != nil {
 			t.Errorf("unable to clone %q: %v\n%s", test.Git, err, out)
 			return
+		}
+
+		if test.PostClone != nil {
+			if err := test.PostClone(dir); err != nil {
+				t.Errorf("unable to fixup clone: %v", err)
+				return
+			}
 		}
 
 	case len(test.Dockerfile) > 0:
@@ -284,7 +295,7 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 
 	} else {
 		exclude, _ := ParseDockerignore(dir)
-		exclude = append(exclude, ".dockerignore")
+		//exclude = append(filtered, ".dockerignore")
 		in, err := archive.TarWithOptions(dir, &archive.TarOptions{IncludeFiles: []string{"."}, ExcludePatterns: exclude})
 		if err != nil {
 			t.Errorf("%d: unable to generate build context %q: %v", i, dockerfilePath, err)
