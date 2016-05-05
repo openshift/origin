@@ -41,6 +41,15 @@ func (c *FakeHostSubnet) Create(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, e
 	return obj.(*sdnapi.HostSubnet), err
 }
 
+func (c *FakeHostSubnet) Update(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("hostsubnets", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*sdnapi.HostSubnet), err
+}
+
 func (c *FakeHostSubnet) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("hostsubnets", name), &sdnapi.HostSubnet{})
 	return err
