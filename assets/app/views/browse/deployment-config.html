@@ -106,7 +106,7 @@
                             <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
                             <dt>Replicas:</dt>
                             <dd>
-                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)"></replicas>
+                              <replicas spec="deploymentConfig.spec.replicas" scale-fn="scale(replicas)" disable-scaling="deploymentInProgress"></replicas>
                             </dd>
                             <dt>Pod template:</dt>
                             <dd>&nbsp;</dd>
