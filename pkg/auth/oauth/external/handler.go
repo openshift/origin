@@ -9,6 +9,7 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -28,26 +29,26 @@ type Handler struct {
 	mapper       authapi.UserIdentityMapper
 }
 
-func NewExternalOAuthRedirector(provider Provider, state State, redirectURL string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
+func NewExternalOAuthRedirector(provider Provider, state State, redirectURL string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (handlers.AuthenticationRedirector, http.Handler, error) {
 	clientConfig, err := provider.NewConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	clientConfig.RedirectUrl = redirectURL
 
 	client, err := osincli.NewClient(clientConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	transport, err := provider.GetTransport()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	client.Transport = transport
 
-	return &Handler{
+	handler := &Handler{
 		provider:     provider,
 		state:        state,
 		clientConfig: clientConfig,
@@ -55,7 +56,9 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 		success:      success,
 		errorHandler: errorHandler,
 		mapper:       mapper,
-	}, nil
+	}
+
+	return handler, handler, nil
 }
 
 // AuthenticationRedirect implements oauth.handlers.RedirectAuthHandler
@@ -76,6 +79,70 @@ func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Reques
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 	return nil
+}
+
+func NewOAuthPasswordAuthenticator(provider Provider, mapper authapi.UserIdentityMapper) (authenticator.Password, error) {
+	clientConfig, err := provider.NewConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// unused for password grants
+	clientConfig.RedirectUrl = "/"
+
+	client, err := osincli.NewClient(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	transport, err := provider.GetTransport()
+	if err != nil {
+		return nil, err
+	}
+	client.Transport = transport
+
+	return &Handler{
+		provider:     provider,
+		clientConfig: clientConfig,
+		client:       client,
+		mapper:       mapper,
+	}, nil
+}
+
+func (h *Handler) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+	// Exchange password for a token
+	accessReq := h.client.NewAccessRequest(osincli.PASSWORD, &osincli.AuthorizeData{Username: username, Password: password})
+	accessData, err := accessReq.GetToken()
+	if err != nil {
+		if oauthErr, ok := err.(*osincli.Error); ok && oauthErr.Id == "invalid_grant" {
+			// An invalid_grant error means the username/password was rejected
+			return nil, false, nil
+		}
+		glog.V(4).Infof("Error getting access token using resource owner password grant: %v", err)
+		return nil, false, err
+	}
+
+	glog.V(5).Infof("Got access data for %s", username)
+
+	identity, ok, err := h.provider.GetUserIdentity(accessData)
+	if err != nil {
+		glog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
+		return nil, false, err
+	}
+	if !ok {
+		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
+		err := errors.New("Could not get userIdentityInfo info from access token")
+		return nil, false, err
+	}
+
+	user, err := h.mapper.UserFor(identity)
+	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
+	if err != nil {
+		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, err
+	}
+
+	return user, true, nil
 }
 
 // ServeHTTP handles the callback request in response to an external oauth flow
@@ -115,7 +182,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	glog.V(4).Infof("Got access data")
+	glog.V(5).Infof("Got access data")
 
 	identity, ok, err := h.provider.GetUserIdentity(accessData)
 	if err != nil {
@@ -131,7 +198,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	user, err := h.mapper.UserFor(identity)
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
+	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
 		h.handleError(err, w, req)

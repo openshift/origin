@@ -50,12 +50,56 @@ func (c *AccessRequest) GetTokenUrl() *url.URL {
 	u := *c.client.configcache.tokenUrl
 	uq := u.Query()
 	uq.Add("grant_type", string(c.Type))
-	if c.Type == REFRESH_TOKEN {
+
+	switch c.Type {
+	case PASSWORD:
+		// https://tools.ietf.org/html/rfc6749#section-4.3.2
+		// grant_type, username, password, scope (optional)
+
+		// Avoid double-adding a username parameter if it was specified as a custom parameter and not in AuthorizeData
+		// This ensures callers that previously used CustomParameters to pass username continue to work
+		_, hasCustomUsername := c.CustomParameters["username"]
+		if len(c.AuthorizeData.Username) > 0 || !hasCustomUsername {
+			uq.Add("username", c.AuthorizeData.Username)
+		}
+
+		// Avoid double-adding a password parameter if it was specified as a custom parameter and not in AuthorizeData
+		// This ensures callers that previously used CustomParameters to pass password continue to work
+		_, hasCustomPassword := c.CustomParameters["password"]
+		if len(c.AuthorizeData.Password) > 0 || !hasCustomPassword {
+			uq.Add("password", c.AuthorizeData.Password)
+		}
+
+		// Avoid double-adding a scope parameter if it was specified as a customer parameter
+		// This ensures callers that previously used CustomParameters to pass scope continue to work
+		_, hasCustomScope := c.CustomParameters["scope"]
+		if !hasCustomScope && c.client.config.Scope != "" {
+			uq.Add("scope", c.client.config.Scope)
+		}
+
+	case REFRESH_TOKEN:
+		// https://tools.ietf.org/html/rfc6749#section-6
+		// grant_type, refresh_token, scope (optional, defaults to same as original access token)
 		uq.Add("refresh_token", c.AuthorizeData.Code)
-	} else {
+
+	case AUTHORIZATION_CODE:
+		// https://tools.ietf.org/html/rfc6749#section-4.1.3
+		// grant_type, code, redirect_uri
 		uq.Add("code", c.AuthorizeData.Code)
+		uq.Add("redirect_uri", c.client.config.RedirectUrl)
+
+	case CLIENT_CREDENTIALS:
+		// https://tools.ietf.org/html/rfc6749#section-4.4.2
+		// grant_type, scope
+
+		// Avoid double-adding a scope parameter if it was specified as a customer parameter
+		// This ensures callers that previously used CustomParameters to pass scope continue to work
+		_, hasCustomScope := c.CustomParameters["scope"]
+		if !hasCustomScope && c.client.config.Scope != "" {
+			uq.Add("scope", c.client.config.Scope)
+		}
 	}
-	uq.Add("redirect_uri", c.client.config.RedirectUrl)
+
 	if c.client.config.SendClientSecretInParams {
 		uq.Add("client_id", c.client.config.ClientId)
 		uq.Add("client_secret", c.client.config.ClientSecret)
