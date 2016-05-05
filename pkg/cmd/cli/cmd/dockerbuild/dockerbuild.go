@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -111,5 +112,22 @@ func (o *DockerbuildOptions) Run() error {
 	e.Directory = o.Directory
 	e.Tag = o.Tag
 	e.AuthFn = o.Keyring.Lookup
-	return e.Build(f, o.Arguments)
+	e.LogFn = func(format string, args ...interface{}) {
+		if glog.V(2) {
+			glog.Infof("Builder: "+format, args...)
+		} else {
+			fmt.Fprintf(e.ErrOut, "# %s\n", fmt.Sprintf(format, args...))
+		}
+	}
+	return stripLeadingError(e.Build(f, o.Arguments))
+}
+
+func stripLeadingError(err error) error {
+	if err == nil {
+		return err
+	}
+	if strings.HasPrefix(err.Error(), "Error: ") {
+		return fmt.Errorf(strings.TrimPrefix(err.Error(), "Error: "))
+	}
+	return err
 }

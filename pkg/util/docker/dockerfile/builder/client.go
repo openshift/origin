@@ -32,6 +32,9 @@ type ClientExecutor struct {
 	Excludes []string
 	// Tag is an optional value to tag the resulting built image.
 	Tag string
+	// AllowPull when set will pull images that are not present on
+	// the daemon.
+	AllowPull bool
 
 	Out, ErrOut io.Writer
 
@@ -51,6 +54,8 @@ type ClientExecutor struct {
 	AuthFn func(name string) ([]docker.AuthConfiguration, bool)
 	// HostConfig is used to start the container (if necessary).
 	HostConfig *docker.HostConfig
+	// LogFn is an optional command to log information to the end user
+	LogFn func(format string, args ...interface{})
 }
 
 // NewClientExecutor creates a client executor.
@@ -162,6 +167,9 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			return err
 		}
 		glog.V(4).Infof("step: %s", step.Original)
+		if e.LogFn != nil {
+			e.LogFn(step.Original)
+		}
 		if err := b.Run(step, e); err != nil {
 			return err
 		}
@@ -172,8 +180,14 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	if len(e.Tag) > 0 {
 		repository, tag = docker.ParseRepositoryTag(e.Tag)
 		glog.V(4).Infof("Committing built container %s as image %q: %#v", e.Container.ID, e.Tag, config)
+		if e.LogFn != nil {
+			e.LogFn("Committing changes to %s ...", e.Tag)
+		}
 	} else {
 		glog.V(4).Infof("Committing built container %s: %#v", e.Container.ID, config)
+		if e.LogFn != nil {
+			e.LogFn("Committing changes ...")
+		}
 	}
 
 	image, err := e.Client.CommitContainer(docker.CommitContainerOptions{
@@ -187,6 +201,9 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	}
 	e.Image = image
 	glog.V(4).Infof("Committed %s to %s", e.Container.ID, e.Image.ID)
+	if e.LogFn != nil {
+		e.LogFn("Done")
+	}
 	return nil
 }
 
@@ -214,7 +231,7 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 	if _, err := io.ReadFull(rand.Reader, random); err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("scratch-%s", base64.URLEncoding.EncodeToString(random))
+	name := fmt.Sprintf("scratch-%s", strings.TrimRight(base64.URLEncoding.EncodeToString(random), "="))
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
@@ -243,11 +260,14 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 		return nil, err
 	}
 
-	var registry string
-	repository, tag := docker.ParseRepositoryTag(from)
-	if parts := strings.SplitN(repository, "/", 2); len(parts) > 1 {
-		registry, repository = parts[0], parts[1]
+	if !e.AllowPull {
+		glog.V(4).Info("image %s did not exist", from)
+		return nil, docker.ErrNoSuchImage
 	}
+
+	repository, _ := docker.ParseRepositoryTag(from)
+
+	glog.V(4).Infof("attempting to pull %s with auth from repository %s", from, repository)
 
 	// TODO: we may want to abstract looping over multiple credentials
 	auth, _ := e.AuthFn(repository)
@@ -255,15 +275,14 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 		auth = append(auth, docker.AuthConfiguration{})
 	}
 
+	if e.LogFn != nil {
+		e.LogFn("Image %s was not found, pulling ...", from)
+	}
+
 	var lastErr error
 	for _, config := range auth {
 		// TODO: handle IDs?
-		err = e.Client.PullImage(docker.PullImageOptions{
-			Registry:   registry,
-			Repository: repository,
-			Tag:        tag,
-		}, config)
-		if err == nil {
+		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from}, config); err == nil {
 			break
 		}
 		lastErr = err
