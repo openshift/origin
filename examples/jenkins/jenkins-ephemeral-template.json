@@ -5,7 +5,7 @@
     "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "Jenkins service, without persistent storage.\nThe username is 'admin' and the tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -102,7 +102,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "${JENKINS_IMAGE}",
+                "image": "JENKINS_IMAGE",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,
@@ -182,7 +182,7 @@
     {
       "name": "JENKINS_PASSWORD",
       "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins user.",
+      "description": "Password for the Jenkins 'admin' user.",
       "generate": "expression",
       "value": "password"
     }
