@@ -205,8 +205,9 @@ func (r *repository) Clone(location string, url string) error {
 
 // ListRemote lists references in a remote repository
 func (r *repository) ListRemote(url string, args ...string) (string, string, error) {
-	gitArgs := []string{"ls-remote", url}
+	gitArgs := []string{"ls-remote"}
 	gitArgs = append(gitArgs, args...)
+	gitArgs = append(gitArgs, url)
 	return r.git(nil, "", gitArgs...)
 }
 
