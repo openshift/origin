@@ -145,6 +145,7 @@ const (
 // BuildSource is the SCM used for the build.
 type BuildSource struct {
 	// type of build input to accept
+	// +genconversion=false
 	Type BuildSourceType `json:"type"`
 
 	// binary builds accept a binary as their input. The binary is generally assumed to be a tar,
@@ -245,7 +246,8 @@ type BinaryBuildSource struct {
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	// type of the build source
+	// type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'
+	// +genconversion=false
 	Type BuildSourceType `json:"type"`
 
 	// Git contains information about git-based build source
@@ -295,6 +297,7 @@ type SourceControlUser struct {
 // BuildStrategy contains the details of how to perform a build.
 type BuildStrategy struct {
 	// type is the kind of build strategy.
+	// +genconversion=false
 	Type BuildStrategyType `json:"type"`
 
 	// dockerStrategy holds the parameters to the Docker build strategy.
@@ -665,6 +668,7 @@ type BuildConfigList struct {
 // GenericWebHookEvent is the payload expected for a generic webhook post
 type GenericWebHookEvent struct {
 	// type is the type of source repository
+	// +genconversion=false
 	Type BuildSourceType `json:"type,omitempty"`
 
 	// git is the git information if the Type is BuildSourceGit
