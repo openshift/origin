@@ -2,7 +2,7 @@
 /* jshint eqeqeq: false, unused: false, expr: true */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, APIService, Notification, Logger, $timeout) {
+.factory('DataService', function($cacheFactory, $http, $ws, $rootScope, $q, API_CFG, APIService, Notification, Logger, $timeout) {
 
   function Data(array) {
     this._data = {};
@@ -19,6 +19,7 @@ angular.module('openshiftConsole')
       _objectByAttribute(this._data[key], attr, map, null);
     }
     return map;
+
   };
 
   Data.prototype.update = function(object, action) {
@@ -82,7 +83,10 @@ angular.module('openshiftConsole')
     this._watchOperationMap = {};
     this._listOperationMap = {};
     this._resourceVersionMap = {};
-    this._dataMap = {};
+    this._dataCache = $cacheFactory('dataCache', {
+      // 25 is a reasonable number to keep at least one or two projects worth of data in cache
+      number: 25
+    });
     this._watchOptionsMap = {};
     this._watchWebsocketsMap = {};
     this._watchPollTimeoutsMap = {};
@@ -101,19 +105,20 @@ angular.module('openshiftConsole')
 //            Data:   a Data object containing the (context-qualified) results
 //                    which includes a helper method for returning a map indexed
 //                    by attribute (e.g. data.by('metadata.name'))
-// opts:      options (currently none, placeholder)
+// opts:      http - options to pass to the inner $http call
   DataService.prototype.list = function(resource, context, callback, opts) {
     resource = APIService.toResourceGroupVersion(resource);
-    var callbacks = this._listCallbacks(resource, context);
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
+    var callbacks = this._listCallbacks(key);
     callbacks.add(callback);
 
-    if (this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
+    if (this._isCached(key)) {
       // A watch operation is running, and we've already received the
       // initial set of data for this resource
-      callbacks.fire(this._data(resource, context));
+      callbacks.fire(this._data(key));
       callbacks.empty();
     }
-    else if (this._listInFlight(resource, context)) {
+    else if (this._listInFlight(key)) {
       // no-op, our callback will get called when listOperation completes
     }
     else {
@@ -243,11 +248,11 @@ angular.module('openshiftConsole')
   // where success and failure contain an array of results from the individual
   // create calls.
   DataService.prototype.batch = function(objects, context, action, opts) {
-    var deferred = $q.defer(),
-        successResults = [],
-        failureResults = [],
-        self = this,
-        remaining = objects.length;
+    var deferred = $q.defer();
+    var successResults = [];
+    var failureResults = [];
+    var self = this;
+    var remaining = objects.length;
     action = action || 'create';
 
     function _checkDone() {
@@ -318,21 +323,21 @@ angular.module('openshiftConsole')
   DataService.prototype.get = function(resource, name, context, opts) {
     resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
-
+    var key = this._uniqueKey(resource, name, context, _.get(opts, 'http.params'));
     var force = !!opts.force;
     delete opts.force;
 
     var deferred = $q.defer();
 
-    var existingData = this._data(resource, context);
+    var existingData = this._data(key);
 
-    // If this is a cached resource (immutable resources only), ignore the force parameter
-    if (this._isResourceCached(resource) && existingData && existingData.by('metadata.name')[name]) {
+    // special case, if we have an immutable item, we can return it immediately
+    if (this._hasImmutable(resource, existingData, name)) {
       $timeout(function() {
         deferred.resolve(existingData.by('metadata.name')[name]);
       }, 0);
     }
-    else if (!force && this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
+    else if (!force && this._isCached(key)) {
       var obj = existingData.by('metadata.name')[name];
       if (obj) {
         $timeout(function() {
@@ -360,9 +365,9 @@ angular.module('openshiftConsole')
           url: self._urlForResource(resource, name, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
-          if (self._isResourceCached(resource)) {
+          if (self._isImmutable(resource)) {
             if (!existingData) {
-              self._data(resource, context, [data]);
+              self._data(key, [data]);
             }
             else {
               existingData.update(data, "ADDED");
@@ -533,25 +538,25 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
 //                    a websocket. Default is false.
 //            pollInterval: in milliseconds, how long to wait between polling the server
 //                    only applies if poll=true.  Default is 5000.
-//
+//            http:   similar to .get, etc. at this point, only used to pass http.params for filtering
 // returns handle to the watch, needed to unwatch e.g.
 //        var handle = DataService.watch(resource,context,callback[,opts])
 //        DataService.unwatch(handle)
   DataService.prototype.watch = function(resource, context, callback, opts) {
     resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
-
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
     if (callback) {
       // If we were given a callback, add it
-      this._watchCallbacks(resource, context).add(callback);
+      this._watchCallbacks(key).add(callback);
     }
-    else if (!this._watchCallbacks(resource, context).has()) {
+    else if (!this._watchCallbacks(key).has()) {
       // We can be called with no callback in order to re-run a list/watch sequence for existing callbacks
       // If there are no existing callbacks, return
       return {};
     }
 
-    var existingWatchOpts = this._watchOptions(resource, context);
+    var existingWatchOpts = this._watchOptions(key);
     if (existingWatchOpts) {
       // Check any options for compatibility with existing watch
       if (existingWatchOpts.poll != opts.poll) {
@@ -559,29 +564,28 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
       }
     }
     else {
-      this._watchOptions(resource, context, opts);
+      this._watchOptions(key, opts);
     }
 
     var self = this;
-
-    if (this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
+    if (this._isCached(key)) {
       if (callback) {
         $timeout(function() {
-          callback(self._data(resource, context));
+          callback(self._data(key));
         }, 0);
       }
     }
     else {
       if (callback) {
-        var existingData = this._data(resource, context);
+        var existingData = this._data(key);
         if (existingData) {
           $timeout(function() {
             callback(existingData);
           }, 0);
         }
       }
-      if (!this._listInFlight(resource, context)) {
-        this._startListOp(resource, context);
+      if (!this._listInFlight(key)) {
+        this._startListOp(resource, context, opts);
       }
     }
 
@@ -617,27 +621,27 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
   DataService.prototype.watchObject = function(resource, name, context, callback, opts) {
     resource = APIService.toResourceGroupVersion(resource);
     opts = opts || {};
-
+    var key = this._uniqueKey(resource, name, context, _.get(opts, 'http.params'));
     var wrapperCallback;
     if (callback) {
       // If we were given a callback, add it
-      this._watchObjectCallbacks(resource, name, context).add(callback);
+      this._watchObjectCallbacks(key).add(callback);
       var self = this;
       wrapperCallback = function(items, event, item) {
         // If we got an event for a single item, only fire the callback if its the item we care about
         if (item && item.metadata.name === name) {
-          self._watchObjectCallbacks(resource, name, context).fire(item, event);
+          self._watchObjectCallbacks(key).fire(item, event);
         }
         else if (!item) {
           // Otherwise its an initial listing, see if we can find the item we care about in the list
           var itemsByName = items.by("metadata.name");
           if (itemsByName[name]) {
-            self._watchObjectCallbacks(resource, name, context).fire(itemsByName[name]);
+            self._watchObjectCallbacks(key).fire(itemsByName[name]);
           }
         }
       };
     }
-    else if (!this._watchObjectCallbacks(resource, name, context).has()) {
+    else if (!this._watchObjectCallbacks(key).has()) {
       // This block may not be needed yet, don't expect this would get called without a callback currently...
       return {};
     }
@@ -658,32 +662,33 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     var callback = handle.callback;
     var objectCallback = handle.objectCallback;
     var opts = handle.opts;
+    var key = this._uniqueKey(resource, objectName, context, _.get(opts, 'http.params'));
 
     if (objectCallback && objectName) {
-      var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
+      var objCallbacks = this._watchObjectCallbacks(key);
       objCallbacks.remove(objectCallback);
     }
 
-    var callbacks = this._watchCallbacks(resource, context);
+    var callbacks = this._watchCallbacks(key);
     if (callback) {
       callbacks.remove(callback);
     }
     if (!callbacks.has()) {
       if (opts && opts.poll) {
-        clearTimeout(this._watchPollTimeouts(resource, context));
-        this._watchPollTimeouts(resource, context, null);
+        clearTimeout(this._watchPollTimeouts(key));
+        this._watchPollTimeouts(key, null);
       }
-      else if (this._watchWebsockets(resource, context)){
+      else if (this._watchWebsockets(key)){
         // watchWebsockets may not have been set up yet if the projectPromise never resolves
-        var ws = this._watchWebsockets(resource, context);
+        var ws = this._watchWebsockets(key);
         // Make sure the onclose listener doesn't reopen this websocket.
         ws.shouldClose = true;
         ws.close();
-        this._watchWebsockets(resource, context, null);
+        this._watchWebsockets(key, null);
       }
 
-      this._watchInFlight(resource, context, false);
-      this._watchOptions(resource, context, null);
+      this._watchInFlight(key, false);
+      this._watchOptions(key, null);
     }
   };
 
@@ -694,33 +699,28 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._watchCallbacks = function(resource, context) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._watchCallbacks = function(key) {
     if (!this._watchCallbacksMap[key]) {
       this._watchCallbacksMap[key] = $.Callbacks();
     }
     return this._watchCallbacksMap[key];
   };
 
-  DataService.prototype._watchObjectCallbacks = function(resource, name, context) {
-    var key = this._uniqueKeyForResourceContext(resource, context) + "/" + name;
+  DataService.prototype._watchObjectCallbacks = function(key) {
     if (!this._watchObjectCallbacksMap[key]) {
       this._watchObjectCallbacksMap[key] = $.Callbacks();
     }
     return this._watchObjectCallbacksMap[key];
   };
 
-  DataService.prototype._listCallbacks = function(resource, context) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._listCallbacks = function(key) {
     if (!this._listCallbacksMap[key]) {
       this._listCallbacksMap[key] = $.Callbacks();
     }
     return this._listCallbacksMap[key];
   };
 
-  // maybe change these
-  DataService.prototype._watchInFlight = function(resource, context, op) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._watchInFlight = function(key, op) {
     if (!op && op !== false) {
       return this._watchOperationMap[key];
     }
@@ -729,8 +729,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._listInFlight = function(resource, context, op) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._listInFlight = function(key, op) {
     if (!op && op !== false) {
       return this._listOperationMap[key];
     }
@@ -739,8 +738,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._resourceVersion = function(resource, context, rv) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._resourceVersion = function(key, rv) {
     if (!rv) {
       return this._resourceVersionMap[key];
     }
@@ -749,18 +747,20 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._data = function(resource, context, data) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
-    if (!data) {
-      return this._dataMap[key];
-    }
-    else {
-      this._dataMap[key] = new Data(data);
-    }
+  // uses $cacheFactory to impl LRU cache
+  DataService.prototype._data = function(key, data) {
+    return data ?
+           this._dataCache.put(key, new Data(data)) :
+           this._dataCache.get(key);
   };
 
-  DataService.prototype._watchOptions = function(resource, context, opts) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._isCached = function(key) {
+    return this._watchInFlight(key) &&
+           this._resourceVersion(key) &&
+           (!!this._data(key));
+  };
+
+  DataService.prototype._watchOptions = function(key, opts) {
     if (opts === undefined) {
       return this._watchOptionsMap[key];
     }
@@ -769,8 +769,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._watchPollTimeouts = function(resource, context, timeout) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._watchPollTimeouts = function(key, timeout) {
     if (!timeout) {
       return this._watchPollTimeoutsMap[key];
     }
@@ -779,8 +778,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._watchWebsockets = function(resource, context, timeout) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._watchWebsockets = function(key, timeout) {
     if (!timeout) {
       return this._watchWebsocketsMap[key];
     }
@@ -792,8 +790,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
   // Maximum number of websocket events to track per resource/context in _websocketEventsMap.
   var maxWebsocketEvents = 10;
 
-  DataService.prototype._addWebsocketEvent = function(resource, context, eventType) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._addWebsocketEvent = function(key, eventType) {
     var events = this._websocketEventsMap[key];
     if (!events) {
       events = this._websocketEventsMap[key] = [];
@@ -834,59 +831,77 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     return true;
   }
 
-  DataService.prototype._isTooManyWebsocketRetries = function(resource, context) {
-    var key = this._uniqueKeyForResourceContext(resource, context);
+  DataService.prototype._isTooManyWebsocketRetries = function(key) {
     var events = this._websocketEventsMap[key];
     if (!events) {
       return false;
     }
 
     if (isTooManyRecentEvents(events)) {
-      Logger.log("Too many websocket open or close events for resource/context in a short period", resource, context, events);
+      Logger.log("Too many websocket open or close events for resource/context in a short period", key, events);
       return true;
     }
 
     if (isTooManyConsecutiveCloses(events)) {
-      Logger.log("Too many consecutive websocket close events for resource/context", resource, context, events);
+      Logger.log("Too many consecutive websocket close events for resource/context", key, events);
       return true;
     }
 
     return false;
   };
 
-  DataService.prototype._uniqueKeyForResourceContext = function(resource, context) {
-    // Note: when we start handling selecting multiple projects this
-    // will change to include all relevant scope
-    if (resource.equals("projects") || resource.equals("projectrequests")) { // when we are loading non-namespaced resources we don't need additional context
-      return resource;
-    }
-    else if (context.namespace) {
-      return resource.toString() + "/" + context.namespace;
-    }
-    else if (context.project && context.project.metadata) {
-      return resource.toString() + "/" + context.project.metadata.name;
-    }
-    else if (context.projectName) {
-      return resource.toString() + "/" + context.projectName;
-    }
-    else {
-      return resource.toString();
-    }
+
+  // will take an object, filter & sort it for consistent unique key generation
+  // uses encodeURIComponent internally because keys can have special characters, such as '='
+  var paramsForKey = function(params) {
+    var keys = _.keysIn(
+                  _.pick(
+                    params,
+                    ['fieldSelector', 'labelSelector'])
+                ).sort();
+    return _.reduce(
+            keys,
+            function(result, key, i) {
+              return result + key + '=' + encodeURIComponent(params[key]) +
+                      ((i < (keys.length-1)) ? '&' : '');
+            }, '?');
+
   };
 
-  DataService.prototype._startListOp = function(resource, context) {
+
+  // - creates a unique key representing a resource in its context (project)
+  //    - primary use case for caching
+  //    - proxies to _urlForResource to generate unique keys
+  // - ensure namespace if available
+  // - ensure only witelisted url params used for keys (fieldSelector, labelSelector) via paramsForKey
+  //   and that these are consistently ordered
+  // - NOTE: Do not use the key as your url for API requests. This function does not use the 'isWebsocket'
+  //         bool.  Both websocket & http operations should respond with the same data from cache if key matches
+  //         so the unique key will always include http://
+  DataService.prototype._uniqueKey = function(resource, name, context, params) {
+    var ns = context && context.namespace ||
+             _.get(context, 'project.metadata.name') ||
+             context.projectName;
+    return this._urlForResource(resource, name, context, null, angular.extend({}, {}, {namespace: ns})).toString() + paramsForKey(params);
+  };
+
+
+  DataService.prototype._startListOp = function(resource, context, opts) {
+    opts = opts || {};
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
     // mark the operation as in progress
-    this._listInFlight(resource, context, true);
+    this._listInFlight(key, true);
 
     var self = this;
     if (context.projectPromise && !resource.equals("projects")) {
       context.projectPromise.done(function(project) {
-        $http({
+        $http(angular.extend({
           method: 'GET',
           auth: {},
           url: self._urlForResource(resource, null, context, false, {namespace: project.metadata.name})
-        }).success(function(data, status, headerFunc, config, statusText) {
-          self._listOpComplete(resource, context, data);
+        }, opts.http || {}))
+        .success(function(data, status, headerFunc, config, statusText) {
+          self._listOpComplete(key, resource, context, opts, data);
         }).error(function(data, status, headers, config) {
           var msg = "Failed to list " + resource;
           if (status !== 0) {
@@ -903,7 +918,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
         auth: {},
         url: this._urlForResource(resource, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
-        self._listOpComplete(resource, context, data);
+        self._listOpComplete(key, resource, context, opts, data);
       }).error(function(data, status, headers, config) {
         var msg = "Failed to list " + resource;
         if (status !== 0) {
@@ -915,12 +930,11 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._listOpComplete = function(resource, context, data) {
+  DataService.prototype._listOpComplete = function(key, resource, context, opts, data) {
     if (!data.items) {
       console.warn("List request for " + resource + " returned a null items array.  This is an invalid API response.");
     }
     var items = data.items || [];
-    
     // Here we normalize all items to have a kind property.
     // One of the warts in the kubernetes REST API is that items retrieved
     // via GET on a list resource won't have a kind property set.
@@ -936,29 +950,29 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
       });
     }
 
-    this._resourceVersion(resource, context, data.resourceVersion || data.metadata.resourceVersion);
-    this._data(resource, context, items);
-    this._listCallbacks(resource, context).fire(this._data(resource, context));
-    this._listCallbacks(resource, context).empty();
-    this._watchCallbacks(resource, context).fire(this._data(resource, context));
+    this._resourceVersion(key, data.resourceVersion || data.metadata.resourceVersion);
+    this._data(key, items);
+    this._listCallbacks(key).fire(this._data(key));
+    this._listCallbacks(key).empty();
+    this._watchCallbacks(key).fire(this._data(key));
 
     // mark list op as complete
-    this._listInFlight(resource, context, false);
+    this._listInFlight(key, false);
 
-    if (this._watchCallbacks(resource, context).has()) {
-      var watchOpts = this._watchOptions(resource, context) || {};
+    if (this._watchCallbacks(key).has()) {
+      var watchOpts = this._watchOptions(key) || {};
       if (watchOpts.poll) {
-        this._watchInFlight(resource, context, true);
-        this._watchPollTimeouts(resource, context, setTimeout($.proxy(this, "_startListOp", resource, context), watchOpts.pollInterval || 5000));
+        this._watchInFlight(key, true);
+        this._watchPollTimeouts(key, setTimeout($.proxy(this, "_startListOp", key), watchOpts.pollInterval || 5000));
       }
-      else if (!this._watchInFlight(resource, context)) {
-        this._startWatchOp(resource, context, this._resourceVersion(resource, context));
+      else if (!this._watchInFlight(key)) {
+        this._startWatchOp(key, resource, context, opts, this._resourceVersion(key));
       }
     }
   };
 
-  DataService.prototype._startWatchOp = function(resource, context, resourceVersion) {
-    this._watchInFlight(resource, context, true);
+  DataService.prototype._startWatchOp = function(key, resource, context, opts, resourceVersion) {
+    this._watchInFlight(key, true);
     // Note: current impl uses one websocket per resource
     // eventually want a single websocket connection that we
     // send a subscription request to for each resource
@@ -966,7 +980,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     // Only listen for updates if websockets are available
     if ($ws.available()) {
       var self = this;
-      var params = {};
+      var params =  _.get(opts, 'http.params') || {};
       params.watch = true;
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
@@ -978,12 +992,12 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
             method: "WATCH",
             url: self._urlForResource(resource, null, context, true, params),
             auth:      {},
-            onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
-            onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
-            onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
+            onclose:   $.proxy(self, "_watchOpOnClose",   resource, context, opts),
+            onmessage: $.proxy(self, "_watchOpOnMessage", resource, context, opts),
+            onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context, opts)
           }).then(function(ws) {
             Logger.log("Watching", ws);
-            self._watchWebsockets(resource, context, ws);
+            self._watchWebsockets(key, ws);
           });
         });
       }
@@ -992,23 +1006,25 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
           method: "WATCH",
           url: self._urlForResource(resource, null, context, true, params),
           auth:      {},
-          onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
-          onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
-          onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
+          onclose:   $.proxy(self, "_watchOpOnClose",   resource, context, opts),
+          onmessage: $.proxy(self, "_watchOpOnMessage", resource, context, opts),
+          onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context, opts)
         }).then(function(ws){
           Logger.log("Watching", ws);
-          self._watchWebsockets(resource, context, ws);
+          self._watchWebsockets(key, ws);
         });
       }
     }
   };
 
-  DataService.prototype._watchOpOnOpen = function(resource, context, event) {
+  DataService.prototype._watchOpOnOpen = function(resource, context, opts, event) {
     Logger.log('Websocket opened for resource/context', resource, context);
-    this._addWebsocketEvent(resource, context, 'open');
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
+    this._addWebsocketEvent(key, 'open');
   };
 
-  DataService.prototype._watchOpOnMessage = function(resource, context, event) {
+  DataService.prototype._watchOpOnMessage = function(resource, context, opts, event) {
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
     try {
       var eventData = $.parseJSON(event.data);
 
@@ -1028,16 +1044,16 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
       }
 
       if (eventData.object) {
-        this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+        this._resourceVersion(key, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
       }
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
-      this._data(resource, context).update(eventData.object, eventData.type);
+      this._data(key).update(eventData.object, eventData.type);
       var self = this;
       // Wrap in a $timeout which will trigger an $apply to mirror $http callback behavior
       // without timeout this is triggering a repeated digest loop
       $timeout(function() {
-        self._watchCallbacks(resource, context).fire(self._data(resource, context), eventData.type, eventData.object);
+        self._watchCallbacks(key).fire(self._data(key), eventData.type, eventData.object);
       }, 0);
     }
     catch (e) {
@@ -1046,14 +1062,16 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
   };
 
-  DataService.prototype._watchOpOnClose = function(resource, context, event) {
+  DataService.prototype._watchOpOnClose = function(resource, context, opts, event) {
     var eventWS = event.target;
+    var key = this._uniqueKey(resource, null, context, _.get(opts, 'http.params'));
+
     if (!eventWS) {
       Logger.log("Skipping reopen, no eventWS in event", event);
       return;
     }
 
-    var registeredWS = this._watchWebsockets(resource, context);
+    var registeredWS = this._watchWebsockets(key);
     if (!registeredWS) {
       Logger.log("Skipping reopen, no registeredWS for resource/context", resource, context);
       return;
@@ -1067,7 +1085,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
 
     // We are the registered web socket for this resource/context, and we are no longer in flight
     // Unlock this resource/context in case we decide not to reopen
-    this._watchInFlight(resource, context, false);
+    this._watchInFlight(key, false);
 
     // Don't reopen web sockets we closed ourselves
     if (eventWS.shouldClose) {
@@ -1082,13 +1100,13 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
 
     // Don't reopen if no one is listening for this data any more
-    if (!this._watchCallbacks(resource, context).has()) {
+    if (!this._watchCallbacks(key).has()) {
       Logger.log("Skipping reopen, no listeners registered for resource/context", resource, context);
       return;
     }
 
     // Don't reopen if we've failed this resource/context too many times
-    if (this._isTooManyWebsocketRetries(resource, context)) {
+    if (this._isTooManyWebsocketRetries(key)) {
       Notification.error("Server connection interrupted.", {
         id: "websocket_retry_halted",
         mustDismiss: true,
@@ -1100,7 +1118,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     }
 
     // Keep track of this event.
-    this._addWebsocketEvent(resource, context, 'close');
+    this._addWebsocketEvent(key, 'close');
 
     // If our watch window expired, we have to relist to get a new resource version to watch from
     if (eventWS.shouldRelist) {
@@ -1120,9 +1138,9 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     // Attempt to re-establish the connection after a two-second back-off
     // Re-mark ourselves as in-flight to prevent other callers from jumping in in the meantime
     Logger.log("Rewatching for resource/context", resource, context);
-    this._watchInFlight(resource, context, true);
+    this._watchInFlight(key, true);
     setTimeout(
-      $.proxy(this, "_startWatchOp", resource, context, this._resourceVersion(resource, context)),
+      $.proxy(this, "_startWatchOp", key, resource, context, opts, this._resourceVersion(key)),
       2000
     );
   };
@@ -1132,6 +1150,7 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
   var URL_OBJECT                = URL_ROOT_TEMPLATE + "{resource}/{name}{/subresource*}{?q*}";
   var URL_NAMESPACED_GET_LIST   = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}{?q*}";
   var URL_NAMESPACED_OBJECT     = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}/{name}{/subresource*}{?q*}";
+
 
   DataService.prototype._urlForResource = function(resource, name, context, isWebsocket, params) {
     var apiInfo = APIService.apiInfo(resource);
@@ -1206,12 +1225,19 @@ DataService.prototype.createStream = function(resource, name, context, opts, isR
     return new URI({protocol: protocol, hostname: hostPort}).toString();
   };
 
-  var CACHED_RESOURCE = {
+  // Immutables are flagged here as we should not need to fetch them more than once.
+  var IMMUTABLE_RESOURCE = {
     imagestreamimages: true
   };
 
-  DataService.prototype._isResourceCached = function(resource) {
-    return !!CACHED_RESOURCE[resource.resource];
+  // - request once and never need to request again, these do not change!
+  DataService.prototype._isImmutable = function(resource) {
+    return !!IMMUTABLE_RESOURCE[resource.resource];
+  };
+
+  // do we already have the data for this?
+  DataService.prototype._hasImmutable = function(resource, existingData, name) {
+    return this._isImmutable(resource) && existingData && existingData.by('metadata.name')[name];
   };
 
   DataService.prototype._getNamespace = function(resource, context, opts) {
