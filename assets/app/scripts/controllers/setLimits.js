@@ -63,11 +63,6 @@ angular.module('openshiftConsole')
         // Update project breadcrumb with display name.
         $scope.breadcrumbs[0].title = $filter('displayName')(project);
 
-        // Check if requests or limits are calculated. Memory limit is never calculated.
-        $scope.cpuRequestCalculated = LimitRangesService.isRequestCalculated('cpu', project);
-        $scope.cpuLimitCalculated = LimitRangesService.isLimitCalculated('cpu', project);
-        $scope.memoryRequestCalculated = LimitRangesService.isRequestCalculated('memory', project);
-
         DataService.get(type, $scope.name, context).then(
           function(result) {
             var resource = angular.copy(result);
