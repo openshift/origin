@@ -119,6 +119,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	}
 
 	b.RunConfig.Image = from
+	e.LogFn("FROM %s", from)
 	glog.V(4).Infof("step: FROM %s", from)
 
 	// create a container to execute in, if necessary
@@ -191,6 +192,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	}
 
 	image, err := e.Client.CommitContainer(docker.CommitContainerOptions{
+		Author:     b.Author,
 		Container:  e.Container.ID,
 		Run:        config,
 		Repository: repository,
