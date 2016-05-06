@@ -95,7 +95,7 @@ function configure_os_server() {
 	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
-
+readonly -f configure_os_server
 
 # start_os_server starts the OpenShift server, exports the PID of the OpenShift server and waits until openshift server endpoints are available
 # It is advised to use this function after a successful run of 'configure_os_server'
@@ -163,6 +163,7 @@ function start_os_server() {
 	echo "[INFO] OpenShift server health checks done at: "
 	date
 }
+readonly -f start_os_server
 
 # start_os_master starts the OpenShift master, exports the PID of the OpenShift master and waits until OpenShift master endpoints are available
 # It is advised to use this function after a successful run of 'configure_os_server'
@@ -213,6 +214,8 @@ function start_os_master() {
 	echo "[INFO] OpenShift server health checks done at: "
 	date
 }
+readonly -f start_os_master
+
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.
 function ensure_iptables_or_die() {
@@ -234,6 +237,7 @@ function ensure_iptables_or_die() {
 
 	set -e
 }
+readonly -f ensure_iptables_or_die
 
 # tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
 function tryuntil() {
@@ -254,6 +258,7 @@ function tryuntil() {
 		fi
 	done
 }
+readonly -f tryuntil
 
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
@@ -298,6 +303,7 @@ function wait_for_command() {
 	set -e
 	return 1
 }
+readonly -f wait_for_command
 
 # wait_for_url_timed attempts to access a url in order to
 # determine if it is available to service requests.
@@ -328,6 +334,7 @@ function wait_for_url_timed() {
 	set -e
 	return 1
 }
+readonly -f wait_for_url_timed
 
 # wait_for_file returns 0 if a file exists, 1 if it does not exist
 #
@@ -347,6 +354,7 @@ function wait_for_file() {
 	echo "ERROR: gave up waiting for file ${file}"
 	return 1
 }
+readonly -f wait_for_file
 
 # wait_for_url attempts to access a url in order to
 # determine if it is available to service requests.
@@ -379,6 +387,7 @@ function wait_for_url() {
 	set -e
 	return 1
 }
+readonly -f wait_for_url
 
 # set_curl_args tries to export CURL_ARGS for a program to use.
 # will do a wait for the files to exist when using curl with
@@ -415,6 +424,7 @@ function set_curl_args() {
 	fi
 	export CURL_ARGS="${clientcert_args}"
 }
+readonly -f set_curl_args
 
 # Search for a regular expression in a HTTP response.
 #
@@ -442,7 +452,7 @@ function validate_response() {
 	set -e
 	return 1
 }
-
+readonly -f validate_response
 
 # reset_tmp_dir will try to delete the testing directory.
 # If it fails will unmount all the mounts associated with
@@ -463,6 +473,7 @@ function reset_tmp_dir() {
 	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
 	set -e
 }
+readonly -f reset_tmp_dir
 
 # kill_all_processes function will kill all
 # all processes created by the test script.
@@ -475,11 +486,13 @@ function kill_all_processes() {
 		$sudo kill ${i} &> /dev/null
 	done
 }
+readonly -f kill_all_processes
 
 # time_now return the time since the epoch in millis
 function time_now() {
 	echo $(date +%s000)
 }
+readonly -f time_now
 
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs() {
@@ -501,12 +514,14 @@ function dump_container_logs() {
 		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
 	done
 }
+readonly -f dump_container_logs
 
 # delete_empty_logs deletes empty logs
 function delete_empty_logs() {
 	# Clean up zero byte log files
 	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
 }
+readonly -f delete_empty_logs
 
 # truncate_large_logs truncates large logs so we only download the last 20MB
 function truncate_large_logs() {
@@ -519,6 +534,7 @@ function truncate_large_logs() {
 		rm "${file}.tmp"
 	done
 }
+readonly -f truncate_large_logs
 
 ######
 # start of common functions for extended test group's run.sh scripts
@@ -528,6 +544,7 @@ function truncate_large_logs() {
 function ensure_ginkgo_or_die() {
 	which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
 }
+readonly -f ensure_ginkgo_or_die
 
 # cleanup_openshift saves container logs, saves resources, and kills all processes and containers
 function cleanup_openshift() {
@@ -583,6 +600,7 @@ function cleanup_openshift() {
 	echo "[INFO] Cleanup complete"
 	set -e
 }
+readonly -f cleanup_openshift
 
 # create a .gitconfig for test-cmd secrets
 function create_gitconfig() {
@@ -627,8 +645,8 @@ function install_router() {
             echo "[INFO] Changing the router DC to drop SYN packets during a reload"
             oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
         fi
-
 }
+readonly -f create_gitconfig
 
 # install registry for the extended tests
 function install_registry() {
@@ -636,11 +654,12 @@ function install_registry() {
 	echo "[INFO] Installing the registry"
 	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
 }
+readonly -f install_registry
 
 function wait_for_registry() {
 	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
-
+readonly -f wait_for_registry
 
 # Wait for builds to start
 # $1 namespace
@@ -650,6 +669,7 @@ function os::build:wait_for_start() {
 	BUILD_ID=`oc get -n $1 builds  --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} started"
 }
+readonly -f os::build:wait_for_start
 
 # Wait for builds to complete
 # $1 namespace
@@ -663,6 +683,7 @@ function os::build:wait_for_end() {
 	oc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
 	set -e
 }
+readonly -f os::build:wait_for_end
 
 # enable-selinux/disable-selinux use the shared control variable
 # SELINUX_DISABLED to determine whether to re-enable selinux after it
@@ -678,6 +699,7 @@ function enable-selinux() {
     SELINUX_DISABLED=0
   fi
 }
+readonly -f enable-selinux
 
 function disable-selinux() {
   if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
@@ -686,6 +708,7 @@ function disable-selinux() {
     SELINUX_DISABLED=1
   fi
 }
+readonly -f disable-selinux
 
 ######
 # end of common functions for extended test group's run.sh scripts
@@ -704,6 +727,7 @@ function os::log::errexit() {
 	local code="${1:-1}"
 	os::log::error_exit "'${BASH_COMMAND}' exited with status $err" "${1:-1}" 1
 }
+readonly -f os::log::errexit
 
 function os::log::install_errexit() {
 	# trap ERR to provide an error handler whenever a command exits nonzero this
@@ -714,6 +738,7 @@ function os::log::install_errexit() {
 	# expansions and subshells
 	set -o errtrace
 }
+readonly -f os::log::install_errexit
 
 # Print out the stack trace
 #
@@ -735,6 +760,7 @@ function os::log::stack() {
 	done
 	fi
 }
+readonly -f os::log::stack
 
 # Log an error and exit.
 # Args:
@@ -759,6 +785,7 @@ function os::log::error_exit() {
 	echo "Exiting with status ${code}" >&2
 	exit "${code}"
 }
+readonly -f os::log::error_exit
 
 function os::log::with-severity() {
   local msg=$1
@@ -766,18 +793,22 @@ function os::log::with-severity() {
 
   echo "[$2] ${1}"
 }
+readonly -f os::log::with-severity
 
 function os::log::info() {
   os::log::with-severity "${1}" "INFO"
 }
+readonly -f os::log::info
 
 function os::log::warn() {
   os::log::with-severity "${1}" "WARNING"
 }
+readonly -f os::log::warn
 
 function os::log::error() {
   os::log::with-severity "${1}" "ERROR"
 }
+readonly -f os::log::error
 
 function find_files() {
 	find . -not \( \
@@ -794,12 +825,14 @@ function find_files() {
 		\) -prune \
 	\) -name '*.go' | sort -u
 }
+readonly -f find_files
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
 function os::util::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
+readonly -f os::util::host_platform
 
 function os::util::sed() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
@@ -808,6 +841,7 @@ function os::util::sed() {
   	sed -i'' "$@"
   fi
 }
+readonly -f os::util::sed
 
 function os::util::base64decode() {
   if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
@@ -816,6 +850,7 @@ function os::util::base64decode() {
   	base64 -d $@
   fi
 }
+readonly -f os::util::base64decode
 
 function os::util::get_object_assert() {
   local object=$1
@@ -835,3 +870,4 @@ function os::util::get_object_assert() {
       return 1
   fi
 }
+readonly -f os::util::get_object_assert

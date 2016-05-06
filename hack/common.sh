@@ -126,12 +126,14 @@ function os::build::binaries_from_targets() {
     echo "${OS_GO_PACKAGE}/${target}"
   done
 }
+readonly -f os::build::binaries_from_targets
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
 function os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
+readonly -f os::build::host_platform
 
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
@@ -151,6 +153,7 @@ function os::build::host_platform_friendly() {
     echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
   fi
 }
+readonly -f os::build::host_platform_friendly
 
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
@@ -231,6 +234,7 @@ EOF
   export GOPATH
   export OS_TARGET_BIN
 }
+readonly -f os::build::setup_env
 
 # Build static binary targets.
 #
@@ -242,6 +246,7 @@ EOF
 function os::build::build_static_binaries() {
   CGO_ENABLED=0 os::build::build_binaries -a -installsuffix=cgo $@
 }
+readonly -f os::build::build_static_binaries
 
 # Build binaries targets specified
 #
@@ -321,6 +326,7 @@ function os::build::build_binaries() {
     done
   )
 }
+readonly -f os::build::build_binaries
 
 # Generates the set of target packages, binaries, and platforms to build for.
 # Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
@@ -345,6 +351,7 @@ function os::build::export_targets() {
     platforms=("$(os::build::host_platform)")
   fi
 }
+readonly -f os::build::export_targets
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
 # place in ${OS_OUTPUT_BINDIR}
@@ -449,6 +456,7 @@ function os::build::place_bins() {
     done
   )
 }
+readonly -f os::build::place_bins
 
 function os::build::archive_zip() {
   local platform_segment="${platform//\//-}"
@@ -462,6 +470,7 @@ function os::build::archive_zip() {
     zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
   done
 }
+readonly -f os::build::archive_zip
 
 function os::build::archive_tar() {
   local platform_segment="${platform//\//-}"
@@ -478,6 +487,7 @@ function os::build::archive_tar() {
   fi
   popd &>/dev/null
 }
+readonly -f os::build::archive_tar
 
 # Checks if the filesystem on a partition that the provided path points to is
 # supporting hard links.
@@ -495,6 +505,7 @@ function os::build::is_hardlink_supported() {
   rm -f "${temp_file}"
   return ${supported:-0}
 }
+readonly -f os::build::is_hardlink_supported
 
 # Extract a tar.gz compressed archive in a given directory. If the
 # archive contains hardlinks and the underlying filesystem is not
@@ -537,6 +548,7 @@ function os::build::extract_tar() {
     rm -rf "${temp_dir}"
   fi
 }
+readonly -f os::build::extract_tar
 
 # os::build::release_sha calculates a SHA256 checksum over the contents of the
 # built release directory.
@@ -545,6 +557,7 @@ function os::build::release_sha() {
   sha256sum * > CHECKSUM
   popd &> /dev/null
 }
+readonly -f os::build::release_sha
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/bin/${platform}
@@ -556,6 +569,7 @@ function os::build::make_openshift_binary_symlinks() {
     done
   fi
 }
+readonly -f os::build::make_openshift_binary_symlinks
 
 # os::build::detect_local_release_tars verifies there is only one primary and one
 # image binaries release tar in OS_LOCAL_RELEASEPATH for the given platform specified by
@@ -599,6 +613,7 @@ function os::build::detect_local_release_tars() {
   export OS_CLIENT_RELEASE_TAR="${client}"
   export OS_RELEASE_COMMIT="$(cat ${OS_LOCAL_RELEASEPATH}/.commit)"
 }
+readonly -f os::build::detect_local_release_tars
 
 # os::build::get_version_vars loads the standard version variables as
 # ENV vars
@@ -610,6 +625,7 @@ function os::build::get_version_vars() {
   os::build::os_version_vars
   os::build::kube_version_vars
 }
+readonly -f os::build::get_version_vars
 
 # os::build::os_version_vars looks up the current Git vars
 function os::build::os_version_vars() {
@@ -649,6 +665,7 @@ function os::build::os_version_vars() {
     fi
   fi
 }
+readonly -f os::build::os_version_vars
 
 # os::build::kube_version_vars returns the version of Kubernetes we have
 # vendored.
@@ -656,6 +673,7 @@ function os::build::kube_version_vars() {
   KUBE_GIT_VERSION=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
   KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
 }
+readonly -f os::build::kube_version_vars
 
 # Saves the environment flags to $1
 function os::build::save_version_vars() {
@@ -675,6 +693,7 @@ KUBE_GIT_COMMIT='${KUBE_GIT_COMMIT-}'
 KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
 EOF
 }
+readonly -f os::build::save_version_vars
 
 # golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
 function os::build::ldflag() {
@@ -688,6 +707,7 @@ function os::build::ldflag() {
     echo "-X ${key}=${val}"
   fi
 }
+readonly -f os::build::ldflag
 
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
 function os::build::ldflags() {
@@ -712,6 +732,7 @@ function os::build::ldflags() {
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"
 }
+readonly -f os::build::ldflags
 
 # os::build::require_clean_tree exits if the current Git tree is not clean.
 function os::build::require_clean_tree() {
@@ -721,6 +742,7 @@ function os::build::require_clean_tree() {
     exit 1
   fi
 }
+readonly -f os::build::require_clean_tree
 
 # os::build::commit_range takes one or two arguments - if the first argument is an
 # integer, it is assumed to be a pull request and the local origin/pr/# branch is
@@ -778,6 +800,7 @@ function os::build::commit_range() {
 
   echo "$1"
 }
+readonly -f os::build::commit_range
 
 function os::build::gen-docs() {
   local cmd="$1"
@@ -815,6 +838,7 @@ function os::build::gen-docs() {
 
   echo "Assets generated in ${dest}"
 }
+readonly -f os::build::gen-docs
 
 function os::build::get-bin-output-path() {
   local os_root="${1:-}"
@@ -824,6 +848,7 @@ function os::build::get-bin-output-path() {
   fi
   echo ${os_root}_output/local/bin/$(os::build::host_platform)
 }
+readonly -f os::build::get-bin-output-path
 
 # os::build::find-binary locates a locally built binary for the current
 # platform and returns the path to the binary.  The base path to search
@@ -836,3 +861,4 @@ function os::build::find-binary() {
   local path=$( (ls -t $(os::build::get-bin-output-path "${os_root}")/${bin}) 2>/dev/null || true | head -1 )
   echo "$path"
 }
+readonly -f os::build::find-binary
