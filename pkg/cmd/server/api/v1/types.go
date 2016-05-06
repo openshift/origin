@@ -872,7 +872,12 @@ type OpenIDClaims struct {
 
 // GrantConfig holds the necessary configuration options for grant handlers
 type GrantConfig struct {
-	// Method: allow, deny, prompt
+	// Method determines the default strategy to use when an OAuth client requests a grant.
+	// This method will be used only if the specific OAuth client doesn't provide a strategy
+	// of their own. Valid grant handling methods are:
+	//  - auto:   always approves grant requests, useful for trusted clients
+	//  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
+	//  - deny:   always denies grant requests, useful for black-listed clients
 	Method GrantHandlerType `json:"method"`
 }
 

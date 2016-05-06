@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/RangelReale/osin"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+
+	"github.com/openshift/origin/pkg/auth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -121,4 +124,47 @@ func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Res
 	}.Encode()
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
 	return false, true, nil
+}
+
+// NewPerClientGrant returns a grant handler that determines what to do based on the grant strategy in the client
+func NewPerClientGrant(prompt GrantHandler, defaultStrategy oauthapi.GrantHandlerType) GrantHandler {
+	return &perClientGrant{
+		auto:            NewAutoGrant(),
+		prompt:          prompt,
+		deny:            NewEmptyGrant(),
+		defaultStrategy: defaultStrategy,
+	}
+}
+
+type perClientGrant struct {
+	auto            GrantHandler
+	prompt          GrantHandler
+	deny            GrantHandler
+	defaultStrategy oauthapi.GrantHandlerType
+}
+
+func (g *perClientGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
+	client, ok := grant.Client.GetUserData().(*oauthapi.OAuthClient)
+	if !ok {
+		return false, false, errors.New("unrecognized OAuth client type")
+	}
+
+	strategy := client.GrantStrategy
+	if len(strategy) == 0 {
+		strategy = g.defaultStrategy
+	}
+
+	switch strategy {
+	case oauthapi.GrantHandlerAuto:
+		return g.auto.GrantNeeded(user, grant, w, req)
+
+	case oauthapi.GrantHandlerPrompt:
+		return g.prompt.GrantNeeded(user, grant, w, req)
+
+	case oauthapi.GrantHandlerDeny:
+		return g.deny.GrantNeeded(user, grant, w, req)
+
+	default:
+		return false, false, fmt.Errorf("OAuth client grant strategy %q unrecognized", strategy)
+	}
 }

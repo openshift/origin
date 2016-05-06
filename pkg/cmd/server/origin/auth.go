@@ -325,23 +325,14 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHa
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
 func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthregistry.Registry) handlers.GrantHandler {
-	switch c.Options.GrantConfig.Method {
-	case configapi.GrantHandlerDeny:
-		return handlers.NewEmptyGrant()
-
-	case configapi.GrantHandlerAuto:
-		return handlers.NewAutoGrant()
-
-	case configapi.GrantHandlerPrompt:
-		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
-		grantServer.Install(mux, OpenShiftApprovePrefix)
-		return handlers.NewRedirectGrant(OpenShiftApprovePrefix)
-
-	default:
-		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", c.Options.GrantConfig.Method)
+	// check that the global default strategy is something we honor
+	if !configapi.ValidGrantHandlerTypes.Has(string(c.Options.GrantConfig.Method)) {
+		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.Options.GrantConfig.Method)
 	}
 
-	return nil
+	grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+	grantServer.Install(mux, OpenShiftApprovePrefix)
+	return handlers.NewPerClientGrant(handlers.NewRedirectGrant(OpenShiftApprovePrefix), oauthapi.GrantHandlerType(c.Options.GrantConfig.Method))
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request

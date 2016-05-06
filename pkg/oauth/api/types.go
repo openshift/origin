@@ -73,7 +73,22 @@ type OAuthClient struct {
 
 	// RedirectURIs is the valid redirection URIs associated with a client
 	RedirectURIs []string
+
+	// GrantStrategy determines how to handle grants for this client. If no method is provided, the
+	// cluster default grant handling method will be used
+	GrantStrategy GrantHandlerType
 }
+
+type GrantHandlerType string
+
+const (
+	// GrantHandlerAuto auto-approves client authorization grant requests
+	GrantHandlerAuto GrantHandlerType = "auto"
+	// GrantHandlerPrompt prompts the user to approve new client authorization grant requests
+	GrantHandlerPrompt GrantHandlerType = "prompt"
+	// GrantHandlerDeny auto-denies client authorization grant requests
+	GrantHandlerDeny GrantHandlerType = "deny"
+)
 
 type OAuthClientAuthorization struct {
 	unversioned.TypeMeta
