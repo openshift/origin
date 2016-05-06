@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
-	"unicode"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -39,6 +39,15 @@ type Repository interface {
 	GetInfo(location string) (*SourceInfo, []error)
 }
 
+const (
+	// defaultCommandTimeout is the default timeout for git commands that we want to enforce timeouts on
+	defaultCommandTimeout = 30 * time.Second
+
+	// noCommandTimeout signals that there should be no timeout for the command when passed as the timeout
+	// for the default timedExecGitFunc
+	noCommandTimeout = 0 * time.Second
+)
+
 // SourceInfo stores information about the source code
 type SourceInfo struct {
 	s2iapi.SourceInfo
@@ -56,8 +65,13 @@ type CloneOptions struct {
 // execGitFunc is a function that executes a Git command
 type execGitFunc func(dir string, args ...string) (string, string, error)
 
+// timedExecGitFunc is a function that executes a Git command with a timeout
+type timedExecGitFunc func(timeout time.Duration, dir string, args ...string) (string, string, error)
+
 type repository struct {
-	git     execGitFunc
+	git      execGitFunc
+	timedGit timedExecGitFunc
+
 	shallow bool
 }
 
@@ -71,6 +85,9 @@ func NewRepositoryWithEnv(env []string) Repository {
 	return &repository{
 		git: func(dir string, args ...string) (string, string, error) {
 			return command("git", dir, env, args...)
+		},
+		timedGit: func(timeout time.Duration, dir string, args ...string) (string, string, error) {
+			return timedCommand(timeout, "git", dir, env, args...)
 		},
 	}
 }
@@ -87,6 +104,9 @@ func NewRepositoryForBinaryWithEnvironment(gitBinaryPath string, env []string) R
 	return &repository{
 		git: func(dir string, args ...string) (string, string, error) {
 			return command(gitBinaryPath, dir, env, args...)
+		},
+		timedGit: func(timeout time.Duration, dir string, args ...string) (string, string, error) {
+			return timedCommand(timeout, gitBinaryPath, dir, env, args...)
 		},
 	}
 }
@@ -208,7 +228,9 @@ func (r *repository) ListRemote(url string, args ...string) (string, string, err
 	gitArgs := []string{"ls-remote"}
 	gitArgs = append(gitArgs, args...)
 	gitArgs = append(gitArgs, url)
-	return r.git("", gitArgs...)
+	// `git ls-remote` does not allow for any timeout to be set, and defaults to a timeout
+	// of five minutes, so we enforce a timeout here to allow it to fail eariler than that
+	return r.timedGit(defaultCommandTimeout, "", gitArgs...)
 }
 
 // CloneMirror clones a remote git repository to a local directory as a mirror
@@ -278,7 +300,7 @@ func (r *repository) GetInfo(location string) (*SourceInfo, []error) {
 	git := func(arg ...string) string {
 		stdout, stderr, err := r.git(location, arg...)
 		if err != nil {
-			errors = append(errors, fmt.Errorf("error invoking '%s': %v. Out: %s, Err: %s",
+			errors = append(errors, fmt.Errorf("error invoking 'git %s': %v. Out: %s, Err: %s",
 				strings.Join(arg, " "), err, stdout, stderr))
 		}
 		return strings.TrimSpace(stdout)
@@ -305,45 +327,94 @@ func (r *repository) GetInfo(location string) (*SourceInfo, []error) {
 // The command's standard out and error are trimmed and returned as strings
 // It may return the type *GitError if the command itself fails.
 func command(name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
-	cmdOut := &bytes.Buffer{}
-	cmdErr := &bytes.Buffer{}
+	return timedCommand(noCommandTimeout, name, dir, env, args...)
+}
 
-	glog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
+// timedCommand executes an external command in the given directory with a timeout.
+// The command's standard out and error are returned as strings.
+// It may return the type *GitError if the command itself fails or the type *TimeoutError
+// if the command times out before finishing. A value of
+func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
+	var stdoutBuffer, stderrBuffer bytes.Buffer
+
+	glog.V(4).Infof("Executing %s %s %s", strings.Join(env, " "), name, strings.Join(args, " "))
+
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
-	cmd.Stdout = cmdOut
-	cmd.Stderr = cmdErr
 	cmd.Env = env
+	cmd.Stdout = &stdoutBuffer
+	cmd.Stderr = &stderrBuffer
 
-	if glog.V(8) && env != nil {
-		glog.Infof("Environment:\n")
+	if env != nil {
+		glog.V(8).Infof("Environment:\n")
 		for _, e := range env {
-			glog.Infof("- %s", e)
+			glog.V(8).Infof("- %s", e)
 		}
 	}
 
-	err = cmd.Run()
-	if err != nil {
-		glog.V(4).Infof("Exec error: %v", err)
+	err, timedOut := runCommand(cmd, timeout)
+	if timedOut {
+		return "", "", &TimeoutError{
+			Err: fmt.Errorf("execution of %s %s timed out after %s", name, strings.Join(args, " "), timeout),
+		}
 	}
 
-	stdout = strings.TrimFunc(cmdOut.String(), unicode.IsSpace)
-	if len(stdout) > 0 {
-		glog.V(4).Infof("Out: %s", stdout)
-	}
+	// we don't want captured output to have a trailing newline for formatting reasons
+	stdout, stderr = strings.TrimRight(stdoutBuffer.String(), "\n"), strings.TrimRight(stderrBuffer.String(), "\n")
 
-	stderr = strings.TrimFunc(cmdErr.String(), unicode.IsSpace)
-	if len(stderr) > 0 {
-		glog.V(4).Infof("Err: %s", cmdErr.String())
-	}
+	// if we encounter an error we recognize, return a typed error
 	if exitErr, ok := err.(*exec.ExitError); ok {
-		err = &GitError{
+		return stdout, stderr, &GitError{
 			Err:    exitErr,
 			Stdout: stdout,
 			Stderr: stderr,
 		}
 	}
-	return
+
+	// if we didn't encounter an ExitError or a timeout, simply return the error
+	return stdout, stderr, err
+}
+
+// runCommand runs the command with the given timeout, and returns any errors encountered and whether
+// the command timed out or not
+func runCommand(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
+	out := make(chan error)
+	go func() {
+		if err := cmd.Start(); err != nil {
+			glog.V(4).Infof("Error starting execution: %v", err)
+		}
+		out <- cmd.Wait()
+	}()
+
+	if timeout == noCommandTimeout {
+		select {
+		case err := <-out:
+			if err != nil {
+				glog.V(4).Infof("Error executing command: %v", err)
+			}
+			return err, false
+		}
+	} else {
+		select {
+		case err := <-out:
+			if err != nil {
+				glog.V(4).Infof("Error executing command: %v", err)
+			}
+			return err, false
+		case <-time.After(timeout):
+			glog.V(4).Infof("Command execution timed out after %s", timeout)
+			return nil, true
+		}
+	}
+}
+
+// TimeoutError is returned when the underlying Git coommand times out before finishing
+type TimeoutError struct {
+	Err error
+}
+
+func (e *TimeoutError) Error() string {
+	return e.Err.Error()
 }
 
 // GitError is returned when the underlying Git command returns a non-zero exit code.
