@@ -86,7 +86,7 @@ func maintainer(b *Builder, args []string, attributes map[string]bool, original 
 	if len(args) != 1 {
 		return errExactlyOneArgument("MAINTAINER")
 	}
-
+	b.Author = args[0]
 	return nil
 }
 
