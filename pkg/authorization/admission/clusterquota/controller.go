@@ -36,6 +36,9 @@ type quotaEvaluator struct {
 	dirtyWork  map[string][]*admissionWaiter
 	inProgress sets.String
 
+	updatedQuotas     map[string]*quotaapi.ClusterResourceQuota
+	updatedQuotasLock sync.Mutex
+
 	lockFactory LockFactory
 }
 
@@ -82,6 +85,8 @@ func newQuotaEvaluator(client oclient.Interface, registry quota.Registry) (*quot
 		inProgress: sets.String{},
 
 		lockFactory: NewDefaultLockFactory(),
+
+		updatedQuotas: map[string]*quotaapi.ClusterResourceQuota{},
 	}, nil
 }
 
@@ -99,9 +104,7 @@ func (e *quotaEvaluator) doWork() {
 		func() {
 			ns, admissionAttributes := e.getWork()
 			defer e.completeWork(ns)
-			fmt.Printf("#### 1a %v\n", ns)
 			if len(admissionAttributes) == 0 {
-				fmt.Printf("#### 1b %v\n", ns)
 				return
 			}
 
@@ -120,17 +123,14 @@ func (e *quotaEvaluator) checkAttributes(ns string, admissionAttributes []*admis
 		}
 	}()
 
-	fmt.Printf("#### 2a %v\n", ns)
 	quotas, err := e.getQuotas(ns)
 	if err != nil {
-		fmt.Printf("#### 2b %v\n", ns)
 		for _, admissionAttribute := range admissionAttributes {
 			admissionAttribute.result = err
 		}
 		return
 	}
 	if len(quotas) == 0 {
-		fmt.Printf("#### 2c %v\n", ns)
 		for _, admissionAttribute := range admissionAttributes {
 			admissionAttribute.result = nil
 		}
@@ -138,17 +138,13 @@ func (e *quotaEvaluator) checkAttributes(ns string, admissionAttributes []*admis
 	}
 
 	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
-	fmt.Printf("#### 2d %v\n", quotas)
 	sort.Sort(ByName(quotas))
 	for _, quota := range quotas {
 		lock := e.lockFactory.GetLock(quota.Name)
-		fmt.Printf("#### 2dA WAITING FOR LOCK%v\n", quotas)
 		lock.Lock()
-		fmt.Printf("#### 2dA GOT LOCK!!!!!! LOCK%v\n", quotas)
 		defer lock.Unlock()
 	}
 
-	fmt.Printf("#### 2e %v\n", quotas)
 	e.checkQuotas(quotas, admissionAttributes, 3)
 }
 
@@ -215,9 +211,7 @@ func (e *quotaEvaluator) checkQuotas(quotas []api.ResourceQuota, admissionAttrib
 	for i := range quotas {
 		newQuota := quotas[i]
 		// if this quota didn't have its status changed, skip it
-		fmt.Printf("#### 4a\n")
 		if quota.Equals(originalQuotas[i].Status.Used, newQuota.Status.Used) {
-			fmt.Printf("#### 4b\n")
 			continue
 		}
 
@@ -225,12 +219,12 @@ func (e *quotaEvaluator) checkQuotas(quotas []api.ResourceQuota, admissionAttrib
 		clusterQuota.ObjectMeta = newQuota.ObjectMeta
 		clusterQuota.Status = newQuota.Status
 
-		fmt.Printf("#### 4c %#v\n", newQuota)
-		fmt.Printf("#### 4cA %#v\n", clusterQuota)
-		if _, err := e.client.ClusterResourceQuotas().UpdateStatus(&clusterQuota); err != nil {
-			fmt.Printf("#### 4d\n")
+		if updatedQuota, err := e.client.ClusterResourceQuotas().UpdateStatus(&clusterQuota); err != nil {
 			updatedFailedQuotas = append(updatedFailedQuotas, newQuota)
 			lastErr = err
+		} else {
+			// update our cache
+			e.updateCache(updatedQuota)
 		}
 	}
 
@@ -287,23 +281,18 @@ func (e *quotaEvaluator) checkQuotas(quotas []api.ResourceQuota, admissionAttrib
 // checkRequest verifies that the request does not exceed any quota constraint. it returns back a copy of quotas not yet persisted
 // that capture what the usage would be if the request succeeded.  It return an error if the is insufficient quota to satisfy the request
 func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.Attributes) ([]api.ResourceQuota, error) {
-	fmt.Printf("#### 3a\n")
 	namespace := a.GetNamespace()
 	name := a.GetName()
 
 	evaluators := e.registry.Evaluators()
 	evaluator, found := evaluators[a.GetKind().GroupKind()]
-	fmt.Printf("#### 3b\n")
 	if !found {
-		fmt.Printf("#### 3c\n")
 		return quotas, nil
 	}
 
 	op := a.GetOperation()
 	operationResources := evaluator.OperationResources(op)
-	fmt.Printf("#### 3d\n")
 	if len(operationResources) == 0 {
-		fmt.Printf("#### 3e\n")
 		return quotas, nil
 	}
 
@@ -312,14 +301,11 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	// reject if the input object does not satisfy quota constraints
 	// if there are no pertinent quotas, we can just return
 	inputObject := a.GetObject()
-	fmt.Printf("#### 3f\n")
 	interestingQuotaIndexes := []int{}
 	for i := range quotas {
-		fmt.Printf("#### 3g\n")
 		resourceQuota := quotas[i]
 		match := evaluator.Matches(&resourceQuota, inputObject)
 		if !match {
-			fmt.Printf("#### 3h\n")
 			continue
 		}
 
@@ -328,19 +314,15 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 		requiredResources := quota.Intersection(hardResources, evaluatorResources)
 		err := evaluator.Constraints(requiredResources, inputObject)
 		if err != nil {
-			fmt.Printf("#### 3i\n")
 			return nil, admission.NewForbidden(a, fmt.Errorf("Failed quota: %s: %v", resourceQuota.Name, err))
 		}
 		if !hasUsageStats(&resourceQuota) {
-			fmt.Printf("#### 3j\n")
 			return nil, admission.NewForbidden(a, fmt.Errorf("Status unknown for quota: %s", resourceQuota.Name))
 		}
 
 		interestingQuotaIndexes = append(interestingQuotaIndexes, i)
 	}
-	fmt.Printf("#### 3k\n")
 	if len(interestingQuotaIndexes) == 0 {
-		fmt.Printf("#### 3l\n")
 		return quotas, nil
 	}
 
@@ -358,20 +340,16 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	// as a result, we need to measure the usage of this object for quota
 	// on updates, we need to subtract the previous measured usage
 	// if usage shows no change, just return since it has no impact on quota
-	fmt.Printf("#### 3m\n")
 	deltaUsage := evaluator.Usage(inputObject)
 	if admission.Update == op {
 		prevItem, err := evaluator.Get(namespace, name)
 		if err != nil {
-			fmt.Printf("#### 3n\n")
 			return nil, admission.NewForbidden(a, fmt.Errorf("Unable to get previous: %v", err))
 		}
 		prevUsage := evaluator.Usage(prevItem)
 		deltaUsage = quota.Subtract(deltaUsage, prevUsage)
 	}
-	fmt.Printf("#### 3o\n")
 	if quota.IsZero(deltaUsage) {
-		fmt.Printf("#### 3p\n")
 		return quotas, nil
 	}
 
@@ -385,7 +363,6 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 			failedRequestedUsage := quota.Mask(requestedUsage, exceeded)
 			failedUsed := quota.Mask(resourceQuota.Status.Used, exceeded)
 			failedHard := quota.Mask(resourceQuota.Status.Hard, exceeded)
-			fmt.Printf("#### 3q\n")
 			return nil, admission.NewForbidden(a,
 				fmt.Errorf("Exceeded quota: %s, requested: %s, used: %s, limited: %s",
 					resourceQuota.Name,
@@ -398,7 +375,6 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 		quotas[index].Status.Used = newUsage
 	}
 
-	fmt.Printf("#### 3r\n")
 	return quotas, nil
 }
 
@@ -470,6 +446,32 @@ func (e *quotaEvaluator) getWork() (string, []*admissionWaiter) {
 
 func (e *quotaEvaluator) getQuotas(namespace string) ([]api.ResourceQuota, error) {
 	// trust me to do somethign clever here with a pre-computed cache ala project cache
+	cached := e.checkCache(&quotaapi.ClusterResourceQuota{ObjectMeta: api.ObjectMeta{Name: "overall"}})
+	if len(cached.ResourceVersion) != 0 {
+		resourceQuotas := []api.ResourceQuota{}
+		// always make a copy.  We're going to muck around with this and we should never mutate the originals
+		clusterQuota := cached
+		item := api.ResourceQuota{}
+		item.ObjectMeta = clusterQuota.ObjectMeta
+		item.Namespace = namespace
+		item.Spec = clusterQuota.Spec.Quota
+		item.Status = clusterQuota.Status
+
+		if len(item.Status.Hard) == 0 {
+			item.Status.Hard = item.Spec.Hard
+		}
+		if len(item.Status.Used) == 0 {
+			item.Status.Used = api.ResourceList{}
+			for name := range item.Spec.Hard {
+				item.Status.Used[name] = resource.MustParse("0")
+			}
+		}
+
+		resourceQuotas = append(resourceQuotas, item)
+
+		return resourceQuotas, nil
+	}
+
 	liveList, err := e.client.ClusterResourceQuotas().List(api.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Error resolving quota.")
@@ -499,4 +501,28 @@ func (e *quotaEvaluator) getQuotas(namespace string) ([]api.ResourceQuota, error
 	}
 
 	return resourceQuotas, nil
+}
+
+func (e *quotaEvaluator) updateCache(quota *quotaapi.ClusterResourceQuota) {
+	e.updatedQuotasLock.Lock()
+	defer e.updatedQuotasLock.Unlock()
+
+	key := quota.Namespace + "/" + quota.Name
+	e.updatedQuotas[key] = quota
+}
+
+// checkCache compares the passes quota against the value in the look-aside cache and returns the newer
+// if the cache is out of date, it deletes the stale entry.  This only works because of etcd resourceVersions
+// being monotonically increasing integers
+func (e *quotaEvaluator) checkCache(quota *quotaapi.ClusterResourceQuota) *quotaapi.ClusterResourceQuota {
+	e.updatedQuotasLock.Lock()
+	defer e.updatedQuotasLock.Unlock()
+
+	key := quota.Namespace + "/" + quota.Name
+	cachedQuota, exists := e.updatedQuotas[key]
+	if !exists {
+		return quota
+	}
+
+	return cachedQuota
 }

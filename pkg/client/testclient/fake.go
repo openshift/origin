@@ -310,3 +310,7 @@ func (c *Fake) ClusterRoles() client.ClusterRoleInterface {
 func (c *Fake) ClusterRoleBindings() client.ClusterRoleBindingInterface {
 	return &FakeClusterRoleBindings{Fake: c}
 }
+
+func (c *Fake) ClusterResourceQuotas() client.ClusterResourceQuotaInterface {
+	return &FakeClusterResourceQuotas{Fake: c}
+}

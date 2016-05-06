@@ -619,13 +619,13 @@ func (r Request) finalURLTemplate() string {
 }
 
 func (r *Request) tryThrottle() {
-	now := time.Now()
-	if r.throttle != nil {
-		r.throttle.Accept()
-	}
-	if latency := time.Since(now); latency > longThrottleLatency {
-		glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, r.verb, r.URL().String())
-	}
+	// now := time.Now()
+	// if r.throttle != nil {
+	// 	r.throttle.Accept()
+	// }
+	// if latency := time.Since(now); latency > longThrottleLatency {
+	// 	glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, r.verb, r.URL().String())
+	// }
 }
 
 // Watch attempts to begin watching the requested location.

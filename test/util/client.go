@@ -43,6 +43,9 @@ func GetClusterAdminClient(adminKubeConfigFile string) (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// no rate limit
+	clientConfig.QPS = -1
+
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		return nil, err
