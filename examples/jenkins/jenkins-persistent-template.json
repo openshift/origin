@@ -5,7 +5,7 @@
     "name": "jenkins-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, with persistent storage.  You must have persistent volumes available in your cluster to use this template.",
+      "description": "Jenkins service, with persistent storage.\nThe username is 'admin' and the tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.\nYou must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -119,7 +119,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "${JENKINS_IMAGE}",
+                "image": "JENKINS_IMAGE",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,
@@ -199,7 +199,7 @@
     {
       "name": "JENKINS_PASSWORD",
       "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins user.",
+      "description": "Password for the Jenkins 'admin' user.",
       "generate": "expression",
       "value": "password"
     },
