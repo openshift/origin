@@ -23,8 +23,8 @@ import (
 
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
-	Client       *client.Client
 	ClientConfig *restclient.Config
+	ClientFn     func() (*client.Client, error)
 	Out          io.Writer
 	PathOptions  *kubecmdconfig.PathOptions
 
@@ -104,9 +104,9 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
-	if err != nil {
-		return err
+	o.ClientFn = func() (*client.Client, error) {
+		client, _, err := f.Clients()
+		return client, err
 	}
 
 	o.Out = out
@@ -134,8 +134,12 @@ func (o ProjectOptions) RunProject() error {
 				return nil
 			}
 
-			_, err := o.Client.Projects().Get(currentProject)
+			client, err := o.ClientFn()
 			if err != nil {
+				return err
+			}
+
+			if _, err := client.Projects().Get(currentProject); err != nil {
 				if kapierrors.IsNotFound(err) {
 					return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
 				}
@@ -181,8 +185,12 @@ func (o ProjectOptions) RunProject() error {
 
 	} else {
 		if !o.SkipAccessValidation {
-			_, err := o.Client.Projects().Get(argument)
+			client, err := o.ClientFn()
 			if err != nil {
+				return err
+			}
+
+			if _, err := client.Projects().Get(argument); err != nil {
 				if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
 					var msg string
 					if isForbidden {
@@ -191,7 +199,7 @@ func (o ProjectOptions) RunProject() error {
 						msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
 					}
 
-					projects, err := getProjects(o.Client)
+					projects, err := getProjects(client)
 					if err == nil {
 						switch len(projects) {
 						case 0:
