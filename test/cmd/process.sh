@@ -46,7 +46,7 @@ os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo -
 required_params="${OS_ROOT}/test/fixtures/template_required_params.yaml"
 
 # providing something other than a template is not OK
-os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/fixtures/basic-user.json'" 'not a valid Template but'
+os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/fixtures/basic-users-binding.json'" 'not a valid Template but'
 
 # not providing required parameter should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'

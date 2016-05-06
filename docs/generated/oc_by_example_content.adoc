@@ -362,14 +362,14 @@ Add users or serviceaccount to a security context constraint
 
 
 == oc adm policy reconcile-cluster-role-bindings
-Replace cluster role bindings to match the recommended bootstrap policy
+Update cluster role bindings to match the recommended bootstrap policy
 
 ====
 
 [options="nowrap"]
 ----
-  # Display the cluster role bindings that would be modified
-  $ oc adm policy reconcile-cluster-role-bindings
+  # Display the names of cluster role bindings that would be modified
+  $ oc adm policy reconcile-cluster-role-bindings -o name
 
   # Display the cluster role bindings that would be modified, removing any extra subjects
   $ oc adm policy reconcile-cluster-role-bindings --additive-only=false
@@ -387,17 +387,21 @@ Replace cluster role bindings to match the recommended bootstrap policy
 
 
 == oc adm policy reconcile-cluster-roles
-Replace cluster roles to match the recommended bootstrap policy
+Update cluster roles to match the recommended bootstrap policy
 
 ====
 
 [options="nowrap"]
 ----
-  # Display the cluster roles that would be modified
-  $ oc adm policy reconcile-cluster-roles
+  # Display the names of cluster roles that would be modified
+  $ oc adm policy reconcile-cluster-roles -o name
 
-  # Replace cluster roles that don't match the current defaults
+  # Add missing permissions to cluster roles that don't match the current defaults
   $ oc adm policy reconcile-cluster-roles --confirm
+
+  # Add missing permissions and remove extra permissions from 
+  # cluster roles that don't match the current defaults
+  $ oc adm policy reconcile-cluster-roles --additive-only=false --confirm
 
   # Display the union of the default and modified cluster roles
   $ oc adm policy reconcile-cluster-roles --additive-only
