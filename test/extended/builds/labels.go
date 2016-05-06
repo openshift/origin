@@ -46,7 +46,9 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			g.By("o.Expecting the S2I build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args(buildName).Output()
+				logs, _ := oc.Run("logs").Args("-f", "bc/test").Output()
+				exutil.ExamineDiskUsage()
+				exutil.ExaminePodDiskUsage(oc)
 				e2e.Failf("build failed: %s", logs)
 			}
 
@@ -82,7 +84,9 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			g.By("o.Expecting the Docker build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args(buildName).Output()
+				logs, _ := oc.Run("logs").Args("-f", "bc/test").Output()
+				exutil.ExamineDiskUsage()
+				exutil.ExaminePodDiskUsage(oc)
 				e2e.Failf("build failed: %s", logs)
 			}
 

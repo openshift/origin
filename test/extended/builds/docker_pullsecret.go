@@ -44,7 +44,9 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			g.By("expecting the build succeeds")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args("docker-build-1").Output()
+				logs, _ := oc.Run("logs").Args("-f", "bc/docker-build").Output()
+				exutil.ExamineDiskUsage()
+				exutil.ExaminePodDiskUsage(oc)
 				e2e.Failf("build failed: %s", logs)
 			}
 
@@ -55,7 +57,9 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			g.By("expecting the build succeeds")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-pull-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args("docker-build-pull-1").Output()
+				logs, _ := oc.Run("logs").Args("-f", "bc/docker-build-pull").Output()
+				exutil.ExamineDiskUsage()
+				exutil.ExaminePodDiskUsage(oc)
 				e2e.Failf("build failed: %s", logs)
 			}
 		})

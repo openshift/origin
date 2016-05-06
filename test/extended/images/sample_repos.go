@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/kubernetes/test/e2e"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -50,9 +48,9 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				g.By("expecting the build is in the Complete phase")
 				err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 				if err != nil {
-					logs, _ := oc.Run("build-logs").Args(buildName).Output()
-					e2e.Failf("build failed: %s", logs)
+					exutil.DumpBuildLogs(c.buildConfigName, oc)
 				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the deployment to be complete")
 				err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName)
