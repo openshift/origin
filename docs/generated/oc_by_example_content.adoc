@@ -804,6 +804,19 @@ Create a configMap from a local file, directory or literal value.
 ====
 
 
+== oc create deploymentconfig
+Create deployment config with default options that uses a given image.
+
+====
+
+[options="nowrap"]
+----
+  # Create an nginx deployment config named my-nginx
+  $ oc create deploymentconfig my-nginx --image=nginx
+----
+====
+
+
 == oc create identity
 Manually create an identity (only needed if automatic creation is disabled).
 

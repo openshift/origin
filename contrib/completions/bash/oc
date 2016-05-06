@@ -6810,6 +6810,50 @@ _oc_create_policybinding()
     must_have_one_noun=()
 }
 
+_oc_create_deploymentconfig()
+{
+    last_command="oc_create_deploymentconfig"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--image=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--api-version=")
+    flags+=("--as=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--image=")
+    must_have_one_noun=()
+}
+
 _oc_create_user()
 {
     last_command="oc_create_user"
@@ -6983,6 +7027,7 @@ _oc_create()
     commands+=("serviceaccount")
     commands+=("route")
     commands+=("policybinding")
+    commands+=("deploymentconfig")
     commands+=("user")
     commands+=("identity")
     commands+=("useridentitymapping")
