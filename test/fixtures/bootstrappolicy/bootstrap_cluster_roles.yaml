@@ -64,7 +64,6 @@ items:
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
-    - deployments
     - endpoints
     - events
     - generatedeploymentconfigs
@@ -283,7 +282,6 @@ items:
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
-    - deployments
     - generatedeploymentconfigs
     - imagestreamimages
     - imagestreamimports
@@ -467,7 +465,6 @@ items:
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
-    - deployments
     - generatedeploymentconfigs
     - imagestreamimages
     - imagestreamimports
@@ -603,7 +600,6 @@ items:
     - deploymentconfigs
     - deploymentconfigs/log
     - deploymentconfigs/scale
-    - deployments
     - endpoints
     - events
     - generatedeploymentconfigs
