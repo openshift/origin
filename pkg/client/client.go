@@ -52,6 +52,7 @@ type Interface interface {
 	PolicyBindingsNamespacer
 	RolesNamespacer
 	RoleBindingsNamespacer
+	ClusterResourceQuotasInterface
 	ClusterPoliciesInterface
 	ClusterPolicyBindingsInterface
 	ClusterRolesInterface
@@ -230,6 +231,10 @@ func (c *Client) SelfSubjectRulesReviews(namespace string) SelfSubjectRulesRevie
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens
 func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
 	return newOAuthAccessTokens(c)
+}
+
+func (c *Client) ClusterResourceQuotas() ClusterResourceQuotaInterface {
+	return newClusterResourceQuotas(c)
 }
 
 func (c *Client) ClusterPolicies() ClusterPolicyInterface {

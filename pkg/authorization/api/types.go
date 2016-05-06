@@ -119,6 +119,33 @@ func init() {
 		Difference(NormalizeResources(sets.NewString(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
 }
 
+// we care argue exact shape later.  Point is, it's easily convertible to and from resourcequota
+type ClusterResourceQuota struct {
+	unversioned.TypeMeta
+	kapi.ObjectMeta
+
+	// Spec defines the desired quota
+	Spec ClusterResourceQuotaSpec
+
+	// Status defines the actual enforced quota and its current usage
+	Status kapi.ResourceQuotaStatus
+}
+
+type ClusterResourceQuotaSpec struct {
+	Selector map[string]string
+	// Spec defines the desired quota
+	Quota kapi.ResourceQuotaSpec
+}
+
+type ClusterResourceQuotaList struct {
+	unversioned.TypeMeta
+	// Standard object's metadata.
+	unversioned.ListMeta
+
+	// Items is a list of roles
+	Items []ClusterResourceQuota
+}
+
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {

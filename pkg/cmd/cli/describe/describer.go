@@ -58,8 +58,76 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("User"):                          &UserDescriber{c},
 		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
+		userapi.Kind("ClusterResourceQuota"):          &ClusterResourceQuotaDescriber{c},
 	}
 	return m
+}
+
+// ResourceQuotaDescriber generates information about a resource quota
+type ClusterResourceQuotaDescriber struct {
+	client.Interface
+}
+
+func (d *ClusterResourceQuotaDescriber) Describe(namespace, name string) (string, error) {
+	rq := d.ClusterResourceQuotas()
+
+	resourceQuota, err := rq.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return describeQuota(resourceQuota)
+}
+
+func helpTextForResourceQuotaScope(scope kapi.ResourceQuotaScope) string {
+	switch scope {
+	case kapi.ResourceQuotaScopeTerminating:
+		return "Matches all pods that have an active deadline."
+	case kapi.ResourceQuotaScopeNotTerminating:
+		return "Matches all pods that do not have an active deadline."
+	case kapi.ResourceQuotaScopeBestEffort:
+		return "Matches all pods that have best effort quality of service."
+	case kapi.ResourceQuotaScopeNotBestEffort:
+		return "Matches all pods that do not have best effort quality of service."
+	default:
+		return ""
+	}
+}
+func describeQuota(resourceQuota *authorizationapi.ClusterResourceQuota) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", resourceQuota.Name)
+		if len(resourceQuota.Spec.Quota.Scopes) > 0 {
+			scopes := []string{}
+			for _, scope := range resourceQuota.Spec.Quota.Scopes {
+				scopes = append(scopes, string(scope))
+			}
+			sort.Strings(scopes)
+			fmt.Fprintf(out, "Scopes:\t%s\n", strings.Join(scopes, ", "))
+			for _, scope := range scopes {
+				helpText := helpTextForResourceQuotaScope(kapi.ResourceQuotaScope(scope))
+				if len(helpText) > 0 {
+					fmt.Fprintf(out, " * %s\n", helpText)
+				}
+			}
+		}
+		fmt.Fprintf(out, "Resource\tUsed\tHard\n")
+		fmt.Fprintf(out, "--------\t----\t----\n")
+
+		resources := []kapi.ResourceName{}
+		for resource := range resourceQuota.Status.Hard {
+			resources = append(resources, resource)
+		}
+		sort.Sort(kctl.SortableResourceNames(resources))
+
+		msg := "%v\t%v\t%v\n"
+		for i := range resources {
+			resource := resources[i]
+			hardQuantity := resourceQuota.Status.Hard[resource]
+			usedQuantity := resourceQuota.Status.Used[resource]
+			fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+		}
+		return nil
+	})
 }
 
 // List of all resource types we can describe
