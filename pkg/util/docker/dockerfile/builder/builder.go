@@ -69,6 +69,7 @@ type Builder struct {
 	Env    []string
 	Args   map[string]string
 	CmdSet bool
+	Author string
 
 	AllowedArgs map[string]bool
 

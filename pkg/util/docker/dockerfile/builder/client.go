@@ -263,7 +263,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	}
 
 	if !e.AllowPull {
-		glog.V(4).Info("image %s did not exist", from)
+		glog.V(4).Infof("image %s did not exist", from)
 		return nil, docker.ErrNoSuchImage
 	}
 
