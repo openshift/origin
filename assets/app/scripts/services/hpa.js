@@ -66,17 +66,17 @@ angular.module("openshiftConsole")
     // computeResource  - 'cpu' or 'memory'
     // defaultType      - 'defaultRequest' or 'defaultLimit'
     // limitRanges     - collection of LimitRange objects (hash or array)
-    var hasDefault = function(computeResource, defaultType, limitRanges) {
-      var effectiveLimits = LimitRangesService.getEffectiveLimitRange(limitRanges, computeResource, 'Container');
+    var hasDefault = function(computeResource, defaultType, limitRanges, project) {
+      var effectiveLimits = LimitRangesService.getEffectiveLimitRange(limitRanges, computeResource, 'Container', project);
       return !!effectiveLimits[defaultType];
     };
 
-    var hasDefaultRequest = function(computeResource, limitRanges) {
-      return hasDefault(computeResource, 'defaultRequest', limitRanges);
+    var hasDefaultRequest = function(computeResource, limitRanges, project) {
+      return hasDefault(computeResource, 'defaultRequest', limitRanges, project);
     };
 
-    var hasDefaultLimit = function(computeResource, limitRanges) {
-      return hasDefault(computeResource, 'defaultLimit', limitRanges);
+    var hasDefaultLimit = function(computeResource, limitRanges, project) {
+      return hasDefault(computeResource, 'defaultLimit', limitRanges, project);
     };
 
     // Is the corresponding limit value set to calculate a request?
@@ -91,7 +91,7 @@ angular.module("openshiftConsole")
 
       // Check if the corresponding limit is set or defaulted.
       return hasLimitSet(limitComputeResource, containers) ||
-             hasDefaultLimit(limitComputeResource, limitRanges);
+             hasDefaultLimit(limitComputeResource, limitRanges, project);
     };
 
     // Checks if a CPU request is currently set or will be defaulted for any
@@ -105,7 +105,7 @@ angular.module("openshiftConsole")
         return true;
       }
 
-      if (hasDefaultRequest('cpu', limitRanges)) {
+      if (hasDefaultRequest('cpu', limitRanges, project)) {
         return true;
       }
 
