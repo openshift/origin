@@ -19259,12 +19259,17 @@
     "id": "v1.LifecycleHook",
     "description": "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
     "required": [
-     "failurePolicy"
+     "failurePolicy",
+     "progressDeadlineSeconds"
     ],
     "properties": {
      "failurePolicy": {
       "type": "string",
       "description": "FailurePolicy specifies what action to take if the hook fails."
+     },
+     "progressDeadlineSeconds": {
+      "type": "integer",
+      "format": "int64"
      },
      "execNewPod": {
       "$ref": "v1.ExecNewPodHook",

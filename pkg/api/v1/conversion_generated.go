@@ -3170,6 +3170,12 @@ func autoConvert_api_LifecycleHook_To_v1_LifecycleHook(in *deployapi.LifecycleHo
 		defaulting.(func(*deployapi.LifecycleHook))(in)
 	}
 	out.FailurePolicy = deployapiv1.LifecycleHookFailurePolicy(in.FailurePolicy)
+	if in.ProgressDeadlineSeconds != nil {
+		out.ProgressDeadlineSeconds = new(int64)
+		*out.ProgressDeadlineSeconds = *in.ProgressDeadlineSeconds
+	} else {
+		out.ProgressDeadlineSeconds = nil
+	}
 	// unable to generate simple pointer conversion for api.ExecNewPodHook -> v1.ExecNewPodHook
 	if in.ExecNewPod != nil {
 		out.ExecNewPod = new(deployapiv1.ExecNewPodHook)
@@ -3739,6 +3745,12 @@ func autoConvert_v1_LifecycleHook_To_api_LifecycleHook(in *deployapiv1.Lifecycle
 		defaulting.(func(*deployapiv1.LifecycleHook))(in)
 	}
 	out.FailurePolicy = deployapi.LifecycleHookFailurePolicy(in.FailurePolicy)
+	if in.ProgressDeadlineSeconds != nil {
+		out.ProgressDeadlineSeconds = new(int64)
+		*out.ProgressDeadlineSeconds = *in.ProgressDeadlineSeconds
+	} else {
+		out.ProgressDeadlineSeconds = nil
+	}
 	// unable to generate simple pointer conversion for v1.ExecNewPodHook -> api.ExecNewPodHook
 	if in.ExecNewPod != nil {
 		out.ExecNewPod = new(deployapi.ExecNewPodHook)
