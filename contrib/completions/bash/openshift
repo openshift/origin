@@ -12013,6 +12013,7 @@ _openshift_cli_ex_dockerbuild()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--allow-pull")
     flags+=("--dockerfile=")
     flags_with_completion+=("--dockerfile")
     flags_completion+=("_filedir")

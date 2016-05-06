@@ -284,7 +284,8 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	var lastErr error
 	for _, config := range auth {
 		// TODO: handle IDs?
-		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from}, config); err == nil {
+		// TODO: use RawJSONStream:true and handle the output nicely
+		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out}, config); err == nil {
 			break
 		}
 		lastErr = err

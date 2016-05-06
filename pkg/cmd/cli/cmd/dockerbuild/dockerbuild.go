@@ -39,6 +39,7 @@ type DockerbuildOptions struct {
 	Directory      string
 	Tag            string
 	DockerfilePath string
+	AllowPull      bool
 	Keyring        credentialprovider.DockerKeyring
 	Arguments      cmdutil.Environment
 }
@@ -67,6 +68,7 @@ func NewCmdDockerbuild(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 	}
 
 	cmd.Flags().StringVar(&options.DockerfilePath, "dockerfile", options.DockerfilePath, "An optional path to a Dockerfile to use.")
+	cmd.Flags().BoolVar(&options.AllowPull, "allow-pull", true, "Pull the images that are not present.")
 	cmd.MarkFlagFilename("dockerfile")
 
 	return cmd
@@ -109,6 +111,7 @@ func (o *DockerbuildOptions) Run() error {
 	defer f.Close()
 	e := builder.NewClientExecutor(o.Client)
 	e.Out, e.ErrOut = o.Out, o.Err
+	e.AllowPull = o.AllowPull
 	e.Directory = o.Directory
 	e.Tag = o.Tag
 	e.AuthFn = o.Keyring.Lookup
