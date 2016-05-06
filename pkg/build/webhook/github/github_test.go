@@ -26,6 +26,18 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 						Secret: "secret101",
 					},
 				},
+				{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+				{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
+						Secret: "secret102",
+					},
+				},
 			},
 			BuildSpec: api.BuildSpec{
 				Source: api.BuildSource{
@@ -221,7 +233,7 @@ type testContext struct {
 	path     string
 }
 
-func setup(t *testing.T, filename, eventType string) *testContext {
+func setup(t *testing.T, filename, eventType, ref string) *testContext {
 	context := testContext{
 		plugin: WebHook{},
 		buildCfg: &api.BuildConfig{
@@ -233,11 +245,24 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 							Secret: "secret101",
 						},
 					},
+					{
+						Type: api.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &api.WebHookTrigger{
+							Secret: "secret100",
+						},
+					},
+					{
+						Type: api.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &api.WebHookTrigger{
+							Secret: "secret102",
+						},
+					},
 				},
 				BuildSpec: api.BuildSpec{
 					Source: api.BuildSource{
 						Git: &api.GitBuildSource{
 							URI: "git://github.com/my/repo.git",
+							Ref: ref,
 						},
 					},
 					Strategy: mockBuildStrategy,
@@ -251,6 +276,9 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
 	req, err := http.NewRequest("POST", "http://origin.com", bytes.NewReader(event))
+	if err != nil {
+		t.Errorf("Failed to create a new request (%s)", err)
+	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("X-Github-Event", eventType)
 
@@ -260,7 +288,7 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 
 func TestExtractForAPingEvent(t *testing.T) {
 	//setup
-	context := setup(t, "pingevent.json", "ping")
+	context := setup(t, "pingevent.json", "ping", "")
 
 	//execute
 	_, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
@@ -276,7 +304,7 @@ func TestExtractForAPingEvent(t *testing.T) {
 
 func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent.json", "push")
+	context := setup(t, "pushevent.json", "push", "")
 
 	//execute
 	revision, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
@@ -289,19 +317,17 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 		t.Errorf("The 'proceed' return value should equal 'true' %t", proceed)
 	}
 	if revision == nil {
-		t.Error("Expecting the revision to not be nil")
-	} else {
-		if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
-			t.Error("Expecting the revision to contain the commit id from the push event")
-		}
+		t.Fatal("Expecting the revision to not be nil")
 	}
+	if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+		t.Error("Expecting the revision to contain the commit id from the push event")
+	}
+
 }
 
 func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent-not-master-branch.json", "push")
-	context.buildCfg.Spec.Source.Git.Ref = "my_other_branch"
-
+	context := setup(t, "pushevent-not-master-branch.json", "push", "my_other_branch")
 	//execute
 	revision, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
@@ -313,18 +339,16 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 		t.Errorf("The 'proceed' return value should equal 'true' %t", proceed)
 	}
 	if revision == nil {
-		t.Error("Expecting the revision to not be nil")
-	} else {
-		if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
-			t.Error("Expecting the revision to contain the commit id from the push event")
-		}
+		t.Fatal("Expecting the revision to not be nil")
+	}
+	if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+		t.Error("Expecting the revision to contain the commit id from the push event")
 	}
 }
 
 func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent.json", "push")
-	context.buildCfg.Spec.Source.Git.Ref = "adfj32qrafdavckeaewra"
+	context := setup(t, "pushevent.json", "push", "wrongref")
 
 	//execute
 	_, _, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)

@@ -96,6 +96,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 	for _, s := range []string{
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 
 		// trigger build event sending push notification
@@ -104,7 +106,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		// FIXME: I think the build creation is fast and in some situlation we miss
+		// FIXME: I think the build creation is fast and in some situation we miss
 		// the BuildPhaseNew here. Note that this is not a bug, in future we should
 		// move this to use go routine to capture all events.
 		if actual.Status.Phase != buildapi.BuildPhaseNew && actual.Status.Phase != buildapi.BuildPhasePending {
@@ -249,6 +251,8 @@ func TestWebhookGitHubPing(t *testing.T) {
 
 	for _, s := range []string{
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 		// trigger build event sending push notification
 		clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
@@ -306,6 +310,18 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 						Secret: "secret101",
 					},
 				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret102",
+					},
+				},
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
@@ -345,6 +361,18 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 					Type: buildapi.GitHubWebHookBuildTriggerType,
 					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret101",
+					},
+				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret102",
 					},
 				},
 			},
