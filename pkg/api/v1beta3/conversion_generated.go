@@ -5642,7 +5642,8 @@ func autoConvert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *apiv1beta3
 	// in.NodeName has no peer in out
 	// unable to generate simple pointer conversion for api.PodSecurityContext -> v1beta3.PodSecurityContext
 	if in.SecurityContext != nil {
-		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
+		out.SecurityContext = new(apiv1beta3.PodSecurityContext)
+		if err := apiv1beta3.Convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	} else {
@@ -6502,7 +6503,8 @@ func autoConvert_v1beta3_PodSpec_To_api_PodSpec(in *apiv1beta3.PodSpec, out *api
 	// in.HostIPC has no peer in out
 	// unable to generate simple pointer conversion for v1beta3.PodSecurityContext -> api.PodSecurityContext
 	if in.SecurityContext != nil {
-		if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+		if err := apiv1beta3.Convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	} else {

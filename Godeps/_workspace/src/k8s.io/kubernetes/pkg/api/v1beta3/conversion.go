@@ -35,8 +35,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		convert_api_ServiceSpec_To_v1beta3_ServiceSpec,
 		convert_v1beta3_PodSpec_To_api_PodSpec,
 		convert_api_PodSpec_To_v1beta3_PodSpec,
-		convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext,
-		convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext,
+		Convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext,
+		Convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext,
 		convert_v1beta3_ContainerState_To_api_ContainerState,
 		convert_api_ContainerState_To_v1beta3_ContainerState,
 		convert_api_ContainerStateTerminated_To_v1beta3_ContainerStateTerminated,
@@ -515,7 +515,7 @@ func convert_v1beta3_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s con
 	out.NodeName = in.Host
 	if in.SecurityContext != nil {
 		out.SecurityContext = new(api.PodSecurityContext)
-		if err := convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+		if err := Convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	}
@@ -588,7 +588,7 @@ func convert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *PodSpec, s con
 	out.Host = in.NodeName
 	if in.SecurityContext != nil {
 		out.SecurityContext = new(PodSecurityContext)
-		if err := convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+		if err := Convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 		if out.SecurityContext == nil {
@@ -611,7 +611,7 @@ func convert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *PodSpec, s con
 	return nil
 }
 
-func convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityContext, out *api.PodSecurityContext, s conversion.Scope) error {
+func Convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityContext, out *api.PodSecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*PodSecurityContext))(in)
 	}
@@ -646,7 +646,7 @@ func convert_v1beta3_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurit
 	return nil
 }
 
-func convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in *api.PodSecurityContext, out *PodSecurityContext, s conversion.Scope) error {
+func Convert_api_PodSecurityContext_To_v1beta3_PodSecurityContext(in *api.PodSecurityContext, out *PodSecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PodSecurityContext))(in)
 	}
