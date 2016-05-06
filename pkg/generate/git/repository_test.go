@@ -1,9 +1,6 @@
 package git
 
-import (
-	"io"
-	"testing"
-)
+import "testing"
 
 func TestGetRootDir(t *testing.T) {
 	curDir := "/tests/dir"
@@ -102,7 +99,7 @@ func TestCheckout(t *testing.T) {
 }
 
 func makeExecFunc(output string, err error) execGitFunc {
-	return func(w io.Writer, dir string, args ...string) (out string, errout string, resultErr error) {
+	return func(dir string, args ...string) (out string, errout string, resultErr error) {
 		out = output
 		resultErr = err
 		return
