@@ -156,6 +156,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 	// watch for termination
 	stop := make(chan struct{})
 	lost := make(chan struct{})
+	closedLost := false
 	watchIndex := index
 	go utilwait.Until(func() {
 		index, err := e.waitForExpiration(true, watchIndex, stop)
@@ -165,7 +166,10 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 			return
 		}
 		glog.V(4).Infof("Lease %s lost due to deletion at %d", e.key, watchIndex)
-		close(lost)
+		if !closedLost {
+			closedLost = true
+			close(lost)
+		}
 	}, 100*time.Millisecond, stop)
 	defer close(stop)
 
