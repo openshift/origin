@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -18,6 +19,7 @@ import (
 	requestlimitapivalidation "github.com/openshift/origin/pkg/project/admission/requestlimit/api/validation"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,
@@ -98,6 +100,24 @@ func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
 // maxProjectsByRequester returns the maximum number of projects allowed for a given user, whether a limit exists, and an error
 // if an error occurred. If a limit doesn't exist, the maximum number should be ignored.
 func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool, error) {
+	// service accounts have a different ruleset, check them
+	if _, _, err := serviceaccount.SplitUsername(userName); err == nil {
+		if o.config.MaxProjectsForServiceAccounts == nil {
+			return 0, false, nil
+		}
+
+		return *o.config.MaxProjectsForServiceAccounts, true, nil
+	}
+
+	// if we aren't a valid username, we came in as cert user for certain, use our cert user rules
+	if valid, _ := uservalidation.ValidateUserName(userName, false); !valid {
+		if o.config.MaxProjectsForSystemUsers == nil {
+			return 0, false, nil
+		}
+
+		return *o.config.MaxProjectsForSystemUsers, true, nil
+	}
+
 	// prevent a user lookup if no limits are configured
 	if len(o.config.Limits) == 0 {
 		return 0, false, nil
