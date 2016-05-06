@@ -45,6 +45,12 @@
   overflow-wrap: break-word; // new name as per the CSS3 spec
 }
 
+// Sequences of whitespace are preserved. Lines are broken at newline
+// characters, at <br>, and as necessary to fill line boxes.
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
 // Linear-gradient stripes
 .striped(@color: rgba(255,255,255,.15); @angle: 45deg) {
   background-image: -webkit-linear-gradient(@angle, @color 25%, transparent 25%, transparent 50%, @color 50%, @color 75%, transparent 75%, transparent);
