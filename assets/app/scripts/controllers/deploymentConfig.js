@@ -64,7 +64,6 @@ angular.module('openshiftConsole')
     AlertMessageService.clearAlerts();
 
     var watches = [];
-    var hashSize = $filter('hashSize');
 
     ProjectsService
       .get($routeParams.project)
@@ -104,6 +103,8 @@ angular.module('openshiftConsole')
 
 
             watches.push(DataService.watch("replicationcontrollers", context, function(deployments, action, deployment) {
+              var deploymentConfigName = $routeParams.deploymentconfig;
+
               // TODO we should add this back in and show the pod template on this page
               // extractPodTemplates();
               // ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
@@ -118,7 +119,6 @@ angular.module('openshiftConsole')
                 $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
               } else if (DeploymentsService.deploymentBelongsToConfig(deployment, $routeParams.deploymentconfig)) {
                 var deploymentName = deployment.metadata.name;
-                var deploymentConfigName = $routeParams.deploymentconfig;
                 switch (action) {
                   case 'ADDED':
                   case 'MODIFIED':
@@ -142,6 +142,8 @@ angular.module('openshiftConsole')
               }
 
               $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);
+              $scope.deploymentInProgress = !!_.size($scope.deploymentConfigDeploymentsInProgress[deploymentConfigName]);
+
               updateFilterWarning();
               LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
               LabelFilter.setLabelSuggestions($scope.labelSuggestions);
@@ -183,8 +185,6 @@ angular.module('openshiftConsole')
           limitRanges = response.by("metadata.name");
           updateHPAWarnings();
         });
-
-
 
         watches.push(DataService.watch("imagestreams", context, function(imageStreams) {
           $scope.imageStreams = imageStreams.by("metadata.name");
@@ -239,8 +239,7 @@ angular.module('openshiftConsole')
             return false;
           }
 
-          if ($scope.deploymentConfigDeploymentsInProgress &&
-              hashSize($scope.deploymentConfigDeploymentsInProgress[$scope.deploymentConfig.metadata.name]) > 0) {
+          if ($scope.deploymentInProgress) {
             return false;
           }
 

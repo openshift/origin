@@ -246,9 +246,15 @@ angular.module("openshiftConsole")
 
       // Iterate over the list to find the most recent active deployment.
       var activeDeployment = null;
-      angular.forEach(deployments, function(deployment) {
-        // An "active" deployment must be in progress or complete.
-        if (!isInProgress(deployment) && annotation(deployment, 'deploymentStatus') !== 'Complete') {
+      _.each(deployments, function(deployment) {
+        if (isInProgress(deployment)) {
+          // If any deployment is in progress, there is no current active deployment (disable scaling).
+          // Break out of the loop and return null.
+          activeDeployment = null;
+          return false;
+        }
+
+        if (annotation(deployment, 'deploymentStatus') !== 'Complete') {
           return;
         }
 
