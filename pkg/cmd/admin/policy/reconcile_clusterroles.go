@@ -192,10 +192,15 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 		expectedClusterRole.Labels = actualClusterRole.Labels
 		expectedClusterRole.Annotations = actualClusterRole.Annotations
 
-		if !kapi.Semantic.DeepEqual(expectedClusterRole.Rules, actualClusterRole.Rules) {
+		_, extraRules := rulevalidation.Covers(expectedClusterRole.Rules, actualClusterRole.Rules)
+		_, missingRules := rulevalidation.Covers(actualClusterRole.Rules, expectedClusterRole.Rules)
+
+		// We need to reconcile:
+		// 1. if we're missing rules
+		// 2. if there are extra rules we need to remove
+		if (len(missingRules) > 0) || (!o.Union && len(extraRules) > 0) {
 			if o.Union {
-				_, missingRules := rulevalidation.Covers(expectedClusterRole.Rules, actualClusterRole.Rules)
-				expectedClusterRole.Rules = append(expectedClusterRole.Rules, missingRules...)
+				expectedClusterRole.Rules = append(expectedClusterRole.Rules, extraRules...)
 			}
 			changedRoles = append(changedRoles, expectedClusterRole)
 		}
