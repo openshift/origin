@@ -4,51 +4,47 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
-type okBuildConfigGetter struct{}
-
-func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
-	return &api.BuildConfig{
-		Spec: api.BuildConfigSpec{
-			Triggers: []api.BuildTriggerPolicy{
-				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
-						Secret: "secret101",
-					},
-				},
-				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
-						Secret: "secret100",
-					},
-				},
-				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
-						Secret: "secret102",
-					},
+var testBuildConfig = &api.BuildConfig{
+	Spec: api.BuildConfigSpec{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
+					Secret: "secret101",
 				},
 			},
-			BuildSpec: api.BuildSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
-						URI: "git://github.com/my/repo.git",
-					},
+			{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
 				},
-				Strategy: mockBuildStrategy,
+			},
+			{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
+					Secret: "secret102",
+				},
 			},
 		},
-	}, nil
+		BuildSpec: api.BuildSpec{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "git://github.com/my/repo.git",
+				},
+			},
+			Strategy: mockBuildStrategy,
+		},
+	},
 }
 
 var mockBuildStrategy = api.BuildStrategy{
@@ -66,164 +62,215 @@ func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.Bui
 	return &api.Build{}, nil
 }
 
+type fakeResponder struct {
+	called     bool
+	statusCode int
+	object     runtime.Object
+	err        error
+}
+
+func (r *fakeResponder) Object(statusCode int, obj runtime.Object) {
+	if r.called {
+		panic("called twice")
+	}
+	r.called = true
+	r.statusCode = statusCode
+	r.object = obj
+}
+
+func (r *fakeResponder) Error(err error) {
+	if r.called {
+		panic("called twice")
+	}
+	r.called = true
+	r.err = err
+}
+
+var buildConfig = &api.BuildConfig{
+	Spec: api.BuildConfigSpec{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+		BuildSpec: api.BuildSpec{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{},
+			},
+		},
+	},
+}
+
+func GivenRequest(method string) *http.Request {
+	req, _ := http.NewRequest(method, "http://someurl.com", nil)
+	return req
+}
+
+func TestVerifyRequestForMethod(t *testing.T) {
+	req := GivenRequest("GET")
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err == nil || !strings.Contains(err.Error(), "unsupported HTTP method") {
+		t.Errorf("Expected unsupported HTTP method, got %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
+
 func TestWrongSecret(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := GivenRequest("POST")
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
 
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/wrongsecret/github", nil)
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), webhook.ErrSecretMismatch.Error()) {
-		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	if err != webhook.ErrSecretMismatch {
+		t.Errorf("Expected %v, got %v", webhook.ErrSecretMismatch, err)
 	}
-}
-
-func TestWrongMethod(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	resp, _ := http.Get(server.URL + "/build100/secret101/github")
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "method") {
-		t.Errorf("Expected BadRequest , got %s: %s!", resp.Status, string(body))
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
 	}
-}
-
-func TestWrongContentType(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
-	req.Header.Add("Content-Type", "application/text")
-	req.Header.Add("X-Github-Event", "ping")
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "Content-Type") {
-		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 
 func TestMissingEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
+	req := GivenRequest("POST")
 	req.Header.Add("Content-Type", "application/json")
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "missing X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err == nil || !strings.Contains(err.Error(), "missing X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected missing X-GitHub-Event or X-Gogs-Event, got %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 
 func TestWrongGitHubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
+	req := GivenRequest("POST")
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("X-GitHub-Event", "wrong")
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "Unknown X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err == nil || !strings.Contains(err.Error(), "Unknown X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected missing Unknown X-GitHub-Event or X-Gogs-Event, got %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 
 func TestJsonPingEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := postFile("X-GitHub-Event", "ping", "pingevent.json", "http://some.url", http.StatusOK, t)
+	plugin := New()
+	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	postFile("X-GitHub-Event", "ping", "pingevent.json", server.URL+"/build100/secret101/github",
-		http.StatusOK, t)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
 }
 
 func TestJsonPushEventError(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := post("X-GitHub-Event", "push", []byte{}, "http://some.url", http.StatusBadRequest, t)
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	post("X-GitHub-Event", "push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
+	if err == nil || !strings.Contains(err.Error(), "unexpected end of JSON input") {
+		t.Errorf("Expected unexpected end of JSON input, got %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
 }
 
 func TestJsonGitHubPushEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := postFile("X-GitHub-Event", "push", "pushevent.json", "http://some.url", http.StatusOK, t)
+	plugin := New()
+	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	postFile("X-GitHub-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
-		http.StatusOK, t)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
 }
 
 func TestJsonGitHubPushEventWithCharset(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := postFileWithCharset("X-GitHub-Event", "push", "pushevent.json", "http://some.url", "application/json; charset=utf-8", http.StatusOK, t)
+	plugin := New()
+	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	postFileWithCharset("X-GitHub-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
-		"application/json; charset=utf-8", http.StatusOK, t)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
 }
 
 func TestJsonGogsPushEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
+	req := postFile("X-Gogs-Event", "push", "pushevent.json", "http://some.url", http.StatusOK, t)
+	plugin := New()
+	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	postFile("X-Gogs-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
-		http.StatusOK, t)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
 }
 
-func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) {
-	postFileWithCharset(eventHeader, eventName, filename, url, "application/json", expStatusCode, t)
+func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) *http.Request {
+	return postFileWithCharset(eventHeader, eventName, filename, url, "application/json", expStatusCode, t)
 }
 
-func postFileWithCharset(eventHeader, eventName, filename, url, charset string, expStatusCode int, t *testing.T) {
+func postFileWithCharset(eventHeader, eventName, filename, url, charset string, expStatusCode int, t *testing.T) *http.Request {
 	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
 
-	postWithCharset(eventHeader, eventName, data, url, charset, expStatusCode, t)
+	return postWithCharset(eventHeader, eventName, data, url, charset, expStatusCode, t)
 }
 
-func post(eventHeader, eventName string, data []byte, url string, expStatusCode int, t *testing.T) {
-	postWithCharset(eventHeader, eventName, data, url, "application/json", expStatusCode, t)
+func post(eventHeader, eventName string, data []byte, url string, expStatusCode int, t *testing.T) *http.Request {
+	return postWithCharset(eventHeader, eventName, data, url, "application/json", expStatusCode, t)
 }
 
-func postWithCharset(eventHeader, eventName string, data []byte, url, charset string, expStatusCode int, t *testing.T) {
-	client := &http.Client{}
+func postWithCharset(eventHeader, eventName string, data []byte, url, charset string, expStatusCode int, t *testing.T) *http.Request {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
-		t.Errorf("Error creating POST request: %v!", err)
+		t.Errorf("Error creating POST request: %v", err)
 	}
 
 	req.Header.Add("Content-Type", charset)
 	req.Header.Add(eventHeader, eventName)
-	resp, err := client.Do(req)
 
-	if err != nil {
-		t.Errorf("Failed posting webhook to: %s!", url)
-	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != expStatusCode {
-		t.Errorf("Wrong response code, expecting %d, got %s: %s!",
-			expStatusCode, resp.Status, string(body))
-	}
+	return req
 }
 
 type testContext struct {

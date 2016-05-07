@@ -3,9 +3,12 @@ package webhook
 import (
 	"crypto/hmac"
 	"errors"
+	"net/http"
 	"strings"
 
-	"github.com/openshift/origin/pkg/build/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 const (
@@ -18,9 +21,20 @@ var (
 	ErrHookNotEnabled = errors.New("the specified hook is not enabled")
 )
 
+// Plugin for Webhook verification is dependent on the sending side, it can be
+// eg. github, bitbucket or else, so there must be a separate Plugin
+// instance for each webhook provider.
+type Plugin interface {
+	// Method extracts build information and returns:
+	// - newly created build object or nil if default is to be created
+	// - information whether to trigger the build itself
+	// - eventual error.
+	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, bool, error)
+}
+
 // GitRefMatches determines if the ref from a webhook event matches a build
 // configuration
-func GitRefMatches(eventRef, configRef string, buildSource *api.BuildSource) bool {
+func GitRefMatches(eventRef, configRef string, buildSource *buildapi.BuildSource) bool {
 	if buildSource.Git != nil && len(buildSource.Git.Ref) != 0 {
 		configRef = buildSource.Git.Ref
 	}
@@ -32,7 +46,7 @@ func GitRefMatches(eventRef, configRef string, buildSource *api.BuildSource) boo
 
 // FindTriggerPolicy retrieves the BuildTrigger of a given type from a build
 // configuration
-func FindTriggerPolicy(triggerType api.BuildTriggerType, config *api.BuildConfig) (buildTriggers []api.BuildTriggerPolicy, err error) {
+func FindTriggerPolicy(triggerType buildapi.BuildTriggerType, config *buildapi.BuildConfig) (buildTriggers []buildapi.BuildTriggerPolicy, err error) {
 	err = ErrHookNotEnabled
 	for _, specTrigger := range config.Spec.Triggers {
 		if specTrigger.Type == triggerType {
@@ -45,15 +59,15 @@ func FindTriggerPolicy(triggerType api.BuildTriggerType, config *api.BuildConfig
 
 // ValidateWebHookSecret validates the provided secret against all currently
 // defined webhook secrets and if it is valid, returns its information.
-func ValidateWebHookSecret(webHookTriggers []api.BuildTriggerPolicy, secret string) (*api.WebHookTrigger, error) {
+func ValidateWebHookSecret(webHookTriggers []buildapi.BuildTriggerPolicy, secret string) (*buildapi.WebHookTrigger, error) {
 	for _, trigger := range webHookTriggers {
-		if trigger.Type == api.GenericWebHookBuildTriggerType {
+		if trigger.Type == buildapi.GenericWebHookBuildTriggerType {
 			if !hmac.Equal([]byte(trigger.GenericWebHook.Secret), []byte(secret)) {
 				continue
 			}
 			return trigger.GenericWebHook, nil
 		}
-		if trigger.Type == api.GitHubWebHookBuildTriggerType {
+		if trigger.Type == buildapi.GitHubWebHookBuildTriggerType {
 			if !hmac.Equal([]byte(trigger.GitHubWebHook.Secret), []byte(secret)) {
 				continue
 			}
