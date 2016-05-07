@@ -13,7 +13,6 @@ import (
 
 	"github.com/docker/docker/pkg/parsers"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
@@ -60,7 +59,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		Name: repository,
 		Tag:  tag,
 	}
-	if glog.V(5) {
+	if glog.Is(5) {
 		opts.OutputStream = os.Stderr
 	}
 	var err error
@@ -84,7 +83,6 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		}
 
 		utilruntime.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
-		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}
 	return err
@@ -160,7 +158,7 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 	removeContainer := func() {
 		glog.V(4).Infof("Removing container %q ...", containerName)
 		if err := client.RemoveContainer(docker.RemoveContainerOptions{ID: c.ID}); err != nil {
-			glog.Warningf("Failed to remove container %q: %v", containerName, err)
+			glog.Infof("warning: Failed to remove container %q: %v", containerName, err)
 		} else {
 			glog.V(4).Infof("Removed container %q", containerName)
 		}

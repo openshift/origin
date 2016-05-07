@@ -12,7 +12,6 @@ import (
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
@@ -105,10 +104,9 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	if err := removeImage(d.dockerClient, buildTag); err != nil {
-		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
+		glog.Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
-	defer glog.Flush()
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
@@ -241,7 +239,7 @@ func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 		sourceInfo, errors = d.gitClient.GetInfo(dir)
 		if len(errors) > 0 {
 			for _, e := range errors {
-				glog.Warningf("Error getting git info: %v", e.Error())
+				glog.Infof("warning: Unable to retrieve Git info: %v", e.Error())
 			}
 		}
 	}
