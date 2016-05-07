@@ -176,6 +176,13 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		}
 	}
 
+	if mustStart {
+		glog.V(4).Infof("Stopping container %s ...", e.Container.ID)
+		if err := e.Client.StopContainer(e.Container.ID, 0); err != nil {
+			return err
+		}
+	}
+
 	config := b.Config()
 	var repository, tag string
 	if len(e.Tag) > 0 {
