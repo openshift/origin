@@ -6,7 +6,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
@@ -49,9 +48,11 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			o.Expect(out).To(o.ContainSubstring("relative-secret3=secret3"))
 
 			g.By("checking the status of the build")
-			build, err := oc.REST().Builds(oc.Namespace()).Get("test-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("test", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 
 			g.By("getting the image name")
 			image, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
@@ -86,9 +87,11 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			o.Expect(out).To(o.ContainSubstring("relative-secret2=secret2"))
 
 			g.By("checking the status of the build")
-			build, err := oc.REST().Builds(oc.Namespace()).Get("test-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("test", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 
 	})

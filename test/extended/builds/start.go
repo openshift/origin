@@ -10,7 +10,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -37,9 +36,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get(out)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 
 		g.It("should start a build and wait for the build to fail", func() {
@@ -64,9 +65,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(out).To(o.ContainSubstring("BAR=test"))
 			o.Expect(out).To(o.ContainSubstring("VAR=test"))
 			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 
 		g.It("should allow to change build log level", func() {
@@ -76,9 +79,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			g.By(fmt.Sprintf("verifying the build output is not verbose"))
 			o.Expect(out).NotTo(o.ContainSubstring("Creating a new S2I builder"))
 			g.By(fmt.Sprintf("verifying the build %q status", out))
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 	})
 
@@ -92,9 +97,10 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 		})
 
 		g.It("should accept --from-dir as input", func() {
@@ -106,9 +112,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 
 		g.It("should accept --from-repo as input", func() {
@@ -121,9 +129,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 
 		g.It("should accept --from-repo with --commit as input", func() {
@@ -139,9 +149,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 	})
 

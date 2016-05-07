@@ -6,8 +6,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/kubernetes/test/e2e"
-
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -44,9 +42,9 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			g.By("expecting the build succeeds")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args("docker-build-1").Output()
-				e2e.Failf("build failed: %s", logs)
+				exutil.DumpBuildLogs("docker-build", oc)
 			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a second build that pulls the image from the first build")
 			_, err = oc.Run("start-build").Args("docker-build-pull").Output()
@@ -55,9 +53,9 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			g.By("expecting the build succeeds")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-pull-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				logs, _ := oc.Run("build-logs").Args("docker-build-pull-1").Output()
-				e2e.Failf("build failed: %s", logs)
+				exutil.DumpBuildLogs("docker-build-pull", oc)
 			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 })
