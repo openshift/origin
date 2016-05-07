@@ -103,6 +103,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			// Don't try and re-create the deployer pod.
 			break
 		}
+
+		if _, ok := deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
+			return nil
+		}
+
 		// Generate a deployer pod spec.
 		podTemplate, err := c.makeDeployerPod(deployment)
 		if err != nil {

@@ -199,6 +199,10 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
+	// DeploymentIgnorePodAnnotation is an annotation on a deployment config that will bypass creating
+	// a deployment pod with the deployment. The caller is responsible for setting the deployment
+	// status and running the deployment process.
+	DeploymentIgnorePodAnnotation = "deploy.openshift.io/deployer-pod.ignore"
 	// DeploymentPodTypeLabel is a label with which contains a type of deployment pod.
 	DeploymentPodTypeLabel = "openshift.io/deployer-pod.type"
 	// DeployerPodForDeploymentLabel is a label which groups pods related to a
