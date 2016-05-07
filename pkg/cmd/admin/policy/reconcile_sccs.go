@@ -124,9 +124,6 @@ func (o *ReconcileSCCOptions) Validate() error {
 	if o.SCCClient == nil {
 		return errors.New("a SCC client is required")
 	}
-	if o.Output != "yaml" && o.Output != "json" && o.Output != "" {
-		return fmt.Errorf("unknown output specified: %s", o.Output)
-	}
 	if _, err := o.NSClient.Get(o.InfraNamespace); err != nil {
 		return fmt.Errorf("%s is not a valid namespace", o.InfraNamespace)
 	}

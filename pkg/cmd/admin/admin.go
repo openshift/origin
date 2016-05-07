@@ -48,7 +48,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
 				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out),
-				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out),
 			},
 		},

@@ -41,7 +41,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 
 const (
 	reconcileBindingsLong = `
-Replace cluster role bindings to match the recommended bootstrap policy
+Update cluster role bindings to match the recommended bootstrap policy
 
 This command will inspect the cluster role bindings against the recommended bootstrap policy.
 Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding.
@@ -49,8 +49,8 @@ This command will not remove any additional cluster role bindings.
 
 You can see which recommended cluster role bindings have changed by choosing an output type.`
 
-	reconcileBindingsExample = `  # Display the cluster role bindings that would be modified
-  $ %[1]s
+	reconcileBindingsExample = `  # Display the names of cluster role bindings that would be modified
+  $ %[1]s -o name
 
   # Display the cluster role bindings that would be modified, removing any extra subjects
   $ %[1]s --additive-only=false
@@ -77,7 +77,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",
-		Short:   "Replace cluster role bindings to match the recommended bootstrap policy",
+		Short:   "Update cluster role bindings to match the recommended bootstrap policy",
 		Long:    reconcileBindingsLong,
 		Example: fmt.Sprintf(reconcileBindingsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -139,9 +139,6 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *cl
 func (o *ReconcileClusterRoleBindingsOptions) Validate() error {
 	if o.RoleBindingClient == nil {
 		return errors.New("a role binding client is required")
-	}
-	if o.Output != "yaml" && o.Output != "json" && o.Output != "" {
-		return fmt.Errorf("unknown output specified: %s", o.Output)
 	}
 	return nil
 }

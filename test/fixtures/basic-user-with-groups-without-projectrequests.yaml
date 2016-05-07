@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ClusterRole
+metadata:
+  name: basic-user
+rules:
+- apiGroups: null
+  attributeRestrictions: null
+  resourceNames:
+  - "~"
+  resources:
+  - users
+  # add an extra resource permission:
+  - groups
+  verbs:
+  - get
+# remove a default permission:
+# - apiGroups: null
+#   attributeRestrictions: null
+#   resources:
+#   - projectrequests
+#   verbs:
+#   - list
+- apiGroups: null
+  attributeRestrictions: null
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - list
+- apiGroups: null
+  attributeRestrictions: null
+  resources:
+  - projects
+  verbs:
+  - list
+  - watch
+- apiGroups: null
+  attributeRestrictions:
+    apiVersion: v1
+    kind: IsPersonalSubjectAccessReview
+  resources:
+  - localsubjectaccessreviews
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups: null
+  attributeRestrictions: null
+  resources:
+  - selfsubjectrulesreviews
+  verbs:
+  - create
