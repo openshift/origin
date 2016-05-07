@@ -47,7 +47,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
-	err := executor.executeExecNewPod(hook, deployment, "hook")
+	err := executor.executeExecNewPod(hook, deployment, "hook", "test")
 
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -80,20 +80,20 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 				return func() *kapi.Pod { return createdPod }
 			},
 		},
-		podLogDestination: podLogs,
+		out: podLogs,
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
 		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
-	err := executor.executeExecNewPod(hook, deployment, "hook")
+	err := executor.executeExecNewPod(hook, deployment, "hook", "test")
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	if e, a := "test", podLogs.String(); e != a {
+	if e, a := "--> test: Running hook pod ...\ntest--> test: Success\n", podLogs.String(); e != a {
 		t.Fatalf("expected pod logs to be %q, got %q", e, a)
 	}
 
@@ -132,14 +132,14 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 				return func() *kapi.Pod { return createdPod }
 			},
 		},
-		podLogDestination: ioutil.Discard,
+		out: ioutil.Discard,
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return nil, fmt.Errorf("can't access logs")
 		},
 		decoder: kapi.Codecs.UniversalDecoder(),
 	}
 
-	err := executor.executeExecNewPod(hook, deployment, "hook")
+	err := executor.executeExecNewPod(hook, deployment, "hook", "test")
 
 	if err == nil {
 		t.Fatalf("expected an error, got none")
@@ -516,6 +516,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		deployment.Spec.Replicas = 1
 
+		acceptor.out = &bytes.Buffer{}
 		err := acceptor.Accept(deployment)
 
 		if s.accepted {

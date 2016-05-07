@@ -2,10 +2,10 @@ package recreate
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"time"
-
-	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -26,6 +26,8 @@ import (
 // A failure to disable any existing deployments will be considered a
 // deployment failure.
 type RecreateDeploymentStrategy struct {
+	// out and errOut control where output is sent during the strategy
+	out, errOut io.Writer
 	// getReplicationController knows how to get a replication controller.
 	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
@@ -52,14 +54,22 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, decoder runtime.Decoder) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, decoder runtime.Decoder, out, errOut io.Writer) *RecreateDeploymentStrategy {
+	if out == nil {
+		out = ioutil.Discard
+	}
+	if errOut == nil {
+		errOut = ioutil.Discard
+	}
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &RecreateDeploymentStrategy{
+		out:    out,
+		errOut: errOut,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
@@ -97,49 +107,48 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
-			return fmt.Errorf("Pre hook failed: %s", err)
+		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix, "pre"); err != nil {
+			return fmt.Errorf("pre hook failed: %s", err)
 		}
-		glog.Infof("Pre hook finished")
 	}
 
 	// Scale down the from deployment.
 	if from != nil {
-		glog.Infof("Scaling %s down to zero", deployutil.LabelForDeployment(from))
+		fmt.Fprintf(s.out, "--> Scaling %s down to zero\n", from.Name)
 		_, err := s.scaleAndWait(from, 0, retryParams, waitParams)
 		if err != nil {
-			return fmt.Errorf("couldn't scale %s to 0: %v", deployutil.LabelForDeployment(from), err)
+			return fmt.Errorf("couldn't scale %s to 0: %v", from.Name, err)
 		}
 	}
 
 	if params != nil && params.Mid != nil {
-		if err := s.hookExecutor.Execute(params.Mid, to, deployapi.MidHookPodSuffix); err != nil {
+		if err := s.hookExecutor.Execute(params.Mid, to, deployapi.MidHookPodSuffix, "mid"); err != nil {
 			return fmt.Errorf("mid hook failed: %s", err)
 		}
-		glog.Infof("Mid hook finished")
 	}
 
 	// Scale up the to deployment.
 	if desiredReplicas > 0 {
-		// Scale up to 1 and validate the replica,
-		// aborting if the replica isn't acceptable.
-		glog.Infof("Scaling %s to 1 before performing acceptance check", deployutil.LabelForDeployment(to))
-		updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
-		if err != nil {
-			return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
+		if from != nil {
+			// Scale up to 1 and validate the replica,
+			// aborting if the replica isn't acceptable.
+			fmt.Fprintf(s.out, "--> Scaling %s to 1 before performing acceptance check\n", to.Name)
+			updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
+			if err != nil {
+				return fmt.Errorf("couldn't scale %s to 1: %v", to.Name, err)
+			}
+			if err := updateAcceptor.Accept(updatedTo); err != nil {
+				return fmt.Errorf("update acceptor rejected %s: %v", to.Name, err)
+			}
+			to = updatedTo
 		}
-		glog.Infof("Performing acceptance check of %s", deployutil.LabelForDeployment(to))
-		if err := updateAcceptor.Accept(updatedTo); err != nil {
-			return fmt.Errorf("update acceptor rejected %s: %v", deployutil.LabelForDeployment(to), err)
-		}
-		to = updatedTo
 
 		// Complete the scale up.
 		if to.Spec.Replicas != desiredReplicas {
-			glog.Infof("Scaling %s to %d", deployutil.LabelForDeployment(to), desiredReplicas)
+			fmt.Fprintf(s.out, "--> Scaling %s to %d\n", to.Name, desiredReplicas)
 			updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
 			if err != nil {
-				return fmt.Errorf("couldn't scale %s to %d: %v", deployutil.LabelForDeployment(to), desiredReplicas, err)
+				return fmt.Errorf("couldn't scale %s to %d: %v", to.Name, desiredReplicas, err)
 			}
 			to = updatedTo
 		}
@@ -147,13 +156,11 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Execute any post-hook.
 	if params != nil && params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
-		glog.Infof("Post hook finished")
 	}
 
-	glog.Infof("Deployment %s successfully made active", to.Name)
 	return nil
 }
 
@@ -170,15 +177,15 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
 // Execute executes the provided lifecycle hook
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
-	return i.executeFunc(hook, deployment, label)
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+	return i.executeFunc(hook, deployment, suffix, label)
 }

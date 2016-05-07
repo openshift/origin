@@ -36,8 +36,8 @@ type HookExecutor struct {
 	podClient HookExecutorPodClient
 	// tags allows setting image stream tags
 	tags client.ImageStreamTagsNamespacer
-	// podLogDestination is where hook pod logs should be written to.
-	podLogDestination io.Writer
+	// out is where hook pod logs should be written to.
+	out io.Writer
 	// podLogStream provides a reader for a pod's logs.
 	podLogStream func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error)
 	// decoder is used for encoding/decoding.
@@ -45,7 +45,7 @@ type HookExecutor struct {
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, podLogDestination io.Writer, decoder runtime.Decoder) *HookExecutor {
+func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, out io.Writer, decoder runtime.Decoder) *HookExecutor {
 	return &HookExecutor{
 		tags: tags,
 		podClient: &HookExecutorPodClientImpl{
@@ -59,20 +59,20 @@ func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsN
 		podLogStream: func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error) {
 			return client.Pods(namespace).GetLogs(name, opts).Stream()
 		},
-		podLogDestination: podLogDestination,
-		decoder:           decoder,
+		out:     out,
+		decoder: decoder,
 	}
 }
 
-// Execute executes hook in the context of deployment. The label is used to
+// Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
-func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 	var err error
 	switch {
 	case len(hook.TagImages) > 0:
-		err = e.tagImages(hook, deployment, label)
+		err = e.tagImages(hook, deployment, suffix, label)
 	case hook.ExecNewPod != nil:
-		err = e.executeExecNewPod(hook, deployment, label)
+		err = e.executeExecNewPod(hook, deployment, suffix, label)
 	}
 
 	if err == nil {
@@ -82,9 +82,9 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
 	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
-		return fmt.Errorf("Hook failed, aborting: %s", err)
+		return fmt.Errorf("%s hook failed, aborting deployment: %s", label, err)
 	case deployapi.LifecycleHookFailurePolicyIgnore:
-		glog.Infof("Hook failed, ignoring: %s", err)
+		fmt.Fprintf(e.out, "warning: %s hook failed, deployment will continue: %v\n", label, err)
 		return nil
 	default:
 		return err
@@ -104,7 +104,7 @@ func findContainerImage(rc *kapi.ReplicationController, containerName string) (s
 }
 
 // tagImages tags images from the deployment
-func (e *HookExecutor) tagImages(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+func (e *HookExecutor) tagImages(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 	var errs []error
 	for _, action := range hook.TagImages {
 		value, ok := findContainerImage(deployment, action.ContainerName)
@@ -131,7 +131,7 @@ func (e *HookExecutor) tagImages(hook *deployapi.LifecycleHook, deployment *kapi
 			errs = append(errs, err)
 			continue
 		}
-		glog.Infof("Tagged %q into %s/%s", value, action.To.Namespace, action.To.Name)
+		fmt.Fprintf(e.out, "--> %s: Tagged %q into %s/%s\n", label, value, action.To.Namespace, action.To.Name)
 	}
 
 	return utilerrors.NewAggregate(errs)
@@ -146,26 +146,33 @@ func (e *HookExecutor) tagImages(hook *deployapi.LifecycleHook, deployment *kapi
 //   * Environment (hook keys take precedence)
 //   * Working directory
 //   * Resources
-func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 	config, err := deployutil.DecodeDeploymentConfig(deployment, e.decoder)
 	if err != nil {
 		return err
 	}
 
 	// Build a pod spec from the hook config and deployment
-	podSpec, err := makeHookPod(hook, deployment, &config.Spec.Strategy, label)
+	podSpec, err := makeHookPod(hook, deployment, &config.Spec.Strategy, suffix)
 	if err != nil {
 		return err
 	}
+
+	// Track whether the pod has already run to completion and avoid showing logs
+	// or the Success message twice.
+	completed := false
 
 	// Try to create the pod.
 	pod, err := e.podClient.CreatePod(deployment.Namespace, podSpec)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", deployment.Name, err)
 		}
+		completed = true
+		pod = podSpec
+		pod.Namespace = deployment.Namespace
 	} else {
-		glog.V(0).Infof("Created lifecycle pod %s/%s for deployment %s", pod.Namespace, pod.Name, deployutil.LabelForDeployment(deployment))
+		fmt.Fprintf(e.out, "--> %s: Running hook pod ...\n", label)
 	}
 
 	stopChannel := make(chan struct{})
@@ -178,16 +185,26 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 	var once sync.Once
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	glog.V(0).Infof("Watching logs for hook pod %s/%s while awaiting completion", pod.Namespace, pod.Name)
 waitLoop:
 	for {
 		updatedPod = nextPod()
 		switch updatedPod.Status.Phase {
 		case kapi.PodRunning:
+			completed = false
 			go once.Do(func() { e.readPodLogs(pod, wg) })
 		case kapi.PodSucceeded, kapi.PodFailed:
+			if completed {
+				if updatedPod.Status.Phase == kapi.PodSucceeded {
+					fmt.Fprintf(e.out, "--> %s: Hook pod already succeeded\n", label)
+				}
+				wg.Done()
+				break waitLoop
+			}
+			fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
 			go once.Do(func() { e.readPodLogs(pod, wg) })
 			break waitLoop
+		default:
+			completed = false
 		}
 	}
 	// The pod is finished, wait for all logs to be consumed before returning.
@@ -195,10 +212,15 @@ waitLoop:
 	if updatedPod.Status.Phase == kapi.PodFailed {
 		return fmt.Errorf(updatedPod.Status.Message)
 	}
+	// Only show this message if we created the pod ourselves, or we saw
+	// the pod in a running or pending state.
+	if !completed {
+		fmt.Fprintf(e.out, "--> %s: Success\n", label)
+	}
 	return nil
 }
 
-// readPodLogs streams logs from pod to podLogDestination. It signals wg when
+// readPodLogs streams logs from pod to out. It signals wg when
 // done.
 func (e *HookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -209,21 +231,18 @@ func (e *HookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 	}
 	logStream, err := e.podLogStream(pod.Namespace, pod.Name, opts)
 	if err != nil || logStream == nil {
-		glog.V(0).Infof("Warning: couldn't get log stream for lifecycle pod %s/%s: %s", pod.Namespace, pod.Name, err)
+		fmt.Fprintf(e.out, "warning: Unable to retrieve hook logs from %s: %v\n", pod.Name, err)
 		return
 	}
 	// Read logs.
 	defer logStream.Close()
-	written, err := io.Copy(e.podLogDestination, logStream)
-	if err != nil {
-		glog.V(0).Infof("Finished reading logs for hook pod %s/%s (%d bytes): %s", pod.Namespace, pod.Name, written, err)
-	} else {
-		glog.V(0).Infof("Finished reading logs for hook pod %s/%s", pod.Namespace, pod.Name)
+	if _, err := io.Copy(e.out, logStream); err != nil {
+		fmt.Fprintf(e.out, "\nwarning: Unable to read all logs from %s, continuing: %v\n", pod.Name, err)
 	}
 }
 
 // makeHookPod makes a pod spec from a hook and deployment.
-func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, strategy *deployapi.DeploymentStrategy, label string) (*kapi.Pod, error) {
+func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, strategy *deployapi.DeploymentStrategy, suffix string) (*kapi.Pod, error) {
 	exec := hook.ExecNewPod
 	var baseContainer *kapi.Container
 	for _, container := range deployment.Spec.Template.Spec.Containers {
@@ -298,12 +317,12 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: namer.GetPodName(deployment.Name, label),
+			Name: namer.GetPodName(deployment.Name, suffix),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
 			Labels: map[string]string{
-				deployapi.DeploymentPodTypeLabel:        label,
+				deployapi.DeploymentPodTypeLabel:        suffix,
 				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
 			},
 		},
@@ -383,8 +402,9 @@ func NewPodWatch(client kclient.PodsNamespacer, namespace, name, resourceVersion
 
 // NewAcceptNewlyObservedReadyPods makes a new AcceptNewlyObservedReadyPods
 // from a real client.
-func NewAcceptNewlyObservedReadyPods(kclient kclient.PodsNamespacer, timeout time.Duration, interval time.Duration) *AcceptNewlyObservedReadyPods {
+func NewAcceptNewlyObservedReadyPods(out io.Writer, kclient kclient.PodsNamespacer, timeout time.Duration, interval time.Duration) *AcceptNewlyObservedReadyPods {
 	return &AcceptNewlyObservedReadyPods{
+		out:          out,
 		timeout:      timeout,
 		interval:     interval,
 		acceptedPods: sets.NewString(),
@@ -423,6 +443,7 @@ func NewAcceptNewlyObservedReadyPods(kclient kclient.PodsNamespacer, timeout tim
 // Note that this struct is stateful and intended for use with a single
 // deployment and should be discarded and recreated between deployments.
 type AcceptNewlyObservedReadyPods struct {
+	out io.Writer
 	// getDeploymentPodStore should return a Store containing all the pods for
 	// the named deployment, and a channel to stop whatever process is feeding
 	// the store.
@@ -443,7 +464,11 @@ func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationContro
 	defer close(stopStore)
 
 	// Start checking for pod updates.
-	glog.V(0).Infof("Waiting %.f seconds for pods owned by deployment %q to become ready (checking every %.f seconds; %d pods previously accepted)", c.timeout.Seconds(), deployutil.LabelForDeployment(deployment), c.interval.Seconds(), c.acceptedPods.Len())
+	if c.acceptedPods.Len() > 0 {
+		fmt.Fprintf(c.out, "--> Waiting up to %s for pods in deployment %s to become ready (%d pods previously accepted)\n", c.timeout, deployment.Name, c.acceptedPods.Len())
+	} else {
+		fmt.Fprintf(c.out, "--> Waiting up to %s for pods in deployment %s to become ready\n", c.timeout, deployment.Name)
+	}
 	err := wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
 		// Check for pod readiness.
 		unready := sets.NewString()
@@ -464,20 +489,19 @@ func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationContro
 		}
 		// Check to see if we're done.
 		if unready.Len() == 0 {
-			glog.V(0).Infof("All pods ready for %s", deployutil.LabelForDeployment(deployment))
 			return true, nil
 		}
 		// Otherwise, try again later.
-		glog.V(4).Infof("Still waiting for %d pods to become ready for deployment %s", unready.Len(), deployutil.LabelForDeployment(deployment))
+		glog.V(4).Infof("Still waiting for %d pods to become ready for deployment %s", unready.Len(), deployment.Name)
 		return false, nil
 	})
 
 	// Handle acceptance failure.
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
-			return fmt.Errorf("pods for deployment %q took longer than %.f seconds to become ready", deployutil.LabelForDeployment(deployment), c.timeout.Seconds())
+			return fmt.Errorf("pods for deployment %q took longer than %.f seconds to become ready", deployment.Name, c.timeout.Seconds())
 		}
-		return fmt.Errorf("pod readiness check failed for deployment %q: %v", deployutil.LabelForDeployment(deployment), err)
+		return fmt.Errorf("pod readiness check failed for deployment %q: %v", deployment.Name, err)
 	}
 	return nil
 }

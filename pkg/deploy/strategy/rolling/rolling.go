@@ -1,11 +1,12 @@
 package rolling
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"time"
-
-	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -43,6 +44,8 @@ const DefaultApiRetryTimeout = 10 * time.Second
 // [1] https://github.com/kubernetes/kubernetes/pull/7183
 // [2] https://github.com/kubernetes/kubernetes/issues/7851
 type RollingDeploymentStrategy struct {
+	// out and errOut control where output is sent during the strategy
+	out, errOut io.Writer
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
 	// client is used to deal with ReplicationControllers.
@@ -78,8 +81,16 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer) *RollingDeploymentStrategy {
+	if out == nil {
+		out = ioutil.Discard
+	}
+	if errOut == nil {
+		errOut = ioutil.Discard
+	}
 	return &RollingDeploymentStrategy{
+		out:             out,
+		errOut:          errOut,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
 		client:          client,
@@ -92,7 +103,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 		},
 		hookExecutor: stratsupport.NewHookExecutor(client, tags, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval)
 		},
 	}
 }
@@ -114,10 +125,9 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
+			if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix, "pre"); err != nil {
 				return fmt.Errorf("Pre hook failed: %s", err)
 			}
-			glog.Infof("Pre hook finished")
 		}
 
 		// Execute the delegate strategy.
@@ -128,10 +138,9 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+			if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix, "post"); err != nil {
 				return fmt.Errorf("post hook failed: %s", err)
 			}
-			glog.Infof("Post hook finished")
 		}
 
 		// All done.
@@ -141,10 +150,9 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
-		glog.Infof("Pre hook finished")
 	}
 
 	// HACK: Assign the source ID annotation that the rolling updater expects,
@@ -155,23 +163,23 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	err = wait.Poll(s.apiRetryPeriod, s.apiRetryTimeout, func() (done bool, err error) {
 		existing, err := s.client.ReplicationControllers(to.Namespace).Get(to.Name)
 		if err != nil {
-			msg := fmt.Sprintf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to), err)
+			msg := fmt.Sprintf("couldn't look up deployment %s: %s", to.Name, err)
 			if kerrors.IsNotFound(err) {
 				return false, fmt.Errorf("%s", msg)
 			}
 			// Try again.
-			glog.Infof(msg)
+			fmt.Fprintln(s.errOut, "error:", msg)
 			return false, nil
 		}
 		if _, hasSourceId := existing.Annotations[sourceIdAnnotation]; !hasSourceId {
 			existing.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
 			if _, err := s.client.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
-				msg := fmt.Sprintf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(existing), err)
+				msg := fmt.Sprintf("couldn't assign source annotation to deployment %s: %v", existing.Name, err)
 				if kerrors.IsNotFound(err) {
 					return false, fmt.Errorf("%s", msg)
 				}
 				// Try again.
-				glog.Infof(msg)
+				fmt.Fprintln(s.errOut, "error:", msg)
 				return false, nil
 			}
 		}
@@ -196,7 +204,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	// Perform a rolling update.
 	rollingConfig := &kubectl.RollingUpdaterConfig{
-		Out:            &rollingUpdaterWriter{},
+		Out:            &rollingUpdaterWriter{w: s.out},
 		OldRc:          from,
 		NewRc:          to,
 		UpdatePeriod:   time.Duration(*params.UpdatePeriodSeconds) * time.Second,
@@ -213,33 +221,49 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	// Execute any post-hook.
 	if params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
-		glog.Info("Post hook finished")
 	}
 	return nil
 }
 
 // rollingUpdaterWriter is an io.Writer that delegates to glog.
-type rollingUpdaterWriter struct{}
+type rollingUpdaterWriter struct {
+	w      io.Writer
+	called bool
+}
 
 func (w *rollingUpdaterWriter) Write(p []byte) (n int, err error) {
-	glog.Info(fmt.Sprintf("RollingUpdater: %s", p))
-	return len(p), nil
+	n = len(p)
+	if bytes.HasPrefix(p, []byte("Continuing update with ")) {
+		return n, nil
+	}
+	if bytes.HasSuffix(p, []byte("\n")) {
+		p = p[:len(p)-1]
+	}
+	for _, line := range bytes.Split(p, []byte("\n")) {
+		if w.called {
+			fmt.Fprintln(w.w, "   ", string(line))
+		} else {
+			w.called = true
+			fmt.Fprintln(w.w, "-->", string(line))
+		}
+	}
+	return n, nil
 }
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
 // Execute executes the provided lifecycle hook
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
-	return i.executeFunc(hook, deployment, label)
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+	return i.executeFunc(hook, deployment, suffix, label)
 }

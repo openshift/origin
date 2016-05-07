@@ -141,8 +141,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
-			o.Expect(out).To(o.ContainSubstring("Pre hook finished"))
-			o.Expect(out).To(o.ContainSubstring("Deployment deployment-test-1 successfully made active"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
+			o.Expect(out).To(o.ContainSubstring("--> Success"))
 
 			g.By("verifying the deployment is marked complete and scaled to zero")
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
@@ -177,7 +177,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
-				o.Expect(out).To(o.ContainSubstring("Pre hook finished"))
+				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
+				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
+				o.Expect(out).To(o.ContainSubstring("--> Success"))
 
 				g.By("verifying the deployment is marked complete and scaled to zero")
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())

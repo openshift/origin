@@ -328,7 +328,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test",
+		"test", "test",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -366,7 +366,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test",
+		"test", "test",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -398,7 +398,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test",
+		"test", "test",
 	)
 	if err != nil {
 		t.Fatal(err)
