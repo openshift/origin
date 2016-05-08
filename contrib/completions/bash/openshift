@@ -15788,6 +15788,7 @@ _openshift_infra_deploy()
 
     flags+=("--deployment=")
     flags+=("--namespace=")
+    flags+=("--until=")
     flags+=("--google-json-key=")
     flags+=("--log-flush-frequency=")
 

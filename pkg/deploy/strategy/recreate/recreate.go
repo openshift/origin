@@ -28,6 +28,8 @@ import (
 type RecreateDeploymentStrategy struct {
 	// out and errOut control where output is sent during the strategy
 	out, errOut io.Writer
+	// until is a condition that, if reached, will cause the strategy to exit early
+	until string
 	// getReplicationController knows how to get a replication controller.
 	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
@@ -54,7 +56,7 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, decoder runtime.Decoder, out, errOut io.Writer) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -65,6 +67,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 	return &RecreateDeploymentStrategy{
 		out:    out,
 		errOut: errOut,
+		until:  until,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
@@ -112,6 +115,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 	}
 
+	if s.until == "pre" {
+		return strat.NewConditionReachedErr("pre hook succeeded")
+	}
+
 	// Scale down the from deployment.
 	if from != nil {
 		fmt.Fprintf(s.out, "--> Scaling %s down to zero\n", from.Name)
@@ -121,10 +128,18 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 	}
 
+	if s.until == "0%" {
+		return strat.NewConditionReachedErr("Reached 0% (no running pods)")
+	}
+
 	if params != nil && params.Mid != nil {
 		if err := s.hookExecutor.Execute(params.Mid, to, deployapi.MidHookPodSuffix, "mid"); err != nil {
 			return fmt.Errorf("mid hook failed: %s", err)
 		}
+	}
+
+	if s.until == "mid" {
+		return strat.NewConditionReachedErr("mid hook succeeded")
 	}
 
 	// Scale up the to deployment.
@@ -141,6 +156,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 				return fmt.Errorf("update acceptor rejected %s: %v", to.Name, err)
 			}
 			to = updatedTo
+
+			if strat.PercentageBetween(s.until, 1, 99) {
+				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s", s.until))
+			}
 		}
 
 		// Complete the scale up.
@@ -152,6 +171,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 			}
 			to = updatedTo
 		}
+	}
+
+	if (from == nil && strat.PercentageBetween(s.until, 1, 100)) || (from != nil && s.until == "100%") {
+		return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s", s.until))
 	}
 
 	// Execute any post-hook.

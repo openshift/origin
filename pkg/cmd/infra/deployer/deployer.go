@@ -17,7 +17,6 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
@@ -30,7 +29,25 @@ const (
 	deployerLong = `
 Perform a deployment
 
-This command launches a deployment as described by a deployment configuration.`
+This command launches a deployment as described by a deployment configuration. It accepts the name
+of a replication controller created by a deployment and runs that deployment to completion. You can
+use the --until flag to run the deployment until you reach the specified condition.
+
+Available conditions:
+
+* "start": after old deployments are scaled to zero
+* "pre": after the pre hook completes (even if no hook specified)
+* "mid": after the mid hook completes (even if no hook specified)
+* A percentage of the deployment, based on which strategy is in use
+  * "0%"   Recreate after the previous deployment is scaled to zero
+  * "N%"   Recreate after the acceptance check if this is not the first deployment
+  * "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
+  * "N%"   Rolling  the percentage of pods in the target deployment that are ready
+  * "100%" All      after the deployment is at full scale, but before the post hook runs
+
+Unrecognized conditions will be ignored and the deployment will run to completion. You can run this
+command multiple times when --until is specified - hooks will only be executed once.
+`
 )
 
 type config struct {
@@ -38,6 +55,8 @@ type config struct {
 
 	rcName    string
 	Namespace string
+
+	Until string
 }
 
 // NewCommandDeployer provides a CLI handler for deploy.
@@ -45,13 +64,17 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cfg := &config{}
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Use:   fmt.Sprintf("%s [--until=CONDITION]", name),
 		Short: "Run the deployer",
 		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
 			cfg.Out = os.Stdout
 			cfg.ErrOut = c.Out()
 			err := cfg.RunDeployer()
+			if strategy.IsConditionReached(err) {
+				fmt.Fprintf(os.Stdout, "--> %s\n", err.Error())
+				return
+			}
 			kcmdutil.CheckErr(err)
 		},
 	}
@@ -61,6 +84,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.rcName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
 	flag.StringVar(&cfg.Namespace, "namespace", util.Env("OPENSHIFT_DEPLOYMENT_NAMESPACE", ""), "The deployment namespace")
+	flag.StringVar(&cfg.Until, "until", "", "Exit the deployment when this condition is met. See help for more details")
 
 	return cmd
 }
@@ -86,16 +110,17 @@ func (cfg *config) RunDeployer() error {
 		return err
 	}
 
-	deployer := NewDeployer(kc, oc, cfg.Out, cfg.ErrOut)
+	deployer := NewDeployer(kc, oc, cfg.Out, cfg.ErrOut, cfg.Until)
 	return deployer.Deploy(cfg.Namespace, cfg.rcName)
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut io.Writer) *Deployer {
+func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut io.Writer, until string) *Deployer {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
+		until:  until,
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
@@ -106,10 +131,10 @@ func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder(), out, errOut), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder(), out, errOut)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, kapi.Codecs.UniversalDecoder(), recreate, out, errOut), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -128,6 +153,8 @@ func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut
 type Deployer struct {
 	// out and errOut control display when deploy is invoked
 	out, errOut io.Writer
+	// until is a condition to run until
+	until string
 	// strategyFor returns a DeploymentStrategy for config.
 	strategyFor func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error)
 	// getDeployment finds the named deployment.
@@ -153,7 +180,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Get a strategy for the deployment.
-	strategy, err := d.strategyFor(config)
+	s, err := d.strategyFor(config)
 	if err != nil {
 		return err
 	}
@@ -208,8 +235,12 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		}
 	}
 
+	if d.until == "start" {
+		return strategy.NewConditionReachedErr("Ready to start deployment")
+	}
+
 	// Perform the deployment.
-	if err := strategy.Deploy(from, to, desiredReplicas); err != nil {
+	if err := s.Deploy(from, to, desiredReplicas); err != nil {
 		return err
 	}
 	fmt.Fprintf(d.out, "--> Success\n")

@@ -46,6 +46,8 @@ const DefaultApiRetryTimeout = 10 * time.Second
 type RollingDeploymentStrategy struct {
 	// out and errOut control where output is sent during the strategy
 	out, errOut io.Writer
+	// until is a condition that, if reached, will cause the strategy to exit early
+	until string
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
 	// client is used to deal with ReplicationControllers.
@@ -81,7 +83,7 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -91,6 +93,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,
+		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
 		client:          client,
@@ -155,6 +158,14 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		}
 	}
 
+	if s.until == "pre" {
+		return strat.NewConditionReachedErr("pre hook succeeded")
+	}
+
+	if s.until == "0%" {
+		return strat.NewConditionReachedErr("Reached 0% (before rollout)")
+	}
+
 	// HACK: Assign the source ID annotation that the rolling updater expects,
 	// unless it already exists on the deployment.
 	//
@@ -213,9 +224,14 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		CleanupPolicy:  kubectl.PreserveRollingUpdateCleanupPolicy,
 		MaxSurge:       params.MaxSurge,
 		MaxUnavailable: params.MaxUnavailable,
+		OnProgress: func(oldRc, newRc *kapi.ReplicationController, percentage int) error {
+			if expect, ok := strat.Percentage(s.until); ok && percentage >= expect {
+				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s (currently %d%%)", s.until, percentage))
+			}
+			return nil
+		},
 	}
-	err = s.rollingUpdate(rollingConfig)
-	if err != nil {
+	if err := s.rollingUpdate(rollingConfig); err != nil {
 		return err
 	}
 
