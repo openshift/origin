@@ -240,7 +240,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			field.ErrorTypeRequired,
 			"spec.strategy.customParams",
 		},
-		"missing spec.strategy.customParams.image": {
+		"invalid spec.strategy.customParams.environment": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Spec: api.DeploymentConfigSpec{
@@ -248,14 +248,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Triggers: manualTrigger(),
 					Selector: test.OkSelector(),
 					Strategy: api.DeploymentStrategy{
-						Type:         api.DeploymentStrategyTypeCustom,
-						CustomParams: &api.CustomDeploymentStrategyParams{},
+						Type: api.DeploymentStrategyTypeCustom,
+						CustomParams: &api.CustomDeploymentStrategyParams{
+							Environment: []kapi.EnvVar{
+								{Name: "A=B"},
+							},
+						},
 					},
 					Template: test.OkPodTemplate(),
 				},
 			},
-			field.ErrorTypeRequired,
-			"spec.strategy.customParams.image",
+			field.ErrorTypeInvalid,
+			"spec.strategy.customParams.environment[0].name",
 		},
 		"missing spec.strategy.recreateParams.pre.failurePolicy": {
 			api.DeploymentConfig{

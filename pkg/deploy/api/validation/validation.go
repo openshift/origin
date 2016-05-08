@@ -110,6 +110,10 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 	}
 
+	if strategy.CustomParams != nil {
+		errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
+	}
+
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
@@ -124,8 +128,12 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("customParams"), ""))
-		} else {
-			errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
+		}
+		if strategy.RollingParams != nil {
+			errs = append(errs, validateRollingParams(strategy.RollingParams, pod, fldPath.Child("rollingParams"))...)
+		}
+		if strategy.RecreateParams != nil {
+			errs = append(errs, validateRecreateParams(strategy.RecreateParams, pod, fldPath.Child("recreateParams"))...)
 		}
 	case "":
 		errs = append(errs, field.Required(fldPath.Child("type"), "strategy type is required"))
@@ -140,7 +148,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, fldPath.Child("annotations"))...)
 	}
 
-	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
+	errs = append(errs, validation.ValidateResourceRequirements(&strategy.Resources, fldPath.Child("resources"))...)
 
 	return errs
 }
@@ -148,9 +156,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
-	if len(params.Image) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("image"), ""))
-	}
+	errs = append(errs, validateEnv(params.Environment, fldPath.Child("environment"))...)
 
 	return errs
 }
@@ -235,7 +241,7 @@ func validateEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 
 	for i, ev := range vars {
 		vErrs := field.ErrorList{}
-		idxPath := fldPath.Child("name").Index(i)
+		idxPath := fldPath.Index(i).Child("name")
 		if len(ev.Name) == 0 {
 			vErrs = append(vErrs, field.Required(idxPath, ""))
 		}

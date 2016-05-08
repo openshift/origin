@@ -160,7 +160,7 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 
 	// Track whether the pod has already run to completion and avoid showing logs
 	// or the Success message twice.
-	completed := false
+	completed, created := false, false
 
 	// Try to create the pod.
 	pod, err := e.podClient.CreatePod(deployment.Namespace, podSpec)
@@ -172,6 +172,7 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 		pod = podSpec
 		pod.Namespace = deployment.Namespace
 	} else {
+		created = true
 		fmt.Fprintf(e.out, "--> %s: Running hook pod ...\n", label)
 	}
 
@@ -200,7 +201,9 @@ waitLoop:
 				wg.Done()
 				break waitLoop
 			}
-			fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
+			if !created {
+				fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
+			}
 			go once.Do(func() { e.readPodLogs(pod, wg) })
 			break waitLoop
 		default:

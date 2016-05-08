@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
@@ -135,32 +136,42 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 //   1. For the Recreate and Rolling strategies, strategy, use the factory's
 //      DeployerImage as the container image, and the factory's Environment
 //      as the container environment.
-//   2. For all Custom strategy, use the strategy's image for the container
-//      image, and use the combination of the factory's Environment and the
-//      strategy's environment as the container environment.
+//   2. For all Custom strategies, or if the CustomParams field is set, use
+//      the strategy's image for the container image, and use the combination
+//      of the factory's Environment and the strategy's environment as the
+//      container environment.
+//
 func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
+	image := factory.DeployerImage
+	var environment []kapi.EnvVar
+	var command []string
+
+	set := sets.NewString()
+	// Use user-defined values from the strategy input.
+	if p := strategy.CustomParams; p != nil {
+		if len(p.Image) > 0 {
+			image = p.Image
+		}
+		if len(p.Command) > 0 {
+			command = p.Command
+		}
+		for _, env := range strategy.CustomParams.Environment {
+			set.Insert(env.Name)
+			environment = append(environment, env)
+		}
+	}
+
 	// Set default environment values
-	environment := []kapi.EnvVar{}
 	for _, env := range factory.Environment {
+		if set.Has(env.Name) {
+			continue
+		}
 		environment = append(environment, env)
 	}
 
-	// Every strategy type should be handled here.
-	switch strategy.Type {
-	case deployapi.DeploymentStrategyTypeRecreate, deployapi.DeploymentStrategyTypeRolling:
-		// Use the factory-configured image.
-	case deployapi.DeploymentStrategyTypeCustom:
-		// Use user-defined values from the strategy input.
-		for _, env := range strategy.CustomParams.Environment {
-			environment = append(environment, env)
-		}
-		return &kapi.Container{
-			Image: strategy.CustomParams.Image,
-			Env:   environment,
-		}
-	}
 	return &kapi.Container{
-		Image: factory.DeployerImage,
-		Env:   environment,
+		Image:   image,
+		Command: command,
+		Env:     environment,
 	}
 }

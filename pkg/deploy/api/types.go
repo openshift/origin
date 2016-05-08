@@ -29,12 +29,15 @@ type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
 	Type DeploymentStrategyType
 
-	// CustomParams are the input to the Custom deployment strategy.
-	CustomParams *CustomDeploymentStrategyParams
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams
+
+	// CustomParams are the input to the Custom deployment strategy, and may also
+	// be specified for the Recreate and Rolling strategies to customize the execution
+	// process that runs the deployment.
+	CustomParams *CustomDeploymentStrategyParams
 
 	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements
@@ -50,7 +53,7 @@ type DeploymentStrategyType string
 const (
 	// DeploymentStrategyTypeRecreate is a simple strategy suitable as a default.
 	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
-	// DeploymentStrategyTypeCustom is a user defined strategy.
+	// DeploymentStrategyTypeCustom is a user defined strategy. It is optional to set.
 	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
 	// DeploymentStrategyTypeRolling uses the Kubernetes RollingUpdater.
 	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"

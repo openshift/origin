@@ -27,6 +27,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	var (
 		deploymentFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment-test.yaml")
 		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "custom-deployment.yaml")
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
 	)
 
@@ -184,6 +185,29 @@ var _ = g.Describe("deploymentconfigs", func() {
 				g.By("verifying the deployment is marked complete and scaled to zero")
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 			}
+		})
+	})
+
+	g.Describe("with custom deployments", func() {
+		g.It("should run the custom deployment steps [Conformance]", func() {
+			out, err := oc.Run("create").Args("-f", customDeploymentFixture).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+
+			out, err = oc.Run("logs").Args("-f", "dc/custom-deployment").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
+			o.Expect(out).To(o.ContainSubstring("--> Scaling custom-deployment-1 to 2"))
+			o.Expect(out).To(o.ContainSubstring("--> Reached 50%"))
+			o.Expect(out).To(o.ContainSubstring("Halfway"))
+			o.Expect(out).To(o.ContainSubstring("Finished"))
+			o.Expect(out).To(o.ContainSubstring("--> Success"))
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 	})
 })
