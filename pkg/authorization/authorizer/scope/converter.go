@@ -54,6 +54,7 @@ const (
 // ScopeEvaluator takes a scope and returns the rules that express it
 type ScopeEvaluator interface {
 	Handles(scope string) bool
+	Describe(scope string) string
 	Validate(scope string) error
 	ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error)
 }
@@ -95,6 +96,17 @@ func (userEvaluator) Validate(scope string) error {
 	return fmt.Errorf("unrecognized scope: %v", scope)
 }
 
+func (userEvaluator) Describe(scope string) string {
+	switch scope {
+	case UserIndicator + UserInfo:
+		return "Information about you, including: username, identity names, and group membership."
+	case UserIndicator + UserAccessCheck:
+		return `Information about user privileges, e.g. "Can I create builds?"`
+	default:
+		return fmt.Sprintf("unrecognized scope: %v", scope)
+	}
+}
+
 func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
 	case UserIndicator + UserInfo:
@@ -118,36 +130,46 @@ func (clusterRoleEvaluator) Handles(scope string) bool {
 }
 
 func (e clusterRoleEvaluator) Validate(scope string) error {
-	if !e.Handles(scope) {
-		return fmt.Errorf("bad format for scope %v", scope)
-	}
-	tokens := strings.SplitN(scope, ":", 2)
-	if len(tokens) != 2 {
-		return fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	// namespaces can't have colons, but roles can.  pick last.
-	lastColonIndex := strings.LastIndex(tokens[1], ":")
-	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
-		return fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	return nil
+	_, _, err := e.getRoleNamespace(scope)
+	return err
 }
 
-func (clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+func (e clusterRoleEvaluator) getRoleNamespace(scope string) (string, string, error) {
+	if !e.Handles(scope) {
+		return "", "", fmt.Errorf("bad format for scope %v", scope)
+	}
 	tokens := strings.SplitN(scope, ":", 2)
 	if len(tokens) != 2 {
-		return nil, fmt.Errorf("bad format for scope %v", scope)
+		return "", "", fmt.Errorf("bad format for scope %v", scope)
 	}
 
 	// namespaces can't have colons, but roles can.  pick last.
 	lastColonIndex := strings.LastIndex(tokens[1], ":")
 	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
-		return nil, fmt.Errorf("bad format for scope %v", scope)
+		return "", "", fmt.Errorf("bad format for scope %v", scope)
 	}
-	roleName := tokens[1][0:lastColonIndex]
-	scopeNamespace := tokens[1][lastColonIndex+1:]
+
+	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], nil
+}
+
+func (e clusterRoleEvaluator) Describe(scope string) string {
+	roleName, scopeNamespace, err := e.getRoleNamespace(scope)
+	if err != nil {
+		return err.Error()
+	}
+
+	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
+		return roleName + " access in all projects"
+	}
+
+	return roleName + " access in the " + scopeNamespace + " project"
+}
+
+func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+	roleName, scopeNamespace, err := e.getRoleNamespace(scope)
+	if err != nil {
+		return nil, err
+	}
 
 	// if the scope limit on the clusterrole doesn't match, then don't add any rules, but its not an error
 	if !(scopeNamespace == authorizationapi.ScopesAllNamespaces || scopeNamespace == namespace) {
