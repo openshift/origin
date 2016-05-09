@@ -71,6 +71,7 @@ function os::test::extended::setup {
 
     os::util::environment::setup_all_server_vars "test-extended/core"
     os::util::environment::use_sudo
+    os::util::environment::setup_images_vars
     reset_tmp_dir
 
     # If the current system has the XFS volume dir mount point we configure
