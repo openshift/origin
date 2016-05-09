@@ -19,7 +19,7 @@ import (
 const (
 	volDirEnvVar       = "VOLUME_DIR"
 	podCreationTimeout = 120    // seconds
-	expectedQuotaKb    = 262144 // launcher script sets 256Mi, xfs_quota reports in Kb.
+	expectedQuotaKb    = 917504 // launcher script sets 896Mi, xfs_quota reports in Kb.
 )
 
 func lookupFSGroup(oc *exutil.CLI, project string) (int, error) {
