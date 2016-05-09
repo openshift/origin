@@ -87,6 +87,7 @@
     "ace-builds": {
       "main": [
         "src-min-noconflict/ace.js",
+        "src-min-noconflict/ext-searchbox.js",
         "src-min-noconflict/mode-dockerfile.js",
         "src-min-noconflict/mode-groovy.js",
         "src-min-noconflict/mode-yaml.js",
