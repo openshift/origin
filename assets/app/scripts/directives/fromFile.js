@@ -218,7 +218,20 @@ angular.module("openshiftConsole")
         }
 
         function checkIfExists(item) {
+
+          // check for invalid and unsupported object kind and version
           var resourceGroupVersion = APIService.objectToResourceGroupVersion(item);
+          if (!resourceGroupVersion) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.invalidObjectKindOrVersion(item) };
+            return;
+          }
+          if (!APIService.apiInfo(resourceGroupVersion)) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.unsupportedObjectKindOrVersion(item) };
+            return;
+          }
+
           // Check if the resource already exists. If it does, replace it spec with the new one.
           return DataService.get(resourceGroupVersion, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
