@@ -259,6 +259,11 @@ const (
 	// StatusReasonExceededRetryTimeout is an error condition when the build has
 	// not completed and retrying the build times out.
 	StatusReasonExceededRetryTimeout = "ExceededRetryTimeout"
+
+	// StatusReasonMissingPushSecret indicates that the build is missing required
+	// secret for pushing the output image.
+	// The build will stay in the pending state until the secret is created, or the build times out.
+	StatusReasonMissingPushSecret = "MissingPushSecret"
 )
 
 // BuildSource is the input used for the build.

@@ -197,6 +197,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	buildPodController := &buildcontroller.BuildPodController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: factory.BuildUpdater,
+		SecretClient: factory.KubeClient,
 		PodManager:   client,
 	}
 
