@@ -169,14 +169,26 @@ func makeNamespaceGlobal(ns *api.Namespace) {
 	expectNoError(err)
 }
 
-func skipIfSingleTenant() {
-	if !pluginIsolatesNamespaces() {
-		e2e.Skipf("Not a multi-tenant plugin.")
-	}
+func InSingleTenantContext(body func()) {
+	Context("when using a single-tenant plugin", func() {
+		BeforeEach(func() {
+			if pluginIsolatesNamespaces() {
+				e2e.Skipf("Not a single-tenant plugin.")
+			}
+		})
+
+		body()
+	})
 }
 
-func skipIfMultiTenant() {
-	if pluginIsolatesNamespaces() {
-		e2e.Skipf("Not a single-tenant plugin.")
-	}
+func InMultiTenantContext(body func()) {
+	Context("when using a multi-tenant plugin", func() {
+		BeforeEach(func() {
+			if !pluginIsolatesNamespaces() {
+				e2e.Skipf("Not a multi-tenant plugin.")
+			}
+		})
+
+		body()
+	})
 }
