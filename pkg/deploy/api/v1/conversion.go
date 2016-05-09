@@ -6,6 +6,10 @@ import (
 	"reflect"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -132,6 +136,20 @@ func Convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategy
 	return nil
 }
 
+func Convert_v1beta1_ReplicaSet_to_api_ReplicationController(in *v1beta1.ReplicaSet, out *api.ReplicationController, s conversion.Scope) error {
+	intermediate1 := &extensions.ReplicaSet{}
+	if err := v1beta1.Convert_v1beta1_ReplicaSet_To_extensions_ReplicaSet(in, intermediate1, s); err != nil {
+		return err
+	}
+
+	intermediate2 := &v1.ReplicationController{}
+	if err := v1.Convert_extensions_ReplicaSet_to_v1_ReplicationController(intermediate1, intermediate2, s); err != nil {
+		return err
+	}
+
+	return v1.Convert_v1_ReplicationController_To_api_ReplicationController(intermediate2, out, s)
+}
+
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
 		Convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
@@ -139,6 +157,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 
 		Convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
 		Convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
+
+		Convert_v1beta1_ReplicaSet_to_api_ReplicationController,
 	)
 	if err != nil {
 		panic(err)
