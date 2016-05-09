@@ -83,6 +83,7 @@ type RegistryConfig struct {
 	Selector       string
 	ServiceAccount string
 	DaemonSet      bool
+	EnforceQuota   bool
 
 	ServingCertPath string
 	ServingKeyPath  string
@@ -121,6 +122,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Volume:         "/registry",
 		ServiceAccount: "registry",
 		Replicas:       1,
+		EnforceQuota:   true,
 	}
 
 	cmd := &cobra.Command{
@@ -153,6 +155,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
 	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "Use a daemonset instead of a deployment config.")
+	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If set, the registry will refuse to write blobs if they exceed quota limits")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
@@ -303,6 +306,11 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 	env := app.Environment{}
 	env.Add(secretEnv)
 
+	enforceQuota := "false"
+	if cfg.EnforceQuota {
+		enforceQuota = "true"
+	}
+	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = enforceQuota
 	healthzPort := defaultPort
 	if len(ports) > 0 {
 		healthzPort = ports[0].ContainerPort

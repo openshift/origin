@@ -30,6 +30,11 @@ const (
 	// DockerRegistryURLEnvVar is a mandatory environment variable name specifying url of internal docker
 	// registry. All references to pushed images will be prefixed with its value.
 	DockerRegistryURLEnvVar = "DOCKER_REGISTRY_URL"
+
+	// EnforceQuotaEnvVar is a boolean environment variable that allows to turn quota enforcement on or off.
+	// By default, quota enforcement is off. It overrides openshift middleware configuration option.
+	// Recognized values are "true" and "false".
+	EnforceQuotaEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"
 )
 
 var (
@@ -42,6 +47,9 @@ var (
 	// insecureTransport is the transport pool that does not verify remote TLS certificates for use
 	// during pullthrough against registries marked as insecure.
 	insecureTransport http.RoundTripper
+	// quotaEnforcing contains shared caches of quota objects keyed by project name. Will be initialized
+	// only if the quota is enforced. See EnforceQuotaEnvVar.
+	quotaEnforcing *quotaEnforcingConfig
 )
 
 func init() {
@@ -58,6 +66,9 @@ func init() {
 			registryOSClient, kClient, err := DefaultRegistryClient.Clients()
 			if err != nil {
 				return nil, err
+			}
+			if quotaEnforcing == nil {
+				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), options)
 			}
 			return newRepositoryWithClient(registryOSClient, kClient, kClient, ctx, repo, options)
 		},
@@ -152,10 +163,12 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 
 	bs := r.Repository.Blobs(ctx)
 
-	bs = &quotaRestrictedBlobStore{
-		BlobStore: bs,
+	if quotaEnforcing != nil {
+		bs = &quotaRestrictedBlobStore{
+			BlobStore: bs,
 
-		repo: &repo,
+			repo: &repo,
+		}
 	}
 
 	if r.pullthrough {

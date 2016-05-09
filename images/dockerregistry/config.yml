@@ -18,3 +18,4 @@ middleware:
     - name: openshift
       options:
         pullthrough: true
+        enforcequota: false

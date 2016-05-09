@@ -13,6 +13,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 
@@ -20,6 +22,44 @@ import (
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
+
+// newQuotaEnforcingConfig creates a configuration for quotaRestrictedBlobStore.
+func newQuotaEnforcingConfig(ctx context.Context, enforceQuota string, options map[string]interface{}) *quotaEnforcingConfig {
+	buildOptionValues := func(optionName string, override string) []string {
+		optValues := []string{}
+		if value, ok := options[optionName]; ok {
+			var res string
+			switch v := value.(type) {
+			case string:
+				res = v
+			case bool:
+				res = fmt.Sprintf("%t", v)
+			default:
+				res = fmt.Sprintf("%v", v)
+			}
+			optValues = append(optValues, res)
+		}
+		optValues = append(optValues, override)
+		return optValues
+	}
+
+	enforce := false
+	for _, s := range buildOptionValues("enforcequota", enforceQuota) {
+		enforce = s == "true"
+	}
+	if !enforce {
+		context.GetLogger(ctx).Info("quota enforcement disabled")
+	}
+	return &quotaEnforcingConfig{
+		enforcementDisabled: !enforce,
+	}
+}
+
+// quotaEnforcingConfig holds configuration for quotaRestrictedBlobStore.
+type quotaEnforcingConfig struct {
+	// if set, disables quota enforcement
+	enforcementDisabled bool
+}
 
 // quotaRestrictedBlobStore wraps upstream blob store with a guard preventing big layers exceeding image quotas
 // from being saved.
