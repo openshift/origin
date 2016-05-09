@@ -131,6 +131,28 @@ func TestValidateClientAuthorization(t *testing.T) {
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
+		"no scope handler": {
+			A: oapi.OAuthClientAuthorization{
+				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ClientName: "myclientname",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			A: oapi.OAuthClientAuthorization{
+				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ClientName: "myclientname",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidateClientAuthorization(&v.A)
@@ -225,6 +247,28 @@ func TestValidateAccessTokens(t *testing.T) {
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
+		"no scope handler": {
+			Token: oapi.OAuthAccessToken{
+				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			Token: oapi.OAuthAccessToken{
+				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidateAccessToken(&v.Token)
@@ -249,6 +293,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
+		Scopes:     []string{`user:info`},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -304,6 +349,39 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			},
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
+		},
+		"no scope handler": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"illegal character": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{`role:asdf":foo`},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
 		},
 	}
 	for k, v := range errorCases {
