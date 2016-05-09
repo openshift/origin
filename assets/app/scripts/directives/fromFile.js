@@ -218,15 +218,29 @@ angular.module("openshiftConsole")
         }
 
         function checkIfExists(item) {
+
+          // check for invalid and unsupported object kind and version
+          var resourceGroupVersion = APIService.objectToResourceGroupVersion(item);
+          if (!resourceGroupVersion) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.invalidObjectKindOrVersion(item) };
+            return;
+          }
+          if (!APIService.apiInfo(resourceGroupVersion)) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.unsupportedObjectKindOrVersion(item) };
+            return;
+          }
+
           // Check if the resource already exists. If it does, replace it spec with the new one.
-          return DataService.get(APIService.kindToResource(item.kind), item.metadata.name, $scope.context, {errorNotification: false}).then(
+          return DataService.get(resourceGroupVersion, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
             function(resource) {
-              if (item.kind === "Template") {
-                resource.metadata.annotations = item.metadata.annotations;
-              } else {
+              if (item.kind !== "Template") {
                 resource.spec = item.spec;
               }
+              resource.metadata.annotations = item.metadata.annotations;
+              resource.metadata.labels = item.metadata.labels;
               $scope.updateResources.push(resource);
             },
             // resource doesn't exist with RC 404 or catch other RC 
