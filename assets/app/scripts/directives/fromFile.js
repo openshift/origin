@@ -236,11 +236,11 @@ angular.module("openshiftConsole")
           return DataService.get(resourceGroupVersion, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
             function(resource) {
-              if (item.kind === "Template") {
-                resource.metadata.annotations = item.metadata.annotations;
-              } else {
+              if (item.kind !== "Template") {
                 resource.spec = item.spec;
               }
+              resource.metadata.annotations = item.metadata.annotations;
+              resource.metadata.labels = item.metadata.labels;
               $scope.updateResources.push(resource);
             },
             // resource doesn't exist with RC 404 or catch other RC 
