@@ -19,3 +19,4 @@ middleware:
       options:
         pullthrough: true
         enforcequota: false
+        projectcachettl: 1m

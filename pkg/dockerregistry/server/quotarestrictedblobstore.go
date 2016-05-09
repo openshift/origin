@@ -14,7 +14,9 @@ package server
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 
@@ -23,8 +25,14 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
 
-// newQuotaEnforcingConfig creates a configuration for quotaRestrictedBlobStore.
-func newQuotaEnforcingConfig(ctx context.Context, enforceQuota string, options map[string]interface{}) *quotaEnforcingConfig {
+const (
+	defaultProjectCacheTTL = time.Minute
+)
+
+// newQuotaEnforcingConfig creates caches for quota objects. The objects are stored with given eviction
+// timeout. Caches will only be initialized if the given ttl is positive. Options are gathered from
+// configuration file and will be overriden by enforceQuota and projectCacheTTL environment variable values.
+func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
 	buildOptionValues := func(optionName string, override string) []string {
 		optValues := []string{}
 		if value, ok := options[optionName]; ok {
@@ -37,9 +45,13 @@ func newQuotaEnforcingConfig(ctx context.Context, enforceQuota string, options m
 			default:
 				res = fmt.Sprintf("%v", v)
 			}
-			optValues = append(optValues, res)
+			if len(res) > 0 {
+				optValues = append(optValues, res)
+			}
 		}
-		optValues = append(optValues, override)
+		if len(override) > 0 {
+			optValues = append(optValues, override)
+		}
 		return optValues
 	}
 
@@ -49,16 +61,44 @@ func newQuotaEnforcingConfig(ctx context.Context, enforceQuota string, options m
 	}
 	if !enforce {
 		context.GetLogger(ctx).Info("quota enforcement disabled")
+		return &quotaEnforcingConfig{
+			enforcementDisabled:  true,
+			projectCacheDisabled: true,
+		}
 	}
+
+	ttl := defaultProjectCacheTTL
+	for _, s := range buildOptionValues("projectcachettl", projectCacheTTL) {
+		parsed, err := time.ParseDuration(s)
+		if err != nil {
+			logrus.Errorf("failed to parse project cache ttl %q: %v", s, err)
+			continue
+		}
+		ttl = parsed
+	}
+
+	if ttl <= 0 {
+		context.GetLogger(ctx).Info("not using project caches for quota objects")
+		return &quotaEnforcingConfig{
+			projectCacheDisabled: true,
+		}
+	}
+
+	context.GetLogger(ctx).Infof("caching project quota objects with TTL %s", ttl.String())
 	return &quotaEnforcingConfig{
-		enforcementDisabled: !enforce,
+		limitRanges: newProjectObjectListCache(ttl),
 	}
 }
 
-// quotaEnforcingConfig holds configuration for quotaRestrictedBlobStore.
+// quotaEnforcingConfig holds configuration and caches of object lists keyed by project name. Caches are
+// thread safe and shall be reused by all middleware layers.
 type quotaEnforcingConfig struct {
 	// if set, disables quota enforcement
 	enforcementDisabled bool
+	// if set, disables use of caching of quota objects per project
+	projectCacheDisabled bool
+	// a cache of limit range objects keyed by project name
+	limitRanges projectObjectListStore
 }
 
 // quotaRestrictedBlobStore wraps upstream blob store with a guard preventing big layers exceeding image quotas
@@ -130,10 +170,30 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 		return nil
 	}
 
-	lrs, err := repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
-	if err != nil {
-		context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
-		return err
+	var (
+		lrs *kapi.LimitRangeList
+		err error
+	)
+
+	if !quotaEnforcing.projectCacheDisabled {
+		obj, exists, _ := quotaEnforcing.limitRanges.get(repo.namespace)
+		if exists {
+			lrs = obj.(*kapi.LimitRangeList)
+		}
+	}
+	if lrs == nil {
+		context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", repo.namespace)
+		lrs, err = repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
+		if err != nil {
+			context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
+			return err
+		}
+		if !quotaEnforcing.projectCacheDisabled {
+			err = quotaEnforcing.limitRanges.add(repo.namespace, lrs)
+			if err != nil {
+				context.GetLogger(ctx).Errorf("failed to cache limit range list: %v", err)
+			}
+		}
 	}
 
 	for _, limitrange := range lrs.Items {

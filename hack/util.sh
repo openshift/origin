@@ -641,7 +641,11 @@ function install_router {
 function install_registry {
 	# The --mount-host option is provided to reuse local storage.
 	echo "[INFO] Installing the registry"
-	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
+	# For testing purposes, ensure the quota objects are always up to date in the registry by
+	# disabling project cache.
+	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" -o json | \
+		oc env -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
+		oc create -f -
 }
 
 function wait_for_registry {

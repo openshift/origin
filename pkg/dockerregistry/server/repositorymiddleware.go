@@ -35,6 +35,11 @@ const (
 	// By default, quota enforcement is off. It overrides openshift middleware configuration option.
 	// Recognized values are "true" and "false".
 	EnforceQuotaEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"
+
+	// ProjectCacheTTLEnvVar is an environment variable specifying an eviction timeout for project quota
+	// objects. It takes a valid time duration string (e.g. "2m"). If empty, you get the default timeout. If
+	// zero (e.g. "0m"), caching is disabled.
+	ProjectCacheTTLEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL"
 )
 
 var (
@@ -68,7 +73,7 @@ func init() {
 				return nil, err
 			}
 			if quotaEnforcing == nil {
-				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), options)
+				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
 			return newRepositoryWithClient(registryOSClient, kClient, kClient, ctx, repo, options)
 		},
