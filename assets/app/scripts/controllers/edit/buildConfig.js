@@ -810,7 +810,7 @@ angular.module('openshiftConsole')
 
     $scope.getSourceMap = function(sourceMap, sources) {
       if (sources.type === "None") {
-        return sourceMap
+        return sourceMap;
       }
       sourceMap.none = false;
       angular.forEach(sources, function(value, key) {

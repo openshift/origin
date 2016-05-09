@@ -86,7 +86,7 @@ angular.module("openshiftConsole")
             }
           });
           return erroredTasks;
-        };
+        }
         $scope.erroredTasks = erroredTasks;
 
         function pendingTasks(tasks) {
@@ -97,7 +97,7 @@ angular.module("openshiftConsole")
             }
           });
           return pendingTasks;
-        };
+        }
         $scope.pendingTasks = pendingTasks;
 
         $scope.goBack = function() {

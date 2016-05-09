@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ConfirmReplaceModalController', function ($scope, $uibModalInstance, AlertMessageService) {
+  .controller('ConfirmReplaceModalController', function ($scope, $uibModalInstance) {
     $scope.replace = function() {
       $uibModalInstance.close('replace');
     };
