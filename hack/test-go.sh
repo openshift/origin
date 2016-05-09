@@ -42,9 +42,7 @@ trap exit_trap EXIT
 
 start_time=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 cd "${OS_ROOT}"
 os::log::install_errexit
 os::build::setup_env

@@ -2,11 +2,6 @@
 # This utility file contains functions that wrap commands to be tested. All wrapper functions run commands
 # in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
 
-# We assume ${OS_ROOT} is set
-source "${OS_ROOT}/hack/text.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-
 # expect_success runs the cmd and expects an exit code of 0
 function os::cmd::expect_success() {
 	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; exit 1; fi

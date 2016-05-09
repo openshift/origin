@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # This script holds library functions for setting up the shell environment for OpenShift scripts
-#
-# This script assumes $OS_ROOT is set before being sourced
-source "${OS_ROOT}/hack/util.sh"
 
 # os::util::environment::use_sudo updates $USE_SUDO to be 'true', so that later scripts choosing between
 # execution using 'sudo' and execution without it chose to use 'sudo'

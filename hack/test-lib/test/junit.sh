@@ -25,9 +25,7 @@ trap exit_trap EXIT
 
 start_time=$(date +%s)
 OS_ROOT="$( dirname "${BASH_SOURCE}" )"/../../..
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # envars used to track these interactions are not propagated out of the subshells used to run these commands
