@@ -1590,7 +1590,7 @@ Revert part of an application back to a previous deployment
   $ oc rollback frontend-2
 
   # Perform the rollback manually by piping the JSON of the new config back to oc
-  $ oc rollback frontend --output=json | oc update deploymentConfigs deployment -f -
+  $ oc rollback frontend -o json | oc replace dc/frontend -f -
 ----
 ====
 

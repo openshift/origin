@@ -54,7 +54,7 @@ will be.`
   $ %[1]s rollback frontend-2
 
   # Perform the rollback manually by piping the JSON of the new config back to %[1]s
-  $ %[1]s rollback frontend --output=json | %[1]s update deploymentConfigs deployment -f -`
+  $ %[1]s rollback frontend -o json | %[1]s replace dc/frontend -f -`
 )
 
 // NewCmdRollback creates a CLI rollback command.
