@@ -93,9 +93,10 @@ func (DeploymentConfigSpec) SwaggerDoc() map[string]string {
 }
 
 var map_DeploymentConfigStatus = map[string]string{
-	"":              "DeploymentConfigStatus represents the current deployment state.",
-	"latestVersion": "LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig is out of sync.",
-	"details":       "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
+	"":                   "DeploymentConfigStatus represents the current deployment state.",
+	"latestVersion":      "LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig is out of sync.",
+	"details":            "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
+	"observedGeneration": "ObservedGeneration is the most recent generation observed by the controller.",
 }
 
 func (DeploymentConfigStatus) SwaggerDoc() map[string]string {

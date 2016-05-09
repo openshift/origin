@@ -477,6 +477,7 @@ func autoConvert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *Dep
 	} else {
 		out.Details = nil
 	}
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
@@ -498,6 +499,7 @@ func autoConvert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *dep
 	} else {
 		out.Details = nil
 	}
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 

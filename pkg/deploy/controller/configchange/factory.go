@@ -46,17 +46,8 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
 	changeController := &DeploymentConfigChangeController{
-		changeStrategy: &changeStrategyImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
-			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return factory.Client.DeploymentConfigs(namespace).Generate(name)
-			},
-			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				return factory.Client.DeploymentConfigs(namespace).Update(config)
-			},
-		},
+		client:  factory.Client,
+		kClient: factory.KubeClient,
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},

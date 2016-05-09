@@ -238,6 +238,9 @@ const (
 	// DeploymentReplicasAnnotation is for internal use only and is for
 	// detecting external modifications to deployment replica counts.
 	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
+	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
+	// The annotation value does not matter and its mere presence indicates instantiation.
+	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 	// PostHookPodSuffix is the suffix added to all pre hook pods
 	PreHookPodSuffix = "hook-pre"
 	// PostHookPodSuffix is the suffix added to all mid hook pods
@@ -263,6 +266,10 @@ const MaxDeploymentDurationSeconds int64 = 21600
 // DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
 // annotation that signifies that the deployment should be cancelled
 const DeploymentCancelledAnnotationValue = "true"
+
+// DeploymentInstantiatedAnnotationValue represents the value for the DeploymentInstantiatedAnnotation
+// annotation that signifies that the deployment should be instantiated.
+const DeploymentInstantiatedAnnotationValue = "true"
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
@@ -313,6 +320,8 @@ type DeploymentConfigStatus struct {
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails
+	// ObservedGeneration is the most recent generation observed by the controller.
+	ObservedGeneration int64
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.

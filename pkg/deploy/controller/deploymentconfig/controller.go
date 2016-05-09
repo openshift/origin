@@ -67,7 +67,7 @@ func NewDeploymentConfigController(kubeClient kclient.Interface, osClient osclie
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	// There's nothing to reconcile until the version is nonzero.
 	if config.Status.LatestVersion == 0 {
-		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(5).Infof("Waiting for first version of %q", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -136,7 +136,8 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
-	return nil
+
+	return c.updateStatus(config)
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -219,7 +220,8 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	default:
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
-		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		var err error
+		config, err = c.osClient.DeploymentConfigs(config.Namespace).Update(config)
 		if err != nil {
 			return err
 		}
@@ -260,5 +262,18 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			}
 		}
 	}
+
+	return c.updateStatus(config)
+}
+
+func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig) error {
+	if config.Generation > config.Status.ObservedGeneration {
+		config.Status.ObservedGeneration = config.Generation
+	}
+	if _, err := c.osClient.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
+		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return transientError(fmt.Sprintf("cannot update the status for %q - requeuing", deployutil.LabelForDeploymentConfig(config)))
+	}
+	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
 	return nil
 }

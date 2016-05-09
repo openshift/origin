@@ -208,7 +208,9 @@ tryuntil oc get rc/failing-dc-mid-1
 oc logs -f dc/failing-dc-mid
 wait_for_command "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc-mid' 'test mid hook executed'
-oc deploy failing-dc-mid --latest
+# The following command is the equivalent of 'oc deploy --latest' on old clients
+# Ensures we won't break those while removing the dc status update from oc
+os::cmd::expect_success "oc patch dc/failing-dc-mid -p '{\"status\":{\"latestVersion\":2}}'"
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc-mid' 'test mid hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test mid hook executed'
 

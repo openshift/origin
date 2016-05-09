@@ -229,6 +229,9 @@ const (
 	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
 	// The annotation value does not matter and its mere presence indicates cancellation
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
+	// The annotation value does not matter and its mere presence indicates instantiation.
+	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 )
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
@@ -281,6 +284,8 @@ type DeploymentConfigStatus struct {
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`
+	// ObservedGeneration is the most recent generation observed by the controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.

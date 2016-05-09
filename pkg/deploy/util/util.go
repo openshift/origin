@@ -121,6 +121,13 @@ func CauseFromAutomaticImageChange(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+// IsImageChangeControllerChange detects if there is an image change between two dcs.
+// Used by the update hook.
+func IsImageChangeControllerChange(newDc, oldDc deployapi.DeploymentConfig) bool {
+	return CauseFromAutomaticImageChange(&newDc) && !CauseFromAutomaticImageChange(&oldDc) &&
+		newDc.Status.LatestVersion != oldDc.Status.LatestVersion
+}
+
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
@@ -270,6 +277,23 @@ func DeploymentVersionFor(obj runtime.Object) int {
 func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	value := annotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+}
+
+func Instantiate(dc deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+	if dc.Annotations == nil {
+		dc.Annotations = make(map[string]string)
+	}
+	dc.Annotations[deployapi.DeploymentInstantiatedAnnotation] = deployapi.DeploymentInstantiatedAnnotationValue
+	return &dc
+}
+
+func IsInstantiated(dc *deployapi.DeploymentConfig) bool {
+	value := annotationFor(dc, deployapi.DeploymentInstantiatedAnnotation)
+	return strings.EqualFold(value, deployapi.DeploymentInstantiatedAnnotationValue)
+}
+
+func HasSynced(dc *deployapi.DeploymentConfig) bool {
+	return dc.Status.ObservedGeneration >= dc.Generation
 }
 
 // IsTerminatedDeployment returns true if the passed deployment has terminated (either
