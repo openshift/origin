@@ -6,9 +6,11 @@
   background-image: url('@{image-path}/logo-enterprise-thin.svg');
   background-repeat: no-repeat;
   background-position: center left;
-  background-size: contain;
-  height: 20px;
-  width: 190px;
+  // Use initial logo dimensions; or set a width and/or height (eg - background-size: auto 36px)
+  // Max logo dimensions width 230px / height 36px
+  background-size: initial;
+  height: @navbar-os-header-height-mobile;
+  width: 230px;
 }
 
 .navbar-pf-alt {
@@ -90,7 +92,7 @@
   .navbar-brand {
     border: 0;
     height: auto;
-    padding: 13px 20px;
+    padding: 0 0 0 10px;
     position: relative;
   }
   .navbar-toggle {
@@ -287,10 +289,13 @@
       height: 60px;
       width: 88px;
       .navbar-brand {
-        padding: 20px 0;
+        padding: 0;
         margin-left: 30px;
         margin-right: 75px;
         margin-top: 0;
+        #header-logo {
+          height: @navbar-os-header-height-desktop;
+        }
       }
     }
   }
