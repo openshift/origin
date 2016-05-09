@@ -1035,6 +1035,12 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 			return "", fmt.Errorf("GET of %s returned: %d", url, resp.StatusCode)
 		}
 		respBody, err := ioutil.ReadAll(resp.Body)
+		cookies := resp.Cookies()
+		for _, cookie := range cookies {
+			if len(cookie.Name) != 32 || len(cookie.Value) != 32 {
+				return "", fmt.Errorf("GET of %s returned bad cookie %s=%s", url, cookie.Name, cookie.Value)
+			}
+		}
 		return string(respBody), err
 
 	case "ws", "wss":
