@@ -270,15 +270,6 @@ func DeepCopy_api_DeploymentLogOptions(in DeploymentLogOptions, out *DeploymentL
 
 func DeepCopy_api_DeploymentStrategy(in DeploymentStrategy, out *DeploymentStrategy, c *conversion.Cloner) error {
 	out.Type = in.Type
-	if in.CustomParams != nil {
-		in, out := in.CustomParams, &out.CustomParams
-		*out = new(CustomDeploymentStrategyParams)
-		if err := DeepCopy_api_CustomDeploymentStrategyParams(*in, *out, c); err != nil {
-			return err
-		}
-	} else {
-		out.CustomParams = nil
-	}
 	if in.RecreateParams != nil {
 		in, out := in.RecreateParams, &out.RecreateParams
 		*out = new(RecreateDeploymentStrategyParams)
@@ -296,6 +287,15 @@ func DeepCopy_api_DeploymentStrategy(in DeploymentStrategy, out *DeploymentStrat
 		}
 	} else {
 		out.RollingParams = nil
+	}
+	if in.CustomParams != nil {
+		in, out := in.CustomParams, &out.CustomParams
+		*out = new(CustomDeploymentStrategyParams)
+		if err := DeepCopy_api_CustomDeploymentStrategyParams(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.CustomParams = nil
 	}
 	if err := api.DeepCopy_api_ResourceRequirements(in.Resources, &out.Resources, c); err != nil {
 		return err
