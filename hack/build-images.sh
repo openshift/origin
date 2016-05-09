@@ -55,10 +55,14 @@ else
   os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
 fi
 
-"${OS_ROOT}/hack/build-go.sh" cmd/oc
-oc="$(os::build::find-binary oc)"
+oc="$(os::build::find-binary oc ${OS_ROOT})"
+if [[ -z "${oc}" ]]; then
+  "${OS_ROOT}/hack/build-go.sh" cmd/oc
+  oc="$(os::build::find-binary oc ${OS_ROOT})"
+fi
+
 function build() {
-  oc ex dockerbuild $2 $1
+  "${oc}" ex dockerbuild $2 $1
 }
 
 # Create link to file if the FS supports hardlinks, otherwise copy the file
