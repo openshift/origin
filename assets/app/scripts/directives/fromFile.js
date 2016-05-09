@@ -218,8 +218,9 @@ angular.module("openshiftConsole")
         }
 
         function checkIfExists(item) {
+          var resourceGroupVersion = APIService.objectToResourceGroupVersion(item);
           // Check if the resource already exists. If it does, replace it spec with the new one.
-          return DataService.get(APIService.kindToResource(item.kind), item.metadata.name, $scope.context, {errorNotification: false}).then(
+          return DataService.get(resourceGroupVersion, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
             function(resource) {
               if (item.kind === "Template") {
