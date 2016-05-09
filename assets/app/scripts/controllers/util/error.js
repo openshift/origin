@@ -11,8 +11,6 @@ angular.module('openshiftConsole')
   .controller('ErrorController', function ($scope, $window) {
     var params = URI(window.location.href).query(true);
     var error = params.error;
-    var error_description = params.error_description;
-    var error_uri = params.error_uri;
 
     switch(error) {
       case 'access_denied':

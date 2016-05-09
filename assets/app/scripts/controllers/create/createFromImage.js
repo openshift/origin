@@ -183,7 +183,7 @@ angular.module("openshiftConsole")
 
         initAndValidate($scope);
 
-        var ifResourcesDontExist = function(apiObjects, namespace, scope){
+        var ifResourcesDontExist = function(apiObjects, namespace){
           var result = $q.defer();
           var successResults = [];
           var failureResults = [];
@@ -195,9 +195,10 @@ angular.module("openshiftConsole")
                 //means some resources exist with the given nanme
                 result.reject(successResults);
               }
-              else
+              else {
                 //means no resources exist with the given nanme
                 result.resolve(apiObjects);
+              }
             }
           }
 
@@ -301,7 +302,7 @@ angular.module("openshiftConsole")
           var resourceMap = ApplicationGenerator.generate($scope);
           //init tasks
           var resources = [];
-          angular.forEach(resourceMap, function(value, key){
+          angular.forEach(resourceMap, function(value){
             if(value !== null){
               Logger.debug("Generated resource definition:", value);
               resources.push(value);
