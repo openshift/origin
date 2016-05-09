@@ -34,19 +34,15 @@ type ovsPlugin struct {
 	multitenant bool
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
 	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if multitenant {
-		return plugin, registry, err
-	} else {
-		return plugin, nil, err
-	}
+	return plugin, err
 }
 
 func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {

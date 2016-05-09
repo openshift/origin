@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -15,7 +14,6 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -25,14 +23,9 @@ import (
 type Registry struct {
 	oClient          *osclient.Client
 	kClient          *kclient.Client
-	podsByIP         map[string]*kapi.Pod
-	podTrackingLock  sync.Mutex
 	serviceNetwork   *net.IPNet
 	clusterNetwork   *net.IPNet
 	hostSubnetLength int
-
-	// These are only set if SetBaseEndpointsHandler() has been called
-	baseEndpointsHandler pconfig.EndpointsConfigHandler
 }
 
 type ResourceName string
@@ -48,9 +41,8 @@ const (
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
-		oClient:  osClient,
-		kClient:  kClient,
-		podsByIP: make(map[string]*kapi.Pod),
+		oClient: osClient,
+		kClient: kClient,
 	}
 }
 
@@ -81,16 +73,13 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 	return registry.oClient.HostSubnets().Create(hs)
 }
 
-func (registry *Registry) PopulatePodsByIP() error {
+func (registry *Registry) GetAllPods() ([]kapi.Pod, error) {
 	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, pod := range podList.Items {
-		registry.TrackPod(&pod)
-	}
-	return nil
+	return podList.Items, nil
 }
 
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
@@ -289,97 +278,4 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.Even
 	// Existing items in the event queue will have watch.Modified event type
 	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
 	return eventQueue
-}
-
-// FilteringEndpointsConfigHandler implementation
-func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
-	registry.baseEndpointsHandler = base
-}
-
-func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
-	clusterNetwork, _, serviceNetwork, err := registry.GetNetworkInfo()
-	if err != nil {
-		log.Warningf("Error fetching cluster network: %v", err)
-		return
-	}
-
-	filteredEndpoints := make([]kapi.Endpoints, 0, len(allEndpoints))
-EndpointLoop:
-	for _, ep := range allEndpoints {
-		ns := ep.ObjectMeta.Namespace
-		for _, ss := range ep.Subsets {
-			for _, addr := range ss.Addresses {
-				IP := net.ParseIP(addr.IP)
-				if serviceNetwork.Contains(IP) {
-					log.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
-					continue EndpointLoop
-				}
-				if clusterNetwork.Contains(IP) {
-					podInfo, ok := registry.getTrackedPod(addr.IP)
-					if !ok {
-						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
-						continue EndpointLoop
-					}
-					if podInfo.ObjectMeta.Namespace != ns {
-						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podInfo.ObjectMeta.Namespace)
-						continue EndpointLoop
-					}
-				}
-			}
-		}
-		filteredEndpoints = append(filteredEndpoints, ep)
-	}
-
-	registry.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
-}
-
-func (registry *Registry) getTrackedPod(ip string) (*kapi.Pod, bool) {
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-
-	pod, ok := registry.podsByIP[ip]
-	return pod, ok
-}
-
-func (registry *Registry) TrackPod(pod *kapi.Pod) {
-	if pod.Status.PodIP == "" {
-		return
-	}
-
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-	podInfo, ok := registry.podsByIP[pod.Status.PodIP]
-
-	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodRunning {
-		// When a pod hits one of the states where the IP is in use then
-		// we need to add it to our IP -> namespace tracker.  There _should_ be no
-		// other entries for the IP if we caught all of the right messages, so warn
-		// if we see one, but clobber it anyway since the IPAM
-		// should ensure that each IP is uniquely assigned to a pod (when running)
-		if ok && podInfo.UID != pod.UID {
-			log.Warningf("IP '%s' was marked as used by namespace '%s' (pod '%s')... updating to namespace '%s' (pod '%s')",
-				pod.Status.PodIP, podInfo.Namespace, podInfo.UID, pod.ObjectMeta.Namespace, pod.UID)
-		}
-
-		registry.podsByIP[pod.Status.PodIP] = pod
-	} else if ok && podInfo.UID == pod.UID {
-		// If the UIDs match, then this pod is moving to a state that indicates it is not running
-		// so we need to remove it from the cache
-		delete(registry.podsByIP, pod.Status.PodIP)
-	}
-
-	return
-}
-
-func (registry *Registry) UnTrackPod(pod *kapi.Pod) {
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-
-	// Only delete if the pod ID is the one we are tracking (in case there is a failed or complete
-	// pod lying around that gets deleted while there is a running pod with the same IP)
-	if podInfo, ok := registry.podsByIP[pod.Status.PodIP]; ok && podInfo.UID == pod.UID {
-		delete(registry.podsByIP, pod.Status.PodIP)
-	}
-
-	return
 }
