@@ -198,6 +198,7 @@ go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test
 %if 0%{?make_redistributable}
 # Build clients for other platforms
 GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=linux GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
 GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
 %endif
 
@@ -221,8 +222,9 @@ install -p -m 755 _build/bin/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
+install -d %{buildroot}%{_datadir}/%{name}/{linux,linux_386,macosx,windows}
 install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
+install -p -m 755 _build/bin/linux_386/oc %{buildroot}%{_datadir}/%{name}/linux_386/oc
 install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
 install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 %endif
@@ -462,9 +464,11 @@ fi
 %if 0%{?make_redistributable}
 %files clients-redistributable
 %dir %{_datadir}/%{name}/linux/
+%dir %{_datadir}/%{name}/linux_386/
 %dir %{_datadir}/%{name}/macosx/
 %dir %{_datadir}/%{name}/windows/
 %{_datadir}/%{name}/linux/oc
+%{_datadir}/%{name}/linux_386/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 %endif
