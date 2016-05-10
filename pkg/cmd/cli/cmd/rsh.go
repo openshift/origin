@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -19,11 +20,13 @@ const (
 	rshLong = `
 Open a remote shell session to a container
 
-This command will attempt to start a shell session in the specified pod. It will default to the
-first container if none is specified, and will attempt to use '/bin/bash' as the default shell.
-You may pass an optional command after the pod name, which will be executed instead of a login
-shell. A TTY will be automatically allocated if standard input is interactive - use -t and -T
-to override.
+This command will attempt to start a shell session in a pod for the specified resource.
+It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
+Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
+It will default to the first container if none is specified, and will attempt to use
+'/bin/bash' as the default shell. You may pass an optional command after the resource name,
+which will be executed instead of a login shell. A TTY will be automatically allocated
+if standard input is interactive - use -t and -T to override.
 
 Note, some containers may not include a shell - use '%[1]s exec' if you need to run commands
 directly.`
@@ -33,7 +36,13 @@ directly.`
   $ %[1]s foo
 
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
-  $ %[1]s foo cat /etc/resolv.conf`
+  $ %[1]s foo cat /etc/resolv.conf
+
+  # See the configuration of your internal registry
+  $ %[1]s dc/docker-registry cat config.yml
+
+  # Open a shell session on the container named 'index' inside a pod of your job
+  # %[1]s -c index job/sheduled`
 )
 
 // RshOptions declare the arguments accepted by the Rsh command
@@ -96,7 +105,7 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	if len(args) < 1 {
 		return kcmdutil.UsageError(cmd, "rsh requires a single Pod to connect to")
 	}
-	o.PodName = args[0]
+	resource := args[0]
 	args = args[1:]
 	if len(args) > 0 {
 		o.Command = args
@@ -122,7 +131,9 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 	o.Client = client
 
-	return nil
+	// TODO: Consider making the timeout configurable
+	o.PodName, err = f.PodForResource(resource, 10*time.Second)
+	return err
 }
 
 // Validate ensures that RshOptions are valid
