@@ -236,12 +236,15 @@ angular.module("openshiftConsole")
           return DataService.get(resourceGroupVersion, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
             function(resource) {
-              if (item.kind !== "Template") {
-                resource.spec = item.spec;
-              }
-              resource.metadata.annotations = item.metadata.annotations;
-              resource.metadata.labels = item.metadata.labels;
-              $scope.updateResources.push(resource);
+              // All fields, except 'metadata' will be copied from the submitted file.
+              var updatedResource = angular.copy(item);
+              // Update only 'annotations' and 'labels' fields from the metadata field.
+              var updatedMetadata = angular.copy(resource.metadata);
+              updatedMetadata.annotations = item.metadata.annotations;
+              updatedMetadata.labels = item.metadata.labels;
+
+              updatedResource.metadata = updatedMetadata;
+              $scope.updateResources.push(updatedResource);
             },
             // resource doesn't exist with RC 404 or catch other RC 
             function(response) {
