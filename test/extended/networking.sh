@@ -36,6 +36,13 @@ DEFAULT_SKIP_LIST=(
 
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"
+
+  # Skip tests that require GCE or AWS. (They'll skip themselves if we run them, but
+  # only after several seconds of setup.)
+  "should be able to up and down services"
+  "should work after restarting kube-proxy"
+  "should work after restarting apiserver"
+  "should be able to change the type and ports of a service"
 )
 
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
