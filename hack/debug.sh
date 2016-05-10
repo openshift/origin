@@ -277,6 +277,9 @@ do_node () {
     echo_and_eval  docker ps -a                            &> $lognode/docker-ps
     echo_and_eval  ovs-ofctl -O OpenFlow13 dump-flows br0  &> $lognode/flows
     echo_and_eval  ovs-ofctl -O OpenFlow13 show br0        &> $lognode/ovs-show
+    echo_and_eval  tc qdisc show                           &> $lognode/tc-qdisc
+    echo_and_eval  tc class show                           &> $lognode/tc-class
+    echo_and_eval  tc filter show                          &> $lognode/tc-filter
     echo_and_eval  systemctl cat docker.service            &> $lognode/docker-unit-file
     echo_and_eval  cat `systemctl cat docker.service | grep EnvironmentFile.\*openshift-sdn | awk -F=- '{print $2}'` \
                                                            &> $lognode/docker-network-file
