@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -297,10 +298,17 @@ func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
 }
 
 // prettyPrint formats a resource list for usage in errors
+// it outputs resources sorted in increasing order
 func prettyPrint(item api.ResourceList) string {
 	parts := []string{}
-	for key, value := range item {
-		constraint := string(key) + "=" + value.String()
+	keys := []string{}
+	for key := range item {
+		keys = append(keys, string(key))
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := item[api.ResourceName(key)]
+		constraint := key + "=" + value.String()
 		parts = append(parts, constraint)
 	}
 	return strings.Join(parts, ",")
