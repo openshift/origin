@@ -23,10 +23,10 @@ func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter ruleva
 	for _, scope := range scopes {
 		found := false
 
-		for prefix, evaluator := range scopeEvaluators {
-			if strings.HasPrefix(scope, prefix) {
+		for _, evaluator := range ScopeEvaluators {
+			if evaluator.Handles(scope) {
 				found = true
-				currRules, err := evaluator(scope, namespace, clusterPolicyGetter)
+				currRules, err := evaluator.ResolveRules(scope, namespace, clusterPolicyGetter)
 				if err != nil {
 					errors = append(errors, err)
 					continue
@@ -51,13 +51,17 @@ const (
 	NamespaceWideIndicator = "namespace:"
 )
 
-// scopeEvaluator takes a scope and returns the rules that express it
-type scopeEvaluator func(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error)
+// ScopeEvaluator takes a scope and returns the rules that express it
+type ScopeEvaluator interface {
+	Handles(scope string) bool
+	Validate(scope string) error
+	ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error)
+}
 
-// scopeEvaluators map prefixes to a function that handles that prefix
-var scopeEvaluators = map[string]scopeEvaluator{
-	UserIndicator:        userEvaluator,
-	ClusterRoleIndicator: clusterRoleEvaluator,
+// ScopeEvaluators map prefixes to a function that handles that prefix
+var ScopeEvaluators = []ScopeEvaluator{
+	userEvaluator{},
+	clusterRoleEvaluator{},
 }
 
 // scopes are in the format
@@ -75,7 +79,23 @@ const (
 )
 
 // user:<scope name>
-func userEvaluator(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+type userEvaluator struct{}
+
+func (userEvaluator) Handles(scope string) bool {
+	return strings.HasPrefix(scope, UserIndicator)
+}
+
+func (userEvaluator) Validate(scope string) error {
+	switch scope {
+	case UserIndicator + UserInfo,
+		UserIndicator + UserAccessCheck:
+		return nil
+	}
+
+	return fmt.Errorf("unrecognized scope: %v", scope)
+}
+
+func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
 	case UserIndicator + UserInfo:
 		return []authorizationapi.PolicyRule{
@@ -91,7 +111,31 @@ func userEvaluator(scope, namespace string, clusterPolicyGetter rulevalidation.C
 }
 
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
-func clusterRoleEvaluator(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+type clusterRoleEvaluator struct{}
+
+func (clusterRoleEvaluator) Handles(scope string) bool {
+	return strings.HasPrefix(scope, ClusterRoleIndicator)
+}
+
+func (e clusterRoleEvaluator) Validate(scope string) error {
+	if !e.Handles(scope) {
+		return fmt.Errorf("bad format for scope %v", scope)
+	}
+	tokens := strings.SplitN(scope, ":", 2)
+	if len(tokens) != 2 {
+		return fmt.Errorf("bad format for scope %v", scope)
+	}
+
+	// namespaces can't have colons, but roles can.  pick last.
+	lastColonIndex := strings.LastIndex(tokens[1], ":")
+	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
+		return fmt.Errorf("bad format for scope %v", scope)
+	}
+
+	return nil
+}
+
+func (clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
 	tokens := strings.SplitN(scope, ":", 2)
 	if len(tokens) != 2 {
 		return nil, fmt.Errorf("bad format for scope %v", scope)
