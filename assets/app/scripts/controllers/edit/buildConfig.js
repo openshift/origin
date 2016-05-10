@@ -107,6 +107,11 @@ angular.module('openshiftConsole')
       builderImageChangeTrigger: {},
       imageChangeTriggers: []
     };
+    $scope.runPolicyTypes = [
+      "Serial",
+      "Parallel",
+      "SerialLatestOnly"
+    ];
     $scope.availableProjects = [];
 
     AlertMessageService.getAlerts().forEach(function(alert) {

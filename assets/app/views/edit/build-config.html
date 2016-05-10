@@ -578,6 +578,28 @@
                           </div>
                         </dl>
                       </div>
+                      <div class="section">
+                        <h3>Run Policy
+                          <span class="help action-inline">
+                            <a href>
+                              <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="The build run policy describes the order in which the builds created from the build configuration should run."></i>
+                            </a>
+                          </span>
+                        </h3>
+                        <div class="form-group">
+                          <select
+                            class="form-control"
+                            ng-model="updatedBuildConfig.spec.runPolicy"
+                            ng-options="type as (type | sentenceCase) for type in runPolicyTypes">
+                          </select>
+                        </div>
+                        <div ng-switch="updatedBuildConfig.spec.runPolicy">
+                          <div ng-switch-when="Serial">Builds triggered from this Build Configuration will run one at the time, in the order they have been triggered.</div>
+                          <div ng-switch-when="Parallel">Builds triggered from this Build Configuration will run all at the same time. The order in which they will finish is not guranteed.</div>
+                          <div ng-switch-when="SerialLatestOnly">Builds triggered from this Build Configuration will run one at the time. When a currently running build completes, the next build that will run is the latest build created. Other queued builds will be cancelled.</div>
+                          <div ng-switch-default>Builds triggered from this Build Configuration will run using the {{updatedBuildConfig.spec.runPolicy | sentenceCase}} policy.</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="buttons gutter-top-bottom">

@@ -95,33 +95,16 @@ angular.module("openshiftConsole")
       );
     };
 
-    BuildsService.prototype.associateRunningBuildToBuildConfig = function(builds) {
-      var buildConfigBuildsInProgress = {};
-      angular.forEach(builds, function(build, buildName) {
-        if ($filter('isIncompleteBuild')(build)) {
-          var buildConfigName = build.metadata.labels.buildconfig;
-          buildConfigBuildsInProgress[buildConfigName] = buildConfigBuildsInProgress[buildConfigName] || {};
-          buildConfigBuildsInProgress[buildConfigName][buildName] = build;
-        }
-      });
-      return buildConfigBuildsInProgress;
-    };
-
     BuildsService.prototype.isPaused = function(buildConfig) {
       return $filter('annotation')(buildConfig, "openshift.io/build-config.paused") === 'true';
     };
 
-    BuildsService.prototype.canBuild = function(buildConfig, buildConfigBuildsInProgressMap) {
+    BuildsService.prototype.canBuild = function(buildConfig) {
       if (!buildConfig) {
         return false;
       }
 
       if (buildConfig.metadata.deletionTimestamp) {
-        return false;
-      }
-
-      if (buildConfigBuildsInProgressMap &&
-          $filter('hashSize')(buildConfigBuildsInProgressMap[buildConfig.metadata.name]) > 0) {
         return false;
       }
 

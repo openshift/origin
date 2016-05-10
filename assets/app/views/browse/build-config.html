@@ -20,8 +20,7 @@
                 <!-- Primary Actions -->
                 <button
                     class="btn btn-default hidden-xs"
-                    ng-click="startBuild()"
-                    ng-disabled="!canBuild">
+                    ng-click="startBuild()">
                   Start Build
                 </button>
 
@@ -34,11 +33,9 @@
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
                    data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
-                  <li class="visible-xs-inline" ng-class="{ disabled: !canBuild }">
+                  <li class="visible-xs-inline">
                     <a href=""
                       role="button"
-                      ng-attr-aria-disabled="{{canBuild ? undefined : 'true'}}"
-                      ng-class="{ 'disabled-link': !canBuild }"
                       ng-click="startBuild()">Start Build</a>
                   </li>
                   <li>
@@ -299,6 +296,20 @@
                               <div ng-if="buildConfig.spec.output.to">
                                 <dt>Output to:</dt>
                                 <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+                              </div>
+                              <div class="run-policy">
+                                <dt>Run Policy:</dt>
+                                <dd>
+                                  {{buildConfig.spec.runPolicy | sentenceCase}}
+                                  <span class="help action-inline">
+                                    <a href ng-switch="buildConfig.spec.runPolicy">
+                                      <i ng-switch-when="Serial" class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Builds triggered from this Build Configuration will run one at the time, in the order they have been triggered."></i>
+                                      <i ng-switch-when="Parallel" class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Builds triggered from this Build Configuration will run all at the same time. The order in which they will finish is not guranteed."></i>
+                                      <i ng-switch-when="SerialLatestOnly" class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Builds triggered from this Build Configuration will run one at the time. When a currently running build completes, the next build that will run is the latest build created. Other queued builds will be cancelled."></i>
+                                      <i ng-switch-default class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Builds triggered from this Build Configuration will run using the {{buildConfig.spec.runPolicy | sentenceCase}} policy."></i>
+                                    </a>
+                                  </span>
+                                </dd>
                               </div>
                             </dl>
                           </div>
