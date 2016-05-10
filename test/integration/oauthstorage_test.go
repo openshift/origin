@@ -141,7 +141,7 @@ func TestOAuthStorage(t *testing.T) {
 	config := &oauth2.Config{
 		ClientID:     "test",
 		ClientSecret: "",
-		Scopes:       []string{"a_scope"},
+		Scopes:       []string{"user:info"},
 		RedirectURL:  assertServer.URL + "/assert",
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  server.URL + "/authorize",
