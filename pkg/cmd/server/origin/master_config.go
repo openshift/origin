@@ -36,6 +36,7 @@ import (
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	policyclient "github.com/openshift/origin/pkg/authorization/client"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -184,7 +185,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		rulevalidation.ClusterPolicyGetter(policyClient),
 		rulevalidation.ClusterBindingLister(policyClient),
 	)
-	authorizer := newAuthorizer(ruleResolver, options.ProjectConfig.ProjectRequestMessage)
+	authorizer := newAuthorizer(ruleResolver, policyClient, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient: privilegedLoopbackOpenShiftClient,
@@ -371,9 +372,10 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 	return
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(ruleResolver, authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
-	return authorizer
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
+	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, policyClient)
+	return scopeLimitedAuthorizer
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {

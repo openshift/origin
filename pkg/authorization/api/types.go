@@ -22,6 +22,9 @@ const (
 	VerbAll        = "*"
 	NonResourceAll = "*"
 
+	ScopesKey           = "authorization.openshift.io/scopes"
+	ScopesAllNamespaces = "*"
+
 	UserKind           = "User"
 	GroupKind          = "Group"
 	ServiceAccountKind = "ServiceAccount"
@@ -109,6 +112,21 @@ var (
 		NonEscalatingResourcesGroupName: {OpenshiftNonEscalatingViewableGroupName, KubeNonEscalatingViewableGroupName},
 	}
 )
+
+// DiscoveryRule is a rule that allows a client to discover the API resources available on this server
+var DiscoveryRule = PolicyRule{
+	Verbs: sets.NewString("get"),
+	NonResourceURLs: sets.NewString(
+		// Server version checking
+		"/version",
+
+		// API discovery/negotiation
+		"/api", "/api/*",
+		"/apis", "/apis/*",
+		"/oapi", "/oapi/*",
+		"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+	),
+}
 
 func init() {
 	// set the non-escalating groups

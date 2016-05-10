@@ -57,6 +57,10 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
+func (u *fakeUser) GetExtra() map[string][]string {
+	return map[string][]string{}
+}
+
 func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")

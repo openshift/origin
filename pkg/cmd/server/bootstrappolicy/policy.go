@@ -47,6 +47,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 	return roles
 
 }
+
 func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	roles := []authorizationapi.ClusterRole{
 		{
@@ -358,17 +359,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					NonResourceURLs: sets.NewString(
 						// Health
 						"/healthz", "/healthz/*",
-
-						// Server version checking
-						"/version",
-
-						// API discovery/negotiation
-						"/api", "/api/*",
-						"/apis", "/apis/*",
-						"/oapi", "/oapi/*",
-						"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
 					),
 				},
+				authorizationapi.DiscoveryRule,
 			},
 		},
 		{
@@ -747,19 +740,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: DiscoveryRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				{
-					Verbs: sets.NewString("get"),
-					NonResourceURLs: sets.NewString(
-						// Server version checking
-						"/version",
-
-						// API discovery/negotiation
-						"/api", "/api/*",
-						"/apis", "/apis/*",
-						"/oapi", "/oapi/*",
-						"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
-					),
-				},
+				authorizationapi.DiscoveryRule,
 			},
 		},
 

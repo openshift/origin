@@ -740,12 +740,18 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /healthz
+    - /healthz/*
+    resources: []
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
     - /api
     - /api/*
     - /apis
     - /apis/*
-    - /healthz
-    - /healthz/*
     - /oapi
     - /oapi/*
     - /osapi
