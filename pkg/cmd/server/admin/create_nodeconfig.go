@@ -250,7 +250,7 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 		return err
 	}
 	if o.UseTLS() {
-		if err := o.MakeServerCert(serverCertFile, serverKeyFile); err != nil {
+		if err := o.MakeAndWriteServerCert(serverCertFile, serverKeyFile); err != nil {
 			return err
 		}
 		if o.UseNodeClientCA() {
@@ -309,7 +309,7 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 	return nil
 }
 
-func (o CreateNodeConfigOptions) MakeServerCert(serverCertFile, serverKeyFile string) error {
+func (o CreateNodeConfigOptions) MakeAndWriteServerCert(serverCertFile, serverKeyFile string) error {
 	if o.IsCreateServerCertificate() {
 		nodeServerCertOptions := CreateServerCertOptions{
 			SignerCertOptions: o.SignerCertOptions,

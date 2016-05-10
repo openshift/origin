@@ -48,6 +48,9 @@ const (
 
 	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
 	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
+
+	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
+	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -611,4 +614,29 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = InfraSAs.addServiceAccount(
+		ServiceServingCertServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceServingCertControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch", "update"),
+					Resources: sets.NewString("services"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString("secrets"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 }

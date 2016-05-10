@@ -189,6 +189,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
 		func() error { return o.createProxyClientCerts(&getSignerCertOptions) },
 		func() error { return o.createServiceAccountKeys() },
+		func() error { return o.createServiceSigningCA(&getSignerCertOptions) },
 	)
 	return utilerrors.NewAggregate(errs)
 }
@@ -316,6 +317,27 @@ func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
 		return err
 	}
 	if err := keypairOptions.CreateKeyPair(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *SignerCertOptions) error {
+	caInfo := DefaultServiceSignerCAInfo(o.CertDir)
+
+	caOptions := CreateSignerCertOptions{
+		CertFile:   caInfo.CertFile,
+		KeyFile:    caInfo.KeyFile,
+		SerialFile: "", // we want the random cert serial for this one
+		Name:       DefaultServiceServingCertSignerName(),
+		Output:     o.Output,
+
+		Overwrite: o.Overwrite,
+	}
+	if err := caOptions.Validate(nil); err != nil {
+		return err
+	}
+	if _, err := caOptions.CreateSignerCert(); err != nil {
 		return err
 	}
 	return nil

@@ -641,6 +641,12 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
 
+	_, _, serviceServingCertClient, err := oc.GetServiceAccountClients(bootstrappolicy.ServiceServingCertServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client: %v", err)
+	}
+	oc.RunServiceServingCertController(serviceServingCertClient)
+
 	glog.Infof("Started Origin Controllers")
 
 	return nil
