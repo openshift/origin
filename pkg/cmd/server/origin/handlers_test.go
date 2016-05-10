@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
+	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -222,7 +223,7 @@ func TestImpersonationFilter(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", tc.name, err)
 			continue
 		}
-		req.Header.Add("Impersonate-User", tc.impersonationString)
+		req.Header.Add(authenticationapi.ImpersonateUserHeader, tc.impersonationString)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", tc.name, err)

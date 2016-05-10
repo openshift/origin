@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -301,7 +302,7 @@ func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handl
 
 func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		requestedSubject := req.Header.Get("Impersonate-User")
+		requestedSubject := req.Header.Get(authenticationapi.ImpersonateUserHeader)
 		if len(requestedSubject) == 0 {
 			handler.ServeHTTP(w, req)
 			return
@@ -337,18 +338,25 @@ func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
+		var extra map[string][]string
+		if requestScopes, ok := req.Header[authenticationapi.ImpersonateUserScopeHeader]; ok {
+			extra = map[string][]string{authorizationapi.ScopesKey: requestScopes}
+		}
+
 		switch resource {
 		case kapi.Resource(authorizationapi.ServiceAccountResource):
 			newUser := &user.DefaultInfo{
 				Name:   serviceaccount.MakeUsername(namespace, name),
 				Groups: serviceaccount.MakeGroupNames(namespace, name),
+				Extra:  extra,
 			}
 			newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup)
 			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
 
 		case userapi.Resource(authorizationapi.UserResource):
 			newUser := &user.DefaultInfo{
-				Name: name,
+				Name:  name,
+				Extra: extra,
 			}
 			groups, err := c.GroupCache.GroupsFor(name)
 			if err == nil {
@@ -362,7 +370,8 @@ func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 
 		case userapi.Resource(authorizationapi.SystemUserResource):
 			newUser := &user.DefaultInfo{
-				Name: name,
+				Name:  name,
+				Extra: extra,
 			}
 
 			if name == bootstrappolicy.UnauthenticatedUsername {

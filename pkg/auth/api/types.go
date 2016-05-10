@@ -13,6 +13,9 @@ const (
 	// This is useful when the immutable providerUserName is different than the login used to authenticate
 	// If present, this extra value is used as the preferred username
 	IdentityPreferredUsernameKey = "preferred_username"
+
+	ImpersonateUserHeader      = "Impersonate-User"
+	ImpersonateUserScopeHeader = "Impersonate-User-Scope"
 )
 
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
