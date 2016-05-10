@@ -251,6 +251,17 @@ func TestEscalationProtection(t *testing.T) {
 			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: sets.NewString("pods")}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
+		{
+			name: "allow the escalation",
+			clusterRoles: []authorizationapi.ClusterRole{
+				{
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{""}, Resources: sets.NewString("pods", "secrets")}},
+				},
+			},
+			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: sets.NewString("pods", "secrets")}},
+			scopes:        []string{ClusterRoleIndicator + "admin:*:!"},
+		},
 	}
 
 	for _, tc := range testCases {
