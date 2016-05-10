@@ -2,10 +2,12 @@ package scope
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -192,6 +194,73 @@ func TestClusterRoleEvaluator(t *testing.T) {
 
 		if len(actualRules) != tc.numRules {
 			t.Errorf("%s: expected %v, got %v", tc.name, tc.numRules, len(actualRules))
+		}
+	}
+}
+
+func TestEscalationProtection(t *testing.T) {
+	testCases := []struct {
+		name      string
+		scopes    []string
+		namespace string
+
+		clusterRoles  []authorizationapi.ClusterRole
+		expectedRules []authorizationapi.PolicyRule
+	}{
+		{
+			name: "simple match secrets",
+			clusterRoles: []authorizationapi.ClusterRole{
+				{
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{""}, Resources: sets.NewString("pods", "secrets")}},
+				},
+			},
+			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: sets.NewString("pods")}},
+			scopes:        []string{ClusterRoleIndicator + "admin:*"},
+		},
+		{
+			name: "match old group secrets",
+			clusterRoles: []authorizationapi.ClusterRole{
+				{
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{}, Resources: sets.NewString("pods", "secrets")}},
+				},
+			},
+			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{}, Resources: sets.NewString("pods")}},
+			scopes:        []string{ClusterRoleIndicator + "admin:*"},
+		},
+		{
+			name: "skip non-matching group secrets",
+			clusterRoles: []authorizationapi.ClusterRole{
+				{
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{"foo"}, Resources: sets.NewString("pods", "secrets")}},
+				},
+			},
+			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"foo"}, Resources: sets.NewString("pods", "secrets")}},
+			scopes:        []string{ClusterRoleIndicator + "admin:*"},
+		},
+		{
+			name: "access tokens",
+			clusterRoles: []authorizationapi.ClusterRole{
+				{
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{"", "and-foo"}, Resources: sets.NewString("pods", "oauthaccesstokens")}},
+				},
+			},
+			expectedRules: []authorizationapi.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: sets.NewString("pods")}},
+			scopes:        []string{ClusterRoleIndicator + "admin:*"},
+		},
+	}
+
+	for _, tc := range testCases {
+		actualRules, actualErr := ScopesToRules(tc.scopes, "ns-01", &fakePolicyGetter{clusterRoles: tc.clusterRoles})
+		if actualErr != nil {
+			t.Errorf("%s: unexpected error: %v", tc.name, actualErr)
+		}
+
+		if !reflect.DeepEqual(actualRules, tc.expectedRules) {
+			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedRules, actualRules)
 		}
 	}
 }

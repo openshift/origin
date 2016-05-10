@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -122,6 +123,15 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter r
 	}
 }
 
+// escalatingScopeResources are resources that are considered escalating for scope evaluation
+var escalatingScopeResources = []unversioned.GroupResource{
+	{Group: kapi.GroupName, Resource: "secrets"},
+	/*imageapi.GroupName*/ {Group: "", Resource: "imagestreams/secrets"},
+	/*oauthapi.GroupName*/ {Group: "", Resource: "oauthauthorizetokens"}, {Group: "", Resource: "oauthaccesstokens"},
+	/*authorizationapi.GroupName*/ {Group: "", Resource: "roles"}, {Group: "", Resource: "rolebindings"},
+	/*authorizationapi.GroupName*/ {Group: "", Resource: "clusterroles"}, {Group: "", Resource: "clusterrolebindings"},
+}
+
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
 type clusterRoleEvaluator struct{}
 
@@ -188,8 +198,55 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 
 	rules := []authorizationapi.PolicyRule{}
 	for _, rule := range role.Rules {
-		rules = append(rules, rule)
+		// rules with unbounded access shouldn't be allowed in scopes.
+		if rule.Verbs.Has(authorizationapi.VerbAll) || rule.Resources.Has(authorizationapi.ResourceAll) || getAPIGroupSet(rule).Has(authorizationapi.APIGroupAll) {
+			continue
+		}
+
+		// rules that allow escalating resource access should be cleaned.
+		safeRule := removeEscalatingResources(rule)
+
+		rules = append(rules, safeRule)
 	}
 
 	return rules, nil
+}
+
+// removeEscalatingResources has coarse logic for now.  It is possible to rewrite one rule into many for the finest grain control
+// but removing the entire matching resource regardless of verb or secondary group is cheaper, easier, and errs on the side removing
+// too much, not too little
+func removeEscalatingResources(in authorizationapi.PolicyRule) authorizationapi.PolicyRule {
+	var ruleCopy *authorizationapi.PolicyRule
+
+	apiGroups := getAPIGroupSet(in)
+	for _, resource := range escalatingScopeResources {
+		if !(apiGroups.Has(resource.Group) && in.Resources.Has(resource.Resource)) {
+			continue
+		}
+
+		if ruleCopy == nil {
+			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
+			// muddying the cache
+			ruleCopy = &authorizationapi.PolicyRule{}
+			authorizationapi.DeepCopy_api_PolicyRule(in, ruleCopy, nil)
+		}
+
+		ruleCopy.Resources.Delete(resource.Resource)
+	}
+
+	if ruleCopy != nil {
+		return *ruleCopy
+	}
+
+	return in
+}
+
+func getAPIGroupSet(rule authorizationapi.PolicyRule) sets.String {
+	apiGroups := sets.NewString(rule.APIGroups...)
+	if len(apiGroups) == 0 {
+		// this was done for backwards compatibility in the authorizer
+		apiGroups.Insert("")
+	}
+
+	return apiGroups
 }
