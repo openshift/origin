@@ -235,6 +235,16 @@ type MasterConfig struct {
 	// JenkinsPipelineConfig holds information about the default Jenkins template
 	// used for JenkinsPipeline build strategy.
 	JenkinsPipelineConfig JenkinsPipelineConfig `json:"jenkinsPipelineConfig"`
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig `json:"auditConfig"`
+}
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, basic audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool `json:"enabled"`
 }
 
 // JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
