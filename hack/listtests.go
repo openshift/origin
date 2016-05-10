@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to make path %q absolute: %v", execDir, err)
 	}
-	if _, err := os.Stat(test); err != nil {
+	if _, statErr := os.Stat(test); statErr != nil {
 		log.Fatalf("No test executable %q exits, did you run `go test -c` on the named package?", test)
 	}
 
