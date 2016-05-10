@@ -259,14 +259,7 @@ func (oc *OsdnController) VnidStartNode() error {
 		return err
 	}
 
-	// Populate pod info map synchronously so that kube proxy can filter endpoints to support isolation
-	err = oc.Registry.PopulatePodsByIP()
-	if err != nil {
-		return err
-	}
-
 	go utilwait.Forever(oc.watchNetNamespaces, 0)
-	go utilwait.Forever(oc.watchPods, 0)
 	go utilwait.Forever(oc.watchServices, 0)
 	return nil
 }
@@ -397,26 +390,6 @@ func (oc *OsdnController) watchServices() {
 			if err := oc.pluginHooks.DeleteServiceRules(serv); err != nil {
 				log.Error(err)
 			}
-		}
-	}
-}
-
-func (oc *OsdnController) watchPods() {
-	eventQueue := oc.Registry.RunEventQueue(Pods)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for pods: %v", err))
-			return
-		}
-		pod := obj.(*kapi.Pod)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			oc.Registry.TrackPod(pod)
-		case watch.Deleted:
-			oc.Registry.UnTrackPod(pod)
 		}
 	}
 }

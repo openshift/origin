@@ -151,14 +151,7 @@ func ValidateRuntime(config *configapi.NodeConfig, components *utilflags.Compone
 	}
 
 	switch strings.ToLower(config.NetworkConfig.NetworkPluginName) {
-	case ovs.MultiTenantPluginName:
-		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the multi-tenant SDN plugin must be run in the same process as the kubelet")
-		}
-		if actual.Has(ComponentProxy) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the multi-tenant SDN plugin requires the proxy and plugins components be enabled in the same process")
-		}
-	case ovs.SingleTenantPluginName:
+	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
 		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
 			return fmt.Errorf("the SDN plugin must be run in the same process as the kubelet")
 		}

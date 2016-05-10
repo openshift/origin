@@ -70,7 +70,7 @@ type NodeConfig struct {
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
-	originClient, _, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
+	originClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -202,10 +202,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 
 	// Setup auth
-	osClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
-	if err != nil {
-		return nil, err
-	}
 	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
 	if err != nil {
 		return nil, err
@@ -224,7 +220,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, err
 	}
-	authz, err := newAuthorizer(osClient, authzTTL, options.AuthConfig.AuthorizationCacheSize)
+	authz, err := newAuthorizer(originClient, authzTTL, options.AuthConfig.AuthorizationCacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -269,12 +265,17 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 	cfg.Cloud = cloud
 
-	sdnPlugin, endpointFilter, err := factory.NewPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP)
+	sdnPlugin, err := factory.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}
 	if sdnPlugin != nil {
 		cfg.NetworkPlugins = append(cfg.NetworkPlugins, sdnPlugin)
+	}
+
+	endpointFilter, err := factory.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	if err != nil {
+		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
 
 	config := &NodeConfig{
