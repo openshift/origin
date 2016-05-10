@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
@@ -153,6 +154,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdExport(fullName, f, in, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 				cmd.NewCmdConvert(fullName, f, out),
+				importer.NewCmdImport(fullName, f, in, out, errout),
 			},
 		},
 		{

@@ -8,7 +8,7 @@ set -o pipefail
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4|go1.5') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4|go1.5') && -z "${FORCE_VERIFY-}"  ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping gofmt." >&2
   exit 0
 fi

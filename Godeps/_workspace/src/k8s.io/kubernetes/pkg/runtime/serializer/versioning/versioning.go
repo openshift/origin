@@ -258,6 +258,9 @@ func (c *codec) EncodeToStream(obj runtime.Object, w io.Writer, overrides ...unv
 		return fmt.Errorf("the codec does not recognize group %q for kind %q and cannot encode it", gvk.Group, gvk.Kind)
 	}
 
+	old := obj.GetObjectKind().GroupVersionKind()
+	defer obj.GetObjectKind().SetGroupVersionKind(old)
+
 	// Perform a conversion if necessary
 	if gvk.GroupVersion() != targetGV {
 		out, err := c.convertor.ConvertToVersion(obj, targetGV.String())
@@ -269,8 +272,6 @@ func (c *codec) EncodeToStream(obj runtime.Object, w io.Writer, overrides ...unv
 			obj = out
 		}
 	} else {
-		old := obj.GetObjectKind().GroupVersionKind()
-		defer obj.GetObjectKind().SetGroupVersionKind(old)
 		obj.GetObjectKind().SetGroupVersionKind(&unversioned.GroupVersionKind{Group: targetGV.Group, Version: targetGV.Version, Kind: gvk.Kind})
 	}
 

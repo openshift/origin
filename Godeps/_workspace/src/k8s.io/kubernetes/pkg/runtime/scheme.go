@@ -498,6 +498,13 @@ func (s *Scheme) ConvertToVersion(in Object, outVersion string) (Object, error) 
 		if !ok || len(kinds) == 0 {
 			return nil, fmt.Errorf("%v is not a registered type and cannot be converted into version %q", t, outVersion)
 		}
+		for _, kind := range kinds {
+			if gv.Version == kind.Version && gv.Group == kind.Group {
+				setTargetKind(in, kind)
+				return in, nil
+			}
+		}
+
 		kind = kinds[0]
 	}
 
@@ -538,4 +545,15 @@ func setTargetVersion(obj Object, raw *Scheme, gv unversioned.GroupVersion) {
 		gvk, _ := raw.ObjectKind(obj)
 		obj.GetObjectKind().SetGroupVersionKind(&unversioned.GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: gvk.Kind})
 	}
+}
+
+// setTargetKind sets the kind on an object, taking into account whether the target kind is the internal version.
+func setTargetKind(obj Object, kind unversioned.GroupVersionKind) {
+	if kind.Version == APIVersionInternal {
+		// internal is a special case
+		// TODO: look at removing the need to special case this
+		obj.GetObjectKind().SetGroupVersionKind(&unversioned.GroupVersionKind{})
+		return
+	}
+	obj.GetObjectKind().SetGroupVersionKind(&kind)
 }

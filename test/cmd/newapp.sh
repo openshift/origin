@@ -199,6 +199,12 @@ os::cmd::expect_success 'oc delete all -l app=ruby'
 jsonfile="${OS_ROOT}/test/fixtures/invalid.json"
 os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": at offset 8: invalid character '}' after object key"
 
+# a docker compose file should be transformed into an application by the import command
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'warning: not all docker-compose fields were honored'
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'db: cpuset is not supported'
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o name --dry-run' 'service/redis'
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o name --as-template=other --dry-run' 'template/other'
+os::cmd::expect_failure 'diff --suppress-common-lines -y <(oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o yaml) test/fixtures/app-scenarios/docker-compose/complex/docker-compose.imported.yaml | grep -v secret'
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'

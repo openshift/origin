@@ -289,10 +289,10 @@ func AddComponentInputsToRefBuilder(b *app.ReferenceBuilder, r *Resolvers, c *Co
 	})
 	b.AddComponents(c.TemplateFiles, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--file=%q", input.From)
-		input.Searcher = r.TemplateFileSearcher
 		if r.TemplateFileSearcher != nil {
 			input.Resolver = app.FirstMatchResolver{Searcher: r.TemplateFileSearcher}
 		}
+		input.Searcher = r.TemplateFileSearcher
 		return input
 	})
 	b.AddComponents(c.Components, func(input *app.ComponentInput) app.ComponentReference {
