@@ -11,7 +11,7 @@ import (
 )
 
 func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_BuildConfig_To_api_BuildConfig(in, out, s); err != nil {
 		return err
 	}
 
@@ -74,7 +74,7 @@ func Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildSt
 }
 
 func Convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_BuildOutput_To_api_BuildOutput(in, out, s); err != nil {
 		return err
 	}
 	if in.To != nil && (in.To.Kind == "ImageStream" || len(in.To.Kind) == 0) {
@@ -101,7 +101,7 @@ func Convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPol
 }
 
 func Convert_api_SourceRevision_To_v1_SourceRevision(in *newer.SourceRevision, out *SourceRevision, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_SourceRevision_To_v1_SourceRevision(in, out, s); err != nil {
 		return err
 	}
 	out.Type = BuildSourceGit
