@@ -49,11 +49,11 @@ func init() {
 	// DefaultRegistryClient before starting a registry.
 	repomw.Register("openshift",
 		func(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-			registryClient, quotaClient, err := DefaultRegistryClient.Clients()
+			registryClient, kClient, err := DefaultRegistryClient.Clients()
 			if err != nil {
 				return nil, err
 			}
-			return newRepositoryWithClient(registryClient, quotaClient, ctx, repo, options)
+			return newRepositoryWithClient(registryClient, kClient, kClient, ctx, repo, options)
 		},
 	)
 
@@ -71,6 +71,7 @@ type repository struct {
 
 	ctx            context.Context
 	quotaClient    kclient.ResourceQuotasNamespacer
+	limitClient    kclient.LimitRangesNamespacer
 	registryClient client.Interface
 	registryAddr   string
 	namespace      string
@@ -88,7 +89,7 @@ type repository struct {
 var _ distribution.ManifestService = &repository{}
 
 // newRepositoryWithClient returns a new repository middleware.
-func newRepositoryWithClient(registryClient client.Interface, quotaClient kclient.ResourceQuotasNamespacer, ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+func newRepositoryWithClient(registryClient client.Interface, quotaClient kclient.ResourceQuotasNamespacer, limitClient kclient.LimitRangesNamespacer, ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
 	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
 	if len(registryAddr) == 0 {
 		return nil, errors.New("DOCKER_REGISTRY_URL is required")
@@ -111,6 +112,7 @@ func newRepositoryWithClient(registryClient client.Interface, quotaClient kclien
 
 		ctx:            ctx,
 		quotaClient:    quotaClient,
+		limitClient:    limitClient,
 		registryClient: registryClient,
 		registryAddr:   registryAddr,
 		namespace:      nameParts[0],

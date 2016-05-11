@@ -30,6 +30,10 @@ const (
 
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
+
+	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
+	// the maximum size of an image.
+	LimitTypeImage kapi.LimitType = "openshift.io/Image"
 )
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.

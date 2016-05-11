@@ -1395,6 +1395,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - limitranges
     - resourcequotas
     verbs:
     - list
