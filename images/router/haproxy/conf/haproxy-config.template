@@ -8,6 +8,9 @@
 global
   # maxconn 4096
   daemon
+{{ with (env "ROUTER_SYSLOG_ADDRESS" "") }}
+  log {{.}} local1 {{env "ROUTER_LOG_LEVEL" "warning"}}
+{{ end}}
   ca-base /etc/ssl
   crt-base /etc/ssl
   stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin
@@ -32,6 +35,10 @@ global
 defaults
   # maxconn 4096
   # Add x-forwarded-for header.
+{{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
+  option httplog
+  log global
+{{ end }}
   timeout connect 5s
   timeout client 30s
   timeout server 30s
@@ -229,6 +236,9 @@ backend be_edge_http_{{$cfgIdx}}
 
             {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$cfgIdx}}
+{{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
+  option tcplog
+{{ end }}
   balance source
   hash-type consistent
   timeout check 5000ms
