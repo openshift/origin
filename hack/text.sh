@@ -9,6 +9,7 @@ function os::text::reset() {
 		tput sgr0
 	fi
 }
+readonly -f os::text::reset
 
 # os::text::bold sets the terminal output to bold text if it is called in a TTY
 function os::text::bold() {
@@ -16,6 +17,7 @@ function os::text::bold() {
 		tput bold
 	fi
 }
+readonly -f os::text::bold
 
 # os::text::red sets the terminal output to red text if it is called in a TTY
 function os::text::red() {
@@ -23,6 +25,7 @@ function os::text::red() {
 		tput setaf 1
 	fi
 }
+readonly -f os::text::red
 
 # os::text::green sets the terminal output to green text if it is called in a TTY
 function os::text::green() {
@@ -30,6 +33,7 @@ function os::text::green() {
 		tput setaf 2
 	fi
 }
+readonly -f os::text::green
 
 # os::text::blue sets the terminal output to blue text if it is called in a TTY
 function os::text::blue() {
@@ -37,6 +41,7 @@ function os::text::blue() {
 		tput setaf 4
 	fi
 }
+readonly -f os::text::blue
 
 # os::text::yellow sets the terminal output to yellow text if it is called in a TTY
 function os::text::yellow() {
@@ -44,6 +49,7 @@ function os::text::yellow() {
 		tput setaf 11
 	fi
 }
+readonly -f os::text::yellow
 
 # os::text::clear_last_line clears the text from the last line of output to the
 # terminal and leaves the cursor on that line to allow for overwriting that text
@@ -54,6 +60,7 @@ function os::text::clear_last_line() {
 		tput el
 	fi
 }
+readonly -f os::text::clear_last_line
 
 # os::text::print_bold prints all input in bold text
 function os::text::print_bold() {
@@ -61,6 +68,7 @@ function os::text::print_bold() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_bold
 
 # os::text::print_red prints all input in red text
 function os::text::print_red() {
@@ -68,6 +76,7 @@ function os::text::print_red() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_red
 
 # os::text::print_red_bold prints all input in bold red text
 function os::text::print_red_bold() {
@@ -76,6 +85,7 @@ function os::text::print_red_bold() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_red_bold
 
 # os::text::print_green prints all input in green text
 function os::text::print_green() {
@@ -83,6 +93,7 @@ function os::text::print_green() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_green
 
 # os::text::print_green_bold prints all input in bold green text
 function os::text::print_green_bold() {
@@ -91,6 +102,7 @@ function os::text::print_green_bold() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_green_bold
 
 # os::text::print_blue prints all input in blue text
 function os::text::print_blue() {
@@ -98,6 +110,7 @@ function os::text::print_blue() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_blue
 
 # os::text::print_blue_bold prints all input in bold blue text
 function os::text::print_blue_bold() {
@@ -106,6 +119,7 @@ function os::text::print_blue_bold() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_blue_bold
 
 # os::text::print_yellow prints all input in yellow text
 function os::text::print_yellow() {
@@ -113,6 +127,7 @@ function os::text::print_yellow() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_yellow
 
 # os::text::print_yellow_bold prints all input in bold yellow text
 function os::text::print_yellow_bold() {
@@ -121,3 +136,4 @@ function os::text::print_yellow_bold() {
 	echo "${*}"
 	os::text::reset
 }
+readonly -f os::text::print_yellow_bold

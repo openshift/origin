@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # This script holds library functions for setting up the shell environment for OpenShift scripts
-#
-# This script assumes $OS_ROOT is set before being sourced
-source "${OS_ROOT}/hack/util.sh"
 
 # os::util::environment::use_sudo updates $USE_SUDO to be 'true', so that later scripts choosing between
 # execution using 'sudo' and execution without it chose to use 'sudo'
@@ -18,6 +15,7 @@ function os::util::environment::use_sudo() {
     USE_SUDO=true
     export USE_SUDO
 }
+readonly -f os::util::environment::use_sudo
 
 # os::util::environment::setup_time_vars sets up environment variables that describe durations of time
 # These variables can be used to specify times for other utility functions
@@ -38,6 +36,7 @@ function os::util::environment::setup_time_vars() {
     TIME_MIN="$(( 60 * ${TIME_SEC} ))"
     export TIME_MIN
 }
+readonly -f os::util::environment::setup_time_vars
 
 # os::util::environment::setup_all_server_vars sets up all environment variables necessary to configure and start an OpenShift server
 #
@@ -99,6 +98,7 @@ function os::util::environment::setup_all_server_vars() {
     os::util::environment::setup_server_vars
     os::util::environment::setup_images_vars
 }
+readonly -f os::util::environment::setup_all_server_vars
 
 # os::util::environment::update_path_var updates $PATH so that OpenShift binaries are available
 #
@@ -113,6 +113,7 @@ function os::util::environment::update_path_var() {
     PATH="${OS_ROOT}/_output/local/bin/$(os::util::host_platform):${PATH}"
     export PATH
 }
+readonly -f os::util::environment::update_path_var
 
 # os::util::environment::setup_misc_tmpdir_vars sets up temporary directory path variables
 #
@@ -149,6 +150,7 @@ function os::util::environment::setup_tmpdir_vars() {
 
     mkdir -p  "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"
 }
+readonly -f os::util::environment::setup_tmpdir_vars
 
 # os::util::environment::setup_kubelet_vars sets up environment variables necessary for interacting with the kubelet
 #
@@ -174,6 +176,7 @@ function os::util::environment::setup_kubelet_vars() {
     KUBELET_PORT="${KUBELET_PORT:-10250}"
     export KUBELET_PORT
 }
+readonly -f os::util::environment::setup_kubelet_vars
 
 # os::util::environment::setup_etcd_vars sets up environment variables necessary for interacting with etcd
 #
@@ -202,6 +205,7 @@ function os::util::environment::setup_etcd_vars() {
 
     mkdir -p "${ETCD_DATA_DIR}"
 }
+readonly -f os::util::environment::setup_etcd_vars
 
 # os::util::environment::setup_server_vars sets up environment variables necessary for interacting with the server
 # 
@@ -259,6 +263,7 @@ function os::util::environment::setup_server_vars() {
         export CURL_KEY
     fi
 }
+readonly -f os::util::environment::setup_server_vars
 
 # os::util::environment::setup_images_vars sets up environment variables necessary for interacting with release images
 #
@@ -276,7 +281,7 @@ function os::util::environment::setup_images_vars() {
     if [[ -z "${USE_IMAGES-}" ]]; then
         TAG='latest'
         export TAG
-        USE_IMAGES='openshift/origin-${component}:latest'
+        USE_IMAGES="openshift/origin-\${component}:latest"
         export USE_IMAGES
 
         if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
@@ -288,3 +293,4 @@ function os::util::environment::setup_images_vars() {
     fi
 	export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY="${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-3}"
 }
+readonly -f os::util::environment::setup_images_vars
