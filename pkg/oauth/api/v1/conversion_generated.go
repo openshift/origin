@@ -13,6 +13,8 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedConversionFuncs(
+		Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction,
+		Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction,
 		Convert_v1_OAuthAccessToken_To_api_OAuthAccessToken,
 		Convert_api_OAuthAccessToken_To_v1_OAuthAccessToken,
 		Convert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList,
@@ -29,10 +31,64 @@ func init() {
 		Convert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList,
 		Convert_v1_OAuthClientList_To_api_OAuthClientList,
 		Convert_api_OAuthClientList_To_v1_OAuthClientList,
+		Convert_v1_ScopeRestriction_To_api_ScopeRestriction,
+		Convert_api_ScopeRestriction_To_v1_ScopeRestriction,
 	); err != nil {
 		// if one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func autoConvert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(in *ClusterRoleScopeRestriction, out *oauth_api.ClusterRoleScopeRestriction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*ClusterRoleScopeRestriction))(in)
+	}
+	if in.RoleNames != nil {
+		in, out := &in.RoleNames, &out.RoleNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.RoleNames = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Namespaces = nil
+	}
+	out.AllowEscalation = in.AllowEscalation
+	return nil
+}
+
+func Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(in *ClusterRoleScopeRestriction, out *oauth_api.ClusterRoleScopeRestriction, s conversion.Scope) error {
+	return autoConvert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(in, out, s)
+}
+
+func autoConvert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *oauth_api.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*oauth_api.ClusterRoleScopeRestriction))(in)
+	}
+	if in.RoleNames != nil {
+		in, out := &in.RoleNames, &out.RoleNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.RoleNames = nil
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Namespaces = nil
+	}
+	out.AllowEscalation = in.AllowEscalation
+	return nil
+}
+
+func Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *oauth_api.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
+	return autoConvert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in, out, s)
 }
 
 func autoConvert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToken, out *oauth_api.OAuthAccessToken, s conversion.Scope) error {
@@ -293,6 +349,18 @@ func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_a
 	} else {
 		out.RedirectURIs = nil
 	}
+	if in.ScopeRestrictions != nil {
+		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
+		*out = make([]oauth_api.ScopeRestriction, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ScopeRestriction_To_api_ScopeRestriction(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ScopeRestrictions = nil
+	}
+	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 
@@ -320,6 +388,18 @@ func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, ou
 	} else {
 		out.RedirectURIs = nil
 	}
+	if in.ScopeRestrictions != nil {
+		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
+		*out = make([]ScopeRestriction, len(*in))
+		for i := range *in {
+			if err := Convert_api_ScopeRestriction_To_v1_ScopeRestriction(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ScopeRestrictions = nil
+	}
+	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 
@@ -493,4 +573,58 @@ func autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in *oauth_api.OAuthCl
 
 func Convert_api_OAuthClientList_To_v1_OAuthClientList(in *oauth_api.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
 	return autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in, out, s)
+}
+
+func autoConvert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, out *oauth_api.ScopeRestriction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*ScopeRestriction))(in)
+	}
+	if in.ExactValues != nil {
+		in, out := &in.ExactValues, &out.ExactValues
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.ExactValues = nil
+	}
+	if in.ClusterRole != nil {
+		in, out := &in.ClusterRole, &out.ClusterRole
+		*out = new(oauth_api.ClusterRoleScopeRestriction)
+		if err := Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClusterRole = nil
+	}
+	return nil
+}
+
+func Convert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, out *oauth_api.ScopeRestriction, s conversion.Scope) error {
+	return autoConvert_v1_ScopeRestriction_To_api_ScopeRestriction(in, out, s)
+}
+
+func autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in *oauth_api.ScopeRestriction, out *ScopeRestriction, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*oauth_api.ScopeRestriction))(in)
+	}
+	if in.ExactValues != nil {
+		in, out := &in.ExactValues, &out.ExactValues
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.ExactValues = nil
+	}
+	if in.ClusterRole != nil {
+		in, out := &in.ClusterRole, &out.ClusterRole
+		*out = new(ClusterRoleScopeRestriction)
+		if err := Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClusterRole = nil
+	}
+	return nil
+}
+
+func Convert_api_ScopeRestriction_To_v1_ScopeRestriction(in *oauth_api.ScopeRestriction, out *ScopeRestriction, s conversion.Scope) error {
+	return autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in, out, s)
 }

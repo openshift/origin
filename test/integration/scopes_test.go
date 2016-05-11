@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -56,7 +57,7 @@ func TestScopedTokens(t *testing.T) {
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserIndicator + scope.UserInfo},
 		UserName:   userName,
@@ -176,7 +177,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
 		UserName:   userName,
@@ -199,7 +200,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
 		UserName:   userName,

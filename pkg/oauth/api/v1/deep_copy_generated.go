@@ -13,6 +13,7 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
+		DeepCopy_v1_ClusterRoleScopeRestriction,
 		DeepCopy_v1_OAuthAccessToken,
 		DeepCopy_v1_OAuthAccessTokenList,
 		DeepCopy_v1_OAuthAuthorizeToken,
@@ -21,10 +22,30 @@ func init() {
 		DeepCopy_v1_OAuthClientAuthorization,
 		DeepCopy_v1_OAuthClientAuthorizationList,
 		DeepCopy_v1_OAuthClientList,
+		DeepCopy_v1_ScopeRestriction,
 	); err != nil {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func DeepCopy_v1_ClusterRoleScopeRestriction(in ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, c *conversion.Cloner) error {
+	if in.RoleNames != nil {
+		in, out := in.RoleNames, &out.RoleNames
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.RoleNames = nil
+	}
+	if in.Namespaces != nil {
+		in, out := in.Namespaces, &out.Namespaces
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Namespaces = nil
+	}
+	out.AllowEscalation = in.AllowEscalation
+	return nil
 }
 
 func DeepCopy_v1_OAuthAccessToken(in OAuthAccessToken, out *OAuthAccessToken, c *conversion.Cloner) error {
@@ -132,6 +153,18 @@ func DeepCopy_v1_OAuthClient(in OAuthClient, out *OAuthClient, c *conversion.Clo
 	} else {
 		out.RedirectURIs = nil
 	}
+	if in.ScopeRestrictions != nil {
+		in, out := in.ScopeRestrictions, &out.ScopeRestrictions
+		*out = make([]ScopeRestriction, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_ScopeRestriction(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ScopeRestrictions = nil
+	}
+	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 
@@ -193,6 +226,26 @@ func DeepCopy_v1_OAuthClientList(in OAuthClientList, out *OAuthClientList, c *co
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_ScopeRestriction(in ScopeRestriction, out *ScopeRestriction, c *conversion.Cloner) error {
+	if in.ExactValues != nil {
+		in, out := in.ExactValues, &out.ExactValues
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.ExactValues = nil
+	}
+	if in.ClusterRole != nil {
+		in, out := in.ClusterRole, &out.ClusterRole
+		*out = new(ClusterRoleScopeRestriction)
+		if err := DeepCopy_v1_ClusterRoleScopeRestriction(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.ClusterRole = nil
 	}
 	return nil
 }

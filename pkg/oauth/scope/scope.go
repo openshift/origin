@@ -34,6 +34,11 @@ func Join(scopes []string) string {
 }
 
 func Covers(has, requested []string) bool {
+	// no scopes allows all access, so requesting an empty list is NOT covered by a list with anything in it
+	if len(requested) == 0 && len(has) > 0 {
+		return false
+	}
+
 	has, requested = sortAndCopy(has), sortAndCopy(requested)
 NextRequested:
 	for i := range requested {

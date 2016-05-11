@@ -64,12 +64,13 @@ func TestOAuthStorage(t *testing.T) {
 	}
 	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix(), false)
 
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 	clientStorage := clientetcd.NewREST(etcdHelper)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
+
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper, clientRegistry)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper, clientRegistry)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}
 	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, user)
@@ -112,9 +113,10 @@ func TestOAuthStorage(t *testing.T) {
 	}))
 
 	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
-		Secret:       "secret",
-		RedirectURIs: []string{assertServer.URL + "/assert"},
+		ObjectMeta:    kapi.ObjectMeta{Name: "test"},
+		Secret:        "secret",
+		RedirectURIs:  []string{assertServer.URL + "/assert"},
+		AllowAnyScope: true,
 	})
 	storedClient, err := storage.GetClient("test")
 	if err != nil {

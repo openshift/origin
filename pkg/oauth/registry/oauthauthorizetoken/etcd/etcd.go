@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/observe"
 )
@@ -27,7 +28,7 @@ type REST struct {
 const EtcdPrefix = "/oauth/authorizetokens"
 
 // NewREST returns a RESTStorage object that will work against authorize tokens
-func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
+func NewREST(s storage.Interface, clientGetter oauthclient.Getter, backends ...storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
@@ -53,7 +54,7 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 		Storage: s,
 	}
 
-	store.CreateStrategy = oauthauthorizetoken.Strategy
+	store.CreateStrategy = oauthauthorizetoken.NewStrategy(clientGetter)
 
 	if len(backends) > 0 {
 		// Build identical stores that talk to a single etcd, so we can verify the token is distributed after creation

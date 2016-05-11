@@ -173,7 +173,8 @@ func TestValidateClientAuthorization(t *testing.T) {
 
 func TestValidateClient(t *testing.T) {
 	errs := ValidateClient(&oapi.OAuthClient{
-		ObjectMeta: api.ObjectMeta{Name: "client-name"},
+		ObjectMeta:    api.ObjectMeta{Name: "client-name"},
+		AllowAnyScope: true,
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -185,14 +186,83 @@ func TestValidateClient(t *testing.T) {
 		F      string
 	}{
 		"zero-length name": {
-			Client: oapi.OAuthClient{},
+			Client: oapi.OAuthClient{AllowAnyScope: true},
 			T:      field.ErrorTypeRequired,
 			F:      "metadata.name",
 		},
 		"disallowed namespace": {
-			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
+			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}, AllowAnyScope: true},
 			T:      field.ErrorTypeForbidden,
 			F:      "metadata.namespace",
+		},
+		"some scope note": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+			},
+			T: field.ErrorTypeRequired,
+			F: "scopeRestrictions",
+		},
+		"not both scope notes": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:        api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{{ExactValues: []string{"a"}}},
+				AllowAnyScope:     true,
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopeRestrictions",
+		},
+		"literal must have value": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:        api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{{ExactValues: []string{""}}},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopeRestrictions[0].literals[0]",
+		},
+		"must have some restriction": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:        api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{{}},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopeRestrictions[0]",
+		},
+		"can't have both restrictions": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{
+					{
+						ExactValues: []string{""},
+						ClusterRole: &oapi.ClusterRoleScopeRestriction{RoleNames: []string{"a"}, Namespaces: []string{"b"}},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopeRestrictions[0]",
+		},
+		"must have role names": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{
+					{
+						ClusterRole: &oapi.ClusterRoleScopeRestriction{Namespaces: []string{"b"}},
+					},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "scopeRestrictions[0].clusterRole.roleNames",
+		},
+		"must have namespaces": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{
+					{
+						ClusterRole: &oapi.ClusterRoleScopeRestriction{RoleNames: []string{"a"}},
+					},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "scopeRestrictions[0].clusterRole.namespaces",
 		},
 	}
 	for k, v := range errorCases {

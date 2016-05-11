@@ -22037,6 +22037,63 @@
        "type": "string"
       },
       "description": "RedirectURIs is the valid redirection URIs associated with a client"
+     },
+     "scopeRestrictions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ScopeRestriction"
+      },
+      "description": "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied."
+     },
+     "allowAnyScope": {
+      "type": "boolean",
+      "description": "AllowAnyScope indicates that the client is allowed to request a token unconstrained by scopes. If this is true, then ScopeRestrictions is ignored."
+     }
+    }
+   },
+   "v1.ScopeRestriction": {
+    "id": "v1.ScopeRestriction",
+    "description": "ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.",
+    "properties": {
+     "literals": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "ExactValues means the scope has to match a particular set of strings exactly"
+     },
+     "clusterRole": {
+      "$ref": "v1.ClusterRoleScopeRestriction",
+      "description": "ClusterRole describes a set of restrictions for cluster role scoping."
+     }
+    }
+   },
+   "v1.ClusterRoleScopeRestriction": {
+    "id": "v1.ClusterRoleScopeRestriction",
+    "description": "ClusterRoleScopeRestriction describes restrictions on cluster role scopes",
+    "required": [
+     "roleNames",
+     "namespaces",
+     "allowEscalation"
+    ],
+    "properties": {
+     "roleNames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "RoleNames is the list of cluster roles that can referenced.  * means anything"
+     },
+     "namespaces": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Namespaces is the list of namespaces that can be referenced.  * means any of them (including *)"
+     },
+     "allowEscalation": {
+      "type": "boolean",
+      "description": "AllowEscalation indicates whether you can request roles and their escalating resources"
      }
     }
    },
