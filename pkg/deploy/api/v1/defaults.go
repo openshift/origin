@@ -94,9 +94,14 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				}
 			}
 		},
-		func(obj *DeploymentTriggerImageChangeParams) {
-			if len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
+		func(obj *DeploymentConfig) {
+			for _, t := range obj.Spec.Triggers {
+				if t.ImageChangeParams != nil {
+					t.ImageChangeParams.From.Kind = "ImageStreamTag"
+					if len(t.ImageChangeParams.From.Name) > 0 && len(t.ImageChangeParams.From.Namespace) == 0 {
+						t.ImageChangeParams.From.Namespace = obj.Namespace
+					}
+				}
 			}
 		},
 	)

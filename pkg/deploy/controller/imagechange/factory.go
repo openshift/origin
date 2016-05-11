@@ -48,22 +48,15 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, store, 2*time.Minute).Run()
 
 	changeController := &ImageChangeController{
-		deploymentConfigClient: &deploymentConfigClientImpl{
-			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
-				configs := []*deployapi.DeploymentConfig{}
-				objs := store.List()
-				for _, obj := range objs {
-					configs = append(configs, obj.(*deployapi.DeploymentConfig))
-				}
-				return configs, nil
-			},
-			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				return factory.Client.DeploymentConfigs(namespace).Generate(name)
-			},
-			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				return factory.Client.DeploymentConfigs(namespace).Update(config)
-			},
+		listDeploymentConfigs: func() ([]*deployapi.DeploymentConfig, error) {
+			configs := []*deployapi.DeploymentConfig{}
+			objs := store.List()
+			for _, obj := range objs {
+				configs = append(configs, obj.(*deployapi.DeploymentConfig))
+			}
+			return configs, nil
 		},
+		client: factory.Client,
 	}
 
 	return &controller.RetryController{

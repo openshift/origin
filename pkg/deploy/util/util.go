@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -103,29 +102,6 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 		}
 	}
 	return false
-}
-
-// CauseFromAutomaticImageChange inspects any existing deployment config cause and
-// validates if it comes from the image change controller.
-func CauseFromAutomaticImageChange(config *deployapi.DeploymentConfig) bool {
-	if config.Status.Details != nil && len(config.Status.Details.Causes) > 0 {
-		for _, trigger := range config.Spec.Triggers {
-			if trigger.Type == deployapi.DeploymentTriggerOnImageChange &&
-				trigger.ImageChangeParams.Automatic &&
-				config.Status.Details.Causes[0].Type == deployapi.DeploymentTriggerOnImageChange &&
-				reflect.DeepEqual(trigger.ImageChangeParams.From, config.Status.Details.Causes[0].ImageTrigger.From) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// IsImageChangeControllerChange detects if there is an image change between two dcs.
-// Used by the update hook.
-func IsImageChangeControllerChange(newDc, oldDc deployapi.DeploymentConfig) bool {
-	return CauseFromAutomaticImageChange(&newDc) && !CauseFromAutomaticImageChange(&oldDc) &&
-		newDc.Status.LatestVersion != oldDc.Status.LatestVersion
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

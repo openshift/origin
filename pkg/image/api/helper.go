@@ -843,3 +843,7 @@ func SetContainerImageEntrypointAnnotation(annotations map[string]string, contai
 	s, _ := json.Marshal(cmd)
 	annotations[key] = string(s)
 }
+
+func LabelForStream(stream *ImageStream) string {
+	return fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+}
