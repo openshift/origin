@@ -1,8 +1,6 @@
 package client
 
 import (
-	"fmt"
-
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -33,6 +31,6 @@ func newImageStreamImages(c *Client, namespace string) *imageStreamImages {
 // Get finds the specified image by name of an image repository and id.
 func (c *imageStreamImages) Get(name, id string) (result *api.ImageStreamImage, err error) {
 	result = &api.ImageStreamImage{}
-	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(fmt.Sprintf("%s@%s", name, id)).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(api.MakeImageStreamImageName(name, id)).Do().Into(result)
 	return
 }

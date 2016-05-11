@@ -1,9 +1,6 @@
 package imagestreamimage
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/docker/distribution/digest"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -34,18 +31,11 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageStreamImage{}
 }
 
-// ParseNameAndID splits a string into its name component and ID component, and returns an error
+// parseNameAndID splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
-func ParseNameAndID(input string) (name string, id string, err error) {
-	segments := strings.Split(input, "@")
-	switch len(segments) {
-	case 2:
-		name = segments[0]
-		id = segments[1]
-		if len(name) == 0 || len(id) == 0 {
-			err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
-		}
-	default:
+func parseNameAndID(input string) (name string, id string, err error) {
+	name, id, err = api.ParseImageStreamImageName(input)
+	if err != nil {
 		err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}
 	return
@@ -54,7 +44,7 @@ func ParseNameAndID(input string) (name string, id string, err error) {
 // Get retrieves an image by ID that has previously been tagged into an image stream.
 // `id` is of the form <repo name>@<image id>.
 func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	name, imageID, err := ParseNameAndID(id)
+	name, imageID, err := parseNameAndID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +83,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	isi := api.ImageStreamImage{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: kapi.NamespaceValue(ctx),
-			Name:      fmt.Sprintf("%s@%s", name, imageName),
+			Name:      api.MakeImageStreamImageName(name, imageName),
 		},
 		Image: *image,
 	}
