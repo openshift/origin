@@ -2,18 +2,27 @@ package imagestream
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/auth/user"
+	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/admission"
+	"github.com/openshift/origin/pkg/image/admission/testutil"
+	"github.com/openshift/origin/pkg/image/api"
 )
 
 type fakeUser struct {
@@ -122,7 +131,7 @@ func TestDockerImageRepository(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		strategy := NewStrategy(&fakeDefaultRegistry{test.defaultRegistry}, &fakeSubjectAccessReviewRegistry{})
+		strategy := NewStrategy(&fakeDefaultRegistry{test.defaultRegistry}, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 		value := strategy.dockerImageRepository(test.stream)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -315,6 +324,207 @@ func TestTagVerifier(t *testing.T) {
 
 		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", name, diff.ObjectDiff(e, a))
+		}
+	}
+}
+
+func TestLimitVerifier(t *testing.T) {
+	makeISForbiddenError := func(isName string, exceeded []kapi.ResourceName) error {
+		if len(exceeded) == 0 {
+			return nil
+		}
+
+		exceededStrings := []string{}
+		for _, r := range exceeded {
+			exceededStrings = append(exceededStrings, string(r))
+		}
+		sort.Strings(exceededStrings)
+
+		err := fmt.Errorf("exceeded %s", strings.Join(exceededStrings, ","))
+
+		return kapierrors.NewForbidden(api.Resource("ImageStream"), isName, err)
+	}
+
+	makeISEvaluator := func(maxImages, maxImageTags int64) func(string, *api.ImageStream) error {
+		return func(ns string, is *api.ImageStream) error {
+			limit := kapi.ResourceList{
+				api.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
+				api.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
+			}
+			usage := admission.GetImageStreamUsage(is)
+			if less, exceeded := kquota.LessThanOrEqual(usage, limit); !less {
+				return makeISForbiddenError(is.Name, exceeded)
+			}
+			return nil
+		}
+	}
+
+	tests := []struct {
+		name        string
+		isEvaluator func(string, *api.ImageStream) error
+		is          api.ImageStream
+		expected    field.ErrorList
+	}{
+		{
+			name: "no limit",
+			is: api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: testutil.MakeDockerImageReference("test", "is", testutil.BaseImageWith1LayerDigest),
+									Image:                testutil.BaseImageWith1LayerDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "below limit",
+			is: api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: testutil.MakeDockerImageReference("test", "is", testutil.BaseImageWith1LayerDigest),
+									Image:                testutil.BaseImageWith1LayerDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+			isEvaluator: makeISEvaluator(1, 0),
+		},
+
+		{
+			name: "exceed images",
+			is: api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: testutil.MakeDockerImageReference("test", "is", testutil.BaseImageWith1LayerDigest),
+									Image:                testutil.BaseImageWith1LayerDigest,
+								},
+							},
+						},
+						"oldest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: testutil.MakeDockerImageReference("test", "is", testutil.BaseImageWith2LayersDigest),
+									Image:                testutil.BaseImageWith2LayersDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+			isEvaluator: makeISEvaluator(1, 0),
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("imageStream"), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages}).Error()),
+			},
+		},
+
+		{
+			name: "exceed tags",
+			is: api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"new": {
+							Name: "new",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: testutil.MakeDockerImageReference("test", "is", testutil.ChildImageWith2LayersDigest),
+							},
+						},
+					},
+				},
+			},
+			isEvaluator: makeISEvaluator(0, 0),
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("imageStream"), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamTags}).Error()),
+			},
+		},
+
+		{
+			name: "exceed images and tags",
+			is: api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "test",
+					Name:      "is",
+				},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"new": {
+							Name: "new",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: testutil.MakeDockerImageReference("test", "other", testutil.BaseImageWith1LayerDigest),
+							},
+						},
+					},
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: testutil.MakeDockerImageReference("test", "other", testutil.BaseImageWith1LayerDigest),
+									Image:                testutil.BaseImageWith1LayerDigest,
+								},
+							},
+						},
+					},
+				},
+			},
+			isEvaluator: makeISEvaluator(0, 0),
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("imageStream"), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages, api.ResourceImageStreamTags}).Error()),
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		sar := &fakeSubjectAccessReviewRegistry{
+			allow: true,
+		}
+		tagVerifier := &TagVerifier{sar}
+
+		s := &Strategy{
+			tagVerifier: tagVerifier,
+			limitVerifier: &testutil.FakeImageStreamLimitVerifier{
+				ImageStreamEvaluator: tc.isEvaluator,
+			},
+		}
+
+		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		errList := s.Validate(ctx, &tc.is)
+
+		if e, a := tc.expected, errList; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: unexpected validation errors: %s", tc.name, diff.ObjectDiff(e, a))
 		}
 	}
 }

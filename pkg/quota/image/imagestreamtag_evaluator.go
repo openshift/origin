@@ -3,8 +3,6 @@ package image
 import (
 	"fmt"
 
-	"github.com/golang/glog"
-
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -87,7 +85,7 @@ func makeImageStreamTagAdmissionUsageFunc(isNamespacer osclient.ImageStreamsName
 
 		isName, _, err := imageapi.ParseImageStreamTagName(ist.Name)
 		if err != nil {
-			glog.Error(err.Error())
+			utilruntime.HandleError(err)
 			return kapi.ResourceList{}
 		}
 

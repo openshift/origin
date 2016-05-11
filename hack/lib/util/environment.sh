@@ -239,6 +239,7 @@ function os::util::environment::setup_server_vars() {
 # Returns:
 #  - export USE_IMAGES
 #  - export TAG
+#  - export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY
 function os::util::environment::setup_images_vars() {
     # Use either the latest release built images, or latest.
     if [[ -z "${USE_IMAGES-}" ]]; then
@@ -250,4 +251,5 @@ function os::util::environment::setup_images_vars() {
             export USE_IMAGES="openshift/origin-\${component}:${TAG}"
         fi
     fi
+	export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY="${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-3}"
 }

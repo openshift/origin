@@ -51,6 +51,7 @@ import (
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -443,8 +444,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
+	imageStreamLimitVerifier := imageadmission.NewLimitVerifier(c.KubeClient())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry, imageStreamLimitVerifier)
 	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)

@@ -2,10 +2,10 @@
 // the wrappers cause manifests to be stored in OpenShift's etcd store instead of registry's storage.
 // Registry's middleware API is utilized to register the object factories.
 //
-// Module with quotaRestrictedBlobStore defines a wrapper for upstream blob store that does an image quota
-// check before committing image layer to a registry. Master server contains admission check that will refuse
-// the manifest if the image exceeds whatever quota set. But the check occurs too late (after the layers are
-// written). This addition allows us to refuse the layers and thus keep the storage clean.
+// Module with quotaRestrictedBlobStore defines a wrapper for upstream blob store that does an image quota and
+// limits check before committing image layer to a registry. Master server contains admission check that will
+// refuse the manifest if the image exceeds whatever quota or limit set. But the check occurs too late (after
+// the layers are written). This addition allows us to refuse the layers and thus keep the storage clean.
 //
 // *Note*: Here, we take into account just a single layer, not the image as a whole because the layers are
 // uploaded before the manifest. This leads to a situation where several layers can be written until a big
@@ -90,20 +90,26 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 		return nil
 	}
 
-	limitranges, err := repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
+	lrs, err := repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
 	if err != nil {
-		context.GetLogger(ctx).Errorf("Failed to list limitranges: %v", err)
+		context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
 		return err
 	}
 
-	for _, limitrange := range limitranges.Items {
+	for _, limitrange := range lrs.Items {
+		context.GetLogger(ctx).Debugf("processing limit range %s/%s", limitrange.Namespace, limitrange.Name)
 		for _, limit := range limitrange.Spec.Limits {
 			if err := imageadmission.AdmitImage(size, limit); err != nil {
-				context.GetLogger(ctx).Errorf("Refusing to write blob exceeding limit range: %s", err.Error())
+				context.GetLogger(ctx).Errorf("refusing to write blob exceeding limit range %s: %s", limitrange.Name, err.Error())
 				return distribution.ErrAccessDenied
 			}
 		}
 	}
+
+	// TODO(1): admit also against openshift.io/ImageStream quota resource when we have image stream cache in the
+	// registry
+	// TODO(2): admit also against openshift.io/imagestreamimages and openshift.io/imagestreamtags resources once
+	// we have image stream cache in the registry
 
 	return nil
 }

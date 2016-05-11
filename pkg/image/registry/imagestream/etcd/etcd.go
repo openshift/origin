@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -21,7 +22,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	prefix := "/imagestreams"
 
 	store := etcdgeneric.Etcd{
@@ -52,7 +53,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultR
 		ReturnDeletedObject: false,
 	}
 
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier)
 	rest := &REST{Etcd: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
 	strategy.ImageStreamGetter = rest
 
