@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
@@ -137,5 +138,85 @@ func TestScopedImpersonation(t *testing.T) {
 	}
 	if user.Name != "harold" {
 		t.Fatalf("expected %v, got %v", "harold", user.Name)
+	}
+}
+
+func TestScopeEscalations(t *testing.T) {
+	testutil.RequireEtcd(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	projectName := "hammer-project"
+	userName := "harold"
+	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := haroldClient.Builds(projectName).List(kapi.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	haroldUser, err := haroldClient.Users().Get("~")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
+		ObjectMeta: kapi.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ClientName: "any-client",
+		ExpiresIn:  200,
+		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
+		UserName:   userName,
+		UserUID:    string(haroldUser.UID),
+	}
+	if _, err := clusterAdminClient.OAuthAccessTokens().Create(nonEscalatingEditToken); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	nonEscalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	nonEscalatingEditConfig.BearerToken = nonEscalatingEditToken.Name
+	nonEscalatingEditClient, err := kclient.New(&nonEscalatingEditConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := nonEscalatingEditClient.Secrets(projectName).List(kapi.ListOptions{}); !kapierrors.IsForbidden(err) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	escalatingEditToken := &oauthapi.OAuthAccessToken{
+		ObjectMeta: kapi.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ClientName: "any-client",
+		ExpiresIn:  200,
+		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
+		UserName:   userName,
+		UserUID:    string(haroldUser.UID),
+	}
+	if _, err := clusterAdminClient.OAuthAccessTokens().Create(escalatingEditToken); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	escalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	escalatingEditConfig.BearerToken = escalatingEditToken.Name
+	escalatingEditClient, err := kclient.New(&escalatingEditConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := escalatingEditClient.Secrets(projectName).List(kapi.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

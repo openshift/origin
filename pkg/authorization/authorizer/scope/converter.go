@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -122,6 +123,15 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter r
 	}
 }
 
+// escalatingScopeResources are resources that are considered escalating for scope evaluation
+var escalatingScopeResources = []unversioned.GroupResource{
+	{Group: kapi.GroupName, Resource: "secrets"},
+	/*imageapi.GroupName*/ {Group: "", Resource: "imagestreams/secrets"},
+	/*oauthapi.GroupName*/ {Group: "", Resource: "oauthauthorizetokens"}, {Group: "", Resource: "oauthaccesstokens"},
+	/*authorizationapi.GroupName*/ {Group: "", Resource: "roles"}, {Group: "", Resource: "rolebindings"},
+	/*authorizationapi.GroupName*/ {Group: "", Resource: "clusterroles"}, {Group: "", Resource: "clusterrolebindings"},
+}
+
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
 type clusterRoleEvaluator struct{}
 
@@ -130,43 +140,56 @@ func (clusterRoleEvaluator) Handles(scope string) bool {
 }
 
 func (e clusterRoleEvaluator) Validate(scope string) error {
-	_, _, err := e.getRoleNamespace(scope)
+	_, _, _, err := e.parseScope(scope)
 	return err
 }
 
-func (e clusterRoleEvaluator) getRoleNamespace(scope string) (string, string, error) {
+// parseScope parses the requested scope, determining the requested role name, namespace, and if
+// access to escalating objects is required.  It will return an error if it doesn't parse cleanly
+func (e clusterRoleEvaluator) parseScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
 	if !e.Handles(scope) {
-		return "", "", fmt.Errorf("bad format for scope %v", scope)
+		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
 	}
+	escalating := false
+	if strings.HasSuffix(scope, ":!") {
+		escalating = true
+		// clip that last segment before parsing the rest
+		scope = scope[:strings.LastIndex(scope, ":")]
+	}
+
 	tokens := strings.SplitN(scope, ":", 2)
 	if len(tokens) != 2 {
-		return "", "", fmt.Errorf("bad format for scope %v", scope)
+		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
 	}
 
 	// namespaces can't have colons, but roles can.  pick last.
 	lastColonIndex := strings.LastIndex(tokens[1], ":")
 	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
-		return "", "", fmt.Errorf("bad format for scope %v", scope)
+		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
 	}
 
-	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], nil
+	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], escalating, nil
 }
 
 func (e clusterRoleEvaluator) Describe(scope string) string {
-	roleName, scopeNamespace, err := e.getRoleNamespace(scope)
+	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
 	if err != nil {
 		return err.Error()
 	}
-
-	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
-		return roleName + " access in all projects"
+	escalatingPhrase := "including any escalating resources like secrets"
+	if !escalating {
+		escalatingPhrase = "excluding any escalating resources like secrets"
 	}
 
-	return roleName + " access in the " + scopeNamespace + " project"
+	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
+		return roleName + " access in all projects, " + escalatingPhrase
+	}
+
+	return roleName + " access in the " + scopeNamespace + " project, " + escalatingPhrase
 }
 
 func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
-	roleName, scopeNamespace, err := e.getRoleNamespace(scope)
+	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +211,59 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 
 	rules := []authorizationapi.PolicyRule{}
 	for _, rule := range role.Rules {
-		rules = append(rules, rule)
+		if escalating {
+			rules = append(rules, rule)
+			continue
+		}
+
+		// rules with unbounded access shouldn't be allowed in scopes.
+		if rule.Verbs.Has(authorizationapi.VerbAll) || rule.Resources.Has(authorizationapi.ResourceAll) || getAPIGroupSet(rule).Has(authorizationapi.APIGroupAll) {
+			continue
+		}
+		// rules that allow escalating resource access should be cleaned.
+		safeRule := removeEscalatingResources(rule)
+		rules = append(rules, safeRule)
 	}
 
 	return rules, nil
+}
+
+// removeEscalatingResources inspects a PolicyRule and removes any references to escalating resources.
+// It has coarse logic for now.  It is possible to rewrite one rule into many for the finest grain control
+// but removing the entire matching resource regardless of verb or secondary group is cheaper, easier, and errs on the side removing
+// too much, not too little
+func removeEscalatingResources(in authorizationapi.PolicyRule) authorizationapi.PolicyRule {
+	var ruleCopy *authorizationapi.PolicyRule
+
+	apiGroups := getAPIGroupSet(in)
+	for _, resource := range escalatingScopeResources {
+		if !(apiGroups.Has(resource.Group) && in.Resources.Has(resource.Resource)) {
+			continue
+		}
+
+		if ruleCopy == nil {
+			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
+			// muddying the cache
+			ruleCopy = &authorizationapi.PolicyRule{}
+			authorizationapi.DeepCopy_api_PolicyRule(in, ruleCopy, nil)
+		}
+
+		ruleCopy.Resources.Delete(resource.Resource)
+	}
+
+	if ruleCopy != nil {
+		return *ruleCopy
+	}
+
+	return in
+}
+
+func getAPIGroupSet(rule authorizationapi.PolicyRule) sets.String {
+	apiGroups := sets.NewString(rule.APIGroups...)
+	if len(apiGroups) == 0 {
+		// this was done for backwards compatibility in the authorizer
+		apiGroups.Insert("")
+	}
+
+	return apiGroups
 }
