@@ -89,6 +89,15 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 
 		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), helperName)
+		if err != nil {
+			exutil.DumpDeploymentLogs(helperName, oc)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

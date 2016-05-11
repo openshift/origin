@@ -38,6 +38,14 @@ var _ = g.Describe("[images][perl][Slow] hot deploy for openshift perl image", f
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "dancer-mysql-example")
+			if err != nil {
+				exutil.DumpDeploymentLogs("dancer-mysql-example", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("waiting for endpoint")
 			err = oc.KubeFramework().WaitForAnEndpoint("dancer-mysql-example")
 			o.Expect(err).NotTo(o.HaveOccurred())
