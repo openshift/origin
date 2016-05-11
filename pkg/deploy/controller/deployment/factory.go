@@ -51,8 +51,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	eventRecorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployments-controller"})
 
-	deployController := &DeploymentController{
+	c := &DeploymentController{
 		serviceAccount: factory.ServiceAccount,
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -90,13 +91,13 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 				return pods.Items, nil
 			},
 		},
-		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) *kapi.Container {
 			return factory.makeContainer(strategy)
 		},
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
-		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployment-controller"}),
+		recorder: eventRecorder,
 	}
 
 	return &controller.RetryController{
@@ -110,6 +111,12 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 					return false
 				}
 				if retries.Count > 1 {
+					_, isActionableErr := err.(actionableError)
+					deployment, noReasonToPanic := obj.(*kapi.ReplicationController)
+
+					if isActionableErr && noReasonToPanic {
+						c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedRetry", fmt.Sprintf("About to stop retrying %s: %v", deployment.Name, err))
+					}
 					return false
 				}
 				return true
@@ -118,7 +125,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		),
 		Handle: func(obj interface{}) error {
 			deployment := obj.(*kapi.ReplicationController)
-			return deployController.Handle(deployment)
+			return c.Handle(deployment)
 		},
 	}
 }
@@ -131,9 +138,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 //   2. For all Custom strategy, use the strategy's image for the container
 //      image, and use the combination of the factory's Environment and the
 //      strategy's environment as the container environment.
-//
-// An error is returned if the deployment strategy type is not supported.
-func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
 	// Set default environment values
 	environment := []kapi.EnvVar{}
 	for _, env := range factory.Environment {
@@ -144,10 +149,6 @@ func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.De
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate, deployapi.DeploymentStrategyTypeRolling:
 		// Use the factory-configured image.
-		return &kapi.Container{
-			Image: factory.DeployerImage,
-			Env:   environment,
-		}, nil
 	case deployapi.DeploymentStrategyTypeCustom:
 		// Use user-defined values from the strategy input.
 		for _, env := range strategy.CustomParams.Environment {
@@ -156,8 +157,10 @@ func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.De
 		return &kapi.Container{
 			Image: strategy.CustomParams.Image,
 			Env:   environment,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported deployment strategy type: %s", strategy.Type)
+		}
+	}
+	return &kapi.Container{
+		Image: factory.DeployerImage,
+		Env:   environment,
 	}
 }

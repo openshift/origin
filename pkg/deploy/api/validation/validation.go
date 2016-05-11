@@ -127,6 +127,10 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 		} else {
 			errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
 		}
+	case "":
+		errs = append(errs, field.Required(fldPath.Child("type"), "strategy type is required"))
+	default:
+		errs = append(errs, field.Invalid(fldPath.Child("type"), strategy.Type, "unsupported strategy type, use \"Custom\" instead and specify your own strategy"))
 	}
 
 	if strategy.Labels != nil {
