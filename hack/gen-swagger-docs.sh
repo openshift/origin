@@ -8,8 +8,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 pushd "${OS_ROOT}/hack/swagger-doc" > /dev/null
