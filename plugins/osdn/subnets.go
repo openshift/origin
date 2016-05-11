@@ -3,6 +3,7 @@ package osdn
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	log "github.com/golang/glog"
@@ -177,6 +178,8 @@ func (oc *OsdnController) watchNodes() {
 			if oldNodeIP, ok := nodeAddressMap[uid]; ok && (oldNodeIP == nodeIP) {
 				continue
 			}
+			// Node status is frequently updated by kubelet, so log only if the above condition is not met
+			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
 
 			err = oc.addNode(name, nodeIP)
 			if err != nil {
@@ -185,6 +188,7 @@ func (oc *OsdnController) watchNodes() {
 			}
 			nodeAddressMap[uid] = nodeIP
 		case watch.Deleted:
+			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
 			delete(nodeAddressMap, uid)
 
 			err := oc.deleteNode(name)
@@ -211,6 +215,8 @@ func (oc *OsdnController) watchSubnets() {
 		if hs.HostIP == oc.localIP {
 			continue
 		}
+
+		log.V(5).Infof("Watch %s event for HostSubnet %q", strings.Title(string(eventType)), hs.ObjectMeta.Name)
 		switch eventType {
 		case watch.Added, watch.Modified:
 			oldSubnet, exists := subnets[string(hs.UID)]

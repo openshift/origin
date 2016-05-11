@@ -3,6 +3,7 @@ package ovs
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -63,6 +64,7 @@ func (proxy *ovsProxyPlugin) watchPods() {
 		}
 		pod := obj.(*kapi.Pod)
 
+		glog.V(5).Infof("Watch %s event for Pod %q", strings.Title(string(eventType)), pod.ObjectMeta.Name)
 		switch eventType {
 		case watch.Added, watch.Modified:
 			proxy.trackPod(pod)
