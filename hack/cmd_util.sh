@@ -2,6 +2,11 @@
 # This utility file contains functions that wrap commands to be tested. All wrapper functions run commands
 # in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
 
+# We assume ${OS_ROOT} is set
+source "${OS_ROOT}/hack/text.sh"
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/test/junit.sh"
+
 # expect_success runs the cmd and expects an exit code of 0
 function os::cmd::expect_success() {
 	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; exit 1; fi
@@ -9,7 +14,6 @@ function os::cmd::expect_success() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}"
 }
-readonly -f os::cmd::expect_success
 
 # expect_failure runs the cmd and expects a non-zero exit code
 function os::cmd::expect_failure() {
@@ -18,7 +22,6 @@ function os::cmd::expect_failure() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func"
 }
-readonly -f os::cmd::expect_failure
 
 # expect_success_and_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to find the given string in the output
@@ -29,7 +32,6 @@ function os::cmd::expect_success_and_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::success_func" "${expected_text}"
 }
-readonly -f os::cmd::expect_success_and_text
 
 # expect_failure_and_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to find the given string in the output
@@ -40,7 +42,6 @@ function os::cmd::expect_failure_and_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func" "${expected_text}"
 }
-readonly -f os::cmd::expect_failure_and_text
 
 # expect_success_and_not_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to ensure the given string is not in the output
@@ -51,7 +52,6 @@ function os::cmd::expect_success_and_not_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::success_func" "${expected_text}" "os::cmd::internal::failure_func"
 }
-readonly -f os::cmd::expect_success_and_not_text
 
 # expect_failure_and_not_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to ensure the given string is not in the output
@@ -62,7 +62,6 @@ function os::cmd::expect_failure_and_not_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func" "${expected_text}" "os::cmd::internal::failure_func"
 }
-readonly -f os::cmd::expect_failure_and_not_text
 
 # expect_code runs the cmd and expects a given exit code
 function os::cmd::expect_code() {
@@ -72,7 +71,6 @@ function os::cmd::expect_code() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}"
 }
-readonly -f os::cmd::expect_code
 
 # expect_code_and_text runs the cmd and expects the given exit code
 # as well as running a grep test to find the given string in the output
@@ -84,7 +82,6 @@ function os::cmd::expect_code_and_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}" "${expected_text}"
 }
-readonly -f os::cmd::expect_code_and_text
 
 # expect_code_and_not_text runs the cmd and expects the given exit code
 # as well as running a grep test to ensure the given string is not in the output
@@ -96,7 +93,6 @@ function os::cmd::expect_code_and_not_text() {
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}" "${expected_text}" "os::cmd::internal::failure_func"
 }
-readonly -f os::cmd::expect_code_and_not_text
 
 millisecond=1
 second=$(( 1000 * millisecond ))
@@ -113,7 +109,6 @@ function os::cmd::try_until_success() {
 
 	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::success_func" "${duration}" "${interval}"
 }
-readonly -f os::cmd::try_until_success
 
 # os::cmd::try_until_failure runs the cmd until either the command fails or times out
 # the default time-out for os::cmd::try_until_failure is 60 seconds.
@@ -125,7 +120,6 @@ function os::cmd::try_until_failure() {
 
 	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
 }
-readonly -f os::cmd::try_until_failure
 
 # os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
 # the default time-out for os::cmd::try_until_text is 60 seconds.
@@ -138,7 +132,6 @@ function os::cmd::try_until_text() {
 
 	os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
 }
-readonly -f os::cmd::try_until_text
 
 # Functions in the os::cmd::internal namespace are discouraged from being used outside of os::cmd
 
@@ -230,15 +223,14 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
 	os::test::junit::declare_test_end
 	return "${return_code}"
+
 }
-readonly -f os::cmd::internal::expect_exit_code_run_grep
 
 # os::cmd::internal::init_tempdir initializes the temporary directory
 function os::cmd::internal::init_tempdir() {
 	mkdir -p "${os_cmd_internal_tmpdir}"
 	rm -f "${os_cmd_internal_tmpdir}"/tmp_std{out,err}.log
 }
-readonly -f os::cmd::internal::init_tempdir
 
 # os::cmd::internal::describe_call determines the file:line of the latest function call made
 # from outside of this file in the call stack, and the name of the function being called from
@@ -268,7 +260,6 @@ function os::cmd::internal::describe_call() {
 
 	echo "${full_name}"
 }
-readonly -f os::cmd::internal::describe_call
 
 # os::cmd::internal::determine_caller determines the file relative to the OpenShift Origin root directory
 # and line number of the function call to the outer os::cmd wrapper function
@@ -293,7 +284,6 @@ function os::cmd::internal::determine_caller() {
 	local caller_line="${BASH_LINENO[${call_depth}-1]}"
 	echo "${caller_file}:${caller_line}"
 }
-readonly -f os::cmd::internal::determine_caller
 
 # os::cmd::internal::describe_expectation describes a command return code evaluation function
 function os::cmd::internal::describe_expectation() {
@@ -310,7 +300,6 @@ function os::cmd::internal::describe_expectation() {
 		echo "any result"
 	esac
 }
-readonly -f os::cmd::internal::describe_expectation
 
 # os::cmd::internal::seconds_since_epoch returns the number of seconds elapsed since the epoch
 # with milli-second precision
@@ -323,7 +312,6 @@ function os::cmd::internal::seconds_since_epoch() {
 	fi
 	echo $(bc <<< "scale=3; ${ns}/1000000000")
 }
-readonly -f os::cmd::internal::seconds_since_epoch
 
 # os::cmd::internal::run_collecting_output runs the command given, piping stdout and stderr into
 # the given files, and returning the exit code of the command
@@ -336,7 +324,6 @@ function os::cmd::internal::run_collecting_output() {
 
 	return "${result}"
 }
-readonly -f os::cmd::internal::run_collecting_output
 
 # os::cmd::internal::success_func determines if the input exit code denotes success
 # this function returns 0 for false and 1 for true to be compatible with arithmetic tests
@@ -347,7 +334,6 @@ function os::cmd::internal::success_func() {
 	[[ "${exit_code}" -ne "0" ]]
 	return $?
 }
-readonly -f os::cmd::internal::success_func
 
 # os::cmd::internal::failure_func determines if the input exit code denotes failure
 # this function returns 0 for false and 1 for true to be compatible with arithmetic tests
@@ -358,7 +344,6 @@ function os::cmd::internal::failure_func() {
 	[[ "${exit_code}" -eq "0" ]]
 	return $?
 }
-readonly -f os::cmd::internal::failure_func
 
 # os::cmd::internal::specific_code_func determines if the input exit code matches the given code
 # this function returns 0 for false and 1 for true to be compatible with arithmetic tests
@@ -370,13 +355,11 @@ function os::cmd::internal::specific_code_func() {
 	[[ "${exit_code}" -ne "${expected_code}" ]]
 	return $?
 }
-readonly -f os::cmd::internal::specific_code_func
 
 # os::cmd::internal::get_results prints the stderr and stdout files
 function os::cmd::internal::get_results() {
 	cat "${os_cmd_internal_tmpout}" "${os_cmd_internal_tmperr}"
 }
-readonly -f os::cmd::internal::get_results
 
 # os::cmd::internal::get_try_until_results returns a concise view of the stdout and stderr output files
 # using a timeline format, where consecutive output lines that are the same are condensed into one line
@@ -396,14 +379,12 @@ function os::cmd::internal::print_try_until_results() {
 		echo "There was no error output from the command."
 	fi
 }
-readonly -f os::cmd::internal::print_try_until_results
 
 # os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
 # this is used to make the try_until_* output more concise
 function os::cmd::internal::mark_attempt() {
 	echo -e '\x1e' >> "${os_cmd_internal_tmpout}" | tee "${os_cmd_internal_tmperr}"
 }
-readonly -f os::cmd::internal::mark_attempt
 
 # os::cmd::internal::compress_output compresses an output file into timeline representation
 function os::cmd::internal::compress_output() {
@@ -411,7 +392,6 @@ function os::cmd::internal::compress_output() {
 
 	awk -f ${OS_ROOT}/hack/compress.awk $logfile
 }
-readonly -f os::cmd::internal::compress_output
 
 # os::cmd::internal::print_results pretty-prints the stderr and stdout files
 function os::cmd::internal::print_results() {
@@ -429,7 +409,6 @@ function os::cmd::internal::print_results() {
 		echo "There was no error output from the command."
 	fi
 }
-readonly -f os::cmd::internal::print_results
 
 # os::cmd::internal::assemble_causes determines from the two input booleans which part of the test
 # failed and generates a nice delimited list of failure causes
@@ -448,7 +427,7 @@ function os::cmd::internal::assemble_causes() {
 	local list=$(printf '; %s' "${causes[@]}")
 	echo "${list:2}"
 }
-readonly -f os::cmd::internal::assemble_causes
+
 
 # os::cmd::internal::run_until_exit_code runs the provided command until the exit code test given
 # succeeds or the timeout given runs out. Output from the command to be tested is suppressed unless
@@ -530,7 +509,6 @@ function os::cmd::internal::run_until_exit_code() {
 	os::test::junit::declare_test_end
 	return "${return_code}"
 }
-readonly -f os::cmd::internal::run_until_exit_code
 
 # os::cmd::internal::run_until_text runs the provided command until the command output contains the
 # given text or the timeout given runs out. Output from the command to be tested is suppressed unless
@@ -615,4 +593,3 @@ function os::cmd::internal::run_until_text() {
 	os::test::junit::declare_test_end
 	return "${return_code}"
 }
-readonly -f os::cmd::internal::run_until_text

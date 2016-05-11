@@ -15,7 +15,7 @@ function absolute_path() {
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "${OS_ROOT}/hack/text.sh"
 origin_path="src/github.com/openshift/origin"
 
 # TODO: Remove this check and fix the docker command instead after the

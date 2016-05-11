@@ -7,14 +7,14 @@ set -o pipefail
 # Set a useful format for xtrace output
 # export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 
-OS_ROOT=$(
+ORIGIN_ROOT=$(
   unset CDPATH
   origin_root=$(dirname "${BASH_SOURCE}")/../..
   cd "${origin_root}"
   pwd
 )
-source "${OS_ROOT}/hack/lib/init.sh"
-source ${OS_ROOT}/contrib/vagrant/provision-util.sh
+source ${ORIGIN_ROOT}/hack/common.sh
+source ${ORIGIN_ROOT}/contrib/vagrant/provision-util.sh
 
 # Passed as arguments to provisioning script
 MASTER_IP=${1:-""}
@@ -26,7 +26,7 @@ INSTANCE_PREFIX=${4:-${OPENSHIFT_INSTANCE_PREFIX:-openshift}}
 FIXUP_NET_UDEV=false
 NETWORK_PLUGIN=${OPENSHIFT_NETWORK_PLUGIN:-""}
 NODE_INDEX=0
-CONFIG_ROOT=${OS_ROOT}
+CONFIG_ROOT=${ORIGIN_ROOT}
 SKIP_BUILD=${OPENSHIFT_SKIP_BUILD:-false}
 
 # Parse optional arguments

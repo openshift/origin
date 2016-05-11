@@ -1,4 +1,4 @@
-  #!/bin/bash
+#!/bin/bash
 #
 # This abstracts starting up an extended server.
 
@@ -21,7 +21,9 @@ function os::test::extended::focus {
 #   and then tests are executed.  Tests that depend on fine grained setup should
 #   be done in other contexts.
 function os::test::extended::setup {
-  source "${OS_ROOT}/hack/lib/init.sh"
+  source "${OS_ROOT}/hack/util.sh"
+  source "${OS_ROOT}/hack/common.sh"
+  source "${OS_ROOT}/hack/lib/log.sh"
   os::log::install_errexit
 
   # build binaries

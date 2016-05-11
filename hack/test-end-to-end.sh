@@ -19,7 +19,9 @@ if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
 	echo "++ Docker is not installed, running end-to-end against local binaries"
 fi
 
-source "${OS_ROOT}/hack/lib/init.sh"
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 ensure_iptables_or_die

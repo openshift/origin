@@ -16,7 +16,10 @@ fi
 export SHELLOPTS
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/log.sh"
+source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::log::install_errexit
 
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
