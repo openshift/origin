@@ -85,9 +85,10 @@ func Convert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.Build
 }
 
 func Convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+	if err := autoConvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in, out, s); err != nil {
 		return err
 	}
+
 	switch in.Type {
 	case ImageChangeBuildTriggerTypeDeprecated:
 		out.Type = newer.ImageChangeBuildTriggerType
@@ -181,8 +182,6 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},
-		// TODO: this defaulter is never called, because triggers with ImageChange type but imagechange nil
-		// are dropped.
 		func(obj *BuildTriggerPolicy) {
 			if obj.Type == ImageChangeBuildTriggerType && obj.ImageChange == nil {
 				obj.ImageChange = &ImageChangeTrigger{}

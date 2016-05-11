@@ -361,3 +361,33 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 	}
 
 }
+
+func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
+	buildConfig := older.BuildConfig{
+		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: older.BuildConfigSpec{
+			BuildSpec: older.BuildSpec{
+				Strategy: older.BuildStrategy{
+					Type:           older.SourceBuildStrategyType,
+					SourceStrategy: &older.SourceBuildStrategy{},
+				},
+			},
+			Triggers: []older.BuildTriggerPolicy{
+				{
+					Type:        older.ImageChangeBuildTriggerType,
+					ImageChange: nil,
+				},
+			},
+		},
+	}
+
+	var internalBC newer.BuildConfig
+
+	Convert(&buildConfig, &internalBC)
+	for _, ic := range internalBC.Spec.Triggers {
+		if ic.ImageChange == nil {
+			t.Errorf("Expected trigger to have ImageChange value")
+		}
+	}
+
+}
