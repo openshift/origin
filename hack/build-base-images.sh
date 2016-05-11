@@ -18,10 +18,14 @@ os::log::install_errexit
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
-"${OS_ROOT}/hack/build-go.sh" cmd/oc
-oc="$(os::build::find-binary oc)"
+oc="$(os::build::find-binary oc ${OS_ROOT})"
+if [[ -z "${oc}" ]]; then
+  "${OS_ROOT}/hack/build-go.sh" cmd/oc
+  oc="$(os::build::find-binary oc ${OS_ROOT})"
+fi
+
 function build() {
-  oc ex dockerbuild $2 $1
+  "${oc}" ex dockerbuild $2 $1
 }
 
 # Build the images

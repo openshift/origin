@@ -13,6 +13,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -119,10 +120,16 @@ func (o *DockerbuildOptions) Run() error {
 		if glog.V(2) {
 			glog.Infof("Builder: "+format, args...)
 		} else {
-			fmt.Fprintf(e.ErrOut, "# %s\n", fmt.Sprintf(format, args...))
+			fmt.Fprintf(e.ErrOut, "--> %s\n", fmt.Sprintf(format, args...))
 		}
 	}
-	return stripLeadingError(e.Build(f, o.Arguments))
+	safe := interrupt.New(func(os.Signal) { os.Exit(1) }, func() {
+		glog.V(5).Infof("invoking cleanup")
+		if err := e.Cleanup(); err != nil {
+			fmt.Fprintf(o.Err, "error: Unable to clean up build: %v\n", err)
+		}
+	})
+	return safe.Run(func() error { return stripLeadingError(e.Build(f, o.Arguments)) })
 }
 
 func stripLeadingError(err error) error {
