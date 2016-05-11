@@ -55,6 +55,37 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	//ExaminePodDiskUsage(oc)
 }
 
+// DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
+func DumpDeploymentLogs(dc string, oc *CLI) {
+	out, err := oc.Run("get").Args("pods", "-o", "json").Output()
+	if err == nil {
+		b := []byte(out)
+		var list kapi.PodList
+		err = json.Unmarshal(b, &list)
+		if err == nil {
+			for _, pod := range list.Items {
+				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s to see if it is affiliated with %s \n\n", pod.ObjectMeta.Name, dc)
+				if strings.Contains(pod.ObjectMeta.Name, dc) {
+					podName := pod.ObjectMeta.Name
+
+					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
+					depOuput, err := oc.Run("logs").Args("-f", "pod/"+podName).Output()
+					if err == nil {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOuput)
+					} else {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on dep logs for %s:  %v\n\n", podName, err)
+					}
+				}
+			}
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
+		}
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	}
+
+}
+
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {

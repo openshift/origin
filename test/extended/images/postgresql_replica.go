@@ -81,6 +81,15 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), postgreSQLHelperName)
+		if err != nil {
+			exutil.DumpDeploymentLogs(postgreSQLHelperName, oc)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		err = oc.KubeFramework().WaitForAnEndpoint(postgreSQLHelperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

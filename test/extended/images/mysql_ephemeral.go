@@ -27,6 +27,14 @@ var _ = g.Describe("[images][mysql][Slow] openshift mysql image", func() {
 			err = oc.Run("create").Args("-f", configFile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mysql")
+			if err != nil {
+				exutil.DumpDeploymentLogs("mysql", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("expecting the mysql service get endpoints")
 			err = oc.KubeFramework().WaitForAnEndpoint("mysql")
 			o.Expect(err).NotTo(o.HaveOccurred())
