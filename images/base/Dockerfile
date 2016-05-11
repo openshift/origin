@@ -6,6 +6,12 @@
 #
 FROM centos:centos7
 
+# Until nss-3.21.0-9.el7_2 and openssl-libs-1.0.1e-51.el7_2.5.x86_64 is
+# released in the base image we need to manually update this to workaround an
+# issue where some of the mirrors are using a certificate
+RUN yum update -y nss openssl-libs && \
+    yum clean all
+
 RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
       socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof" && \
     yum install -y $INSTALL_PKGS && \
