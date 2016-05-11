@@ -3,7 +3,7 @@
 set -e
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 pushd ${OS_ROOT}/assets > /dev/null
   echo "Cleaning up bower_components, node_modules, and dist directories..."

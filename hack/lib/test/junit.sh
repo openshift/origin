@@ -20,6 +20,7 @@ function os::test::junit::declare_suite_start() {
     NUM_OS_JUNIT_SUITES_IN_FLIGHT=$(( ${num_suites} + 1 ))
     export NUM_OS_JUNIT_SUITES_IN_FLIGHT
 }
+readonly -f os::test::junit::declare_suite_start
 
 # os::test::junit::declare_suite_end prints a message declaring the end of a test suite
 # If there aren't any suites in flight, this function will fail.
@@ -43,6 +44,7 @@ function os::test::junit::declare_suite_end() {
     NUM_OS_JUNIT_SUITES_IN_FLIGHT=$(( ${num_suites} - 1 ))
     export NUM_OS_JUNIT_SUITES_IN_FLIGHT
 }
+readonly -f os::test::junit::declare_suite_end
 
 # os::test::junit::declare_test_start prints a message declaring the start of a test case
 # If there is already a test marked as being in flight, this function will fail.
@@ -73,6 +75,7 @@ function os::test::junit::declare_test_start() {
     NUM_OS_JUNIT_TESTS_IN_FLIGHT=$(( ${num_tests} + 1 ))
     export NUM_OS_JUNIT_TESTS_IN_FLIGHT
 }
+readonly -f os::test::junit::declare_test_start
 
 # os::test::junit::declare_test_end prints a message declaring the end of a test case
 # If there is no test marked as being in flight, this function will fail.
@@ -96,6 +99,7 @@ function os::test::junit::declare_test_end() {
     NUM_OS_JUNIT_TESTS_IN_FLIGHT=$(( ${num_tests} - 1 ))
     export NUM_OS_JUNIT_TESTS_IN_FLIGHT
 }
+readonly -f os::test::junit::declare_test_end
 
 # os::test::junit::check_test_counters checks that we do not have any test suites or test cases in flight
 # This function should be called at the very end of any test script using jUnit markers to make sure no error in 
@@ -117,6 +121,7 @@ function os::test::junit::check_test_counters() {
         return 1
     fi
 }
+readonly -f os::test::junit::check_test_counters
 
 # os::test::junit::reconcile_output appends the necessary suite and test end statements to the jUnit output file
 # in order to ensure that the file is in a consistent state to allow for parsing
@@ -137,3 +142,4 @@ function os::test::junit::reconcile_output() {
         os::test::junit::declare_suite_end
     done
 }
+readonly -f os::test::junit::reconcile_output
