@@ -20,6 +20,10 @@ const (
 	PluginName = "ImageLimitRange"
 )
 
+func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceName, requested, limit *resource.Quantity) error {
+	return fmt.Errorf("requested usage of %s exceeds the maximum limit per %s (%s > %s)", resourceName, limitType, requested.String(), limit.String())
+}
+
 func init() {
 	kadmission.RegisterPlugin(PluginName, func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
 		plugin, err := NewImageLimitRangerPlugin(client, config)
@@ -125,7 +129,7 @@ func AdmitImage(size int64, limit kapi.LimitRangeItem) error {
 	imageQuantity := resource.NewQuantity(size, resource.BinarySI)
 	if limitQuantity.Cmp(*imageQuantity) < 0 {
 		// image size is larger than the permitted limit range max size, image is forbidden
-		return fmt.Errorf("%s exceeds the maximum %s usage per %s (%s)", imageQuantity.String(), kapi.ResourceStorage, imageapi.LimitTypeImage, limitQuantity.String())
+		return newLimitExceededError(imageapi.LimitTypeImage, kapi.ResourceStorage, imageQuantity, &limitQuantity)
 	}
 	return nil
 }

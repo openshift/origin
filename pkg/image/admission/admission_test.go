@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+
+	"github.com/openshift/origin/pkg/image/admission/testutil"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestAdmitImageStreamMapping(t *testing.T) {
@@ -232,11 +232,11 @@ func TestSupports(t *testing.T) {
 func getBaseImageWith1Layer() imageapi.Image {
 	return imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:        imagetest.BaseImageWith1LayerDigest,
+			Name:        testutil.BaseImageWith1LayerDigest,
 			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 		},
-		DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", "test", imagetest.BaseImageWith1LayerDigest),
-		DockerImageManifest:  imagetest.BaseImageWith1Layer,
+		DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", "test", testutil.BaseImageWith1LayerDigest),
+		DockerImageManifest:  testutil.BaseImageWith1Layer,
 	}
 }
 

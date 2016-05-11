@@ -1,5 +1,118 @@
 package testutil
 
+import (
+	"fmt"
+	"testing"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
+)
+
+// InternalRegistryURL is an url of internal docker registry for testing purposes.
+const InternalRegistryURL = "172.30.12.34:5000"
+
+// ExpectedResourceListFor creates a resource list with for image stream quota with given values.
+func ExpectedResourceListFor(expectedISCount int64) kapi.ResourceList {
+	return kapi.ResourceList{
+		imageapi.ResourceImageStreams: *resource.NewQuantity(expectedISCount, resource.DecimalSI),
+	}
+}
+
+// MakeDockerImageReference makes a docker image reference string referencing testing internal docker
+// registry.
+func MakeDockerImageReference(ns, isName, imageID string) string {
+	return fmt.Sprintf("%s/%s/%s@%s", InternalRegistryURL, ns, isName, imageID)
+}
+
+// GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
+// namespace. Addionally, a shared image stream will be listed if the requested namespace is "shared".
+func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
+	allISs := append(sharedISs, iss...)
+
+	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case ktestclient.ListAction:
+			res := &imageapi.ImageStreamList{
+				Items: []imageapi.ImageStream{},
+			}
+			for _, is := range allISs {
+				if is.Namespace == a.GetNamespace() {
+					res.Items = append(res.Items, is)
+				}
+			}
+
+			t.Logf("imagestream list handler: returning %d image streams from namespace %s", len(res.Items), a.GetNamespace())
+
+			return true, res, nil
+		}
+		return false, nil, nil
+	}
+}
+
+// GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with  ktestclient.Fake client
+// that handles Get request on image stream resource. Matching is from given image stream list will be
+// returned if found. Additionally, a shared image stream may be requested.
+func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
+	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
+	allISs := append(sharedISs, iss...)
+
+	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case ktestclient.GetAction:
+			for _, is := range allISs {
+				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
+					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
+					return true, &is, nil
+				}
+			}
+
+			err := kerrors.NewNotFound(kapi.Resource("imageStreams"), a.GetName())
+			t.Logf("imagestream get handler: %v", err)
+			return true, nil, err
+		}
+		return false, nil, nil
+	}
+}
+
+// GetSharedImageStream returns an image stream having all the testing images tagged in its status under
+// latest tag.
+func GetSharedImageStream(namespace, name string) *imageapi.ImageStream {
+	tevList := imageapi.TagEventList{}
+	for _, imgName := range []string{
+		BaseImageWith1LayerDigest,
+		BaseImageWith2LayersDigest,
+		ChildImageWith2LayersDigest,
+		ChildImageWith3LayersDigest,
+		MiscImageDigest,
+	} {
+		tevList.Items = append(tevList.Items,
+			imageapi.TagEvent{
+				DockerImageReference: MakeDockerImageReference("test", "is", imgName),
+				Image:                imgName,
+			})
+	}
+
+	sharedIS := imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{
+				"latest": tevList,
+			},
+		},
+	}
+
+	return &sharedIS
+}
+
 // 1 data layer of 128 B
 const BaseImageWith1LayerDigest = `sha256:c5207ce0f38da269ad2e58f143b5ea4b314c75ce1121384369f0db9015e10e82`
 const BaseImageWith1Layer = `{

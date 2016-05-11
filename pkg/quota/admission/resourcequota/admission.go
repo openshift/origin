@@ -1,7 +1,7 @@
 // This plugin supplements upstream ResourceQuota admission plugin.
 // It takes care of OpenShift specific resources that may be abusing resource quota limits.
 
-package admission
+package resourcequota
 
 import (
 	"fmt"
@@ -11,17 +11,16 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/quota"
 )
 
-const pluginName = "OriginResourceQuota"
+const PluginName = "OriginResourceQuota"
 
 func init() {
-	admission.RegisterPlugin(pluginName,
+	admission.RegisterPlugin(PluginName,
 		func(kClient clientset.Interface, config io.Reader) (admission.Interface, error) {
 			return NewOriginResourceQuota(kClient), nil
 		})
@@ -36,7 +35,7 @@ type originQuotaAdmission struct {
 	kClient clientset.Interface
 }
 
-var _ = oadmission.WantsOpenshiftClient(&originQuotaAdmission{})
+var _ = oadmission.WantsOriginQuotaRegistry(&originQuotaAdmission{})
 var _ = oadmission.Validator(&originQuotaAdmission{})
 
 // NewOriginResourceQuota creates a new OriginResourceQuota admission plugin that takes care of admission of
@@ -53,18 +52,17 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 	return a.kQuotaAdmission.Admit(as)
 }
 
-func (a *originQuotaAdmission) SetOpenshiftClient(osClient osclient.Interface) {
-	registry := quota.NewRegistry(osClient)
+func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) {
 	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry)
 	if err != nil {
-		glog.Fatalf("failed to initialize %s plugin: %v", pluginName, err)
+		glog.Fatalf("failed to initialize %s plugin: %v", PluginName, err)
 	}
 	a.kQuotaAdmission = quotaAdmission
 }
 
 func (a *originQuotaAdmission) Validate() error {
 	if a.kQuotaAdmission == nil {
-		return fmt.Errorf("%s requires an openshift client", pluginName)
+		return fmt.Errorf("%s requires an origin quota registry", PluginName)
 	}
 	return nil
 }

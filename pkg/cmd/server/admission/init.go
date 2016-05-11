@@ -2,6 +2,7 @@ package admission
 
 import (
 	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
@@ -9,9 +10,10 @@ import (
 )
 
 type PluginInitializer struct {
-	OpenshiftClient client.Interface
-	ProjectCache    *cache.ProjectCache
-	Authorizer      authorizer.Authorizer
+	OpenshiftClient     client.Interface
+	ProjectCache        *cache.ProjectCache
+	OriginQuotaRegistry quota.Registry
+	Authorizer          authorizer.Authorizer
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -23,6 +25,9 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		}
 		if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 			wantsProjectCache.SetProjectCache(i.ProjectCache)
+		}
+		if wantsOriginQuotaRegistry, ok := plugin.(WantsOriginQuotaRegistry); ok {
+			wantsOriginQuotaRegistry.SetOriginQuotaRegistry(i.OriginQuotaRegistry)
 		}
 		if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
 			wantsAuthorizer.SetAuthorizer(i.Authorizer)

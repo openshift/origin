@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 var (
@@ -363,8 +364,8 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 			return err
 		}
 
-		if kerrors.IsForbidden(statusErr) {
-			context.GetLogger(r.ctx).Errorf("Denied creating ImageStreamMapping: %v", statusErr)
+		if quotautil.IsErrorQuotaExceeded(statusErr) {
+			context.GetLogger(r.ctx).Errorf("denied creating ImageStreamMapping: %v", statusErr)
 			return distribution.ErrAccessDenied
 		}
 
@@ -387,13 +388,21 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			context.GetLogger(r.ctx).Errorf("Error auto provisioning image stream: %s", err)
+			if quotautil.IsErrorQuotaExceeded(err) {
+				context.GetLogger(r.ctx).Errorf("denied creating ImageStream: %v", err)
+				return distribution.ErrAccessDenied
+			}
+			context.GetLogger(r.ctx).Errorf("error auto provisioning ImageStream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
 		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
+			if quotautil.IsErrorQuotaExceeded(err) {
+				context.GetLogger(r.ctx).Errorf("denied a creation of ImageStreamMapping: %v", err)
+				return distribution.ErrAccessDenied
+			}
+			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
 			return err
 		}
 	}

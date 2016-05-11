@@ -7,7 +7,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/image"
 )
 
-// NewRegistry returns a registry object that knows how to evaluate quota usage of OpenShift resources.
-func NewRegistry(osClient osclient.Interface) kquota.Registry {
-	return image.NewImageRegistry(osClient)
+// NewOriginQuotaRegistry returns a registry object that knows how to evaluate quota usage of OpenShift
+// resources.
+func NewOriginQuotaRegistry(osClient osclient.Interface) kquota.Registry {
+	return image.NewImageQuotaRegistry(osClient)
 }
