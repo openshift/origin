@@ -9,9 +9,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
