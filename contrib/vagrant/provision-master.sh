@@ -2,12 +2,12 @@
 
 source $(dirname $0)/provision-config.sh
 
-os::provision::base-provision "${ORIGIN_ROOT}" true
+os::provision::base-provision "${OS_ROOT}" true
 
-os::provision::build-origin "${ORIGIN_ROOT}" "${SKIP_BUILD}"
-os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
+os::provision::build-origin "${OS_ROOT}" "${SKIP_BUILD}"
+os::provision::build-etcd "${OS_ROOT}" "${SKIP_BUILD}"
 
-os::provision::base-install "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
+os::provision::base-install "${OS_ROOT}" "${CONFIG_ROOT}"
 
 if [[ "${SDN_NODE}" = "true" ]]; then
   # Running an sdn node on the master when using an openshift sdn
@@ -56,7 +56,7 @@ if [[ "${SDN_NODE}" = "true" ]]; then
   # as possible for the node to register itself.  Vagrant can deploy
   # in parallel but dind deploys serially for simplicity.
   if ! os::provision::in-container; then
-    os::provision::disable-node "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
+    os::provision::disable-node "${OS_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
         "${SDN_NODE_NAME}"
   fi
 fi
