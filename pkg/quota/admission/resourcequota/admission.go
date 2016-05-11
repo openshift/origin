@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kquota "k8s.io/kubernetes/pkg/quota"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -54,7 +55,7 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 
 func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) {
 	// TODO: Make the number of evaluators configurable?
-	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry, 5)
+	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry, 5, wait.NeverStop)
 	if err != nil {
 		glog.Fatalf("failed to initialize %s plugin: %v", PluginName, err)
 	}
