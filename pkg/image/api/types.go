@@ -30,9 +30,6 @@ const (
 
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
-
-	// ResourceImages represents a number of images in a project.
-	ResourceImages kapi.ResourceName = "openshift.io/images"
 )
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
