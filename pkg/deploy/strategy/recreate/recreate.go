@@ -142,6 +142,8 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		return strat.NewConditionReachedErr("mid hook succeeded")
 	}
 
+	accepted := false
+
 	// Scale up the to deployment.
 	if desiredReplicas > 0 {
 		if from != nil {
@@ -155,6 +157,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 			if err := updateAcceptor.Accept(updatedTo); err != nil {
 				return fmt.Errorf("update acceptor rejected %s: %v", to.Name, err)
 			}
+			accepted = true
 			to = updatedTo
 
 			if strat.PercentageBetween(s.until, 1, 99) {
@@ -170,6 +173,12 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 				return fmt.Errorf("couldn't scale %s to %d: %v", to.Name, desiredReplicas, err)
 			}
 			to = updatedTo
+		}
+
+		if !accepted {
+			if err := updateAcceptor.Accept(to); err != nil {
+				return fmt.Errorf("update acceptor rejected %s: %v", to.Name, err)
+			}
 		}
 	}
 
