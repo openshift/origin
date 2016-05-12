@@ -5,6 +5,7 @@
 package docker
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -39,6 +40,39 @@ func TestListNetworks(t *testing.T) {
 	}
 	if !reflect.DeepEqual(containers, expected) {
 		t.Errorf("ListNetworks: Expected %#v. Got %#v.", expected, containers)
+	}
+}
+
+func TestFilteredListNetworks(t *testing.T) {
+	jsonNetworks := `[
+     {
+             "ID": "9fb1e39c",
+             "Name": "foo",
+             "Type": "bridge",
+             "Endpoints":[{"ID": "c080be979dda", "Name": "lllll2222", "Network": "9fb1e39c"}]
+     }
+]`
+	var expected []Network
+	err := json.Unmarshal([]byte(jsonNetworks), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantQuery := "filters={\"name\":{\"blah\":true}}\n"
+	fakeRT := &FakeRoundTripper{message: jsonNetworks, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	opts := NetworkFilterOpts{
+		"name": map[string]bool{"blah": true},
+	}
+	containers, err := client.FilteredListNetworks(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(containers, expected) {
+		t.Errorf("ListNetworks: Expected %#v. Got %#v.", expected, containers)
+	}
+	query := fakeRT.requests[0].URL.RawQuery
+	if query != wantQuery {
+		t.Errorf("FilteredListNetworks: Expected query: %q, got: %q", wantQuery, query)
 	}
 }
 
@@ -118,7 +152,7 @@ func TestNetworkConnect(t *testing.T) {
 	id := "8dfafdbc3a40"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
-	opts := NetworkConnectionOptions{"foobar"}
+	opts := NetworkConnectionOptions{Container: "foobar"}
 	err := client.ConnectNetwork(id, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -134,9 +168,46 @@ func TestNetworkConnect(t *testing.T) {
 	}
 }
 
+func TestNetworkConnectWithEndpoint(t *testing.T) {
+	wantJSON := `{"Container":"foobar","EndpointConfig":{"IPAMConfig":{"IPv4Address":"8.8.8.8"},"Links":null,"Aliases":null},"Force":false}`
+	var wantObj NetworkConnectionOptions
+	json.NewDecoder(bytes.NewBuffer([]byte(wantJSON))).Decode(&wantObj)
+	id := "8dfafdbc3a40"
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
+	client := newTestClient(fakeRT)
+	opts := NetworkConnectionOptions{
+		Container: "foobar",
+		EndpointConfig: &EndpointConfig{
+			IPAMConfig: &EndpointIPAMConfig{
+				IPv4Address: "8.8.8.8",
+			},
+		},
+	}
+	err := client.ConnectNetwork(id, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	expectedMethod := "POST"
+	if req.Method != expectedMethod {
+		t.Errorf("ConnectNetwork(%q): Wrong HTTP method. Want %s. Got %s.", id, expectedMethod, req.Method)
+	}
+	u, _ := url.Parse(client.getURL("/networks/" + id + "/connect"))
+	if req.URL.Path != u.Path {
+		t.Errorf("ConnectNetwork(%q): Wrong request path. Want %q. Got %q.", id, u.Path, req.URL.Path)
+	}
+	var in NetworkConnectionOptions
+	if err := json.NewDecoder(req.Body).Decode(&in); err != nil {
+		t.Errorf("ConnectNetwork: error parsing JSON data sent: %q", err)
+	}
+	if !reflect.DeepEqual(in, wantObj) {
+		t.Errorf("ConnectNetwork: wanted %#v send, got: %#v", wantObj, in)
+	}
+}
+
 func TestNetworkConnectNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such network container", status: http.StatusNotFound})
-	opts := NetworkConnectionOptions{"foobar"}
+	opts := NetworkConnectionOptions{Container: "foobar"}
 	err := client.ConnectNetwork("8dfafdbc3a40", opts)
 	if serr, ok := err.(*NoSuchNetworkOrContainer); !ok {
 		t.Errorf("ConnectNetwork: wrong error type: %s.", serr)
@@ -147,7 +218,7 @@ func TestNetworkDisconnect(t *testing.T) {
 	id := "8dfafdbc3a40"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
-	opts := NetworkConnectionOptions{"foobar"}
+	opts := NetworkConnectionOptions{Container: "foobar"}
 	err := client.DisconnectNetwork(id, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +236,7 @@ func TestNetworkDisconnect(t *testing.T) {
 
 func TestNetworkDisconnectNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such network container", status: http.StatusNotFound})
-	opts := NetworkConnectionOptions{"foobar"}
+	opts := NetworkConnectionOptions{Container: "foobar"}
 	err := client.DisconnectNetwork("8dfafdbc3a40", opts)
 	if serr, ok := err.(*NoSuchNetworkOrContainer); !ok {
 		t.Errorf("DisconnectNetwork: wrong error type: %s.", serr)

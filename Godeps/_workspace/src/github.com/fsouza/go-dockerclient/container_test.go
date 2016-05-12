@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -32,13 +31,37 @@ func TestStateString(t *testing.T) {
 		input    State
 		expected string
 	}{
-		{State{Running: true, Paused: true}, "^paused$"},
-		{State{Running: true, StartedAt: started}, "^Up 3h.*$"},
-		{State{Running: false, ExitCode: 7}, "^Exit 7$"},
+		{State{Running: true, Paused: true, StartedAt: started}, "Up 3 hours (Paused)"},
+		{State{Running: true, Restarting: true, ExitCode: 7, FinishedAt: started}, "Restarting (7) 3 hours ago"},
+		{State{Running: true, StartedAt: started}, "Up 3 hours"},
+		{State{RemovalInProgress: true}, "Removal In Progress"},
+		{State{Dead: true}, "Dead"},
+		{State{}, "Created"},
+		{State{StartedAt: started}, ""},
+		{State{ExitCode: 7, StartedAt: started, FinishedAt: started}, "Exited (7) 3 hours ago"},
 	}
 	for _, tt := range tests {
-		re := regexp.MustCompile(tt.expected)
-		if got := tt.input.String(); !re.MatchString(got) {
+		if got := tt.input.String(); got != tt.expected {
+			t.Errorf("State.String(): wrong result. Want %q. Got %q.", tt.expected, got)
+		}
+	}
+}
+
+func TestStateStateString(t *testing.T) {
+	started := time.Now().Add(-3 * time.Hour)
+	var tests = []struct {
+		input    State
+		expected string
+	}{
+		{State{Running: true, Paused: true}, "paused"},
+		{State{Running: true, Restarting: true}, "restarting"},
+		{State{Running: true}, "running"},
+		{State{Dead: true}, "dead"},
+		{State{}, "created"},
+		{State{StartedAt: started}, "exited"},
+	}
+	for _, tt := range tests {
+		if got := tt.input.StateString(); got != tt.expected {
 			t.Errorf("State.String(): wrong result. Want %q. Got %q.", tt.expected, got)
 		}
 	}
@@ -438,6 +461,7 @@ func TestInspectContainerNetwork(t *testing.T) {
                 "MacAddress": "",
                 "Networks": {
                     "swl-net": {
+                        "NetworkID": "7ea29fc1412292a2d7bba362f9253545fecdfa8ce9a6e37dd10ba8bee7129812",
                         "EndpointID": "683e3092275782a53c3b0968cc7e3a10f23264022ded9cb20490902f96fc5981",
                         "Gateway": "",
                         "IPAddress": "10.0.0.3",
@@ -454,7 +478,8 @@ func TestInspectContainerNetwork(t *testing.T) {
 	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "81e1bbe20b55"
-	exp := "10.0.0.3"
+	expIP := "10.0.0.3"
+	expNetworkID := "7ea29fc1412292a2d7bba362f9253545fecdfa8ce9a6e37dd10ba8bee7129812"
 
 	container, err := client.InspectContainer(id)
 	if err != nil {
@@ -471,8 +496,19 @@ func TestInspectContainerNetwork(t *testing.T) {
 				t.Logf("%s %v", net, ip)
 			}
 		}
-		if ip != exp {
-			t.Errorf("InspectContainerNetworks(%q): Expected %#v. Got %#v.", id, exp, ip)
+		if ip != expIP {
+			t.Errorf("InspectContainerNetworks(%q): Expected %#v. Got %#v.", id, expIP, ip)
+		}
+
+		var networkID string
+		for _, net := range networks.MapKeys() {
+			if net.Interface().(string) == container.HostConfig.NetworkMode {
+				networkID = networks.MapIndex(net).FieldByName("NetworkID").Interface().(string)
+				t.Logf("%s %v", net, networkID)
+			}
+		}
+		if networkID != expNetworkID {
+			t.Errorf("InspectContainerNetworks(%q): Expected %#v. Got %#v.", id, expNetworkID, networkID)
 		}
 	} else {
 		t.Errorf("InspectContainerNetworks(%q): No method Networks for NetworkSettings", id)
@@ -725,6 +761,36 @@ func TestCreateContainerWithHostConfig(t *testing.T) {
 	}
 	if _, ok := gotBody["HostConfig"]; !ok {
 		t.Errorf("CreateContainer: wrong body. HostConfig was not serialized")
+	}
+}
+
+func TestUpdateContainer(t *testing.T) {
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+	update := UpdateContainerOptions{Memory: 12345, CpusetMems: "0,1"}
+	err := client.UpdateContainer(id, update)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	if req.Method != "POST" {
+		t.Errorf("UpdateContainer: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	}
+	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/update"))
+	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
+		t.Errorf("UpdateContainer: Wrong path in request. Want %q. Got %q.", expectedURL.Path, gotPath)
+	}
+	expectedContentType := "application/json"
+	if contentType := req.Header.Get("Content-Type"); contentType != expectedContentType {
+		t.Errorf("UpdateContainer: Wrong content-type in request. Want %q. Got %q.", expectedContentType, contentType)
+	}
+	var out UpdateContainerOptions
+	if err := json.NewDecoder(req.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(out, update) {
+		t.Errorf("UpdateContainer: wrong body, got: %#v, want %#v", out, update)
 	}
 }
 
