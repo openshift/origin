@@ -419,6 +419,13 @@ var unmarshalTests = []struct {
 	}, {
 		"a: &a [1, 2]\nb: *a",
 		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		"b: *a\na: &a {c: 1}",
+		&struct {
+			A, B struct {
+				C int
+			}
+		}{struct{ C int }{1}, struct{ C int }{1}},
 	},
 
 	// Bug #1133337
@@ -464,6 +471,15 @@ var unmarshalTests = []struct {
 			A int
 			C inlineB `yaml:",inline"`
 		}{1, inlineB{2, inlineC{3}}},
+	},
+
+	// Map inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C map[string]int `yaml:",inline"`
+		}{1, map[string]int{"b": 2, "c": 3}},
 	},
 
 	// bug 1243827
@@ -532,6 +548,38 @@ var unmarshalTests = []struct {
 	{
 		"a: 1.2.3.4\n",
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
+	},
+	{
+		"a: 2015-02-24T18:19:39Z\n",
+		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+	},
+
+	// Encode empty lists as zero-length slices.
+	{
+		"a: []",
+		&struct{ A []int }{[]int{}},
+	},
+
+	// UTF-16-LE
+	{
+		"\xff\xfe\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n\x00",
+		M{"ñoño": "very yes"},
+	},
+	// UTF-16-LE with surrogate.
+	{
+		"\xff\xfe\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \x00=\xd8\xd4\xdf\n\x00",
+		M{"ñoño": "very yes 🟔"},
+	},
+
+	// UTF-16-BE
+	{
+		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n",
+		M{"ñoño": "very yes"},
+	},
+	// UTF-16-BE with surrogate.
+	{
+		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \xd8=\xdf\xd4\x00\n",
+		M{"ñoño": "very yes 🟔"},
 	},
 }
 
@@ -755,6 +803,37 @@ func (s *S) TestUnmarshalerError(c *C) {
 	c.Assert(err, Equals, failingErr)
 }
 
+type sliceUnmarshaler []int
+
+func (su *sliceUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var slice []int
+	err := unmarshal(&slice)
+	if err == nil {
+		*su = slice
+		return nil
+	}
+
+	var intVal int
+	err = unmarshal(&intVal)
+	if err == nil {
+		*su = []int{intVal}
+		return nil
+	}
+
+	return err
+}
+
+func (s *S) TestUnmarshalerRetry(c *C) {
+	var su sliceUnmarshaler
+	err := yaml.Unmarshal([]byte("[1, 2, 3]"), &su)
+	c.Assert(err, IsNil)
+	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1, 2, 3}))
+
+	err = yaml.Unmarshal([]byte("1"), &su)
+	c.Assert(err, IsNil)
+	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1}))
+}
+
 // From http://yaml.org/type/merge.html
 var mergeTests = `
 anchors:
@@ -870,6 +949,13 @@ func (s *S) TestUnmarshalNull(c *C) {
 			c.Assert(reflect.ValueOf(item).Elem().Interface(), DeepEquals, zero)
 		}
 	}
+}
+
+func (s *S) TestUnmarshalSliceOnPreset(c *C) {
+	// Issue #48.
+	v := struct{ A []int }{[]int{1}}
+	yaml.Unmarshal([]byte("a: [2]"), &v)
+	c.Assert(v.A, DeepEquals, []int{2})
 }
 
 //var data []byte
