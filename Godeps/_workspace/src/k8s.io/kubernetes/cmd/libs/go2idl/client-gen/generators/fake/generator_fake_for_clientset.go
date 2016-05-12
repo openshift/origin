@@ -60,10 +60,11 @@ func (g *genClientset) Imports(c *generator.Context) (imports []string) {
 	for _, gv := range g.groupVersions {
 		group := normalization.Group(gv.Group)
 		version := normalization.Version(gv.Version)
+		undotted_group := normalization.BeforeFirstDot(group)
 		typedClientPath := filepath.Join(g.typedClientPath, group, version)
-		imports = append(imports, fmt.Sprintf("%s%s \"%s\"", version, group, typedClientPath))
+		imports = append(imports, fmt.Sprintf("%s%s \"%s\"", version, undotted_group, typedClientPath))
 		fakeTypedClientPath := filepath.Join(typedClientPath, "fake")
-		imports = append(imports, fmt.Sprintf("fake%s%s \"%s\"", version, group, fakeTypedClientPath))
+		imports = append(imports, fmt.Sprintf("fake%s%s \"%s\"", version, undotted_group, fakeTypedClientPath))
 	}
 	// the package that has the clientset Interface
 	imports = append(imports, fmt.Sprintf("clientset \"%s\"", g.clientsetPath))
@@ -96,7 +97,7 @@ func (g *genClientset) GenerateType(c *generator.Context, t *types.Type, w io.Wr
 	}
 	allGroups := []arg{}
 	for _, gv := range g.groupVersions {
-		group := normalization.Group(gv.Group)
+		group := normalization.BeforeFirstDot(normalization.Group(gv.Group))
 		version := normalization.Version(gv.Version)
 		allGroups = append(allGroups, arg{namer.IC(group), version + group})
 	}
@@ -135,7 +136,7 @@ type Clientset struct {
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
-	return &fakediscovery.FakeDiscovery{&c.Fake}
+	return &fakediscovery.FakeDiscovery{Fake: &c.Fake}
 }
 `
 
@@ -146,6 +147,6 @@ var _ clientset.Interface = &Clientset{}
 var clientsetInterfaceImplTemplate = `
 // $.Group$ retrieves the $.Group$Client
 func (c *Clientset) $.Group$() $.PackageName$.$.Group$Interface {
-	return &fake$.PackageName$.Fake$.Group${&c.Fake}
+	return &fake$.PackageName$.Fake$.Group${Fake: &c.Fake}
 }
 `

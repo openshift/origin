@@ -54,7 +54,7 @@ func New() *Generator {
 		OutputBase:       sourceTree,
 		GoHeaderFilePath: filepath.Join(sourceTree, "k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt"),
 	}
-	defaultProtoImport := filepath.Join(sourceTree, "k8s.io", "kubernetes", "Godeps", "_workspace", "src", "github.com", "gogo", "protobuf", "protobuf")
+	defaultProtoImport := filepath.Join(sourceTree, "k8s.io", "kubernetes", "vendor", "github.com", "gogo", "protobuf", "protobuf")
 	return &Generator{
 		Common:      common,
 		OutputBase:  sourceTree,
@@ -63,11 +63,15 @@ func New() *Generator {
 			`+k8s.io/kubernetes/pkg/util/intstr`,
 			`+k8s.io/kubernetes/pkg/api/resource`,
 			`+k8s.io/kubernetes/pkg/runtime`,
+			`+k8s.io/kubernetes/pkg/watch/versioned`,
 			`k8s.io/kubernetes/pkg/api/unversioned`,
 			`k8s.io/kubernetes/pkg/api/v1`,
+			`k8s.io/kubernetes/pkg/apis/policy/v1alpha1`,
 			`k8s.io/kubernetes/pkg/apis/extensions/v1beta1`,
 			`k8s.io/kubernetes/pkg/apis/autoscaling/v1`,
 			`k8s.io/kubernetes/pkg/apis/batch/v1`,
+			`k8s.io/kubernetes/pkg/apis/apps/v1alpha1`,
+			`k8s.io/kubernetes/federation/apis/federation/v1alpha1`,
 		}, ","),
 		DropEmbeddedFields: "k8s.io/kubernetes/pkg/api/unversioned.TypeMeta",
 	}

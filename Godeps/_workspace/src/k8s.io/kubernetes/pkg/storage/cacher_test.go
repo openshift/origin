@@ -19,12 +19,12 @@ package storage_test
 import (
 	"fmt"
 	"reflect"
+	goruntime "runtime"
 	"strconv"
 	"testing"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
@@ -44,7 +44,7 @@ import (
 
 func newEtcdTestStorage(t *testing.T, codec runtime.Codec, prefix string) (*etcdtesting.EtcdTestServer, storage.Interface) {
 	server := etcdtesting.NewEtcdTestClientServer(t)
-	storage := etcdstorage.NewEtcdStorage(server.Client, codec, prefix, false)
+	storage := etcdstorage.NewEtcdStorage(server.Client, codec, prefix, false, etcdtest.DeserializationCacheSize)
 	return server, storage
 }
 
@@ -70,20 +70,22 @@ func makeTestPod(name string) *api.Pod {
 }
 
 func updatePod(t *testing.T, s storage.Interface, obj, old *api.Pod) *api.Pod {
+	updateFn := func(input runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
+		newObj, err := api.Scheme.DeepCopy(obj)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return nil, nil, err
+		}
+		return newObj.(*api.Pod), nil, nil
+	}
 	key := etcdtest.AddPrefix("pods/ns/" + obj.Name)
+	if err := s.GuaranteedUpdate(context.TODO(), key, &api.Pod{}, old == nil, nil, updateFn); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	obj.ResourceVersion = ""
 	result := &api.Pod{}
-	if old == nil {
-		if err := s.Create(context.TODO(), key, obj, result, 0); err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	} else {
-		// To force "update" behavior of Set() we need to set ResourceVersion of
-		// previous version of object.
-		obj.ResourceVersion = old.ResourceVersion
-		if err := s.Set(context.TODO(), key, obj, result, 0); err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		obj.ResourceVersion = ""
+	if err := s.Get(context.TODO(), key, result, false); err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 	return result
 }
@@ -160,15 +162,19 @@ func TestList(t *testing.T) {
 }
 
 func verifyWatchEvent(t *testing.T, w watch.Interface, eventType watch.EventType, eventObject runtime.Object) {
+	_, _, line, _ := goruntime.Caller(1)
 	select {
 	case event := <-w.ResultChan():
 		if e, a := eventType, event.Type; e != a {
+			t.Logf("(called from line %d)", line)
 			t.Errorf("Expected: %s, got: %s", eventType, event.Type)
 		}
 		if e, a := eventObject, event.Object; !api.Semantic.DeepDerivative(e, a) {
+			t.Logf("(called from line %d)", line)
 			t.Errorf("Expected (%s): %#v, got: %#v", eventType, e, a)
 		}
 	case <-time.After(wait.ForeverTestTimeout):
+		t.Logf("(called from line %d)", line)
 		t.Errorf("Timed out waiting for an event")
 	}
 }
@@ -226,15 +232,11 @@ func TestWatch(t *testing.T) {
 	verifyWatchEvent(t, watcher, watch.Added, podFoo)
 	verifyWatchEvent(t, watcher, watch.Modified, podFooPrime)
 
-	// Check whether we get too-old error via the watch channel
-	tooOldWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", "1", storage.Everything)
-	if err != nil {
-		t.Fatalf("Expected no direct error, got %v", err)
+	// Check whether we get too-old error.
+	_, err = cacher.Watch(context.TODO(), "pods/ns/foo", "1", storage.Everything)
+	if err == nil {
+		t.Errorf("Expected 'error too old' error")
 	}
-	defer tooOldWatcher.Stop()
-	// Ensure we get a "Gone" error
-	expectedGoneError := errors.NewGone("").(*errors.StatusError).ErrStatus
-	verifyWatchEvent(t, tooOldWatcher, watch.Error, &expectedGoneError)
 
 	initialWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", fooCreated.ResourceVersion, storage.Everything)
 	if err != nil {

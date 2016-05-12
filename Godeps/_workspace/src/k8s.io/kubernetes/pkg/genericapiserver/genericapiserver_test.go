@@ -32,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	apiutil "k8s.io/kubernetes/pkg/api/util"
 
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -142,8 +141,8 @@ func TestInstallAPIGroups(t *testing.T) {
 	}
 	s.InstallAPIGroups(apiGroupsInfo)
 
-	// TODO: Close() this server when fix #19254
 	server := httptest.NewServer(s.HandlerContainer.ServeMux)
+	defer server.Close()
 	validPaths := []string{
 		// "/api"
 		config.APIPrefix,
@@ -264,7 +263,7 @@ func getGroupList(server *httptest.Server) (*unversioned.APIGroupList, error) {
 }
 
 func TestDiscoveryAtAPIS(t *testing.T) {
-	master, etcdserver, config, assert := newMaster(t)
+	master, etcdserver, _, assert := newMaster(t)
 	defer etcdserver.Terminate(t)
 
 	server := httptest.NewServer(master.HandlerContainer.ServeMux)
@@ -275,7 +274,6 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 	assert.Equal(0, len(groupList.Groups))
 
 	// Add a Group.
-	extensionsGroupName := extensions.GroupName
 	extensionsVersions := []unversioned.GroupVersionForDiscovery{
 		{
 			GroupVersion: testapi.Extensions.GroupVersion().String(),
@@ -283,11 +281,11 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 		},
 	}
 	extensionsPreferredVersion := unversioned.GroupVersionForDiscovery{
-		GroupVersion: config.StorageVersions[extensions.GroupName],
-		Version:      apiutil.GetVersion(config.StorageVersions[extensions.GroupName]),
+		GroupVersion: extensions.GroupName + "/preferred",
+		Version:      "preferred",
 	}
 	master.AddAPIGroupForDiscovery(unversioned.APIGroup{
-		Name:             extensionsGroupName,
+		Name:             extensions.GroupName,
 		Versions:         extensionsVersions,
 		PreferredVersion: extensionsPreferredVersion,
 	})
@@ -299,13 +297,13 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 
 	assert.Equal(1, len(groupList.Groups))
 	groupListGroup := groupList.Groups[0]
-	assert.Equal(extensionsGroupName, groupListGroup.Name)
+	assert.Equal(extensions.GroupName, groupListGroup.Name)
 	assert.Equal(extensionsVersions, groupListGroup.Versions)
 	assert.Equal(extensionsPreferredVersion, groupListGroup.PreferredVersion)
 	assert.Equal(master.getServerAddressByClientCIDRs(&http.Request{}), groupListGroup.ServerAddressByClientCIDRs)
 
 	// Remove the group.
-	master.RemoveAPIGroupForDiscovery(extensionsGroupName)
+	master.RemoveAPIGroupForDiscovery(extensions.GroupName)
 	groupList, err = getGroupList(server)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

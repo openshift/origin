@@ -25,6 +25,7 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,8 +36,8 @@ const (
 	resourceQuotaTimeout = 30 * time.Second
 )
 
-var _ = KubeDescribe("ResourceQuota", func() {
-	f := NewDefaultFramework("resourcequota")
+var _ = framework.KubeDescribe("ResourceQuota", func() {
+	f := framework.NewDefaultFramework("resourcequota")
 
 	It("should create a ResourceQuota and ensure its status is promptly calculated.", func() {
 		By("Creating a ResourceQuota")
@@ -66,7 +67,7 @@ var _ = KubeDescribe("ResourceQuota", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Creating a Service")
-		service := newTestServiceForQuota("test-service")
+		service := newTestServiceForQuota("test-service", api.ServiceTypeClusterIP)
 		service, err = f.Client.Services(f.Namespace.Name).Create(service)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -131,6 +132,184 @@ var _ = KubeDescribe("ResourceQuota", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("should create a ResourceQuota and capture the life of a nodePort service.", func() {
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota, err := createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a NodePort type Service")
+		service := newTestServiceForQuota("test-service", api.ServiceTypeNodePort)
+		service, err = f.Client.Services(f.Namespace.Name).Create(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures service creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a Service")
+		err = f.Client.Services(f.Namespace.Name).Delete(service.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceServices] = resource.MustParse("0")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should create a ResourceQuota and capture the life of a nodePort service updated to clusterIP.", func() {
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota, err := createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a NodePort type Service")
+		service := newTestServiceForQuota("test-service", api.ServiceTypeNodePort)
+		service, err = f.Client.Services(f.Namespace.Name).Create(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures service creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Updating the service type to clusterIP")
+		service.Spec.Type = api.ServiceTypeClusterIP
+		service.Spec.Ports[0].NodePort = 0
+		_, err = f.Client.Services(f.Namespace.Name).Update(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Checking resource quota status capture service update")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a Service")
+		err = f.Client.Services(f.Namespace.Name).Delete(service.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceServices] = resource.MustParse("0")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should create a ResourceQuota and capture the life of a loadBalancer service.", func() {
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota, err := createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a loadBalancer type Service")
+		service := newTestServiceForQuota("test-service", api.ServiceTypeLoadBalancer)
+		service, err = f.Client.Services(f.Namespace.Name).Create(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures service creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesLoadBalancers] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a Service")
+		err = f.Client.Services(f.Namespace.Name).Delete(service.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceServices] = resource.MustParse("0")
+		usedResources[api.ResourceServicesLoadBalancers] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should create a ResourceQuota and capture the life of a nodePort service updated to loadBalancer.", func() {
+		By("Creating a ResourceQuota")
+		quotaName := "test-quota"
+		resourceQuota := newTestResourceQuota(quotaName)
+		resourceQuota, err := createResourceQuota(f.Client, f.Namespace.Name, resourceQuota)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status is calculated")
+		usedResources := api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Creating a nodePort type Service")
+		service := newTestServiceForQuota("test-service", api.ServiceTypeNodePort)
+		service, err = f.Client.Services(f.Namespace.Name).Create(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status captures service creation")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesLoadBalancers] = resource.MustParse("0")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("1")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Updating the service type to loadBalancer")
+		service.Spec.Type = api.ServiceTypeLoadBalancer
+		service.Spec.Ports[0].NodePort = 0
+		_, err = f.Client.Services(f.Namespace.Name).Update(service)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Checking resource quota status capture service update")
+		usedResources = api.ResourceList{}
+		usedResources[api.ResourceQuotas] = resource.MustParse("1")
+		usedResources[api.ResourceServices] = resource.MustParse("1")
+		usedResources[api.ResourceServicesLoadBalancers] = resource.MustParse("1")
+		usedResources[api.ResourceServicesNodePorts] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Deleting a Service")
+		err = f.Client.Services(f.Namespace.Name).Delete(service.Name)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Ensuring resource quota status released usage")
+		usedResources[api.ResourceServices] = resource.MustParse("0")
+		usedResources[api.ResourceServicesLoadBalancers] = resource.MustParse("0")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	It("should create a ResourceQuota and capture the life of a pod.", func() {
 		By("Creating a ResourceQuota")
 		quotaName := "test-quota"
@@ -152,6 +331,7 @@ var _ = KubeDescribe("ResourceQuota", func() {
 		pod := newTestPodForQuota(podName, requests, api.ResourceList{})
 		pod, err = f.Client.Pods(f.Namespace.Name).Create(pod)
 		Expect(err).NotTo(HaveOccurred())
+		podToUpdate := pod
 
 		By("Ensuring ResourceQuota status captures the pod usage")
 		usedResources[api.ResourceQuotas] = resource.MustParse("1")
@@ -168,6 +348,19 @@ var _ = KubeDescribe("ResourceQuota", func() {
 		pod = newTestPodForQuota("fail-pod", requests, api.ResourceList{})
 		pod, err = f.Client.Pods(f.Namespace.Name).Create(pod)
 		Expect(err).To(HaveOccurred())
+
+		By("Ensuring a pod cannot update its resource requirements")
+		// a pod cannot dynamically update its resource requirements.
+		requests = api.ResourceList{}
+		requests[api.ResourceCPU] = resource.MustParse("100m")
+		requests[api.ResourceMemory] = resource.MustParse("100Mi")
+		podToUpdate.Spec.Containers[0].Resources.Requests = requests
+		_, err = f.Client.Pods(f.Namespace.Name).Update(podToUpdate)
+		Expect(err).To(HaveOccurred())
+
+		By("Ensuring attempts to update pod resource requirements did not change quota usage")
+		err = waitForResourceQuota(f.Client, f.Namespace.Name, quotaName, usedResources)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("Deleting the pod")
 		err = f.Client.Pods(f.Namespace.Name).Delete(podName, api.NewDeleteOptions(0))
@@ -488,6 +681,8 @@ func newTestResourceQuota(name string) *api.ResourceQuota {
 	hard := api.ResourceList{}
 	hard[api.ResourcePods] = resource.MustParse("5")
 	hard[api.ResourceServices] = resource.MustParse("10")
+	hard[api.ResourceServicesNodePorts] = resource.MustParse("1")
+	hard[api.ResourceServicesLoadBalancers] = resource.MustParse("1")
 	hard[api.ResourceReplicationControllers] = resource.MustParse("10")
 	hard[api.ResourceQuotas] = resource.MustParse("1")
 	hard[api.ResourceCPU] = resource.MustParse("1")
@@ -511,7 +706,7 @@ func newTestPodForQuota(name string, requests api.ResourceList, limits api.Resou
 			Containers: []api.Container{
 				{
 					Name:  "nginx",
-					Image: "gcr.io/google_containers/pause:2.0",
+					Image: "gcr.io/google_containers/pause-amd64:3.0",
 					Resources: api.ResourceRequirements{
 						Requests: requests,
 						Limits:   limits,
@@ -544,7 +739,7 @@ func newTestPersistentVolumeClaimForQuota(name string) *api.PersistentVolumeClai
 }
 
 // newTestReplicationControllerForQuota returns a simple replication controller
-func newTestReplicationControllerForQuota(name, image string, replicas int) *api.ReplicationController {
+func newTestReplicationControllerForQuota(name, image string, replicas int32) *api.ReplicationController {
 	return &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
@@ -572,12 +767,13 @@ func newTestReplicationControllerForQuota(name, image string, replicas int) *api
 }
 
 // newTestServiceForQuota returns a simple service
-func newTestServiceForQuota(name string) *api.Service {
+func newTestServiceForQuota(name string, serviceType api.ServiceType) *api.Service {
 	return &api.Service{
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
 		},
 		Spec: api.ServiceSpec{
+			Type: serviceType,
 			Ports: []api.ServicePort{{
 				Port:       80,
 				TargetPort: intstr.FromInt(80),
@@ -622,7 +818,7 @@ func deleteResourceQuota(c *client.Client, namespace, name string) error {
 
 // wait for resource quota status to show the expected used resources value
 func waitForResourceQuota(c *client.Client, ns, quotaName string, used api.ResourceList) error {
-	return wait.Poll(poll, resourceQuotaTimeout, func() (bool, error) {
+	return wait.Poll(framework.Poll, resourceQuotaTimeout, func() (bool, error) {
 		resourceQuota, err := c.ResourceQuotas(ns).Get(quotaName)
 		if err != nil {
 			return false, err
@@ -634,7 +830,7 @@ func waitForResourceQuota(c *client.Client, ns, quotaName string, used api.Resou
 		// verify that the quota shows the expected used resource values
 		for k, v := range used {
 			if actualValue, found := resourceQuota.Status.Used[k]; !found || (actualValue.Cmp(v) != 0) {
-				Logf("resource %s, expected %s, actual %s", k, v.String(), actualValue.String())
+				framework.Logf("resource %s, expected %s, actual %s", k, v.String(), actualValue.String())
 				return false, nil
 			}
 		}

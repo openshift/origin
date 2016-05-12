@@ -747,8 +747,8 @@ func convert_api_ContainerStateTerminated_To_v1beta3_ContainerStateTerminated(in
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ContainerStateTerminated))(in)
 	}
-	out.ExitCode = in.ExitCode
-	out.Signal = in.Signal
+	out.ExitCode = int(in.ExitCode)
+	out.Signal = int(in.Signal)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := s.Convert(&in.StartedAt, &out.StartedAt, 0); err != nil {
@@ -765,8 +765,8 @@ func convert_v1beta3_ContainerStateTerminated_To_api_ContainerStateTerminated(in
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ContainerStateTerminated))(in)
 	}
-	out.ExitCode = in.ExitCode
-	out.Signal = in.Signal
+	out.ExitCode = int32(in.ExitCode)
+	out.Signal = int32(in.Signal)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if err := s.Convert(&in.StartedAt, &out.StartedAt, 0); err != nil {
@@ -783,7 +783,8 @@ func convert_api_ReplicationControllerSpec_To_v1beta3_ReplicationControllerSpec(
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerSpec))(in)
 	}
-	out.Replicas = &in.Replicas
+	replicas := int(in.Replicas)
+	out.Replicas = &replicas
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {
@@ -807,7 +808,7 @@ func convert_v1beta3_ReplicationControllerSpec_To_api_ReplicationControllerSpec(
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerSpec))(in)
 	}
-	out.Replicas = *in.Replicas
+	out.Replicas = int32(*in.Replicas)
 	if in.Selector != nil {
 		out.Selector = make(map[string]string)
 		for key, val := range in.Selector {
@@ -931,8 +932,8 @@ func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraint
 		return err
 	}
 	if in.Priority != nil {
-		out.Priority = new(int)
-		*out.Priority = *in.Priority
+		out.Priority = new(int32)
+		*out.Priority = int32(*in.Priority)
 	} else {
 		out.Priority = nil
 	}
@@ -1019,7 +1020,7 @@ func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraint
 	}
 	if in.Priority != nil {
 		out.Priority = new(int)
-		*out.Priority = *in.Priority
+		*out.Priority = int(*in.Priority)
 	} else {
 		out.Priority = nil
 	}

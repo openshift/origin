@@ -26,11 +26,13 @@ import (
 	"net/url"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/conversion/queryparams"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -47,7 +49,12 @@ func NewClient(conf *restclient.Config) (*Client, error) {
 	confCopy := *conf
 	conf = &confCopy
 
-	conf.Codec = dynamicCodec{}
+	codec := dynamicCodec{}
+
+	// TODO: it's questionable that this should be using anything other than unstructured schema and JSON
+	conf.ContentType = runtime.ContentTypeJSON
+	streamingInfo, _ := api.Codecs.StreamingSerializerForMediaType("application/json;stream=watch", nil)
+	conf.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec}, streamingInfo)
 
 	if conf.APIPath == "" {
 		conf.APIPath = "/api"
@@ -157,12 +164,12 @@ func (rc *ResourceClient) Create(obj *runtime.Unstructured) (*runtime.Unstructur
 // Update updates the provided resource.
 func (rc *ResourceClient) Update(obj *runtime.Unstructured) (*runtime.Unstructured, error) {
 	result := new(runtime.Unstructured)
-	if len(obj.Name) == 0 {
+	if len(obj.GetName()) == 0 {
 		return result, errors.New("object missing name")
 	}
 	err := rc.namespace(rc.cl.Put()).
 		Resource(rc.resource.Name).
-		Name(obj.Name).
+		Name(obj.GetName()).
 		Body(obj).
 		Do().
 		Into(result)

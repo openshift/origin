@@ -18,6 +18,7 @@ package fake
 
 import (
 	api "k8s.io/kubernetes/pkg/api"
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -28,9 +29,11 @@ type FakeSecurityContextConstraints struct {
 	Fake *FakeCore
 }
 
+var securitycontextconstraintsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
+
 func (c *FakeSecurityContextConstraints) Create(securityContextConstraints *api.SecurityContextConstraints) (result *api.SecurityContextConstraints, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootCreateAction("securitycontextconstraints", securityContextConstraints), &api.SecurityContextConstraints{})
+		Invokes(core.NewRootCreateAction(securitycontextconstraintsResource, securityContextConstraints), &api.SecurityContextConstraints{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,7 +42,7 @@ func (c *FakeSecurityContextConstraints) Create(securityContextConstraints *api.
 
 func (c *FakeSecurityContextConstraints) Update(securityContextConstraints *api.SecurityContextConstraints) (result *api.SecurityContextConstraints, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootUpdateAction("securitycontextconstraints", securityContextConstraints), &api.SecurityContextConstraints{})
+		Invokes(core.NewRootUpdateAction(securitycontextconstraintsResource, securityContextConstraints), &api.SecurityContextConstraints{})
 	if obj == nil {
 		return nil, err
 	}
@@ -48,12 +51,12 @@ func (c *FakeSecurityContextConstraints) Update(securityContextConstraints *api.
 
 func (c *FakeSecurityContextConstraints) Delete(name string, options *api.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewRootDeleteAction("securitycontextconstraints", name), &api.SecurityContextConstraints{})
+		Invokes(core.NewRootDeleteAction(securitycontextconstraintsResource, name), &api.SecurityContextConstraints{})
 	return err
 }
 
 func (c *FakeSecurityContextConstraints) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
-	action := core.NewRootDeleteCollectionAction("securitycontextconstraints", listOptions)
+	action := core.NewRootDeleteCollectionAction(securitycontextconstraintsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.SecurityContextConstraintsList{})
 	return err
@@ -61,7 +64,7 @@ func (c *FakeSecurityContextConstraints) DeleteCollection(options *api.DeleteOpt
 
 func (c *FakeSecurityContextConstraints) Get(name string) (result *api.SecurityContextConstraints, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootGetAction("securitycontextconstraints", name), &api.SecurityContextConstraints{})
+		Invokes(core.NewRootGetAction(securitycontextconstraintsResource, name), &api.SecurityContextConstraints{})
 	if obj == nil {
 		return nil, err
 	}
@@ -70,7 +73,7 @@ func (c *FakeSecurityContextConstraints) Get(name string) (result *api.SecurityC
 
 func (c *FakeSecurityContextConstraints) List(opts api.ListOptions) (result *api.SecurityContextConstraintsList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootListAction("securitycontextconstraints", opts), &api.SecurityContextConstraintsList{})
+		Invokes(core.NewRootListAction(securitycontextconstraintsResource, opts), &api.SecurityContextConstraintsList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -91,5 +94,5 @@ func (c *FakeSecurityContextConstraints) List(opts api.ListOptions) (result *api
 // Watch returns a watch.Interface that watches the requested securityContextConstraints.
 func (c *FakeSecurityContextConstraints) Watch(opts api.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewRootWatchAction("securitycontextconstraints", opts))
+		InvokesWatch(core.NewRootWatchAction(securitycontextconstraintsResource, opts))
 }
