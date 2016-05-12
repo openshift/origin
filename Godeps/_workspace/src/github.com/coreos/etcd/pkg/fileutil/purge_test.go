@@ -32,10 +32,12 @@ func TestPurgeFile(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	for i := 0; i < 5; i++ {
-		_, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
+		var f *os.File
+		f, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
 		if err != nil {
 			t.Fatal(err)
 		}
+		f.Close()
 	}
 
 	stop := make(chan struct{})
@@ -45,10 +47,12 @@ func TestPurgeFile(t *testing.T) {
 
 	// create 5 more files
 	for i := 5; i < 10; i++ {
-		_, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
+		var f *os.File
+		f, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
 		if err != nil {
 			t.Fatal(err)
 		}
+		f.Close()
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -80,7 +84,7 @@ func TestPurgeFile(t *testing.T) {
 	close(stop)
 }
 
-func TestPurgeFileHoldingLock(t *testing.T) {
+func TestPurgeFileHoldingLockFile(t *testing.T) {
 	dir, err := ioutil.TempDir("", "purgefile")
 	if err != nil {
 		t.Fatal(err)
@@ -88,15 +92,17 @@ func TestPurgeFileHoldingLock(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	for i := 0; i < 10; i++ {
-		_, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
+		var f *os.File
+		f, err = os.Create(path.Join(dir, fmt.Sprintf("%d.test", i)))
 		if err != nil {
 			t.Fatal(err)
 		}
+		f.Close()
 	}
 
 	// create a purge barrier at 5
-	l, err := NewLock(path.Join(dir, fmt.Sprintf("%d.test", 5)))
-	err = l.Lock()
+	p := path.Join(dir, fmt.Sprintf("%d.test", 5))
+	l, err := LockFile(p, os.O_WRONLY, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,12 +133,7 @@ func TestPurgeFileHoldingLock(t *testing.T) {
 	}
 
 	// remove the purge barrier
-	err = l.Unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = l.Destroy()
-	if err != nil {
+	if err = l.Close(); err != nil {
 		t.Fatal(err)
 	}
 
