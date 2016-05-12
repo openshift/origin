@@ -593,6 +593,18 @@
 			"Rev": "b5c0891944c2f150ccc9d02aecf51b76c14c2948"
 		},
 		{
+			"ImportPath": "github.com/denverdino/aliyungo/common",
+			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/oss",
+			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/util",
+			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
+		},
+		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
 			"Comment": "v2.2.0-23-g5ca8014",
 			"Rev": "5ca80149b9d3f8b863af0e2bb6742e608603bd99"
