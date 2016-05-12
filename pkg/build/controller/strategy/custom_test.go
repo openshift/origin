@@ -10,10 +10,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
@@ -36,10 +36,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: expected.Name}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	container := actual.Spec.Containers[0]
@@ -147,6 +147,21 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 		if !versionFound {
 			t.Fatalf("Couldn't find BUILD environment variable in pod spec")
 		}
+	}
+}
+
+func TestCustomBuildLongName(t *testing.T) {
+	strategy := CustomBuildStrategy{
+		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+	}
+	build := mockCustomBuild(false, false)
+	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
+	pod, err := strategy.CreateBuildPod(build)
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
 	}
 }
 

@@ -24,7 +24,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -101,7 +100,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Pods(namespace).Get(buildutil.GetBuildPodName(build)); err == nil {
+	if pod, err := d.kubeClient.Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
 		if podEvents, _ := d.kubeClient.Events(namespace).Search(pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -128,7 +127,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		if build.Status.Config != nil {
 			formatString(out, "Build Config", build.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
+		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
 		describeBuildSpec(build.Spec, out)
 
@@ -422,7 +421,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigLabelPredicate(name))
+	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)

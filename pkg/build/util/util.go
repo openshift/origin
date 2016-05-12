@@ -18,12 +18,6 @@ const (
 	NoBuildLogsMessage = "No logs are available."
 )
 
-// GetBuildPodName returns name of the build pod.
-// TODO: remove in favor of the one in the api package
-func GetBuildPodName(build *buildapi.Build) string {
-	return buildapi.GetBuildPodName(build)
-}
-
 // GetBuildName returns name of the build pod.
 func GetBuildName(pod *kapi.Pod) string {
 	if pod == nil {
@@ -110,7 +104,7 @@ func BuildNameForConfigVersion(name string, version int) string {
 // BuildConfigSelector returns a label Selector which can be used to find all
 // builds for a BuildConfig.
 func BuildConfigSelector(name string) labels.Selector {
-	return labels.Set{buildapi.BuildConfigLabel: name}.AsSelector()
+	return labels.Set{buildapi.BuildConfigLabel: buildapi.LabelValue(name)}.AsSelector()
 }
 
 // BuildConfigSelectorDeprecated returns a label Selector which can be used to find
@@ -148,6 +142,11 @@ func BuildConfigBuilds(c buildclient.BuildLister, namespace, name string, filter
 func ConfigNameForBuild(build *buildapi.Build) string {
 	if build == nil {
 		return ""
+	}
+	if build.Annotations != nil {
+		if _, exists := build.Annotations[buildapi.BuildConfigAnnotation]; exists {
+			return build.Annotations[buildapi.BuildConfigAnnotation]
+		}
 	}
 	if _, exists := build.Labels[buildapi.BuildConfigLabel]; exists {
 		return build.Labels[buildapi.BuildConfigLabel]

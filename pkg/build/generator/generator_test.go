@@ -666,6 +666,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
+	if build.Annotations[buildapi.BuildConfigAnnotation] != bc.Name {
+		t.Errorf("Build does not contain annotation from BuildConfig")
+	}
 	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}

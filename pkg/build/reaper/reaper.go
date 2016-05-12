@@ -75,6 +75,15 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	}
 	errList := []error{}
 	for _, build := range builds.Items {
+		if build.Annotations != nil {
+			if bcName, ok := build.Annotations[buildapi.BuildConfigAnnotation]; ok {
+				// The annotation, if present, has the full build config name.
+				// Check it before proceeding.
+				if bcName != name {
+					continue
+				}
+			}
+		}
 		noBuildFound = false
 		if err := reaper.oc.Builds(namespace).Delete(build.Name); err != nil {
 			glog.Warningf("Cannot delete Build %s/%s: %v", build.Namespace, build.Name, err)

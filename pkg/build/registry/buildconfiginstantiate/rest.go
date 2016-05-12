@@ -190,7 +190,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	}
 
 	// The container should be the default build container, so setting it to blank
-	buildPodName := buildutil.GetBuildPodName(build)
+	buildPodName := buildapi.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin: true,
 	}

@@ -14,7 +14,6 @@ import (
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -116,7 +115,7 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b))})
+	podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
 	checkErr(t, err)
 	defer podWatch.Stop()
 	podAddedCount := int32(0)
@@ -208,7 +207,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 		checkErr(t, err)
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildutil.GetBuildPodName(b))})
+		podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
 		checkErr(t, err)
 		go func() {
 			for e := range podWatch.ResultChan() {
@@ -597,7 +596,7 @@ func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, cluster
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	pod := event.Object.(*kapi.Pod)
-	if expected := buildutil.GetBuildPodName(newBuild); pod.Name != expected {
+	if expected := buildapi.GetBuildPodName(newBuild); pod.Name != expected {
 		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
@@ -679,7 +678,7 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -743,7 +742,7 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name)
 	if err != nil {

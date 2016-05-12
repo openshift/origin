@@ -10,10 +10,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type FakeAdmissionControl struct {
@@ -52,10 +52,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: expected.Name}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	container := actual.Spec.Containers[0]
@@ -145,6 +145,23 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
 		}
+	}
+}
+
+func TestS2IBuildLongName(t *testing.T) {
+	strategy := &SourceBuildStrategy{
+		Image:            "sti-test-image",
+		Codec:            kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+		AdmissionControl: &FakeAdmissionControl{admit: true},
+	}
+	build := mockSTIBuild()
+	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
+	pod, err := strategy.CreateBuildPod(build)
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
 	}
 }
 

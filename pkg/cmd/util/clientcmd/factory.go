@@ -349,7 +349,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, err
 			}
-			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigLabelPredicate(t.Name))
+			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
