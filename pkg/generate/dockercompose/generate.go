@@ -237,6 +237,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 		commonMounts := make(map[string]string)
 		for _, k := range pod.List() {
 			v := p.Configs[k]
+			glog.V(4).Infof("compose service: %#v", v)
 			var inputImage *app.ImageRef
 			if len(v.Image) != 0 {
 				image, err := g.FromName(v.Image)

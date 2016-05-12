@@ -27,15 +27,33 @@ var (
 	}
 )
 
+type rawSchema struct {
+	Version  string        `yaml:"version"`
+	Services rawServiceMap `yaml:"services"`
+}
+
 type rawService map[string]interface{}
 type rawServiceMap map[string]rawService
 
 func mergeProject(p *Project, file string, bytes []byte) (map[string]*ServiceConfig, error) {
 	configs := make(map[string]*ServiceConfig)
 
-	datas := make(rawServiceMap)
-	if err := yaml.Unmarshal(bytes, &datas); err != nil {
+	var schema rawSchema
+	if err := yaml.Unmarshal(bytes, &schema); err != nil {
 		return nil, err
+	}
+
+	var datas = make(rawServiceMap)
+	switch {
+	case schema.Version == "2":
+		datas = schema.Services
+	case len(schema.Version) == 0:
+		datas = make(rawServiceMap)
+		if err := yaml.Unmarshal(bytes, &datas); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("docker-compose file with schema version %q is not supported", schema.Version)
 	}
 
 	if err := interpolate(p.context.EnvironmentLookup, &datas); err != nil {
