@@ -2,6 +2,7 @@ package matchers_test
 
 import (
 	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,5 +26,5 @@ type myCustomType struct {
 
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Gomega")
+	RunSpecs(t, "Gomega Matchers")
 }

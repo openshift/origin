@@ -35,8 +35,12 @@ var _ = Describe("ContainElement", func() {
 				Ω(map[string]int{"foo": 1, "bar": 2}).ShouldNot(ContainElement(BeNumerically(">", 2)))
 			})
 
-			It("should fail if the matcher ever fails", func() {
-				actual := []interface{}{1, 2, "3", 4}
+			It("should power through even if the matcher ever fails", func() {
+				Ω([]interface{}{1, 2, "3", 4}).Should(ContainElement(BeNumerically(">=", 3)))
+			})
+
+			It("should fail if the matcher fails", func() {
+				actual := []interface{}{1, 2, "3", "4"}
 				success, err := (&ContainElementMatcher{Element: BeNumerically(">=", 3)}).Match(actual)
 				Ω(success).Should(BeFalse())
 				Ω(err).Should(HaveOccurred())
