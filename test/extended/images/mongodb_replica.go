@@ -36,7 +36,11 @@ var _ = g.Describe("[images][mongodb] openshift mongodb replication", func() {
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
 			g.By("waiting for the deployment to complete")
-			o.Expect(exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), deploymentConfigName)).Should(o.Succeed())
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), deploymentConfigName)
+			if err != nil {
+				exutil.DumpDeploymentLogs(deploymentConfigName, oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			podNames := waitForNumberOfPodsWithLabel(oc, expectedReplicasAfterDeployment, "mongodb-replica")
 			mongo := db.NewMongoDB(podNames[0])
@@ -46,7 +50,7 @@ var _ = g.Describe("[images][mongodb] openshift mongodb replication", func() {
 
 			g.By("expecting that we can insert a new record on primary node")
 			replicaSet := mongo.(exutil.ReplicaSet)
-			_, err := replicaSet.QueryPrimary(oc, insertCmd)
+			_, err = replicaSet.QueryPrimary(oc, insertCmd)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting that we can read a record from all members")
