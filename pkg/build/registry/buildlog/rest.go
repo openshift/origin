@@ -116,7 +116,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", build.Name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
-	buildPodName := buildutil.GetBuildPodName(build)
+	buildPodName := api.GetBuildPodName(build)
 	logOpts := api.BuildToPodLogOptions(buildLogOpts)
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
