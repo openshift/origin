@@ -1167,7 +1167,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "mongodb"
               ],
