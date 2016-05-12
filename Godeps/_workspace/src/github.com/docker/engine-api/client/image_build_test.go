@@ -20,7 +20,7 @@ func TestImageBuildError(t *testing.T) {
 	client := &Client{
 		transport: newMockClient(nil, errorMock(http.StatusInternalServerError, "Server error")),
 	}
-	_, err := client.ImageBuild(context.Background(), types.ImageBuildOptions{})
+	_, err := client.ImageBuild(context.Background(), nil, types.ImageBuildOptions{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
 	}
@@ -197,7 +197,7 @@ func TestImageBuild(t *testing.T) {
 				}, nil
 			}),
 		}
-		buildResponse, err := client.ImageBuild(context.Background(), buildCase.buildOptions)
+		buildResponse, err := client.ImageBuild(context.Background(), nil, buildCase.buildOptions)
 		if err != nil {
 			t.Fatal(err)
 		}

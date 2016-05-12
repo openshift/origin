@@ -18,7 +18,7 @@ func TestNetworkCreateError(t *testing.T) {
 		transport: newMockClient(nil, errorMock(http.StatusInternalServerError, "Server error")),
 	}
 
-	_, err := client.NetworkCreate(context.Background(), types.NetworkCreate{})
+	_, err := client.NetworkCreate(context.Background(), "mynetwork", types.NetworkCreate{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
 	}
@@ -51,8 +51,7 @@ func TestNetworkCreate(t *testing.T) {
 		}),
 	}
 
-	networkResponse, err := client.NetworkCreate(context.Background(), types.NetworkCreate{
-		Name:           "mynetwork",
+	networkResponse, err := client.NetworkCreate(context.Background(), "mynetwork", types.NetworkCreate{
 		CheckDuplicate: true,
 		Driver:         "mydriver",
 		EnableIPv6:     true,

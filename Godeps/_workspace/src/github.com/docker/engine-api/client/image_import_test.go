@@ -17,7 +17,7 @@ func TestImageImportError(t *testing.T) {
 	client := &Client{
 		transport: newMockClient(nil, errorMock(http.StatusInternalServerError, "Server error")),
 	}
-	_, err := client.ImageImport(context.Background(), types.ImageImportOptions{})
+	_, err := client.ImageImport(context.Background(), types.ImageImportSource{}, "image:tag", types.ImageImportOptions{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server error, got %v", err)
 	}
@@ -36,7 +36,7 @@ func TestImageImport(t *testing.T) {
 				return nil, fmt.Errorf("fromSrc not set in URL query properly. Expected 'image_source', got %s", fromSrc)
 			}
 			repo := query.Get("repo")
-			if repo != "repository_name" {
+			if repo != "repository_name:imported" {
 				return nil, fmt.Errorf("repo not set in URL query properly. Expected 'repository_name', got %s", repo)
 			}
 			tag := query.Get("tag")
@@ -59,13 +59,13 @@ func TestImageImport(t *testing.T) {
 			}, nil
 		}),
 	}
-	importResponse, err := client.ImageImport(context.Background(), types.ImageImportOptions{
-		Source:         strings.NewReader("source"),
-		SourceName:     "image_source",
-		RepositoryName: "repository_name",
-		Message:        "A message",
-		Tag:            "imported",
-		Changes:        []string{"change1", "change2"},
+	importResponse, err := client.ImageImport(context.Background(), types.ImageImportSource{
+		Source:     strings.NewReader("source"),
+		SourceName: "image_source",
+	}, "repository_name:imported", types.ImageImportOptions{
+		Tag:     "imported",
+		Message: "A message",
+		Changes: []string{"change1", "change2"},
 	})
 	if err != nil {
 		t.Fatal(err)
