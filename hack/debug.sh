@@ -34,13 +34,24 @@ filter_env () {
     awk '/ env:$/ { indent = index($0, "e"); skipping = 1; next } !skipping { print; } skipping { ch = substr($0, indent, 1); if (ch != " " && ch != "-") { skipping = 0; print } }'
 }
 
+log_service () {
+    logpath=$1
+    service=$2
+    start_args=$3
+
+    echo_and_eval  journalctl -u $service                         &> $logpath/journal-$service
+    echo_and_eval  systemctl show $service                        &> $logpath/systemctl-show-$service
+
+    config_file=$(get_config_path_from_service "$start_args" "$service")
+    if [ -f "$config_file" ]; then
+        echo_and_eval  cat $config_file                           &> $logpath/CONFIG-$service
+    fi
+}
+
 log_system () {
     logpath=$1
-    service_name=$2
 
     echo_and_eval  journalctl --boot                                  &> $logpath/journal-full
-    echo_and_eval  journalctl -u $service_name                        &> $logpath/journal-openshift
-    echo_and_eval  systemctl show $service_name                       &> $logpath/systemctl-show
     echo_and_eval  nmcli --nocheck -f all dev show                    &> $logpath/nmcli-dev
     echo_and_eval  nmcli --nocheck -f all con show                    &> $logpath/nmcli-con
     echo_and_eval  head -1000 /etc/sysconfig/network-scripts/ifcfg-*  &> $logpath/ifcfg
@@ -72,8 +83,19 @@ do_master () {
     logmaster=$logdir/master
     mkdir -p $logmaster
 
+    # Grab master service logs and config files
+    if [ -n "$aos_master_service" ]; then
+        log_service $logmaster $aos_master_service "master"
+    fi
+    if [ -n "$aos_master_controllers_service" ]; then
+        log_service $logmaster $aos_master_controllers_service "master controllers"
+    fi
+    if [ -n "$aos_master_api_service" ]; then
+        log_service $logmaster $aos_master_api_service "master api"
+    fi
+
     # Log the generic system stuff
-    log_system $logmaster $aos_master_service
+    log_system $logmaster
 
     # And the master specific stuff
     echo_and_eval  oc get nodes                      -o yaml               &> $logmaster/nodes
@@ -253,24 +275,42 @@ do_pod_service_connectivity_check () {
     echo ""
 }
 
-do_node () {
-    config=$(ps wwaux | grep -v grep | sed -ne 's/.*openshift.*--config=\([^ ]*\.yaml\).*/\1/p')
+get_config_path_from_service() {
+    # 'node', 'master', 'master api', 'master controllers'
+    service_type=$1
+    # 'atomic-openshift-node.service', 'atomic-openshift-master-controllers.service', etc
+    service_name=$2
+    config=$(ps wwaux | grep -v grep | sed -ne "s/.*openshift start ${service_type} --config=\([^ ]*\.yaml\).*/\1/p")
     if [ -z "$config" ]; then
-	config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+	config=$(systemctl show -p ExecStart $service_name | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+	if [ "$config" == "\${CONFIG_FILE}" ]; then
+	    varfile=$(systemctl show $service_name | grep EnvironmentFile | sed -ne 's/EnvironmentFile=\([^ ]*\).*/\1/p')
+	    if [ -f "$varfile" ]; then
+	        config=$(cat $varfile | sed -ne 's/CONFIG_FILE=//p')
+	    fi
+	fi
     fi
-    if [ -z "$config" ]; then
+    echo "$config"
+}
+
+do_node () {
+    config_file=$(get_config_path_from_service "node" ${aos_node_service})
+    if [ -z "$config_file" ]; then
 	die "Could not find node-config.yaml from 'ps' or 'systemctl show'"
     fi
-    node=$(sed -ne 's/^nodeName: //p' $config)
+    node=$(sed -ne 's/^nodeName: //p' $config_file)
     if [ -z "$node" ]; then
-	die "Could not find node name in $config"
+	die "Could not find node name in $config_file"
     fi
 
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
 
+    # Grab node service logs and config file
+    log_service $lognode $aos_node_service "node"
+
     # Log the generic system stuff
-    log_system $lognode $aos_node_service
+    log_system $lognode
 
     # Log some node-only information
     echo_and_eval  brctl show                              &> $lognode/bridges
@@ -468,6 +508,12 @@ for systemd_dir in /etc/systemd/system /usr/lib/systemd/system; do
     for name in openshift origin atomic-openshift; do
 	if [ -f $systemd_dir/$name-master.service ]; then
 	    aos_master_service=$name-master.service
+	fi
+	if [ -f $systemd_dir/$name-master-controllers.service ]; then
+	    aos_master_controllers_service=$name-master-controllers.service
+	fi
+	if [ -f $systemd_dir/$name-master-api.service ]; then
+	    aos_master_api_service=$name-master-api.service
 	fi
 	if [ -f $systemd_dir/$name-node.service ]; then
 	    aos_node_service=$name-node.service
