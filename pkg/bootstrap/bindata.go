@@ -1661,7 +1661,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "mysql"
               ],
@@ -2133,7 +2133,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "postgresql"
               ],
@@ -2825,7 +2825,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "mysql"
               ],
@@ -3293,7 +3293,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "mysql"
               ],
@@ -3764,7 +3764,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "postgresql"
               ],
@@ -4079,7 +4079,10 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
               "secret": "${GENERIC_WEBHOOK_SECRET}"
             }
           }
-        ]
+        ],
+        "postCommit": {
+          "script": "npm test"
+        }
       }
     },
     {
@@ -4222,7 +4225,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "mongodb"
               ],
@@ -4249,12 +4252,6 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             }
           },
           "spec": {
-            "volumes": [
-              {
-                "name": "data",
-                "emptyDir": {}
-              }
-            ],
             "containers": [
               {
                 "name": "mongodb",
@@ -4262,12 +4259,6 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                 "ports": [
                   {
                     "containerPort": 27017
-                  }
-                ],
-                "volumeMounts": [
-                  {
-                    "name": "data",
-                    "mountPath": "/var/lib/mongodb/data"
                   }
                 ],
                 "env": [
@@ -4306,6 +4297,20 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "limits": {
                         "memory": "${MEMORY_MONGODB_LIMIT}"
                     }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mongodb/data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
                 }
               }
             ]
@@ -4715,7 +4720,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "postgresql"
               ],
