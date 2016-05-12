@@ -2052,22 +2052,22 @@
 		{
 			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
 			"Comment": "2.5.2d",
-			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
+			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/cache",
 			"Comment": "2.5.2d",
-			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
+			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/msg",
 			"Comment": "2.5.2d",
-			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
+			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/server",
 			"Comment": "2.5.2d",
-			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
+			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
