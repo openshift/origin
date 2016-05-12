@@ -1,0 +1,26 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: template
+objects:
+- apiVersion: v1
+  clientName: openshift-challenging-client
+  expiresIn: 86400
+  kind: OAuthAccessToken
+  metadata:
+    name: ${TOKEN_PREFIX}xxxxxtokensuffixtoensurethatthenameislongenough
+  redirectURI: https://10.13.137.230:8443/oauth/token/implicit
+  userName: ${USER_NAME}
+  userUID: ${USER_UID}
+  scopes:
+  - ${SCOPE}
+parameters:
+- name: USER_NAME
+  required: true
+- name: USER_UID
+  required: true
+- name: TOKEN_PREFIX
+  required: true
+- name: SCOPE
+  required: true
+
