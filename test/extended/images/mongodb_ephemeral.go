@@ -26,6 +26,9 @@ var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
 
 			g.By("waiting for the deployment to complete")
 			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mongodb")
+			if err != nil {
+				exutil.DumpDeploymentLogs("mongodb", oc)
+			}
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting the mongodb pod is running")

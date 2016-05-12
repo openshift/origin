@@ -54,6 +54,9 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 
 				g.By("expecting the deployment to be complete")
 				err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName)
+				if err != nil {
+					exutil.DumpDeploymentLogs(c.deploymentConfigName, oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the service is available")

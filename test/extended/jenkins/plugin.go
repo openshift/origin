@@ -124,6 +124,9 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 
 		g.By("waiting for jenkins deployment")
 		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins")
+		if err != nil {
+			exutil.DumpDeploymentLogs("jenkins", oc)
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("get ip and port for jenkins service")
@@ -163,8 +166,14 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 			// jenkins for the sucessful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
 			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend")
+			if err != nil {
+				exutil.DumpDeploymentLogs("frontend", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod")
+			if err != nil {
+				exutil.DumpDeploymentLogs("frontend-prod", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")

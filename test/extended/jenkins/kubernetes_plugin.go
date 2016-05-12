@@ -71,6 +71,9 @@ var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
 
 			g.By("wait for jenkins deployment")
 			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins")
+			if err != nil {
+				exutil.DumpDeploymentLogs("jenkins", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get ip and port for jenkins service")
