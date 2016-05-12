@@ -18,7 +18,7 @@ func TestImageRemoveError(t *testing.T) {
 		transport: newMockClient(nil, errorMock(http.StatusInternalServerError, "Server error")),
 	}
 
-	_, err := client.ImageRemove(context.Background(), types.ImageRemoveOptions{})
+	_, err := client.ImageRemove(context.Background(), "image_id", types.ImageRemoveOptions{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
 	}
@@ -81,8 +81,7 @@ func TestImageRemove(t *testing.T) {
 				}, nil
 			}),
 		}
-		imageDeletes, err := client.ImageRemove(context.Background(), types.ImageRemoveOptions{
-			ImageID:       "image_id",
+		imageDeletes, err := client.ImageRemove(context.Background(), "image_id", types.ImageRemoveOptions{
 			Force:         removeCase.force,
 			PruneChildren: removeCase.pruneChildren,
 		})
