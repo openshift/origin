@@ -8,6 +8,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -26,6 +27,9 @@ type AuthConfig struct {
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 
+	// KubeClient is kubeclient with enough permission for the auth API
+	KubeClient kclient.Interface
+
 	// EtcdHelper provides storage capabilities
 	EtcdHelper storage.Interface
 
@@ -42,7 +46,7 @@ type AuthConfig struct {
 	HandlerWrapper handlerWrapper
 }
 
-func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
+func BuildAuthConfig(options configapi.MasterConfig, kubeClient kclient.Interface) (*AuthConfig, error) {
 	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
@@ -96,6 +100,8 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 
 	ret := &AuthConfig{
 		Options: *options.OAuthConfig,
+
+		KubeClient: kubeClient,
 
 		AssetPublicAddresses: assetPublicURLs,
 		EtcdHelper:           etcdHelper,

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -153,14 +154,8 @@ func ValidateClientAuthorizationName(name string, prefix bool) (bool, string) {
 		return ok, reason
 	}
 
-	parts := strings.Split(name, ":")
-	if len(parts) != 2 {
-		return false, "must be in the format <userName>:<clientName>"
-	}
-
-	userName := parts[0]
-	clientName := parts[1]
-	if len(userName) == 0 || len(clientName) == 0 {
+	lastColon := strings.Index(name, ":")
+	if lastColon <= 0 || lastColon >= len(name)-1 {
 		return false, "must be in the format <userName>:<clientName>"
 	}
 
@@ -211,6 +206,10 @@ func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, ol
 func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
 		return field.ErrorList{field.Required(fldPath, "")}
+	} else if _, saName, err := serviceaccount.SplitUsername(value); err == nil {
+		if ok, errString := validation.ValidateServiceAccountName(saName, false); !ok {
+			return field.ErrorList{field.Invalid(fldPath, value, errString)}
+		}
 	} else if ok, msg := validation.NameIsDNSSubdomain(value, false); !ok {
 		return field.ErrorList{field.Invalid(fldPath, value, msg)}
 	}

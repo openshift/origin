@@ -65,6 +65,7 @@ import (
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 )
 
 const (
@@ -85,12 +86,13 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 
 	clientStorage := clientetcd.NewREST(c.EtcdHelper)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, clientRegistry)
 
-	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, clientRegistry, c.EtcdBackends...)
+	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, clientRegistry, c.EtcdBackends...)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper, clientRegistry)
+	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter)
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	errorPageHandler, err := c.getErrorHandler()
@@ -103,7 +105,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, registry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, combinedOAuthClientGetter, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
 		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
@@ -113,7 +115,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, clientRegistry, clientAuthRegistry)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, clientAuthRegistry)
 
 	server := osinserver.New(
 		config,
@@ -330,7 +332,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHa
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
 	switch c.Options.GrantConfig.Method {
 	case configapi.GrantHandlerDeny:
 		return handlers.NewEmptyGrant()

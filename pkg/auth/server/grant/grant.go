@@ -66,11 +66,11 @@ type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
 	render         FormRenderer
-	clientregistry oauthclient.Registry
+	clientregistry oauthclient.Getter
 	authregistry   oauthclientauthorization.Registry
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Registry, authregistry oauthclientauthorization.Registry) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Getter, authregistry oauthclientauthorization.Registry) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,

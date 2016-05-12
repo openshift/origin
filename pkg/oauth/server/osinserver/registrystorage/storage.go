@@ -28,11 +28,11 @@ type UserConversion interface {
 type storage struct {
 	accesstoken    oauthaccesstoken.Registry
 	authorizetoken oauthauthorizetoken.Registry
-	client         oauthclient.Registry
+	client         oauthclient.Getter
 	user           UserConversion
 }
 
-func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registry, client oauthclient.Registry, user UserConversion) osin.Storage {
+func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registry, client oauthclient.Getter, user UserConversion) osin.Storage {
 	return &storage{
 		accesstoken:    access,
 		authorizetoken: authorize,
