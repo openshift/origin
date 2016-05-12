@@ -7,7 +7,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -45,7 +44,7 @@ var _ = g.Describe("[builds][Slow] builds should have deadlines", func() {
 			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed))
 
 			g.By("verifying the build pod status")
-			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(buildutil.GetBuildPodName(&build))
+			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(buildapi.GetBuildPodName(&build))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(kapi.PodFailed))
 			o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))
@@ -72,7 +71,7 @@ var _ = g.Describe("[builds][Slow] builds should have deadlines", func() {
 			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed))
 
 			g.By("verifying the build pod status")
-			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(buildutil.GetBuildPodName(&build))
+			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(buildapi.GetBuildPodName(&build))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(kapi.PodFailed))
 			o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))

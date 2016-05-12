@@ -489,7 +489,7 @@ func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) 
 	}
 
 	for _, pod := range podList.Items {
-		buildName := pod.Labels[buildapi.BuildLabel]
+		buildName := buildapi.GetBuildName(&pod)
 		if len(buildName) == 0 {
 			continue
 		}
@@ -578,7 +578,7 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 			glog.V(5).Infof("Ignoring build %s/%s because it is complete", build.Namespace, build.Name)
 			continue
 		}
-		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildutil.GetBuildPodName(&build))
+		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))
 		if err != nil {
 			if !kerrors.IsNotFound(err) {
 				glog.V(4).Infof("Error getting pod for build %s/%s: %v", build.Namespace, build.Name, err)
@@ -587,14 +587,14 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 				pod = nil
 			}
 		} else {
-			if buildName := pod.Labels[buildapi.BuildLabel]; buildName != build.Name {
+			if buildName := buildapi.GetBuildName(pod); buildName != build.Name {
 				pod = nil
 			}
 		}
 		if pod == nil {
 			deletedPod := &kapi.Pod{
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      buildutil.GetBuildPodName(&build),
+					Name:      buildapi.GetBuildPodName(&build),
 					Namespace: build.Namespace,
 				},
 			}

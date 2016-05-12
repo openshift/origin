@@ -120,6 +120,9 @@ func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
+			Annotations: map[string]string{
+				buildapi.BuildConfigAnnotation: "test-bc",
+			},
 			Labels: map[string]string{
 				"name": "dataBuild",
 				// TODO: Switch this test to use Serial policy
@@ -716,7 +719,10 @@ func TestHandleHandleBuildDeletionOK(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			deleteWasCalled = true
@@ -738,7 +744,10 @@ func TestHandleHandleBuildDeletionOKDeprecatedLabel(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			deleteWasCalled = true
@@ -817,7 +826,10 @@ func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			return errors.New("random")

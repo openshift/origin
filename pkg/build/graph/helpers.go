@@ -55,6 +55,9 @@ func belongsToBuildConfig(config *buildapi.BuildConfig, b *buildapi.Build) bool 
 	if b.Labels == nil {
 		return false
 	}
+	if b.Annotations != nil && b.Annotations[buildapi.BuildConfigAnnotation] == config.Name {
+		return true
+	}
 	if b.Labels[buildapi.BuildConfigLabel] == config.Name {
 		return true
 	}

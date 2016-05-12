@@ -31,6 +31,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		b.Namespace = namespace
 		b.Name = "the-build"
 		b.Labels = map[string]string{api.BuildConfigLabel: "the-bc"}
+		b.Annotations = map[string]string{api.BuildConfigAnnotation: "the-bc"}
 		nodes.EnsureBuildNode(g, b)
 	}
 
