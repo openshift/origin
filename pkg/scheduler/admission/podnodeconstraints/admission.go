@@ -149,7 +149,7 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 		return r.Spec.Template.Spec, nil
 	case *extensions.ReplicaSet:
 		return r.Spec.Template.Spec, nil
-	case *extensions.Job:
+	case *batch.Job:
 		return r.Spec.Template.Spec, nil
 	case *deployapi.DeploymentConfig:
 		return r.Spec.Template.Spec, nil

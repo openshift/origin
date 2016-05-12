@@ -412,7 +412,7 @@ func TestHandle_failedTest(t *testing.T) {
 	if updatedDeployment == nil {
 		t.Fatal("deployment not updated")
 	}
-	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -539,7 +539,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	if updatedDeployment == nil {
 		t.Fatal("deployment not updated")
 	}
-	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }

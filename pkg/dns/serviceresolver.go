@@ -156,7 +156,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 				for _, p := range svc.Spec.Ports {
 					port := p.Port
 					if port == 0 {
-						port = int(p.TargetPort.IntVal)
+						port = int32(p.TargetPort.IntVal)
 					}
 					if port == 0 {
 						continue
@@ -172,7 +172,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 					services = append(services,
 						msg.Service{
 							Host: svc.Spec.ClusterIP,
-							Port: port,
+							Port: int(port),
 
 							Priority: 10,
 							Weight:   10,
@@ -227,7 +227,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 					keyName := buildDNSName(subdomain, "_"+strings.ToLower(string(p.Protocol)), "_"+portName, defaultHash)
 					services = append(services, msg.Service{
 						Host: a.IP,
-						Port: port,
+						Port: int(port),
 
 						Priority: 10,
 						Weight:   10,
@@ -261,7 +261,7 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 	}
 	port := 0
 	if len(svc.Spec.Ports) > 0 {
-		port = svc.Spec.Ports[0].Port
+		port = int(svc.Spec.Ports[0].Port)
 	}
 	hostName := buildDNSName(b.base, "svc", svc.Namespace, svc.Name)
 	return &msg.Service{

@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 )
 
@@ -65,9 +66,9 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 			MaxReplicas: 1,
 		},
 	}
-	validJob := &expapi.Job{
+	validJob := &batch.Job{
 		ObjectMeta: kapi.ObjectMeta{Name: "myjob"},
-		Spec: expapi.JobSpec{
+		Spec: batch.JobSpec{
 			Template: kapi.PodTemplateSpec{
 				Spec: kapi.PodSpec{
 					Containers:    []kapi.Container{{Name: "mycontainer", Image: "myimage"}},
@@ -189,7 +190,7 @@ func TestExtensionsAPIDisabled(t *testing.T) {
 	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).List(kapi.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing jobs, got %v", err)
 	}
-	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).Create(&expapi.Job{}); !errors.IsNotFound(err) {
+	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).Create(&batch.Job{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error creating job, got %v", err)
 	}
 

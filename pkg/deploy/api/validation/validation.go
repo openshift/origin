@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -142,7 +143,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	}
 
 	if strategy.Labels != nil {
-		errs = append(errs, validation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
+		errs = append(errs, unversionedvalidation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
 	}
 	if strategy.Annotations != nil {
 		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, fldPath.Child("annotations"))...)

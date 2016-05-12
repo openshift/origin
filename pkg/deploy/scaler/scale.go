@@ -69,7 +69,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 		fmt.Fprintln(os.Stderr, "Replica size for a test deployment applies only when the deployment is running.")
 	}
 	scale := deployapi.ScaleFromConfig(dc)
-	scale.Spec.Replicas = int(newSize)
+	scale.Spec.Replicas = int32(newSize)
 	if _, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale); err != nil {
 		return kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: dc.ResourceVersion, ActualError: err}
 	}
@@ -98,6 +98,6 @@ func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.Replic
 		// or, after this check has passed, a modification causes the rc manager to create more pods.
 		// This will not be an issue once we've implemented graceful delete for rcs, but till then
 		// concurrent stop operations on the same rc might have unintended side effects.
-		return ctrl.Status.ObservedGeneration >= desiredGeneration && ctrl.Status.Replicas == specifiedReplicas, nil
+		return ctrl.Status.ObservedGeneration >= desiredGeneration && ctrl.Status.Replicas == int32(specifiedReplicas), nil
 	}
 }

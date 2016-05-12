@@ -130,7 +130,7 @@ func TestDescribers(t *testing.T) {
 	}
 
 	for _, d := range testDescriberList {
-		out, err := d.Describe("foo", "bar")
+		out, err := d.Describe("foo", "bar", kubectl.DescriberSettings{})
 		if err != nil {
 			t.Errorf("unexpected error for %v: %v", d, err)
 		}
@@ -284,7 +284,7 @@ func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 			ContainerStatuses: []kapi.ContainerStatus{
 				{
 					State: kapi.ContainerState{
-						Terminated: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+						Terminated: &kapi.ContainerStateTerminated{ExitCode: int32(exitCode)},
 					},
 				},
 			},

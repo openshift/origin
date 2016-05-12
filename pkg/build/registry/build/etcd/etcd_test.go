@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
@@ -16,7 +17,11 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _ := NewREST(etcdStorage)
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
+	storage, _ := NewREST(options)
 	return storage, server
 }
 
@@ -50,7 +55,7 @@ func validBuild() *api.Build {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	valid := validBuild()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -64,7 +69,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validBuild(),
 	)
@@ -73,7 +78,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validBuild(),
 	)
@@ -82,7 +87,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(
 		validBuild(),
 	)
@@ -91,7 +96,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validBuild()
 	valid.Name = "foo"

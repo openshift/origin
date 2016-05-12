@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
@@ -15,7 +16,11 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage := NewREST(etcdStorage)
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
+	storage := NewREST(options)
 	return storage, server
 }
 
@@ -30,7 +35,7 @@ func validTemplate() *api.Template {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	valid := validTemplate()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -44,7 +49,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validTemplate(),
 	)
@@ -53,7 +58,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validTemplate(),
 	)
@@ -62,7 +67,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ReturnDeletedObject()
+	test := registrytest.New(t, storage.Store).ReturnDeletedObject()
 	test.TestDelete(
 		validTemplate(),
 	)
@@ -71,7 +76,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validTemplate()
 	valid.Name = "foo"

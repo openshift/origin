@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
@@ -16,7 +17,11 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage := NewREST(etcdStorage)
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
+	storage := NewREST(options)
 	return storage, server
 }
 
@@ -53,7 +58,7 @@ func validBuildConfig() *api.BuildConfig {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	valid := validBuildConfig()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -67,7 +72,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validBuildConfig(),
 	)
@@ -76,7 +81,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validBuildConfig(),
 	)
@@ -85,7 +90,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(
 		validBuildConfig(),
 	)
@@ -94,7 +99,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validBuildConfig()
 	valid.Name = "foo"

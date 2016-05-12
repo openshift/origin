@@ -1041,7 +1041,7 @@ func getEndpoint(hostport string) (kapi.EndpointSubset, error) {
 	if err != nil {
 		return kapi.EndpointSubset{}, err
 	}
-	return kapi.EndpointSubset{Addresses: []kapi.EndpointAddress{{IP: host}}, Ports: []kapi.EndpointPort{{Port: portNum}}}, nil
+	return kapi.EndpointSubset{Addresses: []kapi.EndpointAddress{{IP: host}}, Ports: []kapi.EndpointPort{{Port: int32(portNum)}}}, nil
 }
 
 var (

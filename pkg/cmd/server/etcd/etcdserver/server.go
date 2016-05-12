@@ -14,7 +14,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/coreos/etcd/etcdserver"
-	"github.com/coreos/etcd/etcdserver/etcdhttp"
+	etcdhttp "github.com/coreos/etcd/etcdserver/api/v2http"
 	"github.com/coreos/etcd/pkg/osutil"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"

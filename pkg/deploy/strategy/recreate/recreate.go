@@ -166,7 +166,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 
 		// Complete the scale up.
-		if to.Spec.Replicas != desiredReplicas {
+		if to.Spec.Replicas != int32(desiredReplicas) {
 			fmt.Fprintf(s.out, "--> Scaling %s to %d\n", to.Name, desiredReplicas)
 			updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
 			if err != nil {

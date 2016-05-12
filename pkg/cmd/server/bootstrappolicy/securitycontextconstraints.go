@@ -51,7 +51,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 	var (
 		// this is set to 10 to allow wiggle room for admins to set other priorities without
 		// having to adjust anyUID.
-		securityContextConstraintsAnyUIDPriority = 10
+		securityContextConstraintsAnyUIDPriority = int32(10)
 	)
 
 	constraints := []kapi.SecurityContextConstraints{

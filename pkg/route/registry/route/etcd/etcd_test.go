@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
@@ -33,7 +34,11 @@ func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 
 func newStorage(t *testing.T, allocator *testAllocator) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _ := NewREST(etcdStorage, allocator)
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
+	storage, _ := NewREST(options, allocator)
 	return storage, server
 }
 
@@ -54,7 +59,7 @@ func validRoute() *api.Route {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t, &testAllocator{})
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestCreate(
 		// valid
 		validRoute(),
@@ -89,7 +94,7 @@ func TestCreateWithAllocation(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	test.TestUpdate(
 		validRoute(),
@@ -113,7 +118,7 @@ func TestUpdate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validRoute(),
 	)
@@ -122,7 +127,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t, &testAllocator{})
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validRoute(),
 	)
@@ -131,7 +136,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(
 		validRoute(),
 	)
@@ -140,7 +145,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validRoute()
 	valid.Name = "foo"

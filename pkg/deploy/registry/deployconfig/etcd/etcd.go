@@ -102,10 +102,10 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			CreationTimestamp: deploymentConfig.CreationTimestamp,
 		},
 		Spec: extensions.ScaleSpec{
-			Replicas: deploymentConfig.Spec.Replicas,
+			Replicas: int32(deploymentConfig.Spec.Replicas),
 		},
 		Status: extensions.ScaleStatus{
-			Replicas: totalReplicas,
+			Replicas: int32(totalReplicas),
 			Selector: &unversioned.LabelSelector{MatchLabels: deploymentConfig.Spec.Selector},
 		},
 	}, nil
@@ -152,11 +152,11 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	}
 
 	oldReplicas := deploymentConfig.Spec.Replicas
-	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
+	deploymentConfig.Spec.Replicas = int(scale.Spec.Replicas)
 	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}
-	scaleRet.Status.Replicas = totalReplicas + (scale.Spec.Replicas - oldReplicas)
+	scaleRet.Status.Replicas = int32(totalReplicas + (int(scale.Spec.Replicas) - int(oldReplicas)))
 
 	return scaleRet, false, nil
 }
@@ -170,7 +170,7 @@ func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (i
 
 	replicas := 0
 	for _, rc := range rcList.Items {
-		replicas += rc.Spec.Replicas
+		replicas += int(rc.Spec.Replicas)
 	}
 
 	return replicas, nil

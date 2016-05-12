@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -121,7 +122,12 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+	options := generic.RESTOptions{
+		Storage:   etcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
+
+	if err := admin.OverwriteBootstrapPolicy(options, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

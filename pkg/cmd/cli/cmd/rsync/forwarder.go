@@ -1,6 +1,8 @@
 package rsync
 
 import (
+	"os"
+
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
@@ -33,7 +35,8 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 	if err != nil {
 		return err
 	}
-	fw, err := portforward.New(dialer, ports, stopChan)
+	// TODO: Make os.Stdout/Stderr configurable
+	fw, err := portforward.New(dialer, ports, stopChan, os.Stdout, os.Stderr)
 	if err != nil {
 		return err
 	}
