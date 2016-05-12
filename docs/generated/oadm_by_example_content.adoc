@@ -12,13 +12,13 @@ Output the inputs and dependencies of your builds
 [options="nowrap"]
 ----
   # Build the dependency tree for the 'latest' tag in <image-stream>
-  $ oadm build-chain <image-stream>
+  oadm build-chain <image-stream>
 
   # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
-  $ oadm build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
+  oadm build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
   # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
-  $ oadm build-chain <image-stream> -n test --all
+  oadm build-chain <image-stream> -n test --all
 ----
 ====
 
@@ -31,10 +31,10 @@ Decrypt data encrypted with "oadm ca encrypt"
 [options="nowrap"]
 ----
 	# Decrypt an encrypted file to a cleartext file:
-	$ oadm ca decrypt --key=secret.key --in=secret.encrypted --out=secret.decrypted
+	oadm ca decrypt --key=secret.key --in=secret.encrypted --out=secret.decrypted
 	
 	# Decrypt from stdin to stdout:
-	$ oadm ca decrypt --key=secret.key < secret2.encrypted > secret2.decrypted
+	oadm ca decrypt --key=secret.key < secret2.encrypted > secret2.decrypted
 
 ----
 ====
@@ -48,10 +48,10 @@ Encrypt data with AES-256-CBC encryption
 [options="nowrap"]
 ----
 	# Encrypt the content of secret.txt with a generated key:
-	$ oadm ca encrypt --genkey=secret.key --in=secret.txt --out=secret.encrypted
+	oadm ca encrypt --genkey=secret.key --in=secret.txt --out=secret.encrypted
 	
 	# Encrypt the content of secret2.txt with an existing key:
-	$ oadm ca encrypt --key=secret.key < secret2.txt > secret2.encrypted
+	oadm ca encrypt --key=secret.key < secret2.txt > secret2.encrypted
 
 ----
 ====
@@ -162,7 +162,7 @@ Add users to a group
 [options="nowrap"]
 ----
   # Add user1 and user2 to my-group
-  $ oadm groups add-users my-group user1 user2
+  oadm groups add-users my-group user1 user2
 ----
 ====
 
@@ -175,10 +175,10 @@ Create a new group
 [options="nowrap"]
 ----
   # Add a group with no users
-  $ oadm groups new my-group
+  oadm groups new my-group
 
   # Add a group with two users
-  $ oadm groups new my-group user1 user2
+  oadm groups new my-group user1 user2
 ----
 ====
 
@@ -191,16 +191,16 @@ Prune OpenShift groups referencing missing records on an external provider.
 [options="nowrap"]
 ----
   # Prune all orphaned groups
-  $ oadm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
-  $ oadm groups prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist file
-  $ oadm groups prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist
-  $ oadm groups prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
 ----
 ====
@@ -214,7 +214,7 @@ Remove users from a group
 [options="nowrap"]
 ----
   # Remove user1 and user2 from my-group
-  $ oadm groups remove-users my-group user1 user2
+  oadm groups remove-users my-group user1 user2
 ----
 ====
 
@@ -227,19 +227,19 @@ Sync OpenShift groups with records from an external provider.
 [options="nowrap"]
 ----
   # Sync all groups from an LDAP server
-  $ oadm groups sync --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups sync --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync all groups except the ones from the blacklist file from an LDAP server
-  $ oadm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific groups specified in a whitelist file with an LDAP server
-  $ oadm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
+  oadm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
 
   # Sync all OpenShift Groups that have been synced previously with an LDAP server
-  $ oadm groups sync --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm groups sync --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
-  $ oadm groups sync groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
+  oadm groups sync groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
 
 ----
 ====
@@ -253,21 +253,21 @@ Install an IP failover group to a set of nodes
 [options="nowrap"]
 ----
   # Check the default IP failover configuration ("ipfailover"):
-  $ oadm ipfailover
+  oadm ipfailover
 
   # See what the IP failover configuration would look like if it is created:
-  $ oadm ipfailover -o json
+  oadm ipfailover -o json
 
   # Create an IP failover configuration if it does not already exist:
-  $ oadm ipfailover ipf --virtual-ips="10.1.1.1-4" --create
+  oadm ipfailover ipf --virtual-ips="10.1.1.1-4" --create
 
   # Create an IP failover configuration on a selection of nodes labeled
   # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
   # listening on port 80, such as the router process).
-  $ oadm ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+  oadm ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
   # Use a different IP failover config image and see the configuration:
-  $ oadm ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
+  oadm ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
 ----
 ====
 
@@ -280,19 +280,19 @@ Manage nodes - list pods, evacuate, or mark ready
 [options="nowrap"]
 ----
 	# Block accepting any pods on given nodes
-	$ oadm manage-node <mynode> --schedulable=false
+	oadm manage-node <mynode> --schedulable=false
 
 	# Mark selected nodes as schedulable
-	$ oadm manage-node --selector="<env=dev>" --schedulable=true
+	oadm manage-node --selector="<env=dev>" --schedulable=true
 
 	# Migrate selected pods
-	$ oadm manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
+	oadm manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
 
 	# Show pods that will be migrated
-	$ oadm manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+	oadm manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 
 	# List all pods on given nodes
-	$ oadm manage-node <mynode1> <mynode2> --list-pods
+	oadm manage-node <mynode1> <mynode2> --list-pods
 ----
 ====
 
@@ -337,10 +337,10 @@ Add users or serviceaccounts to a role in the current project
 [options="nowrap"]
 ----
   # Add the 'view' role to user1 in the current project
-  $ oadm policy add-role-to-user view user1
+  oadm policy add-role-to-user view user1
 
   # Add the 'edit' role to serviceaccount1 in the current project
-  $ oadm policy add-role-to-user edit -z serviceaccount1
+  oadm policy add-role-to-user edit -z serviceaccount1
 ----
 ====
 
@@ -353,10 +353,10 @@ Add users or serviceaccount to a security context constraint
 [options="nowrap"]
 ----
   # Add the 'restricted' security context contraint to user1 and user2
-  $ oadm policy add-scc-to-user restricted user1 user2
+  oadm policy add-scc-to-user restricted user1 user2
 
   # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
-  $ oadm policy add-scc-to-user privileged -z serviceaccount1
+  oadm policy add-scc-to-user privileged -z serviceaccount1
 ----
 ====
 
@@ -369,19 +369,19 @@ Update cluster role bindings to match the recommended bootstrap policy
 [options="nowrap"]
 ----
   # Display the names of cluster role bindings that would be modified
-  $ oadm policy reconcile-cluster-role-bindings -o name
+  oadm policy reconcile-cluster-role-bindings -o name
 
   # Display the cluster role bindings that would be modified, removing any extra subjects
-  $ oadm policy reconcile-cluster-role-bindings --additive-only=false
+  oadm policy reconcile-cluster-role-bindings --additive-only=false
 
   # Update cluster role bindings that don't match the current defaults
-  $ oadm policy reconcile-cluster-role-bindings --confirm
+  oadm policy reconcile-cluster-role-bindings --confirm
 
   # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
-  $ oadm policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
+  oadm policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
 
   # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
-  $ oadm policy reconcile-cluster-role-bindings --confirm --additive-only=false
+  oadm policy reconcile-cluster-role-bindings --confirm --additive-only=false
 ----
 ====
 
@@ -394,17 +394,17 @@ Update cluster roles to match the recommended bootstrap policy
 [options="nowrap"]
 ----
   # Display the names of cluster roles that would be modified
-  $ oadm policy reconcile-cluster-roles -o name
+  oadm policy reconcile-cluster-roles -o name
 
   # Add missing permissions to cluster roles that don't match the current defaults
-  $ oadm policy reconcile-cluster-roles --confirm
+  oadm policy reconcile-cluster-roles --confirm
 
-  # Add missing permissions and remove extra permissions from 
+  # Add missing permissions and remove extra permissions from
   # cluster roles that don't match the current defaults
-  $ oadm policy reconcile-cluster-roles --additive-only=false --confirm
+  oadm policy reconcile-cluster-roles --additive-only=false --confirm
 
   # Display the union of the default and modified cluster roles
-  $ oadm policy reconcile-cluster-roles --additive-only
+  oadm policy reconcile-cluster-roles --additive-only
 ----
 ====
 
@@ -417,14 +417,14 @@ Replace cluster SCCs to match the recommended bootstrap policy
 [options="nowrap"]
 ----
   # Display the cluster SCCs that would be modified
-  $ oadm policy reconcile-sccs
+  oadm policy reconcile-sccs
 
   # Update cluster SCCs that don't match the current defaults preserving additional grants
   # for users and group and keeping any priorities that are already set
-  $ oadm policy reconcile-sccs --confirm
+  oadm policy reconcile-sccs --confirm
 
   # Replace existing users, groups, and priorities that do not match defaults
-  $ oadm policy reconcile-sccs --additive-only=false --confirm
+  oadm policy reconcile-sccs --additive-only=false --confirm
 ----
 ====
 
@@ -438,10 +438,10 @@ Remove old completed and failed builds
 ----
   # Dry run deleting older completed and failed builds and also including
   # all builds whose associated BuildConfig no longer exists
-  $ oadm prune builds --orphans
+  oadm prune builds --orphans
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ oadm prune builds --orphans --confirm
+  oadm prune builds --orphans --confirm
 ----
 ====
 
@@ -454,10 +454,10 @@ Remove old completed and failed deployments
 [options="nowrap"]
 ----
   # Dry run deleting all but the last complete deployment for every deployment config
-  $ oadm prune deployments --keep-complete=1
+  oadm prune deployments --keep-complete=1
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ oadm prune deployments --keep-complete=1 --confirm
+  oadm prune deployments --keep-complete=1 --confirm
 ----
 ====
 
@@ -470,16 +470,16 @@ Prune OpenShift groups referencing missing records on an external provider.
 [options="nowrap"]
 ----
   # Prune all orphaned groups
-  $ oadm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
-  $ oadm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist file
-  $ oadm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist
-  $ oadm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  oadm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
 ----
 ====
@@ -494,10 +494,10 @@ Remove unreferenced images
 ----
   # See, what the prune command would delete if only images more than an hour old and obsoleted
   # by 3 newer revisions under the same tag were considered.
-  $ oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m
+  oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+  oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
 ----
 ====
 
@@ -510,16 +510,16 @@ Install the integrated Docker registry
 [options="nowrap"]
 ----
   # Check if default Docker registry ("docker-registry") has been created
-  $ oadm registry --dry-run
+  oadm registry --dry-run
 
   # See what the registry will look like if created
-  $ oadm registry -o yaml
+  oadm registry -o yaml
 
   # Create a registry with two replicas if it does not exist
-  $ oadm registry --replicas=2
+  oadm registry --replicas=2
 
   # Use a different registry image
-  $ oadm registry --images=myrepo/docker-registry:mytag
+  oadm registry --images=myrepo/docker-registry:mytag
 ----
 ====
 
@@ -532,19 +532,19 @@ Install a router
 [options="nowrap"]
 ----
   # Check the default router ("router")
-  $ oadm router --dry-run
+  oadm router --dry-run
 
   # See what the router would look like if created
-  $ oadm router -o yaml
+  oadm router -o yaml
 
   # Create a router with two replicas if it does not exist
-  $ oadm router router-west --replicas=2
+  oadm router router-west --replicas=2
 
   # Use a different router image
-  $ oadm router region-west --images=myrepo/somerouter:mytag
+  oadm router region-west --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ oadm router router-west --stats-port=0
+  oadm router router-west --stats-port=0
   
 ----
 ====

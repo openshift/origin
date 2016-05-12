@@ -29,10 +29,10 @@ const (
 
 const (
 	addRoleToUserExample = `  # Add the 'view' role to user1 in the current project
-  $ %[1]s view user1
+  %[1]s view user1
 
   # Add the 'edit' role to serviceaccount1 in the current project
-  $ %[1]s edit -z serviceaccount1`
+  %[1]s edit -z serviceaccount1`
 )
 
 type RoleModificationOptions struct {

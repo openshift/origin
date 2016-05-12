@@ -36,21 +36,21 @@ If your pod is failing to start, you may need to use the --previous option to se
 logs of the last attempt.`
 
 	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
-  $ %[1]s -f bc/openldap
+  %[1]s -f bc/openldap
 
   # Start streaming the logs of the latest deployment of the mysql deployment config.
-  $ %[1]s -f dc/mysql
+  %[1]s -f dc/mysql
 
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
-  $ %[1]s --version=1 dc/mysql
+  %[1]s --version=1 dc/mysql
 
   # Return a snapshot of ruby-container logs from pod backend.
-  $ %[1]s backend -c ruby-container
+  %[1]s backend -c ruby-container
 
   # Start streaming of ruby-container logs from pod backend.
-  $ %[1]s -f pod/backend -c ruby-container`
+  %[1]s -f pod/backend -c ruby-container`
 )
 
 // OpenShiftLogsOptions holds all the necessary options for running oc logs.

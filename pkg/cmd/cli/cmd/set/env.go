@@ -34,29 +34,29 @@ If "--env -" is passed, environment variables can be read from STDIN using the s
 syntax.`
 
 	envExample = `  # Update deployment 'registry' with a new environment variable
-  $ %[1]s env dc/registry STORAGE_DIR=/local
+  %[1]s env dc/registry STORAGE_DIR=/local
 
   # List the environment variables defined on a build config 'sample-build'
-  $ %[1]s env bc/sample-build --list
+  %[1]s env bc/sample-build --list
 
   # List the environment variables defined on all pods
-  $ %[1]s env pods --all --list
+  %[1]s env pods --all --list
 
   # Output modified build config in YAML, and does not alter the object on the server
-  $ %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
+  %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
 
   # Update all containers in all replication controllers in the project to have ENV=prod
-  $ %[1]s env rc --all ENV=prod
+  %[1]s env rc --all ENV=prod
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
-  $ %[1]s env dc --all --containers="c1" ENV-
+  %[1]s env dc --all --containers="c1" ENV-
 
   # Remove the environment variable ENV from a deployment config definition on disk and
   # update the deployment config on the server
-  $ %[1]s env -f dc.json ENV-
+  %[1]s env -f dc.json ENV-
 
   # Set some of the local shell environment into a deployment config on the server
-  $ env | grep RAILS_ | %[1]s env -e - dc/registry`
+  env | grep RAILS_ | %[1]s env -e - dc/registry`
 )
 
 // NewCmdEnv implements the OpenShift cli env command

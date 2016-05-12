@@ -37,7 +37,7 @@ Start a node
 
 This command helps you launch a node.  Running
 
-  $ %[1]s start node --config=<node-config>
+  %[1]s start node --config=<node-config>
 
 will start a node with given configuration file. The node will run in the
 foreground until you terminate the process.`
@@ -75,7 +75,7 @@ Start node network components
 
 This command helps you launch node networking.  Running
 
-  $ %[1]s start network --config=<node-config>
+  %[1]s start network --config=<node-config>
 
 will start the network proxy and SDN plugins with given configuration file. The proxy will
 run in the foreground until you terminate the process.`

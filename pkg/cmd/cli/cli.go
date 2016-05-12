@@ -41,9 +41,9 @@ cluster under the 'adm' subcommand.
 const cliExplain = `
 To create a new application, login to your server and then run new-app:
 
-  $ %[1]s login https://mycluster.mycompany.com
-  $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
-  $ %[1]s logs -f bc/ruby-ex
+  %[1]s login https://mycluster.mycompany.com
+  %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+  %[1]s logs -f bc/ruby-ex
 
 This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds
 the source code from GitHub. A build will start automatically, push the resulting image to the
@@ -52,16 +52,16 @@ registry, and a deployment will roll that change out in your project.
 Once your application is deployed, use the status, describe, and get commands to see more about
 the created components:
 
-  $ %[1]s status
-  $ %[1]s describe deploymentconfig ruby-ex
-  $ %[1]s get pods
+  %[1]s status
+  %[1]s describe deploymentconfig ruby-ex
+  %[1]s get pods
 
 To make this application visible outside of the cluster, use the expose command on the service
 we just created to create a 'route' (which will connect your application over the HTTP port
 to a public domain name).
 
-  $ %[1]s expose svc/ruby-ex
-  $ %[1]s status
+  %[1]s expose svc/ruby-ex
+  %[1]s status
 
 You should now see the URL the application can be reached at.
 

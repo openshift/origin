@@ -63,57 +63,57 @@ You can use '%[1]s status' to check the progress.`
 
 	newAppExample = `
   # List all local templates and image streams that can be used to create an app
-  $ %[1]s new-app --list
+  %[1]s new-app --list
 
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  $ %[1]s new-app --search ruby
+  %[1]s new-app --search ruby
 
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
-  $ %[1]s new-app . --docker-image=repo/langimage
+  %[1]s new-app . --docker-image=repo/langimage
 
   # Create a Ruby application based on the provided [image]~[source code] combination
-  $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+  %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  $ %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
-  $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
+  %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
   # Create an application from a remote repository using its beta4 branch
-  $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
+  %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
 
   # Create an application based on a stored template, explicitly setting a parameter value
-  $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
+  %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
   # Create an application from a remote repository and specify a context directory
-  $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
+  %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
 
   # Create an application based on a template file, explicitly setting a parameter value
-  $ %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
+  %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
   # Search for "mysql" in all image repositories and stored templates
-  $ %[1]s new-app --search mysql
+  %[1]s new-app --search mysql
 
   # Search for "ruby", but only in stored templates (--template, --image and --docker-image
   # can be used to filter search results)
-  $ %[1]s new-app --search --template=ruby
+  %[1]s new-app --search --template=ruby
 
   # Search for "ruby" in stored templates and print the output as an YAML
-  $ %[1]s new-app --search --template=ruby --output=yaml`
+  %[1]s new-app --search --template=ruby --output=yaml`
 
 	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
 
 To list all local templates and image streams, use:
 
-  $ %[1]s new-app -L
+  %[1]s new-app -L
 
 To search templates, image streams, and Docker images that match the arguments provided, use:
 
-  $ %[1]s new-app -S php
-  $ %[1]s new-app -S --template=ruby
-  $ %[1]s new-app -S --image=mysql
+  %[1]s new-app -S php
+  %[1]s new-app -S --template=ruby
+  %[1]s new-app -S --image=mysql
 `
 )
 

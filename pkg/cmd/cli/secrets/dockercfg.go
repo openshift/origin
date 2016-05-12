@@ -34,16 +34,16 @@ nodes to pull images on your behalf, they have to have the credentials.  You can
 by creating a dockercfg secret and attaching it to your service account.`
 
 	createDockercfgExample = `  # Create a new .dockercfg secret:
-  $ %[1]s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+  %[1]s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
   # Create a new .dockercfg secret from an existing file:
-  $ %[2]s SECRET path/to/.dockercfg
+  %[2]s SECRET path/to/.dockercfg
 
   # Create a new .docker/config.json secret from an existing file:
-  $ %[2]s SECRET .dockerconfigjson=path/to/.docker/config.json
+  %[2]s SECRET .dockerconfigjson=path/to/.docker/config.json
 
   # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
-  $ %[3]s SERVICE_ACCOUNT`
+  %[3]s SERVICE_ACCOUNT`
 )
 
 type CreateDockerConfigOptions struct {

@@ -37,10 +37,10 @@ The command will create objects unless you pass the -o yaml or --as-template fla
 configuration file for later use.`
 
 	dockerComposeExample = `  # Import a docker-compose.yml file into OpenShift
-  $ %[1]s docker-compose -f ./docker-compose.yml
+  %[1]s docker-compose -f ./docker-compose.yml
 
 	# Turn a docker-compose.yml file into a template
-  $ %[1]s docker-compose -f ./docker-compose.yml -o yaml --as-template
+  %[1]s docker-compose -f ./docker-compose.yml -o yaml --as-template
 `
 
 	DockerComposeV1GeneratorName = "docker-compose/v1"

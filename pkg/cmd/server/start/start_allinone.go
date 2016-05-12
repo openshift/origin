@@ -43,7 +43,7 @@ Start an all-in-one server
 This command helps you launch an all-in-one server, which allows you to run all of the
 components of an enterprise Kubernetes system on a server with Docker. Running:
 
-  $ %[1]s start
+  %[1]s start
 
 will start listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until

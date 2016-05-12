@@ -44,15 +44,15 @@ function. Comment lines beginning with '---' or 'TOOD' are ignored.
 `
 
 	genSwaggerDocUsage = `Usage:
-  $ %s [--input=GO-FILE] [--output=GENERATED-FILE] [--verify]
+  %s [--input=GO-FILE] [--output=GENERATED-FILE] [--verify]
 `
 
 	genSwaggerDocExamples = `Examples:
   # Generate 'SwaggerDoc' methods to file 'swagger_doc_generated.go' for objects in file 'types.go'
-  $ %[1]s --input=types.go --output=swagger_doc_generated.go
+  %[1]s --input=types.go --output=swagger_doc_generated.go
 
   # Verify that types in 'types.go' are sufficiently docummented
-  $ %[1]s --input=types.go --verify=true
+  %[1]s --input=types.go --verify=true
 `
 )
 

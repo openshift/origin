@@ -39,10 +39,10 @@ as the project admin.
 After your project is created it will become the default project in your config.`
 
 	requestProjectExample = `  # Create a new project with minimal information
-  $ %[1]s web-team-dev
+  %[1]s web-team-dev
 
   # Create a new project with a display name and description
-  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
+  %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 
 func NewCmdRequestProject(baseName, name, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -126,7 +126,7 @@ func (o *NewProjectOptions) Run() error {
 	fmt.Fprintf(o.Out, `
 You can add applications to this project with the 'new-app' command. For example, try:
 
-    $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+    %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
 to build a new example application in Ruby.
 `, o.Name)

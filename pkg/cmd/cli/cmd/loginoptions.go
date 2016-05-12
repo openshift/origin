@@ -313,7 +313,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	case 0:
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    $ oc new-project <projectname>
+    oc new-project <projectname>
 
 `)
 		o.Project = ""

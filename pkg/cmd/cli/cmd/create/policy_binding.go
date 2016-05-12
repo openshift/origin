@@ -22,7 +22,7 @@ const (
 Create a policy binding that references the policy in the targetted namespace.`
 
 	policyBindingExample = `  # Create a policy binding in namespace "foo" that references the policy in namespace "bar"
-  $ %[1]s bar -n foo`
+  %[1]s bar -n foo`
 )
 
 type CreatePolicyBindingOptions struct {

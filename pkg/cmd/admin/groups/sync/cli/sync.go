@@ -46,19 +46,19 @@ without changing OpenShift records. Passing '--confirm' will sync all groups fro
 LDAP query templates.
 `
 	syncExamples = `  # Sync all groups from an LDAP server
-  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync all groups except the ones from the blacklist file from an LDAP server
-  $ %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific groups specified in a whitelist file with an LDAP server
-  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
+  %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
 
   # Sync all OpenShift Groups that have been synced previously with an LDAP server
-  $ %[1]s --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
-  $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
+  %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
 `
 )
 

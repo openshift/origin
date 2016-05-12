@@ -50,8 +50,8 @@ would recreate ALL certs including the CA cert, invalidating any existing
 infrastructure or client configuration. Instead, delete/rename the existing
 server cert and run the command to fill it in:
 
-    $ mv openshift.local.config/master/master.server.crt{,.old}
-    $ %[1]s --cert-dir=... \
+    mv openshift.local.config/master/master.server.crt{,.old}
+    %[1]s --cert-dir=... \
             --master=https://internal.master.fqdn:8443 \
             --public-master=https://external.master.fqdn:8443 \
             --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local

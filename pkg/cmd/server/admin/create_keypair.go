@@ -34,8 +34,8 @@ Create an RSA key pair and generate PEM-encoded public/private key files
 
 Example: Creating service account signing and authenticating key files:
 
-    $ CONFIG=openshift.local.config/master
-    $ %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
+    CONFIG=openshift.local.config/master
+    %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
 `
 
 func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer) *cobra.Command {

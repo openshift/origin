@@ -25,10 +25,10 @@ const (
 
 const (
 	addSCCToUserExample = `  # Add the 'restricted' security context contraint to user1 and user2
-  $ %[1]s restricted user1 user2
+  %[1]s restricted user1 user2
 
   # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
-  $ %[1]s privileged -z serviceaccount1`
+  %[1]s privileged -z serviceaccount1`
 )
 
 type SCCModificationOptions struct {
