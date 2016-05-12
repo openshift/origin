@@ -1,8 +1,11 @@
 package builds
 
-import (
-	"fmt"
+// these tests are diabled because the xip.io dns hook was proving way too unreliable;
+// we will reenable once an agreeable alternative is derived to get name resolution for the routes
+
+/*import (
 	"net"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -12,6 +15,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
+
 )
 
 // hostname returns the hostname from a hostport specification
@@ -125,4 +129,4 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 			})
 		})
 	})
-})
+})*/
