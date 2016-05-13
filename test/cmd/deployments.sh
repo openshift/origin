@@ -29,6 +29,9 @@ os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
+os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
+os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
+os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
 
 os::test::junit::declare_suite_start "cmd/deployments/env"
 # Patch a nil list

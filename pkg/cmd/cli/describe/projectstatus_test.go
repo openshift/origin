@@ -293,6 +293,34 @@ func TestProjectStatus(t *testing.T) {
 				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
 			},
 		},
+		"monopod": {
+			Path: "../../../../test/fixtures/app-scenarios/k8s-lonely-pod.json",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"pod/lonely-pod runs openshift/hello-openshift",
+				"You have no services, deployment configs, or build configs.",
+			},
+		},
+		"deploys single pod": {
+			Path: "../../../../test/fixtures/simple-deployment.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"dc/simple-deployment deploys docker.io/openshift/deployment-example:v1",
+				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()

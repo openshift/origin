@@ -87,7 +87,7 @@ os::cmd::expect_success "oc delete project test-scratchimage"
 VERBOSE=true os::cmd::expect_success "oc project new-app"
 # error due to partial match
 os::cmd::expect_failure_and_text "oc new-app test/scratchimage2 -o yaml" "partial match"
-# success with exact match	
+# success with exact match
 os::cmd::expect_success "oc new-app test/scratchimage"
 echo "[INFO] newapp: ok"
 os::test::junit::declare_suite_end
@@ -169,6 +169,12 @@ os::cmd::expect_success "oc volumes dc/nginx --add --secret-name=nginx-ssl-key  
 os::cmd::expect_success "oc create configmap default-conf --from-file=test/extended/fixtures/service-serving-cert/nginx-serving-cert.conf"
 os::cmd::expect_success "oc set volumes dc/nginx --add --configmap-name=default-conf --mount-path=/etc/nginx/conf.d"
 os::cmd::try_until_text "oc get pods -l deployment-config.name=nginx" 'Running'
+
+# only show single pods in status if they are really single
+os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::try_until_text 'oc status' 'dc\/test-deployment-config deploys docker\.io\/openshift\/origin-pod:latest' "$(( 2 * TIME_MIN ))"
+os::cmd::try_until_text 'oc status' 'deployment #1 deployed.*- 1 pod' "$(( 2 * TIME_MIN ))"
+os::cmd::expect_success_and_not_text 'oc status' 'pod\/test-deployment-config-1-[0-9a-z]{5} runs openshift\/origin-pod'
 
 # break mac os
 service_ip=$(oc get service/nginx -o=jsonpath={.spec.clusterIP})
