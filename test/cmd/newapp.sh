@@ -206,6 +206,9 @@ os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o name --as-template=other --dry-run' 'template/other'
 os::cmd::expect_failure 'diff --suppress-common-lines -y <(oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o yaml) test/fixtures/app-scenarios/docker-compose/complex/docker-compose.imported.yaml | grep -v secret'
 
+# verify a docker-compose.yml schema 2 resource can be transformed, and that it sets env vars correctly.
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/wordpress/docker-compose.yml -o yaml --as-template=other --dry-run' 'value: wordpress'
+
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'
 os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml --to mysql:bin' 'type: Binary'

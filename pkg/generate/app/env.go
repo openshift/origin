@@ -18,7 +18,7 @@ func ParseEnvironment(vals ...string) Environment {
 		if i := strings.Index(s, "="); i == -1 {
 			env[s] = ""
 		} else {
-			env[s[:i]] = env[s[i+1:]]
+			env[s[:i]] = s[i+1:]
 		}
 	}
 	return env

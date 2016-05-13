@@ -148,6 +148,10 @@ func (o *DockerComposeOptions) Run() error {
 		return err
 	}
 
+	template.ObjectLabels = map[string]string{
+		"compose": template.Name,
+	}
+
 	// all the types generated into the template should be known
 	if errs := app.AsVersionedObjects(template.Objects, kapi.Scheme, kapi.Scheme, o.OutputVersions...); len(errs) > 0 {
 		for _, err := range errs {
