@@ -68,7 +68,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// There's nothing to reconcile until the version is nonzero.
 	if config.Status.LatestVersion == 0 {
 		glog.V(5).Infof("Waiting for first version of %q", deployutil.LabelForDeploymentConfig(config))
-		return nil
+		return c.updateStatus(config)
 	}
 
 	// Find all deployments owned by the deploymentConfig.
@@ -115,7 +115,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
 		if !deployutil.IsTerminatedDeployment(latestDeployment) {
-			return nil
+			return c.updateStatus(config)
 		}
 		return c.reconcileDeployments(existingDeployments, config)
 	}
@@ -130,7 +130,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the deployment was already created, just move on. The cache could be
 		// stale, or another process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			return nil
+			return c.updateStatus(config)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
