@@ -199,7 +199,7 @@ var _ = KubeDescribe("Kubectl client", func() {
 		It("should support exec", func() {
 			By("executing a command in the container")
 			execOutput := runKubectlOrDie("exec", fmt.Sprintf("--namespace=%v", ns), simplePodName, "echo", "running", "in", "container")
-			if e, a := "running in container", execOutput; e != a {
+			if e, a := "running in container", strings.TrimSpace(execOutput); e != a {
 				Failf("Unexpected kubectl exec output. Wanted %q, got %q", e, a)
 			}
 
@@ -223,7 +223,7 @@ var _ = KubeDescribe("Kubectl client", func() {
 			execOutput = newKubectlCommand("exec", fmt.Sprintf("--namespace=%v", ns), "-i", simplePodName, "bash").
 				withStdinReader(r).
 				execOrDie()
-			if e, a := "hi", execOutput; e != a {
+			if e, a := "hi", strings.TrimSpace(execOutput); e != a {
 				Failf("Unexpected kubectl exec output. Wanted %q, got %q", e, a)
 			}
 		})
@@ -590,6 +590,7 @@ var _ = KubeDescribe("Kubectl client", func() {
 			runKubectlOrDie("create", "-f", controllerJson, nsFlag)
 			runKubectlOrDie("create", "-f", serviceJson, nsFlag)
 
+			By("Waiting for Redis master to start")
 			// Pod
 			forEachPod(c, ns, "app", "redis", func(pod api.Pod) {
 				output := runKubectlOrDie("describe", "pod", pod.Name, nsFlag)
@@ -801,6 +802,13 @@ var _ = KubeDescribe("Kubectl client", func() {
 		It("should be able to retrieve and filter logs [Conformance]", func() {
 			SkipUnlessServerVersionGTE(extendedPodLogFilterVersion, c)
 
+			// Split("something\n", "\n" returns ["something", ""], so
+			// strip trailing newline first
+			lines := func(out string) []string {
+				return strings.Split(strings.TrimRight(out, "\n"), "\n")
+			}
+
+			By("Waiting for Redis master to start.")
 			forEachPod(c, ns, "app", "redis", func(pod api.Pod) {
 				By("checking for a matching strings")
 				_, err := lookForStringInLog(ns, pod.Name, containerName, "The server is now ready to accept connections", podStartTimeout)
@@ -809,18 +817,18 @@ var _ = KubeDescribe("Kubectl client", func() {
 				By("limiting log lines")
 				out := runKubectlOrDie("log", pod.Name, containerName, nsFlag, "--tail=1")
 				Expect(len(out)).NotTo(BeZero())
-				Expect(len(strings.Split(out, "\n"))).To(Equal(1))
+				Expect(len(lines(out))).To(Equal(1))
 
 				By("limiting log bytes")
 				out = runKubectlOrDie("log", pod.Name, containerName, nsFlag, "--limit-bytes=1")
-				Expect(len(strings.Split(out, "\n"))).To(Equal(1))
+				Expect(len(lines(out))).To(Equal(1))
 				Expect(len(out)).To(Equal(1))
 
 				By("exposing timestamps")
 				out = runKubectlOrDie("log", pod.Name, containerName, nsFlag, "--tail=1", "--timestamps")
-				lines := strings.Split(out, "\n")
-				Expect(len(lines)).To(Equal(1))
-				words := strings.Split(lines[0], " ")
+				l := lines(out)
+				Expect(len(l)).To(Equal(1))
+				words := strings.Split(l[0], " ")
 				Expect(len(words)).To(BeNumerically(">", 1))
 				if _, err := time.Parse(time.RFC3339Nano, words[0]); err != nil {
 					if _, err := time.Parse(time.RFC3339, words[0]); err != nil {
@@ -851,6 +859,7 @@ var _ = KubeDescribe("Kubectl client", func() {
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			By("creating Redis RC")
 			runKubectlOrDie("create", "-f", controllerJson, nsFlag)
+			By("Waiting for Redis master to start.")
 			By("patching all pods")
 			forEachPod(c, ns, "app", "redis", func(pod api.Pod) {
 				runKubectlOrDie("patch", "pod", pod.Name, nsFlag, "-p", "{\"metadata\":{\"annotations\":{\"x\":\"y\"}}}")
