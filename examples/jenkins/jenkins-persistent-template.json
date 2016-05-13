@@ -119,7 +119,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "JENKINS_IMAGE",
+                "image": " ",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,

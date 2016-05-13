@@ -1198,7 +1198,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "mongodb",
-                "image": "mongodb",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 27017,
@@ -1450,7 +1450,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "mongodb",
-                "image": "mongodb",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 27017,
@@ -1692,7 +1692,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -1933,7 +1933,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -2164,7 +2164,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432,
@@ -2404,7 +2404,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432,
@@ -2715,7 +2715,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "containers": [
               {
                 "name": "cakephp-mysql-example",
-                "image": "cakephp-mysql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -2861,7 +2861,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306
@@ -3195,7 +3195,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
             "containers": [
               {
                 "name": "dancer-mysql-example",
-                "image": "dancer-mysql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -3329,7 +3329,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306
@@ -3662,7 +3662,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "containers": [
               {
                 "name": "django-psql-example",
-                "image": "django-psql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -3800,7 +3800,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432
@@ -4131,7 +4131,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "containers": [
               {
                 "name": "nodejs-mongodb-example",
-                "image": "nodejs-mongodb-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -4255,7 +4255,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "containers": [
               {
                 "name": "mongodb",
-                "image": "mongodb",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 27017
@@ -4602,7 +4602,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
             "containers": [
               {
                 "name": "rails-postgresql-example",
-                "image": "rails-postgresql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -4756,7 +4756,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432

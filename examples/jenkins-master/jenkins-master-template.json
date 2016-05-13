@@ -208,7 +208,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "jenkins-master",
+                "image": " ",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,

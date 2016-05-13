@@ -166,7 +166,7 @@
             "containers": [
               {
                 "name": "cakephp-mysql-example",
-                "image": "cakephp-mysql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -312,7 +312,7 @@
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306

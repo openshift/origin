@@ -158,7 +158,7 @@
             "containers": [
               {
                 "name": "django-psql-example",
-                "image": "django-psql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -296,7 +296,7 @@
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432

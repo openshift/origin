@@ -102,7 +102,7 @@
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306,
