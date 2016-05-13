@@ -23,7 +23,6 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/oom"
 
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
 	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
@@ -186,20 +185,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg.KubeClient = clientadapter.FromUnversionedClient(kubeClient)
 	cfg.EventClient = clientadapter.FromUnversionedClient(eventClient)
 	cfg.DockerExecHandler = dockerExecHandler
-
-	// docker-in-docker (dind) deployments are used for testing
-	// networking plugins.  Running openshift under dind won't work
-	// with the real oom adjuster due to the state of the cgroups path
-	// in a dind container that uses systemd for init.  Similarly,
-	// cgroup manipulation of the nested docker daemon doesn't work
-	// properly under centos/rhel and should be disabled by setting
-	// the name of the container to an empty string.
-	//
-	// This workaround should become unnecessary once user namespaces
-	if value := cmdutil.Env("OPENSHIFT_DIND", ""); value == "true" {
-		glog.Warningf("Using FakeOOMAdjuster for docker-in-docker compatibility")
-		cfg.OOMAdjuster = oom.NewFakeOOMAdjuster()
-	}
 
 	// Setup auth
 	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)

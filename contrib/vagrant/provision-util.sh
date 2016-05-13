@@ -279,11 +279,6 @@ os::provision::start-os-service() {
   local exec_start=$3
   local work_dir=$4
 
-  local dind_env_var=
-  if os::provision::in-container; then
-    dind_env_var="OPENSHIFT_DIND=true"
-  fi
-
   cat <<EOF > "/etc/systemd/system/${unit_name}.service"
 [Unit]
 Description=${description}
@@ -291,7 +286,6 @@ Requires=network.target
 After=docker.target network.target
 
 [Service]
-Environment=${dind_env_var}
 ExecStart=${exec_start}
 WorkingDirectory=${work_dir}
 Restart=on-failure
