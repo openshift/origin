@@ -329,6 +329,80 @@ func TestDeepDefaults(t *testing.T) {
 		{
 			External: &deployv1.DeploymentConfig{
 				Spec: deployv1.DeploymentConfigSpec{
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							Containers: []kapiv1.Container{
+								{Name: "first"},
+							},
+						},
+					},
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Mid: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+						},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return obj.Spec.Strategy.RecreateParams.Pre.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Mid.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Post.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Pre.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Mid.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Post.TagImages[0].ContainerName == "first"
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							Containers: []kapiv1.Container{
+								{Name: "first"},
+							},
+						},
+					},
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+						},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return obj.Spec.Strategy.RollingParams.Pre.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Post.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Pre.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Post.TagImages[0].ContainerName == "first"
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
 					Strategy: deployv1.DeploymentStrategy{
 						Type: deployv1.DeploymentStrategyTypeRecreate,
 					},
