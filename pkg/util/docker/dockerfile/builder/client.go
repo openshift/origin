@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/credentialprovider"
+
 	"github.com/docker/docker/builder/parser"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
@@ -51,7 +53,7 @@ type ClientExecutor struct {
 
 	// AuthFn will handle authenticating any docker pulls if Image
 	// is set to nil.
-	AuthFn func(name string) ([]docker.AuthConfiguration, bool)
+	AuthFn func(name string) ([]credentialprovider.LazyAuthConfiguration, bool)
 	// HostConfig is used to start the container (if necessary).
 	HostConfig *docker.HostConfig
 	// LogFn is an optional command to log information to the end user
@@ -287,7 +289,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	// TODO: we may want to abstract looping over multiple credentials
 	auth, _ := e.AuthFn(repository)
 	if len(auth) == 0 {
-		auth = append(auth, docker.AuthConfiguration{})
+		auth = append(auth, credentialprovider.LazyAuthConfiguration{})
 	}
 
 	if e.LogFn != nil {
@@ -298,7 +300,8 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	for _, config := range auth {
 		// TODO: handle IDs?
 		// TODO: use RawJSONStream:true and handle the output nicely
-		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out}, config); err == nil {
+		auth := docker.AuthConfiguration{Username: config.Username, ServerAddress: config.ServerAddress, Password: config.Password}
+		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out}, auth); err == nil {
 			break
 		}
 		lastErr = err

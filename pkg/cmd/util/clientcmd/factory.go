@@ -113,6 +113,11 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 	return api.NamespaceDefault, false, nil
 }
 
+// ConfigAccess implements ClientConfig
+func (c defaultingClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return c.nested.ConfigAccess()
+}
+
 // ClientConfig returns a complete client config
 func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 	cfg, err := c.nested.ClientConfig()

@@ -1,13 +1,11 @@
 package dockerhelper
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
-	"strings"
 
 	"github.com/blang/semver"
 	docker "github.com/fsouza/go-dockerclient"
@@ -35,22 +33,27 @@ type RegistryConfig struct {
 	InsecureRegistryCIDRs []string
 }
 
-func getRegistryConfig(env *docker.Env) (*RegistryConfig, error) {
-	for _, entry := range *env {
-		if !strings.HasPrefix(entry, "RegistryConfig=") {
-			continue
+func getRegistryConfig(env *docker.DockerInfo) (*RegistryConfig, error) {
+	// TODO: Disabled because the latest go-dockerclient dropped docker.Env and
+	// return docker.DockerInfo instead that does not seem contain this
+	// information.
+	/*
+		for _, entry := range *env {
+			if !strings.HasPrefix(entry, "RegistryConfig=") {
+				continue
+			}
+			glog.V(5).Infof("Found RegistryConfig entry: %s", entry)
+			value := strings.TrimPrefix(entry, "RegistryConfig=")
+			config := &RegistryConfig{}
+			err := json.Unmarshal([]byte(value), config)
+			if err != nil {
+				glog.V(2).Infof("Error unmarshalling RegistryConfig: %v", err)
+				return nil, err
+			}
+			glog.V(5).Infof("Unmarshalled registry config to %#v", config)
+			return config, nil
 		}
-		glog.V(5).Infof("Found RegistryConfig entry: %s", entry)
-		value := strings.TrimPrefix(entry, "RegistryConfig=")
-		config := &RegistryConfig{}
-		err := json.Unmarshal([]byte(value), config)
-		if err != nil {
-			glog.V(2).Infof("Error unmarshalling RegistryConfig: %v", err)
-			return nil, err
-		}
-		glog.V(5).Infof("Unmarshalled registry config to %#v", config)
-		return config, nil
-	}
+	*/
 	return nil, nil
 }
 

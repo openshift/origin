@@ -61,7 +61,11 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	plns := make([]net.Listener, 0)
 	for _, u := range cfg.lpurls {
 		var l net.Listener
-		l, err = transport.NewTimeoutListener(u.Host, u.Scheme, cfg.peerTLSInfo, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
+		peerTLSConfig, err := cfg.peerTLSInfo.ServerConfig()
+		if err != nil {
+			return nil, err
+		}
+		l, err = transport.NewTimeoutListener(u.Host, u.Scheme, peerTLSConfig, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +90,11 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		l, err = transport.NewKeepAliveListener(l, u.Scheme, cfg.clientTLSInfo)
+		clientTLSConfig, err := cfg.clientTLSInfo.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		l, err = transport.NewKeepAliveListener(l, u.Scheme, clientTLSConfig)
 		if err != nil {
 			return nil, err
 		}

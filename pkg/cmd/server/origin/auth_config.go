@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -93,9 +94,14 @@ func BuildAuthConfig(options configapi.MasterConfig, kubeClient kclient.Interfac
 		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
 	}
 
-	userStorage := useretcd.NewREST(etcdHelper)
+	restOptions := generic.RESTOptions{
+		Storage:   etcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
+
+	userStorage := useretcd.NewREST(restOptions)
 	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(etcdHelper)
+	identityStorage := identityetcd.NewREST(restOptions)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
 	ret := &AuthConfig{

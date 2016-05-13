@@ -471,7 +471,7 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	replenishmentSyncPeriodFunc := controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod)
 	if cm != nil {
 		// TODO: should these be part of os master config?
-		concurrentResourceQuotaSyncs = cm.ConcurrentResourceQuotaSyncs
+		concurrentResourceQuotaSyncs = int(cm.ConcurrentResourceQuotaSyncs)
 		resourceQuotaSyncPeriod = cm.ResourceQuotaSyncPeriod.Duration
 		replenishmentSyncPeriodFunc = kctrlmgr.ResyncPeriod(cm)
 	}

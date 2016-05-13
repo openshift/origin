@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
@@ -15,21 +14,24 @@ import (
 
 // rest implements a RESTStorage for sdn against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	registry.Store
 }
 
 const etcdPrefix = "/registry/sdnnetworks"
 
 // NewREST returns a RESTStorage object that will work against subnets
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(opts generic.RESTOptions) *REST {
+	newListFunc := func() runtime.Object { return &api.ClusterNetworkList{} }
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.ClusterNetworkList{}, etcdPrefix, clusternetwork.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.ClusterNetwork{} },
-		NewListFunc: func() runtime.Object { return &api.ClusterNetworkList{} },
+		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, etcdPrefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, etcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.ClusterNetwork).Name, nil
@@ -39,7 +41,7 @@ func NewREST(s storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("clusternetwork"),
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 
 	store.CreateStrategy = clusternetwork.Strategy

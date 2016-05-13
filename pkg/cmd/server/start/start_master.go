@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
@@ -594,15 +596,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunReplicationController(rcClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
+		batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
+		autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
 
-		// TODO: enable this check once the job controller can use the batch API if the extensions API is disabled
-		// batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
-		if extensionsEnabled /*|| batchEnabled*/ {
+		if extensionsEnabled || batchEnabled {
 			kc.RunJobController(jobClient)
 		}
-		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
-		// autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
-		if extensionsEnabled /*|| autoscalingEnabled*/ {
+
+		if extensionsEnabled || autoscalingEnabled {
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		}
 		if extensionsEnabled {

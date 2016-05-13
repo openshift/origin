@@ -9,7 +9,6 @@ import (
 	api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -67,9 +66,6 @@ func init() {
 }
 
 func autoConvert_v1_DockerImageReference_To_api_DockerImageReference(in *DockerImageReference, out *image_api.DockerImageReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DockerImageReference))(in)
-	}
 	out.Registry = in.Registry
 	out.Namespace = in.Namespace
 	out.Name = in.Name
@@ -83,9 +79,6 @@ func Convert_v1_DockerImageReference_To_api_DockerImageReference(in *DockerImage
 }
 
 func autoConvert_api_DockerImageReference_To_v1_DockerImageReference(in *image_api.DockerImageReference, out *DockerImageReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.DockerImageReference))(in)
-	}
 	out.Registry = in.Registry
 	out.Namespace = in.Namespace
 	out.Name = in.Name
@@ -99,9 +92,7 @@ func Convert_api_DockerImageReference_To_v1_DockerImageReference(in *image_api.D
 }
 
 func autoConvert_v1_ImageImportSpec_To_api_ImageImportSpec(in *ImageImportSpec, out *image_api.ImageImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageImportSpec))(in)
-	}
+	SetDefaults_ImageImportSpec(in)
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -128,9 +119,6 @@ func Convert_v1_ImageImportSpec_To_api_ImageImportSpec(in *ImageImportSpec, out 
 }
 
 func autoConvert_api_ImageImportSpec_To_v1_ImageImportSpec(in *image_api.ImageImportSpec, out *ImageImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageImportSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -157,9 +145,6 @@ func Convert_api_ImageImportSpec_To_v1_ImageImportSpec(in *image_api.ImageImport
 }
 
 func autoConvert_v1_ImageImportStatus_To_api_ImageImportStatus(in *ImageImportStatus, out *image_api.ImageImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageImportStatus))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
 		return err
@@ -182,9 +167,6 @@ func Convert_v1_ImageImportStatus_To_api_ImageImportStatus(in *ImageImportStatus
 }
 
 func autoConvert_api_ImageImportStatus_To_v1_ImageImportStatus(in *image_api.ImageImportStatus, out *ImageImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageImportStatus))(in)
-	}
 	out.Tag = in.Tag
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
@@ -207,9 +189,6 @@ func Convert_api_ImageImportStatus_To_v1_ImageImportStatus(in *image_api.ImageIm
 }
 
 func autoConvert_v1_ImageLayer_To_api_ImageLayer(in *ImageLayer, out *image_api.ImageLayer, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageLayer))(in)
-	}
 	out.Name = in.Name
 	out.Size = in.Size
 	return nil
@@ -220,9 +199,6 @@ func Convert_v1_ImageLayer_To_api_ImageLayer(in *ImageLayer, out *image_api.Imag
 }
 
 func autoConvert_api_ImageLayer_To_v1_ImageLayer(in *image_api.ImageLayer, out *ImageLayer, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageLayer))(in)
-	}
 	out.Name = in.Name
 	out.Size = in.Size
 	return nil
@@ -233,9 +209,6 @@ func Convert_api_ImageLayer_To_v1_ImageLayer(in *image_api.ImageLayer, out *Imag
 }
 
 func autoConvert_v1_ImageList_To_api_ImageList(in *ImageList, out *image_api.ImageList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -261,9 +234,6 @@ func Convert_v1_ImageList_To_api_ImageList(in *ImageList, out *image_api.ImageLi
 }
 
 func autoConvert_api_ImageList_To_v1_ImageList(in *image_api.ImageList, out *ImageList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -289,9 +259,6 @@ func Convert_api_ImageList_To_v1_ImageList(in *image_api.ImageList, out *ImageLi
 }
 
 func autoConvert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *image_api.ImageStream, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStream))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -313,9 +280,6 @@ func Convert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *image_api.I
 }
 
 func autoConvert_api_ImageStream_To_v1_ImageStream(in *image_api.ImageStream, out *ImageStream, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStream))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -337,9 +301,6 @@ func Convert_api_ImageStream_To_v1_ImageStream(in *image_api.ImageStream, out *I
 }
 
 func autoConvert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *image_api.ImageStreamImage, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamImage))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -358,9 +319,6 @@ func Convert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, o
 }
 
 func autoConvert_api_ImageStreamImage_To_v1_ImageStreamImage(in *image_api.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamImage))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -379,9 +337,6 @@ func Convert_api_ImageStreamImage_To_v1_ImageStreamImage(in *image_api.ImageStre
 }
 
 func autoConvert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport, out *image_api.ImageStreamImport, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamImport))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -403,9 +358,6 @@ func Convert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport
 }
 
 func autoConvert_api_ImageStreamImport_To_v1_ImageStreamImport(in *image_api.ImageStreamImport, out *ImageStreamImport, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamImport))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -427,9 +379,6 @@ func Convert_api_ImageStreamImport_To_v1_ImageStreamImport(in *image_api.ImageSt
 }
 
 func autoConvert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(in *ImageStreamImportSpec, out *image_api.ImageStreamImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamImportSpec))(in)
-	}
 	out.Import = in.Import
 	if in.Repository != nil {
 		in, out := &in.Repository, &out.Repository
@@ -459,9 +408,6 @@ func Convert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(in *ImageStre
 }
 
 func autoConvert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(in *image_api.ImageStreamImportSpec, out *ImageStreamImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamImportSpec))(in)
-	}
 	out.Import = in.Import
 	if in.Repository != nil {
 		in, out := &in.Repository, &out.Repository
@@ -491,9 +437,6 @@ func Convert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(in *image_api
 }
 
 func autoConvert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(in *ImageStreamImportStatus, out *image_api.ImageStreamImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamImportStatus))(in)
-	}
 	if in.Import != nil {
 		in, out := &in.Import, &out.Import
 		*out = new(image_api.ImageStream)
@@ -531,9 +474,6 @@ func Convert_v1_ImageStreamImportStatus_To_api_ImageStreamImportStatus(in *Image
 }
 
 func autoConvert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *image_api.ImageStreamImportStatus, out *ImageStreamImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamImportStatus))(in)
-	}
 	if in.Import != nil {
 		in, out := &in.Import, &out.Import
 		*out = new(ImageStream)
@@ -571,9 +511,6 @@ func Convert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *image
 }
 
 func autoConvert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out *image_api.ImageStreamList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -599,9 +536,6 @@ func Convert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out 
 }
 
 func autoConvert_api_ImageStreamList_To_v1_ImageStreamList(in *image_api.ImageStreamList, out *ImageStreamList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -627,9 +561,6 @@ func Convert_api_ImageStreamList_To_v1_ImageStreamList(in *image_api.ImageStream
 }
 
 func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapping, out *image_api.ImageStreamMapping, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamMapping))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -645,9 +576,6 @@ func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStream
 }
 
 func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *image_api.ImageStreamTag, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamTag))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -687,9 +615,6 @@ func Convert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *im
 }
 
 func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *image_api.ImageStreamTag, out *ImageStreamTag, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamTag))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -729,9 +654,6 @@ func Convert_api_ImageStreamTag_To_v1_ImageStreamTag(in *image_api.ImageStreamTa
 }
 
 func autoConvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagList, out *image_api.ImageStreamTagList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageStreamTagList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -757,9 +679,6 @@ func Convert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagL
 }
 
 func autoConvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *image_api.ImageStreamTagList, out *ImageStreamTagList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.ImageStreamTagList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -785,9 +704,6 @@ func Convert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *image_api.Image
 }
 
 func autoConvert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in *RepositoryImportSpec, out *image_api.RepositoryImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RepositoryImportSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -804,9 +720,6 @@ func Convert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in *RepositoryI
 }
 
 func autoConvert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *image_api.RepositoryImportSpec, out *RepositoryImportSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.RepositoryImportSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -823,9 +736,6 @@ func Convert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *image_api.R
 }
 
 func autoConvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *RepositoryImportStatus, out *image_api.RepositoryImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RepositoryImportStatus))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
 		return err
@@ -856,9 +766,6 @@ func Convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *Reposit
 }
 
 func autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *image_api.RepositoryImportStatus, out *RepositoryImportStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.RepositoryImportStatus))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
 		return err
@@ -889,9 +796,6 @@ func Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *image_a
 }
 
 func autoConvert_v1_TagEvent_To_api_TagEvent(in *TagEvent, out *image_api.TagEvent, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TagEvent))(in)
-	}
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.Created, &out.Created, s); err != nil {
 		return err
 	}
@@ -906,9 +810,6 @@ func Convert_v1_TagEvent_To_api_TagEvent(in *TagEvent, out *image_api.TagEvent, 
 }
 
 func autoConvert_api_TagEvent_To_v1_TagEvent(in *image_api.TagEvent, out *TagEvent, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.TagEvent))(in)
-	}
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.Created, &out.Created, s); err != nil {
 		return err
 	}
@@ -923,9 +824,6 @@ func Convert_api_TagEvent_To_v1_TagEvent(in *image_api.TagEvent, out *TagEvent, 
 }
 
 func autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in *TagEventCondition, out *image_api.TagEventCondition, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TagEventCondition))(in)
-	}
 	out.Type = image_api.TagEventConditionType(in.Type)
 	out.Status = api.ConditionStatus(in.Status)
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
@@ -942,9 +840,6 @@ func Convert_v1_TagEventCondition_To_api_TagEventCondition(in *TagEventCondition
 }
 
 func autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in *image_api.TagEventCondition, out *TagEventCondition, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.TagEventCondition))(in)
-	}
 	out.Type = TagEventConditionType(in.Type)
 	out.Status = api_v1.ConditionStatus(in.Status)
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
@@ -961,9 +856,6 @@ func Convert_api_TagEventCondition_To_v1_TagEventCondition(in *image_api.TagEven
 }
 
 func autoConvert_v1_TagImportPolicy_To_api_TagImportPolicy(in *TagImportPolicy, out *image_api.TagImportPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TagImportPolicy))(in)
-	}
 	out.Insecure = in.Insecure
 	out.Scheduled = in.Scheduled
 	return nil
@@ -974,9 +866,6 @@ func Convert_v1_TagImportPolicy_To_api_TagImportPolicy(in *TagImportPolicy, out 
 }
 
 func autoConvert_api_TagImportPolicy_To_v1_TagImportPolicy(in *image_api.TagImportPolicy, out *TagImportPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.TagImportPolicy))(in)
-	}
 	out.Insecure = in.Insecure
 	out.Scheduled = in.Scheduled
 	return nil
@@ -987,9 +876,6 @@ func Convert_api_TagImportPolicy_To_v1_TagImportPolicy(in *image_api.TagImportPo
 }
 
 func autoConvert_v1_TagReference_To_api_TagReference(in *TagReference, out *image_api.TagReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TagReference))(in)
-	}
 	out.Name = in.Name
 	if in.Annotations != nil {
 		in, out := &in.Annotations, &out.Annotations
@@ -1029,9 +915,6 @@ func Convert_v1_TagReference_To_api_TagReference(in *TagReference, out *image_ap
 }
 
 func autoConvert_api_TagReference_To_v1_TagReference(in *image_api.TagReference, out *TagReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*image_api.TagReference))(in)
-	}
 	out.Name = in.Name
 	if in.Annotations != nil {
 		in, out := &in.Annotations, &out.Annotations

@@ -60,6 +60,9 @@ type NodeConfig struct {
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 
+	// TODO: Make this configurable as currently it is not set which means no off-cluster bridging will be performed.
+	ClusterCIDR string
+
 	// Maximum transmission unit for the network packets
 	MTU uint
 	// SDNPlugin is an optional SDN plugin
@@ -308,7 +311,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	proxyconfig.HealthzBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
-	oomScoreAdj := 0
+	oomScoreAdj := int32(0)
 	proxyconfig.OOMScoreAdj = &oomScoreAdj
 	proxyconfig.ResourceContainer = ""
 

@@ -84,7 +84,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -130,7 +131,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -208,7 +210,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -221,7 +224,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of BuildConfig",
       "nickname": "watchNamespacedBuildConfigList",
@@ -287,11 +290,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -359,7 +365,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -413,7 +420,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -467,7 +475,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -523,7 +532,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -536,7 +546,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind BuildConfig",
       "nickname": "watchNamespacedBuildConfig",
@@ -610,11 +620,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -690,7 +703,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -728,7 +742,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -741,7 +756,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of BuildConfig",
       "nickname": "watchNamespacedBuildConfigList",
@@ -799,11 +814,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -863,7 +881,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1135,7 +1154,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1181,7 +1201,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1259,7 +1280,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1272,7 +1294,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Build",
       "nickname": "watchNamespacedBuildList",
@@ -1338,11 +1360,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1410,7 +1435,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1464,7 +1490,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1518,7 +1545,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -1574,7 +1602,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1587,7 +1616,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Build",
       "nickname": "watchNamespacedBuild",
@@ -1661,11 +1690,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1741,7 +1773,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1779,7 +1812,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1792,7 +1826,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Build",
       "nickname": "watchNamespacedBuildList",
@@ -1850,11 +1884,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1914,7 +1951,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1974,7 +2012,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2106,7 +2145,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2182,7 +2222,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2220,7 +2261,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2290,7 +2332,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2303,7 +2346,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterNetwork",
       "nickname": "watchClusterNetworkList",
@@ -2361,11 +2404,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2425,7 +2471,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2471,7 +2518,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2517,7 +2565,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -2565,7 +2614,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2578,7 +2628,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterNetwork",
       "nickname": "watchClusterNetwork",
@@ -2644,11 +2694,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2724,7 +2777,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2762,7 +2816,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2832,7 +2887,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2845,7 +2901,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicy",
       "nickname": "watchClusterPolicyList",
@@ -2903,11 +2959,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2967,7 +3026,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3013,7 +3073,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3059,7 +3120,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -3107,7 +3169,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3120,7 +3183,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicy",
       "nickname": "watchClusterPolicy",
@@ -3186,11 +3249,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3266,7 +3332,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3304,7 +3371,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3374,7 +3442,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3387,7 +3456,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicyBinding",
       "nickname": "watchClusterPolicyBindingList",
@@ -3445,11 +3514,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3509,7 +3581,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3555,7 +3628,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3601,7 +3675,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -3649,7 +3724,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3662,7 +3738,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicyBinding",
       "nickname": "watchClusterPolicyBinding",
@@ -3728,11 +3804,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3808,7 +3887,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3846,7 +3926,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3890,7 +3971,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3936,7 +4018,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3982,7 +4065,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -4030,7 +4114,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4106,7 +4191,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4144,7 +4230,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4188,7 +4275,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4234,7 +4322,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4280,7 +4369,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -4328,7 +4418,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4380,7 +4471,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4424,7 +4516,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4508,7 +4601,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4554,7 +4648,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4632,7 +4727,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4645,7 +4741,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of DeploymentConfig",
       "nickname": "watchNamespacedDeploymentConfigList",
@@ -4711,11 +4807,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -4783,7 +4882,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4837,7 +4937,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4891,7 +4992,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -4947,7 +5049,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4960,7 +5063,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind DeploymentConfig",
       "nickname": "watchNamespacedDeploymentConfig",
@@ -5034,11 +5137,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5114,7 +5220,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5152,7 +5259,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5165,7 +5273,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of DeploymentConfig",
       "nickname": "watchNamespacedDeploymentConfigList",
@@ -5223,11 +5331,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5359,7 +5470,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5411,7 +5523,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5465,7 +5578,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5519,7 +5633,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -5581,7 +5696,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5633,7 +5749,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5709,7 +5826,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5747,7 +5865,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5817,7 +5936,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5830,7 +5950,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Group",
       "nickname": "watchGroupList",
@@ -5888,11 +6008,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5952,7 +6075,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5998,7 +6122,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6044,7 +6169,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -6092,7 +6218,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6105,7 +6232,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Group",
       "nickname": "watchGroup",
@@ -6171,11 +6298,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6251,7 +6381,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6289,7 +6420,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6359,7 +6491,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6372,7 +6505,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of HostSubnet",
       "nickname": "watchHostSubnetList",
@@ -6430,11 +6563,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6494,7 +6630,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6540,7 +6677,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6586,7 +6724,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -6634,7 +6773,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6647,7 +6787,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind HostSubnet",
       "nickname": "watchHostSubnet",
@@ -6713,11 +6853,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6793,7 +6936,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6831,7 +6975,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6901,7 +7046,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6914,7 +7060,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Identity",
       "nickname": "watchIdentityList",
@@ -6972,11 +7118,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7036,7 +7185,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7082,7 +7232,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7128,7 +7279,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -7176,7 +7328,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7189,7 +7342,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Identity",
       "nickname": "watchIdentity",
@@ -7255,11 +7408,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7335,7 +7491,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7373,7 +7530,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7443,7 +7601,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7456,7 +7615,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Image",
       "nickname": "watchImageList",
@@ -7514,11 +7673,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7578,7 +7740,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7624,7 +7787,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7670,7 +7834,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -7718,7 +7883,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7731,7 +7897,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Image",
       "nickname": "watchImage",
@@ -7797,11 +7963,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7853,7 +8022,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7905,7 +8075,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7949,7 +8120,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8001,7 +8173,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8045,7 +8218,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8129,7 +8303,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8175,7 +8350,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8253,7 +8429,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8266,7 +8443,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ImageStream",
       "nickname": "watchNamespacedImageStreamList",
@@ -8332,11 +8509,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -8404,7 +8584,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8458,7 +8639,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8512,7 +8694,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -8568,7 +8751,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8581,7 +8765,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ImageStream",
       "nickname": "watchNamespacedImageStream",
@@ -8655,11 +8839,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -8735,7 +8922,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8773,7 +8961,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8786,7 +8975,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ImageStream",
       "nickname": "watchNamespacedImageStreamList",
@@ -8844,11 +9033,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -8940,7 +9132,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9000,7 +9193,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9084,7 +9278,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9136,7 +9331,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9190,7 +9386,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9244,7 +9441,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -9292,7 +9490,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9368,7 +9567,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9420,7 +9620,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9464,7 +9665,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9516,7 +9718,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9560,7 +9763,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9636,7 +9840,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9674,7 +9879,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9744,7 +9950,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9757,7 +9964,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of NetNamespace",
       "nickname": "watchNetNamespaceList",
@@ -9815,11 +10022,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9879,7 +10089,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9925,7 +10136,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9971,7 +10183,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -10019,7 +10232,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10032,7 +10246,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind NetNamespace",
       "nickname": "watchNetNamespace",
@@ -10098,11 +10312,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10178,7 +10395,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10216,7 +10434,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10260,7 +10479,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10306,7 +10526,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10319,7 +10540,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.OAuthAuthorizeTokenList",
+      "type": "v1.OAuthAccessTokenList",
       "method": "GET",
       "summary": "list objects of kind OAuthAuthorizeToken",
       "nickname": "listOAuthAuthorizeToken",
@@ -10377,12 +10598,13 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.OAuthAuthorizeTokenList"
+        "responseModel": "v1.OAuthAccessTokenList"
        }
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10420,7 +10642,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10464,7 +10687,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10510,7 +10734,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10586,7 +10811,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10624,7 +10850,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10694,7 +10921,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10707,7 +10935,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClientAuthorization",
       "nickname": "watchOAuthClientAuthorizationList",
@@ -10765,11 +10993,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10829,7 +11060,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10875,7 +11107,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10921,7 +11154,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -10969,7 +11203,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10982,7 +11217,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClientAuthorization",
       "nickname": "watchOAuthClientAuthorization",
@@ -11048,11 +11283,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11128,7 +11366,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11166,7 +11405,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11236,7 +11476,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11249,7 +11490,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClient",
       "nickname": "watchOAuthClientList",
@@ -11307,11 +11548,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11371,7 +11615,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11417,7 +11662,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11463,7 +11709,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -11511,7 +11758,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11524,7 +11772,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClient",
       "nickname": "watchOAuthClient",
@@ -11590,11 +11838,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11678,7 +11929,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11724,7 +11976,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11802,7 +12055,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11815,7 +12069,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Policy",
       "nickname": "watchNamespacedPolicyList",
@@ -11881,11 +12135,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11953,7 +12210,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12007,7 +12265,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12061,7 +12320,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -12117,7 +12377,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12130,7 +12391,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Policy",
       "nickname": "watchNamespacedPolicy",
@@ -12204,11 +12465,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12284,7 +12548,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12322,7 +12587,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12335,7 +12601,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Policy",
       "nickname": "watchNamespacedPolicyList",
@@ -12393,11 +12659,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12481,7 +12750,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12527,7 +12797,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12605,7 +12876,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12618,7 +12890,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PolicyBinding",
       "nickname": "watchNamespacedPolicyBindingList",
@@ -12684,11 +12956,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12756,7 +13031,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12810,7 +13086,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12864,7 +13141,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -12920,7 +13198,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12933,7 +13212,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PolicyBinding",
       "nickname": "watchNamespacedPolicyBinding",
@@ -13007,11 +13286,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13087,7 +13369,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13125,7 +13408,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13138,7 +13422,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PolicyBinding",
       "nickname": "watchNamespacedPolicyBindingList",
@@ -13196,11 +13480,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13252,7 +13539,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13296,7 +13584,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13372,7 +13661,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13410,7 +13700,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13486,7 +13777,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13524,7 +13816,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13537,7 +13830,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Project",
       "nickname": "watchProjectList",
@@ -13595,11 +13888,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13643,7 +13939,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13689,7 +13986,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13735,7 +14033,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -13775,7 +14074,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13788,7 +14088,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Project",
       "nickname": "watchProject",
@@ -13854,11 +14154,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13910,7 +14213,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13954,7 +14258,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14038,7 +14343,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14084,7 +14390,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14136,7 +14443,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14190,7 +14498,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14244,7 +14553,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -14300,7 +14610,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14376,7 +14687,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14414,7 +14726,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14498,7 +14811,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14544,7 +14858,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14596,7 +14911,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14650,7 +14966,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14704,7 +15021,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -14760,7 +15078,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14836,7 +15155,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14874,7 +15194,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14958,7 +15279,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15004,7 +15326,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15082,7 +15405,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15095,7 +15419,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Route",
       "nickname": "watchNamespacedRouteList",
@@ -15161,11 +15485,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15233,7 +15560,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15287,7 +15615,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15341,7 +15670,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -15397,7 +15727,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15410,7 +15741,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Route",
       "nickname": "watchNamespacedRoute",
@@ -15484,11 +15815,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15564,7 +15898,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15602,7 +15937,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15615,7 +15951,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Route",
       "nickname": "watchNamespacedRouteList",
@@ -15673,11 +16009,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15737,7 +16076,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15789,7 +16129,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15833,7 +16174,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15885,7 +16227,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15929,7 +16272,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16013,7 +16357,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16059,7 +16404,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16137,7 +16483,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16150,7 +16497,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Template",
       "nickname": "watchNamespacedTemplateList",
@@ -16216,11 +16563,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -16288,7 +16638,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16342,7 +16693,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16396,7 +16748,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -16452,7 +16805,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16465,7 +16819,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Template",
       "nickname": "watchNamespacedTemplate",
@@ -16539,11 +16893,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -16619,7 +16976,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16657,7 +17015,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16670,7 +17029,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Template",
       "nickname": "watchNamespacedTemplateList",
@@ -16728,11 +17087,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -16776,7 +17138,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16820,7 +17183,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16866,7 +17230,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -16912,7 +17277,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -16952,7 +17318,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17028,7 +17395,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17066,7 +17434,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17136,7 +17505,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17149,7 +17519,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of User",
       "nickname": "watchUserList",
@@ -17207,11 +17577,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -17271,7 +17644,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17317,7 +17691,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17363,7 +17738,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -17411,7 +17787,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17424,7 +17801,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind User",
       "nickname": "watchUser",
@@ -17490,11 +17867,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -17514,11 +17894,13 @@
       "parameters": [],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ]
      }
     ]
@@ -17644,12 +18026,54 @@
       "description": "Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only."
      },
      "labels": {
-      "type": "any",
+      "type": "object",
       "description": "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "annotations": {
-      "type": "any",
+      "type": "object",
       "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/HEAD/docs/user-guide/annotations.md"
+     },
+     "ownerReferences": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.OwnerReference"
+      },
+      "description": "List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected."
+     },
+     "finalizers": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed."
+     }
+    }
+   },
+   "v1.OwnerReference": {
+    "id": "v1.OwnerReference",
+    "description": "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+    "required": [
+     "apiVersion",
+     "kind",
+     "name",
+     "uid"
+    ],
+    "properties": {
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent."
+     },
+     "kind": {
+      "type": "string",
+      "description": "Kind of the referent. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "UID of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
      }
     }
    },
@@ -18282,11 +18706,11 @@
     "description": "ResourceRequirements describes the compute resource requirements.",
     "properties": {
      "limits": {
-      "type": "any",
+      "type": "object",
       "description": "Limits describes the maximum amount of compute resources allowed. More info: http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      },
      "requests": {
-      "type": "any",
+      "type": "object",
       "description": "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      }
     }
@@ -18416,18 +18840,9 @@
      }
     }
    },
-   "json.WatchEvent": {
-    "id": "json.WatchEvent",
-    "properties": {
-     "type": {
-      "type": "string",
-      "description": "the type of watch event; may be ADDED, MODIFIED, DELETED, or ERROR"
-     },
-     "object": {
-      "type": "string",
-      "description": "the object being watched; will match the type of the resource endpoint or be a Status object if the type is ERROR"
-     }
-    }
+   "*versioned.Event": {
+    "id": "*versioned.Event",
+    "properties": {}
    },
    "unversioned.Patch": {
     "id": "unversioned.Patch",
@@ -18454,6 +18869,10 @@
      "preconditions": {
       "$ref": "v1.Preconditions",
       "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
+     },
+     "orphanDependents": {
+      "type": "boolean",
+      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
      }
     }
    },
@@ -19225,7 +19644,7 @@
       "description": "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action."
      },
      "selector": {
-      "type": "any",
+      "type": "object",
       "description": "Selector is a label query over pods that should match the Replicas count."
      },
      "template": {
@@ -19259,11 +19678,11 @@
       "description": "Resources contains resource requirements to execute the deployment and any hooks"
      },
      "labels": {
-      "type": "any",
+      "type": "object",
       "description": "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods."
      },
      "annotations": {
-      "type": "any",
+      "type": "object",
       "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods."
      }
     }
@@ -19530,7 +19949,7 @@
       "description": "Set DNS policy for containers within the pod. One of 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\"."
      },
      "nodeSelector": {
-      "type": "any",
+      "type": "object",
       "description": "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md"
      },
      "host": {
@@ -19571,6 +19990,14 @@
        "$ref": "v1.LocalObjectReference"
       },
       "description": "ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec. If specified, these secrets will be passed to individual puller implementations for them to use. For example, in the case of docker, only DockerConfig type secrets are honored. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod"
+     },
+     "hostname": {
+      "type": "string",
+      "description": "Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value."
+     },
+     "subdomain": {
+      "type": "string",
+      "description": "If specified, the fully qualified Pod hostname will be \"\u003chostname\u003e.\u003csubdomain\u003e.\u003cpod namespace\u003e.svc.\u003ccluster domain\u003e\". If not specified, the pod will not have a domainname at all."
      }
     }
    },
@@ -19936,14 +20363,14 @@
      },
      "secretRef": {
       "$ref": "v1.LocalObjectReference",
-      "description": "Optional: SecretRef is reference to the authentication secret for User, default is empty."
+      "description": "Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts."
      },
      "readOnly": {
       "type": "boolean",
       "description": "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
      },
      "options": {
-      "type": "any",
+      "type": "object",
       "description": "Optional: Extra command options if any."
      }
     }
@@ -20313,6 +20740,10 @@
      "mountPath": {
       "type": "string",
       "description": "Path within the container at which the volume should be mounted.  Must not contain ':'."
+     },
+     "subPath": {
+      "type": "string",
+      "description": "Path within the volume from which the container's volume should be mounted. Defaults to \"\" (volume's root)."
      }
     }
    },
@@ -20564,7 +20995,7 @@
      "supplementalGroups": {
       "type": "array",
       "items": {
-       "$ref": "integer"
+       "type": "integer"
       },
       "description": "A list of groups applied to the first process run in each container, in addition to the container's primary GID.  If unspecified, no groups will be added to any container."
      },
@@ -20574,10 +21005,6 @@
       "description": "A special supplemental group that applies to all containers in a pod. Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod:\n\n1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw "
      }
     }
-   },
-   "integer": {
-    "id": "integer",
-    "properties": {}
    },
    "v1.DeploymentConfigStatus": {
     "id": "v1.DeploymentConfigStatus",
@@ -20713,7 +21140,7 @@
       "description": "actual number of observed instances of the scaled object."
      },
      "selector": {
-      "type": "any",
+      "type": "object",
       "description": "label query over pods that should match the replicas count. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors"
      },
      "targetSelector": {
@@ -20903,7 +21330,7 @@
       "description": "User is a reference to the user this identity is associated with Both Name and UID must be set"
      },
      "extra": {
-      "type": "any",
+      "type": "object",
       "description": "Extra holds extra information about this identity"
      }
     }
@@ -21219,7 +21646,7 @@
       "description": "Name of the tag"
      },
      "annotations": {
-      "type": "any",
+      "type": "object",
       "description": "Annotations associated with images using this tag"
      },
      "from": {
@@ -21502,7 +21929,7 @@
       "description": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "data": {
-      "type": "any",
+      "type": "object",
       "description": "Data contains the secret data. Each key must be a valid DNS_SUBDOMAIN or leading dot followed by valid DNS_SUBDOMAIN. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
      },
      "type": {
@@ -21841,34 +22268,6 @@
      "refreshToken": {
       "type": "string",
       "description": "RefreshToken is the value by which this token can be renewed. Can be blank."
-     }
-    }
-   },
-   "v1.OAuthAuthorizeTokenList": {
-    "id": "v1.OAuthAuthorizeTokenList",
-    "description": "OAuthAuthorizeTokenList is a collection of OAuth authorization tokens",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "unversioned.ListMeta",
-      "description": "Standard object's metadata."
-     },
-     "items": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.OAuthAuthorizeToken"
-      },
-      "description": "Items is the list of OAuth authorization tokens"
      }
     }
    },
@@ -22382,7 +22781,7 @@
       "description": "Optional: Parameters is an array of Parameters used during the Template to Config transformation."
      },
      "labels": {
-      "type": "any",
+      "type": "object",
       "description": "Labels is a set of labels that are applied to every object during the Template to Config transformation. Optional"
      }
     }

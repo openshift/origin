@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -17,14 +16,18 @@ import (
 const ClusterPolicyPath = "/authorization/cluster/policies"
 
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewStorage(opts generic.RESTOptions) *REST {
+	newListFunc := func() runtime.Object { return &authorizationapi.ClusterPolicyList{} }
+
+	storageInterface := opts.Decorator(opts.Storage, 100, &authorizationapi.ClusterPolicyList{}, ClusterPolicyPath, clusterpolicy.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
-		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
+		NewListFunc:       newListFunc,
 		QualifiedResource: authorizationapi.Resource("clusterpolicy"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return ClusterPolicyPath
@@ -42,7 +45,7 @@ func NewStorage(s storage.Interface) *REST {
 		CreateStrategy: clusterpolicy.Strategy,
 		UpdateStrategy: clusterpolicy.Strategy,
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 
 	return &REST{store}

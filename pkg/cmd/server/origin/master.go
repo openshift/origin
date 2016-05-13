@@ -26,6 +26,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	kgeneric "k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -372,38 +373,43 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
+	restOptions := kgeneric.RESTOptions{
+		Storage:   c.EtcdHelper,
+		Decorator: kgeneric.UndecoratedStorage,
+	}
+
+	buildStorage, buildDetailsStorage := buildetcd.NewREST(restOptions)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
+	buildConfigStorage := buildconfigetcd.NewREST(restOptions)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(restOptions, c.DeploymentConfigScaleClient())
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	routeAllocator := c.RouteAllocator()
 
-	routeStorage, routeStatusStorage := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
-	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
-	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
-	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
+	routeStorage, routeStatusStorage := routeetcd.NewREST(restOptions, routeAllocator)
+	hostSubnetStorage := hostsubnetetcd.NewREST(restOptions)
+	netNamespaceStorage := netnamespaceetcd.NewREST(restOptions)
+	clusterNetworkStorage := clusternetworketcd.NewREST(restOptions)
 
-	userStorage := useretcd.NewREST(c.EtcdHelper)
+	userStorage := useretcd.NewREST(restOptions)
 	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(c.EtcdHelper)
+	identityStorage := identityetcd.NewREST(restOptions)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver)
 
-	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
+	policyStorage := policyetcd.NewStorage(restOptions)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
+	policyBindingStorage := policybindingetcd.NewStorage(restOptions)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
-	clusterPolicyStorage := clusterpolicystorage.NewStorage(c.EtcdHelper)
+	clusterPolicyStorage := clusterpolicystorage.NewStorage(restOptions)
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(c.EtcdHelper)
+	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(restOptions)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
@@ -425,10 +431,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	imageStorage := imageetcd.NewREST(c.EtcdHelper)
+	imageStorage := imageetcd.NewREST(restOptions)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage := imagestreametcd.NewREST(restOptions, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
@@ -492,7 +498,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		},
 	)
 
-	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientStorage := clientetcd.NewREST(restOptions)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry)
 
@@ -509,12 +515,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs":         deployConfigStorage,
 		"deploymentConfigs/scale":   deployConfigScaleStorage,
 		"deploymentConfigs/status":  deployConfigStatusStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, restOptions.Storage.Codec()),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, restOptions.Storage.Codec()),
 		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
 
 		"processedTemplates": templateregistry.NewREST(),
-		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		"templates":          templateetcd.NewREST(restOptions),
 
 		"routes":        routeStorage,
 		"routes/status": routeStatusStorage,
@@ -527,14 +533,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
-		"groups":               groupetcd.NewREST(c.EtcdHelper),
+		"groups":               groupetcd.NewREST(restOptions),
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
-		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
+		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(restOptions, combinedOAuthClientGetter),
+		"oAuthAccessTokens":         accesstokenetcd.NewREST(restOptions, combinedOAuthClientGetter),
 		"oAuthClients":              clientStorage,
-		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
+		"oAuthClientAuthorizations": clientauthetcd.NewREST(restOptions, combinedOAuthClientGetter),
 
 		"resourceAccessReviews":      resourceAccessReviewStorage,
 		"subjectAccessReviews":       subjectAccessReviewStorage,

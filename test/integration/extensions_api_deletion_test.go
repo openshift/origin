@@ -61,7 +61,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 			CPUUtilization: &expapi.CPUTargetUtilization{TargetPercentage: 10},
 		},
 	}
-	if _, err := projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(projName).Create(&hpa); err != nil {
+	if _, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).Create(&hpa); err != nil {
 		t.Fatalf("unexpected error creating the HPA object: %v", err)
 	}
 
@@ -77,7 +77,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 			},
 		},
 	}
-	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).Create(&job); err != nil {
+	if _, err := projectAdminKubeClient.Batch().Jobs(projName).Create(&job); err != nil {
 		t.Fatalf("unexpected error creating the job object: %v", err)
 	}
 
@@ -95,12 +95,12 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error while waiting for project to delete: %v", err)
 	}
 
-	if _, err := clusterAdminKubeClient.Extensions().HorizontalPodAutoscalers(projName).Get(hpa.Name); err == nil {
+	if _, err := clusterAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).Get(hpa.Name); err == nil {
 		t.Fatalf("HPA object was still present after project was deleted!")
 	} else if !errors.IsNotFound(err) {
 		t.Fatalf("Error trying to get deleted HPA object (not a not-found error): %v", err)
 	}
-	if _, err := clusterAdminKubeClient.Extensions().Jobs(projName).Get(job.Name); err == nil {
+	if _, err := clusterAdminKubeClient.Batch().Jobs(projName).Get(job.Name); err == nil {
 		t.Fatalf("Job object was still present after project was deleted!")
 	} else if !errors.IsNotFound(err) {
 		t.Fatalf("Error trying to get deleted Job object (not a not-found error): %v", err)

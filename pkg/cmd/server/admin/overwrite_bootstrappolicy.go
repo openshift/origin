@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -120,10 +121,11 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	return OverwriteBootstrapPolicy(storage, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
+	opts := generic.RESTOptions{Decorator: generic.UndecoratedStorage, Storage: storage}
+	return OverwriteBootstrapPolicy(opts, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
+func OverwriteBootstrapPolicy(opts generic.RESTOptions, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
 	if !change {
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
@@ -143,11 +145,11 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		return r.Err()
 	}
 
-	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(storage))
-	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(storage))
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(opts))
+	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(opts))
 
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(storage))
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(storage))
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(opts))
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(opts))
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyRegistry,
@@ -240,5 +242,6 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 
 // newStorage returns an EtcdHelper for the provided storage version.
 func newStorage(client newetcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix, false), nil
+	// TODO: Make the cacheSize (100) configurable
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix, false, 100), nil
 }

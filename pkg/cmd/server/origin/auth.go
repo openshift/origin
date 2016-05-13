@@ -20,6 +20,7 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -83,16 +84,20 @@ const (
 // (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	mux := c.getMux(container)
+	restOptions := generic.RESTOptions{
+		Storage:   c.EtcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
 
-	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientStorage := clientetcd.NewREST(restOptions)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, clientRegistry)
 
-	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
+	accessTokenStorage := accesstokenetcd.NewREST(restOptions, combinedOAuthClientGetter, c.EtcdBackends...)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(restOptions, combinedOAuthClientGetter, c.EtcdBackends...)
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter)
+	clientAuthStorage := clientauthetcd.NewREST(restOptions, combinedOAuthClientGetter)
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	errorPageHandler, err := c.getErrorHandler()

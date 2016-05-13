@@ -8,7 +8,6 @@ import (
 	template_api "github.com/openshift/origin/pkg/template/api"
 	api "k8s.io/kubernetes/pkg/api"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -26,9 +25,6 @@ func init() {
 }
 
 func autoConvert_v1_Parameter_To_api_Parameter(in *Parameter, out *template_api.Parameter, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Parameter))(in)
-	}
 	out.Name = in.Name
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description
@@ -44,9 +40,6 @@ func Convert_v1_Parameter_To_api_Parameter(in *Parameter, out *template_api.Para
 }
 
 func autoConvert_api_Parameter_To_v1_Parameter(in *template_api.Parameter, out *Parameter, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*template_api.Parameter))(in)
-	}
 	out.Name = in.Name
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description
@@ -62,9 +55,6 @@ func Convert_api_Parameter_To_v1_Parameter(in *template_api.Parameter, out *Para
 }
 
 func autoConvert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *template_api.TemplateList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TemplateList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -90,9 +80,6 @@ func Convert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *template
 }
 
 func autoConvert_api_TemplateList_To_v1_TemplateList(in *template_api.TemplateList, out *TemplateList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*template_api.TemplateList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}

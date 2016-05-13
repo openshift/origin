@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -15,18 +14,22 @@ import (
 
 // REST implements a RESTStorage for images against etcd.
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface) *REST {
+func NewREST(opts generic.RESTOptions) *REST {
 	prefix := "/images"
 
-	store := &etcdgeneric.Etcd{
+	newListFunc := func() runtime.Object { return &api.ImageList{} }
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.ImageList{}, prefix, image.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc: func() runtime.Object { return &api.Image{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
-		NewListFunc: func() runtime.Object { return &api.ImageList{} },
+		NewListFunc: newListFunc,
+
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix.
 		// Yet images are not namespace scoped, so we're returning just prefix here.
@@ -37,7 +40,7 @@ func NewREST(s storage.Interface) *REST {
 		// the namespace in the context with the given prefix
 		// Yet images are not namespace scoped, so we're returning just prefix here.
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, prefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
@@ -57,7 +60,7 @@ func NewREST(s storage.Interface) *REST {
 
 		ReturnDeletedObject: false,
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 	return &REST{store}
 }

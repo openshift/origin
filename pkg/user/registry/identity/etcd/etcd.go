@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/identity"
@@ -16,14 +15,17 @@ import (
 
 // REST implements a RESTStorage for identites against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	*registry.Store
 }
 
 const EtcdPrefix = "/useridentities"
 
 // NewREST returns a RESTStorage object that will work against identites
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(opts generic.RESTOptions) *REST {
+	newListFunc := func() runtime.Object { return &api.Identity{} }
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.IdentityList{}, EtcdPrefix, identity.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Identity{} },
 		NewListFunc: func() runtime.Object { return &api.IdentityList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
@@ -40,11 +42,11 @@ func NewREST(s storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("identities"),
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 
 	store.CreateStrategy = identity.Strategy
 	store.UpdateStrategy = identity.Strategy
 
-	return &REST{*store}
+	return &REST{store}
 }

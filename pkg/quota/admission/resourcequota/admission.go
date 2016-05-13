@@ -55,7 +55,7 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 
 func (a *originQuotaAdmission) SetOpenshiftClient(osClient osclient.Interface) {
 	registry := quota.NewRegistry(osClient, true)
-	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry)
+	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry, 5)
 	if err != nil {
 		glog.Fatalf("failed to initialize %s plugin: %v", pluginName, err)
 	}

@@ -3,6 +3,8 @@ package docker
 import (
 	"os"
 
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -34,6 +36,30 @@ func (_ *Helper) GetClient() (client *docker.Client, endpoint string, err error)
 		endpoint = "unix:///var/run/docker.sock"
 	}
 	return
+}
+
+type KubeDocker struct {
+	dockertools.DockerInterface
+}
+
+func (c *KubeDocker) Ping() error {
+	client, err := docker.NewClientFromEnv()
+	if err != nil {
+		return err
+	}
+	return client.Ping()
+}
+
+func (_ *Helper) GetKubeClient() (*KubeDocker, string, error) {
+	var endpoint string
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
+	}
+	client := dockertools.ConnectToDockerOrDie(endpoint)
+	originClient := &KubeDocker{client}
+	return originClient, endpoint, nil
 }
 
 // GetClientOrExit returns a valid Docker client and the address of the client,

@@ -45,6 +45,11 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	expectedGroupVersions := sets.NewString()
 	for group, versions := range configapi.KubeAPIGroupsToAllowedVersions {
 		for _, version := range versions {
+			// TODO: The policy is enabled by kube but does not have client registered
+			// in discovery. Enable it as soon as it gets the discovery client.
+			if group == configapi.APIGroupPolicy {
+				continue
+			}
 			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
 		}
 	}
