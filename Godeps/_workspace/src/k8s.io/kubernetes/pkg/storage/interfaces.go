@@ -107,6 +107,10 @@ type Interface interface {
 	// If key didn't exist, it will return NotFound storage error.
 	Delete(ctx context.Context, key string, out runtime.Object, preconditions *Preconditions) error
 
+	// DeleteDir removes the specified directory, which must be empty. If the key does not refer
+	// to an empty directory, then an error will be returned instead.
+	DeleteDir(ctx context.Context, key string, typeName string) error
+
 	// Watch begins watching the specified key. Events are decoded into API objects,
 	// and any items passing 'filter' are sent down to returned watch.Interface.
 	// resourceVersion may be used to specify what version to begin watching,

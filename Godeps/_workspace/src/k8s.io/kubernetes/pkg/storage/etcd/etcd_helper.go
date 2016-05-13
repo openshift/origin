@@ -364,6 +364,20 @@ func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object,
 }
 
 // Implements storage.Interface.
+func (h *etcdHelper) DeleteDir(ctx context.Context, key string, typeName string) error {
+	if ctx == nil {
+		return errors.New("Context is nil")
+	}
+
+	key = h.prefixEtcdKey(key)
+
+	startTime := time.Now()
+	_, err := h.etcdKeysAPI.Delete(ctx, key, &etcd.DeleteOptions{Dir: true})
+	metrics.RecordEtcdRequestLatency("delete-collection", typeName, startTime)
+	return err
+}
+
+// Implements storage.Interface.
 func (h *etcdHelper) Watch(ctx context.Context, key string, resourceVersion string, filter storage.FilterFunc) (watch.Interface, error) {
 	if ctx == nil {
 		glog.Errorf("Context is nil")

@@ -248,6 +248,11 @@ func (c *Cacher) Delete(ctx context.Context, key string, out runtime.Object, pre
 }
 
 // Implements storage.Interface.
+func (c *Cacher) DeleteDir(ctx context.Context, key string, typeName string) error {
+	return c.storage.DeleteDir(ctx, key, typeName)
+}
+
+// Implements storage.Interface.
 func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion string, filter FilterFunc) (watch.Interface, error) {
 	watchRV, err := ParseWatchResourceVersion(resourceVersion)
 	if err != nil {
