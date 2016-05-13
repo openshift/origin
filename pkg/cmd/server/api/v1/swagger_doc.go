@@ -73,6 +73,15 @@ func (AssetExtensionsConfig) SwaggerDoc() map[string]string {
 	return map_AssetExtensionsConfig
 }
 
+var map_AuditConfig = map[string]string{
+	"":        "AuditConfig holds configuration for the audit capabilities",
+	"enabled": "If this flag is set, basic audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+}
+
+func (AuditConfig) SwaggerDoc() map[string]string {
+	return map_AuditConfig
+}
+
 var map_AugmentedActiveDirectoryConfig = map[string]string{
 	"":                          "AugmentedActiveDirectoryConfig holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP server using the augmented Active Directory schema",
 	"usersQuery":                "AllUsersQuery holds the template for an LDAP query that returns user entries.",
@@ -433,6 +442,7 @@ var map_MasterConfig = map[string]string{
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
 	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
 	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+	"auditConfig":            "AuditConfig holds information related to auditing capabilities.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {

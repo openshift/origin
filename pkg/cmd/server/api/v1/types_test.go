@@ -102,6 +102,8 @@ assetConfig:
     maxRequestsInFlight: 0
     namedCertificates: null
     requestTimeoutSeconds: 0
+auditConfig:
+  enabled: false
 controllerConfig:
   serviceServingCert:
     signer: null
