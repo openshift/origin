@@ -14,12 +14,12 @@ import (
 // FixInjectionsWithRelativePath fixes the injections that does not specify the
 // destination directory or the directory is relative to use the provided
 // working directory.
-func FixInjectionsWithRelativePath(workdir string, injections *api.VolumeList) {
-	if len(*injections) == 0 {
-		return
+func FixInjectionsWithRelativePath(workdir string, injections api.VolumeList) api.VolumeList {
+	if len(injections) == 0 {
+		return injections
 	}
 	newList := api.VolumeList{}
-	for _, injection := range *injections {
+	for _, injection := range injections {
 		changed := false
 		if filepath.Clean(injection.Destination) == "." {
 			injection.Destination = workdir
@@ -34,7 +34,7 @@ func FixInjectionsWithRelativePath(workdir string, injections *api.VolumeList) {
 		}
 		newList = append(newList, injection)
 	}
-	*injections = newList
+	return newList
 }
 
 // ExpandInjectedFiles returns a flat list of all files that are injected into a
