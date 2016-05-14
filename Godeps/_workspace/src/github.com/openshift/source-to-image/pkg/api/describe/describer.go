@@ -96,7 +96,7 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
-	build.GenerateConfigFromLabels(image, c)
+	build.GenerateConfigFromLabels(c)
 	if len(c.DisplayName) > 0 {
 		fmt.Fprintf(out, "Builder Name:\t%s\n", c.DisplayName)
 	}

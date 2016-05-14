@@ -11,8 +11,16 @@ import (
 // temporary directories created by STI build and it also cleans the temporary
 // Docker images produced by LayeredBuild
 type DefaultCleaner struct {
-	util.FileSystem
-	docker.Docker
+	fs     util.FileSystem
+	docker docker.Docker
+}
+
+// NewDefaultCleaner creates a new instance of the default Cleaner implementation
+func NewDefaultCleaner(fs util.FileSystem, docker docker.Docker) Cleaner {
+	return &DefaultCleaner{
+		fs:     fs,
+		docker: docker,
+	}
 }
 
 // Cleanup removes the temporary directories where the sources were stored for build.
@@ -21,10 +29,10 @@ func (c *DefaultCleaner) Cleanup(config *api.Config) {
 		glog.Infof("Temporary directory '%s' will be saved, not deleted", config.WorkingDir)
 	} else {
 		glog.V(2).Infof("Removing temporary directory %s", config.WorkingDir)
-		c.RemoveDirectory(config.WorkingDir)
+		c.fs.RemoveDirectory(config.WorkingDir)
 	}
 	if config.LayeredBuild {
 		glog.V(2).Infof("Removing temporary image %s", config.BuilderImage)
-		c.RemoveImage(config.BuilderImage)
+		c.docker.RemoveImage(config.BuilderImage)
 	}
 }

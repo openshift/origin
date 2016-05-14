@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/interrupt"
 )
 
 const (
@@ -618,9 +619,9 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			runtime.Stack(buf, true)
 			fmt.Printf("%s", buf)
 		}
-		os.Exit(1)
+		os.Exit(2)
 	}
-	return util.NewInterruptHandler(dumpStack, removeContainer).Run(func() error {
+	return interrupt.New(dumpStack, removeContainer).Run(func() error {
 		// Attach to the container.
 		glog.V(2).Infof("Attaching to container %q ...", containerName)
 		attachOpts := opts.asDockerAttachToContainerOptions()

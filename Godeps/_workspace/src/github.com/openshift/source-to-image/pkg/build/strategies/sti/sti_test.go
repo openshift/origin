@@ -837,7 +837,7 @@ func TestCleanup(t *testing.T) {
 	for _, p := range preserve {
 		rh.config.PreserveWorkingDir = p
 		rh.fs = &test.FakeFileSystem{}
-		rh.garbage = &build.DefaultCleaner{rh.fs, rh.docker}
+		rh.garbage = build.NewDefaultCleaner(rh.fs, rh.docker)
 		rh.garbage.Cleanup(rh.config)
 		removedDir := rh.fs.(*test.FakeFileSystem).RemoveDirName
 		if p && removedDir != "" {

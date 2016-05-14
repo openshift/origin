@@ -70,26 +70,26 @@ type STI struct {
 // If the layeredBuilder parameter is specified, then the builder provided will
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
-func New(req *api.Config, overrides build.Overrides) (*STI, error) {
-	docker, err := dockerpkg.New(req.DockerConfig, req.PullAuthentication)
+func New(config *api.Config, overrides build.Overrides) (*STI, error) {
+	docker, err := dockerpkg.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}
 	var incrementalDocker dockerpkg.Docker
-	if req.Incremental {
-		incrementalDocker, err = dockerpkg.New(req.DockerConfig, req.IncrementalAuthentication)
+	if config.Incremental {
+		incrementalDocker, err = dockerpkg.New(config.DockerConfig, config.IncrementalAuthentication)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	inst := scripts.NewInstaller(req.BuilderImage, req.ScriptsURL, req.ScriptDownloadProxyConfig, docker, req.PullAuthentication)
+	inst := scripts.NewInstaller(config.BuilderImage, config.ScriptsURL, config.ScriptDownloadProxyConfig, docker, config.PullAuthentication)
 	tarHandler := tar.New()
-	tarHandler.SetExclusionPattern(regexp.MustCompile(req.ExcludeRegExp))
+	tarHandler.SetExclusionPattern(regexp.MustCompile(config.ExcludeRegExp))
 
 	builder := &STI{
 		installer:         inst,
-		config:            req,
+		config:            config,
 		docker:            docker,
 		incrementalDocker: incrementalDocker,
 		git:               git.New(),
@@ -109,17 +109,17 @@ func New(req *api.Config, overrides build.Overrides) (*STI, error) {
 	// leveraging overrides; also, we ultimately want to simplify s2i usage a good bit,
 	// which would lead to replacing this quick short circuit (so this change is tactical)
 	builder.source = overrides.Downloader
-	if builder.source == nil && !req.Usage {
-		downloader, sourceURL, err := scm.DownloaderForSource(req.Source, req.ForceCopy)
+	if builder.source == nil && !config.Usage {
+		downloader, sourceURL, err := scm.DownloaderForSource(config.Source, config.ForceCopy)
 		if err != nil {
 			return nil, err
 		}
 		builder.source = downloader
-		req.Source = sourceURL
+		config.Source = sourceURL
 	}
 
-	builder.garbage = &build.DefaultCleaner{builder.fs, builder.docker}
-	builder.layered, err = layered.New(req, builder, overrides)
+	builder.garbage = build.NewDefaultCleaner(builder.fs, builder.docker)
+	builder.layered, err = layered.New(config, builder, overrides)
 
 	// Set interfaces
 	builder.preparer = builder
@@ -220,25 +220,22 @@ func (builder *STI) Prepare(config *api.Config) error {
 	}
 	optional := builder.installer.InstallOptional(builder.optionalScripts, config.WorkingDir)
 
+	requiredAndOptional := append(required, optional...)
+
 	// If a ScriptsURL was specified, but no scripts were downloaded from it, throw an error
 	if len(config.ScriptsURL) > 0 {
 		failedCount := 0
-		for _, result := range required {
+		for _, result := range requiredAndOptional {
 			if includes(result.FailedSources, scripts.ScriptURLHandler) {
 				failedCount++
 			}
 		}
-		for _, result := range optional {
-			if includes(result.FailedSources, scripts.ScriptURLHandler) {
-				failedCount++
-			}
-		}
-		if failedCount == len(required)+len(optional) {
+		if failedCount == len(requiredAndOptional) {
 			return fmt.Errorf("Could not download any scripts from URL %v", config.ScriptsURL)
 		}
 	}
 
-	for _, r := range append(required, optional...) {
+	for _, r := range requiredAndOptional {
 		if r.Error == nil {
 			builder.externalScripts[r.Script] = r.Downloaded
 			builder.installedScripts[r.Script] = r.Installed
@@ -492,7 +489,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		if err != nil {
 			return err
 		}
-		util.FixInjectionsWithRelativePath(workdir, &config.Injections)
+		config.Injections = util.FixInjectionsWithRelativePath(workdir, config.Injections)
 		injectedFiles, err := util.ExpandInjectedFiles(config.Injections)
 		if err != nil {
 			return err

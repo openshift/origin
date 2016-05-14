@@ -25,7 +25,7 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 		5) del files
 		 1 to 4 is in getListOfFilesToIgnore
 	*/
-	filesToDel, lerr := getListOfFilesToIgnore(config)
+	filesToDel, lerr := getListOfFilesToIgnore(config.WorkingSourceDir)
 	if lerr != nil {
 		return lerr
 	}
@@ -47,8 +47,8 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 	return nil
 }
 
-func getListOfFilesToIgnore(config *api.Config) (map[string]string, error) {
-	path := filepath.Join(config.WorkingSourceDir, api.IgnoreFile)
+func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
+	path := filepath.Join(workingDir, api.IgnoreFile)
 	file, err := os.Open(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -82,7 +82,7 @@ func getListOfFilesToIgnore(config *api.Config) (map[string]string, error) {
 			// iterate through and determine ones to leave in
 			dontDel := make([]string, 0)
 			for candidate := range filesToDel {
-				compare := filepath.Join(config.WorkingSourceDir, filespec)
+				compare := filepath.Join(workingDir, filespec)
 				glog.V(5).Infof("For %s  and %s see if it matches the spec  %s which means that we leave in\n", filespec, candidate, compare)
 				leaveIn, _ := filepath.Match(compare, candidate)
 				if leaveIn {
@@ -100,7 +100,7 @@ func getListOfFilesToIgnore(config *api.Config) (map[string]string, error) {
 			continue
 		}
 
-		globspec := filepath.Join(config.WorkingSourceDir, filespec)
+		globspec := filepath.Join(workingDir, filespec)
 		glog.V(4).Infof("using globspec %s \n", globspec)
 		list, gerr := filepath.Glob(globspec)
 		if gerr != nil {

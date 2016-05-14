@@ -69,7 +69,7 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 		Ignorer:    &ignore.DockerIgnorer{},
 	}
 
-	builder.garbage = &build.DefaultCleaner{builder.fs, builder.docker}
+	builder.garbage = build.NewDefaultCleaner(builder.fs, builder.docker)
 	return builder, nil
 }
 

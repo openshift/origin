@@ -45,9 +45,11 @@ func GenerateLabelsFromSourceInfo(labels map[string]string, info *api.SourceInfo
 		return labels
 	}
 
-	author := fmt.Sprintf("%s <%s>", info.AuthorName, info.AuthorEmail)
+	if len(info.AuthorName) > 0 {
+		author := fmt.Sprintf("%s <%s>", info.AuthorName, info.AuthorEmail)
+		addBuildLabel(labels, "commit.author", author, namespace)
+	}
 
-	addBuildLabel(labels, "commit.author", author, namespace)
 	addBuildLabel(labels, "commit.date", info.Date, namespace)
 	addBuildLabel(labels, "commit.id", info.CommitID, namespace)
 	addBuildLabel(labels, "commit.ref", info.Ref, namespace)
