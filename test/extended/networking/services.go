@@ -9,58 +9,61 @@ import (
 )
 
 var _ = Describe("[networking] services", func() {
-	f1 := e2e.NewDefaultFramework("net-services2")
-	f2 := e2e.NewDefaultFramework("net-services2")
+	Context("basic functionality", func() {
+		f1 := e2e.NewDefaultFramework("net-services1")
 
-	It("should allow connections to another pod on the same node via a service IP", func() {
-		Expect(checkServiceConnectivity(f1, f1, 1)).To(Succeed())
-	})
+		It("should allow connections to another pod on the same node via a service IP", func() {
+			Expect(checkServiceConnectivity(f1, f1, 1)).To(Succeed())
+		})
 
-	It("should allow connections to another pod on a different node via a service IP", func() {
-		Expect(checkServiceConnectivity(f1, f1, 2)).To(Succeed())
-	})
-
-	Specify("single-tenant plugins should allow connections to pods in different namespaces on the same node via service IPs", func() {
-		skipIfMultiTenant()
-		Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+		It("should allow connections to another pod on a different node via a service IP", func() {
+			Expect(checkServiceConnectivity(f1, f1, 2)).To(Succeed())
+		})
 	})
 
-	Specify("single-tenant plugins should allow connections to pods in different namespaces on different nodes via service IPs", func() {
-		skipIfMultiTenant()
-		Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+	InSingleTenantContext(func() {
+		f1 := e2e.NewDefaultFramework("net-services1")
+		f2 := e2e.NewDefaultFramework("net-services2")
+
+		It("should allow connections to pods in different namespaces on the same node via service IPs", func() {
+			Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+		})
+
+		It("should allow connections to pods in different namespaces on different nodes via service IPs", func() {
+			Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+		})
 	})
 
-	Specify("multi-tenant plugins should prevent connections to pods in different namespaces on the same node via service IPs", func() {
-		skipIfSingleTenant()
-		err := checkServiceConnectivity(f1, f2, 1)
-		Expect(err).To(HaveOccurred())
-	})
+	InMultiTenantContext(func() {
+		f1 := e2e.NewDefaultFramework("net-services1")
+		f2 := e2e.NewDefaultFramework("net-services2")
 
-	Specify("multi-tenant plugins should prevent connections to pods in different namespaces on different nodes via service IPs", func() {
-		skipIfSingleTenant()
-		err := checkServiceConnectivity(f1, f2, 2)
-		Expect(err).To(HaveOccurred())
-	})
+		It("should prevent connections to pods in different namespaces on the same node via service IPs", func() {
+			err := checkServiceConnectivity(f1, f2, 1)
+			Expect(err).To(HaveOccurred())
+		})
 
-	Specify("multi-tenant plugins should allow connections to services in the default namespace from a pod in another namespaces on the same node", func() {
-		skipIfSingleTenant()
-		makeNamespaceGlobal(f1.Namespace)
-		Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
-	})
-	Specify("multi-tenant plugins should allow connections to services in the default namespace from a pod in another namespace on a different node", func() {
-		skipIfSingleTenant()
-		makeNamespaceGlobal(f1.Namespace)
-		Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
-	})
-	Specify("multi-tenant plugins should allow connections from pods in the default namespace to a service in another namespaces on the same node", func() {
-		skipIfSingleTenant()
-		makeNamespaceGlobal(f2.Namespace)
-		Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
-	})
-	Specify("multi-tenant plugins should allow connections from pods in the default namespace to a service in another namespaces on a different node", func() {
-		skipIfSingleTenant()
-		makeNamespaceGlobal(f2.Namespace)
-		Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+		It("should prevent connections to pods in different namespaces on different nodes via service IPs", func() {
+			err := checkServiceConnectivity(f1, f2, 2)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should allow connections to services in the default namespace from a pod in another namespace on the same node", func() {
+			makeNamespaceGlobal(f1.Namespace)
+			Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+		})
+		It("should allow connections to services in the default namespace from a pod in another namespace on a different node", func() {
+			makeNamespaceGlobal(f1.Namespace)
+			Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+		})
+		It("should allow connections from pods in the default namespace to a service in another namespace on the same node", func() {
+			makeNamespaceGlobal(f2.Namespace)
+			Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
+		})
+		It("should allow connections from pods in the default namespace to a service in another namespace on a different node", func() {
+			makeNamespaceGlobal(f2.Namespace)
+			Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
+		})
 	})
 })
 
