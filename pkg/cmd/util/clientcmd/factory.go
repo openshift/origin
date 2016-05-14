@@ -549,6 +549,16 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 				Spec:       pod.Spec,
 			}, err
 		}
+		switch t := object.(type) {
+		case *api.ReplicationController:
+			return t.Spec.Template, err
+		case *extensions.ReplicaSet:
+			return &t.Spec.Template, err
+		case *extensions.DaemonSet:
+			return &t.Spec.Template, err
+		case *extensions.Job:
+			return &t.Spec.Template, err
+		}
 		return nil, err
 	}
 }

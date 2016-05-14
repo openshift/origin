@@ -218,8 +218,11 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 
 	template, err := f.ApproximatePodTemplateForObject(infos[0].Object)
-	if err != nil || template == nil {
+	if err != nil && template == nil {
 		return fmt.Errorf("cannot debug %s: %v", infos[0].Name, err)
+	}
+	if err != nil {
+		glog.V(4).Infof("Unable to get exact template, but continuing with fallback: %v", err)
 	}
 	pod := &kapi.Pod{
 		ObjectMeta: template.ObjectMeta,
@@ -229,7 +232,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	o.Attach.Pod = pod
 
 	if len(o.Attach.ContainerName) == 0 && len(pod.Spec.Containers) > 0 {
-		glog.V(4).Infof("defaulting container name to %s", pod.Spec.Containers[0].Name)
+		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
 		o.Attach.ContainerName = pod.Spec.Containers[0].Name
 	}
 
