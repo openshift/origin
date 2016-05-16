@@ -23,19 +23,6 @@ func HostForRoute(route *routeapi.Route) string {
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
-// RejectionRecorder is an object capable of recording why a route was rejected
-type RejectionRecorder interface {
-	RecordRouteRejection(route *routeapi.Route, reason, message string)
-}
-
-var LogRejections = logRecorder{}
-
-type logRecorder struct{}
-
-func (_ logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	glog.V(4).Infof("Rejected route %s: %s: %s", route.Name, reason, message)
-}
-
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
@@ -50,9 +37,8 @@ type UniqueHost struct {
 	allowedNamespaces sets.String
 }
 
-// NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
-// the underlying plugin. Recorder is an interface for indicating why a route was
-// rejected.
+// NewUniqueHost creates a plugin wrapper that ensures only unique routes are
+// passed into the underlying plugin.
 func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, recorder RejectionRecorder) *UniqueHost {
 	return &UniqueHost{
 		plugin:       plugin,
