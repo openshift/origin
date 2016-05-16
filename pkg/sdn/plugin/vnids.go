@@ -310,25 +310,31 @@ func (node *OsdnNode) VnidStartNode() error {
 	return nil
 }
 
-func (node *OsdnNode) updatePodNetwork(namespace string, netID uint32) error {
-	// Update OF rules for the existing/old pods in the namespace
+func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32) error {
+	// FIXME: this is racy; traffic coming from the pods gets switched to the new
+	// VNID before the service and firewall rules are updated to match. We need
+	// to do the updates as a single transaction (ovs-ofctl --bundle).
+
 	pods, err := node.GetLocalPods(namespace)
 	if err != nil {
 		return err
 	}
-	for _, pod := range pods {
-		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
-		if err != nil {
-			return err
-		}
-	}
-
-	// Update OF rules for the old services in the namespace
 	services, err := node.registry.GetServicesForNamespace(namespace)
 	if err != nil {
 		return err
 	}
+
 	errList := []error{}
+
+	// Update OF rules for the existing/old pods in the namespace
+	for _, pod := range pods {
+		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
+		if err != nil {
+			errList = append(errList, err)
+		}
+	}
+
+	// Update OF rules for the old services in the namespace
 	for _, svc := range services {
 		if err = node.DeleteServiceRules(&svc); err != nil {
 			log.Error(err)
@@ -337,6 +343,12 @@ func (node *OsdnNode) updatePodNetwork(namespace string, netID uint32) error {
 			errList = append(errList, err)
 		}
 	}
+
+	// Update namespace references in egress firewall rules
+	if err = node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID); err != nil {
+		errList = append(errList, err)
+	}
+
 	return kerrors.NewAggregate(errList)
 }
 
@@ -362,7 +374,7 @@ func (node *OsdnNode) watchNetNamespaces() {
 			}
 			node.vnids.SetVNID(netns.NetName, netns.NetID)
 
-			err = node.updatePodNetwork(netns.NetName, netns.NetID)
+			err = node.updatePodNetwork(netns.NetName, oldNetID, netns.NetID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 				node.vnids.SetVNID(netns.NetName, oldNetID)
@@ -370,7 +382,7 @@ func (node *OsdnNode) watchNetNamespaces() {
 			}
 		case watch.Deleted:
 			// updatePodNetwork needs vnid, so unset vnid after this call
-			err = node.updatePodNetwork(netns.NetName, AdminVNID)
+			err = node.updatePodNetwork(netns.NetName, netns.NetID, AdminVNID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
