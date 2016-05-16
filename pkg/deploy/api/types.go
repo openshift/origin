@@ -248,6 +248,9 @@ const (
 	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
 	// The annotation value does not matter and its mere presence indicates instantiation.
 	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
+	// DeploymentTerminatedAnnotation is used by the deployer pod controller in order to trigger
+	// deploymentconfig reconcilation after a deployment for the config terminates.
+	DeploymentTerminatedAnnotation = "openshift.io/deployment.terminated"
 	// PostHookPodSuffix is the suffix added to all pre hook pods
 	PreHookPodSuffix = "hook-pre"
 	// PostHookPodSuffix is the suffix added to all mid hook pods

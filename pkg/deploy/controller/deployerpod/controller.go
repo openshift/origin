@@ -146,14 +146,14 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 
-		// If the deployment was canceled, trigger a reconcilation of its deployment config
-		// so that the latest complete deployment can immediately rollback in place of the
-		// canceled deployment.
-		if nextStatus == deployapi.DeploymentStatusFailed && deployutil.IsDeploymentCancelled(deployment) {
+		// If the deployment was terminated, trigger a reconcilation of its deployment config
+		// so that its latest state can be updated and maybe rollback if the deployment failed.
+		if deployutil.IsTerminatedDeployment(deployment) {
 			// If we are unable to get the deployment config, then the deploymentconfig controller will
 			// perform its duties once the resync interval forces the deploymentconfig to be reconciled.
 			name := deployutil.DeploymentConfigNameFor(deployment)
 			kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+				// TODO: Have the deployer pod controller share caches with the rest of our deployment controllers.
 				config, err := c.client.DeploymentConfigs(deployment.Namespace).Get(name)
 				if err != nil {
 					return err
@@ -161,7 +161,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 				if config.Annotations == nil {
 					config.Annotations = make(map[string]string)
 				}
-				config.Annotations[deployapi.DeploymentCancelledAnnotation] = strconv.Itoa(config.Status.LatestVersion)
+				config.Annotations[deployapi.DeploymentTerminatedAnnotation] = strconv.Itoa(config.Status.LatestVersion)
 				_, err = c.client.DeploymentConfigs(config.Namespace).Update(config)
 				return err
 			})
