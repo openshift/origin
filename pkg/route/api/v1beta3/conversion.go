@@ -3,7 +3,11 @@ package v1beta3
 import (
 	"fmt"
 
+	conversion "k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) {
@@ -31,7 +35,9 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		panic(err)
 	}
 
-	err = scheme.AddConversionFuncs()
+	err = scheme.AddConversionFuncs(convert_api_RouteSpec_To_v1beta3_RouteSpec,
+				convert_v1beta3_RouteSpec_To_api_RouteSpec,
+			)
 	if err != nil {
 		panic(err)
 	}
@@ -55,4 +61,59 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		panic(err)
 	}
 
+}
+
+func convert_api_RouteSpec_To_v1beta3_RouteSpec(in *routeapi.RouteSpec, out *RouteSpec, s conversion.Scope) error {
+	out.Host = in.Host
+	out.Path = in.Path
+	if err := s.Convert(&in.To[0], &out.To, 0); err != nil {
+		return err
+	}
+	// unable to generate simple pointer conversion for api.RoutePort -> v1beta3.RoutePort
+	if in.Port != nil {
+		out.Port = new(RoutePort)
+		if err := s.Convert(in.Port, out.Port, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
+	}
+	// unable to generate simple pointer conversion for api.TLSConfig -> v1beta3.TLSConfig
+	if in.TLS != nil {
+		out.TLS = new(TLSConfig)
+		if err := s.Convert(in.TLS, out.TLS, 0); err != nil {
+			return err
+		}
+	} else {
+		out.TLS = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *routeapi.RouteSpec, s conversion.Scope) error {
+	out.Host = in.Host
+	out.Path = in.Path
+	out.To = make([]kapi.ObjectReference, 1)
+	if err := s.Convert(&in.To, &out.To[0], 0); err != nil {
+		return err
+	}
+	// unable to generate simple pointer conversion for api.RoutePort -> v1beta3.RoutePort
+	if in.Port != nil {
+		out.Port = new(routeapi.RoutePort)
+		if err := s.Convert(in.Port, out.Port, 0); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
+	}
+	// unable to generate simple pointer conversion for api.TLSConfig -> v1beta3.TLSConfig
+	if in.TLS != nil {
+		out.TLS = new(routeapi.TLSConfig)
+		if err := s.Convert(in.TLS, out.TLS, 0); err != nil {
+			return err
+		}
+	} else {
+		out.TLS = nil
+	}
+	return nil
 }

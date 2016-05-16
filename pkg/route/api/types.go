@@ -25,9 +25,9 @@ type RouteSpec struct {
 	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string
 
-	// An object the route points to. Only the Service kind is allowed, and it will
+	// Objects that the route points to. Only the Service kind is allowed, and it will
 	// be defaulted to Service.
-	To kapi.ObjectReference
+	To []kapi.ObjectReference
 
 	// If specified, the port to be used by the router. Most routers will use all
 	// endpoints exposed by the service by default - set this value to instruct routers

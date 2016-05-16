@@ -364,6 +364,8 @@ func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portS
 	}
 
 	svc, err := kc.Services(namespace).Get(serviceName)
+	toSvcs := make([]kapi.ObjectReference, 0)
+	toSvcs = append(toSvcs, kapi.ObjectReference{ Name: serviceName, })
 	if err != nil {
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
@@ -373,9 +375,7 @@ func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portS
 				Name: routeName,
 			},
 			Spec: api.RouteSpec{
-				To: kapi.ObjectReference{
-					Name: serviceName,
-				},
+				To: toSvcs,
 				Port: resolveRoutePort(portString),
 			},
 		}, nil
@@ -392,9 +392,7 @@ func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portS
 			Labels: svc.Labels,
 		},
 		Spec: api.RouteSpec{
-			To: kapi.ObjectReference{
-				Name: serviceName,
-			},
+			To: toSvcs,
 		},
 	}
 

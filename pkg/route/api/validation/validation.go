@@ -37,11 +37,16 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		result = append(result, field.Invalid(specPath.Child("path"), route.Spec.Path, "passthrough termination does not support paths"))
 	}
 
-	if len(route.Spec.To.Name) == 0 {
-		result = append(result, field.Required(specPath.Child("to", "name"), ""))
+	if len(route.Spec.To) == 0 {
+		result = append(result, field.Required(specPath.Child("to"), "must specify at least one service"))
 	}
-	if route.Spec.To.Kind != "Service" {
-		result = append(result, field.Invalid(specPath.Child("to", "kind"), route.Spec.To.Kind, "must reference a Service"))
+	for _, svc := range route.Spec.To {
+		if len(svc.Name) == 0 {
+			result = append(result, field.Required(specPath.Child("to", "name"), ""))
+		}
+		if svc.Kind != "Service" {
+			result = append(result, field.Invalid(specPath.Child("to", "kind"), svc.Kind, "must reference a Service"))
+		}
 	}
 
 	if route.Spec.Port != nil {

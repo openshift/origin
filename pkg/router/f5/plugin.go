@@ -475,10 +475,10 @@ func (p *F5Plugin) HandleNamespaces(namespaces sets.String) error {
 func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 	route *routeapi.Route) error {
 	glog.V(4).Infof("Processing route for service: %v (%v)",
-		route.Spec.To.Name, route)
+		route.Spec.To, route)
 
 	// Name of the pool in F5.
-	poolname := poolName(route.Namespace, route.Spec.To.Name)
+	poolname := poolName(route.Namespace, route.Name)
 
 	// Virtual hostname for policy rule in F5.
 	hostname := route.Spec.Host

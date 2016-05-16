@@ -18,11 +18,16 @@ func (p *TestAllocationPlugin) Allocate(route *routeapi.Route) (*routeapi.Router
 }
 
 func (p *TestAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *routeapi.RouterShard) string {
-	if len(route.Spec.To.Name) > 0 && len(route.Namespace) > 0 {
-		return fmt.Sprintf("%s-%s.%s", route.Spec.To.Name, route.Namespace, shard.DNSSuffix)
+	if len(route.Name) > 0 && len(route.Namespace) > 0 {
+		return fmt.Sprintf("%s-%s.%s", route.Name, route.Namespace, shard.DNSSuffix)
 	}
 
 	return "test-test-test.openshift.test"
+}
+
+func createObjectReferences(name string) []kapi.ObjectReference {
+	objRefList := make([]kapi.ObjectReference, 0)
+	return append(objRefList, kapi.ObjectReference{Name: name})
 }
 
 func TestRouteAllocationController(t *testing.T) {
@@ -37,9 +42,7 @@ func TestRouteAllocationController(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: routeapi.RouteSpec{
-					To: kapi.ObjectReference{
-						Name: "service",
-					},
+					To: createObjectReferences("service"),
 				},
 			},
 		},
@@ -50,9 +53,7 @@ func TestRouteAllocationController(t *testing.T) {
 					Name: "name",
 				},
 				Spec: routeapi.RouteSpec{
-					To: kapi.ObjectReference{
-						Name: "nonamespace",
-					},
+					To: createObjectReferences("nonamespace"),
 				},
 			},
 		},
@@ -74,9 +75,7 @@ func TestRouteAllocationController(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.org",
-					To: kapi.ObjectReference{
-						Name: "serviceName",
-					},
+					To: createObjectReferences("serviceName"),
 				},
 			},
 		},

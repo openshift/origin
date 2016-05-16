@@ -9,6 +9,6 @@ func RouteToSelectableFields(route *Route) fields.Set {
 		"metadata.namespace": route.Namespace,
 		"spec.path":          route.Spec.Path,
 		"spec.host":          route.Spec.Host,
-		"spec.to.name":       route.Spec.To.Name,
+		"spec.to.name":       route.Spec.To[0].Name,
 	}
 }

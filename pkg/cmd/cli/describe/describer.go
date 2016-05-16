@@ -629,7 +629,15 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	endpoints, endsErr := d.kubeClient.Endpoints(namespace).Get(route.Spec.To.Name)
+	endpoints := make([]*kapi.Endpoints, 0)
+	var endsErr error
+	for _, svc := range route.Spec.To {
+		eps, endsErr := d.kubeClient.Endpoints(namespace).Get(svc.Name)
+		if endsErr != nil {
+			break
+		}
+		endpoints = append(endpoints, eps)
+	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
@@ -677,7 +685,13 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "TLS Termination", tlsTerm)
 		formatString(out, "Insecure Policy", insecurePolicy)
 
-		formatString(out, "Service", route.Spec.To.Name)
+		var svcNames string
+		for _, svc := range route.Spec.To {
+			svcNames += svc.Name
+			svcNames += ","
+		}
+		svcNames = svcNames[:len(svcNames)-1]
+		formatString(out, "Services", svcNames)
 		if route.Spec.Port != nil {
 			formatString(out, "Endpoint Port", route.Spec.Port.TargetPort.String())
 		} else {
@@ -687,20 +701,26 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		ends := "<none>"
 		if endsErr != nil {
 			ends = fmt.Sprintf("Unable to get endpoints: %v", endsErr)
-		} else if len(endpoints.Subsets) > 0 {
+		} else {
 			list := []string{}
 
 			max := 3
 			count := 0
 
-			for i := range endpoints.Subsets {
-				ss := &endpoints.Subsets[i]
-				for p := range ss.Ports {
-					for a := range ss.Addresses {
-						if len(list) < max {
-							list = append(list, fmt.Sprintf("%s:%d", ss.Addresses[a].IP, ss.Ports[p].Port))
+			for _, eps := range endpoints {
+				if len(eps.Subsets) < 0 {
+					continue
+				}
+			
+				for i := range eps.Subsets {
+					ss := &eps.Subsets[i]
+					for p := range ss.Ports {
+						for a := range ss.Addresses {
+							if len(list) < max {
+								list = append(list, fmt.Sprintf("%s:%d", ss.Addresses[a].IP, ss.Ports[p].Port))
+							}
+							count++
 						}
-						count++
 					}
 				}
 			}

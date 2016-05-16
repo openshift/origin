@@ -15,18 +15,12 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedConversionFuncs(
-		Convert_v1_Route_To_api_Route,
-		Convert_api_Route_To_v1_Route,
 		Convert_v1_RouteIngress_To_api_RouteIngress,
 		Convert_api_RouteIngress_To_v1_RouteIngress,
 		Convert_v1_RouteIngressCondition_To_api_RouteIngressCondition,
 		Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition,
-		Convert_v1_RouteList_To_api_RouteList,
-		Convert_api_RouteList_To_v1_RouteList,
 		Convert_v1_RoutePort_To_api_RoutePort,
 		Convert_api_RoutePort_To_v1_RoutePort,
-		Convert_v1_RouteSpec_To_api_RouteSpec,
-		Convert_api_RouteSpec_To_v1_RouteSpec,
 		Convert_v1_RouteStatus_To_api_RouteStatus,
 		Convert_api_RouteStatus_To_v1_RouteStatus,
 		Convert_v1_RouterShard_To_api_RouterShard,
@@ -37,54 +31,6 @@ func init() {
 		// if one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-}
-
-func autoConvert_v1_Route_To_api_Route(in *Route, out *route_api.Route, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Route))(in)
-	}
-	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
-	if err := Convert_v1_RouteSpec_To_api_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1_RouteStatus_To_api_RouteStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func Convert_v1_Route_To_api_Route(in *Route, out *route_api.Route, s conversion.Scope) error {
-	return autoConvert_v1_Route_To_api_Route(in, out, s)
-}
-
-func autoConvert_api_Route_To_v1_Route(in *route_api.Route, out *Route, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.Route))(in)
-	}
-	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
-	if err := Convert_api_RouteSpec_To_v1_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_api_RouteStatus_To_v1_RouteStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func Convert_api_Route_To_v1_Route(in *route_api.Route, out *Route, s conversion.Scope) error {
-	return autoConvert_api_Route_To_v1_Route(in, out, s)
 }
 
 func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *route_api.RouteIngress, s conversion.Scope) error {
@@ -183,62 +129,6 @@ func Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *route_api
 	return autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in, out, s)
 }
 
-func autoConvert_v1_RouteList_To_api_RouteList(in *RouteList, out *route_api.RouteList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteList))(in)
-	}
-	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]route_api.Route, len(*in))
-		for i := range *in {
-			if err := Convert_v1_Route_To_api_Route(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func Convert_v1_RouteList_To_api_RouteList(in *RouteList, out *route_api.RouteList, s conversion.Scope) error {
-	return autoConvert_v1_RouteList_To_api_RouteList(in, out, s)
-}
-
-func autoConvert_api_RouteList_To_v1_RouteList(in *route_api.RouteList, out *RouteList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteList))(in)
-	}
-	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]Route, len(*in))
-		for i := range *in {
-			if err := Convert_api_Route_To_v1_Route(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func Convert_api_RouteList_To_v1_RouteList(in *route_api.RouteList, out *RouteList, s conversion.Scope) error {
-	return autoConvert_api_RouteList_To_v1_RouteList(in, out, s)
-}
-
 func autoConvert_v1_RoutePort_To_api_RoutePort(in *RoutePort, out *route_api.RoutePort, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*RoutePort))(in)
@@ -265,76 +155,6 @@ func autoConvert_api_RoutePort_To_v1_RoutePort(in *route_api.RoutePort, out *Rou
 
 func Convert_api_RoutePort_To_v1_RoutePort(in *route_api.RoutePort, out *RoutePort, s conversion.Scope) error {
 	return autoConvert_api_RoutePort_To_v1_RoutePort(in, out, s)
-}
-
-func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteSpec))(in)
-	}
-	out.Host = in.Host
-	out.Path = in.Path
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.To, &out.To, 0); err != nil {
-		return err
-	}
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(route_api.RoutePort)
-		if err := Convert_v1_RoutePort_To_api_RoutePort(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Port = nil
-	}
-	if in.TLS != nil {
-		in, out := &in.TLS, &out.TLS
-		*out = new(route_api.TLSConfig)
-		if err := Convert_v1_TLSConfig_To_api_TLSConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.TLS = nil
-	}
-	return nil
-}
-
-func Convert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSpec, s conversion.Scope) error {
-	return autoConvert_v1_RouteSpec_To_api_RouteSpec(in, out, s)
-}
-
-func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *RouteSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteSpec))(in)
-	}
-	out.Host = in.Host
-	out.Path = in.Path
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.To, &out.To, 0); err != nil {
-		return err
-	}
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(RoutePort)
-		if err := Convert_api_RoutePort_To_v1_RoutePort(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Port = nil
-	}
-	if in.TLS != nil {
-		in, out := &in.TLS, &out.TLS
-		*out = new(TLSConfig)
-		if err := Convert_api_TLSConfig_To_v1_TLSConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.TLS = nil
-	}
-	return nil
-}
-
-func Convert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *RouteSpec, s conversion.Scope) error {
-	return autoConvert_api_RouteSpec_To_v1_RouteSpec(in, out, s)
 }
 
 func autoConvert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *route_api.RouteStatus, s conversion.Scope) error {

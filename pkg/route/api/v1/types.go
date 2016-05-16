@@ -43,6 +43,10 @@ type RouteSpec struct {
 	// be defaulted to Service.
 	To kapi.ObjectReference `json:"to"`
 
+	// SecondaryServices is an extension of the 'to' field. If more than one service needs to be
+	// pointed to, then use this field
+	SecondaryServices []kapi.ObjectReference `json:"secondaryServices,omitempty"`
+
 	// If specified, the port to be used by the router. Most routers will use all
 	// endpoints exposed by the service by default - set this value to instruct routers
 	// which port to use.

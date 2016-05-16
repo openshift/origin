@@ -77,7 +77,7 @@ func (c *RouterController) HandleRoute() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	glog.V(4).Infof("Processing Route: %s -> %s", route.Name, route.Spec.To.Name)
+	glog.V(4).Infof("Processing Route: %s -> %s", route.Name, route.Spec.To[0].Name)
 	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
 	glog.V(4).Infof("           Event: %s", eventType)
 

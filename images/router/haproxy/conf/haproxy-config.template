@@ -206,18 +206,19 @@ backend openshift_default
             where to send the traffic but should run the be in tcp mode
         3. if the config is terminated at the
 */}}
-{{ range $id, $serviceUnit := .State }}
-        {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-            {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
-                {{ if (eq $cfg.TLSTermination "") }}
+{{ range $cfgIdx, $cfg := .State }}
+  {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+    {{ if (eq $cfg.TLSTermination "") }}
+# Plain http backend
 backend be_http_{{$cfgIdx}}
-                {{ else }}
+    {{ else }}
+# Plain http backend but request is TLS, terminated at edge
 backend be_edge_http_{{$cfgIdx}}
-                {{ end }}
+    {{ end }}
   mode http
   option redispatch
   option forwardfor
-  balance leastconn
+  balance roundrobin
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
@@ -226,15 +227,24 @@ backend be_edge_http_{{$cfgIdx}}
   {{ if (eq $cfg.TLSTermination "") }}
     cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
   {{ else }}
-    cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
+  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
   {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
-                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}}
-                {{ end }}
+    {{ range $svcUnitIdx, $serviceUnitName := $cfg.ServiceUnitNames }}
+      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+          {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+            {{ with $weight := index $cfg.Annotations (print "weight." $serviceUnitName) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{ $weight }}
+	    {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash }}
             {{ end }}
+          {{ end }}
+      {{ end }}
+    {{ end }}{{/* end iterate over services */}}
+  {{ end }}{{/* end if tls==edge/none */}}
 
-            {{ if eq $cfg.TLSTermination "passthrough" }}
+# Secure backend, pass through
+  {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$cfgIdx}}
 {{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
@@ -242,25 +252,32 @@ backend be_tcp_{{$cfgIdx}}
   balance source
   hash-type consistent
   timeout check 5000ms
-                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+    {{ range $svcUnitIdx, $serviceUnitName := $cfg.ServiceUnitNames }}
+      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+        {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
-                {{ end }}
-            {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}{{/* end iterate over services*/}}
+  {{ end }}{{/*end tls==passthrough*/}}
 
-            {{ if eq $cfg.TLSTermination "reencrypt" }}
+# Secure backend which requires re-encryption
+  {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$cfgIdx}}
   mode http
   option redispatch
   balance leastconn
   timeout check 5000ms
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
-                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+    {{ range $svcUnitIdx, $serviceUnitName := $cfg.ServiceUnitNames }}
+      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+        {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}}
-                {{ end }}
-            {{ end  }}
-        {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
-{{ end }}{{/* $serviceUnit */}}
-
+        {{ end }}
+      {{ end }}
+    {{ end }}
+  {{ end }}{{/* end tls==reencrypt */}}
+{{ end }}{{/* end loop over routes */}}
 {{ end }}{{/* end haproxy config template */}}
 
 {{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
@@ -269,13 +286,11 @@ backend be_secure_{{$cfgIdx}}
                         by attaching a prefix (be_http_) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "")}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end http host map template */}}
 
 {{/*
@@ -283,13 +298,11 @@ backend be_secure_{{$cfgIdx}}
                             a tls only route on the unsecure port
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_be.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge")}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end edge http host map template */}}
 
 {{/*
@@ -298,13 +311,11 @@ backend be_secure_{{$cfgIdx}}
     (http) if acls match for routes with insecure option set to expose.
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end edge insecure expose http host map template */}}
 
 {{/*
@@ -313,13 +324,11 @@ backend be_secure_{{$cfgIdx}}
     if acls match for routes that have the insecure option set to redirect.
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end edge insecure redirect http host map template */}}
 
 
@@ -328,13 +337,11 @@ backend be_secure_{{$cfgIdx}}
                         by attaching a prefix (be_tcp_ or be_secure_) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt"))) }}
 {{$cfg.Host}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end tcp host map template */}}
 
 {{/*
@@ -342,13 +349,11 @@ backend be_secure_{{$cfgIdx}}
     					through to the host_be.  Driven by the termination type of the ServiceAliasConfigs
 */}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") }}
 {{$cfg.Host}} 1
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end sni passthrough map template */}}
 
 
@@ -357,11 +362,9 @@ backend be_secure_{{$cfgIdx}}
                     that does specific checks that avoid mitm attacks: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-ssl
 */}}
 {{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
-{{   range $id, $serviceUnit := .State }}
-{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{   end }}
 {{ end }}{{/* end reencrypt passthrough map template */}}

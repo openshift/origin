@@ -197,7 +197,7 @@ func FindMissingRouter(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 
 				Severity:   osgraph.ErrorSeverity,
 				Key:        MissingRequiredRouterErr,
-				Message:    fmt.Sprintf("%s is routing traffic to svc/%s, but either the administrator has not installed a router or the router is not selecting this route.", f.ResourceName(routeNode), routeNode.Spec.To.Name),
+				Message:    fmt.Sprintf("%s is routing traffic to svc/%s, but either the administrator has not installed a router or the router is not selecting this route.", f.ResourceName(routeNode), routeNode.Spec.To[0].Name),
 				Suggestion: osgraph.Suggestion("oc adm router -h"),
 			})
 		}
