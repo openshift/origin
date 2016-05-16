@@ -14,6 +14,9 @@ repository's source.
 
 The Dockerfile built by this example is published as openshift/origin-gitserver
 
+Persistent and ephemeral templates are provided. For OpenShift Online you need to use
+the persistent one.
+
 Quick Start
 -----------
 
@@ -21,7 +24,7 @@ Prerequisites:
 
 * You have an OpenShift v3 server running
 * You are logged in and have access to a project
-* You have the `gitserver.yaml` from this directory
+* You have the `gitserver-ephemeral.yaml` or `gitserver-persistent.yaml` from this directory
 * You can create externally accessible routes on your server
 
 ### Deploy the Git Server
@@ -29,7 +32,13 @@ Prerequisites:
 1. Create the Git Server
 
     ```sh
-    $ oc create -f gitserver.yaml
+    $ oc create -f gitserver-ephemeral.yaml
+    ```
+
+    OR 
+
+    ```sh
+    $ oc create -f gitserver-persistent.yaml
     ```
 
 2. Grant `edit` access to the `git` service account

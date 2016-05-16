@@ -26,6 +26,10 @@ items:
           image: openshift/origin-gitserver:latest
           ports:
           - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /_/healthz
+              port: 8080
 
           env:
           # Each environment variable matching GIT_INITIAL_CLONE_* will

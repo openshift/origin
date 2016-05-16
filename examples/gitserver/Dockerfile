@@ -3,8 +3,9 @@
 #
 # The standard name for this image is openshift/origin-gitserver
 #
-FROM openshift/origin
+FROM openshift/origin-base
 
+COPY bin/oc /usr/bin/oc
 COPY bin/gitserver /usr/bin/gitserver
 COPY hooks/ /var/lib/git-hooks/
 COPY gitconfig /var/lib/gitconfig/.gitconfig
