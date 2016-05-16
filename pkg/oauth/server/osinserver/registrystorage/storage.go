@@ -10,6 +10,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 
+	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
@@ -186,6 +187,9 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	if err != nil {
 		return nil, err
 	}
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, authorize.Scopes...); err != nil {
+		return nil, err
+	}
 
 	return &osin.AuthorizeData{
 		Code:        authorize.Name,
@@ -227,6 +231,9 @@ func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.Ac
 	}
 	client, err := s.client.GetClient(kapi.NewContext(), access.ClientName)
 	if err != nil {
+		return nil, err
+	}
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, access.Scopes...); err != nil {
 		return nil, err
 	}
 

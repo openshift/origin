@@ -90,6 +90,52 @@ func ValidateClient(client *api.OAuthClient) field.ErrorList {
 		}
 	}
 
+	if client.AllowAnyScope && len(client.ScopeRestrictions) > 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("scopeRestrictions"), client.ScopeRestrictions, "invalid when allowAnyScope is allowed"))
+	}
+	if !client.AllowAnyScope && len(client.ScopeRestrictions) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("scopeRestrictions"), "required when allowAnyScope is false"))
+	}
+
+	for i, restriction := range client.ScopeRestrictions {
+		allErrs = append(allErrs, ValidateScopeRestriction(restriction, field.NewPath("scopeRestrictions").Index(i))...)
+	}
+
+	return allErrs
+}
+
+func ValidateScopeRestriction(restriction api.ScopeRestriction, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	specifiers := 0
+	if len(restriction.ExactValues) > 0 {
+		specifiers = specifiers + 1
+	}
+	if restriction.ClusterRole != nil {
+		specifiers = specifiers + 1
+	}
+	if specifiers != 1 {
+		allErrs = append(allErrs, field.Invalid(fldPath, restriction, "exactly one of literals, clusterRole is required"))
+		return allErrs
+	}
+
+	switch {
+	case len(restriction.ExactValues) > 0:
+		for i, literal := range restriction.ExactValues {
+			if len(literal) == 0 {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("literals").Index(i), literal, "may not be empty"))
+			}
+		}
+
+	case restriction.ClusterRole != nil:
+		if len(restriction.ClusterRole.RoleNames) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("clusterRole", "roleNames"), "won't match anything"))
+		}
+		if len(restriction.ClusterRole.Namespaces) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("clusterRole", "namespaces"), "won't match anything"))
+		}
+	}
+
 	return allErrs
 }
 

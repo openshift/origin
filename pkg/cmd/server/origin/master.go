@@ -64,6 +64,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
@@ -490,6 +491,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		},
 	)
 
+	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
 		"imageStreams/secrets": imageStreamSecretsStorage,
@@ -525,10 +529,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper),
-		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper),
-		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
-		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
+		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper, clientRegistry),
+		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper, clientRegistry),
+		"oAuthClients":              clientStorage,
+		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper, clientRegistry),
 
 		"resourceAccessReviews":      resourceAccessReviewStorage,
 		"subjectAccessReviews":       subjectAccessReviewStorage,

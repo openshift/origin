@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -56,7 +57,7 @@ func TestScopedTokens(t *testing.T) {
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserIndicator + scope.UserInfo},
 		UserName:   userName,
@@ -176,7 +177,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
 		UserName:   userName,
@@ -199,7 +200,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "any-client",
+		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
 		UserName:   userName,
@@ -219,4 +220,212 @@ func TestScopeEscalations(t *testing.T) {
 	if _, err := escalatingEditClient.Secrets(projectName).List(kapi.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func TestTokensWithIllegalScopes(t *testing.T) {
+	testutil.RequireEtcd(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	client := &oauthapi.OAuthClient{
+		ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+		ScopeRestrictions: []oauthapi.ScopeRestriction{
+			{ExactValues: []string{"user:info"}},
+			{
+				ClusterRole: &oauthapi.ClusterRoleScopeRestriction{
+					RoleNames:       []string{"one", "two"},
+					Namespaces:      []string{"alfa", "bravo"},
+					AllowEscalation: false,
+				},
+			},
+		},
+	}
+	if _, err := clusterAdminClient.OAuthClients().Create(client); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clientAuthorizationTests := []struct {
+		name string
+		obj  *oauthapi.OAuthClientAuthorization
+		fail bool
+	}{
+		{
+			name: "no scopes",
+			fail: true,
+			obj: &oauthapi.OAuthClientAuthorization{
+				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+			},
+		},
+		{
+			name: "denied literal",
+			fail: true,
+			obj: &oauthapi.OAuthClientAuthorization{
+				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"user:info", "user:check-access"},
+			},
+		},
+		{
+			name: "denied role",
+			fail: true,
+			obj: &oauthapi.OAuthClientAuthorization{
+				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:*"},
+			},
+		},
+		{
+			name: "ok role",
+			obj: &oauthapi.OAuthClientAuthorization{
+				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:bravo"},
+			},
+		},
+	}
+	for _, tc := range clientAuthorizationTests {
+		_, err := clusterAdminClient.OAuthClientAuthorizations().Create(tc.obj)
+		switch {
+		case err == nil && !tc.fail:
+		case err != nil && tc.fail:
+		default:
+			t.Errorf("%s: expected %v, got %v", tc.name, tc.fail, err)
+
+		}
+	}
+
+	accessTokenTests := []struct {
+		name string
+		obj  *oauthapi.OAuthAccessToken
+		fail bool
+	}{
+		{
+			name: "no scopes",
+			fail: true,
+			obj: &oauthapi.OAuthAccessToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+			},
+		},
+		{
+			name: "denied literal",
+			fail: true,
+			obj: &oauthapi.OAuthAccessToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"user:info", "user:check-access"},
+			},
+		},
+		{
+			name: "denied role",
+			fail: true,
+			obj: &oauthapi.OAuthAccessToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:*"},
+			},
+		},
+		{
+			name: "ok role",
+			obj: &oauthapi.OAuthAccessToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:bravo"},
+			},
+		},
+	}
+	for _, tc := range accessTokenTests {
+		_, err := clusterAdminClient.OAuthAccessTokens().Create(tc.obj)
+		switch {
+		case err == nil && !tc.fail:
+		case err != nil && tc.fail:
+		default:
+			t.Errorf("%s: expected %v, got %v", tc.name, tc.fail, err)
+
+		}
+	}
+
+	authorizeTokenTests := []struct {
+		name string
+		obj  *oauthapi.OAuthAuthorizeToken
+		fail bool
+	}{
+		{
+			name: "no scopes",
+			fail: true,
+			obj: &oauthapi.OAuthAuthorizeToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+			},
+		},
+		{
+			name: "denied literal",
+			fail: true,
+			obj: &oauthapi.OAuthAuthorizeToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"user:info", "user:check-access"},
+			},
+		},
+		{
+			name: "denied role",
+			fail: true,
+			obj: &oauthapi.OAuthAuthorizeToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:*"},
+			},
+		},
+		{
+			name: "ok role",
+			obj: &oauthapi.OAuthAuthorizeToken{
+				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName: client.Name,
+				UserName:   "name",
+				UserUID:    "uid",
+				Scopes:     []string{"role:one:bravo"},
+			},
+		},
+	}
+	for _, tc := range authorizeTokenTests {
+		_, err := clusterAdminClient.OAuthAuthorizeTokens().Create(tc.obj)
+		switch {
+		case err == nil && !tc.fail:
+		case err != nil && tc.fail:
+		default:
+			t.Errorf("%s: expected %v, got %v", tc.name, tc.fail, err)
+
+		}
+	}
+
 }

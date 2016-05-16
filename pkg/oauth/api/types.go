@@ -73,6 +73,34 @@ type OAuthClient struct {
 
 	// RedirectURIs is the valid redirection URIs associated with a client
 	RedirectURIs []string
+
+	// ScopeRestrictions describes which scopes this client can request.  Each requested scope
+	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
+	// If no restriction matches, then the scope is denied.
+	ScopeRestrictions []ScopeRestriction
+
+	// AllowAnyScope indicates that the client is allowed to request a token unconstrained by scopes.
+	// If this is true, then ScopeRestrictions is ignored.
+	AllowAnyScope bool
+}
+
+// ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.
+type ScopeRestriction struct {
+	// ExactValues means the scope has to match a particular set of strings exactly
+	ExactValues []string
+
+	// ClusterRole describes a set of restrictions for cluster role scoping.
+	ClusterRole *ClusterRoleScopeRestriction
+}
+
+// ClusterRoleScopeRestriction describes restrictions on cluster role scopes
+type ClusterRoleScopeRestriction struct {
+	// RoleNames is the list of cluster roles that can referenced.  * means anything
+	RoleNames []string
+	// Namespaces is the list of namespaces that can be referenced.  * means any of them (including *)
+	Namespaces []string
+	// AllowEscalation indicates whether you can request roles and their escalating resources
+	AllowEscalation bool
 }
 
 type OAuthClientAuthorization struct {

@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/util"
 )
@@ -22,7 +23,7 @@ type REST struct {
 const EtcdPrefix = "/oauth/clientauthorizations"
 
 // NewREST returns a RESTStorage object that will work against oauth clients
-func NewREST(s storage.Interface) *REST {
+func NewREST(s storage.Interface, clientGetter oauthclient.Getter) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthClientAuthorization{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthClientAuthorizationList{} },
@@ -43,8 +44,8 @@ func NewREST(s storage.Interface) *REST {
 		Storage: s,
 	}
 
-	store.CreateStrategy = oauthclientauthorization.Strategy
-	store.UpdateStrategy = oauthclientauthorization.Strategy
+	store.CreateStrategy = oauthclientauthorization.NewStrategy(clientGetter)
+	store.UpdateStrategy = oauthclientauthorization.NewStrategy(clientGetter)
 
 	return &REST{*store}
 }

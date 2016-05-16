@@ -384,7 +384,8 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 }
 
 func getEtcdTokenAuthenticator(etcdHelper storage.Interface, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper, nil)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
 	userStorage := useretcd.NewREST(etcdHelper)

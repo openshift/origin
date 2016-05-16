@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
@@ -118,6 +119,12 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
+		l.failed(failure, w, req)
+		return
+	}
+
 	uri, err := getBaseURL(req)
 	if err != nil {
 		glog.Errorf("Unable to generate base URL: %v", err)
@@ -183,6 +190,11 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
+		return
+	}
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
+		l.failed(failure, w, req)
 		return
 	}
 

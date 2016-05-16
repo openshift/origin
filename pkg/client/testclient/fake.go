@@ -280,9 +280,20 @@ func (c *Fake) ImpersonateLocalSubjectAccessReviews(namespace, token string) cli
 	return &FakeLocalSubjectAccessReviews{Fake: c, Namespace: namespace}
 }
 
-// OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
+func (c *Fake) OAuthClients() client.OAuthClientInterface {
+	return &FakeOAuthClient{Fake: c}
+}
+
+func (c *Fake) OAuthClientAuthorizations() client.OAuthClientAuthorizationInterface {
+	return &FakeOAuthClientAuthorization{Fake: c}
+}
+
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
+}
+
+func (c *Fake) OAuthAuthorizeTokens() client.OAuthAuthorizeTokenInterface {
+	return &FakeOAuthAuthorizeTokens{Fake: c}
 }
 
 // LocalSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
