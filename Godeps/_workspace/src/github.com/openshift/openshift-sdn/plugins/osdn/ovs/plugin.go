@@ -202,7 +202,7 @@ func getScriptError(output []byte) string {
 	return string(output)
 }
 
-func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := exec.Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), setUpCmd, id.ID, vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
@@ -247,9 +247,9 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 	}
 }
 
-func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.ContainerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := exec.Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1").CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), tearDownCmd, id.ID, "-1", "-1", "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
@@ -259,7 +259,11 @@ func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTy
 	}
 }
 
-func (plugin *ovsPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+func (plugin *ovsPlugin) Status() error {
+	return nil
+}
+
+func (plugin *ovsPlugin) GetPodNetworkStatus(namespace string, name string, podInfraContainerID kubeletTypes.ContainerID) (*knetwork.PodNetworkStatus, error) {
 	return nil, nil
 }
 
