@@ -164,7 +164,7 @@
             "containers": [
               {
                 "name": "nodejs-mongodb-example",
-                "image": "nodejs-mongodb-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -288,7 +288,7 @@
             "containers": [
               {
                 "name": "mongodb",
-                "image": "mongodb",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 27017
