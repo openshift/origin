@@ -162,6 +162,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	}
 	handler := c.versionSkewFilter(safe)
 	handler = c.authorizationFilter(handler)
+	// audit handler must comes before the impersonationFilter (not present yet) to read the original user
+	handler = c.auditHandler(handler)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
 	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached

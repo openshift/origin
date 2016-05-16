@@ -102,6 +102,8 @@ assetConfig:
     maxRequestsInFlight: 0
     namedCertificates: null
     requestTimeoutSeconds: 0
+auditConfig:
+  enabled: false
 controllerLeaseTTL: 0
 controllers: ""
 corsAllowedOrigins: null

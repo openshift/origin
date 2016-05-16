@@ -228,6 +228,16 @@ type MasterConfig struct {
 
 	// MasterVolumeConfig contains options for configuring volume plugins in the master node.
 	VolumeConfig MasterVolumeConfig `json:"volumeConfig"`
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig `json:"auditConfig"`
+}
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, basic audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool `json:"enabled"`
 }
 
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images

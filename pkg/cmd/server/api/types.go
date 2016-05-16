@@ -288,6 +288,16 @@ type MasterConfig struct {
 
 	// VolumeConfig contains options for configuring volumes on the node.
 	VolumeConfig MasterVolumeConfig
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig
+}
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool
 }
 
 type ImagePolicyConfig struct {
