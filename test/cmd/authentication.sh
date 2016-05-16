@@ -38,6 +38,9 @@ os::cmd::expect_success 'oc get secrets --token="${allescalatingpowerstoken}" -n
 os::cmd::expect_failure_and_text 'oc get secrets --token="${allescalatingpowerstoken}" -n default' 'cannot list secrets in project'
 os::cmd::expect_success_and_text 'oc get projects --token="${allescalatingpowerstoken}"' 'cmd-authentication'
 
+accesstoken=$(oc process -f ${OS_ROOT}/test/fixtures/authentication/scoped-token-template.yaml TOKEN_PREFIX=access SCOPE=user:check-access USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
+os::cmd::expect_success_and_text 'curl -k -XPOST -H "Content-Type: application/json" -H "Authorization: Bearer ${accesstoken}" ${API_SCHEME}://${API_HOST}:${API_PORT}/oapi/v1/namespaces/cmd-authentication/localsubjectaccessreviews -d @${OS_ROOT}/test/fixtures/authentication/localsubjectaccessreview.json' '"kind": "SubjectAccessReviewResponse"'
+
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
