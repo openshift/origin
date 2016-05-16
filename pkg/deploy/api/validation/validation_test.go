@@ -79,12 +79,50 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 	}
 }
 
+func TestValidateDeploymentConfigICTMissingImage(t *testing.T) {
+	dc := &api.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: []api.DeploymentTriggerPolicy{test.OkImageChangeTrigger()},
+			Selector: test.OkSelector(),
+			Strategy: test.OkStrategy(),
+			Template: test.OkPodTemplateMissingImage("container1"),
+		},
+	}
+	errs := ValidateDeploymentConfig(dc)
+
+	if len(errs) > 0 {
+		t.Errorf("Unexpected non-empty error list: %+v", errs)
+	}
+
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if c.Image == "unset" {
+			t.Errorf("%s image field still has validation fake out value of %s", c.Name, c.Image)
+		}
+	}
+}
+
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		DeploymentConfig api.DeploymentConfig
 		ErrorType        field.ErrorType
 		Field            string
 	}{
+		"empty container field": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{test.OkConfigChangeTrigger()},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplateMissingImage("container1"),
+				},
+			},
+			field.ErrorTypeRequired,
+			"spec.template.spec.containers[0].image",
+		},
 		"missing name": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
