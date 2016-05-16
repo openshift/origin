@@ -172,53 +172,78 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 	})
 }
 
-func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
-	switch strategy.Type {
-	case deployapi.DeploymentStrategyTypeRecreate:
-		if strategy.RecreateParams != nil {
-			pre := strategy.RecreateParams.Pre
-			mid := strategy.RecreateParams.Mid
-			post := strategy.RecreateParams.Post
-			if pre != nil {
-				printHook("Pre-deployment", pre, w)
-			}
-			if mid != nil {
-				printHook("Mid-deployment", mid, w)
-			}
-			if post != nil {
-				printHook("Post-deployment", post, w)
-			}
+func multilineStringArray(sep, indent string, args ...string) string {
+	for i, s := range args {
+		if strings.HasSuffix(s, "\n") {
+			s = strings.TrimSuffix(s, "\n")
 		}
-	case deployapi.DeploymentStrategyTypeRolling:
-		if strategy.RollingParams != nil {
-			pre := strategy.RollingParams.Pre
-			post := strategy.RollingParams.Post
-			if pre != nil {
-				printHook("Pre-deployment", pre, w)
-			}
-			if post != nil {
-				printHook("Post-deployment", post, w)
-			}
+		if strings.Contains(s, "\n") {
+			s = "\n" + indent + strings.Join(strings.Split(s, "\n"), "\n"+indent)
 		}
-	case deployapi.DeploymentStrategyTypeCustom:
-		fmt.Fprintf(w, "\t  Image:\t%s\n", strategy.CustomParams.Image)
+		args[i] = s
+	}
+	strings.TrimRight(args[len(args)-1], "\n ")
+	return strings.Join(args, " ")
+}
+
+func printStrategy(strategy deployapi.DeploymentStrategy, indent string, w *tabwriter.Writer) {
+	if strategy.CustomParams != nil {
+		if len(strategy.CustomParams.Image) == 0 {
+			fmt.Fprintf(w, "%sImage:\t%s\n", indent, "<default>")
+		} else {
+			fmt.Fprintf(w, "%sImage:\t%s\n", indent, strategy.CustomParams.Image)
+		}
 
 		if len(strategy.CustomParams.Environment) > 0 {
-			fmt.Fprintf(w, "\t  Environment:\t%s\n", formatLabels(convertEnv(strategy.CustomParams.Environment)))
+			fmt.Fprintf(w, "%sEnvironment:\t%s\n", indent, formatLabels(convertEnv(strategy.CustomParams.Environment)))
 		}
 
 		if len(strategy.CustomParams.Command) > 0 {
-			fmt.Fprintf(w, "\t  Command:\t%v\n", strings.Join(strategy.CustomParams.Command, " "))
+			fmt.Fprintf(w, "%sCommand:\t%v\n", indent, multilineStringArray(" ", "\t  ", strategy.CustomParams.Command...))
+		}
+	}
+
+	if strategy.RecreateParams != nil {
+		pre := strategy.RecreateParams.Pre
+		mid := strategy.RecreateParams.Mid
+		post := strategy.RecreateParams.Post
+		if pre != nil {
+			printHook("Pre-deployment", pre, indent, w)
+		}
+		if mid != nil {
+			printHook("Mid-deployment", mid, indent, w)
+		}
+		if post != nil {
+			printHook("Post-deployment", post, indent, w)
+		}
+	}
+
+	if strategy.RollingParams != nil {
+		pre := strategy.RollingParams.Pre
+		post := strategy.RollingParams.Post
+		if pre != nil {
+			printHook("Pre-deployment", pre, indent, w)
+		}
+		if post != nil {
+			printHook("Post-deployment", post, indent, w)
 		}
 	}
 }
 
-func printHook(prefix string, hook *deployapi.LifecycleHook, w io.Writer) {
+func printHook(prefix string, hook *deployapi.LifecycleHook, indent string, w io.Writer) {
 	if hook.ExecNewPod != nil {
-		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s):\n", prefix, hook.FailurePolicy)
-		fmt.Fprintf(w, "\t    Container:\t%s\n", hook.ExecNewPod.ContainerName)
-		fmt.Fprintf(w, "\t    Command:\t%v\n", strings.Join(hook.ExecNewPod.Command, " "))
-		fmt.Fprintf(w, "\t    Env:\t%s\n", formatLabels(convertEnv(hook.ExecNewPod.Env)))
+		fmt.Fprintf(w, "%s%s hook (pod type, failure policy: %s):\n", indent, prefix, hook.FailurePolicy)
+		fmt.Fprintf(w, "%s  Container:\t%s\n", indent, hook.ExecNewPod.ContainerName)
+		fmt.Fprintf(w, "%s  Command:\t%v\n", indent, multilineStringArray(" ", "\t  ", hook.ExecNewPod.Command...))
+		if len(hook.ExecNewPod.Env) > 0 {
+			fmt.Fprintf(w, "%s  Env:\t%s\n", indent, formatLabels(convertEnv(hook.ExecNewPod.Env)))
+		}
+	}
+	if len(hook.TagImages) > 0 {
+		fmt.Fprintf(w, "%s%s hook (tag images, failure policy: %s):\n", indent, prefix, hook.FailurePolicy)
+		for _, image := range hook.TagImages {
+			fmt.Fprintf(w, "%s  Tag:\tcontainer %s to %s %s %s\n", indent, image.ContainerName, image.To.Kind, image.To.Name, image.To.Namespace)
+		}
 	}
 }
 
@@ -262,7 +287,7 @@ func printDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec, w *tabwriter
 
 	// Strategy
 	formatString(w, "Strategy", spec.Strategy.Type)
-	printStrategy(spec.Strategy, w)
+	printStrategy(spec.Strategy, "  ", w)
 
 	// Pod template
 	fmt.Fprintf(w, "Template:\n")

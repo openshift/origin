@@ -759,15 +759,6 @@ func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *deploy_api.
 		defaulting.(func(*deploy_api.DeploymentStrategy))(in)
 	}
 	out.Type = DeploymentStrategyType(in.Type)
-	if in.CustomParams != nil {
-		in, out := &in.CustomParams, &out.CustomParams
-		*out = new(CustomDeploymentStrategyParams)
-		if err := Convert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyParams(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.CustomParams = nil
-	}
 	if in.RecreateParams != nil {
 		in, out := &in.RecreateParams, &out.RecreateParams
 		*out = new(RecreateDeploymentStrategyParams)
@@ -785,6 +776,15 @@ func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *deploy_api.
 		}
 	} else {
 		out.RollingParams = nil
+	}
+	if in.CustomParams != nil {
+		in, out := &in.CustomParams, &out.CustomParams
+		*out = new(CustomDeploymentStrategyParams)
+		if err := Convert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyParams(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.CustomParams = nil
 	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {

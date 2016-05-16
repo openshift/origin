@@ -103,6 +103,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			// Don't try and re-create the deployer pod.
 			break
 		}
+
+		if _, ok := deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
+			return nil
+		}
+
 		// Generate a deployer pod spec.
 		podTemplate, err := c.makeDeployerPod(deployment)
 		if err != nil {
@@ -240,6 +245,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+			DNSPolicy:             deployment.Spec.Template.Spec.DNSPolicy,
+			ImagePullSecrets:      deployment.Spec.Template.Spec.ImagePullSecrets,
 			// Setting the node selector on the deployer pod so that it is created
 			// on the same set of nodes as the pods.
 			NodeSelector:       deployment.Spec.Template.Spec.NodeSelector,

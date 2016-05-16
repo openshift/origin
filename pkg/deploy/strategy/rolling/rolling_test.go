@@ -1,6 +1,7 @@
 package rolling
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 	"time"
@@ -43,6 +44,7 @@ func TestRolling_deployInitial(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = deploytest.OkRollingStrategy()
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -96,6 +98,7 @@ func TestRolling_deployRolling(t *testing.T) {
 		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
+	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(latest, deployment, 2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -171,7 +174,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},
@@ -200,6 +203,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
 		}
+		strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 		err := strategy.Deploy(latest, deployment, 2)
 		if err != nil && tc.deploymentShouldFail {
 			t.Logf("got expected error: %v", err)
@@ -230,7 +234,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},
@@ -258,6 +262,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
 		}
+		strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 		err := strategy.Deploy(nil, deployment, 2)
 		if err != nil && tc.deploymentShouldFail {
 			t.Logf("got expected error: %v", err)

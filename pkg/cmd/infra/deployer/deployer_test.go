@@ -1,6 +1,7 @@
 package deployer
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"testing"
@@ -135,6 +136,8 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		scaler := &scalertest.FakeScaler{}
 
 		deployer := &Deployer{
+			out:    &bytes.Buffer{},
+			errOut: &bytes.Buffer{},
 			strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 				return &testStrategy{
 					deployFunc: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
