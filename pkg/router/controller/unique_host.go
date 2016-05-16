@@ -12,37 +12,25 @@ import (
 	"github.com/openshift/origin/pkg/router"
 )
 
-// RouteHostFunc returns a host for a route. It may return an empty string.
-type RouteHostFunc func(*routeapi.Route) string
-
-// HostForRoute returns the host set on the route.
-func HostForRoute(route *routeapi.Route) string {
-	return route.Spec.Host
-}
-
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
-	plugin       router.Plugin
-	hostForRoute RouteHostFunc
+	plugin router.Plugin
 
 	recorder RejectionRecorder
 
 	hostToRoute HostToRouteMap
 	routeToHost RouteToHostMap
-	// nil means different than empty
-	allowedNamespaces sets.String
 }
 
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are
 // passed into the underlying plugin.
-func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, recorder RejectionRecorder) *UniqueHost {
+func NewUniqueHost(plugin router.Plugin, recorder RejectionRecorder) *UniqueHost {
 	return &UniqueHost{
-		plugin:       plugin,
-		hostForRoute: fn,
+		plugin: plugin,
 
 		recorder: recorder,
 
@@ -64,9 +52,6 @@ func (p *UniqueHost) HostLen() int {
 
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *UniqueHost) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
-	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(endpoints.Namespace) {
-		return nil
-	}
 	return p.plugin.HandleEndpoints(eventType, endpoints)
 }
 
@@ -75,19 +60,14 @@ func (p *UniqueHost) HandleEndpoints(eventType watch.EventType, endpoints *kapi.
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
 func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
-		return nil
-	}
-
 	routeName := routeNameKey(route)
 
-	host := p.hostForRoute(route)
+	host := route.Spec.Host
 	if len(host) == 0 {
 		glog.V(4).Infof("Route %s has no host value", routeName)
 		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
 		return nil
 	}
-	route.Spec.Host = host
 
 	// ensure hosts can only be claimed by one namespace at a time
 	// TODO: this could be abstracted above this layer?
@@ -176,10 +156,9 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	return nil
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
-// the provided namespace list.
+// HandleNamespaces updates the hostToRoute and routeToHost maps with respect to
+// changes to the set of watched namespaces.
 func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
-	p.allowedNamespaces = namespaces
 	changed := false
 	for k, v := range p.hostToRoute {
 		if namespaces.Has(v[0].Namespace) {
