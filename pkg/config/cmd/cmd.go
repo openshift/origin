@@ -65,7 +65,7 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 		}
 		obj, err := b.Op(info, namespace, item)
 		if err != nil && b.Retry != nil {
-			if obj := b.Retry(info, err); obj != nil {
+			if obj = b.Retry(info, err); obj != nil {
 				obj, err = b.Op(info, namespace, obj)
 			}
 		}

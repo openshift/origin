@@ -2,8 +2,9 @@ package image
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"strings"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -192,7 +193,7 @@ func (c *GenericImageStreamUsageComputer) processImageStreamImages(
 
 			cacheInternalRegistryName(img.DockerImageReference)
 
-			if err := handler(tag, history.Items[i].DockerImageReference, img); err != nil {
+			if err = handler(tag, history.Items[i].DockerImageReference, img); err != nil {
 				return err
 			}
 		}
@@ -269,7 +270,7 @@ func (c *GenericImageStreamUsageComputer) processImageStreamSpecImages(
 
 		cacheInternalRegistryName(img.DockerImageReference)
 
-		if err := handler(tag, img.DockerImageReference, img); err != nil {
+		if err = handler(tag, img.DockerImageReference, img); err != nil {
 			return err
 		}
 	}
