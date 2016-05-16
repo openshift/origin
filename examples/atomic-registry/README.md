@@ -28,7 +28,7 @@ The install procedure should be run locally.
 Replace steps 1 and 3 above with the output of the inspect command.
 
     sudo docker inspect -f '{{ .Config.Labels.INSTALL }}' projectatomic/atomic-registry-quickstart
-    sudo docker inspect -f '{{ .Config.Labels.RUN }}' openshift/atomic-registry-quickstart
+    sudo docker inspect -f '{{ .Config.Labels.RUN }}' projectatomic/atomic-registry-quickstart
 
 This will provide the docker run commands to install and run the registry installation.
 
