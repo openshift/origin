@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -o errexit
+set -o nounset
 set -o pipefail
+
+echo $(go version)
 
 if ! which golint &>/dev/null; then
   echo "Unable to detect 'golint' package"
@@ -9,15 +12,7 @@ if ! which golint &>/dev/null; then
   exit 1
 fi
 
-GO_VERSION=($(go version))
-
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') && -z "${FORCE_VERIFY-}"  ]]; then
-  echo "Unknown go version '${GO_VERSION}', skipping golint."
-  exit 0
-fi
-
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 
 cd "${OS_ROOT}"
@@ -46,7 +41,7 @@ else
 fi
 
 if [[ -n "${bad_files}" ]]; then
-  echo "golint detected following problems:"
+  echo "!!! golint detected the following problems:"
   echo "${bad_files}"
   exit 1
 fi
