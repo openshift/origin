@@ -8,12 +8,16 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
+	utilglog "github.com/openshift/origin/pkg/util/glog"
 )
+
+// glog is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using glog
+var glog = utilglog.ToFile(os.Stderr, 2)
 
 const OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
 
@@ -86,7 +90,7 @@ func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *
 	glog.V(4).Infof("Setting build revision to %#v", build.Spec.Revision.Git)
 	_, err := c.UpdateDetails(build)
 	if err != nil {
-		glog.Warningf("An error occurred saving build revision: %v", err)
+		glog.Infof("error: An error occurred saving build revision: %v", err)
 	}
 }
 

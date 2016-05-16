@@ -11,7 +11,6 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
@@ -61,7 +60,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		sourceInfo, errs = gitClient.GetInfo(dir)
 		if len(errs) > 0 {
 			for _, e := range errs {
-				glog.Warningf("Error getting git info: %v", e)
+				glog.Infof("error: Unable to retrieve Git info: %v", e)
 			}
 		}
 	}
@@ -208,7 +207,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	glog.V(2).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
-	quiet := !bool(glog.V(5))
+	quiet := !glog.Is(5)
 	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: !usingRef, Quiet: quiet, Shallow: !usingRef}); err != nil {
 		return true, err
 	}
@@ -277,7 +276,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 
 	glog.V(4).Infof("Extracting temporary tar %s to directory %s", tempFile.Name(), destDir)
 	var tarOutput io.Writer
-	if glog.V(4) {
+	if glog.Is(4) {
 		tarOutput = os.Stdout
 	}
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)

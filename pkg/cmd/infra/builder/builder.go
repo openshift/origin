@@ -3,6 +3,8 @@ package builder
 import (
 	"github.com/spf13/cobra"
 
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/build/builder/cmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -28,7 +30,8 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 		Short: "Run a Source-to-Image build",
 		Long:  stiBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
-			cmd.RunSTIBuild()
+			err := cmd.RunSTIBuild(c.Out())
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -43,7 +46,8 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 		Short: "Run a Docker build",
 		Long:  dockerBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
-			cmd.RunDockerBuild()
+			err := cmd.RunDockerBuild(c.Out())
+			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.AddCommand(version.NewVersionCommand(name, false))

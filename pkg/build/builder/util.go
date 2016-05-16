@@ -71,6 +71,10 @@ func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 	byteLimit, err := readInt64("/sys/fs/cgroup/memory/memory.limit_in_bytes")
 	if err != nil {
+		// for systems without cgroups builds should succeed
+		if _, err := os.Stat("/sys/fs/cgroup"); os.IsNotExist(err) {
+			return &s2iapi.CGroupLimits{}, nil
+		}
 		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
 	}
 	// math.MaxInt64 seems to give cgroups trouble, this value is

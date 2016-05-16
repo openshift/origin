@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
-
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -254,10 +252,9 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if err := removeImage(s.dockerClient, buildTag); err != nil {
-		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
+		glog.Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
-	defer glog.Flush()
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
