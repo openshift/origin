@@ -234,11 +234,11 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		if progress < 0 {
 			progress = -progress
 		}
-		percentage := 100
+		percentage := int32(100)
 		if !complete && goal > 0 {
 			percentage = (goal - progress) * 100 / goal
 		}
-		return config.OnProgress(oldRc, newRc, percentage)
+		return config.OnProgress(oldRc, newRc, int(percentage))
 	}
 
 	// Scale newRc and oldRc until newRc has the desired number of replicas and
