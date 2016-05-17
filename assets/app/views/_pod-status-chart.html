@@ -1,9 +1,0 @@
-<div ng-attr-id="{{chartId}}" class="pod-status-chart"></div>
-<!-- Include text values for screen readers -->
-<div class="sr-only">
-  <div ng-if="(pods | hashSize) === 0">No pods.</div>
-  <div ng-if="(pods | hashSize) !== 0">
-    Pod status:
-    <span ng-repeat="column in podStatusData" ng-if="column[1]">{{column[1]}} {{column[0]}}</span>
-  </div>
-</div>

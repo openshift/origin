@@ -1,9 +1,0 @@
-node_modules
-dist
-dist.*
-.tmp
-.sass-cache
-.bundle
-bower_components
-phantomjsdriver.log
-openshift-jvm
