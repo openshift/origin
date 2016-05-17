@@ -48,6 +48,7 @@ import (
 	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
+	allocator "github.com/openshift/origin/pkg/security"
 )
 
 // Describer generates output for the named resource or an error
@@ -616,6 +617,9 @@ func describePod(pod *api.Pod, events *api.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", pod.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", pod.Namespace)
+		if len(pod.Annotations[allocator.ValidatedSCCAnnotation]) > 0 {
+			fmt.Fprintf(out, "Security Policy:\t%s\n", pod.Annotations[allocator.ValidatedSCCAnnotation])
+		}
 		fmt.Fprintf(out, "Node:\t%s\n", pod.Spec.NodeName+"/"+pod.Status.HostIP)
 		if pod.Status.StartTime != nil {
 			fmt.Fprintf(out, "Start Time:\t%s\n", pod.Status.StartTime.Time.Format(time.RFC1123Z))
