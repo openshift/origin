@@ -72,6 +72,8 @@ type RouteIngressConditionType string
 const (
 	// RouteAdmitted means the route is able to service requests for the provided Host
 	RouteAdmitted RouteIngressConditionType = "Admitted"
+	// RouteExtendedValidationFailed means the route configuration failed an extended validation check.
+	RouteExtendedValidationFailed RouteIngressConditionType = "ExtendedValidationFailed"
 	// TODO: add other route condition types
 )
 

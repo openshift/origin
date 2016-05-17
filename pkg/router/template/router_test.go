@@ -319,7 +319,7 @@ func TestAddRoute(t *testing.T) {
 		saCfg, ok := su.ServiceAliasConfigs[routeKey]
 
 		if !ok {
-			t.Errorf("Unable to find created serivce alias config for route %s", routeKey)
+			t.Errorf("Unable to find created service alias config for route %s", routeKey)
 		} else {
 			if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) {
 				t.Errorf("Route %v did not match serivce alias config %v", route, saCfg)
