@@ -85,7 +85,7 @@ func TestBasicControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
@@ -175,7 +175,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
@@ -252,7 +252,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
@@ -322,7 +322,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
@@ -388,7 +388,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
@@ -406,7 +406,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	t.Log("waiting to reach syncHandler")
 	select {
 	case <-received:
-	case <-time.After(time.Duration(10 * time.Second)):
+	case <-time.After(time.Duration(30 * time.Second)):
 		t.Fatalf("failed to call into syncService")
 	}
 
