@@ -425,6 +425,46 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
 	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
+	kPauseObjectFunc := w.Factory.PauseObject
+	w.Factory.PauseObject = func(object runtime.Object) (bool, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return false, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			if t.Spec.Paused {
+				return true, nil
+			}
+			t.Spec.Paused = true
+			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			// TODO: Pause the deployer containers.
+			return false, err
+		default:
+			return kPauseObjectFunc(object)
+		}
+	}
+	kResumeObjectFunc := w.Factory.ResumeObject
+	w.Factory.ResumeObject = func(object runtime.Object) (bool, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return false, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			if !t.Spec.Paused {
+				return true, nil
+			}
+			t.Spec.Paused = false
+			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			// TODO: Resume the deployer containers.
+			return false, err
+		default:
+			return kResumeObjectFunc(object)
+		}
+	}
 
 	return w
 }
