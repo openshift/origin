@@ -43,6 +43,7 @@ else
       exit 1
     fi
     git checkout "${GIT_REF}"
+    console_commit="$(git rev-parse --short HEAD)"
   popd > /dev/null
 fi
 
@@ -53,6 +54,18 @@ pushd "${OS_ROOT}" > /dev/null
   # Force timestamps to unify, and mode to 493 (0755)
   Godeps/_workspace/bin/go-bindata -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist"      -pkg "assets" -o "pkg/assets/bindata.go"      "${CONSOLE_REPO_PATH}/dist/..."
   Godeps/_workspace/bin/go-bindata -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist.java" -pkg "java"   -o "pkg/assets/java/bindata.go" "${CONSOLE_REPO_PATH}/dist.java/..."
+  
+  if [[ -n "${COMMIT:+x}" ]]; then
+    if [[ -n "$(git status --porcelain)" ]]; then
+      echo "Creating branch and commit..."
+      git checkout -b "vendor_console_${console_commit}"
+      git add "pkg/assets/bindata.go"
+      git add "pkg/assets/java/bindata.go"
+      git commit -m "Bump origin-web-console (${console_commit})"
+    else
+      echo "Nothing to commit."
+    fi
+  fi
 popd > /dev/null
 
 echo "Done vendoring.  To run the console, run 'make clean build' and restart your origin server."
