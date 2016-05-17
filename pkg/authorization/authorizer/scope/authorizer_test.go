@@ -45,19 +45,20 @@ func TestAuthorize(t *testing.T) {
 		{
 			name:        "bad scope",
 			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"does-not-exist"}}},
-			expectedMsg: `scopes [does-not-exist], do not allow this action`,
+			expectedMsg: `scopes [does-not-exist] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
 			expectedErr: `no scope evaluator found for "does-not-exist"`,
 		},
 		{
 			name:        "bad scope 2",
 			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:dne"}}},
-			expectedMsg: `scopes [user:dne], do not allow this action`,
+			expectedMsg: `scopes [user:dne] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
 			expectedErr: `unrecognized scope: user:dne`,
 		},
 		{
 			name:        "scope doesn't cover",
 			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
-			expectedMsg: `scopes [user:info], do not allow this action`,
+			attributes:  defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", Resource: "users", ResourceName: "harold"},
+			expectedMsg: `scopes [user:info] prevent this action; User "" cannot get users in project "ns"`,
 		},
 		{
 			name:           "scope covers",
@@ -75,7 +76,7 @@ func TestAuthorize(t *testing.T) {
 
 	for _, tc := range testCases {
 		delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
-		authorizer := NewAuthorizer(delegate, nil)
+		authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
 
 		ctx := kapi.WithNamespace(kapi.NewContext(), "ns")
 		if tc.user != nil {

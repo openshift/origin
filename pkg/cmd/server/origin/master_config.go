@@ -373,8 +373,9 @@ func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.
 }
 
 func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
-	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, policyClient)
+	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
+	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, messageMaker)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, policyClient, messageMaker)
 	return scopeLimitedAuthorizer
 }
 

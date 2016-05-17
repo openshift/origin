@@ -24,12 +24,12 @@ useruid=$(oc get user/scoped-user -o jsonpath={.metadata.uid})
 
 whoamitoken=$(oc process -f ${OS_ROOT}/test/fixtures/authentication/scoped-token-template.yaml TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
 os::cmd::expect_success_and_text 'oc get user/~ --token="${whoamitoken}"' "${username}"
-os::cmd::expect_failure_and_text 'oc get pods --token="${whoamitoken}"' 'do not allow this action'
+os::cmd::expect_failure_and_text 'oc get pods --token="${whoamitoken}" -n cmd-authentication' 'prevent this action; User "scoped-user" cannot list pods in project "cmd-authentication"'
 
 adminnonescalatingpowerstoken=$(oc process -f ${OS_ROOT}/test/fixtures/authentication/scoped-token-template.yaml TOKEN_PREFIX=admin SCOPE=role:admin:* USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
-os::cmd::expect_failure_and_text 'oc get user/~ --token="${adminnonescalatingpowerstoken}"' 'do not allow this action'
-os::cmd::expect_failure_and_text 'oc get secrets --token="${adminnonescalatingpowerstoken}"' 'do not allow this action'
-os::cmd::expect_success_and_text 'oc get projects --token="${adminnonescalatingpowerstoken}"' 'cmd-authentication'
+os::cmd::expect_failure_and_text 'oc get user/~ --token="${adminnonescalatingpowerstoken}"' 'prevent this action; User "scoped-user" cannot get users at the cluster scope'
+os::cmd::expect_failure_and_text 'oc get secrets --token="${adminnonescalatingpowerstoken}" -n cmd-authentication' 'prevent this action; User "scoped-user" cannot list secrets in project "cmd-authentication"'
+os::cmd::expect_success_and_text 'oc get projects --token="${adminnonescalatingpowerstoken}" -n cmd-authentication' 'cmd-authentication'
 
 allescalatingpowerstoken=$(oc process -f ${OS_ROOT}/test/fixtures/authentication/scoped-token-template.yaml TOKEN_PREFIX=clusteradmin SCOPE='role:cluster-admin:*:!' USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
 os::cmd::expect_success_and_text 'oc get user/~ --token="${allescalatingpowerstoken}"' "${username}"
