@@ -27,6 +27,7 @@ var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
+			exutil.CheckOpenShiftNamespaceImageStreams(oc)
 			g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
 			err := oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -40,10 +41,7 @@ var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "django-ex")
-			if err != nil {
-				exutil.DumpDeploymentLogs("django-ex", oc)
-			}
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "django-ex", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
