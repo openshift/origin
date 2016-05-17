@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/openshift/origin",
 	"GoVersion": "go1.4.2",
+	"GodepVersion": "v69",
 	"Packages": [
 		"./..."
 	],
@@ -841,7 +842,7 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "46e689ee1104f5db16a173a798fb0f0ee5c7d3ef"
+			"Rev": "48ab6605c66ac797e07f615101c3e9e10e932b66"
 		},
 		{
 			"ImportPath": "github.com/mistifyio/go-zfs",

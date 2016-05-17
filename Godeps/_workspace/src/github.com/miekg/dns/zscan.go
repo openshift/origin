@@ -67,7 +67,7 @@ const (
 )
 
 // ParseError is a parsing error. It contains the parse error and the location in the io.Reader
-// where the error occured.
+// where the error occurred.
 type ParseError struct {
 	file string
 	err  string
@@ -86,7 +86,7 @@ func (e *ParseError) Error() (s string) {
 type lex struct {
 	token      string // text of the token
 	tokenUpper string // uppercase text of the token
-	length     int    // lenght of the token
+	length     int    // length of the token
 	err        bool   // when true, token text has lexer error
 	value      uint8  // value: zString, _BLANK, etc.
 	line       int    // line in the file
@@ -99,7 +99,7 @@ type lex struct {
 type Token struct {
 	// The scanned resource record when error is not nil.
 	RR
-	// When an error occured, this has the error specifics.
+	// When an error occurred, this has the error specifics.
 	Error *ParseError
 	// A potential comment positioned after the RR and on the same line.
 	Comment string
@@ -144,8 +144,10 @@ func ReadRR(q io.Reader, filename string) (RR, error) {
 //
 //	for x := range dns.ParseZone(strings.NewReader(z), "", "") {
 //		if x.Error != nil {
-//			// Do something with x.RR
-//		}
+//                  // log.Println(x.Error)
+//              } else {
+//                  // Do something with x.RR
+//              }
 //	}
 //
 // Comments specified after an RR (and on the same line!) are returned too:

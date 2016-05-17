@@ -17,6 +17,7 @@ const (
 	EDNS0N3U         = 0x7     // NSEC3 Hash Understood
 	EDNS0SUBNET      = 0x8     // client-subnet (RFC6891)
 	EDNS0EXPIRE      = 0x9     // EDNS0 expire
+	EDNS0COOKIE      = 0xa     // EDNS0 Cookie
 	EDNS0SUBNETDRAFT = 0x50fa  // Don't use! Use EDNS0SUBNET
 	EDNS0LOCALSTART  = 0xFDE9  // Beginning of range reserved for local/experimental use (RFC6891)
 	EDNS0LOCALEND    = 0xFFFE  // End of range reserved for local/experimental use (RFC6891)
@@ -28,11 +29,6 @@ const (
 type OPT struct {
 	Hdr    RR_Header
 	Option []EDNS0 `dns:"opt"`
-}
-
-// Header implements the RR interface.
-func (rr *OPT) Header() *RR_Header {
-	return &rr.Hdr
 }
 
 func (rr *OPT) String() string {
@@ -61,6 +57,8 @@ func (rr *OPT) String() string {
 			if o.(*EDNS0_SUBNET).DraftOption {
 				s += " (draft)"
 			}
+		case *EDNS0_COOKIE:
+			s += "\n; COOKIE: " + o.String()
 		case *EDNS0_UL:
 			s += "\n; UPDATE LEASE: " + o.String()
 		case *EDNS0_LLQ:
@@ -88,10 +86,6 @@ func (rr *OPT) len() int {
 	return l
 }
 
-func (rr *OPT) copy() RR {
-	return &OPT{*rr.Hdr.copyHeader(), rr.Option}
-}
-
 // return the old value -> delete SetVersion?
 
 // Version returns the EDNS version used. Only zero is defined.
@@ -105,13 +99,16 @@ func (rr *OPT) SetVersion(v uint8) {
 }
 
 // ExtendedRcode returns the EDNS extended RCODE field (the upper 8 bits of the TTL).
-func (rr *OPT) ExtendedRcode() uint8 {
-	return uint8((rr.Hdr.Ttl & 0xFF000000) >> 24)
+func (rr *OPT) ExtendedRcode() int {
+	return int((rr.Hdr.Ttl&0xFF000000)>>24) + 15
 }
 
 // SetExtendedRcode sets the EDNS extended RCODE field.
 func (rr *OPT) SetExtendedRcode(v uint8) {
-	rr.Hdr.Ttl = rr.Hdr.Ttl&0x00FFFFFF | (uint32(v) << 24)
+	if v < RcodeBadVers { // Smaller than 16.. Use the 4 bits you have!
+		return
+	}
+	rr.Hdr.Ttl = rr.Hdr.Ttl&0x00FFFFFF | (uint32(v-15) << 24)
 }
 
 // UDPSize returns the UDP buffer size.
@@ -291,6 +288,33 @@ func (e *EDNS0_SUBNET) String() (s string) {
 	s += "/" + strconv.Itoa(int(e.SourceNetmask)) + "/" + strconv.Itoa(int(e.SourceScope))
 	return
 }
+
+// The Cookie EDNS0 option
+//
+//	o := new(dns.OPT)
+//	o.Hdr.Name = "."
+//	o.Hdr.Rrtype = dns.TypeOPT
+//	e := new(dns.EDNS0_COOKIE)
+//	e.Code = dns.EDNS0COOKIE
+//	e.Cookie = "24a5ac.."
+//	o.Option = append(o.Option, e)
+//
+type EDNS0_COOKIE struct {
+	Code   uint16 // Always EDNS0COOKIE
+	Cookie string // Hex-encoded cookie data
+}
+
+func (e *EDNS0_COOKIE) pack() ([]byte, error) {
+	h, err := hex.DecodeString(e.Cookie)
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
+func (e *EDNS0_COOKIE) Option() uint16        { return EDNS0COOKIE }
+func (e *EDNS0_COOKIE) unpack(b []byte) error { e.Cookie = hex.EncodeToString(b); return nil }
+func (e *EDNS0_COOKIE) String() string        { return e.Cookie }
 
 // The EDNS0_UL (Update Lease) (draft RFC) option is used to tell the server to set
 // an expiration on an update RR. This is helpful for clients that cannot clean
