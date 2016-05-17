@@ -27,7 +27,7 @@ type NodeIPTables struct {
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 }
 
-func NewNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,

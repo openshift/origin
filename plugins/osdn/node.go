@@ -63,7 +63,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 
 	plugin := &OsdnNode{
 		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
-		registry:           NewRegistry(osClient, kClient),
+		registry:           newRegistry(osClient, kClient),
 		localIP:            selfIP,
 		hostName:           hostname,
 		vnids:              newVnidMap(),
@@ -80,7 +80,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
-	nodeIPTables := NewNodeIPTables(ni.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	nodeIPTables := newNodeIPTables(ni.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err := nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
@@ -102,7 +102,7 @@ func (node *OsdnNode) Start() error {
 			return err
 		}
 		for _, p := range pods {
-			containerID := GetPodContainerID(&p)
+			containerID := getPodContainerID(&p)
 			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
 			if err != nil {
 				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)

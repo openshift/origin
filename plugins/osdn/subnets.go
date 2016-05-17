@@ -31,7 +31,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 			// Don't error out; just warn so the error can be corrected with 'oc'
 			log.Errorf("Failed to validate HostSubnet %s: %v", err)
 		} else {
-			log.Infof("Found existing HostSubnet %s", HostSubnetToString(&sub))
+			log.Infof("Found existing HostSubnet %s", hostSubnetToString(&sub))
 		}
 	}
 
@@ -62,7 +62,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 			if err != nil {
 				return fmt.Errorf("Error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
-			log.Infof("Updated HostSubnet %s", HostSubnetToString(sub))
+			log.Infof("Updated HostSubnet %s", hostSubnetToString(sub))
 			return nil
 		}
 	}
@@ -78,7 +78,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 		master.subnetAllocator.ReleaseNetwork(sn)
 		return fmt.Errorf("Error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
 	}
-	log.Infof("Created HostSubnet %s", HostSubnetToString(sub))
+	log.Infof("Created HostSubnet %s", hostSubnetToString(sub))
 	return nil
 }
 
@@ -97,8 +97,16 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
 
-	log.Infof("Deleted HostSubnet %s", HostSubnetToString(sub))
+	log.Infof("Deleted HostSubnet %s", hostSubnetToString(sub))
 	return nil
+}
+
+func getNodeIP(node *kapi.Node) (string, error) {
+	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
+		return node.Status.Addresses[0].Address, nil
+	} else {
+		return netutils.GetNodeIP(node.Name)
+	}
 }
 
 func (master *OsdnMaster) watchNodes() {
@@ -115,7 +123,7 @@ func (master *OsdnMaster) watchNodes() {
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
 
-		nodeIP, err := GetNodeIP(node)
+		nodeIP, err := getNodeIP(node)
 		if err != nil {
 			log.Errorf("Failed to get node IP for %s, skipping event: %v, node: %v", name, eventType, node)
 			continue
@@ -192,7 +200,7 @@ func (node *OsdnNode) initSelfSubnet() error {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
-	log.Infof("Found local HostSubnet %s", HostSubnetToString(subnet))
+	log.Infof("Found local HostSubnet %s", hostSubnetToString(subnet))
 	node.localSubnet = subnet
 	return nil
 }

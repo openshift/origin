@@ -35,7 +35,7 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 	}
 
 	return &ovsProxyPlugin{
-		registry: NewRegistry(osClient, kClient),
+		registry: newRegistry(osClient, kClient),
 		podsByIP: make(map[string]*kapi.Pod),
 	}, nil
 }

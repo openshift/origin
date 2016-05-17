@@ -328,7 +328,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 }
 
 func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
-	glog.Infof("AddHostSubnetRules for %s", HostSubnetToString(subnet))
+	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
 
 	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
@@ -343,7 +343,7 @@ func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 }
 
 func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
-	glog.Infof("DeleteHostSubnetRules for %s", HostSubnetToString(subnet))
+	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
 
 	otx := ovs.NewTransaction(BR)
 	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
