@@ -60,6 +60,10 @@ func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules 
 }
 
 func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
+	return NewPathOptionsWithConfig(kcmdutil.GetFlagString(cmd, OpenShiftConfigFlagName))
+}
+
+func NewPathOptionsWithConfig(configPath string) *kubecmdconfig.PathOptions {
 	return &kubecmdconfig.PathOptions{
 		GlobalFile: RecommendedHomeFile,
 
@@ -67,7 +71,7 @@ func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
 		ExplicitFileFlag: OpenShiftConfigFlagName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: kcmdutil.GetFlagString(cmd, OpenShiftConfigFlagName),
+			ExplicitPath: configPath,
 		},
 	}
 }
