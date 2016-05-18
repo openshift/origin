@@ -107,7 +107,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "test-image-stream"}}
+	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: deploytest.ImageStreamName}}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
@@ -128,14 +128,14 @@ func TestTriggers_imageChange(t *testing.T) {
 	}
 	defer imageWatch.Stop()
 
-	updatedImage := "sha256:00000000000000000000000000000001"
-	updatedPullSpec := fmt.Sprintf("registry:8080/openshift/test-image@%s", updatedImage)
+	updatedImage := fmt.Sprintf("sha256:%s", deploytest.ImageID)
+	updatedPullSpec := fmt.Sprintf("registry:8080/%s/%s@%s", testutil.Namespace(), deploytest.ImageStreamName, updatedImage)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func() {
 		mapping := &imageapi.ImageStreamMapping{
 			ObjectMeta: kapi.ObjectMeta{Name: imageStream.Name},
-			Tag:        "latest",
+			Tag:        imageapi.DefaultImageTag,
 			Image: imageapi.Image{
 				ObjectMeta: kapi.ObjectMeta{
 					Name: updatedImage,
@@ -153,12 +153,11 @@ func TestTriggers_imageChange(t *testing.T) {
 			select {
 			case event := <-imageWatch.ResultChan():
 				stream := event.Object.(*imageapi.ImageStream)
-				if _, ok := stream.Status.Tags["latest"]; ok {
+				if _, ok := stream.Status.Tags[imageapi.DefaultImageTag]; ok {
 					t.Logf("ImageStream %s now has Status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
-				} else {
-					t.Logf("Still waiting for latest tag status on ImageStream %s", stream.Name)
 				}
+				t.Logf("Still waiting for latest tag status on ImageStream %s", stream.Name)
 			}
 		}
 	}

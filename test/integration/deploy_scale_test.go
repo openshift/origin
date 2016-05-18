@@ -8,6 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -29,6 +30,7 @@ func TestDeployScale(t *testing.T) {
 	checkErr(t, err)
 
 	config := deploytest.OkDeploymentConfig(0)
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	config.Spec.Replicas = 1
 
 	dc, err := osClient.DeploymentConfigs(namespace).Create(config)
