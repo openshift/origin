@@ -74,6 +74,10 @@ type OAuthClient struct {
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty"`
 
+	// AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation
+	// and for service account token validation
+	AdditionalSecrets []string `json:"additionalSecrets,omitempty"`
+
 	// RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects
 	RespondWithChallenges bool `json:"respondWithChallenges,omitempty"`
 
