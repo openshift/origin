@@ -82,6 +82,7 @@ apiLevels: null
 apiVersion: v1
 assetConfig:
   extensionDevelopment: false
+  extensionProperties: null
   extensionScripts: null
   extensionStylesheets: null
   extensions:

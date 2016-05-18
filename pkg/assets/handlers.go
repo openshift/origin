@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	html_template "html/template"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
@@ -154,6 +155,22 @@ type WebConsoleVersion struct {
 	OpenShiftVersion  string
 }
 
+var extensionPropertiesTemplate = html_template.Must(html_template.New("webConsoleExtensionProperties").Parse(`
+window.OPENSHIFT_EXTENSION_PROPERTIES = {
+  {{ $values := .ExtensionPropertyValues }}
+  {{ range $i, $key := .ExtensionPropertyKeys }}
+  {{ if $i }},{{ end }}
+  {{ $value := index $values $i }}
+  "{{ $key }}": "{{ $value }}"
+  {{ end }}
+};
+`))
+
+type WebConsoleExtensionProperties struct {
+	ExtensionPropertyKeys   []html_template.JSStr
+	ExtensionPropertyValues []html_template.JSStr
+}
+
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
   apis: {
@@ -226,12 +243,18 @@ type WebConsoleConfig struct {
 	LimitRequestOverrides *api.ClusterResourceOverrideConfig
 }
 
-func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {
+func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion, extensionProps WebConsoleExtensionProperties) (http.Handler, error) {
 	var buffer bytes.Buffer
 	if err := configTemplate.Execute(&buffer, config); err != nil {
 		return nil, err
 	}
 	if err := versionTemplate.Execute(&buffer, version); err != nil {
+		return nil, err
+	}
+
+	// We include the extension properties in config.js and not extensions.js because we
+	// want them treated with the same caching behavior as the rest of the values in config.js
+	if err := extensionPropertiesTemplate.Execute(&buffer, extensionProps); err != nil {
 		return nil, err
 	}
 	content := buffer.Bytes()
