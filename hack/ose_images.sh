@@ -21,14 +21,13 @@ source ose.conf
 
 ## LOCAL VARIABLES ##
 DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
-#DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
+#DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 SCRATCH_OPTION=""
 BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo"
 COMMIT_MESSAGE=""
-#DIST_GIT_BRANCH="rhaos-3.1-rhel-7-candidate"
-OSBS_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
-#OSBS_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
+PULL_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
+#PULL_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
 PUSH_REGISTRY=registry.qe.openshift.com
 
 usage() {
@@ -51,10 +50,11 @@ usage() {
   echo "  -f, --force         :: Force: always do dist-git commits " >&2
   echo "  -i, --ignore        :: Ignore: do not do dist-git commits " >&2
   echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
-  echo "  -n, --notlatest     :: Do not tag or push as latest" >&2
+  echo "  -n --nochannel      :: Do not tag or push as latest, or channel latest" >&2
+  echo "  --notlatest         :: Do not tag or push as latest, still do channel latest" >&2
   echo "  --scratch           :: Do a scratch build" >&2
   echo "  --message [message] :: Git commit message" >&2
-  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc all)" >&2
+  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc rhscl all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -62,6 +62,8 @@ usage() {
   echo "  --rhel [version]    :: Change Dockerfile RHEL version e.g. rhel7.2:7.2-35 or rhel7:latest" >&2
   echo "  --branch [version]  :: Use a certain dist-git branch  default[${DIST_GIT_BRANCH}]" >&2
   echo "  --repo [Repo URL]   :: Use a certain yum repo  default[${BUILD_REPO}]" >&2
+  echo "  --pull_reg [registry] :: docker registry to pull from  default[${PULL_REGISTRY}]" >&2
+  echo "  --push_reg [registry] :: docker registry to push to  default[${PUSH_REGISTRY}]" >&2
   echo >&2
   echo "Note: --group and --package can be used multiple times" >&2
   popd &>/dev/null
@@ -124,6 +126,19 @@ add_group_to_list() {
       add_to_list metrics-deployer-docker
       add_to_list metrics-hawkular-metrics-docker
       add_to_list metrics-heapster-docker
+      ;;
+    rhscl)
+      add_to_list rh-mariadb100-docker
+      add_to_list rh-mongodb26-docker
+      add_to_list rh-mysql56-docker
+      add_to_list rh-passenger40-docker
+      add_to_list rh-perl520-docker
+      add_to_list rh-php56-docker
+      add_to_list rh-postgresql94-docker
+      add_to_list rh-python34-docker
+      add_to_list rh-ror41-docker
+      add_to_list rh-ruby22-docker
+      add_to_list s2i-base-docker
       ;;
   esac
 }
@@ -427,11 +442,23 @@ show_yaml() {
   pushd "${workingdir}/${container}" >/dev/null
   package_version=`grep Version= Dockerfile | cut -d'"' -f2`
   package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+  if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+    YAML_LATEST=",latest"
+  fi
+  version_check=`echo ${package_version} | cut -c1-3`
+  case ${version_check} in
+    v3. )
+      version_trim=`echo ${package_version} | cut -d'.' -f-2`
+      YAML_CHANNEL="${version_trim},"
+    ;;
+    3.1 | 3.2 ) YAML_CHANNEL="v${version_check}," ;;
+    * ) YAML_CHANNEL="v3.1,v3.2," ;;
+  esac
   for image_name in ${docker_name_list}
   do
     echo "---"
     echo "repository: ${image_name}"
-    echo "tags: ${package_version},${package_version}-${package_release},latest"
+    echo "tags: ${YAML_CHANNEL}${package_version},${package_version}-${package_release}${YAML_LATEST}"
     echo "build: ${container}-${package_version}-${package_release}"
     echo "repository_tag: ${image_name}:${package_version}-${package_release}"
   done
@@ -462,32 +489,54 @@ start_push_image() {
   echo "  ${container} ${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
   echo "    START: $(date +"%Y-%m-%d %H:%M:%S")" | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
-  docker pull ${OSBS_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  docker pull ${PULL_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
-  docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}"
+  docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest"
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
+  fi
+  if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+    version_check=`echo ${version_version} | cut -c1-3`
+    case ${version_check} in
+      v3. )
+        version_trim_list=`echo ${package_version} | cut -d'.' -f-2`
+      ;;
+      3.1 | 3.2 ) version_trim_list="v${version_check}" ;;
+      * ) version_trim_list="v3.1 v3.2" ;;
+    esac
+    for version_trim in ${version_trim_list}
+    do
+      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+      echo | tee -a ${workingdir}/logs/push.image.log
+      push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+      echo | tee -a ${workingdir}/logs/push.image.log
+   done
   fi
   if ! [ "${alt_name}" == "" ] ; then
     trimmed_alt_name=$(echo "${alt_name}" | cut -d'/' -f2)
     if [ "${VERBOSE}" == "TRUE" ] ; then
       echo "----------"
-      echo "docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
+      echo "docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
       echo "push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
       echo "----------"
     fi
-    docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    echo "  TAG/PUSH: ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} "
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-      docker tag -f ${OSBS_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      echo "  TAG/PUSH: ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest "
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
@@ -604,6 +653,7 @@ case $key in
       add_group_to_list misc
       add_group_to_list logging
       add_group_to_list metrics
+      add_group_to_list rhscl
       ;;
     --group)
       group_input="$2"
@@ -650,19 +700,31 @@ case $key in
       BUILD_REPO="$2"
       shift
       ;;
+    --pull_reg)
+      PULL_REGISTRY="$2"
+      shift
+      ;;
+    --push_reg)
+      PUSH_REGISTRY="$2"
+      shift
+      ;;
     --message)
       COMMIT_MESSAGE="$2"
       shift
       ;;
     -d|--dep|--deps|--dependents)
       export DEPENDENTS="TRUE"
-      ;;
-    -n|--notlatest)
+    ;;
+    -n|--nochannel)
+      export NOCHANNEL="TRUE"
       export NOTLATEST="TRUE"
-      ;;
+    ;;
+    --notlatest)
+      export NOTLATEST="TRUE"
+    ;;
     -v|--verbose)
       export VERBOSE="TRUE"
-      ;;
+    ;;
     -f|--force)
       export FORCE="TRUE"
       export REALLYFORCE="TRUE"
