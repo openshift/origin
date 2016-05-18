@@ -30,6 +30,9 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 	if err != nil {
 		return err
 	}
+	for k := range adminConfig.AuthInfos {
+		adminConfig.AuthInfos[k].LocationOfOrigin = ""
+	}
 	newConfig, err := config.MergeConfig(existingConfig, *adminConfig)
 	if err != nil {
 		return err
