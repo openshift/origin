@@ -34,10 +34,15 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
+// disable this plugin registration so we can steal the name with our own "disable-by-default" implementation downstream until we figure out how
+// make references to our configapilatest package here.  We want people to be able to enable this plugin without having to change the admission chain.
 func init() {
-	admission.RegisterPlugin("AlwaysPullImages", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewAlwaysPullImages(), nil
-	})
+	// avoid conflicting in import lines
+	if false {
+		admission.RegisterPlugin("AlwaysPullImages", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+			return NewAlwaysPullImages(), nil
+		})
+	}
 }
 
 // alwaysPullImages is an implementation of admission.Interface.
