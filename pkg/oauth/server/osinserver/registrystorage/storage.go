@@ -50,8 +50,18 @@ func (w *clientWrapper) GetId() string {
 	return w.id
 }
 
-func (w *clientWrapper) GetSecret() string {
-	return w.client.Secret
+func (w *clientWrapper) ValidateSecret(secret string) bool {
+	if w.client.Secret == secret {
+		return true
+	}
+
+	for _, additionalSecret := range w.client.AdditionalSecrets {
+		if additionalSecret == secret {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (w *clientWrapper) GetRedirectUri() string {

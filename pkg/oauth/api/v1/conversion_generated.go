@@ -341,6 +341,13 @@ func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_a
 		return err
 	}
 	out.Secret = in.Secret
+	if in.AdditionalSecrets != nil {
+		in, out := &in.AdditionalSecrets, &out.AdditionalSecrets
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.AdditionalSecrets = nil
+	}
 	out.RespondWithChallenges = in.RespondWithChallenges
 	if in.RedirectURIs != nil {
 		in, out := &in.RedirectURIs, &out.RedirectURIs
@@ -380,6 +387,13 @@ func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, ou
 		return err
 	}
 	out.Secret = in.Secret
+	if in.AdditionalSecrets != nil {
+		in, out := &in.AdditionalSecrets, &out.AdditionalSecrets
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.AdditionalSecrets = nil
+	}
 	out.RespondWithChallenges = in.RespondWithChallenges
 	if in.RedirectURIs != nil {
 		in, out := &in.RedirectURIs, &out.RedirectURIs
