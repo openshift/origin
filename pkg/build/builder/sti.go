@@ -69,7 +69,6 @@ type S2IBuilder struct {
 func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
 	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
-
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
@@ -252,7 +251,7 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if err := removeImage(s.dockerClient, buildTag); err != nil {
-		glog.Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
+		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
 	if push {
@@ -262,27 +261,27 @@ func (s *S2IBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided push secret for pushing %s image", pushTag)
+			glog.V(2).Infof("Using provided push secret for pushing %s image", pushTag)
 		} else {
-			glog.Infof("No push secret provided")
+			glog.V(2).Infof("No push secret provided")
 		}
-		glog.Infof("Pushing %s image ...", pushTag)
+		glog.V(1).Infof("Pushing %s image ...", pushTag)
 		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
 			// write extended error message to assist in problem resolution
 			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)
 			if authPresent {
-				glog.Infof("Registry server Address: %s", pushAuthConfig.ServerAddress)
-				glog.Infof("Registry server User Name: %s", pushAuthConfig.Username)
-				glog.Infof("Registry server Email: %s", pushAuthConfig.Email)
+				glog.V(0).Infof("Registry server Address: %s", pushAuthConfig.ServerAddress)
+				glog.V(0).Infof("Registry server User Name: %s", pushAuthConfig.Username)
+				glog.V(0).Infof("Registry server Email: %s", pushAuthConfig.Email)
 				passwordPresent := "<<empty>>"
 				if len(pushAuthConfig.Password) > 0 {
 					passwordPresent = "<<non-empty>>"
 				}
-				glog.Infof("Registry server Password: %s", passwordPresent)
+				glog.V(0).Infof("Registry server Password: %s", passwordPresent)
 			}
 			return errors.New(msg)
 		}
-		glog.Infof("Successfully pushed %s", pushTag)
+		glog.V(1).Infof("Successfully pushed %s", pushTag)
 	}
 	return nil
 }

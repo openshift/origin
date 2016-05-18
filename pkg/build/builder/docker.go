@@ -104,7 +104,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	if err := removeImage(d.dockerClient, buildTag); err != nil {
-		glog.Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
+		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
 	if push {
@@ -116,11 +116,11 @@ func (d *DockerBuilder) Build() error {
 		if authPresent {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.Infof("Pushing image %s ...", pushTag)
+		glog.V(1).Infof("Pushing image %s ...", pushTag)
 		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
-		glog.Infof("Push successful")
+		glog.V(1).Infof("Push successful")
 	}
 	return nil
 }
@@ -135,10 +135,10 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 			return err
 		}
 		srcDir := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		glog.Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
+		glog.V(3).Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
 		out, err := exec.Command("cp", "-vrf", srcDir+"/.", dstDir+"/").Output()
 		if err != nil {
-			glog.Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
+			glog.V(4).Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
 			return err
 		}
 		// See what is copied where when debugging.
@@ -239,7 +239,7 @@ func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 		sourceInfo, errors = d.gitClient.GetInfo(dir)
 		if len(errors) > 0 {
 			for _, e := range errors {
-				glog.Infof("warning: Unable to retrieve Git info: %v", e.Error())
+				glog.V(0).Infof("warning: Unable to retrieve Git info: %v", e.Error())
 			}
 		}
 	}

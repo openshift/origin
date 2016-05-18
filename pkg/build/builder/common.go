@@ -90,7 +90,7 @@ func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *
 	glog.V(4).Infof("Setting build revision to %#v", build.Spec.Revision.Git)
 	_, err := c.UpdateDetails(build)
 	if err != nil {
-		glog.Infof("error: An error occurred saving build revision: %v", err)
+		glog.V(0).Infof("error: An error occurred saving build revision: %v", err)
 	}
 }
 
@@ -137,7 +137,7 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		// Post commit hook is not set, return early.
 		return nil
 	}
-	glog.Infof("Running post commit hook with image %s ...", image)
+	glog.V(1).Infof("Running post commit hook with image %s ...", image)
 	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
 
 	if script != "" {
