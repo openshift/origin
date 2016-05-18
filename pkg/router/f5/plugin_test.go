@@ -1,7 +1,6 @@
 package f5
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -182,6 +181,10 @@ func newF5Routes(mockF5State mockF5State) *mux.Router {
 	return mockF5
 }
 
+// newTestRouterWithState creates a new F5 plugin with a mock F5 BIG-IP server
+// initialized from the given mock F5 state and returns pointers to the plugin
+// and mock server.  Note that these pointers will be nil if an error is
+// returned.
 func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin, *mockF5, error) {
 	routerLogLevel := util.Env("TEST_ROUTER_LOGLEVEL", "")
 	if routerLogLevel != "" {
@@ -190,18 +193,7 @@ func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin,
 
 	execCommand = mockExecCommand
 
-	server := httptest.NewUnstartedServer(newF5Routes(state))
-	// Work around performance issues with Golang's ECDHE implementation.
-	// See <https://github.com/openshift/origin/issues/4407>.
-	server.Config.TLSConfig = new(tls.Config)
-	server.Config.TLSConfig.CipherSuites = []uint16{
-		tls.TLS_RSA_WITH_RC4_128_SHA,
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-	}
-	server.TLS = server.Config.TLSConfig
-	server.StartTLS()
+	server := httptest.NewTLSServer(newF5Routes(state))
 
 	url, err := url.Parse(server.URL)
 	if err != nil {
@@ -230,6 +222,9 @@ func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin,
 	return router, mockF5, nil
 }
 
+// newTestRouter creates a new F5 plugin with a mock F5 BIG-IP server and
+// returns pointers to the plugin and mock server.  Note that these pointers
+// will be nil if an error is returned.
 func newTestRouter(partitionPath string) (*F5Plugin, *mockF5, error) {
 	pathKey := strings.Replace(partitionPath, "/", "~", -1)
 	state := mockF5State{
@@ -1264,6 +1259,7 @@ func TestInitializeF5Plugin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
+	defer mockF5.close()
 
 	// The policy for secure routes and the policy for insecure routes should
 	// exist.
@@ -1405,7 +1401,6 @@ func TestF5RouterPartition(t *testing.T) {
 
 	for _, tc := range testCases {
 		_, mockF5, err := newTestRouter(tc.partition)
-		mockF5.close()
 		if err != nil {
 			t.Fatalf("Test case %q failed to initialize test router: %v", tc.name, err)
 		}
@@ -1415,7 +1410,7 @@ func TestF5RouterPartition(t *testing.T) {
 		if !ok {
 			t.Fatalf("Test case %q missing partition key %s", tc.name, name)
 		}
-		defer mockF5.close()
+		mockF5.close()
 	}
 }
 
