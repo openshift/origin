@@ -450,7 +450,7 @@ func hasPodSpec(t reflect.Type) bool {
 		if t == podSpecType {
 			return true
 		}
-		for i := 1; i < t.NumField(); i++ {
+		for i := 0; i < t.NumField(); i++ {
 			if hasPodSpec(t.Field(i).Type) {
 				return true
 			}
