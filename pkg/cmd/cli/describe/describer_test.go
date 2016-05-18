@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	api "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -21,8 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -141,86 +138,6 @@ func TestDescribers(t *testing.T) {
 			t.Errorf("unexpected out: %s", out)
 		}
 	}
-}
-
-func TestDeploymentConfigDescriber(t *testing.T) {
-	config := deployapitest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-	podList := &kapi.PodList{}
-
-	fake := &testclient.Fake{}
-	fake.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, config, nil
-	})
-	kFake := &ktestclient.Fake{}
-	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, deployment, nil
-	})
-	kFake.PrependReactor("list", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.ReplicationControllerList{}, nil
-	})
-	kFake.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, podList, nil
-	})
-	kFake.PrependReactor("list", "events", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.EventList{}, nil
-	})
-
-	d := &DeploymentConfigDescriber{
-		osClient:   fake,
-		kubeClient: kFake,
-	}
-
-	describe := func() {
-		if output, err := d.Describe("test", "deployment"); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		} else {
-			t.Logf("describer output:\n%s\n", output)
-		}
-	}
-
-	podList.Items = []kapi.Pod{*mkPod(kapi.PodRunning, 0)}
-	describe()
-
-	config.Spec.Triggers = append(config.Spec.Triggers, deployapitest.OkConfigChangeTrigger())
-	describe()
-
-	config.Spec.Strategy = deployapitest.OkCustomStrategy()
-	describe()
-
-	config.Spec.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imageRepo"}
-	describe()
-
-	config.Spec.Strategy = deployapitest.OkStrategy()
-	config.Spec.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
-		Pre: &deployapi.LifecycleHook{
-			FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-			ExecNewPod: &deployapi.ExecNewPodHook{
-				ContainerName: "container",
-				Command:       []string{"/command1", "args"},
-				Env: []kapi.EnvVar{
-					{
-						Name:  "KEY1",
-						Value: "value1",
-					},
-				},
-			},
-		},
-		Post: &deployapi.LifecycleHook{
-			FailurePolicy: deployapi.LifecycleHookFailurePolicyIgnore,
-			ExecNewPod: &deployapi.ExecNewPodHook{
-				ContainerName: "container",
-				Command:       []string{"/command2", "args"},
-				Env: []kapi.EnvVar{
-					{
-						Name:  "KEY2",
-						Value: "value2",
-					},
-				},
-			},
-		},
-	}
-	describe()
 }
 
 func TestDescribeBuildDuration(t *testing.T) {
