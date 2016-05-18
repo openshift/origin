@@ -11150,9 +11150,9 @@ _openshift_cli_policy_who-can()
     must_have_one_noun=()
 }
 
-_openshift_cli_policy_what-can-i-do()
+_openshift_cli_policy_can-i()
 {
-    last_command="openshift_cli_policy_what-can-i-do"
+    last_command="openshift_cli_policy_can-i"
     commands=()
 
     flags=()
@@ -11160,6 +11160,10 @@ _openshift_cli_policy_what-can-i-do()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
+    flags+=("--list")
+    flags+=("--quiet")
+    flags+=("-q")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -11443,7 +11447,7 @@ _openshift_cli_policy()
     last_command="openshift_cli_policy"
     commands=()
     commands+=("who-can")
-    commands+=("what-can-i-do")
+    commands+=("can-i")
     commands+=("add-role-to-user")
     commands+=("remove-role-from-user")
     commands+=("remove-user")

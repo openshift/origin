@@ -7565,9 +7565,9 @@ _oc_policy_who-can()
     must_have_one_noun=()
 }
 
-_oc_policy_what-can-i-do()
+_oc_policy_can-i()
 {
-    last_command="oc_policy_what-can-i-do"
+    last_command="oc_policy_can-i"
     commands=()
 
     flags=()
@@ -7575,6 +7575,10 @@ _oc_policy_what-can-i-do()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
+    flags+=("--list")
+    flags+=("--quiet")
+    flags+=("-q")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -7858,7 +7862,7 @@ _oc_policy()
     last_command="oc_policy"
     commands=()
     commands+=("who-can")
-    commands+=("what-can-i-do")
+    commands+=("can-i")
     commands+=("add-role-to-user")
     commands+=("remove-role-from-user")
     commands+=("remove-user")

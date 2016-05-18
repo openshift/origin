@@ -35,7 +35,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "who-can VERB RESOURCE [NAME]",
+		Use:   name + " VERB RESOURCE [NAME]",
 		Short: "List who can perform the specified action on a resource",
 		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -61,7 +61,6 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 }
 
 func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
-
 	switch len(args) {
 	case 3:
 		o.resourceName = args[2]
