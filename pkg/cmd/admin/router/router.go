@@ -102,6 +102,9 @@ type RouterConfig struct {
 	// ForceSubdomain overrides the user's requested spec.host value on a
 	// route and replaces it with this template. May not be used with Subdomain.
 	ForceSubdomain string
+	// ForceExceptions specifies a comma-separated list namespaces that
+	// are excepted from ForceSubdomain.
+	ForceExceptions []string
 
 	// ImageTemplate specifies the image from which the router will be created.
 	ImageTemplate variable.ImageTemplate
@@ -245,6 +248,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.Type, "type", "haproxy-router", "The type of router to use - if you specify --images this flag may be ignored.")
 	cmd.Flags().StringVar(&cfg.Subdomain, "subdomain", "", "The template for the route subdomain exposed by this router, used for routes that are not externally specified. E.g. '${name}-${namespace}.apps.mycompany.com'")
 	cmd.Flags().StringVar(&cfg.ForceSubdomain, "force-subdomain", "", "A router path format to force on all routes used by this router (will ignore the route host value)")
+	cmd.Flags().StringSliceVar(&cfg.ForceExceptions, "force-exceptions", []string{}, "A comma-delimited list of namespaces that should be excepted from --force-subdomain.  E.g., 'default,openshift'")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
@@ -477,6 +481,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return kcmdutil.UsageError(cmd, "only one of --subdomain, --force-subdomain can be specified")
 	}
 
+	if len(cfg.ForceExceptions) > 0 && len(cfg.ForceExceptions[0]) > 0 &&
+		len(cfg.ForceSubdomain) == 0 {
+		return kcmdutil.UsageError(cmd, "--force-exceptions can only be used with --force-subdomain")
+	}
+
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
 	if err != nil {
 		return fmt.Errorf("unable to parse --ports: %v", err)
@@ -649,6 +658,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if len(cfg.ForceSubdomain) > 0 {
 		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
 		env["ROUTER_OVERRIDE_HOSTNAME"] = "true"
+	}
+	if len(cfg.ForceExceptions) > 0 && len(cfg.ForceExceptions[0]) > 0 {
+		env["ROUTER_OVERRIDE_EXCEPTIONS"] = strings.Join(cfg.ForceExceptions, ",")
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {

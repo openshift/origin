@@ -24,12 +24,14 @@ func HostForRoute(route *routeapi.Route) string {
 // routeSelectionFunc returns a function that returns the host for a route,
 // possibly generated according to the specified template.
 func routeSelectionFunc(hostnameTemplate string,
-	overrideHostname bool) RouteHostFunc {
+	overrideHostname bool, overrideExceptions sets.String) RouteHostFunc {
 	if len(hostnameTemplate) == 0 {
 		return HostForRoute
 	}
 	return func(route *routeapi.Route) string {
-		if !overrideHostname && len(route.Spec.Host) > 0 {
+		if (!overrideHostname ||
+			overrideExceptions.Has(route.ObjectMeta.Namespace)) &&
+			len(route.Spec.Host) > 0 {
 			return route.Spec.Host
 		}
 		s, err := variable.ExpandStrict(hostnameTemplate,
@@ -66,10 +68,12 @@ type RouteValidator struct {
 // NewRouteValidator creates a plugin wrapper that validates properties of
 // the route before passing it into the underlying plugin.
 func NewRouteValidator(plugin router.Plugin, hostnameTemplate string,
-	overrideHostname bool, recorder RejectionRecorder) *RouteValidator {
+	overrideHostname bool, overrideExceptions []string,
+	recorder RejectionRecorder) *RouteValidator {
 	return &RouteValidator{
-		plugin:       plugin,
-		hostForRoute: routeSelectionFunc(hostnameTemplate, overrideHostname),
+		plugin: plugin,
+		hostForRoute: routeSelectionFunc(hostnameTemplate, overrideHostname,
+			sets.NewString(overrideExceptions...)),
 
 		recorder: recorder,
 	}

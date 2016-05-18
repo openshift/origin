@@ -1025,7 +1025,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	uniqueHostPlugin := controller.NewUniqueHost(templatePlugin,
 		controller.LogRejections)
 	plugin := controller.NewRouteValidator(uniqueHostPlugin, "", false,
-		controller.LogRejections)
+		[]string{}, controller.LogRejections)
 
 	// no namespaces allowed
 	plugin.HandleNamespaces(sets.String{})

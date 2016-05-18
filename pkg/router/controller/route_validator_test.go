@@ -48,7 +48,8 @@ func (p *testPlugin) SetLastSyncProcessed(processed bool) error {
 func TestTemplateEmptyHostEmpty(t *testing.T) {
 	testPlugin := &testPlugin{}
 	rejections := &fakeRejections{}
-	routeValidator := NewRouteValidator(testPlugin, "", false, rejections)
+	routeValidator := NewRouteValidator(testPlugin, "", false, []string{},
+		rejections)
 	err := routeValidator.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "route1",
@@ -82,7 +83,7 @@ func TestTemplatePresentHostEmpty(t *testing.T) {
 	testPlugin := &testPlugin{}
 	rejections := &fakeRejections{}
 	routeValidator := NewRouteValidator(testPlugin,
-		"${name}-${namespace}.myapps.mycompany.com", false, rejections)
+		"${name}-${namespace}.myapps.mycompany.com", false, []string{}, rejections)
 	err := routeValidator.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "route1",
@@ -118,7 +119,7 @@ func TestTemplatePresentHostOverride(t *testing.T) {
 	testPlugin := &testPlugin{}
 	rejections := &fakeRejections{}
 	routeValidator := NewRouteValidator(testPlugin,
-		"${name}-${namespace}.myapps.mycompany.com", true, rejections)
+		"${name}-${namespace}.myapps.mycompany.com", true, []string{}, rejections)
 	err := routeValidator.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "route1",
@@ -142,6 +143,72 @@ func TestTemplatePresentHostOverride(t *testing.T) {
 	}
 
 	if testPlugin.route.Spec.Host != "route1-default.myapps.mycompany.com" {
+		t.Fatalf("route was added with wrong host: %v",
+			testPlugin.route)
+	}
+}
+
+// If a route is added, and there is a template defined, and the override flag
+// is enabled, and the override exceptions setting is specified, then the route
+// should be added with the specified host if it is in a route in the exceptions
+// list, or otherwise with a generated host.
+func TestOverrideExceptions(t *testing.T) {
+	testPlugin := &testPlugin{}
+	rejections := &fakeRejections{}
+	routeValidator := NewRouteValidator(testPlugin,
+		"${name}-${namespace}.myapps.mycompany.com", true, []string{"foo"},
+		rejections)
+	err := routeValidator.HandleRoute(watch.Added, &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "route1",
+			Namespace: "default",
+		},
+		Spec: routeapi.RouteSpec{
+			Host: "bar-default.myapps.mycompany.com",
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(rejections.rejections) > 0 {
+		t.Fatalf("did not expect a recorded rejection: %#v", rejections)
+	}
+
+	if testPlugin.route == nil {
+		t.Fatal("route was not added when it should have been")
+	}
+
+	if testPlugin.route.Spec.Host != "route1-default.myapps.mycompany.com" {
+		t.Fatalf("route was added with wrong host: %v",
+			testPlugin.route)
+	}
+
+	testPlugin.route = nil
+	err = routeValidator.HandleRoute(watch.Added, &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "route2",
+			Namespace: "foo",
+		},
+		Spec: routeapi.RouteSpec{
+			Host: "bar.myapps.mycompany.com",
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(rejections.rejections) > 0 {
+		t.Fatalf("did not expect a recorded rejection: %#v", rejections)
+	}
+
+	if testPlugin.route == nil {
+		t.Fatal("route was not added when it should have been")
+	}
+
+	if testPlugin.route.Spec.Host != "bar.myapps.mycompany.com" {
 		t.Fatalf("route was added with wrong host: %v",
 			testPlugin.route)
 	}

@@ -129,6 +129,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
     A label selector to apply to namespaces to watch
 
 .PP
+\fB\-\-override\-exceptions\fP=[]
+    If specified, a comma\-delimited list of namespaces that should be excepted from \-\-override\-hostname (e.g., 'default,openshift')
+
+.PP
 \fB\-\-override\-hostname\fP=false
     Override the spec.host value for a route with \-\-hostname\-template
 
