@@ -1,3 +1,4 @@
+// TODO: Move to pkg/deploy/cmd
 package scaler
 
 import (

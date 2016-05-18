@@ -257,7 +257,7 @@ const (
 // or for a deployment being placed in a failed state
 const (
 	DeploymentCancelledByUser                 = "cancelled by the user"
-	DeploymentCancelledNewerDeploymentExists  = "cancelled as a newer deployment was found running"
+	DeploymentCancelledNewerDeploymentExists  = "newer deployment was found running"
 	DeploymentFailedUnrelatedDeploymentExists = "unrelated pod with the same name as this deployment is already running"
 	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
 )

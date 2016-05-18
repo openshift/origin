@@ -218,6 +218,9 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 			},
 		},
 	}
+	if config.Status.Details != nil && len(config.Status.Details.Message) > 0 {
+		deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = config.Status.Details.Message
+	}
 	if value, ok := config.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
 		deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation] = value
 	}

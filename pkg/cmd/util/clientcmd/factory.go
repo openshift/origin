@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
@@ -464,6 +465,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		default:
 			return kResumeObjectFunc(object)
 		}
+	}
+	kHistoryViewerFunc := w.Factory.HistoryViewer
+	w.Factory.HistoryViewer = func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigHistoryViewer(oc, kc), nil
+		}
+		return kHistoryViewerFunc(mapping)
 	}
 
 	return w
