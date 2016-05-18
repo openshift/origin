@@ -3,6 +3,7 @@ package test
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -176,4 +177,18 @@ func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
 	config.Spec.Test = true
 	return config
+}
+
+func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *extensions.HorizontalPodAutoscaler {
+	return &extensions.HorizontalPodAutoscaler{
+		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
+		Spec: extensions.HorizontalPodAutoscalerSpec{
+			ScaleRef: extensions.SubresourceReference{
+				Name: config.Name,
+				Kind: "DeploymentConfig",
+			},
+			MinReplicas: &min,
+			MaxReplicas: max,
+		},
+	}
 }
