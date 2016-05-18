@@ -19457,7 +19457,7 @@
     "properties": {
      "automatic": {
       "type": "boolean",
-      "description": "Automatic means that the detection of a new tag value should result in a new deployment."
+      "description": "Automatic means that the detection of a new tag value should result in an image update inside the pod template. Deployment configs that haven't been deployed yet will always have their images updated. Deployment configs that have been deployed at least once, will have their images updated only if this is set to true."
      },
      "containerNames": {
       "type": "array",
