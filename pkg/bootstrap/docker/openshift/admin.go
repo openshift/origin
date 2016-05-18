@@ -27,12 +27,8 @@ const (
 	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
 )
 
-func imageFormat(tag string) string {
-	return fmt.Sprintf("openshift/origin-${component}:%s", tag)
-}
-
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, tag string, out io.Writer) error {
+func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images string, out io.Writer) error {
 	_, err := kubeClient.Services("default").Get(svcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -41,17 +37,18 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving docker registry service").WithCause(err)
 	}
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = images
 	cfg := &registry.RegistryConfig{
 		Name:           "registry",
 		Type:           "docker-registry",
-		ImageTemplate:  variable.NewDefaultImageTemplate(),
+		ImageTemplate:  imageTemplate,
 		Ports:          "5000",
 		Replicas:       1,
 		Labels:         "docker-registry=default",
 		Volume:         "/registry",
 		ServiceAccount: "registry",
 	}
-	cfg.ImageTemplate.Format = imageFormat(tag)
 	cmd := registry.NewCmdRegistry(f, "", "registry", out)
 	output := &bytes.Buffer{}
 	err = registry.RunCmdRegistry(f, cmd, output, cfg, []string{})
@@ -60,7 +57,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, tag, hostIP string, out io.Writer) error {
+func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, out io.Writer) error {
 	_, err := kubeClient.Services("default").Get("router")
 	if err == nil {
 		// Router service already exists, nothing to do
@@ -115,10 +112,12 @@ func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factor
 		return err
 	}
 
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = images
 	cfg := &router.RouterConfig{
 		Name:               "router",
 		Type:               "haproxy-router",
-		ImageTemplate:      variable.NewDefaultImageTemplate(),
+		ImageTemplate:      imageTemplate,
 		Ports:              "80:80,443:443",
 		Replicas:           1,
 		Labels:             "router=<name>",
@@ -130,7 +129,6 @@ func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factor
 		HostPorts:          true,
 		ServiceAccount:     "router",
 	}
-	cfg.ImageTemplate.Format = imageFormat(tag)
 	output := &bytes.Buffer{}
 	cmd := router.NewCmdRouter(f, "", "router", out)
 	cmd.SetOutput(output)

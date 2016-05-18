@@ -84,7 +84,7 @@ echo "[INFO] `openshift version`"
 echo "[INFO] Using images:							${USE_IMAGES}"
 
 echo "[INFO] Starting OpenShift containerized server"
-oc cluster up --server-loglevel=4 --image-tag="${TAG}" \
+oc cluster up --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
 

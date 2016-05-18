@@ -56,7 +56,7 @@ type Helper struct {
 type StartOptions struct {
 	ServerIP          string
 	UseSharedVolume   bool
-	ImageTag          string
+	Images            string
 	HostVolumesDir    string
 	HostConfigDir     string
 	HostDataDir       string
@@ -197,7 +197,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		fmt.Fprintf(out, "Creating initial OpenShift configuration\n")
 		createConfigCmd := []string{
 			"start",
-			fmt.Sprintf("--images=openshift/origin-${component}:%s", opt.ImageTag),
+			fmt.Sprintf("--images=%s", opt.Images),
 			"--master=" + opt.ServerIP,
 			fmt.Sprintf("--volume-dir=%s", opt.HostVolumesDir),
 			"--dns=0.0.0.0:53",

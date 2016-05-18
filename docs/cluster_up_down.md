@@ -10,6 +10,7 @@
 - [Configuration](#configuration)
 - [Etcd Data](#etcd-data)
 - [Routing](#routing)
+- [Specifying Images to Use](#specifying-images-to-use)
 
 ## Overview
 
@@ -204,3 +205,23 @@ If a host data directory is not specified, the data directory used by OpenShift 
 
 The default routing suffix used by `oc cluster up` is CLUSTER_IP.xip.io where CLUSTER_IP is the IP address of your cluster.
 To use a different suffix, specify it with `--routing-suffix`.
+
+## Specifying Images to Use
+
+By default `oc cluster up` uses `openshift/origin:latest` as its OpenShift image and `openshift-origin-${component}:latest` for 
+other images created by the OpenShift cluster (registry, router, builders, etc). It is possible to use a different set of 
+images by specifying the version and/or the image prefix.
+
+To use a different version of Origin, specify the --version argument. In the following example, images named 
+openshift/origin:v1.1.6, openshift/origin-router:v1.1.6, etc. will be used for your cluster.
+```
+oc cluster up --version=v1.1.6
+```
+
+To use images from a different registry or with a different namespace, use the --image argument.  In the following example,
+myregistry.example.com/ose/origin:latest, myregistry.example.com/ose/origin-router:latest, etc. will be used for your cluster.
+```
+oc cluster up --image=myregistry.example.com/ose/origin
+```
+
+Both --version and --image may be combined to specify the image name prefix and tag for the images to use.
