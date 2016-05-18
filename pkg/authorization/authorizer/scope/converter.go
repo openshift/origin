@@ -79,6 +79,10 @@ var ScopeEvaluators = []ScopeEvaluator{
 const (
 	UserInfo        = "info"
 	UserAccessCheck = "check-access"
+
+	// UserListProject gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
+	// unrelated to openshift and to display projects for selection in a secondary UI.
+	UserListProject = "list-projects"
 )
 
 // user:<scope name>
@@ -91,7 +95,8 @@ func (userEvaluator) Handles(scope string) bool {
 func (userEvaluator) Validate(scope string) error {
 	switch scope {
 	case UserIndicator + UserInfo,
-		UserIndicator + UserAccessCheck:
+		UserIndicator + UserAccessCheck,
+		UserIndicator + UserListProject:
 		return nil
 	}
 
@@ -104,6 +109,8 @@ func (userEvaluator) Describe(scope string) string {
 		return "Information about you, including: username, identity names, and group membership."
 	case UserIndicator + UserAccessCheck:
 		return `Information about user privileges, e.g. "Can I create builds?"`
+	case UserIndicator + UserListProject:
+		return `See projects you're aware of and the metadata (display name, description, etc) about those projects.`
 	default:
 		return fmt.Sprintf("unrecognized scope: %v", scope)
 	}
@@ -118,6 +125,10 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter r
 	case UserIndicator + UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+		}, nil
+	case UserIndicator + UserListProject:
+		return []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("list"), Resources: sets.NewString("projects")},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized scope: %v", scope)
