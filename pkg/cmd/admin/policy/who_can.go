@@ -25,8 +25,9 @@ type whoCanOptions struct {
 	bindingNamespace string
 	client           *client.Client
 
-	verb     string
-	resource unversioned.GroupVersionResource
+	verb         string
+	resource     unversioned.GroupVersionResource
+	resourceName string
 }
 
 // NewCmdWhoCan implements the OpenShift cli who-can command
@@ -34,7 +35,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "who-can VERB RESOURCE",
+		Use:   "who-can VERB RESOURCE [NAME]",
 		Short: "List who can perform the specified action on a resource",
 		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -60,14 +61,18 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 }
 
 func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
-	if len(args) != 2 {
-		return errors.New("you must specify two arguments: verb and resource")
+
+	switch len(args) {
+	case 3:
+		o.resourceName = args[2]
+		fallthrough
+	case 2:
+		restMapper, _ := f.Object(false)
+		o.verb = args[0]
+		o.resource = resourceFor(restMapper, args[1])
+	default:
+		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
 	}
-
-	restMapper, _ := f.Object(false)
-
-	o.verb = args[0]
-	o.resource = resourceFor(restMapper, args[1])
 
 	return nil
 }
@@ -91,9 +96,10 @@ func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVe
 
 func (o *whoCanOptions) run() error {
 	authorizationAttributes := authorizationapi.AuthorizationAttributes{
-		Verb:     o.verb,
-		Group:    o.resource.Group,
-		Resource: o.resource.Resource,
+		Verb:         o.verb,
+		Group:        o.resource.Group,
+		Resource:     o.resource.Resource,
+		ResourceName: o.resourceName,
 	}
 
 	resourceAccessReviewResponse := &authorizationapi.ResourceAccessReviewResponse{}
