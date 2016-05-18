@@ -82,7 +82,11 @@ os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinsp
 os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
 
 
-os::cmd::expect_success_and_text 'oc policy what-can-i-do' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
 
 
 # adjust the cluster-admin role to check defaulting and coverage checks
