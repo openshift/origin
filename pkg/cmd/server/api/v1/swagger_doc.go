@@ -26,6 +26,14 @@ func (AdmissionConfig) SwaggerDoc() map[string]string {
 	return map_AdmissionConfig
 }
 
+var map_AdmissionPluginActivation = map[string]string{
+	"": "AdmissionPluginActivation can be used to enable to disable various admission plugins. When this type is present as the `configuration` object in and `pluginConfig` and *if* the admission plugin supports it, this will cause an off by default admission plugin to be enabled",
+}
+
+func (AdmissionPluginActivation) SwaggerDoc() map[string]string {
+	return map_AdmissionPluginActivation
+}
+
 var map_AdmissionPluginConfig = map[string]string{
 	"":              "AdmissionPluginConfig holds the necessary configuration options for admission plugins",
 	"location":      "Location is the path to a configuration file that contains the plugin's configuration",
