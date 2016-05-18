@@ -249,6 +249,10 @@ angular
         templateUrl: 'views/about.html',
         controller: 'AboutController'
       })
+      .when('/command-line', {
+        templateUrl: 'views/command-line.html',
+        controller: 'CommandLineController'
+      })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
         controller: 'OAuthController'
