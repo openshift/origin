@@ -514,7 +514,9 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 		"    %s\n\n"+
 		"You are logged in as:\n"+
 		"    User:     %s\n"+
-		"    Password: %s\n\n",
+		"    Password: %s\n\n"+
+		"To login as administrator:\n"+
+		"    oc login -u system:admin\n\n",
 		c.OpenShiftHelper().Master(c.ServerIP),
 		initialUser,
 		initialPassword)
