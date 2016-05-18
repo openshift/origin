@@ -2,6 +2,7 @@ package osdn
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	log "github.com/golang/glog"
@@ -235,6 +236,7 @@ func (oc *OsdnController) watchNamespaces() {
 		ns := obj.(*kapi.Namespace)
 		name := ns.ObjectMeta.Name
 
+		log.V(5).Infof("Watch %s event for Namespace %q", strings.Title(string(eventType)), name)
 		switch eventType {
 		case watch.Added, watch.Modified:
 			err := oc.assignVNID(name)
@@ -305,6 +307,7 @@ func (oc *OsdnController) watchNetNamespaces() {
 		}
 		netns := obj.(*osapi.NetNamespace)
 
+		log.V(5).Infof("Watch %s event for NetNamespace %q", strings.Title(string(eventType)), netns.ObjectMeta.Name)
 		switch eventType {
 		case watch.Added, watch.Modified:
 			// Skip this event if the old and new network ids are same
@@ -361,6 +364,7 @@ func (oc *OsdnController) watchServices() {
 			continue
 		}
 
+		log.V(5).Infof("Watch %s event for Service %q", strings.Title(string(eventType)), serv.ObjectMeta.Name)
 		switch eventType {
 		case watch.Added, watch.Modified:
 			oldsvc, exists := services[string(serv.UID)]
