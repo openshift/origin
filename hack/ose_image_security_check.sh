@@ -204,7 +204,6 @@ case $key in
       add_group_to_list metrics
       ;;
     --group)
-      add_group_to_list "$2"
       group_input="$2"
       if [ "${group_input}" == "all" ] ; then
         add_group_to_list base
