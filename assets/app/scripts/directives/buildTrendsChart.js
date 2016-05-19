@@ -9,7 +9,7 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_build-trends-chart.html',
       link: function($scope) {
-        var buildByNumber;
+        var data;
         var completePhases = ['Complete', 'Failed', 'Cancelled', 'Error'];
 
         // Minimum number of builds to show.
@@ -67,11 +67,12 @@ angular.module('openshiftConsole')
               },
               tick: {
                 culling: true,
-                fit: true,
                 format: function(x) {
-                  return '#' + x;
-                }
-              }
+                  return '#' + data.json[x].buildNumber;
+                },
+                width: 30
+              },
+              type: 'category'
             },
             y: {
               label: {
@@ -107,9 +108,9 @@ angular.module('openshiftConsole')
           tooltip: {
             format: {
               title: function(x) {
-                var build = buildByNumber[x];
-                var startTimestamp = getStartTimestsamp(build);
-                return '#' + x + ' (' + moment(startTimestamp).fromNow() + ')';
+                var json = data.json[x];
+                var startTimestamp = getStartTimestsamp(json.build);
+                return '#' + json.buildNumber + ' (' + moment(startTimestamp).fromNow() + ')';
               }
             }
           },
@@ -130,7 +131,7 @@ angular.module('openshiftConsole')
               }
             },
             onclick: function(d) {
-              var build = buildByNumber[d.x];
+              var build = data.json[d.x].build;
               var url = $filter('navigateResourceURL')(build);
               if (url) {
                 $rootScope.$apply(function() {
@@ -199,8 +200,7 @@ angular.module('openshiftConsole')
 
         var update = function() {
           // Keep a map of builds by number so we can find the build later when a data point is clicked.
-          buildByNumber = {};
-          var data = {
+          data = {
             json: [],
             keys: {
               x: 'buildNumber'
@@ -222,18 +222,19 @@ angular.module('openshiftConsole')
 
             var buildData = {
               buildNumber: buildNumber,
-              phase: build.status.phase
+              phase: build.status.phase,
+              build: build
             };
             buildData[build.status.phase] = duration;
             data.json.push(buildData);
-            buildByNumber[buildNumber] = build;
+          });
+
+          data.json.sort(function(a, b) {
+            return a.buildNumber - b.buildNumber;
           });
 
           // Show only the last 50 builds.
           if (data.json.length > 50) {
-            data.json.sort(function(a, b) {
-              return a.buildNumber - b.buildNumber;
-            });
             data.json = data.json.slice(data.json.length - 50);
           }
 
