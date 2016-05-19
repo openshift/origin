@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	// RecommendedName is the recommended command name
+	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
 
 	openShiftContainer = "origin"
@@ -147,6 +147,7 @@ type ClientStartConfig struct {
 	CACert          string
 	PublicHostname  string
 	RoutingSuffix   string
+	DNSPort         int
 
 	LocalConfigDir    string
 	HostVolumesDir    string
@@ -410,18 +411,31 @@ func (c *ClientStartConfig) EnsureVolumeShare(io.Writer) error {
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
-	err := c.OpenShiftHelper().TestPorts()
-	if err != nil {
-		return errors.NewError("A port needed by OpenShift is not available").WithCause(err)
+	err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
+	if err == nil {
+		c.DNSPort = openshift.DefaultDNSPort
+		return nil
 	}
-	return nil
+	if !openshift.IsPortsNotAvailableErr(err) {
+		return err
+	}
+	conflicts := openshift.UnavailablePorts(err)
+	if len(conflicts) == 1 && conflicts[0] == openshift.DefaultDNSPort {
+		err = c.OpenShiftHelper().TestPorts(openshift.PortsWithAlternateDNS)
+		if err == nil {
+			c.DNSPort = openshift.AlternateDNSPort
+			fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may be not be resolvable from all clients.", openshift.AlternateDNSPort)
+			return nil
+		}
+	}
+	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
 }
 
 // DetermineServerIP gets an appropriate IP address to communicate with the OpenShift server
 func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 	ip, err := c.determineIP(out)
 	if err != nil {
-		return errors.NewError("Cannot determine a server IP to use").WithCause(err)
+		return errors.NewError("cannot determine a server IP to use").WithCause(err)
 	}
 	c.ServerIP = ip
 	fmt.Fprintf(out, "Using %s as the server IP\n", ip)
@@ -441,6 +455,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		UseExistingConfig: c.UseExistingConfig,
 		Environment:       c.Environment,
 		LogLevel:          c.ServerLogLevel,
+		DNSPort:           c.DNSPort,
 	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
 	return err

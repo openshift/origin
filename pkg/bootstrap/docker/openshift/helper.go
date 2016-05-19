@@ -28,6 +28,8 @@ const (
 	initialStatusCheckWait = 4 * time.Second
 	serverUpTimeout        = 35
 	serverMasterConfig     = "/var/lib/origin/openshift.local.config/master/master-config.yaml"
+	DefaultDNSPort         = 53
+	AlternateDNSPort       = 8053
 )
 
 var (
@@ -37,7 +39,9 @@ var (
 		"/sys:/sys:ro",
 		"/var/lib/docker:/var/lib/docker",
 	}
-	tcpPorts = []int{53, 80, 443, 4001, 7001, 8443, 10250}
+	BasePorts             = []int{80, 443, 4001, 7001, 8443, 10250}
+	DefaultPorts          = append(BasePorts, DefaultDNSPort)
+	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -55,6 +59,7 @@ type Helper struct {
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
 	ServerIP          string
+	DNSPort           int
 	UseSharedVolume   bool
 	ImageTag          string
 	HostVolumesDir    string
@@ -79,7 +84,7 @@ func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, contai
 	}
 }
 
-func (h *Helper) TestPorts() error {
+func (h *Helper) TestPorts(ports []int) error {
 	portData, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
@@ -91,10 +96,7 @@ func (h *Helper) TestPorts() error {
 	if err != nil {
 		return errors.NewError("Cannot get TCP port information from Kubernetes host").WithCause(err)
 	}
-	if err = checkPortsInUse(portData, tcpPorts); err != nil {
-		return errors.NewError("TCP port conflict").WithCause(err)
-	}
-	return nil
+	return checkPortsInUse(portData, ports)
 }
 
 func (h *Helper) TestIP(ip string) error {
@@ -200,7 +202,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 			fmt.Sprintf("--images=openshift/origin-${component}:%s", opt.ImageTag),
 			"--master=" + opt.ServerIP,
 			fmt.Sprintf("--volume-dir=%s", opt.HostVolumesDir),
-			"--dns=0.0.0.0:53",
+			fmt.Sprintf("--dns=0.0.0.0:%d", opt.DNSPort),
 			"--write-config=/var/lib/origin/openshift.local.config",
 		}
 		if len(h.publicHost) > 0 {
@@ -386,7 +388,7 @@ func checkPortsInUse(data string, ports []int) error {
 		}
 	}
 	if len(conflicts) > 0 {
-		return fmt.Errorf("the following required ports are in use: %v", conflicts)
+		return ErrPortsNotAvailable(conflicts)
 	}
 	return nil
 }
