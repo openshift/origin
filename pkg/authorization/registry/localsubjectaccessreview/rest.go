@@ -47,6 +47,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		Action: localSAR.Action,
 		User:   localSAR.User,
 		Groups: localSAR.Groups,
+		Scopes: localSAR.Scopes,
 	}
 	clusterSAR.Action.Namespace = kapi.NamespaceValue(ctx)
 

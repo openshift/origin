@@ -21643,7 +21643,8 @@
      "resource",
      "resourceName",
      "user",
-     "groups"
+     "groups",
+     "scopes"
     ],
     "properties": {
      "kind": {
@@ -21692,6 +21693,13 @@
        "type": "string"
       },
       "description": "Groups is optional.  Groups is the list of groups to which the User belongs."
+     },
+     "scopes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil for a self-SAR, means \"use the scopes on this request\". Nil for a regular SAR, means the same as empty."
      }
     }
    },
@@ -22884,7 +22892,8 @@
      "resource",
      "resourceName",
      "user",
-     "groups"
+     "groups",
+     "scopes"
     ],
     "properties": {
      "kind": {
@@ -22933,6 +22942,13 @@
        "type": "string"
       },
       "description": "GroupsSlice is optional. Groups is the list of groups to which the User belongs."
+     },
+     "scopes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil for a self-SAR, means \"use the scopes on this request\". Nil for a regular SAR, means the same as empty."
      }
     }
    },
