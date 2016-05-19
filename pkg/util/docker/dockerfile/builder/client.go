@@ -240,7 +240,7 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 	if _, err := io.ReadFull(rand.Reader, random); err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("scratch-%s", strings.TrimRight(base64.URLEncoding.EncodeToString(random), "="))
+	name := strings.ToLower(fmt.Sprintf("scratch-%s", strings.TrimRight(base64.URLEncoding.EncodeToString(random), "=")))
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
