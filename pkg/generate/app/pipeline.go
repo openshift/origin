@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kuval "k8s.io/kubernetes/pkg/util/validation"
@@ -341,19 +342,32 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
-			ports := UniqueContainerToServicePorts(AllContainerPorts(t.Spec.Template.Spec.Containers...))
-			if len(ports) == 0 {
-				continue
+			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Selector, firstPortOnly)
+			if svc != nil {
+				svcs = append(svcs, svc)
 			}
-			if firstPortOnly {
-				ports = ports[:1]
+		case *extensions.DaemonSet:
+			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
+			if svc != nil {
+				svcs = append(svcs, svc)
 			}
-			svc := GenerateService(t.ObjectMeta, t.Spec.Selector)
-			svc.Spec.Ports = ports
-			svcs = append(svcs, svc)
 		}
 	}
 	return append(objects, svcs...)
+}
+
+// addServiceInternal utility used by AddServices to create services for multiple types.
+func addServiceInternal(containers []kapi.Container, objectMeta kapi.ObjectMeta, selector map[string]string, firstPortOnly bool) *kapi.Service {
+	ports := UniqueContainerToServicePorts(AllContainerPorts(containers...))
+	if len(ports) == 0 {
+		return nil
+	}
+	if firstPortOnly {
+		ports = ports[:1]
+	}
+	svc := GenerateService(objectMeta, selector)
+	svc.Spec.Ports = ports
+	return svc
 }
 
 // AddRoutes sets up routes for the provided objects.
