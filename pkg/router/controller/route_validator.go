@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/glog"
@@ -61,6 +62,9 @@ type RouteValidator struct {
 
 	hostForRoute RouteHostFunc
 
+	allowCustomCertificates bool
+	overrideExceptions      sets.String
+
 	// nil means different than empty
 	allowedNamespaces sets.String
 }
@@ -69,11 +73,14 @@ type RouteValidator struct {
 // the route before passing it into the underlying plugin.
 func NewRouteValidator(plugin router.Plugin, hostnameTemplate string,
 	overrideHostname bool, overrideExceptions []string,
-	recorder RejectionRecorder) *RouteValidator {
+	allowCustomCertificates bool, recorder RejectionRecorder) *RouteValidator {
+	exceptions := sets.NewString(overrideExceptions...)
 	return &RouteValidator{
 		plugin: plugin,
 		hostForRoute: routeSelectionFunc(hostnameTemplate, overrideHostname,
-			sets.NewString(overrideExceptions...)),
+			exceptions),
+		allowCustomCertificates: allowCustomCertificates,
+		overrideExceptions:      exceptions,
 
 		recorder: recorder,
 	}
@@ -102,6 +109,18 @@ func (p *RouteValidator) HandleRoute(eventType watch.EventType,
 		return nil
 	}
 	route.Spec.Host = host
+
+	if !p.allowCustomCertificates && route.Spec.TLS != nil &&
+		!p.overrideExceptions.Has(route.ObjectMeta.Namespace) &&
+		(len(route.Spec.TLS.Certificate) > 0 || len(route.Spec.TLS.Key) > 0 ||
+			len(route.Spec.TLS.CACertificate) > 0 ||
+			len(route.Spec.TLS.DestinationCACertificate) > 0) {
+		glog.V(4).Infof("Route %s specifies a custom certificate",
+			routeNameKey(route))
+		msg := fmt.Sprintf("route %s specifies a custom certificate", route.Name)
+		p.recorder.RecordRouteRejection(route, "CustomCertificate", msg)
+		return nil
+	}
 
 	switch eventType {
 	case watch.Added, watch.Modified:

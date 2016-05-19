@@ -27,6 +27,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-custom\-certificates\fP=true
+    Accept routes with custom certificates
+
+.PP
 \fB\-\-api\-version\fP=""
     DEPRECATED: The API version to use when talking to the server
 
@@ -134,7 +138,7 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 
 .PP
 \fB\-\-override\-exceptions\fP=[]
-    If specified, a comma\-delimited list of namespaces that should be excepted from \-\-override\-hostname (e.g., 'default,openshift')
+    If specified, a comma\-delimited list of namespaces that should be excepted from \-\-override\-hostname and \-\-allow\-custom\-certificates=false (e.g., 'default,openshift')
 
 .PP
 \fB\-\-override\-hostname\fP=false

@@ -179,7 +179,8 @@ func (o *F5RouterOptions) Run() error {
 	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName)
 	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, statusPlugin)
 	plugin := controller.NewRouteValidator(uniqueHostPlugin,
-		o.HostnameTemplate, o.OverrideHostname, o.OverrideExceptions, statusPlugin)
+		o.HostnameTemplate, o.OverrideHostname, o.OverrideExceptions,
+		o.AllowCustomCertificates, statusPlugin)
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	controller := factory.Create(plugin)

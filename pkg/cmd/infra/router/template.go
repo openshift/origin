@@ -210,7 +210,7 @@ func (o *TemplateRouterOptions) Run() error {
 	uniqueHostPlugin := controller.NewUniqueHost(nextPlugin, controller.RejectionRecorder(statusPlugin))
 	plugin := controller.NewRouteValidator(uniqueHostPlugin,
 		o.HostnameTemplate, o.OverrideHostname, o.OverrideExceptions,
-		controller.RejectionRecorder(statusPlugin))
+		o.AllowCustomCertificates, controller.RejectionRecorder(statusPlugin))
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	controller := factory.Create(plugin)

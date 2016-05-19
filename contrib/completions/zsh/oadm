@@ -4257,6 +4257,8 @@ _oadm_router()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--allow-custom-certificates")
+    local_nonpersistent_flags+=("--allow-custom-certificates")
     flags+=("--create")
     local_nonpersistent_flags+=("--create")
     flags+=("--credentials=")

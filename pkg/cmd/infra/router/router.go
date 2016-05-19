@@ -24,9 +24,10 @@ import (
 type RouterSelection struct {
 	ResyncInterval time.Duration
 
-	HostnameTemplate   string
-	OverrideHostname   bool
-	OverrideExceptions []string
+	HostnameTemplate        string
+	OverrideHostname        bool
+	OverrideExceptions      []string
+	AllowCustomCertificates bool
 
 	LabelSelector string
 	Labels        labels.Selector
@@ -48,7 +49,8 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.DurationVar(&o.ResyncInterval, "resync-interval", 10*time.Minute, "The interval at which the route list should be fully refreshed")
 	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
 	flag.BoolVar(&o.OverrideHostname, "override-hostname", cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", "") == "true", "Override the spec.host value for a route with --hostname-template")
-	flag.StringSliceVar(&o.OverrideExceptions, "override-exceptions", strings.Split(cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", ""), ","), "If specified, a comma-delimited list of namespaces that should be excepted from --override-hostname (e.g., 'default,openshift')")
+	flag.StringSliceVar(&o.OverrideExceptions, "override-exceptions", strings.Split(cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", ""), ","), "If specified, a comma-delimited list of namespaces that should be excepted from --override-hostname and --allow-custom-certificates=false (e.g., 'default,openshift')")
+	flag.BoolVar(&o.AllowCustomCertificates, "allow-custom-certificates", cmdutil.Env("ROUTER_ALLOW_CUSTOM_CERTIFICATES", "true") == "true", "Accept routes with custom certificates")
 	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
 	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
 	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
@@ -63,8 +65,8 @@ func (o *RouterSelection) Complete() error {
 		return fmt.Errorf("--override-hostname requires that --hostname-template be specified")
 	}
 	if len(o.OverrideExceptions) > 0 && len(o.OverrideExceptions[0]) > 0 &&
-		!o.OverrideHostname {
-		return fmt.Errorf("--override-exceptions cannot be used without --override-hostname")
+		!o.OverrideHostname && o.AllowCustomCertificates {
+		return fmt.Errorf("--override-exceptions cannot be used without --override-hostname or --allow-custom-certificates=false")
 	}
 	if len(o.LabelSelector) > 0 {
 		s, err := labels.Parse(o.LabelSelector)
