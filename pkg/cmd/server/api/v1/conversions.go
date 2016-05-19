@@ -164,6 +164,11 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.MappingMethod = "claim"
 			}
 		},
+		func(obj *GrantConfig) {
+			if len(obj.ServiceAccountMethod) == 0 {
+				obj.ServiceAccountMethod = "prompt"
+			}
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

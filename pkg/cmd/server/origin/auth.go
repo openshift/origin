@@ -333,23 +333,38 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHa
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
 func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+	startGrantServer := false
+
+	var saGrantHandler handlers.GrantHandler
+	switch c.Options.GrantConfig.ServiceAccountMethod {
+	case configapi.GrantHandlerDeny:
+		saGrantHandler = handlers.NewEmptyGrant()
+	case configapi.GrantHandlerPrompt:
+		startGrantServer = true
+		saGrantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
+	default:
+		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", c.Options.GrantConfig.ServiceAccountMethod)
+	}
+
+	var standardGrantHandler handlers.GrantHandler
 	switch c.Options.GrantConfig.Method {
 	case configapi.GrantHandlerDeny:
-		return handlers.NewEmptyGrant()
-
+		standardGrantHandler = handlers.NewEmptyGrant()
 	case configapi.GrantHandlerAuto:
-		return handlers.NewAutoGrant()
-
+		standardGrantHandler = handlers.NewAutoGrant()
 	case configapi.GrantHandlerPrompt:
-		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
-		grantServer.Install(mux, OpenShiftApprovePrefix)
-		return handlers.NewRedirectGrant(OpenShiftApprovePrefix)
-
+		startGrantServer = true
+		standardGrantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 	default:
 		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", c.Options.GrantConfig.Method)
 	}
 
-	return nil
+	if startGrantServer {
+		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+		grantServer.Install(mux, OpenShiftApprovePrefix)
+	}
+
+	return handlers.NewServiceAccountAwareGrant(standardGrantHandler, saGrantHandler)
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request

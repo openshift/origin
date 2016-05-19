@@ -889,6 +889,10 @@ type OpenIDClaims struct {
 type GrantConfig struct {
 	// Method: allow, deny, prompt
 	Method GrantHandlerType
+
+	// ServiceAccountMethod is used for determining client authorization for service account oauth client.
+	// It must be either: deny, prompt
+	ServiceAccountMethod GrantHandlerType
 }
 
 type GrantHandlerType string
@@ -903,6 +907,7 @@ const (
 )
 
 var ValidGrantHandlerTypes = sets.NewString(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
+var ValidServiceAccountGrantHandlerTypes = sets.NewString(string(GrantHandlerPrompt), string(GrantHandlerDeny))
 
 type EtcdConfig struct {
 	// ServingInfo describes how to start serving the etcd master
