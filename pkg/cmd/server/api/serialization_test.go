@@ -203,6 +203,12 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.NodeSelectorLabelBlacklist = []string{"kubernetes.io/hostname"}
 			}
 		},
+		func(obj *configapi.GrantConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			if len(obj.ServiceAccountMethod) == 0 {
+				obj.ServiceAccountMethod = "prompt"
+			}
+		},
 	)
 
 	f.Fuzz(item)
