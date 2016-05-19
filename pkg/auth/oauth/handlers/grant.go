@@ -7,8 +7,10 @@ import (
 
 	"github.com/RangelReale/osin"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/serviceaccount"
+
+	"github.com/openshift/origin/pkg/auth/api"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -30,6 +32,7 @@ func NewGrantCheck(check GrantChecker, handler GrantHandler, errorHandler GrantE
 // If the response is written, true is returned.
 // If the response is not written, false is returned.
 func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+
 	// Requests must already be authorized before we will check grants
 	if !ar.Authorized {
 		return false, nil
@@ -121,4 +124,25 @@ func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Res
 	}.Encode()
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
 	return false, true, nil
+}
+
+type serviceAccountAwareGrant struct {
+	standardGrantHandler GrantHandler
+	// saClientGrantHandler allows an autogrant handler to do something else when the client is a service account.
+	// TODO: I think this can be removed once we can set granthandler overrides per-client, but we need something for safety now.
+	saClientGrantHandler GrantHandler
+}
+
+// NewAutoGrant returns a grant handler that automatically approves client authorizations
+func NewServiceAccountAwareGrant(standardGrantHandler, saClientGrantHandler GrantHandler) GrantHandler {
+	return &serviceAccountAwareGrant{standardGrantHandler: standardGrantHandler, saClientGrantHandler: saClientGrantHandler}
+}
+
+// GrantNeeded implements the GrantHandler interface
+func (g *serviceAccountAwareGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
+	if _, _, err := serviceaccount.SplitUsername(grant.Client.GetId()); err == nil {
+		return g.saClientGrantHandler.GrantNeeded(user, grant, w, req)
+	}
+
+	return g.standardGrantHandler.GrantNeeded(user, grant, w, req)
 }

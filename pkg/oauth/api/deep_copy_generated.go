@@ -144,6 +144,13 @@ func DeepCopy_api_OAuthClient(in OAuthClient, out *OAuthClient, c *conversion.Cl
 		return err
 	}
 	out.Secret = in.Secret
+	if in.AdditionalSecrets != nil {
+		in, out := in.AdditionalSecrets, &out.AdditionalSecrets
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.AdditionalSecrets = nil
+	}
 	out.RespondWithChallenges = in.RespondWithChallenges
 	if in.RedirectURIs != nil {
 		in, out := in.RedirectURIs, &out.RedirectURIs

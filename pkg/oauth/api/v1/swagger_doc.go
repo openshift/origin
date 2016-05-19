@@ -73,6 +73,7 @@ var map_OAuthClient = map[string]string{
 	"":                      "OAuthClient describes an OAuth client",
 	"metadata":              "Standard object's metadata.",
 	"secret":                "Secret is the unique secret associated with a client",
+	"additionalSecrets":     "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation",
 	"respondWithChallenges": "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects",
 	"redirectURIs":          "RedirectURIs is the valid redirection URIs associated with a client",
 	"scopeRestrictions":     "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied.",

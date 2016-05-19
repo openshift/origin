@@ -122,7 +122,10 @@ func TestOAuthStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if storedClient.GetSecret() != "secret" {
+	if !storedClient.ValidateSecret("secret") {
+		t.Fatalf("unexpected stored client: %#v", storedClient)
+	}
+	if storedClient.ValidateSecret("secret2") {
 		t.Fatalf("unexpected stored client: %#v", storedClient)
 	}
 

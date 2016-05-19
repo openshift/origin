@@ -22027,6 +22027,13 @@
       "type": "string",
       "description": "Secret is the unique secret associated with a client"
      },
+     "additionalSecrets": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation"
+     },
      "respondWithChallenges": {
       "type": "boolean",
       "description": "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects"

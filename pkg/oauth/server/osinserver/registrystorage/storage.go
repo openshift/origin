@@ -28,11 +28,11 @@ type UserConversion interface {
 type storage struct {
 	accesstoken    oauthaccesstoken.Registry
 	authorizetoken oauthauthorizetoken.Registry
-	client         oauthclient.Registry
+	client         oauthclient.Getter
 	user           UserConversion
 }
 
-func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registry, client oauthclient.Registry, user UserConversion) osin.Storage {
+func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registry, client oauthclient.Getter, user UserConversion) osin.Storage {
 	return &storage{
 		accesstoken:    access,
 		authorizetoken: authorize,
@@ -50,8 +50,18 @@ func (w *clientWrapper) GetId() string {
 	return w.id
 }
 
-func (w *clientWrapper) GetSecret() string {
-	return w.client.Secret
+func (w *clientWrapper) ValidateSecret(secret string) bool {
+	if w.client.Secret == secret {
+		return true
+	}
+
+	for _, additionalSecret := range w.client.AdditionalSecrets {
+		if additionalSecret == secret {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (w *clientWrapper) GetRedirectUri() string {

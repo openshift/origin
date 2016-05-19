@@ -75,6 +75,7 @@ import (
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	"github.com/openshift/origin/pkg/service"
+	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
@@ -493,6 +494,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	clientStorage := clientetcd.NewREST(c.EtcdHelper)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry)
 
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
@@ -529,10 +531,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper, clientRegistry),
-		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper, clientRegistry),
+		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
+		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
 		"oAuthClients":              clientStorage,
-		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper, clientRegistry),
+		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter),
 
 		"resourceAccessReviews":      resourceAccessReviewStorage,
 		"subjectAccessReviews":       subjectAccessReviewStorage,

@@ -203,6 +203,7 @@ oauthConfig:
   assetPublicURL: ""
   grantConfig:
     method: ""
+    serviceAccountMethod: ""
   identityProviders:
   - challenge: false
     login: false

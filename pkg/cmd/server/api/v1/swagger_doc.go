@@ -221,8 +221,9 @@ func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_GrantConfig = map[string]string{
-	"":       "GrantConfig holds the necessary configuration options for grant handlers",
-	"method": "Method: allow, deny, prompt",
+	"":                     "GrantConfig holds the necessary configuration options for grant handlers",
+	"method":               "Method: allow, deny, prompt",
+	"serviceAccountMethod": "ServiceAccountMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt",
 }
 
 func (GrantConfig) SwaggerDoc() map[string]string {
