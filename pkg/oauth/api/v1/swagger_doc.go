@@ -76,7 +76,6 @@ var map_OAuthClient = map[string]string{
 	"respondWithChallenges": "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects",
 	"redirectURIs":          "RedirectURIs is the valid redirection URIs associated with a client",
 	"scopeRestrictions":     "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied.",
-	"allowAnyScope":         "AllowAnyScope indicates that the client is allowed to request a token unconstrained by scopes. If this is true, then ScopeRestrictions is ignored.",
 }
 
 func (OAuthClient) SwaggerDoc() map[string]string {

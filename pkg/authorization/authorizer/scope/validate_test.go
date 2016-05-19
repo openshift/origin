@@ -18,35 +18,17 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		{
 			name:   "unrestricted allows any",
 			scopes: []string{"one"},
-			client: &oauthapi.OAuthClient{AllowAnyScope: true},
+			client: &oauthapi.OAuthClient{},
 		},
 		{
 			name:   "unrestricted allows empty",
 			scopes: []string{""},
-			client: &oauthapi.OAuthClient{AllowAnyScope: true},
+			client: &oauthapi.OAuthClient{},
 		},
 		{
 			name:   "unrestricted allows none",
 			scopes: []string{},
-			client: &oauthapi.OAuthClient{AllowAnyScope: true},
-		},
-		{
-			name:           "no restrictions denies any",
-			scopes:         []string{"one"},
-			client:         &oauthapi.OAuthClient{},
-			expectedErrors: []string{`one did not match any scope restriction`},
-		},
-		{
-			name:           "no restrictions denies empty",
-			scopes:         []string{""},
-			client:         &oauthapi.OAuthClient{},
-			expectedErrors: []string{`did not match any scope restriction`},
-		},
-		{
-			name:           "no restrictions denies none",
-			scopes:         []string{},
-			client:         &oauthapi.OAuthClient{},
-			expectedErrors: []string{`may not request unscoped tokens`},
+			client: &oauthapi.OAuthClient{},
 		},
 		{
 			name:   "simple literal",

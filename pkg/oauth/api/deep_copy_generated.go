@@ -163,7 +163,6 @@ func DeepCopy_api_OAuthClient(in OAuthClient, out *OAuthClient, c *conversion.Cl
 	} else {
 		out.ScopeRestrictions = nil
 	}
-	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 

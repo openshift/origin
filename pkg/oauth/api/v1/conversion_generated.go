@@ -360,7 +360,6 @@ func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_a
 	} else {
 		out.ScopeRestrictions = nil
 	}
-	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 
@@ -399,7 +398,6 @@ func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, ou
 	} else {
 		out.ScopeRestrictions = nil
 	}
-	out.AllowAnyScope = in.AllowAnyScope
 	return nil
 }
 
