@@ -176,6 +176,10 @@ type SubjectAccessReview struct {
 	User string `json:"user"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups"`
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil for a self-SAR, means "use the scopes on this request".
+	// Nil for a regular SAR, means the same as empty.
+	Scopes []string `json:"scopes"`
 }
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
@@ -196,6 +200,10 @@ type LocalSubjectAccessReview struct {
 	User string `json:"user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups"`
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil for a self-SAR, means "use the scopes on this request".
+	// Nil for a regular SAR, means the same as empty.
+	Scopes []string `json:"scopes"`
 }
 
 // AuthorizationAttributes describes a request to the API server
