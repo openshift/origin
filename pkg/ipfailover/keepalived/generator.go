@@ -35,7 +35,7 @@ func getClientConfig(path string) (*restclient.Config, error) {
 		return nil, fmt.Errorf("Credentials %q error: %v", path, err)
 	}
 
-	if err := restclient.LoadTLSFiles(config); err != nil {
+	if err = restclient.LoadTLSFiles(config); err != nil {
 		return nil, fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
 	}
 

@@ -177,7 +177,7 @@ func TestStop(t *testing.T) {
 			t.Errorf("%s: expected an error", test.testName)
 		}
 		if len(test.oc.Actions()) != len(test.expected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions, test.expected)
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions(), test.expected)
 		}
 		for j, actualAction := range test.oc.Actions() {
 			if !reflect.DeepEqual(actualAction, test.expected[j]) {

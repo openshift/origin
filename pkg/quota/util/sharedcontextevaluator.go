@@ -86,7 +86,7 @@ func (sce *SharedContextEvaluator) UsageStats(options quota.UsageStatsOptions) (
 	}
 	list, err := sce.ListFuncByNamespace(options.Namespace, kapi.ListOptions{})
 	if err != nil {
-		return result, fmt.Errorf("%s: Failed to list %v: %v", sce.Name, sce.GroupKind, err)
+		return result, fmt.Errorf("%s: Failed to list %v: %v", sce.Name, sce.GroupKind(), err)
 	}
 	_, err = meta.Accessor(list)
 	if err != nil {
