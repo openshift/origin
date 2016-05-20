@@ -62,36 +62,7 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{OAuthRedirectURISecretAnnotationPrefix + "one": "anywhere"},
 					},
 				}),
-			expectedErr: `system:serviceaccount:ns-01:default has no tokens allowed as oauth client secrets; set serviceaccounts.openshift.io/oauth-client-secret=true on a token secret`,
-			expectedActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
-			},
-		},
-		{
-			name:       "sa no tokens two",
-			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
-				&kapi.ServiceAccount{
-					ObjectMeta: kapi.ObjectMeta{
-						Namespace:   "ns-01",
-						Name:        "default",
-						Annotations: map[string]string{OAuthRedirectURISecretAnnotationPrefix + "one": "anywhere"},
-					},
-				},
-				&kapi.Secret{
-					ObjectMeta: kapi.ObjectMeta{
-						Namespace: "ns-01",
-						Name:      "default",
-						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
-						},
-					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
-				}),
-			expectedErr: `system:serviceaccount:ns-01:default has no tokens allowed as oauth client secrets; set serviceaccounts.openshift.io/oauth-client-secret=true on a token secret`,
+			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
 			expectedActions: []ktestclient.Action{
 				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
 				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
@@ -114,9 +85,8 @@ func TestGetClient(t *testing.T) {
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							OAuthClientSecretAnnotation: "true",
-							kapi.ServiceAccountNameKey:  "default",
-							kapi.ServiceAccountUIDKey:   "any",
+							kapi.ServiceAccountNameKey: "default",
+							kapi.ServiceAccountUIDKey:  "any",
 						},
 					},
 					Type: kapi.SecretTypeServiceAccountToken,
