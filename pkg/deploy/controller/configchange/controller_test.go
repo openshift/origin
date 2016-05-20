@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
-	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
+	testapi "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -27,7 +27,8 @@ func TestHandle_newConfigNoTriggers(t *testing.T) {
 		},
 	}
 
-	config := deployapitest.OkDeploymentConfig(1)
+	config := testapi.OkDeploymentConfig(1)
+	config.Namespace = kapi.NamespaceDefault
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -47,9 +48,6 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("get", "generatedeploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, deployapitest.OkDeploymentConfig(1), nil
-	})
 	fake.AddReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		updated = action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		return true, updated, nil
@@ -64,8 +62,9 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 		},
 	}
 
-	config := deployapitest.OkDeploymentConfig(0)
-	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+	config := testapi.OkDeploymentConfig(0)
+	config.Namespace = kapi.NamespaceDefault
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger()}
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,14 +118,12 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 		fake := &testclient.Fake{}
 		kFake := &ktestclient.Fake{}
 
-		config := deployapitest.OkDeploymentConfig(1)
-		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+		config := testapi.OkDeploymentConfig(1)
+		config.Namespace = kapi.NamespaceDefault
+		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger()}
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		var updated *deployapi.DeploymentConfig
 
-		fake.PrependReactor("get", "generatedeploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			return true, config, nil
-		})
 		fake.PrependReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			updated = action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			return true, updated, nil
@@ -176,21 +173,15 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 	}
 }
 
-func TestHandle_raceWithTheImageController(t *testing.T) {
-	var updated *deployapi.DeploymentConfig
+// TestHandle_waitForImageController tests an initial deployment with unresolved image. The config
+// change controller should never increment latestVersion, thus trigger a deployment for this config.
+func TestHandle_waitForImageController(t *testing.T) {
 	fake := &testclient.Fake{}
 	kFake := &ktestclient.Fake{}
 
-	fake.PrependReactor("get", "generatedeploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		generated := deployapitest.OkDeploymentConfig(1)
-		generated.Status.Details = deployapitest.OkImageChangeDetails()
-		updated = generated
-		return true, generated, nil
-	})
 	fake.PrependReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		t.Errorf("an update should never run in the presence of races")
-		updated.Status.Details = deployapitest.OkConfigChangeDetails()
-		return true, updated, nil
+		t.Fatalf("an update should never run before the template image is resolved")
+		return true, nil, nil
 	})
 
 	controller := &DeploymentConfigChangeController{
@@ -201,70 +192,95 @@ func TestHandle_raceWithTheImageController(t *testing.T) {
 		},
 	}
 
-	config := deployapitest.OkDeploymentConfig(0)
-	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger(), deployapitest.OkImageChangeTrigger()}
+	config := testapi.OkDeploymentConfig(0)
+	config.Namespace = kapi.NamespaceDefault
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger(), testapi.OkImageChangeTrigger()}
 
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if e, a := 1, updated.Status.LatestVersion; e != a {
-		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
-	}
-
-	if updated.Status.Details == nil {
-		t.Fatalf("expected config change details to be set")
-	} else if updated.Status.Details.Causes == nil {
-		t.Fatalf("expected config change causes to be set")
-	} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnImageChange {
-		t.Fatalf("expected config change cause to be set to image change trigger, got %s", updated.Status.Details.Causes[0].Type)
 	}
 }
 
-func TestHandle_nonAutomaticImageUpdates(t *testing.T) {
-	var updated *deployapi.DeploymentConfig
-	fake := &testclient.Fake{}
-	kFake := &ktestclient.Fake{}
-
-	fake.PrependReactor("get", "generatedeploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		generated := deployapitest.OkDeploymentConfig(1)
-		// The generator doesn't change automatic so it's ok to fake it here.
-		generated.Spec.Triggers[0].ImageChangeParams.Automatic = false
-		generated.Status.Details = deployapitest.OkImageChangeDetails()
-		updated = generated
-		return true, generated, nil
-	})
-	fake.PrependReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updated.Status.Details = deployapitest.OkConfigChangeDetails()
-		return true, updated, nil
-	})
-
-	controller := &DeploymentConfigChangeController{
-		client:  fake,
-		kClient: kFake,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+// TestHandle_automaticImageUpdates tests automatic and non-automatic updates
+// from image change triggers.
+func TestHandle_automaticImageUpdates(t *testing.T) {
+	tests := []struct {
+		name           string
+		auto           bool
+		canTrigger     bool
+		version        int
+		expectedUpdate bool
+	}{
+		{
+			name:           "initial deployment with unresolved image (auto: true)",
+			auto:           true,
+			canTrigger:     false,
+			version:        0,
+			expectedUpdate: false,
+		},
+		{
+			name:           "initial deployment with unresolved image (auto: false)",
+			auto:           false,
+			canTrigger:     false,
+			version:        0,
+			expectedUpdate: false,
+		},
+		{
+			name:           "initial deployment with resolved image (auto: true)",
+			auto:           true,
+			canTrigger:     true,
+			version:        0,
+			expectedUpdate: true,
+		},
+		{
+			name:           "initial deployment with resolved image (auto: false)",
+			auto:           false,
+			canTrigger:     true,
+			version:        0,
+			expectedUpdate: true,
 		},
 	}
 
-	config := deployapitest.OkDeploymentConfig(0)
-	ict := deployapitest.OkImageChangeTrigger()
-	ict.ImageChangeParams.Automatic = false
-	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger(), ict}
+	for _, test := range tests {
+		updated := false
 
-	if err := controller.Handle(config); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+		fake := &testclient.Fake{}
+		kFake := &ktestclient.Fake{}
+		fake.PrependReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			updated = true
+			return true, nil, nil
+		})
+		kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			// This will always return no template difference. We test template differences in TestHandle_changeWithTemplateDiff
+			config := testapi.OkDeploymentConfig(0)
+			deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			return true, deployment, nil
+		})
 
-	if e, a := 1, updated.Status.LatestVersion; e != a {
-		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
-	}
+		controller := &DeploymentConfigChangeController{
+			client:  fake,
+			kClient: kFake,
+			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			},
+		}
 
-	if updated.Status.Details == nil {
-		t.Fatalf("expected config change details to be set")
-	} else if updated.Status.Details.Causes == nil {
-		t.Fatalf("expected config change causes to be set")
-	} else if updated.Status.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
-		t.Fatalf("expected config change cause to be set to config change trigger, got %s", updated.Status.Details.Causes[0].Type)
+		config := testapi.OkDeploymentConfig(test.version)
+		config.Namespace = kapi.NamespaceDefault
+		ict := testapi.OkImageChangeTrigger()
+		ict.ImageChangeParams.Automatic = test.auto
+		if test.canTrigger {
+			ict.ImageChangeParams.LastTriggeredImage = testapi.DockerImageReference
+		}
+		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger(), ict}
+
+		if err := controller.Handle(config); err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+
+		if test.expectedUpdate != updated {
+			t.Errorf("%s: expected update: %t, got update: %t", test.name, test.expectedUpdate, updated)
+		}
 	}
 }

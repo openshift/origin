@@ -54,20 +54,8 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	newVersion := newDc.Status.LatestVersion
 	oldVersion := oldDc.Status.LatestVersion
 
-	// Check for imagechange controller change
-	isImageControllerChange := deployutil.IsImageChangeControllerChange(*newDc, *oldDc)
-
 	// Persist status
-	newStatus := newDc.Status
 	newDc.Status = oldDc.Status
-
-	// If this update comes from the imagechange controller, tolerate status detail updates.
-	// TODO: Make the config change controller detect this change and update latestVersion.
-	// Then the main controller should detect there is a change coming from the image change
-	// controller and update status details accordingly.
-	if isImageControllerChange {
-		newDc.Status.Details = newStatus.Details
-	}
 
 	// oc deploy --latest from new clients
 	if newVersion == oldVersion && deployutil.IsInstantiated(newDc) {

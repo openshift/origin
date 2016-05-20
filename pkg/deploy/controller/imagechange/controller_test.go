@@ -5,9 +5,12 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
+	testapi "github.com/openshift/origin/pkg/deploy/api/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -19,212 +22,201 @@ func init() {
 // there is a matching trigger results in a no-op due to the trigger's
 // automatic flag being set to false.
 func TestHandle_changeForNonAutomaticTag(t *testing.T) {
-	controller := &ImageChangeController{
-		deploymentConfigClient: &deploymentConfigClientImpl{
-			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected DeploymentConfig update")
-				return nil, nil
-			},
-			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected generator call")
-				return nil, nil
-			},
-			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
-				config := deployapitest.OkDeploymentConfig(1)
-				config.Spec.Triggers[0].ImageChangeParams.Automatic = false
+	fake := &testclient.Fake{}
+	fake.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		t.Fatalf("unexpected deploymentconfig update")
+		return true, nil, nil
+	})
 
-				return []*deployapi.DeploymentConfig{config}, nil
-			},
+	controller := &ImageChangeController{
+		listDeploymentConfigs: func() ([]*deployapi.DeploymentConfig, error) {
+			config := testapi.OkDeploymentConfig(1)
+			config.Namespace = kapi.NamespaceDefault
+			config.Spec.Triggers[0].ImageChangeParams.Automatic = false
+
+			return []*deployapi.DeploymentConfig{config}, nil
 		},
+		client: fake,
 	}
 
 	// verify no-op
-	tagUpdate := makeRepo(
-		"test-image-repo",
-		imageapi.DefaultImageTag,
-		"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-		"00000000000000000000000000000001",
-	)
-	err := controller.Handle(tagUpdate)
+	tagUpdate := makeStream(testapi.ImageStreamName, imageapi.DefaultImageTag, testapi.DockerImageReference, testapi.ImageID)
 
-	if err != nil {
+	if err := controller.Handle(tagUpdate); err != nil {
 		t.Fatalf("unexpected err: %v", err)
+	}
+
+	if len(fake.Actions()) > 0 {
+		t.Fatalf("unexpected actions: %v", fake.Actions())
+	}
+}
+
+// TestHandle_changeForInitialNonAutomaticDeployment ensures that an image update for which
+// there is a matching trigger will actually update the deployment config if it hasn't been
+// deployed before.
+func TestHandle_changeForInitialNonAutomaticDeployment(t *testing.T) {
+	fake := &testclient.Fake{}
+
+	controller := &ImageChangeController{
+		listDeploymentConfigs: func() ([]*deployapi.DeploymentConfig, error) {
+			config := testapi.OkDeploymentConfig(0)
+			config.Namespace = kapi.NamespaceDefault
+			config.Spec.Triggers[0].ImageChangeParams.Automatic = false
+
+			return []*deployapi.DeploymentConfig{config}, nil
+		},
+		client: fake,
+	}
+
+	// verify no-op
+	tagUpdate := makeStream(testapi.ImageStreamName, imageapi.DefaultImageTag, testapi.DockerImageReference, testapi.ImageID)
+
+	if err := controller.Handle(tagUpdate); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+
+	actions := fake.Actions()
+	if len(actions) != 1 {
+		t.Fatalf("unexpected amount of actions: expected 1, got %d (%v)", len(actions), actions)
+	}
+	if !actions[0].Matches("update", "deploymentconfigs") {
+		t.Fatalf("unexpected action: %v", actions[0])
 	}
 }
 
 // TestHandle_changeForUnregisteredTag ensures that an image update for which
 // there is a matching trigger results in a no-op due to the tag specified on
-// the trigger not matching the tags defined on the image repo.
+// the trigger not matching the tags defined on the image stream.
 func TestHandle_changeForUnregisteredTag(t *testing.T) {
+	fake := &testclient.Fake{}
+	fake.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		t.Fatalf("unexpected deploymentconfig update")
+		return true, nil, nil
+	})
+
 	controller := &ImageChangeController{
-		deploymentConfigClient: &deploymentConfigClientImpl{
-			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected DeploymentConfig update")
-				return nil, nil
-			},
-			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected generator call")
-				return nil, nil
-			},
-			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
-				return []*deployapi.DeploymentConfig{deployapitest.OkDeploymentConfig(0)}, nil
-			},
+		listDeploymentConfigs: func() ([]*deployapi.DeploymentConfig, error) {
+			return []*deployapi.DeploymentConfig{testapi.OkDeploymentConfig(0)}, nil
 		},
+		client: fake,
 	}
 
 	// verify no-op
-	imageRepo := makeRepo(
-		"test-image-repo",
-		"unrecognized",
-		"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-		"00000000000000000000000000000001",
-	)
-	err := controller.Handle(imageRepo)
-	if err != nil {
+	tagUpdate := makeStream(testapi.ImageStreamName, "unrecognized", testapi.DockerImageReference, testapi.ImageID)
+
+	if err := controller.Handle(tagUpdate); err != nil {
 		t.Fatalf("unexpected err: %v", err)
+	}
+
+	if len(fake.Actions()) > 0 {
+		t.Fatalf("unexpected actions: %v", fake.Actions())
 	}
 }
 
 // TestHandle_matchScenarios comprehensively tests trigger definitions against
-// image repo updates to ensure that the image change triggers match (or don't
+// image stream updates to ensure that the image change triggers match (or don't
 // match) properly.
 func TestHandle_matchScenarios(t *testing.T) {
-	params := map[string]*deployapi.DeploymentTriggerImageChangeParams{
-		"params.1": {
-			Automatic:          true,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
-			LastTriggeredImage: "",
-		},
-		"params.2": {
-			Automatic:          true,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
-			LastTriggeredImage: "",
-		},
-		"params.3": {
-			Automatic:          false,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
-			LastTriggeredImage: "",
-		},
-		"params.4": {
-			Automatic:          true,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag("repoA", imageapi.DefaultImageTag)},
-			LastTriggeredImage: "registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-		},
-		"params.5": {
-			Automatic:          true,
-			ContainerNames:     []string{"container-1"},
-			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("repoC", imageapi.DefaultImageTag)},
-			LastTriggeredImage: "",
-		},
-	}
-
-	tagHistoryFor := func(tag, dir, image string) map[string]imageapi.TagEventList {
-		return map[string]imageapi.TagEventList{
-			tag: {
-				Items: []imageapi.TagEvent{
-					{
-						DockerImageReference: dir,
-						Image:                image,
-					},
-				},
-			},
-		}
-	}
-
-	updates := map[string]*imageapi.ImageStream{
-		"update.1": {
-			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status: imageapi.ImageStreamStatus{
-				Tags: tagHistoryFor(
-					imageapi.DefaultImageTag,
-					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
-					"00000000000000000000000000000001",
-				),
-			},
-		},
-	}
-
-	scenarios := []struct {
-		param   string
-		repo    string
+	tests := []struct {
+		param   *deployapi.DeploymentTriggerImageChangeParams
 		matches bool
 	}{
 		// Update from empty last image ID to a new one with explicit namespaces
-		{"params.1", "update.1", true},
+		{
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          true,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: "",
+			},
+			matches: true,
+		},
 		// Update from empty last image ID to a new one with implicit namespaces
-		{"params.2", "update.1", true},
+		{
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          true,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: "",
+			},
+			matches: true,
+		},
 		// Update from empty last image ID to a new one, but not marked automatic
-		{"params.3", "update.1", false},
+		{
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          false,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: "",
+			},
+			matches: false,
+		},
 		// Updated image ID is equal to the last triggered ID
-		{"params.4", "update.1", false},
-		// Trigger repo reference doesn't match
-		{"params.5", "update.1", false},
+		{
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          true,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: testapi.DockerImageReference,
+			},
+			matches: false,
+		},
+		// Trigger stream reference doesn't match
+		{
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          true,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag("other-stream", imageapi.DefaultImageTag)},
+				LastTriggeredImage: "",
+			},
+			matches: false,
+		},
 	}
 
-	for _, s := range scenarios {
-		config := deployapitest.OkDeploymentConfig(0)
+	for i, test := range tests {
+		updated := false
+
+		fake := &testclient.Fake{}
+		fake.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			if !test.matches {
+				t.Fatalf("unexpected deploymentconfig update for scenario %d", i)
+			}
+			updated = true
+			return true, nil, nil
+		})
+
+		config := testapi.OkDeploymentConfig(1)
 		config.Namespace = kapi.NamespaceDefault
 		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{
 			{
 				Type:              deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: params[s.param],
+				ImageChangeParams: test.param,
 			},
 		}
-
-		updated := false
-		generated := false
 
 		controller := &ImageChangeController{
-			deploymentConfigClient: &deploymentConfigClientImpl{
-				updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-					if !s.matches {
-						t.Fatalf("unexpected DeploymentConfig update for scenario: %v", s)
-					}
-					updated = true
-					return config, nil
-				},
-				generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-					if !s.matches {
-						t.Fatalf("unexpected generator call for scenario: %v", s)
-					}
-					generated = true
-					// simulate a generation
-					newConfig := deployapitest.OkDeploymentConfig(config.Status.LatestVersion + 1)
-					newConfig.Namespace = config.Namespace
-					newConfig.Spec.Triggers = config.Spec.Triggers
-					return newConfig, nil
-				},
-				listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
-					return []*deployapi.DeploymentConfig{config}, nil
-				},
+			listDeploymentConfigs: func() ([]*deployapi.DeploymentConfig, error) {
+				return []*deployapi.DeploymentConfig{config}, nil
 			},
+			client: fake,
 		}
 
-		t.Logf("running scenario: %v", s)
-		err := controller.Handle(updates[s.repo])
-
-		if err != nil {
-			t.Fatalf("unexpected error for scenario %v: %v", s, err)
+		t.Logf("running scenario: %d", i)
+		stream := makeStream(testapi.ImageStreamName, imageapi.DefaultImageTag, testapi.DockerImageReference, testapi.ImageID)
+		if err := controller.Handle(stream); err != nil {
+			t.Fatalf("unexpected error for scenario %v: %v", i, err)
 		}
 
-		// assert updates/generations occurred
-		if s.matches && !updated {
-			t.Fatalf("expected update for scenario: %v", s)
-		}
-
-		if s.matches && !generated {
-			t.Fatalf("expected generation for scenario: %v", s)
+		// assert updates occurred
+		if test.matches && !updated {
+			t.Fatalf("expected update for scenario: %v", test)
 		}
 	}
 }
 
-func makeRepo(name, tag, dir, image string) *imageapi.ImageStream {
+func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: kapi.NamespaceDefault},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {
