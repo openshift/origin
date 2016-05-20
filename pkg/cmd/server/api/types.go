@@ -1198,3 +1198,14 @@ type ServiceServingCert struct {
 	// If this value is nil, then certs are not signed automatically.
 	Signer *CertInfo
 }
+
+// AdmissionPluginActivation can be used to enable to disable various admission plugins.
+// When this type is present as the `configuration` object in and `pluginConfig` and *if* the admission plugin supports it,
+// this will cause an off by default admission plugin to be enabled
+type AdmissionPluginActivation struct {
+	unversioned.TypeMeta
+
+	// TODO, we may want to make it possible to turn off an on by default admission plugin
+	//	Disable turns off an admission plugin that is enabled by default.
+	// Disable bool
+}
