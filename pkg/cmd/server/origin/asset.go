@@ -3,6 +3,7 @@ package origin
 import (
 	"crypto/tls"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -141,6 +142,18 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 	return handler, nil
 }
 
+// Have to convert to arrays because go templates are limited and we need to be able to know
+// if we are on the last index for trailing commas in JSON
+func extensionPropertyArrays(extensionProperties map[string]string) ([]template.JSStr, []template.JSStr) {
+	extensionKeys := []template.JSStr{}
+	extensionValues := []template.JSStr{}
+	for key, value := range extensionProperties {
+		extensionKeys = append(extensionKeys, template.JSStr(key))
+		extensionValues = append(extensionValues, template.JSStr(value))
+	}
+	return extensionKeys, extensionValues
+}
+
 func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	assetHandler, err := c.buildAssetHandler()
 	if err != nil {
@@ -220,8 +233,14 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		KubernetesVersion: kVersionInfo.GitVersion,
 		OpenShiftVersion:  oVersionInfo.GitVersion,
 	}
+
+	extensionPropertyKeys, extensionPropertyValues := extensionPropertyArrays(c.Options.ExtensionProperties)
+	extensionProps := assets.WebConsoleExtensionProperties{
+		ExtensionPropertyKeys:   extensionPropertyKeys,
+		ExtensionPropertyValues: extensionPropertyValues,
+	}
 	configPath := path.Join(publicURL.Path, "config.js")
-	configHandler, err := assets.GeneratedConfigHandler(config, versionInfo)
+	configHandler, err := assets.GeneratedConfigHandler(config, versionInfo, extensionProps)
 	if err != nil {
 		return err
 	}

@@ -565,6 +565,10 @@ type AssetConfig struct {
 	// Console loads
 	ExtensionScripts []string
 
+	// ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under
+	// the global variable OPENSHIFT_EXTENSION_PROPERTIES
+	ExtensionProperties map[string]string
+
 	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
 	// the Web Console loads
 	ExtensionStylesheets []string

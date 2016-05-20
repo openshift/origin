@@ -53,6 +53,7 @@ var map_AssetConfig = map[string]string{
 	"loggingPublicURL":     "LoggingPublicURL is the public endpoint for logging (optional)",
 	"metricsPublicURL":     "MetricsPublicURL is the public endpoint for metrics (optional)",
 	"extensionScripts":     "ExtensionScripts are file paths on the asset server files to load as scripts when the Web Console loads",
+	"extensionProperties":  "ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under the global variable OPENSHIFT_EXTENSION_PROPERTIES",
 	"extensionStylesheets": "ExtensionStylesheets are file paths on the asset server files to load as stylesheets when the Web Console loads",
 	"extensions":           "Extensions are files to serve from the asset server filesystem under a subcontext",
 	"extensionDevelopment": "ExtensionDevelopment when true tells the asset server to reload extension scripts and stylesheets for every request rather than only at startup. It lets you develop extensions without having to restart the server for every change.",
