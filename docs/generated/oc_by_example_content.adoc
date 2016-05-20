@@ -690,6 +690,9 @@ Start OpenShift on Docker with reasonable defaults
   # Start OpenShift and preserve data and config between restarts
   oc cluster up --host-data-dir=/mydata --use-existing-config
 
+  # Use a different set of images
+  oc cluster up --image="registry.example.com/origin" --version="v1.1"
+
 ----
 ====
 

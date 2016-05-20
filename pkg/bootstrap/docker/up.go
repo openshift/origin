@@ -40,6 +40,9 @@ const (
 	initialProjectDisplay = "My Project"
 	initialProjectDesc    = "Initial developer project"
 
+	defaultImages         = "openshift/origin-${component}:${version}"
+	defaultOpenShiftImage = "openshift/origin:${version}"
+
 	cmdUpLong = `
 Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
 initial templates, and a default project.
@@ -68,6 +71,9 @@ A public hostname can also be specified for the server with the --public-hostnam
   
   # Start OpenShift and preserve data and config between restarts
   %[1]s --host-data-dir=/mydata --use-existing-config
+
+  # Use a different set of images
+  %[1]s --image="registry.example.com/origin" --version="v1.1"
 `
 )
 
@@ -99,7 +105,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 		Example: fmt.Sprintf(cmdUpExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(config.Complete(f, c))
-			kcmdutil.CheckErr(config.Validate())
+			kcmdutil.CheckErr(config.Validate(out))
 			if err := config.Start(out); err != nil {
 				os.Exit(1)
 			}
@@ -107,7 +113,8 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	}
 	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
-	cmd.Flags().StringVar(&config.Tag, "image-tag", "latest", "Specify the tag for OpenShift images")
+	cmd.Flags().StringVar(&config.ImageVersion, "version", "latest", "Specify the tag for OpenShift images")
+	cmd.Flags().StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
 	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -131,7 +138,8 @@ type task struct {
 
 // ClientStartConfig is the configuration for the client start command
 type ClientStartConfig struct {
-	Tag                       string
+	ImageVersion              string
+	Image                     string
 	DockerMachine             string
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
@@ -164,6 +172,9 @@ type ClientStartConfig struct {
 	factory         *clientcmd.Factory
 	originalFactory *clientcmd.Factory
 	command         *cobra.Command
+
+	usingDefaultImages         bool
+	usingDefaultOpenShiftImage bool
 }
 
 func (c *ClientStartConfig) addTask(name string, fn taskFunc) {
@@ -176,6 +187,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.TaskPrinter = NewTaskPrinter(c.Out)
 	c.originalFactory = f
 	c.command = cmd
+
 	if c.ShouldCreateDockerMachine {
 		// Create a Docker machine first if flag specified
 		c.addTask("Create Docker machine", c.CreateDockerMachine)
@@ -191,7 +203,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Ensure that the OpenShift Docker image is available. If not present,
 	// pull it.
-	c.addTask("Checking for openshift/origin image", c.CheckOpenShiftImage)
+	c.addTask(fmt.Sprintf("Checking for %s image", c.openShiftImage()), c.CheckOpenShiftImage)
 
 	// Ensure that the Docker daemon has the right --insecure-registry argument. If
 	// not, then exit.
@@ -248,7 +260,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 }
 
 // Validate validates that required fields in StartConfig have been populated
-func (c *ClientStartConfig) Validate() error {
+func (c *ClientStartConfig) Validate(out io.Writer) error {
 	if len(c.Tasks) == 0 {
 		return fmt.Errorf("no startup tasks to execute")
 	}
@@ -448,7 +460,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	opt := &openshift.StartOptions{
 		ServerIP:          c.ServerIP,
 		UseSharedVolume:   !c.UseNsenterMount,
-		ImageTag:          c.Tag,
+		Images:            c.imageFormat(),
 		HostVolumesDir:    c.HostVolumesDir,
 		HostConfigDir:     c.HostConfigDir,
 		HostDataDir:       c.HostDataDir,
@@ -461,6 +473,10 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	return err
 }
 
+func (c *ClientStartConfig) imageFormat() string {
+	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageVersion)
+}
+
 // InstallRegistry installs the OpenShift registry on the server
 func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	_, kubeClient, err := c.Clients()
@@ -471,7 +487,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.Tag, out)
+	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out)
 }
 
 // InstallRouter installs a default router on the server
@@ -484,7 +500,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.Tag, c.ServerIP, out)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, out)
 }
 
 // ImportImageStreams imports default image streams into the server
@@ -600,7 +616,7 @@ func (c *ClientStartConfig) importObjects(out io.Writer, locations map[string]st
 }
 
 func (c *ClientStartConfig) openShiftImage() string {
-	return fmt.Sprintf("openshift/origin:%s", c.Tag)
+	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
 func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, error) {
