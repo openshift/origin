@@ -12,7 +12,7 @@
 		},
 		{
 			"ImportPath": "github.com/AaronO/go-git-http",
-			"Rev": "0ebecedc64b67a3a8674c56724082660be48216e"
+			"Rev": "34209cf6cd947cfa52063bcb0f6d43cfa50c5566"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
