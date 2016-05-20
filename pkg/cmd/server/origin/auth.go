@@ -245,8 +245,6 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 		if len(existing.Secret) == 0 {
 			existing.Secret = client.Secret
 		}
-		// Ensure the correct scope setting
-		existing.AllowAnyScope = client.AllowAnyScope
 
 		// Preserve redirects for clients other than the CLI client
 		// The CLI client doesn't care about the redirect URL, just the token or error fragment
@@ -275,7 +273,6 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			Secret:                uuid.New(),
 			RespondWithChallenges: false,
 			RedirectURIs:          assetPublicAddresses,
-			AllowAnyScope:         true,
 		}
 		if err := ensureOAuthClient(webConsoleClient, clientRegistry, true); err != nil {
 			return err
@@ -288,7 +285,6 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			Secret:                uuid.New(),
 			RespondWithChallenges: false,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
-			AllowAnyScope:         true,
 		}
 		if err := ensureOAuthClient(browserClient, clientRegistry, true); err != nil {
 			return err
@@ -301,7 +297,6 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			Secret:                uuid.New(),
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
-			AllowAnyScope:         true,
 		}
 		if err := ensureOAuthClient(cliClient, clientRegistry, false); err != nil {
 			return err

@@ -88,10 +88,6 @@ type OAuthClient struct {
 	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
 	// If no restriction matches, then the scope is denied.
 	ScopeRestrictions []ScopeRestriction `json:"scopeRestrictions,omitempty"`
-
-	// AllowAnyScope indicates that the client is allowed to request a token unconstrained by scopes.
-	// If this is true, then ScopeRestrictions is ignored.
-	AllowAnyScope bool `json:"allowAnyScope,omitempty"`
 }
 
 // ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.

@@ -283,7 +283,7 @@ func getAPIGroupSet(rule authorizationapi.PolicyRule) sets.String {
 }
 
 func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) error {
-	if client.AllowAnyScope {
+	if len(client.ScopeRestrictions) == 0 {
 		return nil
 	}
 	if len(scopes) == 0 {
@@ -303,7 +303,7 @@ func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) e
 func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error {
 	errs := []error{}
 
-	if client.AllowAnyScope {
+	if len(client.ScopeRestrictions) == 0 {
 		return nil
 	}
 

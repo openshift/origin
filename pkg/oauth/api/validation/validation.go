@@ -91,13 +91,6 @@ func ValidateClient(client *api.OAuthClient) field.ErrorList {
 		}
 	}
 
-	if client.AllowAnyScope && len(client.ScopeRestrictions) > 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("scopeRestrictions"), client.ScopeRestrictions, "invalid when allowAnyScope is allowed"))
-	}
-	if !client.AllowAnyScope && len(client.ScopeRestrictions) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("scopeRestrictions"), "required when allowAnyScope is false"))
-	}
-
 	for i, restriction := range client.ScopeRestrictions {
 		allErrs = append(allErrs, ValidateScopeRestriction(restriction, field.NewPath("scopeRestrictions").Index(i))...)
 	}

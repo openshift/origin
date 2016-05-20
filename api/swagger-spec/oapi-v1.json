@@ -22051,10 +22051,6 @@
        "$ref": "v1.ScopeRestriction"
       },
       "description": "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied."
-     },
-     "allowAnyScope": {
-      "type": "boolean",
-      "description": "AllowAnyScope indicates that the client is allowed to request a token unconstrained by scopes. If this is true, then ScopeRestrictions is ignored."
      }
     }
    },

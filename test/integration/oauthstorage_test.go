@@ -113,10 +113,9 @@ func TestOAuthStorage(t *testing.T) {
 	}))
 
 	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:    kapi.ObjectMeta{Name: "test"},
-		Secret:        "secret",
-		RedirectURIs:  []string{assertServer.URL + "/assert"},
-		AllowAnyScope: true,
+		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
+		Secret:       "secret",
+		RedirectURIs: []string{assertServer.URL + "/assert"},
 	})
 	storedClient, err := storage.GetClient("test")
 	if err != nil {
