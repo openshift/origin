@@ -21,6 +21,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/serviceaccount"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -78,31 +79,52 @@ func TestSAAsOAuthClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if defaultSA.Annotations == nil {
-		defaultSA.Annotations = map[string]string{}
-	}
-	defaultSA.Annotations[saoauth.OAuthRedirectURISecretAnnotationPrefix+"one"] = oauthServer.URL
-	defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
-	defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Update(defaultSA)
+
+	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
+	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		if defaultSA.Annotations == nil {
+			defaultSA.Annotations = map[string]string{}
+		}
+		defaultSA.Annotations[saoauth.OAuthRedirectURISecretAnnotationPrefix+"one"] = oauthServer.URL
+		defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
+		defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Update(defaultSA)
+		if err != nil {
+			t.Logf("unexpected err: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	allSecrets, err := clusterAdminKubeClient.Secrets(projectName).List(kapi.ListOptions{})
+	var oauthSecret *kapi.Secret
+	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
+	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		allSecrets, err := clusterAdminKubeClient.Secrets(projectName).List(kapi.ListOptions{})
+		if err != nil {
+			return false, err
+		}
+		for i := range allSecrets.Items {
+			secret := allSecrets.Items[i]
+			if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
+				secret.Annotations[saoauth.OAuthClientSecretAnnotation] = "true"
+				if _, err := clusterAdminKubeClient.Secrets(projectName).Update(&secret); err != nil {
+					t.Logf("unexpected err: %v", err)
+					return false, nil
+				}
+				oauthSecret = &secret
+				break
+			}
+		}
+
+		if oauthSecret != nil {
+			return true, nil
+		}
+		return false, nil
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	var oauthSecret *kapi.Secret
-	for i := range allSecrets.Items {
-		secret := allSecrets.Items[i]
-		if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
-			secret.Annotations[saoauth.OAuthClientSecretAnnotation] = "true"
-			if _, err := clusterAdminKubeClient.Secrets(projectName).Update(&secret); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			oauthSecret = &secret
-			break
-		}
 	}
 
 	oauthClientConfig := &osincli.ClientConfig{
