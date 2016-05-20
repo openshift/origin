@@ -52,6 +52,11 @@ func TestUserEvaluator(t *testing.T) {
 			scopes:   []string{UserIndicator + UserInfo, UserIndicator + UserAccessCheck},
 			numRules: 3,
 		},
+		{
+			name:     "list-projects",
+			scopes:   []string{UserIndicator + UserListProject},
+			numRules: 2,
+		},
 	}
 
 	for _, tc := range testCases {
