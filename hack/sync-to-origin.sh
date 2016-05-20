@@ -35,21 +35,31 @@ validate_args() {
     sdn_repo_dir=$(readlink -f -- $sdn_repo_dir)
 }
 
-handle_uncommitted_sdn_changes() {
+has_uncommitted_sdn_changes() {
     dir=$1
+    ret=1
     if [ -d "$dir" ]; then
         pushd $origin_repo_dir >/dev/null
         if (git diff $dir 2>/dev/null | grep -q '+++ ') || \
            (git diff $dir --cached 2>/dev/null | grep -q '+++ '); then
-            echo "Warning: openshift origin repo has uncommitted sdn changes under '$dir'"
-            echo -n "Continue to override the changes?[y/n]: "
-            read input
-	    input=$(echo $input | tr '[:upper:]' '[:lower:]')
-            if [ "$input" != "y" ] && [ "$input" != "yes" ]; then
-                exit 0
-            fi
+	    ret=0
         fi
         popd >/dev/null
+    fi
+
+    return $ret
+}
+
+handle_uncommitted_sdn_changes() {
+    dir=$1
+    if has_uncommitted_sdn_changes $dir; then
+        echo "Warning: openshift origin repo has uncommitted sdn changes under '$dir'"
+        echo -n "Continue to override the changes?[y/n]: "
+        read input
+	input=$(echo $input | tr '[:upper:]' '[:lower:]')
+        if [ "$input" != "y" ] && [ "$input" != "yes" ]; then
+            exit 0
+        fi
     fi
 }
 
@@ -75,6 +85,13 @@ copy_files_to_origin() {
 
     # Copy new sdn changes to origin repo
     cp -rf $sdn_pkg_dir $sdn_plugins_dir $origin_sdn_pkg_dir
+
+    # Clean old builds so a "make" will rebuild them
+    if has_uncommitted_sdn_changes $origin_sdn_pkg_dir; then
+	for dir in $origin_repo_dir/Godeps/_workspace/pkg/*/github.com/openshift/openshift-sdn; do
+	    find $dir -name '*.a' -print0 | xargs -0 rm -f
+	done
+    fi
 }
 
 update_origin_godeps() {
