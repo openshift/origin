@@ -165,6 +165,10 @@ func KindToResource(kind unversioned.GroupVersionKind) ( /*plural*/ unversioned.
 	case "y":
 		return kind.GroupVersion().WithResource(strings.TrimSuffix(singularName, "y") + "ies"), singular
 	}
+	switch string(singularName[len(singularName)-2:]) {
+	case "ch":
+		return kind.GroupVersion().WithResource(singularName + "es"), singular
+	}
 
 	return kind.GroupVersion().WithResource(singularName + "s"), singular
 }

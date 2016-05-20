@@ -11,6 +11,7 @@ import (
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	_ "github.com/openshift/origin/pkg/image/api/install"
 	_ "github.com/openshift/origin/pkg/oauth/api/install"
+	_ "github.com/openshift/origin/pkg/patch/api/install"
 	_ "github.com/openshift/origin/pkg/project/api/install"
 	_ "github.com/openshift/origin/pkg/route/api/install"
 	_ "github.com/openshift/origin/pkg/sdn/api/install"

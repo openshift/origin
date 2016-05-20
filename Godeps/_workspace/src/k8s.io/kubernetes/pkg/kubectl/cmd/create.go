@@ -122,9 +122,9 @@ func RunCreate(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *C
 		if err != nil {
 			return err
 		}
-		if err := kubectl.CreateOrUpdateAnnotation(cmdutil.GetFlagBool(cmd, cmdutil.ApplyAnnotationsFlag), info, f.JSONEncoder()); err != nil {
-			return cmdutil.AddSourceToErr("creating", info.Source, err)
-		}
+		// if err := kubectl.CreateOrUpdateAnnotation(cmdutil.GetFlagBool(cmd, cmdutil.ApplyAnnotationsFlag), info, f.JSONEncoder()); err != nil {
+		// 	return cmdutil.AddSourceToErr("creating", info.Source, err)
+		// }
 
 		if cmdutil.ShouldRecord(cmd, info) {
 			if err := cmdutil.RecordChangeCause(info.Object, f.Command()); err != nil {
