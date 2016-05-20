@@ -8,7 +8,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -103,17 +102,16 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 	if err != nil {
 		return err
 	}
-	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:         "create",
-			Group:        resource.Group,
-			Resource:     resource.Resource,
-			Content:      build,
-			ResourceName: resourceName(build.ObjectMeta),
-		},
-		User:   attr.GetUserInfo().GetName(),
-		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
-	}
+	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
+		&authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "create",
+				Group:        resource.Group,
+				Resource:     resource.Resource,
+				Content:      build,
+				ResourceName: resourceName(build.ObjectMeta),
+			},
+		})
 	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 
@@ -123,17 +121,16 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 	if err != nil {
 		return err
 	}
-	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:         "create",
-			Group:        resource.Group,
-			Resource:     resource.Resource,
-			Content:      buildConfig,
-			ResourceName: resourceName(buildConfig.ObjectMeta),
-		},
-		User:   attr.GetUserInfo().GetName(),
-		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
-	}
+	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
+		&authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "create",
+				Group:        resource.Group,
+				Resource:     resource.Resource,
+				Content:      buildConfig,
+				ResourceName: resourceName(buildConfig.ObjectMeta),
+			},
+		})
 	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 

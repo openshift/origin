@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
 	// uservalidation "github.com/openshift/origin/pkg/user/api/validation"
@@ -209,4 +210,25 @@ func SubjectsStrings(currentNamespace string, subjects []kapi.ObjectReference) (
 	}
 
 	return users, groups, sas, others
+}
+
+func AddUserToSAR(user user.Info, sar *SubjectAccessReview) *SubjectAccessReview {
+	origScopes := user.GetExtra()[ScopesKey]
+	scopes := make([]string, len(origScopes), len(origScopes))
+	copy(scopes, origScopes)
+
+	sar.User = user.GetName()
+	sar.Groups = sets.NewString(user.GetGroups()...)
+	sar.Scopes = scopes
+	return sar
+}
+func AddUserToLSAR(user user.Info, lsar *LocalSubjectAccessReview) *LocalSubjectAccessReview {
+	origScopes := user.GetExtra()[ScopesKey]
+	scopes := make([]string, len(origScopes), len(origScopes))
+	copy(scopes, origScopes)
+
+	lsar.User = user.GetName()
+	lsar.Groups = sets.NewString(user.GetGroups()...)
+	lsar.Scopes = scopes
+	return lsar
 }
