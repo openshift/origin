@@ -5,16 +5,15 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
 
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	html_template "html/template"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
@@ -155,20 +154,20 @@ type WebConsoleVersion struct {
 	OpenShiftVersion  string
 }
 
-var extensionPropertiesTemplate = html_template.Must(html_template.New("webConsoleExtensionProperties").Parse(`
+var extensionPropertiesTemplate = template.Must(template.New("webConsoleExtensionProperties").Parse(`
 window.OPENSHIFT_EXTENSION_PROPERTIES = {
-  {{ $values := .ExtensionPropertyValues }}
-  {{ range $i, $key := .ExtensionPropertyKeys }}
-  {{ if $i }},{{ end }}
-  {{ $value := index $values $i }}
-  "{{ $key }}": "{{ $value }}"
-  {{ end }}
+{{ range $i, $property := .ExtensionProperties }}{{ if $i }},{{ end }}
+  "{{ $property.Key | js }}": "{{ $property.Value | js }}"{{ end }}
 };
 `))
 
+type WebConsoleExtensionProperty struct {
+	Key   string
+	Value string
+}
+
 type WebConsoleExtensionProperties struct {
-	ExtensionPropertyKeys   []html_template.JSStr
-	ExtensionPropertyValues []html_template.JSStr
+	ExtensionProperties []WebConsoleExtensionProperty
 }
 
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
