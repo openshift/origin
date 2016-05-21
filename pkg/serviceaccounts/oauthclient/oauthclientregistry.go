@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	OAuthClientSecretAnnotation            = "serviceaccounts.openshift.io/oauth-client-secret"
 	OAuthRedirectURISecretAnnotationPrefix = "serviceaccounts.openshift.io/oauth-redirecturi."
 	OAuthWantChallengesAnnotationPrefix    = "serviceaccounts.openshift.io/oauth-want-challenges"
 )
@@ -59,7 +58,7 @@ func (a *saOAuthClientAdapter) GetClient(ctx kapi.Context, name string) (*oautha
 		return nil, err
 	}
 	if len(tokens) == 0 {
-		return nil, fmt.Errorf("%v has no tokens allowed as oauth client secrets; set %v=true on a token secret", name, OAuthClientSecretAnnotation)
+		return nil, fmt.Errorf("%v has no tokens", name)
 	}
 
 	saWantsChallenges, _ := strconv.ParseBool(sa.Annotations[OAuthWantChallengesAnnotationPrefix])
@@ -97,10 +96,6 @@ func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) 
 	tokens := []string{}
 	for i := range allSecrets.Items {
 		secret := allSecrets.Items[i]
-		if intendedAsClientSecret, _ := strconv.ParseBool(secret.Annotations[OAuthClientSecretAnnotation]); !intendedAsClientSecret {
-			continue
-		}
-
 		if serviceaccount.IsServiceAccountToken(&secret, sa) {
 			tokens = append(tokens, string(secret.Data[kapi.ServiceAccountTokenKey]))
 		}

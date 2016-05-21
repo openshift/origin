@@ -108,19 +108,11 @@ func TestSAAsOAuthClient(t *testing.T) {
 		for i := range allSecrets.Items {
 			secret := allSecrets.Items[i]
 			if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
-				secret.Annotations[saoauth.OAuthClientSecretAnnotation] = "true"
-				if _, err := clusterAdminKubeClient.Secrets(projectName).Update(&secret); err != nil {
-					t.Logf("unexpected err: %v", err)
-					return false, nil
-				}
 				oauthSecret = &secret
-				break
+				return true, nil
 			}
 		}
 
-		if oauthSecret != nil {
-			return true, nil
-		}
 		return false, nil
 	})
 	if err != nil {
