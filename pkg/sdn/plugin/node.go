@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"net"
+	osexec "os/exec"
 	"strings"
 	"time"
 
@@ -10,16 +11,21 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
+
+	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
+	kwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type OsdnNode struct {
@@ -28,6 +34,7 @@ type OsdnNode struct {
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
+	localSubnetCIDR    string
 	localIP            string
 	hostName           string
 	podNetworkReady    chan struct{}
@@ -35,6 +42,10 @@ type OsdnNode struct {
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
+	host               knetwork.Host
+	cniConfig          []byte
+
+	clearLbr0IptablesRule bool
 }
 
 // Called by higher layers to create the plugin SDN node instance
@@ -85,7 +96,71 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
 	}
+
+	if err := plugin.dockerPreCNICleanup(); err != nil {
+		return nil, err
+	}
+
 	return plugin, nil
+}
+
+// Detect whether we are upgrading from a pre-CNI openshift and clean up
+// interfaces and iptables rules that are no longer required
+func (node *OsdnNode) dockerPreCNICleanup() error {
+	exec := kexec.New()
+	itx := ipcmd.NewTransaction(exec, "lbr0")
+	itx.SetLink("down")
+	if err := itx.EndTransaction(); err != nil {
+		// no cleanup required
+		return nil
+	}
+
+	node.clearLbr0IptablesRule = true
+
+	// Restart docker to kill old pods and make it use docker0 again.
+	// "systemctl restart" will bail out (unnecessarily) in the
+	// OpenShift-in-a-container case, so we work around that by sending
+	// the messages by hand.
+	if err := osexec.Command("dbus-send", "--system", "--print-reply", "--reply-timeout=2000", "--type=method_call", "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager.Reload"); err != nil {
+		log.Error(err)
+	}
+	if err := osexec.Command("dbus-send", "--system", "--print-reply", "--reply-timeout=2000", "--type=method_call", "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager.RestartUnit", "string:'docker.service' string:'replace'"); err != nil {
+		log.Error(err)
+	}
+
+	// Delete pre-CNI interfaces
+	for _, intf := range []string{"lbr0", "vovsbr", "vlinuxbr"} {
+		itx := ipcmd.NewTransaction(exec, intf)
+		itx.DeleteLink()
+		itx.IgnoreError()
+		itx.EndTransaction()
+	}
+
+	// Wait until docker has restarted since kubelet will exit it docker isn't running
+	dockerClient, err := docker.NewClientFromEnv()
+	if err != nil {
+		return fmt.Errorf("failed to get docker client: %v", err)
+	}
+	err = kwait.ExponentialBackoff(
+		kwait.Backoff{
+			Duration: 100 * time.Millisecond,
+			Factor:   1.2,
+			Steps:    6,
+		},
+		func() (bool, error) {
+			if err := dockerClient.Ping(); err != nil {
+				// wait longer
+				return false, nil
+			}
+			return true, nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to connect to docker after SDN cleanup restart: %v", err)
+	}
+
+	log.Infof("Cleaned up left-over openshift-sdn docker bridge and interfaces")
+
+	return nil
 }
 
 func (node *OsdnNode) Start() error {
@@ -98,6 +173,11 @@ func (node *OsdnNode) Start() error {
 	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
+	}
+
+	node.localSubnetCIDR, err = node.getLocalSubnet()
+	if err != nil {
+		return err
 	}
 
 	networkChanged, err := node.SetupSDN()
@@ -127,7 +207,7 @@ func (node *OsdnNode) Start() error {
 		}
 		for _, p := range pods {
 			containerID := getPodContainerID(&p)
-			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
+			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.ContainerID{ID: containerID})
 			if err != nil {
 				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}
