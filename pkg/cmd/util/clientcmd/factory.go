@@ -36,6 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/homedir"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/restmapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -199,7 +200,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 
 		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
 		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute))
-		mapper := NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: restMapper})
+
+		mapper := restmapper.NewDiscoveryRESTMapper(cachedDiscoverClient)
+		mapper = NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: mapper})
 		return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 	}
 
