@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/blang/semver"
+	dockerclient "github.com/docker/engine-api/client"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -167,6 +168,7 @@ type ClientStartConfig struct {
 	ServerLogLevel    int
 
 	dockerClient    *docker.Client
+	engineAPIClient *dockerclient.Client
 	dockerHelper    *dockerhelper.Helper
 	hostHelper      *host.HostHelper
 	openShiftHelper *openshift.Helper
@@ -301,7 +303,7 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 
 	if len(c.DockerMachine) > 0 {
 		glog.V(2).Infof("Getting client for Docker machine %q", c.DockerMachine)
-		c.dockerClient, err = getDockerMachineClient(c.DockerMachine, out)
+		c.dockerClient, c.engineAPIClient, err = getDockerMachineClient(c.DockerMachine, out)
 		if err != nil {
 			return errors.ErrNoDockerMachineClient(c.DockerMachine, err)
 		}
@@ -331,6 +333,7 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
 	}
+	c.engineAPIClient, err = dockerclient.NewEnvClient()
 
 	if err = c.dockerClient.Ping(); err != nil {
 		return errors.ErrCannotPingDocker(err)
@@ -596,7 +599,7 @@ func (c *ClientStartConfig) HostHelper() *host.HostHelper {
 // DockerHelper returns a helper object to work with the Docker client
 func (c *ClientStartConfig) DockerHelper() *dockerhelper.Helper {
 	if c.dockerHelper == nil {
-		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient)
+		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient, c.engineAPIClient)
 	}
 	return c.dockerHelper
 }
@@ -620,12 +623,12 @@ func (c *ClientStartConfig) openShiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
-func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, error) {
+func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *dockerclient.Client, error) {
 	if !dockermachine.IsRunning(machine) {
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
-			return nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
+			return nil, nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
 		}
 		fmt.Fprintf(out, "Started Docker machine '%s'\n", machine)
 	}

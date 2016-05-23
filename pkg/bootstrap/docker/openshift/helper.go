@@ -73,7 +73,7 @@ type StartOptions struct {
 // NewHelper creates a new OpenShift helper
 func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
 	return &Helper{
-		dockerHelper:  dockerhelper.NewHelper(client),
+		dockerHelper:  dockerhelper.NewHelper(client, nil),
 		execHelper:    exec.NewExecHelper(client, containerName),
 		hostHelper:    hostHelper,
 		runHelper:     run.NewRunHelper(client),
