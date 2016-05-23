@@ -118,7 +118,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
 		// Retry on error.
 		if err != nil {
-			return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			return actionableError(fmt.Sprintf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
 		}
 		deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
 		nextStatus = deployapi.DeploymentStatusPending
