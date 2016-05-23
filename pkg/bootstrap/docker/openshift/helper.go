@@ -340,7 +340,7 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 		}
 		return "", err
 	}
-	return tempDir, nil
+	return filepath.Join(tempDir, filepath.Base(hostDir)), nil
 }
 
 func (h *Helper) updateConfig(configDir, hostDir, serverIP string) error {
