@@ -1035,6 +1035,9 @@ Launch a new instance of a pod for debugging
   # Debug a currently running deployment
   oc debug dc/test
 
+  # Test running a deployment as a non-root user
+  oc debug dc/test --as-user=1000000
+
   # Debug a specific failing container by running the env command in the 'second' container
   oc debug dc/test -c second -- /bin/env
 

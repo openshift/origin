@@ -6488,6 +6488,7 @@ _openshift_cli_debug()
     flags_completion=()
 
     flags+=("--as-root")
+    flags+=("--as-user=")
     flags+=("--container=")
     two_word_flags+=("-c")
     flags+=("--filename=")

@@ -45,6 +45,8 @@ type DebugOptions struct {
 	Command         []string
 	Annotations     map[string]string
 	AsRoot          bool
+	AsNonRoot       bool
+	AsUser          int64
 	KeepLabels      bool // TODO: evaluate selecting the right labels automatically
 	KeepAnnotations bool
 	KeepLiveness    bool
@@ -71,12 +73,19 @@ liveness checks disabled. If you just want to run a command, add '--' and a comm
 run. Passing a command will not create a TTY or send STDIN by default. Other flags are
 supported for altering the container or pod in common ways.
 
+A common problem running containers is a security policy that prohibits you from running
+as a root user on the cluster. You can use this command to test running a pod as
+non-root (with --as-user) or to run a non-root pod as root (with --as-root).
+
 The debug pod is deleted when the the remote command completes or the user interrupts
 the shell.`
 
 	debugExample = `
   # Debug a currently running deployment
   %[1]s dc/test
+
+  # Test running a deployment as a non-root user
+  %[1]s dc/test --as-user=1000000
 
   # Debug a specific failing container by running the env command in the 'second' container
   %[1]s dc/test -c second -- /bin/env
@@ -141,6 +150,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	cmd.Flags().BoolVar(&options.OneContainer, "one-container", false, "Run only the selected container, remove all others")
 	cmd.Flags().StringVar(&options.NodeName, "node-name", "", "Set a specific node to run on - by default the pod will run on any valid node")
 	cmd.Flags().BoolVar(&options.AsRoot, "as-root", false, "Try to run the container as the root user")
+	cmd.Flags().Int64Var(&options.AsUser, "as-user", -1, "Try to run the container as a specific user UID (note: admins may limit your ability to use this flag)")
 
 	cmd.Flags().StringVarP(&options.Filename, "filename", "f", "", "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
@@ -231,6 +241,8 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	pod.Name, pod.Namespace = infos[0].Name, infos[0].Namespace
 	o.Attach.Pod = pod
 
+	o.AsNonRoot = !o.AsRoot && cmd.Flag("as-root").Changed
+
 	if len(o.Attach.ContainerName) == 0 && len(pod.Spec.Containers) > 0 {
 		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
 		o.Attach.ContainerName = pod.Spec.Containers[0].Name
@@ -263,6 +275,9 @@ func (o DebugOptions) Validate() error {
 	names := containerNames(o.Attach.Pod)
 	if len(names) == 0 {
 		return fmt.Errorf("the provided pod must have at least one container")
+	}
+	if (o.AsRoot || o.AsNonRoot) && o.AsUser > 0 {
+		return fmt.Errorf("you may not specify --as-root and --as-user=%d at the same time", o.AsUser)
 	}
 	if len(o.Attach.ContainerName) == 0 {
 		return fmt.Errorf("you must provide a container name to debug")
@@ -511,13 +526,20 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	}
 	container.Env = newEnv
 
-	if o.AsRoot {
-		if container.SecurityContext == nil {
-			container.SecurityContext = &kapi.SecurityContext{}
-		}
-		container.SecurityContext.RunAsNonRoot = nil
+	if container.SecurityContext == nil {
+		container.SecurityContext = &kapi.SecurityContext{}
+	}
+	switch {
+	case o.AsNonRoot:
+		b := true
+		container.SecurityContext.RunAsNonRoot = &b
+	case o.AsRoot:
 		zero := int64(0)
 		container.SecurityContext.RunAsUser = &zero
+		container.SecurityContext.RunAsNonRoot = nil
+	case o.AsUser != -1:
+		container.SecurityContext.RunAsUser = &o.AsUser
+		container.SecurityContext.RunAsNonRoot = nil
 	}
 
 	if o.OneContainer {
