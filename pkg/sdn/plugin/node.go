@@ -16,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 )
@@ -31,6 +32,8 @@ type OsdnNode struct {
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
+	host               knetwork.Host
+	cniConfig          []byte
 }
 
 // Called by higher layers to create the plugin SDN node instance
@@ -111,7 +114,7 @@ func (node *OsdnNode) Start() error {
 		}
 		for _, p := range pods {
 			containerID := getPodContainerID(&p)
-			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
+			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.ContainerID{ID: containerID})
 			if err != nil {
 				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}

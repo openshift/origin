@@ -267,11 +267,8 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
 # Install sdn scripts
-install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
-install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
 pushd pkg/sdn/plugin/bin
    install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
-   install -p -m 755 openshift-sdn-docker-setup.sh %{buildroot}%{_bindir}/openshift-sdn-docker-setup.sh
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
@@ -418,9 +415,7 @@ fi
 %dir %{_unitdir}/docker.service.d/
 %dir %{_unitdir}/%{name}-node.service.d/
 %{_bindir}/openshift-sdn-ovs
-%{_bindir}/openshift-sdn-docker-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
-%{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
