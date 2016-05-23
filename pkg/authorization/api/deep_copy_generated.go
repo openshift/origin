@@ -286,6 +286,13 @@ func DeepCopy_api_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loc
 	} else {
 		out.Groups = nil
 	}
+	if in.Scopes != nil {
+		in, out := in.Scopes, &out.Scopes
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Scopes = nil
+	}
 	return nil
 }
 
@@ -617,6 +624,13 @@ func DeepCopy_api_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccess
 		}
 	} else {
 		out.Groups = nil
+	}
+	if in.Scopes != nil {
+		in, out := in.Scopes, &out.Scopes
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Scopes = nil
 	}
 	return nil
 }

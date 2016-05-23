@@ -27,6 +27,8 @@ type canIOptions struct {
 	AllNamespaces     bool
 	ListAll           bool
 	Quiet             bool
+	IgnoreScopes      bool
+	Scopes            []string
 	Namespace         string
 	RulesReviewClient client.SelfSubjectRulesReviewsNamespacer
 	SARClient         client.SubjectAccessReviews
@@ -67,7 +69,9 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 
 	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "Check the specified action in all namespaces.")
 	cmd.Flags().BoolVar(&o.ListAll, "list", o.ListAll, "List all the actions you can perform in a namespace, cannot be specified with --all-namespaces or a VERB RESOURCE")
-	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "Suppress output and just return the exit code")
+	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "Suppress output and just return the exit code.")
+	cmd.Flags().BoolVar(&o.IgnoreScopes, "ignore-scopes", o.IgnoreScopes, "Disregard any scopes present on this request and evaluate considering full permissions.")
+	cmd.Flags().StringSliceVar(&o.Scopes, "scopes", o.Scopes, "Check the specified action using these scopes.  By default, the scopes on the current token will be used.")
 
 	return cmd
 }
@@ -83,6 +87,10 @@ const (
 func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
+	}
+
+	if o.IgnoreScopes && len(o.Scopes) > 0 {
+		return errors.New("--scopes and --ignore-scopes are mutually exclusive")
 	}
 
 	switch len(args) {
@@ -139,6 +147,13 @@ func (o *canIOptions) Run() (bool, error) {
 			ResourceName: o.ResourceName,
 		},
 	}
+	if o.IgnoreScopes {
+		sar.Scopes = []string{}
+	}
+	if len(o.Scopes) > 0 {
+		sar.Scopes = o.Scopes
+	}
+
 	response, err := o.SARClient.SubjectAccessReviews().Create(sar)
 	if err != nil {
 		return false, err

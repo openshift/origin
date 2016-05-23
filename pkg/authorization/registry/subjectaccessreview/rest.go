@@ -50,21 +50,50 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	var userToCheck user.Info
+	var userToCheck *user.DefaultInfo
 	if (len(subjectAccessReview.User) == 0) && (len(subjectAccessReview.Groups) == 0) {
 		// if no user or group was specified, use the info from the context
 		ctxUser, exists := kapi.UserFrom(ctx)
 		if !exists {
 			return nil, kapierrors.NewBadRequest("user missing from context")
 		}
-		userToCheck = ctxUser
+		// make a copy, we don't want to risk changing the original
+		newExtra := map[string][]string{}
+		for k, v := range ctxUser.GetExtra() {
+			if v == nil {
+				newExtra[k] = nil
+				continue
+			}
+			newSlice := make([]string, len(v), len(v))
+			copy(newSlice, v)
+			newExtra[k] = newSlice
+		}
+
+		userToCheck = &user.DefaultInfo{
+			Name:   ctxUser.GetName(),
+			Groups: ctxUser.GetGroups(),
+			UID:    ctxUser.GetUID(),
+			Extra:  newExtra,
+		}
 
 	} else {
 		userToCheck = &user.DefaultInfo{
 			Name:   subjectAccessReview.User,
 			Groups: subjectAccessReview.Groups.List(),
+			Extra:  map[string][]string{},
 		}
+	}
 
+	switch {
+	case subjectAccessReview.Scopes == nil:
+		// leave the scopes alone.  on a self-sar, this means "use incoming request", on regular-sar it means, "use no scope restrictions"
+	case len(subjectAccessReview.Scopes) == 0:
+		// this always means "use no scope restrictions", so delete them
+		delete(userToCheck.Extra, authorizationapi.ScopesKey)
+
+	case len(subjectAccessReview.Scopes) > 0:
+		// this always means, "use these scope restrictions", so force the value
+		userToCheck.Extra[authorizationapi.ScopesKey] = subjectAccessReview.Scopes
 	}
 
 	requestContext := kapi.WithNamespace(kapi.WithUser(ctx, userToCheck), subjectAccessReview.Action.Namespace)

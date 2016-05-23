@@ -290,6 +290,13 @@ func DeepCopy_v1_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loca
 	} else {
 		out.GroupsSlice = nil
 	}
+	if in.Scopes != nil {
+		in, out := in.Scopes, &out.Scopes
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Scopes = nil
+	}
 	return nil
 }
 
@@ -617,6 +624,13 @@ func DeepCopy_v1_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccessR
 		copy(*out, in)
 	} else {
 		out.GroupsSlice = nil
+	}
+	if in.Scopes != nil {
+		in, out := in.Scopes, &out.Scopes
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Scopes = nil
 	}
 	return nil
 }
