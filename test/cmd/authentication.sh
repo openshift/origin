@@ -45,6 +45,10 @@ os::cmd::expect_success_and_text 'oc get projects --token="${allescalatingpowers
 
 accesstoken=$(oc process -f ${OS_ROOT}/test/fixtures/authentication/scoped-token-template.yaml TOKEN_PREFIX=access SCOPE=user:check-access USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
 os::cmd::expect_success_and_text 'curl -k -XPOST -H "Content-Type: application/json" -H "Authorization: Bearer ${accesstoken}" ${API_SCHEME}://${API_HOST}:${API_PORT}/oapi/v1/namespaces/cmd-authentication/localsubjectaccessreviews -d @${OS_ROOT}/test/fixtures/authentication/localsubjectaccessreview.json' '"kind": "SubjectAccessReviewResponse"'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --token=${accesstoken} -n cmd-authentication --ignore-scopes' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --token=${accesstoken} -n cmd-authentication' 'no'
+os::cmd::expect_success_and_text "oc policy can-i create pods --token=${accesstoken} -n cmd-authentication --scopes='role:admin:*'" 'yes'
+
 
 os::test::junit::declare_suite_end
 
