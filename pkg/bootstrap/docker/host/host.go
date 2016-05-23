@@ -81,7 +81,7 @@ func catHostFile(hostFile string) string {
 func (h *HostHelper) CopyFromHost(sourceDir, destDir string) error {
 	container, err := h.runner().
 		Image(h.image).
-		Bind("/:/rootfs:ro").
+		Bind(fmt.Sprintf("%[1]s:%[1]s:ro", sourceDir)).
 		Create()
 	if err != nil {
 		return err
@@ -100,10 +100,9 @@ func (h *HostHelper) CopyFromHost(sourceDir, destDir string) error {
 		}
 		errors.LogError(os.Remove(localTarFile.Name()))
 	}()
-	hostPath := path.Join("/rootfs", sourceDir) + "/."
-	glog.V(4).Infof("Downloading from host path %s to local tar file: %s", hostPath, localTarFile.Name())
+	glog.V(4).Infof("Downloading from host path %s to local tar file: %s", sourceDir, localTarFile.Name())
 	err = h.client.DownloadFromContainer(container, docker.DownloadFromContainerOptions{
-		Path:         hostPath,
+		Path:         sourceDir,
 		OutputStream: localTarFile,
 	})
 	if err != nil {
