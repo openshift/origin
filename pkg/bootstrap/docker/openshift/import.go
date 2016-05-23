@@ -39,7 +39,7 @@ func ImportObjects(f *clientcmd.Factory, ns, location string) error {
 			return err
 		}
 		glog.V(5).Infof("Creating %s/%s", info.Namespace, info.Name)
-		if err := createAndRefresh(info); err != nil {
+		if err = createAndRefresh(info); err != nil {
 			return cmdutil.AddSourceToErr("creating", info.Source, err)
 		}
 		return nil

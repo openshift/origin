@@ -170,7 +170,7 @@ func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, 
 	if h.removeContainer {
 		defer func() {
 			glog.V(5).Infof("Deleting container %q", id)
-			if err := h.client.RemoveContainer(docker.RemoveContainerOptions{ID: id}); err != nil {
+			if err = h.client.RemoveContainer(docker.RemoveContainerOptions{ID: id}); err != nil {
 				glog.V(1).Infof("Error deleting container %q: %v", id, err)
 			}
 		}()
@@ -184,7 +184,7 @@ func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, 
 	streamingWG.Add(1)
 	go func() {
 		glog.V(5).Infof("Attaching to container %q", id)
-		err := h.client.AttachToContainer(docker.AttachToContainerOptions{
+		err = h.client.AttachToContainer(docker.AttachToContainerOptions{
 			Container:    id,
 			Logs:         true,
 			Stream:       true,
@@ -207,7 +207,7 @@ func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, 
 	select {
 	case <-attached:
 		glog.V(5).Infof("Attach is successful.")
-	case err := <-attachErr:
+	case err = <-attachErr:
 		return 0, err
 	}
 	glog.V(5).Infof("Starting container %q", id)

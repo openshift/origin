@@ -56,6 +56,8 @@ func NewCmdDown(name, fullName string, f *osclientcmd.Factory, out io.Writer) *c
 	return cmd
 }
 
+// Stop stops the currently running origin container and any
+// containers started by the node.
 func (c *ClientStopConfig) Stop(out io.Writer) error {
 	client, err := c.getDockerClient(out)
 	if err != nil {
@@ -63,7 +65,7 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 	}
 	helper := dockerhelper.NewHelper(client)
 	glog.V(4).Infof("Stopping and removing origin container")
-	if err := helper.StopAndRemoveContainer("origin"); err != nil {
+	if err = helper.StopAndRemoveContainer("origin"); err != nil {
 		glog.V(1).Infof("Error stopping origin container: %v", err)
 	}
 	names, err := helper.ListContainerNames()
