@@ -12,7 +12,6 @@ FROM openshift/origin
 
 COPY bin/* /usr/bin/
 COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
-COPY lib/systemd/system/docker.service.d/docker-sdn-ovs.conf /usr/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf
 COPY scripts/* /usr/local/bin/
 
 RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo && \
