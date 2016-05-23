@@ -117,7 +117,7 @@ func (h *Helper) TestIP(ip string) error {
 	// Attempt to connect to test container
 	testHost := fmt.Sprintf("%s:8443", ip)
 	glog.V(4).Infof("Attempting to dial %s", testHost)
-	if err := cmdutil.WaitForSuccessfulDial(false, "tcp", testHost, 200*time.Millisecond, 1*time.Second, 10); err != nil {
+	if err = cmdutil.WaitForSuccessfulDial(false, "tcp", testHost, 200*time.Millisecond, 1*time.Second, 10); err != nil {
 		glog.V(2).Infof("Dial error: %v", err)
 		return err
 	}
@@ -274,7 +274,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	// Wait until the API server is listening
 	fmt.Fprintf(out, "Waiting for API server to start listening\n")
 	masterHost := fmt.Sprintf("%s:8443", opt.ServerIP)
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
+	if err = cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
 		return "", ErrTimedOutWaitingForStart(h.containerName)
 	}
 	// Check for healthz endpoint to be ready
