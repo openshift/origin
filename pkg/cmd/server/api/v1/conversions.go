@@ -88,7 +88,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.NetworkConfig.MTU = 1450
 			}
 			if len(obj.IPTablesSyncPeriod) == 0 {
-				obj.IPTablesSyncPeriod = "5s"
+				obj.IPTablesSyncPeriod = "30s"
 			}
 
 			// Auth cache defaults
