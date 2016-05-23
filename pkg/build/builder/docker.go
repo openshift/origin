@@ -48,7 +48,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		build:        build,
 		gitClient:    gitClient,
 		tar:          tar.New(),
-		urlTimeout:   urlCheckTimeout,
+		urlTimeout:   getURLCheckTimeout(build),
 		client:       buildsClient,
 		cgLimits:     cgLimits,
 	}

@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	// urlCheckTimeout is the timeout used to check the source URL
-	// If fetching the URL exceeds the timeout, then the build will
-	// not proceed further and stop
-	urlCheckTimeout = 16 * time.Second
+	// defaultURLCheckTimeout is the default timeout used to check the
+	// source URL. The build may specify a different timeout. If fetching
+	// the URL exceeds the timeout, then the build will not proceed
+	// further and stop.
+	defaultURLCheckTimeout = 15 * time.Second
 )
 
 type gitAuthError string
@@ -105,6 +106,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 // Since this is calling the 'git' binary, the proxy settings should be
 // available for this command.
 func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) error {
+	glog.V(4).Infof("Checking git URL with timeout %v", timeout)
 	glog.V(4).Infof("git ls-remote --heads %s", url)
 
 	var (
@@ -350,4 +352,13 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	}
 
 	return nil
+}
+
+func getURLCheckTimeout(build *api.Build) time.Duration {
+	if build != nil &&
+		build.Spec.Source.Git != nil &&
+		build.Spec.Source.Git.URLCheckTimeoutSeconds != nil {
+		return time.Duration(*build.Spec.Source.Git.URLCheckTimeoutSeconds) * time.Second
+	}
+	return defaultURLCheckTimeout
 }

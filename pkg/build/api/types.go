@@ -328,6 +328,9 @@ type GitBuildSource struct {
 
 	// HTTPSProxy is a proxy used to reach the git repository over https
 	HTTPSProxy *string
+
+	// URLCheckTimeoutSeconds is the timeout in seconds to use when checking connectivity to the git server
+	URLCheckTimeoutSeconds *int
 }
 
 // SourceControlUser defines the identity of a user of source control

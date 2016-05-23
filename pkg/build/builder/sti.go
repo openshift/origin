@@ -116,7 +116,7 @@ func (s *S2IBuilder) Build() error {
 	download := &downloader{
 		s:       s,
 		in:      os.Stdin,
-		timeout: urlCheckTimeout,
+		timeout: getURLCheckTimeout(s.build),
 
 		dir:        srcDir,
 		contextDir: contextDir,

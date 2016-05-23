@@ -17874,6 +17874,10 @@
      "httpsProxy": {
       "type": "string",
       "description": "httpsProxy is a proxy used to reach the git repository over https"
+     },
+     "urlCheckTimeoutSeconds": {
+      "type": "integer",
+      "format": "int32"
      }
     }
    },
