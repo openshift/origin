@@ -137,6 +137,8 @@ type Factory struct {
 	// can range over in order to determine if the user has specified an editor
 	// of their choice.
 	EditorEnvs func() []string
+	// PrintObjectSpecificMessage prints object-specific messages on the provided writer
+	PrintObjectSpecificMessage func(obj runtime.Object, out io.Writer)
 }
 
 const (
@@ -656,6 +658,22 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		EditorEnvs: func() []string {
 			return []string{"KUBE_EDITOR", "EDITOR"}
 		},
+		PrintObjectSpecificMessage: func(obj runtime.Object, out io.Writer) {
+			switch obj := obj.(type) {
+			case *api.Service:
+				if obj.Spec.Type == api.ServiceTypeNodePort {
+					msg := fmt.Sprintf(
+						`You have exposed your service on an external port on all nodes in your
+cluster.  If you want to expose this service to the external internet, you may
+need to set up firewall rules for the service port(s) (%s) to serve traffic.
+
+See http://releases.k8s.io/HEAD/docs/user-guide/services-firewalls.md for more details.
+`,
+						makePortsString(obj.Spec.Ports, true))
+					out.Write([]byte(msg))
+				}
+			}
+		},
 	}
 }
 
@@ -732,6 +750,20 @@ func (f *Factory) BindFlags(flags *pflag.FlagSet) {
 func (f *Factory) BindExternalFlags(flags *pflag.FlagSet) {
 	// any flags defined by external projects (not part of pflags)
 	flags.AddGoFlagSet(flag.CommandLine)
+}
+
+func makePortsString(ports []api.ServicePort, useNodePort bool) string {
+	pieces := make([]string, len(ports))
+	for ix := range ports {
+		var port int32
+		if useNodePort {
+			port = ports[ix].NodePort
+		} else {
+			port = ports[ix].Port
+		}
+		pieces[ix] = fmt.Sprintf("%s:%d", strings.ToLower(string(ports[ix].Protocol)), port)
+	}
+	return strings.Join(pieces, ",")
 }
 
 func getPorts(spec api.PodSpec) []string {

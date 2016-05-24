@@ -317,6 +317,7 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 	f.PortsForObject = rf.PortsForObject
 	f.LabelsForObject = rf.LabelsForObject
 	f.CanBeExposed = rf.CanBeExposed
+	f.PrintObjectSpecificMessage = rf.PrintObjectSpecificMessage
 	return f, t, testapi.Default.Codec()
 }
 
