@@ -312,6 +312,9 @@ func (r *templateRouter) reloadRouter() error {
 }
 
 func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceUnit)
 	}
@@ -334,18 +337,33 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 		EndpointTable:       []Endpoint{},
 	}
 
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	r.state[id] = service
 }
 
-// FindServiceUnit finds the service with the given id.
-func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
+// findMatchingServiceUnit finds the service with the given id - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) findMatchingServiceUnit(id string) (ServiceUnit, bool) {
 	v, ok := r.state[id]
 	return v, ok
 }
 
+// FindServiceUnit finds the service with the given id.
+func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	return r.findMatchingServiceUnit(id)
+}
+
 // DeleteServiceUnit deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
-	svcUnit, ok := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	svcUnit, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
 	}
@@ -353,15 +371,20 @@ func (r *templateRouter) DeleteServiceUnit(id string) {
 	for _, cfg := range svcUnit.ServiceAliasConfigs {
 		r.cleanUpServiceAliasConfig(&cfg)
 	}
+
 	delete(r.state, id)
 }
 
 // DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
-	service, ok := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	service, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
 	}
+
 	service.EndpointTable = []Endpoint{}
 
 	r.state[id] = service
@@ -391,8 +414,6 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 
 // AddRoute adds a route for the given id
 func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
-	frontend, _ := r.FindServiceUnit(id)
-
 	backendKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
@@ -450,6 +471,10 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 		}
 	}
 
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	frontend, _ := r.findMatchingServiceUnit(id)
 	//create or replace
 	frontend.ServiceAliasConfigs[backendKey] = config
 	r.state[id] = frontend
@@ -478,6 +503,9 @@ func (r *templateRouter) cleanUpdates(frontendKey string, backendKey string) {
 
 // RemoveRoute removes the given route for the given id.
 func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	serviceUnit, ok := r.state[id]
 	if !ok {
 		return
@@ -494,7 +522,9 @@ func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 
 // AddEndpoints adds new Endpoints for the given id.
 func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
-	frontend, _ := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	frontend, _ := r.findMatchingServiceUnit(id)
 
 	//only make the change if there is a difference
 	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
