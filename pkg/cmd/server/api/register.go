@@ -53,8 +53,12 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&OpenIDIdentityProvider{},
 
 		&LDAPSyncConfig{},
+
+		&DefaultAdmissionConfig{},
 	)
 }
+
+func (obj *DefaultAdmissionConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
 func (obj *LDAPSyncConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 

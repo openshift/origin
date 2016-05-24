@@ -1207,3 +1207,13 @@ type ServiceServingCert struct {
 	// If this value is nil, then certs are not signed automatically.
 	Signer *CertInfo `json:"signer"`
 }
+
+// DefaultAdmissionConfig can be used to enable or disable various admission plugins.
+// When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,
+// this will cause an "off by default" admission plugin to be enabled
+type DefaultAdmissionConfig struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Disable turns off an admission plugin that is enabled by default.
+	Disable bool
+}

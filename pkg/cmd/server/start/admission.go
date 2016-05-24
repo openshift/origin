@@ -1,6 +1,10 @@
 package start
 
 import (
+	"io"
+
+	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	// Admission control plug-ins used by OpenShift
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
@@ -22,4 +26,32 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+
+	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 )
+
+var (
+	defaultOnPlugins  = sets.String{}
+	defaultOffPlugins = sets.String{}
+)
+
+func init() {
+	defaultOffPlugins.Insert("AlwaysPullImages")
+	admission.PluginEnabledFn = IsAdmissionPluginActivated
+}
+
+func IsAdmissionPluginActivated(name string, config io.Reader) bool {
+	// only intercept if we have an explicit enable or disable.  If the check fails in any way,
+	// assume that the config was a different type and let the actual admission plugin check it
+	if defaultOnPlugins.Has(name) {
+		if enabled, err := configlatest.IsAdmissionPluginActivated(config, true); err == nil && !enabled {
+			return false
+		}
+	} else if defaultOffPlugins.Has(name) {
+		if enabled, err := configlatest.IsAdmissionPluginActivated(config, false); err == nil && !enabled {
+			return false
+		}
+	}
+
+	return true
+}
