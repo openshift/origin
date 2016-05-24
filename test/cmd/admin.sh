@@ -126,7 +126,7 @@ os::cmd::expect_success_and_text 'oadm policy who-can get PodASDF' "Resource:  P
 os::cmd::expect_success_and_text 'oadm policy who-can get hpa.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
 os::cmd::expect_success_and_text 'oadm policy who-can get hpa.v1.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
 os::cmd::expect_success_and_text 'oadm policy who-can get hpa.extensions -n default' "Resource:  horizontalpodautoscalers.extensions"
-os::cmd::expect_success_and_text 'oadm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.extensions"
+os::cmd::expect_success_and_text 'oadm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.autoscaling"
 
 os::cmd::expect_success 'oadm policy add-role-to-group cluster-admin system:unauthenticated'
 os::cmd::expect_success 'oadm policy add-role-to-user cluster-admin system:no-user'
