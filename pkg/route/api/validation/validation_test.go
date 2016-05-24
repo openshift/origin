@@ -947,7 +947,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 4,
+			expectedErrors: 8,
 		},
 	}
 
