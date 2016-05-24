@@ -102,7 +102,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 }
 
 // RunServiceAccountTokensController starts the service account token controller
-func (c *MasterConfig) RunServiceAccountTokensController() {
+func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
 		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
 		return
@@ -128,7 +128,7 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 		RootCA:         rootCA,
 	}
 
-	sacontroller.NewTokensController(clientadapter.FromUnversionedClient(c.KubeClient()), options).Run()
+	go sacontroller.NewTokensController(clientadapter.FromUnversionedClient(c.KubeClient()), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers

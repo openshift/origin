@@ -87,6 +87,7 @@ func TestCMServerDefaults(t *testing.T) {
 			ConcurrentResourceQuotaSyncs:      5,
 			ConcurrentDeploymentSyncs:         5,
 			ConcurrentNamespaceSyncs:          2,
+			ConcurrentSATokenSyncs:            5,
 			LookupCacheSizeForRC:              4096,
 			LookupCacheSizeForRS:              4096,
 			LookupCacheSizeForDaemonSet:       1024,
