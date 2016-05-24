@@ -25,6 +25,7 @@ pushd "${OS_ROOT}" > /dev/null
                                    -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" -ignore "README.md" \
                                    ${EXAMPLES}/image-streams/... \
                                    ${EXAMPLES}/db-templates/... \
+                                   ${EXAMPLES}/jenkins/pipeline/... \
                                    ${EXAMPLES}/quickstarts/...
 popd > /dev/null
 

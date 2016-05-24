@@ -42,10 +42,10 @@ $ oc policy add-role-to-user edit system:serviceaccount:ci:default -n ci
 3. Install the provided OpenShift templates:
 ```
 # Slave convertor (optional):
-$ oc create -f https://goo.gl/HPXiOs
+$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-slave-template.json
 
 # Jenkins master template:
-$ oc create -f https://goo.gl/YROngT
+$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-master-template.json
 ```
 
 4. Now navigate to the OpenShift Web Console and switch to the `ci` project.

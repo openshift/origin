@@ -90,6 +90,7 @@ var (
 		"django quickstart":  "examples/quickstarts/django-postgresql.json",
 		"nodejs quickstart":  "examples/quickstarts/nodejs-mongodb.json",
 		"rails quickstart":   "examples/quickstarts/rails-postgresql.json",
+		"jenkins pipeline":   "examples/jenkins/pipeline/jenkinstemplate.json",
 	}
 )
 
