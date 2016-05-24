@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -204,15 +203,14 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
-	accessReview := &authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:     "create",
-			Group:    projectapi.GroupName,
-			Resource: "projectrequests",
-		},
-		User:   userInfo.GetName(),
-		Groups: sets.NewString(userInfo.GetGroups()...),
-	}
+	accessReview := authorizationapi.AddUserToSAR(userInfo,
+		&authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "create",
+				Group:    projectapi.GroupName,
+				Resource: "projectrequests",
+			},
+		})
 	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
 	if err != nil {
 		return nil, err
