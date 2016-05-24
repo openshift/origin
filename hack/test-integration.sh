@@ -55,10 +55,14 @@ testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
-pushd "${testdir}" &>/dev/null
-echo "Building test executable..."
-CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
-popd &>/dev/null
+if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
+  echo "WARNING: Skipping build due to OPENSHIFT_SKIP_BUILD"
+else
+  pushd "${testdir}" &>/dev/null
+    echo "Building test executable..."
+    CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
+  popd &>/dev/null
+fi
 
 os::log::start_system_logger
 
