@@ -84,7 +84,7 @@ new Docker machine by specifying the --create-machine flag.
 
 	NoInsecureRegistryArgSolution = `
 Ensure that the Docker daemon is running with the following argument:
-	--insecure-registry "172.30.0.0/16"
+	--insecure-registry 172.30.0.0/16
 `
 
 	NoInsecureRegistryArgSolutionDockerMachine = NoInsecureRegistryArgSolution + `
