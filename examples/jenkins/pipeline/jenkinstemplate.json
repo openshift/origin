@@ -12,31 +12,6 @@
   },
   "objects": [
     {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "jenkins-jnlp",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "agent",
-            "protocol": "TCP",
-            "port": 50000,
-            "targetPort": 50000,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "${JENKINS_SERVICE_NAME}"
-        },
-        "portalIP": "",
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      }
-    },
-    {
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
@@ -85,6 +60,7 @@
             }
           },
           "spec": {
+            "serviceAccountName": "${JENKINS_SERVICE_NAME}",
             "containers": [
               {
                 "name": "jenkins",
@@ -158,19 +134,43 @@
       }
     },
     {
+      "kind": "ServiceAccount",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${JENKINS_SERVICE_NAME}"
+        }
+    },
+    {
+      "kind": "RoleBinding",
+      "apiVersion": "v1",
+      "metadata": {
+          "name": "${JENKINS_SERVICE_NAME}_edit"
+      },
+      "groupNames": null,
+      "subjects": [
+          {
+              "kind": "ServiceAccount",
+              "name": "${JENKINS_SERVICE_NAME}"
+          }
+      ],
+      "roleRef": {
+          "name": "edit"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${JENKINS_SERVICE_NAME}",
+        "name": "jenkins-jnlp",
         "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
-            "name": "web",
+            "name": "agent",
             "protocol": "TCP",
-            "port": 80,
-            "targetPort": 8080,
+            "port": 50000,
+            "targetPort": 50000,
             "nodePort": 0
           }
         ],
@@ -181,6 +181,31 @@
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }
+    },
+    {
+       "kind": "Service",
+       "apiVersion": "v1",
+       "metadata": {
+         "name": "${JENKINS_SERVICE_NAME}",
+         "creationTimestamp": null
+       },
+       "spec": {
+         "ports": [
+           {
+             "name": "web",
+             "protocol": "TCP",
+             "port": 80,
+             "targetPort": 8080,
+             "nodePort": 0
+           }
+         ],
+         "selector": {
+           "name": "${JENKINS_SERVICE_NAME}"
+         },
+         "portalIP": "",
+         "type": "ClusterIP",
+         "sessionAffinity": "None"
+       }
     }
   ],
   "parameters": [

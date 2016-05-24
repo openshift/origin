@@ -2563,31 +2563,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
   },
   "objects": [
     {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "jenkins-jnlp",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "agent",
-            "protocol": "TCP",
-            "port": 50000,
-            "targetPort": 50000,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "${JENKINS_SERVICE_NAME}"
-        },
-        "portalIP": "",
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      }
-    },
-    {
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
@@ -2636,6 +2611,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
             }
           },
           "spec": {
+            "serviceAccountName": "${JENKINS_SERVICE_NAME}",
             "containers": [
               {
                 "name": "jenkins",
@@ -2709,19 +2685,43 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       }
     },
     {
+      "kind": "ServiceAccount",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${JENKINS_SERVICE_NAME}"
+        }
+    },
+    {
+      "kind": "RoleBinding",
+      "apiVersion": "v1",
+      "metadata": {
+          "name": "${JENKINS_SERVICE_NAME}_edit"
+      },
+      "groupNames": null,
+      "subjects": [
+          {
+              "kind": "ServiceAccount",
+              "name": "${JENKINS_SERVICE_NAME}"
+          }
+      ],
+      "roleRef": {
+          "name": "edit"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${JENKINS_SERVICE_NAME}",
+        "name": "jenkins-jnlp",
         "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
-            "name": "web",
+            "name": "agent",
             "protocol": "TCP",
-            "port": 80,
-            "targetPort": 8080,
+            "port": 50000,
+            "targetPort": 50000,
             "nodePort": 0
           }
         ],
@@ -2732,6 +2732,31 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }
+    },
+    {
+       "kind": "Service",
+       "apiVersion": "v1",
+       "metadata": {
+         "name": "${JENKINS_SERVICE_NAME}",
+         "creationTimestamp": null
+       },
+       "spec": {
+         "ports": [
+           {
+             "name": "web",
+             "protocol": "TCP",
+             "port": 80,
+             "targetPort": 8080,
+             "nodePort": 0
+           }
+         ],
+         "selector": {
+           "name": "${JENKINS_SERVICE_NAME}"
+         },
+         "portalIP": "",
+         "type": "ClusterIP",
+         "sessionAffinity": "None"
+       }
     }
   ],
   "parameters": [
@@ -3262,25 +3287,7 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         }
       },
       "status": {}
-    },
-    {
-        "kind": "RoleBinding",
-        "apiVersion": "v1",
-        "metadata": {
-            "name": "default_edit"
-        },
-        "groupNames": null,
-        "subjects": [
-            {
-                "kind": "ServiceAccount",
-                "name": "default"
-            }
-        ],
-        "roleRef": {
-            "name": "edit"
-        }
     }
-
   ],
   "parameters": [
     {
