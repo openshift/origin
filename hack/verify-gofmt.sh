@@ -1,20 +1,12 @@
 #!/bin/bash
 
-# GoFmt apparently is changing @ head...
-
 set -o errexit
 set -o nounset
 set -o pipefail
 
-GO_VERSION=($(go version))
-
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4|go1.5') && -z "${FORCE_VERIFY-}"  ]]; then
-  echo "Unknown go version '${GO_VERSION}', skipping gofmt." >&2
-  exit 0
-fi
+echo $(go version)
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
 
 cd "${OS_ROOT}"
