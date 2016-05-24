@@ -70,7 +70,11 @@ function exectest() {
 	echo "Running $1..."
 
 	result=1
-	if [ -n "${VERBOSE-}" ]; then
+	if [ -n "${DEBUG-}" ]; then
+		dlv exec "${testexec}" -- -test.run="^$1$" "${@:2}"
+		result=$?
+		out=
+	elif [ -n "${VERBOSE-}" ]; then
 		out=$("${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	else
