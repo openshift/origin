@@ -179,7 +179,7 @@ func (o *DockerComposeOptions) Run() error {
 		appcmd.DescribeGeneratedTemplate(o.Action.Out, "", result, o.Namespace)
 	}
 
-	if errs := o.Action.WithMessage("Importing compose file", "creating").Run(&kapi.List{Items: result.Objects}, o.Namespace); len(errs) > 0 {
+	if errs := o.Action.WithMessage("Importing compose file", "created").Run(&kapi.List{Items: result.Objects}, o.Namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 	return nil

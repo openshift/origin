@@ -1,9 +1,5 @@
 apiVersion: v1
-kind: Template
-metadata:
-  creationTimestamp: null
-  name: complex
-objects:
+items:
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -36,7 +32,7 @@ objects:
     source:
       contextDir: test/fixtures/app-scenarios/docker-compose/complex/nginx
       git:
-        ref: libcompose
+        ref: master
         uri: git@github.com:openshift/origin.git
       secrets: null
       type: Git
@@ -48,10 +44,10 @@ objects:
       type: Docker
     triggers:
     - github:
-        secret: gKR65ZJCwVsproaayUIz
+        secret: FdDzZzJCBkHQGxYMMBw0
       type: GitHub
     - generic:
-        secret: PnTkFixxvwHK--JxtaJ7
+        secret: wMAV07N8TWt9dz40LDjL
       type: Generic
     - type: ConfigChange
     - imageChange: {}
@@ -90,7 +86,7 @@ objects:
     source:
       contextDir: test/fixtures/app-scenarios/docker-compose/complex/app
       git:
-        ref: libcompose
+        ref: master
         uri: git@github.com:openshift/origin.git
       secrets: null
       type: Git
@@ -102,10 +98,10 @@ objects:
       type: Docker
     triggers:
     - github:
-        secret: f7q0OGOVc-usCy7xA-Ul
+        secret: 3QSLvrej6A2E-CMYSEvQ
       type: GitHub
     - generic:
-        secret: yK_wyTqSxqqoYZ_TVSoo
+        secret: uBl0LIK0anHOaRJ8-4dI
       type: Generic
     - type: ConfigChange
     - imageChange: {}
@@ -235,6 +231,56 @@ objects:
       type: ImageChange
   status: {}
 - apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: no-ports
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: redis
+      from:
+        kind: DockerImage
+        name: redis
+      generation: null
+      importPolicy: {}
+      name: latest
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: no-ports
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: no-ports
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: no-ports
+      spec:
+        containers:
+        - image: redis
+          name: no-ports
+          resources: {}
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - no-ports
+        from:
+          kind: ImageStreamTag
+          name: no-ports:latest
+      type: ImageChange
+  status: {}
+- apiVersion: v1
   kind: Service
   metadata:
     creationTimestamp: null
@@ -265,3 +311,5 @@ objects:
       deploymentconfig: nginx
   status:
     loadBalancer: {}
+kind: List
+metadata: {}

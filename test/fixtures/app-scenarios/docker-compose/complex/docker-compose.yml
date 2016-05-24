@@ -28,3 +28,6 @@ db:
   cpu_quota: 10000
   mem_limit: 1000000000
   cpuset: 1
+
+no-ports:
+  image: redis

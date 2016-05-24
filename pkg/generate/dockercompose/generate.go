@@ -403,6 +403,8 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 		case *deployapi.DeploymentConfig:
 			ports := app.UniqueContainerToServicePorts(app.AllContainerPorts(t.Spec.Template.Spec.Containers...))
 			if len(ports) == 0 {
+				msg := "no ports defined to send traffic to - no OpenShift service was created"
+				warnings[msg] = append(warnings[msg], t.Name)
 				continue
 			}
 			svc := app.GenerateService(t.ObjectMeta, t.Spec.Selector)
