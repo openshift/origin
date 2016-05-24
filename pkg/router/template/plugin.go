@@ -53,6 +53,10 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
+	// HasServiceUnit indicates whether the router has a service unit
+	// for the given key.
+	HasServiceUnit(key string) bool
+
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.
