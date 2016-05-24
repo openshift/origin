@@ -240,15 +240,27 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - configmaps
-    - endpoints
-    - persistentvolumeclaims
     - pods
     - pods/attach
     - pods/exec
-    - pods/log
     - pods/portforward
     - pods/proxy
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - endpoints
+    - persistentvolumeclaims
     - replicationcontrollers
     - replicationcontrollers/scale
     - secrets
@@ -268,52 +280,27 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - serviceaccounts
+    - bindings
+    - events
+    - limitranges
+    - namespaces
+    - namespaces/status
+    - pods/log
+    - pods/status
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
     verbs:
-    - impersonate
+    - get
+    - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
-    - buildconfigs
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - buildconfigs/webhooks
-    - buildlogs
-    - builds
-    - builds/clone
-    - builds/log
-    - deploymentconfigrollbacks
-    - deploymentconfigs
-    - deploymentconfigs/log
-    - deploymentconfigs/scale
-    - generatedeploymentconfigs
-    - imagestreamimages
-    - imagestreamimports
-    - imagestreammappings
-    - imagestreams
-    - imagestreams/secrets
-    - imagestreamtags
-    - localresourceaccessreviews
-    - localsubjectaccessreviews
-    - processedtemplates
-    - projects
-    - resourceaccessreviews
-    - rolebindings
-    - roles
-    - routes
-    - subjectaccessreviews
-    - templateconfigs
-    - templates
+    - serviceaccounts
     verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
+    - impersonate
   - apiGroups:
     - autoscaling
     attributeRestrictions: null
@@ -371,33 +358,119 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - bindings
-    - configmaps
-    - deploymentconfigs/status
-    - endpoints
-    - events
-    - imagestreams/status
-    - limitranges
-    - minions
-    - namespaces
-    - namespaces/status
-    - nodes
-    - persistentvolumeclaims
-    - persistentvolumes
-    - pods
-    - pods/log
-    - pods/status
+    - rolebindings
+    - roles
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - policies
     - policybindings
-    - replicationcontrollers
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
-    - resourcequotausages
-    - routes/status
-    - securitycontextconstraints
-    - serviceaccounts
-    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/log
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/scale
+    - generatedeploymentconfigs
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/log
+    - deploymentconfigs/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams/status
     verbs:
     - get
     - list
@@ -414,9 +487,195 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - imagestreamimports
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - delete
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes/status
     verbs:
     - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildlogs
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotausages
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourceaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    - resourceaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - minions
+    - nodes
+    - persistentvolumes
+    - securitycontextconstraints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - create
+    - deletecollection
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -427,15 +686,27 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - configmaps
-    - endpoints
-    - persistentvolumeclaims
     - pods
     - pods/attach
     - pods/exec
-    - pods/log
     - pods/portforward
     - pods/proxy
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - endpoints
+    - persistentvolumeclaims
     - replicationcontrollers
     - replicationcontrollers/scale
     - secrets
@@ -455,45 +726,27 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - serviceaccounts
+    - bindings
+    - events
+    - limitranges
+    - namespaces
+    - namespaces/status
+    - pods/log
+    - pods/status
+    - replicationcontrollers/status
+    - resourcequotas
+    - resourcequotas/status
     verbs:
-    - impersonate
+    - get
+    - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
-    - buildconfigs
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - buildconfigs/webhooks
-    - buildlogs
-    - builds
-    - builds/clone
-    - builds/log
-    - deploymentconfigrollbacks
-    - deploymentconfigs
-    - deploymentconfigs/log
-    - deploymentconfigs/scale
-    - generatedeploymentconfigs
-    - imagestreamimages
-    - imagestreamimports
-    - imagestreammappings
-    - imagestreams
-    - imagestreams/secrets
-    - imagestreamtags
-    - processedtemplates
-    - routes
-    - templateconfigs
-    - templates
+    - serviceaccounts
     verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
+    - impersonate
   - apiGroups:
     - autoscaling
     attributeRestrictions: null
@@ -551,32 +804,86 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - bindings
-    - configmaps
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/log
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/scale
+    - generatedeploymentconfigs
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/log
     - deploymentconfigs/status
-    - endpoints
-    - events
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreams/secrets
+    - imagestreamtags
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - imagestreams/status
-    - limitranges
-    - minions
-    - namespaces
-    - namespaces/status
-    - nodes
-    - persistentvolumeclaims
-    - persistentvolumes
-    - pods
-    - pods/log
-    - pods/status
-    - projects
-    - replicationcontrollers
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
-    - resourcequotausages
-    - routes/status
-    - securitycontextconstraints
-    - serviceaccounts
-    - services
     verbs:
     - get
     - list
@@ -589,6 +896,163 @@ items:
     verbs:
     - get
     - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildlogs
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotausages
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/log
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - minions
+    - nodes
+    - persistentvolumes
+    - securitycontextconstraints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -599,54 +1063,31 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - bindings
-    - buildconfigs
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - buildconfigs/webhooks
-    - buildlogs
-    - builds
-    - builds/clone
-    - builds/log
     - configmaps
-    - deploymentconfigrollbacks
-    - deploymentconfigs
-    - deploymentconfigs/log
-    - deploymentconfigs/scale
-    - deploymentconfigs/status
     - endpoints
+    - persistentvolumeclaims
+    - pods
+    - replicationcontrollers
+    - serviceaccounts
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - bindings
     - events
-    - generatedeploymentconfigs
-    - imagestreamimages
-    - imagestreamimports
-    - imagestreammappings
-    - imagestreams
-    - imagestreams/status
-    - imagestreamtags
     - limitranges
-    - minions
     - namespaces
     - namespaces/status
-    - nodes
-    - persistentvolumeclaims
-    - persistentvolumes
-    - pods
     - pods/log
     - pods/status
-    - processedtemplates
-    - projects
-    - replicationcontrollers
     - replicationcontrollers/status
     - resourcequotas
     - resourcequotas/status
-    - resourcequotausages
-    - routes
-    - routes/status
-    - securitycontextconstraints
-    - serviceaccounts
-    - services
-    - templateconfigs
-    - templates
     verbs:
     - get
     - list
@@ -673,11 +1114,178 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
-    - daemonsets
     - horizontalpodautoscalers
     - jobs
     verbs:
     - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/log
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs
+    - deploymentconfigs/scale
+    - generatedeploymentconfigs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/log
+    - deploymentconfigs/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimages
+    - imagestreammappings
+    - imagestreams
+    - imagestreamtags
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildlogs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotausages
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    - buildconfigs/instantiatebinary
+    - builds/clone
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - minions
+    - nodes
+    - persistentvolumes
+    - securitycontextconstraints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
     - list
     - watch
 - apiVersion: v1
@@ -720,19 +1328,19 @@ items:
     - watch
   - apiGroups:
     - ""
+    attributeRestrictions: null
+    resources:
+    - selfsubjectrulesreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
     attributeRestrictions:
       apiVersion: v1
       kind: IsPersonalSubjectAccessReview
     resources:
     - localsubjectaccessreviews
     - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - selfsubjectrulesreviews
     verbs:
     - create
 - apiVersion: v1
@@ -852,6 +1460,32 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - pods
+    - replicationcontrollers
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - builds
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - images
     verbs:
     - delete
@@ -859,13 +1493,8 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - buildconfigs
-    - builds
-    - deploymentconfigs
     - images
     - imagestreams
-    - pods
-    - replicationcontrollers
     verbs:
     - get
     - list
@@ -890,13 +1519,6 @@ items:
     verbs:
     - get
     - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers
-    verbs:
-    - get
     - update
   - apiGroups:
     - ""
@@ -960,6 +1582,13 @@ items:
     attributeRestrictions: null
     resources:
     - endpoints
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes
     verbs:
     - list
@@ -981,6 +1610,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - resourcequotas
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - images
     verbs:
     - delete
@@ -990,7 +1626,6 @@ items:
     attributeRestrictions: null
     resources:
     - imagestreamimages
-    - imagestreams
     - imagestreams/secrets
     - imagestreamtags
     verbs:
@@ -1001,6 +1636,7 @@ items:
     resources:
     - imagestreams
     verbs:
+    - get
     - update
   - apiGroups:
     - ""
@@ -1009,13 +1645,6 @@ items:
     - imagestreammappings
     verbs:
     - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - resourcequotas
-    verbs:
-    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1201,14 +1830,6 @@ items:
     attributeRestrictions: null
     resources:
     - hostsubnets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
     - netnamespaces
     verbs:
     - get
@@ -1218,6 +1839,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - namespaces
     - nodes
     verbs:
     - get
@@ -1230,15 +1852,6 @@ items:
     - clusternetworks
     verbs:
     - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - namespaces
-    verbs:
-    - get
-    - list
-    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1250,16 +1863,6 @@ items:
     attributeRestrictions: null
     resources:
     - hostsubnets
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
     - netnamespaces
     verbs:
     - create
@@ -1271,19 +1874,19 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - clusternetworks
+    verbs:
+    - create
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - nodes
     verbs:
     - get
     - list
     - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - clusternetworks
-    verbs:
-    - create
-    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1356,16 +1959,6 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - localresourceaccessreviews
-    - localsubjectaccessreviews
-    - resourceaccessreviews
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
     - rolebindings
     - roles
     verbs:
@@ -1377,6 +1970,14 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -1402,6 +2003,14 @@ items:
     verbs:
     - delete
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourceaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
 - apiVersion: v1
   kind: ClusterRole
   metadata:
