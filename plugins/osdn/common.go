@@ -14,10 +14,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/iptables"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 )
 
@@ -37,23 +35,24 @@ type PluginHooks interface {
 }
 
 type OsdnController struct {
-	pluginHooks     PluginHooks
-	Registry        *Registry
-	localIP         string
-	localSubnet     *osapi.HostSubnet
-	HostName        string
-	subnetAllocator *netutils.SubnetAllocator
-	podNetworkReady chan struct{}
-	vnidMap         map[string]uint
-	vnidLock        sync.Mutex
-	netIDManager    *netutils.NetIDAllocator
-	adminNamespaces []string
+	pluginHooks        PluginHooks
+	Registry           *Registry
+	localIP            string
+	localSubnet        *osapi.HostSubnet
+	HostName           string
+	subnetAllocator    *netutils.SubnetAllocator
+	podNetworkReady    chan struct{}
+	vnidMap            map[string]uint
+	vnidLock           sync.Mutex
+	netIDManager       *netutils.NetIDAllocator
+	adminNamespaces    []string
+	iptablesSyncPeriod time.Duration
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string, iptablesSyncPeriod time.Duration) error {
 
-	log.Infof("Starting with configured hostname '%s' (IP '%s')", hostname, selfIP)
+	log.Infof("Starting with configured hostname %q (IP %q), iptables sync period %q", hostname, selfIP, iptablesSyncPeriod.String())
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -88,6 +87,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.vnidMap = make(map[string]uint)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
+	oc.iptablesSyncPeriod = iptablesSyncPeriod
 
 	return nil
 }
@@ -197,17 +197,10 @@ func (oc *OsdnController) StartNode(mtu uint) error {
 		return err
 	}
 
-	ipt := iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4)
-	if err := SetupIptables(ipt, clusterNetwork.String()); err != nil {
+	nodeIPTables := NewNodeIPTables(clusterNetwork.String(), oc.iptablesSyncPeriod)
+	if err := nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
-
-	ipt.AddReloadFunc(func() {
-		err := SetupIptables(ipt, clusterNetwork.String())
-		if err != nil {
-			log.Errorf("Error reloading iptables: %v\n", err)
-		}
-	})
 
 	if err := oc.pluginHooks.PluginStartNode(mtu); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
@@ -240,31 +233,6 @@ func (oc *OsdnController) WaitForPodNetworkReady() error {
 		}
 	}
 	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
-}
-
-type FirewallRule struct {
-	table string
-	chain string
-	args  []string
-}
-
-func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
-	rules := []FirewallRule{
-		{"nat", "POSTROUTING", []string{"-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE"}},
-		{"filter", "INPUT", []string{"-p", "udp", "-m", "multiport", "--dports", "4789", "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
-		{"filter", "INPUT", []string{"-i", "tun0", "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-d", clusterNetworkCIDR, "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-s", clusterNetworkCIDR, "-j", "ACCEPT"}},
-	}
-
-	for _, rule := range rules {
-		_, err := ipt.EnsureRule(iptables.Prepend, iptables.Table(rule.table), iptables.Chain(rule.chain), rule.args...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func GetNodeIP(node *kapi.Node) (string, error) {
