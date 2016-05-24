@@ -63,7 +63,7 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	helper := dockerhelper.NewHelper(client)
+	helper := dockerhelper.NewHelper(client, nil)
 	glog.V(4).Infof("Stopping and removing origin container")
 	if err = helper.StopAndRemoveContainer("origin"); err != nil {
 		glog.V(1).Infof("Error stopping origin container: %v", err)
@@ -92,7 +92,8 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 func (c *ClientStopConfig) getDockerClient(out io.Writer) (*docker.Client, error) {
 	// Get Docker client
 	if len(c.DockerMachine) > 0 {
-		return getDockerMachineClient(c.DockerMachine, out)
+		client, _, err := getDockerMachineClient(c.DockerMachine, out)
+		return client, err
 	}
 	client, _, err := dockerutil.NewHelper().GetClient()
 	if err != nil {

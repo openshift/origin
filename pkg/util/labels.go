@@ -44,9 +44,10 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 			}
 		}
 
-		if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+		if err := MergeInto(metaLabels, labels, OverwriteExistingDstKey); err != nil {
 			return fmt.Errorf("unable to add labels to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
 		}
+
 		accessor.SetLabels(metaLabels)
 
 		return nil

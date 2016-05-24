@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -22,7 +22,7 @@ type LogoutOptions struct {
 	Config             *restclient.Config
 	Out                io.Writer
 
-	PathOptions *kcmdconfig.PathOptions
+	PathOptions *kclientcmd.PathOptions
 }
 
 const (
@@ -136,7 +136,7 @@ func (o LogoutOptions) RunLogout() error {
 		}
 	}
 
-	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
+	if err := kclientcmd.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
 		return err
 	}
 

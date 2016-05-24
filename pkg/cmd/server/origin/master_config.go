@@ -20,6 +20,7 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
@@ -165,10 +166,15 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	policyCache, policyClient := newReadOnlyCacheAndClient(etcdHelper)
+	restOptions := generic.RESTOptions{
+		Storage:   etcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
+
+	policyCache, policyClient := newReadOnlyCacheAndClient(restOptions)
 	requestContextMapper := kapi.NewRequestContextMapper()
 
-	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupstorage.NewREST(etcdHelper)))
+	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupstorage.NewREST(restOptions)))
 	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
@@ -223,7 +229,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		RuleResolver:                  ruleResolver,
-		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs, groupCache),
+		Authenticator:                 newAuthenticator(options, restOptions, serviceAccountTokenGetter, apiClientCAs, groupCache),
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
@@ -292,13 +298,14 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false)
+		// TODO: Make cacheSize(200) configurable
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, 200)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interface, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) authenticator.Request {
+func newAuthenticator(config configapi.MasterConfig, etcdHelper generic.RESTOptions, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) authenticator.Request {
 	authenticators := []authenticator.Request{}
 
 	// ServiceAccount token
@@ -362,7 +369,7 @@ func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *
 
 // newReadOnlyCacheAndClient returns a ReadOnlyCache for administrative interactions with the cache holding policies and bindings on a project
 // and cluster level as well as a ReadOnlyPolicyClient for use in the project authorization cache and authorizer to query for the same data
-func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.ReadOnlyCache, client policyclient.ReadOnlyPolicyClient) {
+func newReadOnlyCacheAndClient(etcdHelper generic.RESTOptions) (cache policycache.ReadOnlyCache, client policyclient.ReadOnlyPolicyClient) {
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
@@ -393,7 +400,7 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 	return authorizationAttributeBuilder
 }
 
-func getEtcdTokenAuthenticator(etcdHelper storage.Interface, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
+func getEtcdTokenAuthenticator(etcdHelper generic.RESTOptions, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
 	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper, nil)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
@@ -577,7 +584,8 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false), nil
+	// TODO: Make cacheSize(200) configurable
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, 200), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

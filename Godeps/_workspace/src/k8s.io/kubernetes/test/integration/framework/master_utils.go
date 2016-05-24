@@ -29,6 +29,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -45,8 +47,8 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/runtime"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 )
 
@@ -108,7 +110,7 @@ func NewMasterComponents(c *Config) *MasterComponents {
 	restClient := client.NewOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}, QPS: c.QPS, Burst: c.Burst})
 	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}, QPS: c.QPS, Burst: c.Burst})
 	rcStopCh := make(chan struct{})
-	controllerManager := replicationcontroller.NewReplicationManager(clientset, controller.NoResyncPeriodFunc, c.Burst, 4096)
+	controllerManager := replicationcontroller.NewReplicationManagerFromClient(clientset, controller.NoResyncPeriodFunc, c.Burst, 4096)
 
 	// TODO: Support events once we can cleanly shutdown an event recorder.
 	controllerManager.SetEventRecorder(&record.FakeRecorder{})
@@ -148,28 +150,38 @@ func startMasterOrDie(masterConfig *master.Config) (*master.Master, *httptest.Se
 
 // Returns a basic master config.
 func NewMasterConfig() *master.Config {
-	etcdClient := NewEtcdClient()
-	storageVersions := make(map[string]string)
+	config := storagebackend.Config{
+		ServerList: []string{"http://127.0.0.1:4001"},
+		Prefix:     etcdtest.PathPrefix(),
+	}
 
-	etcdStorage := etcdstorage.NewEtcdStorage(etcdClient, testapi.Default.Codec(), etcdtest.PathPrefix(), false)
-	storageVersions[api.GroupName] = testapi.Default.GroupVersion().String()
-	autoscalingEtcdStorage := NewAutoscalingEtcdStorage(etcdClient)
-	storageVersions[autoscaling.GroupName] = testapi.Autoscaling.GroupVersion().String()
-	batchEtcdStorage := NewBatchEtcdStorage(etcdClient)
-	storageVersions[batch.GroupName] = testapi.Batch.GroupVersion().String()
-	expEtcdStorage := NewExtensionsEtcdStorage(etcdClient)
-	storageVersions[extensions.GroupName] = testapi.Extensions.GroupVersion().String()
+	negotiatedSerializer := NewSingleContentTypeSerializer(api.Scheme, testapi.Default.Codec(), runtime.ContentTypeJSON)
 
-	storageDestinations := genericapiserver.NewStorageDestinations()
-	storageDestinations.AddAPIGroup(api.GroupName, etcdStorage)
-	storageDestinations.AddAPIGroup(autoscaling.GroupName, autoscalingEtcdStorage)
-	storageDestinations.AddAPIGroup(batch.GroupName, batchEtcdStorage)
-	storageDestinations.AddAPIGroup(extensions.GroupName, expEtcdStorage)
+	storageFactory := genericapiserver.NewDefaultStorageFactory(config, runtime.ContentTypeJSON, negotiatedSerializer, genericapiserver.NewDefaultResourceEncodingConfig(), master.DefaultAPIResourceConfigSource())
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: api.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Default.Codec(), runtime.ContentTypeJSON))
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: autoscaling.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Autoscaling.Codec(), runtime.ContentTypeJSON))
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: batch.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Batch.Codec(), runtime.ContentTypeJSON))
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: apps.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Apps.Codec(), runtime.ContentTypeJSON))
+	storageFactory.SetSerializer(
+		unversioned.GroupResource{Group: extensions.GroupName, Resource: genericapiserver.AllResources},
+		"",
+		NewSingleContentTypeSerializer(api.Scheme, testapi.Extensions.Codec(), runtime.ContentTypeJSON))
 
 	return &master.Config{
 		Config: &genericapiserver.Config{
-			StorageDestinations:     storageDestinations,
-			StorageVersions:         storageVersions,
+			StorageFactory:          storageFactory,
 			APIResourceConfigSource: master.DefaultAPIResourceConfigSource(),
 			APIPrefix:               "/api",
 			APIGroupPrefix:          "/apis",
@@ -203,8 +215,7 @@ func (m *MasterComponents) Stop(apiServer, rcManager bool) {
 		m.once.Do(m.stopRCManager)
 	}
 	if apiServer {
-		// TODO: Uncomment when fix #19254
-		// m.ApiServer.Close()
+		m.ApiServer.Close()
 	}
 }
 
@@ -235,7 +246,7 @@ func StopRC(rc *api.ReplicationController, restClient *client.Client) error {
 }
 
 // ScaleRC scales the given rc to the given replicas.
-func ScaleRC(name, ns string, replicas int, restClient *client.Client) (*api.ReplicationController, error) {
+func ScaleRC(name, ns string, replicas int32, restClient *client.Client) (*api.ReplicationController, error) {
 	scaler, err := kubectl.ScalerFor(api.Kind("ReplicationController"), restClient)
 	if err != nil {
 		return nil, err
@@ -285,7 +296,7 @@ func StartPods(numPods int, host string, restClient *client.Client) error {
 	controller := RCFromManifest(TestRCManifest)
 
 	// Make the rc unique to the given host.
-	controller.Spec.Replicas = numPods
+	controller.Spec.Replicas = int32(numPods)
 	controller.Spec.Template.Spec.NodeName = host
 	controller.Name = controller.Name + host
 	controller.Spec.Selector["host"] = host

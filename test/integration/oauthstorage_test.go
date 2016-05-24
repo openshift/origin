@@ -13,6 +13,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 
@@ -62,14 +63,20 @@ func TestOAuthStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix(), false)
 
-	clientStorage := clientetcd.NewREST(etcdHelper)
+	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix(), false, 100)
+
+	options := generic.RESTOptions{
+		Storage:   etcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
+
+	clientStorage := clientetcd.NewREST(options)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper, clientRegistry)
+	accessTokenStorage := accesstokenetcd.NewREST(options, clientRegistry)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper, clientRegistry)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(options, clientRegistry)
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}

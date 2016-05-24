@@ -10,7 +10,6 @@ import (
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -62,9 +61,6 @@ func init() {
 }
 
 func autoConvert_v1_CustomDeploymentStrategyParams_To_api_CustomDeploymentStrategyParams(in *CustomDeploymentStrategyParams, out *deploy_api.CustomDeploymentStrategyParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*CustomDeploymentStrategyParams))(in)
-	}
 	out.Image = in.Image
 	if in.Environment != nil {
 		in, out := &in.Environment, &out.Environment
@@ -93,9 +89,6 @@ func Convert_v1_CustomDeploymentStrategyParams_To_api_CustomDeploymentStrategyPa
 }
 
 func autoConvert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyParams(in *deploy_api.CustomDeploymentStrategyParams, out *CustomDeploymentStrategyParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.CustomDeploymentStrategyParams))(in)
-	}
 	out.Image = in.Image
 	if in.Environment != nil {
 		in, out := &in.Environment, &out.Environment
@@ -124,9 +117,6 @@ func Convert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyPa
 }
 
 func autoConvert_v1_DeploymentCause_To_api_DeploymentCause(in *DeploymentCause, out *deploy_api.DeploymentCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentCause))(in)
-	}
 	out.Type = deploy_api.DeploymentTriggerType(in.Type)
 	if in.ImageTrigger != nil {
 		in, out := &in.ImageTrigger, &out.ImageTrigger
@@ -145,9 +135,6 @@ func Convert_v1_DeploymentCause_To_api_DeploymentCause(in *DeploymentCause, out 
 }
 
 func autoConvert_api_DeploymentCause_To_v1_DeploymentCause(in *deploy_api.DeploymentCause, out *DeploymentCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentCause))(in)
-	}
 	out.Type = DeploymentTriggerType(in.Type)
 	if in.ImageTrigger != nil {
 		in, out := &in.ImageTrigger, &out.ImageTrigger
@@ -166,9 +153,6 @@ func Convert_api_DeploymentCause_To_v1_DeploymentCause(in *deploy_api.Deployment
 }
 
 func autoConvert_v1_DeploymentCauseImageTrigger_To_api_DeploymentCauseImageTrigger(in *DeploymentCauseImageTrigger, out *deploy_api.DeploymentCauseImageTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentCauseImageTrigger))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -181,9 +165,6 @@ func Convert_v1_DeploymentCauseImageTrigger_To_api_DeploymentCauseImageTrigger(i
 }
 
 func autoConvert_api_DeploymentCauseImageTrigger_To_v1_DeploymentCauseImageTrigger(in *deploy_api.DeploymentCauseImageTrigger, out *DeploymentCauseImageTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentCauseImageTrigger))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -196,9 +177,7 @@ func Convert_api_DeploymentCauseImageTrigger_To_v1_DeploymentCauseImageTrigger(i
 }
 
 func autoConvert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, out *deploy_api.DeploymentConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfig))(in)
-	}
+	SetDefaults_DeploymentConfig(in)
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -220,9 +199,6 @@ func Convert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, o
 }
 
 func autoConvert_api_DeploymentConfig_To_v1_DeploymentConfig(in *deploy_api.DeploymentConfig, out *DeploymentConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfig))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -244,9 +220,6 @@ func Convert_api_DeploymentConfig_To_v1_DeploymentConfig(in *deploy_api.Deployme
 }
 
 func autoConvert_v1_DeploymentConfigList_To_api_DeploymentConfigList(in *DeploymentConfigList, out *deploy_api.DeploymentConfigList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfigList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -272,9 +245,6 @@ func Convert_v1_DeploymentConfigList_To_api_DeploymentConfigList(in *DeploymentC
 }
 
 func autoConvert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *deploy_api.DeploymentConfigList, out *DeploymentConfigList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfigList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -300,9 +270,6 @@ func Convert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *deploy_api.
 }
 
 func autoConvert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in *DeploymentConfigRollback, out *deploy_api.DeploymentConfigRollback, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfigRollback))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -317,9 +284,6 @@ func Convert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in *Dep
 }
 
 func autoConvert_api_DeploymentConfigRollback_To_v1_DeploymentConfigRollback(in *deploy_api.DeploymentConfigRollback, out *DeploymentConfigRollback, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfigRollback))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -334,9 +298,6 @@ func Convert_api_DeploymentConfigRollback_To_v1_DeploymentConfigRollback(in *dep
 }
 
 func autoConvert_v1_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec(in *DeploymentConfigRollbackSpec, out *deploy_api.DeploymentConfigRollbackSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfigRollbackSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -353,9 +314,6 @@ func Convert_v1_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec
 }
 
 func autoConvert_api_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollbackSpec(in *deploy_api.DeploymentConfigRollbackSpec, out *DeploymentConfigRollbackSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfigRollbackSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -372,9 +330,7 @@ func Convert_api_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollbackSpec
 }
 
 func autoConvert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *DeploymentConfigSpec, out *deploy_api.DeploymentConfigSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfigSpec))(in)
-	}
+	SetDefaults_DeploymentConfigSpec(in)
 	if err := Convert_v1_DeploymentStrategy_To_api_DeploymentStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
@@ -418,9 +374,6 @@ func Convert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *DeploymentC
 }
 
 func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_api.DeploymentConfigSpec, out *DeploymentConfigSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfigSpec))(in)
-	}
 	if err := Convert_api_DeploymentStrategy_To_v1_DeploymentStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
@@ -464,9 +417,6 @@ func Convert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_api.
 }
 
 func autoConvert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *DeploymentConfigStatus, out *deploy_api.DeploymentConfigStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentConfigStatus))(in)
-	}
 	out.LatestVersion = in.LatestVersion
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
@@ -486,9 +436,6 @@ func Convert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *Deploym
 }
 
 func autoConvert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *deploy_api.DeploymentConfigStatus, out *DeploymentConfigStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentConfigStatus))(in)
-	}
 	out.LatestVersion = in.LatestVersion
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
@@ -508,9 +455,6 @@ func Convert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *deploy_
 }
 
 func autoConvert_v1_DeploymentDetails_To_api_DeploymentDetails(in *DeploymentDetails, out *deploy_api.DeploymentDetails, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentDetails))(in)
-	}
 	out.Message = in.Message
 	if in.Causes != nil {
 		in, out := &in.Causes, &out.Causes
@@ -531,9 +475,6 @@ func Convert_v1_DeploymentDetails_To_api_DeploymentDetails(in *DeploymentDetails
 }
 
 func autoConvert_api_DeploymentDetails_To_v1_DeploymentDetails(in *deploy_api.DeploymentDetails, out *DeploymentDetails, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentDetails))(in)
-	}
 	out.Message = in.Message
 	if in.Causes != nil {
 		in, out := &in.Causes, &out.Causes
@@ -554,9 +495,6 @@ func Convert_api_DeploymentDetails_To_v1_DeploymentDetails(in *deploy_api.Deploy
 }
 
 func autoConvert_v1_DeploymentLog_To_api_DeploymentLog(in *DeploymentLog, out *deploy_api.DeploymentLog, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentLog))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -568,9 +506,6 @@ func Convert_v1_DeploymentLog_To_api_DeploymentLog(in *DeploymentLog, out *deplo
 }
 
 func autoConvert_api_DeploymentLog_To_v1_DeploymentLog(in *deploy_api.DeploymentLog, out *DeploymentLog, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentLog))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -582,9 +517,6 @@ func Convert_api_DeploymentLog_To_v1_DeploymentLog(in *deploy_api.DeploymentLog,
 }
 
 func autoConvert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *DeploymentLogOptions, out *deploy_api.DeploymentLogOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentLogOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -638,9 +570,6 @@ func Convert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *DeploymentL
 }
 
 func autoConvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *deploy_api.DeploymentLogOptions, out *DeploymentLogOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentLogOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -694,9 +623,7 @@ func Convert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *deploy_api.
 }
 
 func autoConvert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentStrategy, out *deploy_api.DeploymentStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentStrategy))(in)
-	}
+	SetDefaults_DeploymentStrategy(in)
 	out.Type = deploy_api.DeploymentStrategyType(in.Type)
 	if in.CustomParams != nil {
 		in, out := &in.CustomParams, &out.CustomParams
@@ -755,9 +682,6 @@ func Convert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentStrat
 }
 
 func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *deploy_api.DeploymentStrategy, out *DeploymentStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentStrategy))(in)
-	}
 	out.Type = DeploymentStrategyType(in.Type)
 	if in.RecreateParams != nil {
 		in, out := &in.RecreateParams, &out.RecreateParams
@@ -816,9 +740,6 @@ func Convert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *deploy_api.Depl
 }
 
 func autoConvert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *deploy_api.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentTriggerImageChangeParams))(in)
-	}
 	out.Automatic = in.Automatic
 	if in.ContainerNames != nil {
 		in, out := &in.ContainerNames, &out.ContainerNames
@@ -836,9 +757,6 @@ func autoConvert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerI
 }
 
 func autoConvert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *deploy_api.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentTriggerImageChangeParams))(in)
-	}
 	out.Automatic = in.Automatic
 	if in.ContainerNames != nil {
 		in, out := &in.ContainerNames, &out.ContainerNames
@@ -856,9 +774,6 @@ func autoConvert_api_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerI
 }
 
 func autoConvert_v1_DeploymentTriggerPolicy_To_api_DeploymentTriggerPolicy(in *DeploymentTriggerPolicy, out *deploy_api.DeploymentTriggerPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentTriggerPolicy))(in)
-	}
 	out.Type = deploy_api.DeploymentTriggerType(in.Type)
 	if in.ImageChangeParams != nil {
 		in, out := &in.ImageChangeParams, &out.ImageChangeParams
@@ -877,9 +792,6 @@ func Convert_v1_DeploymentTriggerPolicy_To_api_DeploymentTriggerPolicy(in *Deplo
 }
 
 func autoConvert_api_DeploymentTriggerPolicy_To_v1_DeploymentTriggerPolicy(in *deploy_api.DeploymentTriggerPolicy, out *DeploymentTriggerPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.DeploymentTriggerPolicy))(in)
-	}
 	out.Type = DeploymentTriggerType(in.Type)
 	if in.ImageChangeParams != nil {
 		in, out := &in.ImageChangeParams, &out.ImageChangeParams
@@ -898,9 +810,6 @@ func Convert_api_DeploymentTriggerPolicy_To_v1_DeploymentTriggerPolicy(in *deplo
 }
 
 func autoConvert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *deploy_api.ExecNewPodHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ExecNewPodHook))(in)
-	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))
@@ -936,9 +845,6 @@ func Convert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *de
 }
 
 func autoConvert_api_ExecNewPodHook_To_v1_ExecNewPodHook(in *deploy_api.ExecNewPodHook, out *ExecNewPodHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.ExecNewPodHook))(in)
-	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))
@@ -974,9 +880,6 @@ func Convert_api_ExecNewPodHook_To_v1_ExecNewPodHook(in *deploy_api.ExecNewPodHo
 }
 
 func autoConvert_v1_LifecycleHook_To_api_LifecycleHook(in *LifecycleHook, out *deploy_api.LifecycleHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*LifecycleHook))(in)
-	}
 	out.FailurePolicy = deploy_api.LifecycleHookFailurePolicy(in.FailurePolicy)
 	if in.ExecNewPod != nil {
 		in, out := &in.ExecNewPod, &out.ExecNewPod
@@ -1006,9 +909,6 @@ func Convert_v1_LifecycleHook_To_api_LifecycleHook(in *LifecycleHook, out *deplo
 }
 
 func autoConvert_api_LifecycleHook_To_v1_LifecycleHook(in *deploy_api.LifecycleHook, out *LifecycleHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.LifecycleHook))(in)
-	}
 	out.FailurePolicy = LifecycleHookFailurePolicy(in.FailurePolicy)
 	if in.ExecNewPod != nil {
 		in, out := &in.ExecNewPod, &out.ExecNewPod
@@ -1038,9 +938,7 @@ func Convert_api_LifecycleHook_To_v1_LifecycleHook(in *deploy_api.LifecycleHook,
 }
 
 func autoConvert_v1_RecreateDeploymentStrategyParams_To_api_RecreateDeploymentStrategyParams(in *RecreateDeploymentStrategyParams, out *deploy_api.RecreateDeploymentStrategyParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RecreateDeploymentStrategyParams))(in)
-	}
+	SetDefaults_RecreateDeploymentStrategyParams(in)
 	if in.TimeoutSeconds != nil {
 		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
 		*out = new(int64)
@@ -1083,9 +981,6 @@ func Convert_v1_RecreateDeploymentStrategyParams_To_api_RecreateDeploymentStrate
 }
 
 func autoConvert_api_RecreateDeploymentStrategyParams_To_v1_RecreateDeploymentStrategyParams(in *deploy_api.RecreateDeploymentStrategyParams, out *RecreateDeploymentStrategyParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.RecreateDeploymentStrategyParams))(in)
-	}
 	if in.TimeoutSeconds != nil {
 		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
 		*out = new(int64)
@@ -1128,9 +1023,6 @@ func Convert_api_RecreateDeploymentStrategyParams_To_v1_RecreateDeploymentStrate
 }
 
 func autoConvert_v1_TagImageHook_To_api_TagImageHook(in *TagImageHook, out *deploy_api.TagImageHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TagImageHook))(in)
-	}
 	out.ContainerName = in.ContainerName
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.To, &out.To, 0); err != nil {
@@ -1144,9 +1036,6 @@ func Convert_v1_TagImageHook_To_api_TagImageHook(in *TagImageHook, out *deploy_a
 }
 
 func autoConvert_api_TagImageHook_To_v1_TagImageHook(in *deploy_api.TagImageHook, out *TagImageHook, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*deploy_api.TagImageHook))(in)
-	}
 	out.ContainerName = in.ContainerName
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.To, &out.To, 0); err != nil {

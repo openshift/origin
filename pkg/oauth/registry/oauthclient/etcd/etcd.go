@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -16,16 +15,20 @@ import (
 
 // rest implements a RESTStorage for oauth clients against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	registry.Store
 }
 
 const EtcdPrefix = "/oauth/clients"
 
 // NewREST returns a RESTStorage object that will work against oauth clients
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(opts generic.RESTOptions) *REST {
+	newListFunc := func() runtime.Object { return &api.OAuthClientList{} }
+
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.OAuthClientList{}, EtcdPrefix, oauthclient.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthClient{} },
-		NewListFunc: func() runtime.Object { return &api.OAuthClientList{} },
+		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return EtcdPrefix
 		},
@@ -40,7 +43,7 @@ func NewREST(s storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("oauthclients"),
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 
 	store.CreateStrategy = oauthclient.Strategy

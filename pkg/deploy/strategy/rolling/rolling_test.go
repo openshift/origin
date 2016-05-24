@@ -128,7 +128,7 @@ func TestRolling_deployRolling(t *testing.T) {
 	}
 
 	// verify hack
-	if e, a := 1, rollingConfig.NewRc.Spec.Replicas; e != a {
+	if e, a := int32(1), rollingConfig.NewRc.Spec.Replicas; e != a {
 		t.Errorf("expected rollingConfig.NewRc.Spec.Replicas %d, got %d", e, a)
 	}
 

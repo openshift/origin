@@ -12,6 +12,7 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -212,13 +213,17 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 
 // ensureComponentAuthorizationRules initializes the cluster policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	restOptions := generic.RESTOptions{
+		Storage:   c.EtcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(restOptions))
 	ctx := kapi.WithNamespace(kapi.NewContext(), "")
 
 	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(restOptions, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 

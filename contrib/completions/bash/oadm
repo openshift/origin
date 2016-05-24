@@ -1,4 +1,4 @@
-#!/bin/bash
+# bash completion for oadm                                 -*- shell-script -*-
 
 __debug()
 {
@@ -12,7 +12,7 @@ __debug()
 __my_init_completion()
 {
     COMPREPLY=()
-    _get_comp_words_by_ref cur prev words cword
+    _get_comp_words_by_ref "$@" cur prev words cword
 }
 
 __index_of_word()
@@ -38,7 +38,7 @@ __contains_word()
 
 __handle_reply()
 {
-    __debug "${FUNCNAME}"
+    __debug "${FUNCNAME[0]}"
     case $cur in
         -*)
             if [[ $(type -t compopt) = "builtin" ]]; then
@@ -52,7 +52,28 @@ __handle_reply()
             fi
             COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
             if [[ $(type -t compopt) = "builtin" ]]; then
-                [[ $COMPREPLY == *= ]] || compopt +o nospace
+                [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
+            fi
+
+            # complete after --flag=abc
+            if [[ $cur == *=* ]]; then
+                if [[ $(type -t compopt) = "builtin" ]]; then
+                    compopt +o nospace
+                fi
+
+                local index flag
+                flag="${cur%%=*}"
+                __index_of_word "${flag}" "${flags_with_completion[@]}"
+                if [[ ${index} -ge 0 ]]; then
+                    COMPREPLY=()
+                    PREFIX=""
+                    cur="${cur#*=}"
+                    ${flags_completion[${index}]}
+                    if [ -n "${ZSH_VERSION}" ]; then
+                        # zfs completion needs --flag= prefix
+                        eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
+                    fi
+                fi
             fi
             return 0;
             ;;
@@ -81,9 +102,15 @@ __handle_reply()
     fi
     COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
 
+    if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
+        COMPREPLY=( $(compgen -W "${noun_aliases[*]}" -- "$cur") )
+    fi
+
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
         declare -F __custom_func >/dev/null && __custom_func
     fi
+
+    __ltrim_colon_completions "$cur"
 }
 
 # The arguments should be in the form "ext1|ext2|extn"
@@ -101,18 +128,29 @@ __handle_subdirs_in_dir_flag()
 
 __handle_flag()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     # if a command required a flag, and we found it, unset must_have_one_flag()
     local flagname=${words[c]}
+    local flagvalue
     # if the word contained an =
     if [[ ${words[c]} == *"="* ]]; then
-        flagname=${flagname%=*} # strip everything after the =
+        flagvalue=${flagname#*=} # take in as flagvalue after the =
+        flagname=${flagname%%=*} # strip everything after the =
         flagname="${flagname}=" # but put the = back
     fi
-    __debug "${FUNCNAME}: looking for ${flagname}"
+    __debug "${FUNCNAME[0]}: looking for ${flagname}"
     if __contains_word "${flagname}" "${must_have_one_flag[@]}"; then
         must_have_one_flag=()
+    fi
+
+    # keep flag value with flagname as flaghash
+    if [ -n "${flagvalue}" ] ; then
+        flaghash[${flagname}]=${flagvalue}
+    elif [ -n "${words[ $((c+1)) ]}" ] ; then
+        flaghash[${flagname}]=${words[ $((c+1)) ]}
+    else
+        flaghash[${flagname}]="true" # pad "true" for bool flag
     fi
 
     # skip the argument to a two word flag
@@ -124,16 +162,17 @@ __handle_flag()
         fi
     fi
 
-    # skip the flag itself
     c=$((c+1))
 
 }
 
 __handle_noun()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     if __contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    elif __contains_word "${words[c]}" "${noun_aliases[@]}"; then
         must_have_one_noun=()
     fi
 
@@ -143,16 +182,20 @@ __handle_noun()
 
 __handle_command()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     local next_command
     if [[ -n ${last_command} ]]; then
-        next_command="_${last_command}_${words[c]}"
+        next_command="_${last_command}_${words[c]//:/__}"
     else
-        next_command="_${words[c]}"
+        if [[ $c -eq 0 ]]; then
+            next_command="_$(basename "${words[c]//:/__}")"
+        else
+            next_command="_${words[c]//:/__}"
+        fi
     fi
     c=$((c+1))
-    __debug "${FUNCNAME}: looking for ${next_command}"
+    __debug "${FUNCNAME[0]}: looking for ${next_command}"
     declare -F $next_command >/dev/null && $next_command
 }
 
@@ -162,10 +205,12 @@ __handle_word()
         __handle_reply
         return
     fi
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
     if [[ "${words[c]}" == -* ]]; then
         __handle_flag
     elif __contains_word "${words[c]}" "${commands[@]}"; then
+        __handle_command
+    elif [[ $c -eq 0 ]] && __contains_word "$(basename "${words[c]}")" "${commands[@]}"; then
         __handle_command
     else
         __handle_noun
@@ -216,6 +261,7 @@ _oadm_new-project()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_who-can()
@@ -257,6 +303,7 @@ _oadm_policy_who-can()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-user()
@@ -297,6 +344,7 @@ _oadm_policy_remove-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-group()
@@ -337,6 +385,7 @@ _oadm_policy_remove-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-role-to-user()
@@ -380,6 +429,7 @@ _oadm_policy_add-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-role-to-group()
@@ -421,6 +471,7 @@ _oadm_policy_add-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-role-from-user()
@@ -464,6 +515,7 @@ _oadm_policy_remove-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-role-from-group()
@@ -505,6 +557,7 @@ _oadm_policy_remove-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-cluster-role-to-user()
@@ -545,6 +598,7 @@ _oadm_policy_add-cluster-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-cluster-role-to-group()
@@ -585,6 +639,7 @@ _oadm_policy_add-cluster-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-cluster-role-from-user()
@@ -625,6 +680,7 @@ _oadm_policy_remove-cluster-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-cluster-role-from-group()
@@ -665,6 +721,7 @@ _oadm_policy_remove-cluster-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-scc-to-user()
@@ -707,6 +764,7 @@ _oadm_policy_add-scc-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_add-scc-to-group()
@@ -747,6 +805,7 @@ _oadm_policy_add-scc-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-scc-from-user()
@@ -789,6 +848,7 @@ _oadm_policy_remove-scc-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_remove-scc-from-group()
@@ -829,6 +889,7 @@ _oadm_policy_remove-scc-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_reconcile-cluster-roles()
@@ -853,9 +914,6 @@ _oadm_policy_reconcile-cluster-roles()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -885,6 +943,7 @@ _oadm_policy_reconcile-cluster-roles()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_reconcile-cluster-role-bindings()
@@ -912,9 +971,6 @@ _oadm_policy_reconcile-cluster-role-bindings()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -943,6 +999,7 @@ _oadm_policy_reconcile-cluster-role-bindings()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy_reconcile-sccs()
@@ -969,9 +1026,6 @@ _oadm_policy_reconcile-sccs()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -1000,6 +1054,7 @@ _oadm_policy_reconcile-sccs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_policy()
@@ -1058,6 +1113,7 @@ _oadm_policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups_new()
@@ -1098,6 +1154,7 @@ _oadm_groups_new()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups_add-users()
@@ -1138,6 +1195,7 @@ _oadm_groups_add-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups_remove-users()
@@ -1178,6 +1236,7 @@ _oadm_groups_remove-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups_sync()
@@ -1207,9 +1266,6 @@ _oadm_groups_sync()
     flags_completion+=("__handle_filename_extension_flag yaml|yml")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--whitelist=")
@@ -1243,6 +1299,7 @@ _oadm_groups_sync()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups_prune()
@@ -1293,6 +1350,7 @@ _oadm_groups_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_groups()
@@ -1338,6 +1396,7 @@ _oadm_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_router()
@@ -1413,6 +1472,7 @@ _oadm_router()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ipfailover()
@@ -1475,6 +1535,7 @@ _oadm_ipfailover()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_registry()
@@ -1536,6 +1597,7 @@ _oadm_registry()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_build-chain()
@@ -1581,6 +1643,7 @@ _oadm_build-chain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_diagnostics()
@@ -1630,6 +1693,7 @@ _oadm_diagnostics()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_manage-node()
@@ -1661,9 +1725,6 @@ _oadm_manage-node()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -1692,6 +1753,7 @@ _oadm_manage-node()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_prune_builds()
@@ -1737,6 +1799,7 @@ _oadm_prune_builds()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_prune_deployments()
@@ -1782,6 +1845,7 @@ _oadm_prune_deployments()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_prune_images()
@@ -1824,6 +1888,7 @@ _oadm_prune_images()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_prune_groups()
@@ -1874,6 +1939,7 @@ _oadm_prune_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_prune()
@@ -1918,6 +1984,7 @@ _oadm_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_view()
@@ -1945,9 +2012,6 @@ _oadm_config_view()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -1974,6 +2038,7 @@ _oadm_config_view()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_set-cluster()
@@ -2013,6 +2078,7 @@ _oadm_config_set-cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_set-credentials()
@@ -2054,6 +2120,7 @@ _oadm_config_set-credentials()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_set-context()
@@ -2091,6 +2158,7 @@ _oadm_config_set-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_set()
@@ -2103,6 +2171,7 @@ _oadm_config_set()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--set-raw-bytes=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -2129,6 +2198,7 @@ _oadm_config_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_unset()
@@ -2167,6 +2237,7 @@ _oadm_config_unset()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_current-context()
@@ -2205,6 +2276,7 @@ _oadm_config_current-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config_use-context()
@@ -2243,6 +2315,7 @@ _oadm_config_use-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_config()
@@ -2289,6 +2362,7 @@ _oadm_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-kubeconfig()
@@ -2333,6 +2407,7 @@ _oadm_create-kubeconfig()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-api-client-config()
@@ -2389,6 +2464,7 @@ _oadm_create-api-client-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_pod-network_join-projects()
@@ -2431,6 +2507,7 @@ _oadm_pod-network_join-projects()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_pod-network_make-projects-global()
@@ -2472,6 +2549,7 @@ _oadm_pod-network_make-projects-global()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_pod-network()
@@ -2514,6 +2592,7 @@ _oadm_pod-network()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-bootstrap-project-template()
@@ -2537,9 +2616,6 @@ _oadm_create-bootstrap-project-template()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -2569,6 +2645,7 @@ _oadm_create-bootstrap-project-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-bootstrap-policy-file()
@@ -2613,6 +2690,7 @@ _oadm_create-bootstrap-policy-file()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-login-template()
@@ -2653,6 +2731,7 @@ _oadm_create-login-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-provider-selection-template()
@@ -2693,6 +2772,7 @@ _oadm_create-provider-selection-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-error-template()
@@ -2733,6 +2813,7 @@ _oadm_create-error-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_overwrite-policy()
@@ -2781,6 +2862,7 @@ _oadm_overwrite-policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_create-node-config()
@@ -2855,6 +2937,7 @@ _oadm_create-node-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_create-master-certs()
@@ -2903,6 +2986,7 @@ _oadm_ca_create-master-certs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_create-key-pair()
@@ -2950,6 +3034,7 @@ _oadm_ca_create-key-pair()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_create-server-cert()
@@ -3007,6 +3092,7 @@ _oadm_ca_create-server-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_create-signer-cert()
@@ -3058,6 +3144,7 @@ _oadm_ca_create-signer-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_encrypt()
@@ -3110,6 +3197,7 @@ _oadm_ca_encrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca_decrypt()
@@ -3159,6 +3247,7 @@ _oadm_ca_decrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_ca()
@@ -3205,6 +3294,7 @@ _oadm_ca()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm_options()
@@ -3245,6 +3335,7 @@ _oadm_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _oadm()
@@ -3308,15 +3399,17 @@ _oadm()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 __start_oadm()
 {
     local cur prev words cword
+    declare -A flaghash 2>/dev/null || :
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else
-        __my_init_completion || return
+        __my_init_completion -n "=" || return
     fi
 
     local c=0
@@ -3334,9 +3427,9 @@ __start_oadm()
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then
-    complete -F __start_oadm oadm
+    complete -o default -F __start_oadm oadm
 else
-    complete -o nospace -F __start_oadm oadm
+    complete -o default -o nospace -F __start_oadm oadm
 fi
 
 # ex: ts=4 sw=4 et filetype=sh

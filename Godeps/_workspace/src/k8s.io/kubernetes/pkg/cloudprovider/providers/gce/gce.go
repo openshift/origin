@@ -36,6 +36,7 @@ import (
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	netsets "k8s.io/kubernetes/pkg/util/net/sets"
+	"k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -68,6 +69,9 @@ const (
 	// are iterated through to prevent infinite loops if the API
 	// were to continuously return a nextPageToken.
 	maxPages = 25
+
+	// TargetPools can only support 1000 VMs.
+	maxInstancesPerTargetPool = 1000
 )
 
 // GCECloud is an implementation of Interface, LoadBalancer and Instances for Google Compute Engine.
@@ -79,19 +83,26 @@ type GCECloud struct {
 	localZone                string   // The zone in which we are running
 	managedZones             []string // List of zones we are spanning (for Ubernetes-Lite, primarily when running on master)
 	networkURL               string
+	nodeTags                 []string // List of tags to use on firewall rules for load balancers
 	useMetadataServer        bool
 	operationPollRateLimiter flowcontrol.RateLimiter
 }
 
 type Config struct {
 	Global struct {
-		TokenURL    string `gcfg:"token-url"`
-		TokenBody   string `gcfg:"token-body"`
-		ProjectID   string `gcfg:"project-id"`
-		NetworkName string `gcfg:"network-name"`
-		Multizone   bool   `gcfg:"multizone"`
+		TokenURL    string   `gcfg:"token-url"`
+		TokenBody   string   `gcfg:"token-body"`
+		ProjectID   string   `gcfg:"project-id"`
+		NetworkName string   `gcfg:"network-name"`
+		NodeTags    []string `gcfg:"node-tags"`
+		Multizone   bool     `gcfg:"multizone"`
 	}
 }
+
+type instRefSlice []*compute.InstanceReference
+
+func (p instRefSlice) Len() int      { return len(p) }
+func (p instRefSlice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func init() {
 	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) { return newGCECloud(config) })
@@ -222,12 +233,14 @@ func newGCECloud(config io.Reader) (*GCECloud, error) {
 	managedZones := []string{zone}
 
 	tokenSource := google.ComputeTokenSource("")
+	var nodeTags []string
 	if config != nil {
 		var cfg Config
 		if err := gcfg.ReadInto(&cfg, config); err != nil {
 			glog.Errorf("Couldn't read config: %v", err)
 			return nil, err
 		}
+		glog.Infof("Using GCE provider config %+v", cfg)
 		if cfg.Global.ProjectID != "" {
 			projectID = cfg.Global.ProjectID
 		}
@@ -241,19 +254,20 @@ func newGCECloud(config io.Reader) (*GCECloud, error) {
 		if cfg.Global.TokenURL != "" {
 			tokenSource = newAltTokenSource(cfg.Global.TokenURL, cfg.Global.TokenBody)
 		}
+		nodeTags = cfg.Global.NodeTags
 		if cfg.Global.Multizone {
 			managedZones = nil // Use all zones in region
 		}
 	}
 
-	return CreateGCECloud(projectID, region, zone, managedZones, networkURL, tokenSource, true /* useMetadataServer */)
+	return CreateGCECloud(projectID, region, zone, managedZones, networkURL, nodeTags, tokenSource, true /* useMetadataServer */)
 }
 
 // Creates a GCECloud object using the specified parameters.
 // If no networkUrl is specified, loads networkName via rest call.
 // If no tokenSource is specified, uses oauth2.DefaultTokenSource.
 // If managedZones is nil / empty all zones in the region will be managed.
-func CreateGCECloud(projectID, region, zone string, managedZones []string, networkURL string, tokenSource oauth2.TokenSource, useMetadataServer bool) (*GCECloud, error) {
+func CreateGCECloud(projectID, region, zone string, managedZones []string, networkURL string, nodeTags []string, tokenSource oauth2.TokenSource, useMetadataServer bool) (*GCECloud, error) {
 	if tokenSource == nil {
 		var err error
 		tokenSource, err = google.DefaultTokenSource(
@@ -307,6 +321,7 @@ func CreateGCECloud(projectID, region, zone string, managedZones []string, netwo
 		localZone:                zone,
 		managedZones:             managedZones,
 		networkURL:               networkURL,
+		nodeTags:                 nodeTags,
 		useMetadataServer:        useMetadataServer,
 		operationPollRateLimiter: operationPollRateLimiter,
 	}, nil
@@ -717,8 +732,8 @@ func loadBalancerPortRange(ports []api.ServicePort) (string, error) {
 		return "", fmt.Errorf("Invalid protocol %s, only TCP and UDP are supported", string(ports[0].Protocol))
 	}
 
-	minPort := 65536
-	maxPort := 0
+	minPort := int32(65536)
+	maxPort := int32(0)
 	for i := range ports {
 		if ports[i].Port < minPort {
 			minPort = ports[i].Port
@@ -776,7 +791,7 @@ func (gce *GCECloud) firewallNeedsUpdate(name, serviceName, region, ipAddress st
 	// Make sure the allowed ports match.
 	allowedPorts := make([]string, len(ports))
 	for ix := range ports {
-		allowedPorts[ix] = strconv.Itoa(ports[ix].Port)
+		allowedPorts[ix] = strconv.Itoa(int(ports[ix].Port))
 	}
 	if !slicesEqual(allowedPorts, fw.Allowed[0].Ports) {
 		return true, true, nil
@@ -802,8 +817,8 @@ func makeFirewallName(name string) string {
 }
 
 func makeFirewallDescription(serviceName, ipAddress string) string {
-	return fmt.Sprintf(`{"kubernetes.io/service-ip":"%s", "kubernetes.io/service-name":"%s"}`,
-		ipAddress, serviceName)
+	return fmt.Sprintf(`{"kubernetes.io/service-name":"%s", "kubernetes.io/service-ip":"%s"}`,
+		serviceName, ipAddress)
 }
 
 func slicesEqual(x, y []string) bool {
@@ -847,11 +862,22 @@ func (gce *GCECloud) createForwardingRule(name, serviceName, region, ipAddress s
 	return nil
 }
 
+func restrictTargetPool(instances []string, max int) []string {
+	if len(instances) <= max {
+		return instances
+	}
+	rand.Shuffle(sort.StringSlice(instances))
+	return instances[:max]
+}
+
 func (gce *GCECloud) createTargetPool(name, serviceName, region string, hosts []*gceInstance, affinityType api.ServiceAffinity) error {
 	var instances []string
 	for _, host := range hosts {
 		instances = append(instances, makeHostURL(gce.projectID, host.Zone, host.Name))
 	}
+	// Choose a random subset of nodes to send traffic to, if we
+	// exceed API maximums.
+	instances = restrictTargetPool(instances, maxInstancesPerTargetPool)
 	pool := &compute.TargetPool{
 		Name:            name,
 		Description:     fmt.Sprintf(`{"kubernetes.io/service-name":"%s"}`, serviceName),
@@ -910,7 +936,7 @@ func (gce *GCECloud) updateFirewall(name, region, desc string, sourceRanges nets
 func (gce *GCECloud) firewallObject(name, region, desc string, sourceRanges netsets.IPNet, ports []api.ServicePort, hosts []*gceInstance) (*compute.Firewall, error) {
 	allowedPorts := make([]string, len(ports))
 	for ix := range ports {
-		allowedPorts[ix] = strconv.Itoa(ports[ix].Port)
+		allowedPorts[ix] = strconv.Itoa(int(ports[ix].Port))
 	}
 	hostTags, err := gce.computeHostTags(hosts)
 	if err != nil {
@@ -937,11 +963,17 @@ func (gce *GCECloud) firewallObject(name, region, desc string, sourceRanges nets
 	return firewall, nil
 }
 
-// We grab all tags from all instances being added to the pool.
+// If the node tags to be used for this cluster have been predefined in the
+// provider config, just use them. Otherwise, grab all tags from all relevant
+// instances:
 // * The longest tag that is a prefix of the instance name is used
 // * If any instance has a prefix tag, all instances must
 // * If no instances have a prefix tag, no tags are used
 func (gce *GCECloud) computeHostTags(hosts []*gceInstance) ([]string, error) {
+	if len(gce.nodeTags) > 0 {
+		return gce.nodeTags, nil
+	}
+
 	// TODO: We could store the tags in gceInstance, so we could have already fetched it
 	hostNamesByZone := make(map[string][]string)
 	for _, host := range hosts {
@@ -1063,6 +1095,42 @@ func (gce *GCECloud) ensureStaticIP(name, serviceName, region, existingIP string
 	return address.Address, existed, nil
 }
 
+// computeUpdate takes the existing TargetPool and the set of running
+// instances and returns (toAdd, toRemove), the set of instances to
+// reprogram on the TargetPool this reconcile. max restricts the
+// number of nodes allowed to be programmed on the TargetPool.
+func computeUpdate(tp *compute.TargetPool, instances []*gceInstance, max int) ([]*compute.InstanceReference, []*compute.InstanceReference) {
+	existing := sets.NewString()
+	for _, instance := range tp.Instances {
+		existing.Insert(hostURLToComparablePath(instance))
+	}
+
+	var toAdd []*compute.InstanceReference
+	var toRemove []*compute.InstanceReference
+	for _, host := range instances {
+		link := host.makeComparableHostPath()
+		if !existing.Has(link) {
+			toAdd = append(toAdd, &compute.InstanceReference{Instance: link})
+		}
+		existing.Delete(link)
+	}
+	for link := range existing {
+		toRemove = append(toRemove, &compute.InstanceReference{Instance: link})
+	}
+
+	if len(tp.Instances)+len(toAdd)-len(toRemove) > max {
+		// TODO(zmerlynn): In theory, there are faster ways to handle
+		// this if room is much smaller than len(toAdd). In practice,
+		// meh.
+		room := max - len(tp.Instances) + len(toRemove)
+		glog.Infof("TargetPool maximums exceeded, shuffling in %d instances", room)
+		rand.Shuffle(instRefSlice(toAdd))
+		toAdd = toAdd[:room]
+	}
+
+	return toAdd, toRemove
+}
+
 // UpdateLoadBalancer is an implementation of LoadBalancer.UpdateLoadBalancer.
 func (gce *GCECloud) UpdateLoadBalancer(service *api.Service, hostNames []string) error {
 	hosts, err := gce.getInstancesByNames(hostNames)
@@ -1075,27 +1143,11 @@ func (gce *GCECloud) UpdateLoadBalancer(service *api.Service, hostNames []string
 	if err != nil {
 		return err
 	}
-	existing := sets.NewString()
-	for _, instance := range pool.Instances {
-		existing.Insert(hostURLToComparablePath(instance))
-	}
 
-	var toAdd []*compute.InstanceReference
-	var toRemove []*compute.InstanceReference
-	for _, host := range hosts {
-		link := host.makeComparableHostPath()
-		if !existing.Has(link) {
-			toAdd = append(toAdd, &compute.InstanceReference{Instance: link})
-		}
-		existing.Delete(link)
-	}
-	for link := range existing {
-		toRemove = append(toRemove, &compute.InstanceReference{Instance: link})
-	}
-
-	if len(toAdd) > 0 {
-		add := &compute.TargetPoolsAddInstanceRequest{Instances: toAdd}
-		op, err := gce.service.TargetPools.AddInstance(gce.projectID, gce.region, loadBalancerName, add).Do()
+	toAdd, toRemove := computeUpdate(pool, hosts, maxInstancesPerTargetPool)
+	if len(toRemove) > 0 {
+		rm := &compute.TargetPoolsRemoveInstanceRequest{Instances: toRemove}
+		op, err := gce.service.TargetPools.RemoveInstance(gce.projectID, gce.region, loadBalancerName, rm).Do()
 		if err != nil {
 			return err
 		}
@@ -1104,9 +1156,9 @@ func (gce *GCECloud) UpdateLoadBalancer(service *api.Service, hostNames []string
 		}
 	}
 
-	if len(toRemove) > 0 {
-		rm := &compute.TargetPoolsRemoveInstanceRequest{Instances: toRemove}
-		op, err := gce.service.TargetPools.RemoveInstance(gce.projectID, gce.region, loadBalancerName, rm).Do()
+	if len(toAdd) > 0 {
+		add := &compute.TargetPoolsAddInstanceRequest{Instances: toAdd}
+		op, err := gce.service.TargetPools.AddInstance(gce.projectID, gce.region, loadBalancerName, add).Do()
 		if err != nil {
 			return err
 		}
@@ -1122,10 +1174,14 @@ func (gce *GCECloud) UpdateLoadBalancer(service *api.Service, hostNames []string
 	if err != nil {
 		return err
 	}
-	if len(updatedPool.Instances) != len(hosts) {
+	wantInstances := len(hosts)
+	if wantInstances > maxInstancesPerTargetPool {
+		wantInstances = maxInstancesPerTargetPool
+	}
+	if len(updatedPool.Instances) != wantInstances {
 		glog.Errorf("Unexpected number of instances (%d) in target pool %s after updating (expected %d). Instances in updated pool: %s",
-			len(updatedPool.Instances), loadBalancerName, len(hosts), strings.Join(updatedPool.Instances, ","))
-		return fmt.Errorf("Unexpected number of instances (%d) in target pool %s after update (expected %d)", len(updatedPool.Instances), loadBalancerName, len(hosts))
+			len(updatedPool.Instances), loadBalancerName, wantInstances, strings.Join(updatedPool.Instances, ","))
+		return fmt.Errorf("Unexpected number of instances (%d) in target pool %s after update (expected %d)", len(updatedPool.Instances), loadBalancerName, wantInstances)
 	}
 	return nil
 }
@@ -1248,7 +1304,7 @@ func (gce *GCECloud) CreateFirewall(name, desc string, sourceRanges netsets.IPNe
 	// if UDP ports are required. This means the method signature will change
 	// forcing downstream clients to refactor interfaces.
 	for _, p := range ports {
-		svcPorts = append(svcPorts, api.ServicePort{Port: int(p), Protocol: api.ProtocolTCP})
+		svcPorts = append(svcPorts, api.ServicePort{Port: int32(p), Protocol: api.ProtocolTCP})
 	}
 	hosts, err := gce.getInstancesByNames(hostNames)
 	if err != nil {
@@ -1282,7 +1338,7 @@ func (gce *GCECloud) UpdateFirewall(name, desc string, sourceRanges netsets.IPNe
 	// if UDP ports are required. This means the method signature will change,
 	// forcing downstream clients to refactor interfaces.
 	for _, p := range ports {
-		svcPorts = append(svcPorts, api.ServicePort{Port: int(p), Protocol: api.ProtocolTCP})
+		svcPorts = append(svcPorts, api.ServicePort{Port: int32(p), Protocol: api.ProtocolTCP})
 	}
 	hosts, err := gce.getInstancesByNames(hostNames)
 	if err != nil {
@@ -2244,6 +2300,11 @@ func (gce *GCECloud) getDiskByNameUnknownZone(diskName string) (*gceDisk, error)
 		disk, err := gce.findDiskByName(diskName, zone)
 		if err != nil {
 			return nil, err
+		}
+		// findDiskByName returns (nil,nil) if the disk doesn't exist, so we can't
+		// assume that a disk was found unless disk is non-nil.
+		if disk == nil {
+			continue
 		}
 		if found != nil {
 			return nil, fmt.Errorf("GCE persistent disk name was found in multiple zones: %q", diskName)

@@ -5,9 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
@@ -16,28 +15,35 @@ import (
 
 // REST implements a RESTStorage for image streams against etcd.
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 	subjectAccessReviewRegistry subjectaccessreview.Registry
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST) {
+func NewREST(opts generic.RESTOptions, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST) {
 	prefix := "/imagestreams"
+	newListFunc := func() runtime.Object { return &api.ImageStreamList{} }
 
-	store := etcdgeneric.Etcd{
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
+	rest := &REST{subjectAccessReviewRegistry: subjectAccessReviewRegistry}
+	strategy.ImageStreamGetter = rest
+
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.ImageStreamList{}, prefix, strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc: func() runtime.Object { return &api.ImageStream{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
-		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },
+		NewListFunc: newListFunc,
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix.
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		// Produces a path that etcd understands, to the resource by combining
 		// the namespace in the context with the given prefix
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, name)
+			return registry.NamespaceKeyFunc(ctx, prefix, name)
 		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
@@ -50,17 +56,13 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 		QualifiedResource: api.Resource("imagestreams"),
 
 		ReturnDeletedObject: false,
-		Storage:             s,
+		Storage:             storageInterface,
 	}
 
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
-	rest := &REST{subjectAccessReviewRegistry: subjectAccessReviewRegistry}
-	strategy.ImageStreamGetter = rest
-
-	statusStore := store
+	statusStore := *store
 	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
 
-	internalStore := store
+	internalStore := *store
 	internalStrategy := imagestream.NewInternalStrategy(strategy)
 	internalStore.CreateStrategy = internalStrategy
 	internalStore.UpdateStrategy = internalStrategy
@@ -69,14 +71,14 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	rest.Etcd = &store
+	rest.Store = store
 
 	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 func (r *StatusREST) New() runtime.Object {
@@ -90,7 +92,7 @@ func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Objec
 
 // InternalREST implements the REST endpoint for changing both the spec and status of an image stream.
 type InternalREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 func (r *InternalREST) New() runtime.Object {

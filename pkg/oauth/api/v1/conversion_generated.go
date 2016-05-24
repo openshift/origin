@@ -8,7 +8,6 @@ import (
 	oauth_api "github.com/openshift/origin/pkg/oauth/api"
 	api "k8s.io/kubernetes/pkg/api"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -40,9 +39,6 @@ func init() {
 }
 
 func autoConvert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(in *ClusterRoleScopeRestriction, out *oauth_api.ClusterRoleScopeRestriction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterRoleScopeRestriction))(in)
-	}
 	if in.RoleNames != nil {
 		in, out := &in.RoleNames, &out.RoleNames
 		*out = make([]string, len(*in))
@@ -66,9 +62,6 @@ func Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(i
 }
 
 func autoConvert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *oauth_api.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.ClusterRoleScopeRestriction))(in)
-	}
 	if in.RoleNames != nil {
 		in, out := &in.RoleNames, &out.RoleNames
 		*out = make([]string, len(*in))
@@ -92,9 +85,6 @@ func Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(i
 }
 
 func autoConvert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToken, out *oauth_api.OAuthAccessToken, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthAccessToken))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -124,9 +114,6 @@ func Convert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToken, o
 }
 
 func autoConvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauth_api.OAuthAccessToken, out *OAuthAccessToken, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthAccessToken))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -156,9 +143,6 @@ func Convert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauth_api.OAuthAcce
 }
 
 func autoConvert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList(in *OAuthAccessTokenList, out *oauth_api.OAuthAccessTokenList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthAccessTokenList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -184,9 +168,6 @@ func Convert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList(in *OAuthAccess
 }
 
 func autoConvert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *oauth_api.OAuthAccessTokenList, out *OAuthAccessTokenList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthAccessTokenList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -212,9 +193,6 @@ func Convert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *oauth_api.O
 }
 
 func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthorizeToken, out *oauth_api.OAuthAuthorizeToken, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthAuthorizeToken))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -243,9 +221,6 @@ func Convert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthoriz
 }
 
 func autoConvert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *oauth_api.OAuthAuthorizeToken, out *OAuthAuthorizeToken, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthAuthorizeToken))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -274,9 +249,6 @@ func Convert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *oauth_api.OAu
 }
 
 func autoConvert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *OAuthAuthorizeTokenList, out *oauth_api.OAuthAuthorizeTokenList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthAuthorizeTokenList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -302,9 +274,6 @@ func Convert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *OAuth
 }
 
 func autoConvert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *oauth_api.OAuthAuthorizeTokenList, out *OAuthAuthorizeTokenList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthAuthorizeTokenList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -330,9 +299,6 @@ func Convert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *oauth
 }
 
 func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_api.OAuthClient, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthClient))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -375,9 +341,6 @@ func Convert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_api.O
 }
 
 func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, out *OAuthClient, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthClient))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -420,9 +383,6 @@ func Convert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, out *O
 }
 
 func autoConvert_v1_OAuthClientAuthorization_To_api_OAuthClientAuthorization(in *OAuthClientAuthorization, out *oauth_api.OAuthClientAuthorization, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthClientAuthorization))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -448,9 +408,6 @@ func Convert_v1_OAuthClientAuthorization_To_api_OAuthClientAuthorization(in *OAu
 }
 
 func autoConvert_api_OAuthClientAuthorization_To_v1_OAuthClientAuthorization(in *oauth_api.OAuthClientAuthorization, out *OAuthClientAuthorization, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthClientAuthorization))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -476,9 +433,6 @@ func Convert_api_OAuthClientAuthorization_To_v1_OAuthClientAuthorization(in *oau
 }
 
 func autoConvert_v1_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList(in *OAuthClientAuthorizationList, out *oauth_api.OAuthClientAuthorizationList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthClientAuthorizationList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -504,9 +458,6 @@ func Convert_v1_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList
 }
 
 func autoConvert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList(in *oauth_api.OAuthClientAuthorizationList, out *OAuthClientAuthorizationList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthClientAuthorizationList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -532,9 +483,6 @@ func Convert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList
 }
 
 func autoConvert_v1_OAuthClientList_To_api_OAuthClientList(in *OAuthClientList, out *oauth_api.OAuthClientList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*OAuthClientList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -560,9 +508,6 @@ func Convert_v1_OAuthClientList_To_api_OAuthClientList(in *OAuthClientList, out 
 }
 
 func autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in *oauth_api.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.OAuthClientList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -588,9 +533,6 @@ func Convert_api_OAuthClientList_To_v1_OAuthClientList(in *oauth_api.OAuthClient
 }
 
 func autoConvert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, out *oauth_api.ScopeRestriction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ScopeRestriction))(in)
-	}
 	if in.ExactValues != nil {
 		in, out := &in.ExactValues, &out.ExactValues
 		*out = make([]string, len(*in))
@@ -615,9 +557,6 @@ func Convert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, o
 }
 
 func autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in *oauth_api.ScopeRestriction, out *ScopeRestriction, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*oauth_api.ScopeRestriction))(in)
-	}
 	if in.ExactValues != nil {
 		in, out := &in.ExactValues, &out.ExactValues
 		*out = make([]string, len(*in))

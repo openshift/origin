@@ -50,5 +50,5 @@ func getPriority(scc *kapi.SecurityContextConstraints) int {
 	if scc.Priority == nil {
 		return 0
 	}
-	return *scc.Priority
+	return int(*scc.Priority)
 }

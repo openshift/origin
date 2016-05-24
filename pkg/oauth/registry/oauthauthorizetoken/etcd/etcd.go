@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
@@ -22,16 +22,19 @@ import (
 // rest implements a RESTStorage for authorize tokens against etcd
 type REST struct {
 	// Cannot inline because we don't want the Update function
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 const EtcdPrefix = "/oauth/authorizetokens"
 
 // NewREST returns a RESTStorage object that will work against authorize tokens
-func NewREST(s storage.Interface, clientGetter oauthclient.Getter, backends ...storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(opts generic.RESTOptions, clientGetter oauthclient.Getter, backends ...storage.Interface) *REST {
+	newListFunc := func() runtime.Object { return &api.OAuthAccessTokenList{} }
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.OAuthAccessTokenList{}, EtcdPrefix, oauthauthorizetoken.NewStrategy(clientGetter), newListFunc)
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
-		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
+		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return EtcdPrefix
 		},
@@ -51,7 +54,7 @@ func NewREST(s storage.Interface, clientGetter oauthclient.Getter, backends ...s
 		},
 		QualifiedResource: api.Resource("oauthauthorizetokens"),
 
-		Storage: s,
+		Storage: storageInterface,
 	}
 
 	store.CreateStrategy = oauthauthorizetoken.NewStrategy(clientGetter)
@@ -65,7 +68,7 @@ func NewREST(s storage.Interface, clientGetter oauthclient.Getter, backends ...s
 			watchers = append(watchers, &watcher)
 		}
 		// Observe the cluster for the particular resource version, requiring at least one backend to succeed
-		observer := observe.NewClusterObserver(s.Versioner(), watchers, 1)
+		observer := observe.NewClusterObserver(opts.Storage.Versioner(), watchers, 1)
 		// After creation, wait for the new token to propagate
 		store.AfterCreate = func(obj runtime.Object) error {
 			return observer.ObserveResourceVersion(obj.(*api.OAuthAuthorizeToken).ResourceVersion, 5*time.Second)

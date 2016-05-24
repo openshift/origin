@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -88,9 +89,13 @@ func TestUserInitialization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	options := generic.RESTOptions{
+		Storage:   etcdHelper,
+		Decorator: generic.UndecoratedStorage,
+	}
 
-	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))
-	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
+	userRegistry := userregistry.NewRegistry(useretcd.NewREST(options))
+	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(options))
 
 	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup)
 	if err != nil {

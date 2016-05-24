@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
@@ -45,7 +46,11 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
-	imageStorage, statusStorage, internalStorage := NewREST(etcdStorage, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
+	imageStorage, statusStorage, internalStorage := NewREST(options, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 	return imageStorage, statusStorage, internalStorage, server
 }
 
@@ -76,7 +81,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
 	)

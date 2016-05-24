@@ -12,9 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -24,23 +23,26 @@ import (
 
 // REST contains the REST storage for DeploymentConfig objects.
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewStorage returns a DeploymentConfigStorage containing the REST storage for
 // DeploymentConfig objects and their Scale subresources.
-func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *StatusREST, *ScaleREST) {
+func NewREST(opts generic.RESTOptions, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *StatusREST, *ScaleREST) {
 	prefix := "/deploymentconfigs"
 
-	store := &etcdgeneric.Etcd{
+	newListFunc := func() runtime.Object { return &api.DeploymentConfigList{} }
+	storageInterface := opts.Decorator(opts.Storage, 100, &api.DeploymentConfigList{}, prefix, deployconfig.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
-		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
+		NewListFunc:       newListFunc,
 		QualifiedResource: api.Resource("deploymentconfigs"),
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
+			return registry.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.DeploymentConfig).Name, nil
@@ -52,7 +54,7 @@ func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNam
 		UpdateStrategy:      deployconfig.Strategy,
 		DeleteStrategy:      deployconfig.Strategy,
 		ReturnDeletedObject: false,
-		Storage:             s,
+		Storage:             storageInterface,
 	}
 
 	deploymentConfigREST := &REST{store}
@@ -102,10 +104,10 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			CreationTimestamp: deploymentConfig.CreationTimestamp,
 		},
 		Spec: extensions.ScaleSpec{
-			Replicas: deploymentConfig.Spec.Replicas,
+			Replicas: int32(deploymentConfig.Spec.Replicas),
 		},
 		Status: extensions.ScaleStatus{
-			Replicas: totalReplicas,
+			Replicas: int32(totalReplicas),
 			Selector: &unversioned.LabelSelector{MatchLabels: deploymentConfig.Spec.Selector},
 		},
 	}, nil
@@ -152,11 +154,11 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	}
 
 	oldReplicas := deploymentConfig.Spec.Replicas
-	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
+	deploymentConfig.Spec.Replicas = int(scale.Spec.Replicas)
 	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}
-	scaleRet.Status.Replicas = totalReplicas + (scale.Spec.Replicas - oldReplicas)
+	scaleRet.Status.Replicas = int32(totalReplicas + (int(scale.Spec.Replicas) - int(oldReplicas)))
 
 	return scaleRet, false, nil
 }
@@ -170,7 +172,7 @@ func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (i
 
 	replicas := 0
 	for _, rc := range rcList.Items {
-		replicas += rc.Spec.Replicas
+		replicas += int(rc.Spec.Replicas)
 	}
 
 	return replicas, nil
@@ -178,7 +180,7 @@ func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (i
 
 // StatusREST implements the REST endpoint for changing the status of a DeploymentConfig.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // StatusREST implements the Updater interface.

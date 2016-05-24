@@ -48,51 +48,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
-    "path": "/api/v1/bindings",
-    "description": "API at /api/v1",
-    "operations": [
-     {
-      "type": "v1.Binding",
-      "method": "POST",
-      "summary": "create a Binding",
-      "nickname": "createNamespacedBinding",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Binding",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Binding"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -168,7 +125,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -212,7 +170,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -296,7 +255,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -342,7 +302,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -420,7 +381,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -433,7 +395,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ConfigMap",
       "nickname": "watchNamespacedConfigMapList",
@@ -499,11 +461,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -571,7 +536,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -625,7 +591,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -679,7 +646,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -735,7 +703,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -748,7 +717,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ConfigMap",
       "nickname": "watchNamespacedConfigMap",
@@ -822,11 +791,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -902,45 +874,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.ConfigMap",
-      "method": "POST",
-      "summary": "create a ConfigMap",
-      "nickname": "createNamespacedConfigMap",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ConfigMap",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ConfigMap"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -953,7 +888,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ConfigMap",
       "nickname": "watchNamespacedConfigMapList",
@@ -1011,11 +946,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1099,7 +1037,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1145,7 +1084,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1223,7 +1163,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1236,7 +1177,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Endpoints",
       "nickname": "watchNamespacedEndpointsList",
@@ -1302,11 +1243,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1374,7 +1318,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1428,7 +1373,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1482,7 +1428,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -1538,7 +1485,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1551,7 +1499,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Endpoints",
       "nickname": "watchNamespacedEndpoints",
@@ -1625,11 +1573,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1705,45 +1656,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Endpoints",
-      "method": "POST",
-      "summary": "create a Endpoints",
-      "nickname": "createNamespacedEndpoints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Endpoints",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Endpoints"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1756,7 +1670,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Endpoints",
       "nickname": "watchNamespacedEndpointsList",
@@ -1814,11 +1728,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -1902,7 +1819,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -1948,7 +1866,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2026,7 +1945,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2039,7 +1959,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Event",
       "nickname": "watchNamespacedEventList",
@@ -2105,11 +2025,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2177,7 +2100,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2231,7 +2155,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2285,7 +2210,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -2341,7 +2267,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2354,7 +2281,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Event",
       "nickname": "watchNamespacedEvent",
@@ -2428,11 +2355,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2508,45 +2438,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Event",
-      "method": "POST",
-      "summary": "create a Event",
-      "nickname": "createNamespacedEvent",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Event",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Event"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2559,7 +2452,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Event",
       "nickname": "watchNamespacedEventList",
@@ -2617,11 +2510,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2705,7 +2601,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2751,7 +2648,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2829,7 +2727,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -2842,7 +2741,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of LimitRange",
       "nickname": "watchNamespacedLimitRangeList",
@@ -2908,11 +2807,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -2980,7 +2882,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3034,7 +2937,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3088,7 +2992,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -3144,7 +3049,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3157,7 +3063,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind LimitRange",
       "nickname": "watchNamespacedLimitRange",
@@ -3231,11 +3137,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3311,45 +3220,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.LimitRange",
-      "method": "POST",
-      "summary": "create a LimitRange",
-      "nickname": "createNamespacedLimitRange",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.LimitRange",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.LimitRange"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3362,7 +3234,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of LimitRange",
       "nickname": "watchNamespacedLimitRangeList",
@@ -3420,11 +3292,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3500,7 +3375,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3538,7 +3414,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3608,7 +3485,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3621,7 +3499,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Namespace",
       "nickname": "watchNamespaceList",
@@ -3679,11 +3557,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -3743,7 +3624,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3789,7 +3671,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3835,7 +3718,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -3883,7 +3767,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3896,7 +3781,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Namespace",
       "nickname": "watchNamespace",
@@ -3962,11 +3847,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -4018,7 +3906,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4070,7 +3959,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4146,7 +4036,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4184,7 +4075,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4254,7 +4146,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4267,7 +4160,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Node",
       "nickname": "watchNodeList",
@@ -4325,11 +4218,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -4389,7 +4285,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4435,7 +4332,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4481,7 +4379,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -4529,7 +4428,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -4542,7 +4442,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Node",
       "nickname": "watchNode",
@@ -4608,11 +4508,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5408,7 +5311,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5492,7 +5396,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5538,7 +5443,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5616,7 +5522,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5629,7 +5536,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolumeClaim",
       "nickname": "watchNamespacedPersistentVolumeClaimList",
@@ -5695,11 +5602,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -5767,7 +5677,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5821,7 +5732,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5875,7 +5787,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -5931,7 +5844,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -5944,7 +5858,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PersistentVolumeClaim",
       "nickname": "watchNamespacedPersistentVolumeClaim",
@@ -6018,11 +5932,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6098,45 +6015,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.PersistentVolumeClaim",
-      "method": "POST",
-      "summary": "create a PersistentVolumeClaim",
-      "nickname": "createNamespacedPersistentVolumeClaim",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.PersistentVolumeClaim",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.PersistentVolumeClaim"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6149,7 +6029,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolumeClaim",
       "nickname": "watchNamespacedPersistentVolumeClaimList",
@@ -6207,11 +6087,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6271,7 +6154,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6347,7 +6231,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6385,7 +6270,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6455,7 +6341,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6468,7 +6355,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolume",
       "nickname": "watchPersistentVolumeList",
@@ -6526,11 +6413,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6590,7 +6480,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6636,7 +6527,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6682,7 +6574,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -6730,7 +6623,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6743,7 +6637,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PersistentVolume",
       "nickname": "watchPersistentVolume",
@@ -6809,11 +6703,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -6865,7 +6762,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6949,7 +6847,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6995,7 +6894,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7073,7 +6973,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7086,7 +6987,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Pod",
       "nickname": "watchNamespacedPodList",
@@ -7152,11 +7053,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7224,7 +7128,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7278,7 +7183,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7332,7 +7238,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -7388,7 +7295,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7401,7 +7309,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Pod",
       "nickname": "watchNamespacedPod",
@@ -7475,11 +7383,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -7975,45 +7886,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Pod",
-      "method": "POST",
-      "summary": "create a Pod",
-      "nickname": "createNamespacedPod",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Pod",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Pod"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8026,7 +7900,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Pod",
       "nickname": "watchNamespacedPodList",
@@ -8084,11 +7958,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -8294,7 +8171,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -8572,7 +8450,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9214,7 +9093,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9298,7 +9178,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9344,7 +9225,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9422,7 +9304,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9435,7 +9318,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PodTemplate",
       "nickname": "watchNamespacedPodTemplateList",
@@ -9501,11 +9384,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9573,7 +9459,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9627,7 +9514,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9681,7 +9569,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -9737,7 +9626,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9750,7 +9640,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PodTemplate",
       "nickname": "watchNamespacedPodTemplate",
@@ -9824,11 +9714,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -9904,45 +9797,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.PodTemplate",
-      "method": "POST",
-      "summary": "create a PodTemplate",
-      "nickname": "createNamespacedPodTemplate",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.PodTemplate",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.PodTemplate"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -9955,7 +9811,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PodTemplate",
       "nickname": "watchNamespacedPodTemplateList",
@@ -10013,11 +9869,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10101,7 +9960,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10147,7 +10007,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10225,7 +10086,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10238,7 +10100,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ReplicationController",
       "nickname": "watchNamespacedReplicationControllerList",
@@ -10304,11 +10166,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10376,7 +10241,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10430,7 +10296,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10484,7 +10351,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -10540,7 +10408,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10553,7 +10422,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ReplicationController",
       "nickname": "watchNamespacedReplicationController",
@@ -10627,11 +10496,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10707,45 +10579,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.ReplicationController",
-      "method": "POST",
-      "summary": "create a ReplicationController",
-      "nickname": "createNamespacedReplicationController",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ReplicationController",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ReplicationController"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10758,7 +10593,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ReplicationController",
       "nickname": "watchNamespacedReplicationControllerList",
@@ -10816,11 +10651,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -10872,7 +10710,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10926,7 +10765,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -10980,7 +10820,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -11042,7 +10883,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11126,7 +10968,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11172,7 +11015,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11250,7 +11094,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11263,7 +11108,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ResourceQuota",
       "nickname": "watchNamespacedResourceQuotaList",
@@ -11329,11 +11174,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11401,7 +11249,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11455,7 +11304,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11509,7 +11359,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -11565,7 +11416,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11578,7 +11430,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ResourceQuota",
       "nickname": "watchNamespacedResourceQuota",
@@ -11652,11 +11504,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11732,45 +11587,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.ResourceQuota",
-      "method": "POST",
-      "summary": "create a ResourceQuota",
-      "nickname": "createNamespacedResourceQuota",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ResourceQuota",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ResourceQuota"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11783,7 +11601,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ResourceQuota",
       "nickname": "watchNamespacedResourceQuotaList",
@@ -11841,11 +11659,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -11905,7 +11726,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11989,7 +11811,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12035,7 +11858,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12113,7 +11937,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12126,7 +11951,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Secret",
       "nickname": "watchNamespacedSecretList",
@@ -12192,11 +12017,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12264,7 +12092,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12318,7 +12147,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12372,7 +12202,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -12428,7 +12259,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12441,7 +12273,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Secret",
       "nickname": "watchNamespacedSecret",
@@ -12515,11 +12347,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12595,45 +12430,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Secret",
-      "method": "POST",
-      "summary": "create a Secret",
-      "nickname": "createNamespacedSecret",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Secret",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Secret"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12646,7 +12444,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Secret",
       "nickname": "watchNamespacedSecretList",
@@ -12704,11 +12502,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -12784,7 +12585,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12822,7 +12624,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12892,7 +12695,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -12905,7 +12709,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of SecurityContextConstraints",
       "nickname": "watchSecurityContextConstraintsList",
@@ -12963,11 +12767,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13027,7 +12834,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13073,7 +12881,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13119,7 +12928,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -13167,7 +12977,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13180,7 +12991,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind SecurityContextConstraints",
       "nickname": "watchSecurityContextConstraints",
@@ -13246,11 +13057,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13334,7 +13148,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13380,7 +13195,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13458,7 +13274,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13471,7 +13288,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ServiceAccount",
       "nickname": "watchNamespacedServiceAccountList",
@@ -13537,11 +13354,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13609,7 +13429,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13663,7 +13484,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13717,7 +13539,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -13773,7 +13596,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13786,7 +13610,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ServiceAccount",
       "nickname": "watchNamespacedServiceAccount",
@@ -13860,11 +13684,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -13940,45 +13767,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.ServiceAccount",
-      "method": "POST",
-      "summary": "create a ServiceAccount",
-      "nickname": "createNamespacedServiceAccount",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ServiceAccount",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ServiceAccount"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -13991,7 +13781,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ServiceAccount",
       "nickname": "watchNamespacedServiceAccountList",
@@ -14049,11 +13839,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -14137,7 +13930,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14183,7 +13977,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14196,7 +13991,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Service",
       "nickname": "watchNamespacedServiceList",
@@ -14262,11 +14057,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -14334,7 +14132,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14388,7 +14187,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14442,7 +14242,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -14490,7 +14291,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14503,7 +14305,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Service",
       "nickname": "watchNamespacedService",
@@ -14577,11 +14379,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15077,45 +14882,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Service",
-      "method": "POST",
-      "summary": "create a Service",
-      "nickname": "createNamespacedService",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Service",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Service"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15128,7 +14896,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Service",
       "nickname": "watchNamespacedServiceList",
@@ -15186,11 +14954,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -15766,7 +15537,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -15786,11 +15558,13 @@
       "parameters": [],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ]
      }
     ]
@@ -15869,12 +15643,54 @@
       "description": "Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only."
      },
      "labels": {
-      "type": "any",
+      "type": "object",
       "description": "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "annotations": {
-      "type": "any",
+      "type": "object",
       "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/HEAD/docs/user-guide/annotations.md"
+     },
+     "ownerReferences": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.OwnerReference"
+      },
+      "description": "List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected."
+     },
+     "finalizers": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed."
+     }
+    }
+   },
+   "v1.OwnerReference": {
+    "id": "v1.OwnerReference",
+    "description": "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+    "required": [
+     "apiVersion",
+     "kind",
+     "name",
+     "uid"
+    ],
+    "properties": {
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent."
+     },
+     "kind": {
+      "type": "string",
+      "description": "Kind of the referent. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "UID of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
      }
     }
    },
@@ -16008,6 +15824,9 @@
    "v1.ConfigMapList": {
     "id": "v1.ConfigMapList",
     "description": "ConfigMapList is a resource containing a list of ConfigMap objects.",
+    "required": [
+     "items"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -16047,7 +15866,7 @@
       "description": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "data": {
-      "type": "any",
+      "type": "object",
       "description": "Data contains the configuration data. Each key must be a valid DNS_SUBDOMAIN with an optional leading dot."
      }
     }
@@ -16139,18 +15958,9 @@
      }
     }
    },
-   "json.WatchEvent": {
-    "id": "json.WatchEvent",
-    "properties": {
-     "type": {
-      "type": "string",
-      "description": "the type of watch event; may be ADDED, MODIFIED, DELETED, or ERROR"
-     },
-     "object": {
-      "type": "string",
-      "description": "the object being watched; will match the type of the resource endpoint or be a Status object if the type is ERROR"
-     }
-    }
+   "*versioned.Event": {
+    "id": "*versioned.Event",
+    "properties": {}
    },
    "unversioned.Patch": {
     "id": "unversioned.Patch",
@@ -16177,6 +15987,10 @@
      "preconditions": {
       "$ref": "v1.Preconditions",
       "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
+     },
+     "orphanDependents": {
+      "type": "boolean",
+      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
      }
     }
    },
@@ -16286,7 +16100,11 @@
     "properties": {
      "ip": {
       "type": "string",
-      "description": "The IP of this endpoint. May not be loopback (127.0.0.0/8), link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24)."
+      "description": "The IP of this endpoint. May not be loopback (127.0.0.0/8), link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24). IPv6 is also accepted but not fully supported on all platforms. Also, certain kubernetes components, like kube-proxy, are not IPv6 ready."
+     },
+     "hostname": {
+      "type": "string",
+      "description": "The Hostname of this endpoint"
      },
      "targetRef": {
       "$ref": "v1.ObjectReference",
@@ -16488,23 +16306,23 @@
       "description": "Type of resource that this limit applies to."
      },
      "max": {
-      "type": "any",
+      "type": "object",
       "description": "Max usage constraints on this kind by resource name."
      },
      "min": {
-      "type": "any",
+      "type": "object",
       "description": "Min usage constraints on this kind by resource name."
      },
      "default": {
-      "type": "any",
+      "type": "object",
       "description": "Default resource requirement limit value by resource name if resource limit is omitted."
      },
      "defaultRequest": {
-      "type": "any",
+      "type": "object",
       "description": "DefaultRequest is the default resource requirement request value by resource name if resource request is omitted."
      },
      "maxLimitRequestRatio": {
-      "type": "any",
+      "type": "object",
       "description": "MaxLimitRequestRatio if specified, the named resource must have a request and limit that are both non-zero where limit divided by request is less than or equal to the enumerated value; this represents the max burst for the named resource."
      }
     }
@@ -16669,16 +16487,13 @@
    "v1.NodeStatus": {
     "id": "v1.NodeStatus",
     "description": "NodeStatus is information about the current status of a node.",
-    "required": [
-     "images"
-    ],
     "properties": {
      "capacity": {
-      "type": "any",
+      "type": "object",
       "description": "Capacity represents the total resources of a node. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#capacity for more details."
      },
      "allocatable": {
-      "type": "any",
+      "type": "object",
       "description": "Allocatable represents the resources of a node that are available for scheduling. Defaults to Capacity."
      },
      "phase": {
@@ -16945,11 +16760,11 @@
     "description": "ResourceRequirements describes the compute resource requirements.",
     "properties": {
      "limits": {
-      "type": "any",
+      "type": "object",
       "description": "Limits describes the maximum amount of compute resources allowed. More info: http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      },
      "requests": {
-      "type": "any",
+      "type": "object",
       "description": "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      }
     }
@@ -16970,7 +16785,7 @@
       "description": "AccessModes contains the actual access modes the volume backing the PVC has. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#access-modes-1"
      },
      "capacity": {
-      "type": "any",
+      "type": "object",
       "description": "Represents the actual resources of the underlying volume."
      }
     }
@@ -17034,7 +16849,7 @@
     "description": "PersistentVolumeSpec is the specification of a persistent volume.",
     "properties": {
      "capacity": {
-      "type": "any",
+      "type": "object",
       "description": "A description of the persistent volume's resources and capacity. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#capacity"
      },
      "gcePersistentDisk": {
@@ -17427,14 +17242,14 @@
      },
      "secretRef": {
       "$ref": "v1.LocalObjectReference",
-      "description": "Optional: SecretRef is reference to the authentication secret for User, default is empty."
+      "description": "Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts."
      },
      "readOnly": {
       "type": "boolean",
       "description": "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
      },
      "options": {
-      "type": "any",
+      "type": "object",
       "description": "Optional: Extra command options if any."
      }
     }
@@ -17573,7 +17388,7 @@
       "description": "Set DNS policy for containers within the pod. One of 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\"."
      },
      "nodeSelector": {
-      "type": "any",
+      "type": "object",
       "description": "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md"
      },
      "host": {
@@ -17614,6 +17429,14 @@
        "$ref": "v1.LocalObjectReference"
       },
       "description": "ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec. If specified, these secrets will be passed to individual puller implementations for them to use. For example, in the case of docker, only DockerConfig type secrets are honored. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod"
+     },
+     "hostname": {
+      "type": "string",
+      "description": "Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value."
+     },
+     "subdomain": {
+      "type": "string",
+      "description": "If specified, the fully qualified Pod hostname will be \"\u003chostname\u003e.\u003csubdomain\u003e.\u003cpod namespace\u003e.svc.\u003ccluster domain\u003e\". If not specified, the pod will not have a domainname at all."
      }
     }
    },
@@ -18101,6 +17924,10 @@
      "mountPath": {
       "type": "string",
       "description": "Path within the container at which the volume should be mounted.  Must not contain ':'."
+     },
+     "subPath": {
+      "type": "string",
+      "description": "Path within the volume from which the container's volume should be mounted. Defaults to \"\" (volume's root)."
      }
     }
    },
@@ -18352,7 +18179,7 @@
      "supplementalGroups": {
       "type": "array",
       "items": {
-       "$ref": "integer"
+       "type": "integer"
       },
       "description": "A list of groups applied to the first process run in each container, in addition to the container's primary GID.  If unspecified, no groups will be added to any container."
      },
@@ -18362,10 +18189,6 @@
       "description": "A special supplemental group that applies to all containers in a pod. Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod:\n\n1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw "
      }
     }
-   },
-   "integer": {
-    "id": "integer",
-    "properties": {}
    },
    "v1.PodStatus": {
     "id": "v1.PodStatus",
@@ -18700,7 +18523,7 @@
       "description": "Replicas is the number of desired replicas. This is a pointer to distinguish between explicit zero and unspecified. Defaults to 1. More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller"
      },
      "selector": {
-      "type": "any",
+      "type": "object",
       "description": "Selector is a label query over pods that should match the Replicas count. If Selector is empty, it is defaulted to the labels present on the Pod template. Label keys and values that must match in order to be controlled by this replication controller, if empty defaulted to labels on Pod template. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors"
      },
      "template": {
@@ -18847,7 +18670,7 @@
     "description": "ResourceQuotaSpec defines the desired hard limits to enforce for Quota.",
     "properties": {
      "hard": {
-      "type": "any",
+      "type": "object",
       "description": "Hard is the set of desired hard limits for each named resource. More info: http://releases.k8s.io/HEAD/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota"
      },
      "scopes": {
@@ -18868,11 +18691,11 @@
     "description": "ResourceQuotaStatus defines the enforced hard limits and observed use.",
     "properties": {
      "hard": {
-      "type": "any",
+      "type": "object",
       "description": "Hard is the set of enforced hard limits for each named resource. More info: http://releases.k8s.io/HEAD/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota"
      },
      "used": {
-      "type": "any",
+      "type": "object",
       "description": "Used is the current observed total usage of the resource in the namespace."
      }
     }
@@ -18922,7 +18745,7 @@
       "description": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "data": {
-      "type": "any",
+      "type": "object",
       "description": "Data contains the secret data. Each key must be a valid DNS_SUBDOMAIN or leading dot followed by valid DNS_SUBDOMAIN. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
      },
      "type": {
@@ -19301,7 +19124,7 @@
       "description": "The list of ports that are exposed by this service. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#virtual-ips-and-service-proxies"
      },
      "selector": {
-      "type": "any",
+      "type": "object",
       "description": "This service will route traffic to pods having labels matching this selector. Label keys and values that must match in order to receive traffic for this service. If empty, all pods are selected, if not specified, endpoints must be manually specified. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#overview"
      },
      "portalIP": {

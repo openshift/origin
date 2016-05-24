@@ -17,13 +17,15 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+/*
 func init() {
 	// Origin provides implicit cluster DNS
 	e2e.ClusterDNSVerifier = func(f *e2e.Framework) {}
 }
+*/
 
 func createDNSPod(namespace, probeCmd string) *api.Pod {
 	pod := &api.Pod{
@@ -227,7 +229,7 @@ var _ = Describe("DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {
-		e2e.ClusterDNSVerifier(f)
+		//e2e.ClusterDNSVerifier(f)
 
 		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("headless", true, nil)); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)

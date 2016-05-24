@@ -17,6 +17,7 @@ func AddToScheme(scheme *runtime.Scheme) {
 	docker10.AddToScheme(scheme)
 	dockerpre012.AddToScheme(scheme)
 	addKnownTypes(scheme)
+	addDefaultingFuncs(scheme)
 	addConversionFuncs(scheme)
 }
 

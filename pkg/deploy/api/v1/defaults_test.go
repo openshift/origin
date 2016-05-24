@@ -143,7 +143,10 @@ func TestDefaults(t *testing.T) {
 								{
 									Name: "test",
 									TerminationMessagePath: "/dev/termination-log",
-									ImagePullPolicy:        kapiv1.PullAlways,
+									// The pull policy will be "PullAlways" only when the
+									// image tag is 'latest'. In other case it will be
+									// "PullIfNotPresent".
+									ImagePullPolicy: kapiv1.PullIfNotPresent,
 								},
 							},
 						},

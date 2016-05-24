@@ -8,8 +8,10 @@ import (
 	fuzz "github.com/google/gofuzz"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 func TestAnonymousConfig(t *testing.T) {
@@ -18,6 +20,12 @@ func TestAnonymousConfig(t *testing.T) {
 		func(r *runtime.Codec, f fuzz.Continue) {},
 		func(r *http.RoundTripper, f fuzz.Continue) {},
 		func(fn *func(http.RoundTripper) http.RoundTripper, f fuzz.Continue) {},
+		func(r *restclient.AuthProviderConfigPersister, f fuzz.Continue) {},
+		func(r *runtime.NegotiatedSerializer, f fuzz.Continue) {},
+		func(r *flowcontrol.RateLimiter, f fuzz.Continue) {},
+		func(r *api.AuthProviderConfig, f fuzz.Continue) {
+			r.Config = map[string]string{}
+		},
 	)
 	for i := 0; i < 20; i++ {
 		original := &restclient.Config{}
@@ -31,6 +39,8 @@ func TestAnonymousConfig(t *testing.T) {
 		expected.BearerToken = ""
 		expected.Username = ""
 		expected.Password = ""
+		expected.AuthProvider = nil
+		expected.AuthConfigPersister = nil
 		expected.TLSClientConfig.CertData = nil
 		expected.TLSClientConfig.CertFile = ""
 		expected.TLSClientConfig.KeyData = nil

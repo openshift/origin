@@ -305,7 +305,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 
 	healthzPort := defaultPort
 	if len(ports) > 0 {
-		healthzPort = ports[0].ContainerPort
+		healthzPort = int(ports[0].ContainerPort)
 		env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
 		env["REGISTRY_HTTP_NET"] = "tcp"
 	}

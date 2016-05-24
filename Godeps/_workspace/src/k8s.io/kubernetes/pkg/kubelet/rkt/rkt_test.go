@@ -27,10 +27,15 @@ import (
 	appcschema "github.com/appc/spec/schema"
 	appctypes "github.com/appc/spec/schema/types"
 	rktapi "github.com/coreos/rkt/api/v1alpha"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	containertesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
+	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
+	"k8s.io/kubernetes/pkg/kubelet/rkt/mock_os"
+	"k8s.io/kubernetes/pkg/util/errors"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
@@ -60,9 +65,10 @@ func mustRktHash(hash string) *appctypes.Hash {
 
 func makeRktPod(rktPodState rktapi.PodState,
 	rktPodID, podUID, podName, podNamespace,
-	podIP, podCreationTs, podRestartCount string,
-	appNames, imgIDs, imgNames, containerHashes []string,
-	appStates []rktapi.AppState, exitcodes []int32) *rktapi.Pod {
+	podIP string, podCreatedAt, podStartedAt int64,
+	podRestartCount string, appNames, imgIDs, imgNames,
+	containerHashes []string, appStates []rktapi.AppState,
+	exitcodes []int32) *rktapi.Pod {
 
 	podManifest := &appcschema.PodManifest{
 		ACKind:    appcschema.PodManifestKind,
@@ -83,10 +89,6 @@ func makeRktPod(rktPodState rktapi.PodState,
 			appctypes.Annotation{
 				Name:  *appctypes.MustACIdentifier(k8sRktNamespaceAnno),
 				Value: podNamespace,
-			},
-			appctypes.Annotation{
-				Name:  *appctypes.MustACIdentifier(k8sRktCreationTimeAnno),
-				Value: podCreationTs,
 			},
 			appctypes.Annotation{
 				Name:  *appctypes.MustACIdentifier(k8sRktRestartCountAnno),
@@ -141,11 +143,13 @@ func makeRktPod(rktPodState rktapi.PodState,
 	}
 
 	return &rktapi.Pod{
-		Id:       rktPodID,
-		State:    rktPodState,
-		Networks: []*rktapi.Network{{Name: defaultNetworkName, Ipv4: podIP}},
-		Apps:     apps,
-		Manifest: mustMarshalPodManifest(podManifest),
+		Id:        rktPodID,
+		State:     rktPodState,
+		Networks:  []*rktapi.Network{{Name: defaultNetworkName, Ipv4: podIP}},
+		Apps:      apps,
+		Manifest:  mustMarshalPodManifest(podManifest),
+		StartedAt: podStartedAt,
+		CreatedAt: podCreatedAt,
 	}
 }
 
@@ -344,6 +348,10 @@ func TestGetPods(t *testing.T) {
 	fs := newFakeSystemd()
 	r := &Runtime{apisvc: fr, systemd: fs}
 
+	ns := func(seconds int64) int64 {
+		return seconds * 1e9
+	}
+
 	tests := []struct {
 		pods   []*rktapi.Pod
 		result []*kubecontainer.Pod
@@ -355,7 +363,7 @@ func TestGetPods(t *testing.T) {
 			[]*rktapi.Pod{
 				makeRktPod(rktapi.PodState_POD_STATE_RUNNING,
 					"uuid-4002", "42", "guestbook", "default",
-					"10.10.10.42", "100000", "7",
+					"10.10.10.42", ns(10), ns(10), "7",
 					[]string{"app-1", "app-2"},
 					[]string{"img-id-1", "img-id-2"},
 					[]string{"img-name-1", "img-name-2"},
@@ -371,20 +379,18 @@ func TestGetPods(t *testing.T) {
 					Namespace: "default",
 					Containers: []*kubecontainer.Container{
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
-							Name:    "app-1",
-							Image:   "img-name-1:latest",
-							Hash:    1001,
-							Created: 100000,
-							State:   "running",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
+							Name:  "app-1",
+							Image: "img-name-1:latest",
+							Hash:  1001,
+							State: "running",
 						},
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
-							Name:    "app-2",
-							Image:   "img-name-2:latest",
-							Hash:    1002,
-							Created: 100000,
-							State:   "exited",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
+							Name:  "app-2",
+							Image: "img-name-2:latest",
+							Hash:  1002,
+							State: "exited",
 						},
 					},
 				},
@@ -395,7 +401,7 @@ func TestGetPods(t *testing.T) {
 			[]*rktapi.Pod{
 				makeRktPod(rktapi.PodState_POD_STATE_RUNNING,
 					"uuid-4002", "42", "guestbook", "default",
-					"10.10.10.42", "100000", "7",
+					"10.10.10.42", ns(10), ns(20), "7",
 					[]string{"app-1", "app-2"},
 					[]string{"img-id-1", "img-id-2"},
 					[]string{"img-name-1", "img-name-2"},
@@ -405,7 +411,7 @@ func TestGetPods(t *testing.T) {
 				),
 				makeRktPod(rktapi.PodState_POD_STATE_EXITED,
 					"uuid-4003", "43", "guestbook", "default",
-					"10.10.10.43", "90000", "7",
+					"10.10.10.43", ns(30), ns(40), "7",
 					[]string{"app-11", "app-22"},
 					[]string{"img-id-11", "img-id-22"},
 					[]string{"img-name-11", "img-name-22"},
@@ -415,7 +421,7 @@ func TestGetPods(t *testing.T) {
 				),
 				makeRktPod(rktapi.PodState_POD_STATE_EXITED,
 					"uuid-4004", "43", "guestbook", "default",
-					"10.10.10.44", "100000", "8",
+					"10.10.10.44", ns(50), ns(60), "8",
 					[]string{"app-11", "app-22"},
 					[]string{"img-id-11", "img-id-22"},
 					[]string{"img-name-11", "img-name-22"},
@@ -431,20 +437,18 @@ func TestGetPods(t *testing.T) {
 					Namespace: "default",
 					Containers: []*kubecontainer.Container{
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
-							Name:    "app-1",
-							Image:   "img-name-1:latest",
-							Hash:    1001,
-							Created: 100000,
-							State:   "running",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
+							Name:  "app-1",
+							Image: "img-name-1:latest",
+							Hash:  1001,
+							State: "running",
 						},
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
-							Name:    "app-2",
-							Image:   "img-name-2:latest",
-							Hash:    1002,
-							Created: 100000,
-							State:   "exited",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
+							Name:  "app-2",
+							Image: "img-name-2:latest",
+							Hash:  1002,
+							State: "exited",
 						},
 					},
 				},
@@ -454,36 +458,32 @@ func TestGetPods(t *testing.T) {
 					Namespace: "default",
 					Containers: []*kubecontainer.Container{
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4003:app-11"),
-							Name:    "app-11",
-							Image:   "img-name-11:latest",
-							Hash:    10011,
-							Created: 90000,
-							State:   "exited",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4003:app-11"),
+							Name:  "app-11",
+							Image: "img-name-11:latest",
+							Hash:  10011,
+							State: "exited",
 						},
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4003:app-22"),
-							Name:    "app-22",
-							Image:   "img-name-22:latest",
-							Hash:    10022,
-							Created: 90000,
-							State:   "exited",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4003:app-22"),
+							Name:  "app-22",
+							Image: "img-name-22:latest",
+							Hash:  10022,
+							State: "exited",
 						},
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4004:app-11"),
-							Name:    "app-11",
-							Image:   "img-name-11:latest",
-							Hash:    10011,
-							Created: 100000,
-							State:   "running",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4004:app-11"),
+							Name:  "app-11",
+							Image: "img-name-11:latest",
+							Hash:  10011,
+							State: "running",
 						},
 						{
-							ID:      kubecontainer.BuildContainerID("rkt", "uuid-4004:app-22"),
-							Name:    "app-22",
-							Image:   "img-name-22:latest",
-							Hash:    10022,
-							Created: 100000,
-							State:   "running",
+							ID:    kubecontainer.BuildContainerID("rkt", "uuid-4004:app-22"),
+							Name:  "app-22",
+							Image: "img-name-22:latest",
+							Hash:  10022,
+							State: "running",
 						},
 					},
 				},
@@ -555,7 +555,18 @@ func TestGetPodsFilters(t *testing.T) {
 func TestGetPodStatus(t *testing.T) {
 	fr := newFakeRktInterface()
 	fs := newFakeSystemd()
-	r := &Runtime{apisvc: fr, systemd: fs}
+	fos := &containertesting.FakeOS{}
+	frh := &fakeRuntimeHelper{}
+	r := &Runtime{
+		apisvc:        fr,
+		systemd:       fs,
+		runtimeHelper: frh,
+		os:            fos,
+	}
+
+	ns := func(seconds int64) int64 {
+		return seconds * 1e9
+	}
 
 	tests := []struct {
 		pods   []*rktapi.Pod
@@ -571,7 +582,7 @@ func TestGetPodStatus(t *testing.T) {
 			[]*rktapi.Pod{
 				makeRktPod(rktapi.PodState_POD_STATE_RUNNING,
 					"uuid-4002", "42", "guestbook", "default",
-					"10.10.10.42", "100000", "7",
+					"10.10.10.42", ns(10), ns(20), "7",
 					[]string{"app-1", "app-2"},
 					[]string{"img-id-1", "img-id-2"},
 					[]string{"img-name-1", "img-name-2"},
@@ -590,8 +601,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
 						Name:         "app-1",
 						State:        kubecontainer.ContainerStateRunning,
-						CreatedAt:    time.Unix(100000, 0),
-						StartedAt:    time.Unix(100000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-1:latest",
 						ImageID:      "rkt://img-id-1",
 						Hash:         1001,
@@ -601,8 +613,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
 						Name:         "app-2",
 						State:        kubecontainer.ContainerStateExited,
-						CreatedAt:    time.Unix(100000, 0),
-						StartedAt:    time.Unix(100000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-2:latest",
 						ImageID:      "rkt://img-id-2",
 						Hash:         1002,
@@ -617,7 +630,7 @@ func TestGetPodStatus(t *testing.T) {
 			[]*rktapi.Pod{
 				makeRktPod(rktapi.PodState_POD_STATE_EXITED,
 					"uuid-4002", "42", "guestbook", "default",
-					"10.10.10.42", "90000", "7",
+					"10.10.10.42", ns(10), ns(20), "7",
 					[]string{"app-1", "app-2"},
 					[]string{"img-id-1", "img-id-2"},
 					[]string{"img-name-1", "img-name-2"},
@@ -627,7 +640,7 @@ func TestGetPodStatus(t *testing.T) {
 				),
 				makeRktPod(rktapi.PodState_POD_STATE_RUNNING, // The latest pod is running.
 					"uuid-4003", "42", "guestbook", "default",
-					"10.10.10.42", "100000", "10",
+					"10.10.10.42", ns(10), ns(20), "10",
 					[]string{"app-1", "app-2"},
 					[]string{"img-id-1", "img-id-2"},
 					[]string{"img-name-1", "img-name-2"},
@@ -647,8 +660,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4002:app-1"),
 						Name:         "app-1",
 						State:        kubecontainer.ContainerStateRunning,
-						CreatedAt:    time.Unix(90000, 0),
-						StartedAt:    time.Unix(90000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-1:latest",
 						ImageID:      "rkt://img-id-1",
 						Hash:         1001,
@@ -658,8 +672,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4002:app-2"),
 						Name:         "app-2",
 						State:        kubecontainer.ContainerStateExited,
-						CreatedAt:    time.Unix(90000, 0),
-						StartedAt:    time.Unix(90000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-2:latest",
 						ImageID:      "rkt://img-id-2",
 						Hash:         1002,
@@ -670,8 +685,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4003:app-1"),
 						Name:         "app-1",
 						State:        kubecontainer.ContainerStateRunning,
-						CreatedAt:    time.Unix(100000, 0),
-						StartedAt:    time.Unix(100000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-1:latest",
 						ImageID:      "rkt://img-id-1",
 						Hash:         1001,
@@ -681,8 +697,9 @@ func TestGetPodStatus(t *testing.T) {
 						ID:           kubecontainer.BuildContainerID("rkt", "uuid-4003:app-2"),
 						Name:         "app-2",
 						State:        kubecontainer.ContainerStateExited,
-						CreatedAt:    time.Unix(100000, 0),
-						StartedAt:    time.Unix(100000, 0),
+						CreatedAt:    time.Unix(10, 0),
+						StartedAt:    time.Unix(20, 0),
+						FinishedAt:   time.Unix(0, 30),
 						Image:        "img-name-2:latest",
 						ImageID:      "rkt://img-id-2",
 						Hash:         1002,
@@ -695,9 +712,27 @@ func TestGetPodStatus(t *testing.T) {
 		},
 	}
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	for i, tt := range tests {
 		testCaseHint := fmt.Sprintf("test case #%d", i)
 		fr.pods = tt.pods
+
+		podTimes := map[string]time.Time{}
+		for _, pod := range tt.pods {
+			podTimes[podFinishedMarkerPath(r.runtimeHelper.GetPodDir(tt.result.ID), pod.Id)] = tt.result.ContainerStatuses[0].FinishedAt
+		}
+
+		r.os.(*containertesting.FakeOS).StatFn = func(name string) (os.FileInfo, error) {
+			podTime, ok := podTimes[name]
+			if !ok {
+				t.Errorf("osStat called with %v, but only knew about %#v", name, podTimes)
+			}
+			mockFI := mock_os.NewMockFileInfo(ctrl)
+			mockFI.EXPECT().ModTime().Return(podTime)
+			return mockFI, nil
+		}
 
 		status, err := r.GetPodStatus("42", "guestbook", "default")
 		if err != nil {
@@ -816,6 +851,12 @@ func sortAppFields(app *appctypes.App) {
 	sort.Sort(portsByName(app.Ports))
 	sort.Sort(isolatorsByName(app.Isolators))
 }
+
+type sortedStringList []string
+
+func (s sortedStringList) Len() int           { return len(s) }
+func (s sortedStringList) Less(i, j int) bool { return s[i] < s[j] }
+func (s sortedStringList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func TestSetApp(t *testing.T) {
 	tmpDir, err := utiltesting.MkTmpdir("rkt_test")
@@ -1031,6 +1072,11 @@ func TestSetApp(t *testing.T) {
 }
 
 func TestGenerateRunCommand(t *testing.T) {
+	hostName, err := os.Hostname()
+	if err != nil {
+		t.Fatalf("Cannot get the hostname: %v", err)
+	}
+
 	tests := []struct {
 		pod  *api.Pod
 		uuid string
@@ -1086,9 +1132,9 @@ func TestGenerateRunCommand(t *testing.T) {
 			"rkt-uuid-foo",
 			[]string{},
 			[]string{},
-			"pod-hostname-foo",
+			"",
 			nil,
-			"/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --hostname=pod-hostname-foo rkt-uuid-foo",
+			fmt.Sprintf("/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --hostname=%s rkt-uuid-foo", hostName),
 		},
 		// Case #3, returns dns, dns searches, with private-net.
 		{
@@ -1109,7 +1155,7 @@ func TestGenerateRunCommand(t *testing.T) {
 			nil,
 			"/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=rkt.kubernetes.io --dns=127.0.0.1 --dns-search=. --dns-opt=ndots:5 --hostname=pod-hostname-foo rkt-uuid-foo",
 		},
-		// Case #4, returns dns, dns searches, with host-network.
+		// Case #4, returns no dns, dns searches, with host-network.
 		{
 			&api.Pod{
 				ObjectMeta: api.ObjectMeta{
@@ -1126,7 +1172,7 @@ func TestGenerateRunCommand(t *testing.T) {
 			[]string{"."},
 			"pod-hostname-foo",
 			nil,
-			"/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --dns=127.0.0.1 --dns-search=. --dns-opt=ndots:5 --hostname=pod-hostname-foo rkt-uuid-foo",
+			fmt.Sprintf("/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --hostname=%s rkt-uuid-foo", hostName),
 		},
 	}
 
@@ -1147,5 +1193,192 @@ func TestGenerateRunCommand(t *testing.T) {
 		result, err := rkt.generateRunCommand(tt.pod, tt.uuid)
 		assert.Equal(t, tt.err, err, testCaseHint)
 		assert.Equal(t, tt.expect, result, testCaseHint)
+	}
+}
+
+func TestLifeCycleHooks(t *testing.T) {
+	runner := lifecycle.NewFakeHandlerRunner()
+	fr := newFakeRktInterface()
+	fs := newFakeSystemd()
+
+	rkt := &Runtime{
+		runner:              runner,
+		apisvc:              fr,
+		systemd:             fs,
+		containerRefManager: kubecontainer.NewRefManager(),
+	}
+
+	tests := []struct {
+		pod           *api.Pod
+		runtimePod    *kubecontainer.Pod
+		postStartRuns []string
+		preStopRuns   []string
+		err           error
+	}{
+		{
+			// Case 0, container without any hooks.
+			&api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "pod-1",
+					Namespace: "ns-1",
+					UID:       "uid-1",
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{Name: "container-name-1"},
+					},
+				},
+			},
+			&kubecontainer.Pod{
+				Containers: []*kubecontainer.Container{
+					{ID: kubecontainer.BuildContainerID("rkt", "id-1")},
+				},
+			},
+			[]string{},
+			[]string{},
+			nil,
+		},
+		{
+			// Case 1, containers with post-start and pre-stop hooks.
+			&api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "pod-1",
+					Namespace: "ns-1",
+					UID:       "uid-1",
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Name: "container-name-1",
+							Lifecycle: &api.Lifecycle{
+								PostStart: &api.Handler{
+									Exec: &api.ExecAction{},
+								},
+							},
+						},
+						{
+							Name: "container-name-2",
+							Lifecycle: &api.Lifecycle{
+								PostStart: &api.Handler{
+									HTTPGet: &api.HTTPGetAction{},
+								},
+							},
+						},
+						{
+							Name: "container-name-3",
+							Lifecycle: &api.Lifecycle{
+								PreStop: &api.Handler{
+									Exec: &api.ExecAction{},
+								},
+							},
+						},
+						{
+							Name: "container-name-4",
+							Lifecycle: &api.Lifecycle{
+								PreStop: &api.Handler{
+									HTTPGet: &api.HTTPGetAction{},
+								},
+							},
+						},
+					},
+				},
+			},
+			&kubecontainer.Pod{
+				Containers: []*kubecontainer.Container{
+					{
+						ID:   kubecontainer.ParseContainerID("rkt://uuid:container-name-4"),
+						Name: "container-name-4",
+					},
+					{
+						ID:   kubecontainer.ParseContainerID("rkt://uuid:container-name-3"),
+						Name: "container-name-3",
+					},
+					{
+						ID:   kubecontainer.ParseContainerID("rkt://uuid:container-name-2"),
+						Name: "container-name-2",
+					},
+					{
+						ID:   kubecontainer.ParseContainerID("rkt://uuid:container-name-1"),
+						Name: "container-name-1",
+					},
+				},
+			},
+			[]string{
+				"exec on pod: pod-1_ns-1(uid-1), container: container-name-1: rkt://uuid:container-name-1",
+				"http-get on pod: pod-1_ns-1(uid-1), container: container-name-2: rkt://uuid:container-name-2",
+			},
+			[]string{
+				"exec on pod: pod-1_ns-1(uid-1), container: container-name-3: rkt://uuid:container-name-3",
+				"http-get on pod: pod-1_ns-1(uid-1), container: container-name-4: rkt://uuid:container-name-4",
+			},
+			nil,
+		},
+		{
+			// Case 2, one container with invalid hooks.
+			&api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "pod-1",
+					Namespace: "ns-1",
+					UID:       "uid-1",
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Name: "container-name-1",
+							Lifecycle: &api.Lifecycle{
+								PostStart: &api.Handler{},
+								PreStop:   &api.Handler{},
+							},
+						},
+					},
+				},
+			},
+			&kubecontainer.Pod{
+				Containers: []*kubecontainer.Container{
+					{
+						ID:   kubecontainer.ParseContainerID("rkt://uuid:container-name-1"),
+						Name: "container-name-1",
+					},
+				},
+			},
+			[]string{},
+			[]string{},
+			errors.NewAggregate([]error{fmt.Errorf("Invalid handler: %v", &api.Handler{})}),
+		},
+	}
+
+	for i, tt := range tests {
+		testCaseHint := fmt.Sprintf("test case #%d", i)
+
+		pod := &rktapi.Pod{Id: "uuid"}
+		for _, c := range tt.runtimePod.Containers {
+			pod.Apps = append(pod.Apps, &rktapi.App{
+				Name:  c.Name,
+				State: rktapi.AppState_APP_STATE_RUNNING,
+			})
+		}
+		fr.pods = []*rktapi.Pod{pod}
+
+		// Run post-start hooks
+		err := rkt.runLifecycleHooks(tt.pod, tt.runtimePod, lifecyclePostStartHook)
+		assert.Equal(t, tt.err, err, testCaseHint)
+
+		sort.Sort(sortedStringList(tt.postStartRuns))
+		sort.Sort(sortedStringList(runner.HandlerRuns))
+
+		assert.Equal(t, tt.postStartRuns, runner.HandlerRuns, testCaseHint)
+
+		runner.Reset()
+
+		// Run pre-stop hooks.
+		err = rkt.runLifecycleHooks(tt.pod, tt.runtimePod, lifecyclePreStopHook)
+		assert.Equal(t, tt.err, err, testCaseHint)
+
+		sort.Sort(sortedStringList(tt.preStopRuns))
+		sort.Sort(sortedStringList(runner.HandlerRuns))
+
+		assert.Equal(t, tt.preStopRuns, runner.HandlerRuns, testCaseHint)
+
+		runner.Reset()
 	}
 }

@@ -2,7 +2,7 @@ package networking
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

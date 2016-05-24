@@ -6,7 +6,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -211,21 +210,7 @@ func Convert_api_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.Ta
 }
 
 func addConversionFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
-		func(obj *ImageImportSpec) {
-			if obj.To == nil {
-				if ref, err := newer.ParseDockerImageReference(obj.From.Name); err == nil {
-					if len(ref.Tag) > 0 {
-						obj.To = &v1.LocalObjectReference{Name: ref.Tag}
-					}
-				}
-			}
-		})
-	if err != nil {
-		// If one of the default functions is malformed, detect it immediately.
-		panic(err)
-	}
-	err = scheme.AddConversionFuncs(
+	err := scheme.AddConversionFuncs(
 		Convert_v1_NamedTagEventListArray_to_api_TagEventListArray,
 		Convert_api_TagEventListArray_to_v1_NamedTagEventListArray,
 		Convert_v1_TagReferenceArray_to_api_TagReferenceMap,

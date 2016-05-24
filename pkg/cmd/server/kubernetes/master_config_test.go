@@ -15,7 +15,7 @@ import (
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
 
@@ -30,32 +30,34 @@ func TestAPIServerDefaults(t *testing.T) {
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &apiserveroptions.APIServer{
 		ServerRunOptions: &genericapiserver.ServerRunOptions{
-			BindAddress:          net.ParseIP("0.0.0.0"),
-			CertDirectory:        "/var/run/kubernetes",
-			InsecureBindAddress:  net.ParseIP("127.0.0.1"),
-			InsecurePort:         8080,
-			LongRunningRequestRE: "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
-			MaxRequestsInFlight:  400,
-			SecurePort:           6443,
+			BindAddress:            net.ParseIP("0.0.0.0"),
+			CertDirectory:          "/var/run/kubernetes",
+			InsecureBindAddress:    net.ParseIP("127.0.0.1"),
+			InsecurePort:           8080,
+			LongRunningRequestRE:   "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
+			MaxRequestsInFlight:    400,
+			SecurePort:             6443,
+			APIGroupPrefix:         "/apis",
+			APIPrefix:              "/api",
+			EnableLogsSupport:      true,
+			EnableProfiling:        true,
+			EnableWatchCache:       true,
+			MinRequestTimeout:      1800,
+			RuntimeConfig:          utilconfig.ConfigurationMap{},
+			StorageVersions:        registered.AllPreferredGroupVersions(),
+			MasterCount:            1,
+			DefaultStorageVersions: registered.AllPreferredGroupVersions(),
+			StorageConfig: storagebackend.Config{
+				Prefix: "/registry",
+				DeserializationCacheSize: genericapiserver.DefaultDeserializationCacheSize,
+			},
 		},
-		APIGroupPrefix:          "/apis",
-		APIPrefix:               "/api",
+		DefaultStorageMediaType: "application/json",
 		AdmissionControl:        "AlwaysAdmit",
 		AuthorizationMode:       "AlwaysAllow",
 		DeleteCollectionWorkers: 1,
-		EnableLogsSupport:       true,
-		EnableProfiling:         true,
-		EnableWatchCache:        true,
-		EtcdConfig: etcdstorage.EtcdConfig{
-			Prefix: "/registry",
-		},
-		EventTTL:               1 * time.Hour,
-		MasterCount:            1,
-		MasterServiceNamespace: "default",
-		MinRequestTimeout:      1800,
-		RuntimeConfig:          utilconfig.ConfigurationMap{},
-		StorageVersions:        registered.AllPreferredGroupVersions(),
-		DefaultStorageVersions: registered.AllPreferredGroupVersions(),
+		EventTTL:                1 * time.Hour,
+		MasterServiceNamespace:  "default",
 		KubeletConfig: kubeletclient.KubeletClientConfig{
 			Port:        10250,
 			EnableHttps: true,

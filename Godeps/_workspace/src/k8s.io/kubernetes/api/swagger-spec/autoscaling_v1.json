@@ -80,7 +80,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -126,7 +127,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -204,7 +206,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -217,7 +220,7 @@
     "description": "API at /apis/autoscaling/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of HorizontalPodAutoscaler",
       "nickname": "watchNamespacedHorizontalPodAutoscalerList",
@@ -283,11 +286,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -355,7 +361,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -409,7 +416,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -463,7 +471,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json-patch+json",
@@ -519,7 +528,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -532,7 +542,7 @@
     "description": "API at /apis/autoscaling/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind HorizontalPodAutoscaler",
       "nickname": "watchNamespacedHorizontalPodAutoscaler",
@@ -606,11 +616,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -686,45 +699,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.HorizontalPodAutoscaler",
-      "method": "POST",
-      "summary": "create a HorizontalPodAutoscaler",
-      "nickname": "createNamespacedHorizontalPodAutoscaler",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.HorizontalPodAutoscaler",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.HorizontalPodAutoscaler"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -737,7 +713,7 @@
     "description": "API at /apis/autoscaling/v1",
     "operations": [
      {
-      "type": "json.WatchEvent",
+      "type": "*versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of HorizontalPodAutoscaler",
       "nickname": "watchNamespacedHorizontalPodAutoscalerList",
@@ -795,11 +771,14 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "json.WatchEvent"
+        "responseModel": "*versioned.Event"
        }
       ],
       "produces": [
-       "application/json"
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"
@@ -859,7 +838,8 @@
       ],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -879,11 +859,13 @@
       "parameters": [],
       "produces": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "application/json",
-       "application/yaml"
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ]
      }
     ]
@@ -1005,12 +987,54 @@
       "description": "Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only."
      },
      "labels": {
-      "type": "any",
+      "type": "object",
       "description": "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "annotations": {
-      "type": "any",
+      "type": "object",
       "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/HEAD/docs/user-guide/annotations.md"
+     },
+     "ownerReferences": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.OwnerReference"
+      },
+      "description": "List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected."
+     },
+     "finalizers": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed."
+     }
+    }
+   },
+   "v1.OwnerReference": {
+    "id": "v1.OwnerReference",
+    "description": "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+    "required": [
+     "apiVersion",
+     "kind",
+     "name",
+     "uid"
+    ],
+    "properties": {
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent."
+     },
+     "kind": {
+      "type": "string",
+      "description": "Kind of the referent. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "UID of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
      }
     }
    },
@@ -1186,18 +1210,9 @@
      }
     }
    },
-   "json.WatchEvent": {
-    "id": "json.WatchEvent",
-    "properties": {
-     "type": {
-      "type": "string",
-      "description": "the type of watch event; may be ADDED, MODIFIED, DELETED, or ERROR"
-     },
-     "object": {
-      "type": "string",
-      "description": "the object being watched; will match the type of the resource endpoint or be a Status object if the type is ERROR"
-     }
-    }
+   "*versioned.Event": {
+    "id": "*versioned.Event",
+    "properties": {}
    },
    "unversioned.Patch": {
     "id": "unversioned.Patch",
@@ -1224,6 +1239,10 @@
      "preconditions": {
       "$ref": "v1.Preconditions",
       "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
+     },
+     "orphanDependents": {
+      "type": "boolean",
+      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
      }
     }
    },

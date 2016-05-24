@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package storage
 
 import (
@@ -23,7 +24,7 @@ import (
 
 func BenchmarkStorePut(b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	s := NewStore(be, &lease.FakeLessor{})
+	s := NewStore(be, &lease.FakeLessor{}, nil)
 	defer cleanup(s, be, tmpPath)
 
 	// arbitrary number of bytes
@@ -42,7 +43,7 @@ func BenchmarkStorePut(b *testing.B) {
 // some synchronization operations, such as mutex locking.
 func BenchmarkStoreTxnPut(b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	s := NewStore(be, &lease.FakeLessor{})
+	s := NewStore(be, &lease.FakeLessor{}, nil)
 	defer cleanup(s, be, tmpPath)
 
 	// arbitrary number of bytes

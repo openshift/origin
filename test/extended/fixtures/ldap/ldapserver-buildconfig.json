@@ -17,6 +17,7 @@
       },
       "contextDir": "images/openldap"
     },
+    "runPolicy": "Serial",
     "strategy": {
       "type": "Docker",
       "dockerStrategy": {

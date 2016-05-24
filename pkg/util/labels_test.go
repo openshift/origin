@@ -78,15 +78,7 @@ func TestAddConfigLabels(t *testing.T) {
 			err:            false,
 			expectedLabels: map[string]string{"foo": "same value"},
 		},
-		{ // [7] Test conflicting keys with a different value
-			obj: &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
-			},
-			addLabels:      map[string]string{"foo": "second value"},
-			err:            true,
-			expectedLabels: map[string]string{"foo": "first value"},
-		},
-		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
+		{ // [7] Test conflicting keys with the same value in ReplicationController nested labels
 			obj: &kapi.ReplicationController{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "same value"},
@@ -103,7 +95,7 @@ func TestAddConfigLabels(t *testing.T) {
 			err:            false,
 			expectedLabels: map[string]string{"foo": "same value"},
 		},
-		{ // [9] Test adding labels to a DeploymentConfig object
+		{ // [8] Test adding labels to a DeploymentConfig object
 			obj: &deployapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
@@ -120,7 +112,7 @@ func TestAddConfigLabels(t *testing.T) {
 			err:            false,
 			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
 		},
-		{ // [10] Test unknown Generic Object with Labels field
+		{ // [9] Test unknown Generic Object with Labels field
 			obj: &FakeLabelsResource{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
 			},

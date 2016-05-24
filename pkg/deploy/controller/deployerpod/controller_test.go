@@ -212,7 +212,7 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusComplete, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
-	if e, a := 1, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(1), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -254,7 +254,7 @@ func TestHandle_podTerminatedOkTest(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusComplete, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
-	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -299,7 +299,7 @@ func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
-	if e, a := 1, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(1), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -344,7 +344,7 @@ func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
-	if e, a := 0, updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }

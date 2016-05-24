@@ -43,6 +43,8 @@ var (
 	APIGroupExtensions  = "extensions"
 	APIGroupAutoscaling = "autoscaling"
 	APIGroupBatch       = "batch"
+	APIGroupPolicy      = "policy"
+	APIGroupApps        = "apps"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
@@ -50,6 +52,8 @@ var (
 		APIGroupExtensions:  {"v1beta1"},
 		APIGroupAutoscaling: {"v1"},
 		APIGroupBatch:       {"v1"},
+		APIGroupPolicy:      {"v1alpha1"},
+		APIGroupApps:        {"v1alpha1"},
 	}
 	// Map of group names to known, but disallowed REST API versions
 	KubeAPIGroupsToDeadVersions = map[string][]string{
@@ -57,6 +61,8 @@ var (
 		APIGroupExtensions:  {},
 		APIGroupAutoscaling: {},
 		APIGroupBatch:       {},
+		APIGroupPolicy:      {},
+		APIGroupApps:        {},
 	}
 	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 

@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -52,16 +53,17 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		ktestclient.NewListAction("namespace", "", kapi.ListOptions{}),
 		ktestclient.NewListAction("deploymentconfig", "", kapi.ListOptions{}),
 	}
-	actionSet := []ktestclient.Action{}
+	kubeActionSet := []core.Action{}
+	originActionSet := []ktestclient.Action{}
 	for i := range mockKubeClient.Actions() {
-		actionSet = append(actionSet, mockKubeClient.Actions()[i])
+		kubeActionSet = append(kubeActionSet, mockKubeClient.Actions()[i])
 	}
 	for i := range mockOriginClient.Actions() {
-		actionSet = append(actionSet, mockOriginClient.Actions()[i])
+		originActionSet = append(originActionSet, mockOriginClient.Actions()[i])
 	}
 
-	if len(actionSet) != len(expectedActionSet) {
-		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
+	if (len(kubeActionSet) + len(originActionSet)) != len(expectedActionSet) {
+		t.Errorf("Expected actions: %v, but got: %v and %v", expectedActionSet, originActionSet, kubeActionSet)
 	}
 }
 
@@ -88,15 +90,16 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}
-	actionSet := []ktestclient.Action{}
+	kubeActionSet := []core.Action{}
+	originActionSet := []ktestclient.Action{}
 	for i := range mockKubeClient.Actions() {
-		actionSet = append(actionSet, mockKubeClient.Actions()[i])
+		kubeActionSet = append(kubeActionSet, mockKubeClient.Actions()[i])
 	}
 	for i := range mockOriginClient.Actions() {
-		actionSet = append(actionSet, mockOriginClient.Actions()[i])
+		originActionSet = append(originActionSet, mockOriginClient.Actions()[i])
 	}
 
-	if len(actionSet) != 0 {
-		t.Errorf("Expected no action from controller, but got: %v", actionSet)
+	if (len(kubeActionSet) + len(originActionSet)) != 0 {
+		t.Errorf("Expected no actions from contoller, but got: %#v and %#v", originActionSet, kubeActionSet)
 	}
 }

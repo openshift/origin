@@ -8,7 +8,6 @@ import (
 	sdn_api "github.com/openshift/origin/pkg/sdn/api"
 	api "k8s.io/kubernetes/pkg/api"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -32,9 +31,6 @@ func init() {
 }
 
 func autoConvert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *sdn_api.ClusterNetwork, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterNetwork))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -53,9 +49,6 @@ func Convert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *sd
 }
 
 func autoConvert_api_ClusterNetwork_To_v1_ClusterNetwork(in *sdn_api.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.ClusterNetwork))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -74,9 +67,6 @@ func Convert_api_ClusterNetwork_To_v1_ClusterNetwork(in *sdn_api.ClusterNetwork,
 }
 
 func autoConvert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkList, out *sdn_api.ClusterNetworkList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterNetworkList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -102,9 +92,6 @@ func Convert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkL
 }
 
 func autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *sdn_api.ClusterNetworkList, out *ClusterNetworkList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.ClusterNetworkList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -130,9 +117,6 @@ func Convert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *sdn_api.Cluster
 }
 
 func autoConvert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *sdn_api.HostSubnet, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*HostSubnet))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -151,9 +135,6 @@ func Convert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *sdn_api.HostSu
 }
 
 func autoConvert_api_HostSubnet_To_v1_HostSubnet(in *sdn_api.HostSubnet, out *HostSubnet, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.HostSubnet))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -172,9 +153,6 @@ func Convert_api_HostSubnet_To_v1_HostSubnet(in *sdn_api.HostSubnet, out *HostSu
 }
 
 func autoConvert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *sdn_api.HostSubnetList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*HostSubnetList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -200,9 +178,6 @@ func Convert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *sd
 }
 
 func autoConvert_api_HostSubnetList_To_v1_HostSubnetList(in *sdn_api.HostSubnetList, out *HostSubnetList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.HostSubnetList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -228,9 +203,6 @@ func Convert_api_HostSubnetList_To_v1_HostSubnetList(in *sdn_api.HostSubnetList,
 }
 
 func autoConvert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *sdn_api.NetNamespace, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*NetNamespace))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -248,9 +220,6 @@ func Convert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *sdn_api.
 }
 
 func autoConvert_api_NetNamespace_To_v1_NetNamespace(in *sdn_api.NetNamespace, out *NetNamespace, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.NetNamespace))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -268,9 +237,6 @@ func Convert_api_NetNamespace_To_v1_NetNamespace(in *sdn_api.NetNamespace, out *
 }
 
 func autoConvert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, out *sdn_api.NetNamespaceList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*NetNamespaceList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -296,9 +262,6 @@ func Convert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, o
 }
 
 func autoConvert_api_NetNamespaceList_To_v1_NetNamespaceList(in *sdn_api.NetNamespaceList, out *NetNamespaceList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*sdn_api.NetNamespaceList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}

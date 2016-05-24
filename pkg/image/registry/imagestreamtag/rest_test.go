@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
@@ -65,9 +66,13 @@ func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	etcdClient := etcd.NewKeysAPI(server.Client)
+	options := generic.RESTOptions{
+		Storage:   etcdStorage,
+		Decorator: generic.UndecoratedStorage,
+	}
 
-	imageStorage := imageetcd.NewREST(etcdStorage)
-	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStorage := imageetcd.NewREST(options)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(options, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
