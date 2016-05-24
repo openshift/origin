@@ -21,6 +21,11 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			if kapi.Semantic.Equalities.DeepEqual(oldAllowAllPolicyRule, *obj) && obj.APIGroups == nil {
 				obj.APIGroups = []string{internal.APIGroupAll}
 			}
+
+			// if no groups are found, then we assume ""
+			if len(obj.Resources) > 0 && len(obj.APIGroups) == 0 {
+				obj.APIGroups = []string{""}
+			}
 		},
 	)
 	if err != nil {

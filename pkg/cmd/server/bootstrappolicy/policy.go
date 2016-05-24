@@ -11,8 +11,10 @@ import (
 
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
@@ -226,16 +228,19 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: sets.NewString("daemonsets"),
 				},
 				{
+					APIGroups: []string{api.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 				{
-					Verbs: sets.NewString("get", "update"),
+					APIGroups: []string{imageapi.GroupName},
+					Verbs:     sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: sets.NewString("imagestreams/layers"),
 				},
 				// an admin can run routers that write back conditions to the route
 				{
+					APIGroups: []string{routeapi.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("routes/status"),
 				},
@@ -292,11 +297,13 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: sets.NewString("daemonsets"),
 				},
 				{
+					APIGroups: []string{api.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
 				},
 				{
-					Verbs: sets.NewString("get", "update"),
+					APIGroups: []string{imageapi.GroupName},
+					Verbs:     sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: sets.NewString("imagestreams/layers"),
 				},
@@ -308,6 +315,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
+					APIGroups: []string{api.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
 				},
@@ -861,7 +869,27 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		}
 	}
 
-	return roles
+	// TODO roundtrip roles to pick up defaulting for API groups.  Without this, the covers check in reconcile-cluster-roles will fail.
+	// we can remove this again once everything gets group qualified and we have unit tests enforcing that.  other pulls are in
+	// progress to do that.
+	versionedRoles := []authorizationapiv1.ClusterRole{}
+	for i := range roles {
+		newRole := &authorizationapiv1.ClusterRole{}
+		if err := kapi.Scheme.Convert(&roles[i], newRole); err != nil {
+			panic(err)
+		}
+		versionedRoles = append(versionedRoles, *newRole)
+	}
+	roundtrippedRoles := []authorizationapi.ClusterRole{}
+	for i := range versionedRoles {
+		newRole := &authorizationapi.ClusterRole{}
+		if err := kapi.Scheme.Convert(&versionedRoles[i], newRole); err != nil {
+			panic(err)
+		}
+		roundtrippedRoles = append(roundtrippedRoles, *newRole)
+	}
+
+	return roundtrippedRoles
 }
 
 func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizationapi.RoleBinding {

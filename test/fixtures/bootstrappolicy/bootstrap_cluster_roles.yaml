@@ -41,7 +41,8 @@ items:
     creationTimestamp: null
     name: cluster-reader
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - bindings
@@ -147,20 +148,23 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - resourceaccessreviews
     - subjectaccessreviews
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/metrics
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/stats
@@ -363,7 +367,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - bindings
@@ -397,14 +402,16 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - routes/status
@@ -540,7 +547,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - bindings
@@ -573,7 +581,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -586,7 +595,8 @@ items:
     creationTimestamp: null
     name: view
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - bindings
@@ -676,7 +686,8 @@ items:
     creationTimestamp: null
     name: basic-user
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -684,27 +695,31 @@ items:
     - users
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - projects
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions:
       apiVersion: v1
       kind: IsPersonalSubjectAccessReview
@@ -713,7 +728,8 @@ items:
     - subjectaccessreviews
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
@@ -725,7 +741,8 @@ items:
     creationTimestamp: null
     name: self-provisioner
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - projectrequests
@@ -783,7 +800,8 @@ items:
     creationTimestamp: null
     name: system:image-puller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -795,7 +813,8 @@ items:
     creationTimestamp: null
     name: system:image-pusher
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -808,14 +827,16 @@ items:
     creationTimestamp: null
     name: system:image-builder
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - builds/details
@@ -827,13 +848,15 @@ items:
     creationTimestamp: null
     name: system:image-pruner
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - images
     verbs:
     - delete
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -846,7 +869,8 @@ items:
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams/status
@@ -858,21 +882,24 @@ items:
     creationTimestamp: null
     name: system:deployer
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -881,13 +908,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods/log
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreamtags
@@ -912,7 +941,8 @@ items:
     creationTimestamp: null
     name: system:oauth-token-deleter
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - oauthaccesstokens
@@ -925,7 +955,8 @@ items:
     creationTimestamp: null
     name: system:router
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - endpoints
@@ -933,7 +964,8 @@ items:
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - routes/status
@@ -945,14 +977,16 @@ items:
     creationTimestamp: null
     name: system:registry
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - images
     verbs:
     - delete
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -961,19 +995,22 @@ items:
     - imagestreamtags
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreammappings
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - resourcequotas
@@ -985,7 +1022,8 @@ items:
     creationTimestamp: null
     name: system:node-proxier
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - endpoints
@@ -999,7 +1037,8 @@ items:
     creationTimestamp: null
     name: system:node-admin
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1007,13 +1046,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - proxy
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/log
@@ -1028,7 +1069,8 @@ items:
     creationTimestamp: null
     name: system:node-reader
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1036,13 +1078,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/metrics
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/stats
@@ -1055,14 +1099,16 @@ items:
     creationTimestamp: null
     name: system:node
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
     - subjectaccessreviews
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - services
@@ -1070,7 +1116,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1079,13 +1126,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1093,7 +1142,8 @@ items:
     - create
     - patch
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1101,7 +1151,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1109,27 +1160,31 @@ items:
     - create
     - delete
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - configmaps
     - secrets
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     - persistentvolumes
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - endpoints
@@ -1141,7 +1196,8 @@ items:
     creationTimestamp: null
     name: system:sdn-reader
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - hostsubnets
@@ -1149,7 +1205,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - netnamespaces
@@ -1157,7 +1214,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1165,13 +1223,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - clusternetworks
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - namespaces
@@ -1185,7 +1245,8 @@ items:
     creationTimestamp: null
     name: system:sdn-manager
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - hostsubnets
@@ -1195,7 +1256,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - netnamespaces
@@ -1205,7 +1267,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1213,7 +1276,8 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - clusternetworks
@@ -1226,7 +1290,8 @@ items:
     creationTimestamp: null
     name: system:webhook
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - buildconfigs/webhooks
@@ -1430,7 +1495,8 @@ items:
     creationTimestamp: null
     name: system:build-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - builds
@@ -1438,13 +1504,15 @@ items:
     - get
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - builds
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - builds/custom
@@ -1453,13 +1521,15 @@ items:
     - builds/source
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1468,7 +1538,8 @@ items:
     - delete
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1490,14 +1561,16 @@ items:
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - nodes
@@ -1511,7 +1584,8 @@ items:
     - daemonsets/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1525,7 +1599,8 @@ items:
     - pods/binding
     verbs:
     - create
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1539,21 +1614,24 @@ items:
     creationTimestamp: null
     name: system:deployment-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1563,7 +1641,8 @@ items:
     - get
     - list
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1625,14 +1704,16 @@ items:
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - deploymentconfigs/scale
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1640,13 +1721,15 @@ items:
     - create
     - patch
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resourceNames:
     - 'https:heapster:'
@@ -1677,21 +1760,24 @@ items:
     - jobs/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - create
     - delete
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1739,14 +1825,16 @@ items:
     creationTimestamp: null
     name: system:pv-binder-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
@@ -1755,27 +1843,31 @@ items:
     - delete
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims/status
@@ -1787,14 +1879,16 @@ items:
     creationTimestamp: null
     name: system:pv-provisioner-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
@@ -1803,27 +1897,31 @@ items:
     - delete
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims/status
@@ -1835,14 +1933,16 @@ items:
     creationTimestamp: null
     name: system:pv-recycler-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes
@@ -1851,40 +1951,46 @@ items:
     - delete
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumes/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - persistentvolumeclaims/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
@@ -1892,7 +1998,8 @@ items:
     - create
     - delete
     - get
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1906,41 +2013,47 @@ items:
     creationTimestamp: null
     name: system:replication-controller
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - get
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - replicationcontrollers/status
     verbs:
     - update
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - pods
     verbs:
     - create
     - delete
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -1984,7 +2097,8 @@ items:
     verbs:
     - list
     - watch
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
