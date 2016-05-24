@@ -40,6 +40,10 @@
 			"Rev": "1d91351acdc1cb2f2c995864674b754134b86ca7"
 		},
 		{
+			"ImportPath": "github.com/Microsoft/go-winio",
+			"Rev": "4f1a71750d95a5a8a46c40a67ffbed8129c2f138"
+		},
+		{
 			"ImportPath": "github.com/RangelReale/osin",
 			"Rev": "c07b3bd1ee57089f63e6325c0ea035ceed2e905c"
 		},
@@ -1129,6 +1133,10 @@
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "d4feaf1a7e61e1d9e79e6c4e76c6349e9cab0a03"
 		},
 		{
 			"ImportPath": "google.golang.org/api/cloudmonitoring/v2beta2",
