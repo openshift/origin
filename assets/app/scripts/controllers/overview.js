@@ -144,7 +144,7 @@ angular.module('openshiftConsole')
             });
           });
 
-          $scope.emptyMessage = "No services to show";
+          $scope.emptyMessage = "There are no services and no running deployments or pods.";
           updateFilterWarning();
           updateTopologyLater();
           Logger.log("services (list)", $scope.services);
