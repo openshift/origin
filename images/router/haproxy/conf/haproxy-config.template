@@ -239,7 +239,7 @@ backend be_tcp_{{$cfgIdx}}
 {{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
 {{ end }}
-  balance source
+  balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
   hash-type consistent
   timeout check 5000ms
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
