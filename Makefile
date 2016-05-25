@@ -57,8 +57,21 @@ verify: build
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
 	hack/verify-bootstrap-bindata.sh
-	VERIFY=true hack/update-generated-swagger-descriptions.sh
+	hack/verify-generated-swagger-descriptions.sh
 .PHONY: verify
+
+# Update all generated artifacts.
+#
+# Example:
+#   make update
+update: build
+	hack/update-generated-completions.sh
+	hack/update-generated-conversions.sh
+	hack/update-generated-deep-copies.sh
+	hack/update-generated-docs.sh
+	hack/update-generated-swagger-descriptions.sh
+	hack/update-generated-swagger-spec.sh
+.PHONE: update
 
 # Run unit tests.
 #
