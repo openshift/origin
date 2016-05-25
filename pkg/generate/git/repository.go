@@ -36,6 +36,7 @@ type Repository interface {
 	AddLocalConfig(dir, name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
 	ListRemote(url string, args ...string) (string, string, error)
+	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
 	GetInfo(location string) (*SourceInfo, []error)
 }
 
@@ -224,13 +225,21 @@ func (r *repository) Clone(location string, url string) error {
 }
 
 // ListRemote lists references in a remote repository
+// ListRemote will time out with a default timeout of 10s. If a different timeout is
+// required, TimedListRemote should be used instead
 func (r *repository) ListRemote(url string, args ...string) (string, string, error) {
+	return r.TimedListRemote(defaultCommandTimeout, url, args...)
+}
+
+// TimedListRemote lists references in a remote repository, or fails if the list does
+// not complete before the given timeout
+func (r *repository) TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error) {
 	gitArgs := []string{"ls-remote"}
 	gitArgs = append(gitArgs, args...)
 	gitArgs = append(gitArgs, url)
 	// `git ls-remote` does not allow for any timeout to be set, and defaults to a timeout
 	// of five minutes, so we enforce a timeout here to allow it to fail eariler than that
-	return r.timedGit(defaultCommandTimeout, "", gitArgs...)
+	return r.timedGit(timeout, "", gitArgs...)
 }
 
 // CloneMirror clones a remote git repository to a local directory as a mirror

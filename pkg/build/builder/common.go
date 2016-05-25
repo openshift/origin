@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
@@ -32,7 +33,7 @@ type GitClient interface {
 	CloneWithOptions(dir string, url string, opts git.CloneOptions) error
 	Checkout(dir string, ref string) error
 	SubmoduleUpdate(dir string, init, recursive bool) error
-	ListRemote(url string, args ...string) (string, string, error)
+	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
 	GetInfo(location string) (*git.SourceInfo, []error)
 }
 
