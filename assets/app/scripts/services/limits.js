@@ -4,6 +4,7 @@ angular.module("openshiftConsole")
   .factory("LimitRangesService", function($filter, LIMIT_REQUEST_OVERRIDES) {
     var usageValue = $filter('usageValue');
     var usageWithUnits = $filter('usageWithUnits');
+    var amountAndUnit = $filter('amountAndUnit');
 
     var isSmaller = function(candidate, previous) {
       if (!candidate) {
@@ -46,9 +47,9 @@ angular.module("openshiftConsole")
       return !projectOverrideAnnotation || projectOverrideAnnotation === 'true';
     };
 
-    var isRequestCalculated = function(computeResource, project) {
+    var getRequestToLimitPercent = function(computeResource, project) {
       if (!limitRequestOverridesEnabled(project)) {
-        return false;
+        return null;
       }
 
       switch (computeResource) {
@@ -57,8 +58,12 @@ angular.module("openshiftConsole")
       case "memory":
         return LIMIT_REQUEST_OVERRIDES.memoryRequestToLimitPercent;
       default:
-        return false;
+        return null;
       }
+    };
+
+    var isRequestCalculated = function(computeResource, project) {
+      return !!getRequestToLimitPercent(computeResource, project);
     };
 
     var isLimitCalculated = function(computeResource, project) {
@@ -85,7 +90,7 @@ angular.module("openshiftConsole")
     //   max: "2",
     // }
 
-    var getEffectiveLimitRange = function(limitRanges, computeResource, resourceType) {
+    var getEffectiveLimitRange = function(limitRanges, computeResource, resourceType, project) {
       var effectiveRange = {};
       angular.forEach(limitRanges, function(limitRange) {
         angular.forEach(limitRange.spec.limits, function(limit) {
@@ -122,6 +127,21 @@ angular.module("openshiftConsole")
         });
       });
 
+      // If request is calculated from limit, adjust the effective min.  The
+      // effective min needs to be large enough so that the calculated request
+      // value validates.
+      var requestToLimitPercent, minAmountAndUnit, minAmount, minUnit;
+      if (effectiveRange.min) {
+        requestToLimitPercent = getRequestToLimitPercent(computeResource, project);
+        if (requestToLimitPercent) {
+          // Apply the ratio, making sure to keep the same unit.
+          minAmountAndUnit = amountAndUnit(effectiveRange.min);
+          minAmount = Math.ceil(minAmountAndUnit[0] / (requestToLimitPercent / 100));
+          minUnit = minAmountAndUnit[1] || '';
+          effectiveRange.min = '' + minAmount + minUnit;
+        }
+      }
+
       return effectiveRange;
     };
 
@@ -133,8 +153,8 @@ angular.module("openshiftConsole")
         return [];
       }
 
-      var podLimits = getEffectiveLimitRange(limitRanges, computeResource, 'Pod');
-      var containerLimits = getEffectiveLimitRange(limitRanges, computeResource, 'Container');
+      var podLimits = getEffectiveLimitRange(limitRanges, computeResource, 'Pod', project);
+      var containerLimits = getEffectiveLimitRange(limitRanges, computeResource, 'Container', project);
 
       // Use usageValue to normalize units.
       var requestTotal = 0,
