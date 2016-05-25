@@ -221,3 +221,25 @@ metadata:
 **NOTE**: A build will be started for the BuildConfig matching the name of the repository and for any BuildConfig 
 that has an annotation pointing to the source repository. If there is a BuildConfig that has a matching name but
 has an annotation pointing to a different repository, a build will not be invoked for it.
+
+Build Strategy
+--------------
+
+When automatically starting a build, the git server will create a Docker type build if a Dockerfile is present
+in the repository. Otherwise, it will attempt a source type build. To force the git server to always use one
+strategy, set the BUILD_STRATEGY environment variable.
+
+Setting the BUILD_STRATEGY to `docker` will force new builds to be created with the Docker strategy:
+
+```sh
+oc set env dc/git BUILD_STRATEGY=docker
+```
+
+For OpenShift online which does not allow Docker type builds, you will need to set the strategy to `source` 
+if your repository contains a `Dockerfile`:
+
+```sh
+oc set env dc/git BUILD_STRATEGY=source
+```
+
+Valid values for BUILD_STRATEGY are "" (empty string), `source`, and `docker`.
