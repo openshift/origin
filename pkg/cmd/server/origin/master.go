@@ -375,7 +375,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
+	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackOpenShiftClient.RESTClient)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
 	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
