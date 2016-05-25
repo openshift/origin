@@ -4,6 +4,6 @@
   <div ng-show="resource | annotation:'provider'">Provider: {{ resource | annotation:'provider' }}</div>
   <div ng-show="resource.metadata.namespace">Namespace: {{ resource.metadata.namespace }}</div>
 </div>
-<div class="description gutter-bottom">
-  <truncate-long-text content="resource | description" limit="256" use-word-boundary="true"></truncate-long-text>
+<div class="resource-description gutter-bottom"
+     ng-bind-html="resource | description | linky">
 </div>
