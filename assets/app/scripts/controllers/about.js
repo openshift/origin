@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('AboutController', function ($scope, DataService, AuthService, Constants) {
+  .controller('AboutController', function ($scope, AuthService, Constants) {
     AuthService.withUser();
     
     $scope.version = {
@@ -16,8 +16,4 @@ angular.module('openshiftConsole')
         kubernetes: Constants.VERSION.kubernetes,
       },
     };
-    $scope.cliDownloadURL = Constants.CLI;
-    $scope.cliDownloadURLPresent = $scope.cliDownloadURL && !_.isEmpty($scope.cliDownloadURL);
-    $scope.loginBaseURL = DataService.openshiftAPIBaseUrl();
-    $scope.sessionToken = AuthService.UserStore().getToken();
   });

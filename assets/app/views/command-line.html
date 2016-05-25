@@ -1,0 +1,71 @@
+<default-header class="top-header"></default-header>
+<div class="wrap no-sidebar">
+  <div class="sidebar-left collapse navbar-collapse navbar-collapse-2">
+    <navbar-utility-mobile></navbar-utility-mobile>
+  </div>
+  <div class="middle">
+    <!-- Middle section -->
+    <div class="middle-section surface-shaded">
+      <div class="middle-container has-scroll">
+        <div class="middle-content">
+          <div class="container surface-shaded gutter-top">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="command-line">
+                  <h1 id="cli">Command Line Tools</h1>
+                  <p>
+                    With the OpenShift command line interface (CLI), you can create applications and manage OpenShift projects from a terminal.
+                    <span ng-if="cliDownloadURLPresent">
+                      You can download the <code>oc</code> client tool using the links below. For more information about downloading and installing it, please refer to the <a href="{{'get_started_cli' | helpLink}}">Get Started with the CLI</a> documentation.
+                    </span>
+                    <span ng-if="!cliDownloadURLPresent">
+                      Refer to the <a href="{{'get_started_cli' | helpLink}}">Get Started with the CLI</a> documentation for instructions about downloading and installing the <code>oc</code> client tool.
+                    </span>
+                    <div ng-if="cliDownloadURLPresent">
+                      <label class="cli-download-label">Download <code>oc</code>:</label>
+                      <div ng-repeat="(key, value) in cliDownloadURL">
+                        <a href="{{value}}" class="cli-download-link">
+                          {{key}}
+                          <i class="fa fa-external-link"></i>
+                        </a>
+                      </div>
+                    </div>
+                  </p>
+                  <p>
+                    After downloading and installing it, you can start by logging in using<span ng-if="sessionToken"> this current session token</span>:
+                    <div class="code prettyprint ng-binding" ng-if="sessionToken">
+                      oc login {{loginBaseURL}} --token=<span ng-show="showSessionToken">{{sessionToken}}</span><a href="#" ng-click="toggleShowSessionToken()" ng-show="!showSessionToken">...click to show token...</a>
+                    </div>
+                    <pre class="code prettyprint ng-binding" ng-if="!sessionToken">
+                      oc login {{loginBaseURL}}
+                    </pre>
+                  </p>
+
+                  <div ng-show="showSessionToken" class="alert alert-warning">
+                    <span class="pficon pficon-warning-triangle-o" aria-hidden="true"></span>
+                    <strong>A token is a form of a password.</strong>
+                    Do not share your API token.
+                  </div>
+
+                  <p>After you login to your account you will get a list of projects that you can switch between:
+                     <pre class="code prettyprint">oc project <i>project-name</i></pre>
+                  </p>
+
+                  <p>If you do not have any existing projects, you can create one:
+                     <pre class="code prettyprint">oc new-project <i>project-name</i></pre>
+                  </p>
+
+                  <p>To show a high level overview of the current project:
+                     <pre class="code prettyprint">oc status</pre>
+                  </p>
+
+                  <p>For other information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /middle-content -->
+      </div><!-- /middle-container -->
+    </div><!-- /middle-section -->
+  </div><!-- /middle -->
+</div><!-- /wrap -->
