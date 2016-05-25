@@ -64,7 +64,32 @@ func TestFilterBuilds_withFilteredElements(t *testing.T) {
 	assertThatArraysAreEquals(t, actual, expected)
 }
 
-func TestByBuildConfigLabelPredicate_withBuildConfigLabel(t *testing.T) {
+func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
+	input := []Build{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:        "build1-abc",
+				Annotations: map[string]string{BuildConfigAnnotation: "foo"},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   "build2-abc",
+				Labels: map[string]string{"bar": "baz"},
+			},
+		},
+	}
+
+	expected := []Build{input[0]}
+
+	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
+	assertThatArraysAreEquals(t, actual, expected)
+
+	actual = FilterBuilds(input, ByBuildConfigPredicate("not-foo"))
+	assertThatArrayIsEmpty(t, actual)
+}
+
+func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 	input := []Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -82,14 +107,14 @@ func TestByBuildConfigLabelPredicate_withBuildConfigLabel(t *testing.T) {
 
 	expected := []Build{input[0]}
 
-	actual := FilterBuilds(input, ByBuildConfigLabelPredicate("foo"))
+	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
 
-	actual = FilterBuilds(input, ByBuildConfigLabelPredicate("not-foo"))
+	actual = FilterBuilds(input, ByBuildConfigPredicate("not-foo"))
 	assertThatArrayIsEmpty(t, actual)
 }
 
-func TestByBuildConfigLabelPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
+func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
 	input := []Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -107,14 +132,14 @@ func TestByBuildConfigLabelPredicate_withBuildConfigLabelDeprecated(t *testing.T
 
 	expected := []Build{input[0]}
 
-	actual := FilterBuilds(input, ByBuildConfigLabelPredicate("foo"))
+	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
 
-	actual = FilterBuilds(input, ByBuildConfigLabelPredicate("not-foo"))
+	actual = FilterBuilds(input, ByBuildConfigPredicate("not-foo"))
 	assertThatArrayIsEmpty(t, actual)
 }
 
-func TestByBuildConfigLabelPredicate_withBothBuildConfigLabels(t *testing.T) {
+func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 	input := []Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -138,14 +163,14 @@ func TestByBuildConfigLabelPredicate_withBothBuildConfigLabels(t *testing.T) {
 
 	expected := []Build{input[0], input[2]}
 
-	actual := FilterBuilds(input, ByBuildConfigLabelPredicate("foo"))
+	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
 
-	actual = FilterBuilds(input, ByBuildConfigLabelPredicate("not-foo"))
+	actual = FilterBuilds(input, ByBuildConfigPredicate("not-foo"))
 	assertThatArrayIsEmpty(t, actual)
 }
 
-func TestByBuildConfigLabelPredicate_withoutBuildConfigLabels(t *testing.T) {
+func TestByBuildConfigPredicate_withoutBuildConfigLabels(t *testing.T) {
 	input := []Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -155,7 +180,7 @@ func TestByBuildConfigLabelPredicate_withoutBuildConfigLabels(t *testing.T) {
 		},
 	}
 
-	actual := FilterBuilds(input, ByBuildConfigLabelPredicate("not-foo"))
+	actual := FilterBuilds(input, ByBuildConfigPredicate("not-foo"))
 	assertThatArrayIsEmpty(t, actual)
 }
 

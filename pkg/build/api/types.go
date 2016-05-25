@@ -11,6 +11,8 @@ import (
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
+	// BuildConfigAnnotation is an annotation that identifies the BuildConfig that a Build was created from
+	BuildConfigAnnotation = "openshift.io/build-config.name"
 	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
 	BuildNumberAnnotation = "openshift.io/build.number"
 	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
@@ -18,6 +20,8 @@ const (
 	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
 	BuildPodNameAnnotation = "openshift.io/build.pod-name"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
+	// NOTE: The value for this label may not contain the entire Build name because it will be
+	// truncated to maximum label length.
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
@@ -30,6 +34,16 @@ const (
 	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
 	// executing a Source build
 	DropCapabilities = "DROP_CAPS"
+	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
+	// on which the Build is based. NOTE: The value for this label may not contain the entire
+	// BuildConfig name because it will be truncated to maximum label length.
+	BuildConfigLabel = "openshift.io/build-config.name"
+	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
+	// We keep it for backward compatibility.
+	BuildConfigLabelDeprecated = "buildconfig"
+	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
+	// New Builds cannot be instantiated from a paused BuildConfig.
+	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -528,18 +542,6 @@ type BuildOutput struct {
 	// enabled Docker Registry (or Docker Hub).
 	PushSecret *kapi.LocalObjectReference
 }
-
-const (
-	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-	// on which the Build is based.
-	BuildConfigLabel = "openshift.io/build-config.name"
-	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
-	// We keep it for backward compatibility.
-	BuildConfigLabelDeprecated = "buildconfig"
-	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
-	// New Builds cannot be instantiated from a paused BuildConfig.
-	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
-)
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {

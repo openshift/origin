@@ -108,7 +108,7 @@ func MockOutput() buildapi.BuildOutput {
 	return buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
 			Kind: "DockerImage",
-			Name: "http://localhost:5000/test/image-tag",
+			Name: "localhost:5000/test/image-tag",
 		},
 	}
 }

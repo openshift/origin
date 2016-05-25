@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -68,7 +67,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      buildutil.GetBuildPodName(build),
+			Name:      buildapi.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},
@@ -112,7 +111,7 @@ func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 	rootUser = 0
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      buildutil.GetBuildPodName(build),
+			Name:      buildapi.GetBuildPodName(build),
 			Namespace: build.Namespace,
 		},
 		Spec: kapi.PodSpec{
