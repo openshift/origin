@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -526,9 +527,15 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.ControllerPlug.WaitForStart()
 	glog.Infof("Controllers starting (%s)", oc.Options.Controllers)
 
+	// Get configured options (or defaults) for k8s controllers
+	controllerManagerOptions := cmapp.NewCMServer()
+	if kc != nil && kc.ControllerManager != nil {
+		controllerManagerOptions = kc.ControllerManager
+	}
+
 	// Start these first, because they provide credentials for other controllers' clients
 	oc.RunServiceAccountsController()
-	oc.RunServiceAccountTokensController()
+	oc.RunServiceAccountTokensController(controllerManagerOptions)
 	// used by admission controllers
 	oc.RunServiceAccountPullSecretsControllers()
 	oc.RunSecurityAllocationController()
@@ -586,7 +593,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		// called by admission control
 		kc.RunResourceQuotaManager()
-		oc.RunResourceQuotaManager(kc.ControllerManager)
+		oc.RunResourceQuotaManager(controllerManagerOptions)
 
 		// no special order
 		kc.RunNodeController()
