@@ -82,9 +82,13 @@ func (f file) Is(level int) bool {
 }
 
 func (f file) V(level int) Logger {
+	// only log things that glog allows
+	if !glog.V(glog.Level(level)) {
+		return None
+	}
 	// send anything above our level to glog
 	if level > f.level {
-		return Log.V(level)
+		return Log
 	}
 	return f
 }

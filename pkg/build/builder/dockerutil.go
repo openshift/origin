@@ -158,7 +158,7 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 	removeContainer := func() {
 		glog.V(4).Infof("Removing container %q ...", containerName)
 		if err := client.RemoveContainer(docker.RemoveContainerOptions{ID: c.ID}); err != nil {
-			glog.Infof("warning: Failed to remove container %q: %v", containerName, err)
+			glog.V(0).Infof("warning: Failed to remove container %q: %v", containerName, err)
 		} else {
 			glog.V(4).Infof("Removed container %q", containerName)
 		}
