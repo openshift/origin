@@ -50,32 +50,6 @@ os::log::install_errexit
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 
-# TODO(skuznets): remove these once we've migrated all tools to the new vars
-if [[ -n "${KUBE_TIMEOUT+x}" ]]; then
-    TIMEOUT="${KUBE_TIMEOUT}"
-    echo "[WARNING] The flag \$KUBE_TIMEOUT for $0 is deprecated, use \$TIMEOUT instead."
-fi
-
-if [[ -n "${KUBE_COVER+x}" ]]; then
-    COVERAGE_SPEC="${KUBE_COVER}"
-    echo "[WARNING] The flag \$KUBE_COVER for $0 is deprecated, use \$COVERAGE_SPEC instead."
-fi
-
-if [[ -n "${OUTPUT_COVERAGE+x}" ]]; then
-    COVERAGE_OUTPUT_DIR="${OUTPUT_COVERAGE}"
-    echo "[WARNING] The flag \$OUTPUT_COVERAGE for $0 is deprecated, use \$COVERAGE_OUTPUT_DIR instead."
-fi
-
-if [[ -n "${KUBE_RACE+x}" ]]; then
-    DETECT_RACES="${KUBE_RACE}"
-    echo "[WARNING] The flag \$KUBE_RACE for $0 is deprecated, use \$DETECT_RACES instead."
-fi
-
-if [[ -n "${PRINT_PACKAGES+x}" ]]; then
-    DRY_RUN="${PRINT_PACKAGES}"
-    echo "[WARNING] The flag \$PRINT_PACKAGES for $0 is deprecated, use \$DRY_RUN instead."
-fi
-
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
 test_kube="${TEST_KUBE:-}"
@@ -242,7 +216,7 @@ if [[ -n "${junit_report}" ]]; then
     echo
     summary="$( "${junitreport}" summarize < "${junit_report_file}" )"
     echo "${summary}"
-    
+
     if echo "${summary}" | grep -q ', 0 failed,'; then
         if [[ "${test_return_code}" -ne "0" ]]; then
             echo "[WARNING] While the jUnit report found no failed tests, the \`go test\` process failed."

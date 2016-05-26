@@ -11,10 +11,13 @@
 OUT_DIR = _output
 OUT_PKG_DIR = Godeps/_workspace/pkg
 OS_OUTPUT_GOPATH ?= 1
+emptystring =
+COVERAGE_SPEC ?= $(emptystring) # disable coverage unless someone asks for it
 
 export GOFLAGS
 export TESTFLAGS
 export OS_OUTPUT_GOPATH
+export COVERAGE_SPEC
 
 # Build code.
 #
