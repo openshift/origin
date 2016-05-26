@@ -27,7 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -35,18 +35,18 @@ import (
 
 // rest implements a RESTStorage for namespaces against etcd
 type REST struct {
-	*etcdgeneric.Etcd
-	status *etcdgeneric.Etcd
+	*registry.Store
+	status *registry.Store
 }
 
 // StatusREST implements the REST endpoint for changing the status of a namespace.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // FinalizeREST implements the REST endpoint for finalizing a namespace.
 type FinalizeREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // NewREST returns a RESTStorage object that will work against namespaces.
@@ -57,14 +57,14 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST, *FinalizeREST) {
 	storageInterface := opts.Decorator(
 		opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.Namespaces), &api.Namespace{}, prefix, namespace.Strategy, newListFunc)
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Namespace{} },
 		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx api.Context) string {
 			return prefix
 		},
 		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, prefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Namespace).Name, nil
@@ -89,7 +89,7 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST, *FinalizeREST) {
 	finalizeStore := *store
 	finalizeStore.UpdateStrategy = namespace.FinalizeStrategy
 
-	return &REST{Etcd: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
+	return &REST{Store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
 }
 
 // Delete enforces life-cycle rules for namespace termination
@@ -122,15 +122,15 @@ func (r *REST) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 	// upon first request to delete, we switch the phase to start namespace termination
 	// TODO: enhance graceful deletion's calls to DeleteStrategy to allow phase change and finalizer patterns
 	if namespace.DeletionTimestamp.IsZero() {
-		key, err := r.Etcd.KeyFunc(ctx, name)
+		key, err := r.Store.KeyFunc(ctx, name)
 		if err != nil {
 			return nil, err
 		}
 
 		preconditions := storage.Preconditions{UID: options.Preconditions.UID}
 
-		out := r.Etcd.NewFunc()
-		err = r.Etcd.Storage.GuaranteedUpdate(
+		out := r.Store.NewFunc()
+		err = r.Store.Storage.GuaranteedUpdate(
 			ctx, key, out, false, &preconditions,
 			storage.SimpleUpdate(func(existing runtime.Object) (runtime.Object, error) {
 				existingNamespace, ok := existing.(*api.Namespace)
@@ -168,7 +168,7 @@ func (r *REST) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 		err = apierrors.NewConflict(api.Resource("namespaces"), namespace.Name, fmt.Errorf("The system is ensuring all content is removed from this namespace.  Upon completion, this namespace will automatically be purged by the system."))
 		return nil, err
 	}
-	return r.Etcd.Delete(ctx, name, options)
+	return r.Store.Delete(ctx, name, options)
 }
 
 func (r *StatusREST) New() runtime.Object {

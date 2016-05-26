@@ -120,12 +120,16 @@ func DeepCopy_componentconfig_KubeControllerManagerConfiguration(in KubeControll
 	out.ClusterCIDR = in.ClusterCIDR
 	out.AllocateNodeCIDRs = in.AllocateNodeCIDRs
 	out.RootCAFile = in.RootCAFile
+	out.ContentType = in.ContentType
 	out.KubeAPIQPS = in.KubeAPIQPS
 	out.KubeAPIBurst = in.KubeAPIBurst
 	if err := DeepCopy_componentconfig_LeaderElectionConfiguration(in.LeaderElection, &out.LeaderElection, c); err != nil {
 		return err
 	}
 	if err := DeepCopy_componentconfig_VolumeConfiguration(in.VolumeConfiguration, &out.VolumeConfiguration, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_Duration(in.ControllerStartInterval, &out.ControllerStartInterval, c); err != nil {
 		return err
 	}
 	return nil
@@ -136,12 +140,13 @@ func DeepCopy_componentconfig_KubeProxyConfiguration(in KubeProxyConfiguration, 
 		return err
 	}
 	out.BindAddress = in.BindAddress
+	out.ClusterCIDR = in.ClusterCIDR
 	out.HealthzBindAddress = in.HealthzBindAddress
 	out.HealthzPort = in.HealthzPort
 	out.HostnameOverride = in.HostnameOverride
 	if in.IPTablesMasqueradeBit != nil {
 		in, out := in.IPTablesMasqueradeBit, &out.IPTablesMasqueradeBit
-		*out = new(int)
+		*out = new(int32)
 		**out = *in
 	} else {
 		out.IPTablesMasqueradeBit = nil
@@ -154,7 +159,7 @@ func DeepCopy_componentconfig_KubeProxyConfiguration(in KubeProxyConfiguration, 
 	out.Master = in.Master
 	if in.OOMScoreAdj != nil {
 		in, out := in.OOMScoreAdj, &out.OOMScoreAdj
-		*out = new(int)
+		*out = new(int32)
 		**out = *in
 	} else {
 		out.OOMScoreAdj = nil
@@ -181,9 +186,12 @@ func DeepCopy_componentconfig_KubeSchedulerConfiguration(in KubeSchedulerConfigu
 	out.AlgorithmProvider = in.AlgorithmProvider
 	out.PolicyConfigFile = in.PolicyConfigFile
 	out.EnableProfiling = in.EnableProfiling
+	out.ContentType = in.ContentType
 	out.KubeAPIQPS = in.KubeAPIQPS
 	out.KubeAPIBurst = in.KubeAPIBurst
 	out.SchedulerName = in.SchedulerName
+	out.HardPodAffinitySymmetricWeight = in.HardPodAffinitySymmetricWeight
+	out.FailureDomains = in.FailureDomains
 	if err := DeepCopy_componentconfig_LeaderElectionConfiguration(in.LeaderElection, &out.LeaderElection, c); err != nil {
 		return err
 	}
@@ -277,6 +285,7 @@ func DeepCopy_componentconfig_KubeletConfiguration(in KubeletConfiguration, out 
 	out.MaxOpenFiles = in.MaxOpenFiles
 	out.ReconcileCIDR = in.ReconcileCIDR
 	out.RegisterSchedulable = in.RegisterSchedulable
+	out.ContentType = in.ContentType
 	out.KubeAPIQPS = in.KubeAPIQPS
 	out.KubeAPIBurst = in.KubeAPIBurst
 	out.SerializeImagePulls = in.SerializeImagePulls
@@ -296,6 +305,9 @@ func DeepCopy_componentconfig_KubeletConfiguration(in KubeletConfiguration, out 
 	}
 	out.NonMasqueradeCIDR = in.NonMasqueradeCIDR
 	out.EnableCustomMetrics = in.EnableCustomMetrics
+	out.EvictionHard = in.EvictionHard
+	out.EvictionSoft = in.EvictionSoft
+	out.EvictionSoftGracePeriod = in.EvictionSoftGracePeriod
 	return nil
 }
 

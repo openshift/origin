@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/types"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/metrics"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -90,6 +91,9 @@ func NewTokensController(cl clientset.Interface, options TokensControllerOptions
 		syncSecretQueue:         workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
 		maxRetries: maxRetries,
+	}
+	if cl != nil && cl.Core().GetRESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_controller", cl.Core().GetRESTClient().GetRateLimiter())
 	}
 
 	e.serviceAccounts, e.serviceAccountController = framework.NewInformer(

@@ -19,6 +19,7 @@ package generators
 import (
 	"io"
 
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/normalization"
 	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
 	"k8s.io/kubernetes/cmd/libs/go2idl/namer"
 	"k8s.io/kubernetes/cmd/libs/go2idl/types"
@@ -29,6 +30,7 @@ type genGroup struct {
 	generator.DefaultGen
 	outputPackage string
 	group         string
+	version       string
 	// types in this group
 	types   []*types.Type
 	imports namer.ImportTracker
@@ -48,7 +50,8 @@ func (g *genGroup) Namers(c *generator.Context) namer.NameSystems {
 }
 
 func (g *genGroup) Imports(c *generator.Context) (imports []string) {
-	return g.imports.ImportLines()
+	imports = append(imports, g.imports.ImportLines()...)
+	return
 }
 
 func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
@@ -71,8 +74,8 @@ func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer
 	}
 
 	m := map[string]interface{}{
-		"group":                      g.group,
-		"Group":                      namer.IC(g.group),
+		"group":                      normalization.BeforeFirstDot(g.group),
+		"Group":                      namer.IC(normalization.BeforeFirstDot(g.group)),
 		"canonicalGroup":             canonize(g.group),
 		"types":                      g.types,
 		"Config":                     c.Universe.Type(types.Name{Package: pkgRESTClient, Name: "Config"}),
@@ -83,13 +86,14 @@ func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer
 		"GroupOrDie":                 c.Universe.Variable(types.Name{Package: pkgRegistered, Name: "GroupOrDie"}),
 		"apiPath":                    apiPath(g.group),
 		"codecs":                     c.Universe.Variable(types.Name{Package: pkgAPI, Name: "Codecs"}),
+		"Errorf":                     c.Universe.Variable(types.Name{Package: "fmt", Name: "Errorf"}),
 	}
 	sw.Do(groupInterfaceTemplate, m)
 	sw.Do(groupClientTemplate, m)
 	for _, t := range g.types {
 		wrapper := map[string]interface{}{
 			"type":  t,
-			"Group": namer.IC(g.group),
+			"Group": namer.IC(normalization.BeforeFirstDot(g.group)),
 		}
 		namespaced := !(types.ExtractCommentTags("+", t.SecondClosestCommentLines)["nonNamespaced"] == "true")
 		if namespaced {
@@ -102,13 +106,19 @@ func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer
 	sw.Do(newClientForConfigTemplate, m)
 	sw.Do(newClientForConfigOrDieTemplate, m)
 	sw.Do(newClientForRESTClientTemplate, m)
-	sw.Do(setClientDefaultsTemplate, m)
+	if g.version == "unversioned" {
+		sw.Do(setInternalVersionClientDefaultsTemplate, m)
+	} else {
+		sw.Do(setClientDefaultsTemplate, m)
+	}
+	sw.Do(getRESTClient, m)
 
 	return sw.Error()
 }
 
 var groupInterfaceTemplate = `
 type $.Group$Interface interface {
+    GetRESTClient() *$.RESTClient|raw$
     $range .types$ $.|publicPlural$Getter
     $end$
 }
@@ -160,12 +170,52 @@ func NewForConfigOrDie(c *$.Config|raw$) *$.Group$Client {
 }
 `
 
+var getRESTClient = `
+// GetRESTClient returns a RESTClient that is used to communicate
+// with API server by this client implementation.
+func (c *$.Group$Client) GetRESTClient() *$.RESTClient|raw$ {
+	if c == nil {
+		return nil
+	}
+	return c.RESTClient
+}
+`
+
 var newClientForRESTClientTemplate = `
 // New creates a new $.Group$Client for the given RESTClient.
 func New(c *$.RESTClient|raw$) *$.Group$Client {
 	return &$.Group$Client{c}
 }
 `
+var setInternalVersionClientDefaultsTemplate = `
+func setConfigDefaults(config *$.Config|raw$) error {
+	// if $.group$ group is not registered, return an error
+	g, err := $.latestGroup|raw$("$.canonicalGroup$")
+	if err != nil {
+		return err
+	}
+	config.APIPath = $.apiPath$
+	if config.UserAgent == "" {
+		config.UserAgent = $.DefaultKubernetesUserAgent|raw$()
+	}
+	// TODO: Unconditionally set the config.Version, until we fix the config.
+	//if config.Version == "" {
+	copyGroupVersion := g.GroupVersion
+	config.GroupVersion = &copyGroupVersion
+	//}
+
+	config.NegotiatedSerializer = $.codecs|raw$
+
+	if config.QPS == 0 {
+		config.QPS = 5
+	}
+	if config.Burst == 0 {
+		config.Burst = 10
+	}
+	return nil
+}
+`
+
 var setClientDefaultsTemplate = `
 func setConfigDefaults(config *$.Config|raw$) error {
 	// if $.group$ group is not registered, return an error
@@ -183,7 +233,8 @@ func setConfigDefaults(config *$.Config|raw$) error {
 	config.GroupVersion = &copyGroupVersion
 	//}
 
-	config.Codec = $.codecs|raw$.LegacyCodec(*config.GroupVersion)
+	config.NegotiatedSerializer = $.codecs|raw$
+
 	if config.QPS == 0 {
 		config.QPS = 5
 	}

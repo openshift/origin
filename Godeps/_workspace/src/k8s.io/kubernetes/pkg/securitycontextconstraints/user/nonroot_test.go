@@ -17,8 +17,9 @@ limitations under the License.
 package user
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"testing"
+
+	"k8s.io/kubernetes/pkg/api"
 )
 
 func TestNonRootOptions(t *testing.T) {
@@ -51,7 +52,7 @@ func TestNonRootValidate(t *testing.T) {
 	var badUID int64 = 0
 	s, err := NewRunAsNonRoot(&api.RunAsUserStrategyOptions{})
 	if err != nil {
-		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
+		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
 	container := &api.Container{
 		SecurityContext: &api.SecurityContext{
