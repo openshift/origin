@@ -1,16 +1,12 @@
 package spdystream
 
 import (
-	"log"
-	"os"
+	"fmt"
+
+	"github.com/golang/glog"
 )
 
-var (
-	DEBUG = os.Getenv("DEBUG")
-)
-
-func debugMessage(fmt string, args ...interface{}) {
-	if DEBUG != "" {
-		log.Printf(fmt, args...)
-	}
+func debugMessage(fmtDirective string, args ...interface{}) {
+	fmt.Printf(fmtDirective+"\n", args...)
+	glog.V(1).Infof(fmtDirective+"\n", args...)
 }

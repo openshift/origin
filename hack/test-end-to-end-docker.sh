@@ -86,7 +86,8 @@ echo "[INFO] Using images:							${USE_IMAGES}"
 echo "[INFO] Starting OpenShift containerized server"
 oc cluster up --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
-        --host-volumes-dir="${VOLUME_DIR}"
+        --host-volumes-dir="${VOLUME_DIR}" \
+        --env 'DEBUG=true'
 
 IMAGE_WORKING_DIR=/var/lib/origin
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
