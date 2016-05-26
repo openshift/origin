@@ -129,7 +129,7 @@ func (h *fs) CopyContents(src string, dest string) (err error) {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dest, sourceinfo.Mode()); err != nil {
+	if err = os.MkdirAll(dest, sourceinfo.Mode()); err != nil {
 		return err
 	}
 	directory, err := os.Open(src)

@@ -71,9 +71,9 @@ func TestCreateDockerfile(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -91,10 +91,10 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
-			&test.FakeFile{"assemble", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
+			&test.FakeFile{FileName: "assemble", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -116,9 +116,9 @@ func TestBuild(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -142,14 +142,14 @@ func TestBuildOnBuildBlocked(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
 	_, err := b.Build(fakeRequest)
-	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed.") {
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed") {
 		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
 	}
 }
