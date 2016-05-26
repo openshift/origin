@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -283,14 +284,21 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 		}
 	}
 
+	var loopback []string
+	if loopbackURL, err := url.Parse(c.PrivilegedLoopbackClientConfig.Host); err == nil {
+		loopback = append(loopback, loopbackURL.Host)
+	} else {
+		loopback = append(loopback, c.PrivilegedLoopbackClientConfig.Host)
+	}
+
 	go utilwait.Forever(func() {
 		for _, s := range extra {
 			glog.Infof(s, c.Options.ServingInfo.BindAddress)
 		}
 		if c.TLS {
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, loopback...))
 		} else {
-			glog.Fatal(cmdutil.ListenAndServe(server, c.Options.ServingInfo.BindNetwork))
+			glog.Fatal(cmdutil.ListenAndServe(server, c.Options.ServingInfo.BindNetwork, loopback...))
 		}
 	}, 0)
 }

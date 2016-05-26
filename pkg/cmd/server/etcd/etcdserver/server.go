@@ -2,6 +2,7 @@
 package etcdserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,6 +20,8 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/rafthttp"
+
+	"github.com/openshift/origin/pkg/cmd/util/loopback"
 )
 
 type config struct {
@@ -59,7 +62,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		glog.V(2).Infof("etcd: peerTLS: %s", cfg.peerTLSInfo)
 	}
 	plns := make([]net.Listener, 0)
-	for _, u := range cfg.lpurls {
+	for i, u := range cfg.lpurls {
 		var l net.Listener
 		peerTLSConfig, err := cfg.peerTLSInfo.ServerConfig()
 		if err != nil {
@@ -69,6 +72,21 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		if err != nil {
 			return nil, err
 		}
+		l, err = loopback.NewListener(l, cfg.apurls[i].Host)
+		if err != nil {
+			return nil, err
+		}
+		if u.Scheme == "https" {
+			if cfg.peerTLSInfo.Empty() {
+				return nil, fmt.Errorf("cannot listen on TLS for %s: KeyFile and CertFile are not presented", u.Scheme+"://"+u.Host)
+			}
+			cfg, err := cfg.peerTLSInfo.ServerConfig()
+			if err != nil {
+				return nil, err
+			}
+			l = tls.NewListener(l, cfg)
+		}
+		l = transport.NewTimeoutListenerWrapper(l, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
 
 		urlStr := u.String()
 		glog.V(2).Info("etcd: listening for peers on ", urlStr)
@@ -85,12 +103,16 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		glog.V(2).Infof("etcd: clientTLS: %s", cfg.clientTLSInfo)
 	}
 	clns := make([]net.Listener, 0)
-	for _, u := range cfg.lcurls {
+	for i, u := range cfg.lcurls {
 		l, err := net.Listen("tcp", u.Host)
 		if err != nil {
 			return nil, err
 		}
 		clientTLSConfig, err := cfg.clientTLSInfo.ServerConfig()
+		if err != nil {
+			return nil, err
+		}
+		l, err = loopback.NewListener(l, cfg.acurls[i].Host)
 		if err != nil {
 			return nil, err
 		}
@@ -110,6 +132,12 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 		clns = append(clns, l)
 	}
 
+	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, time.Second, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
+	if err != nil {
+		return nil, err
+	}
+	pt.Dial = loopback.Dialer(pt.Dial)
+
 	srvcfg := &etcdserver.ServerConfig{
 		Name:                cfg.name,
 		ClientURLs:          cfg.acurls,
@@ -127,6 +155,18 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 
 		PeerTLSInfo: cfg.peerTLSInfo,
 	}
+
+	prt, err := rafthttp.NewRoundTripper(cfg.peerTLSInfo, srvcfg.PeerDialTimeout())
+	if err != nil {
+		return nil, err
+	}
+	if t, ok := prt.(*http.Transport); ok {
+		t.Dial = loopback.Dialer(t.Dial)
+	} else {
+		glog.V(2).Infof("Loopback is not available for etcd transport %T", prt)
+	}
+	srvcfg.PeerTransport = prt
+
 	var s *etcdserver.EtcdServer
 	s, err = etcdserver.NewServer(srvcfg)
 	if err != nil {

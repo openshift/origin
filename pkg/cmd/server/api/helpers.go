@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/loopback"
 )
 
 var (
@@ -346,11 +347,11 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *restclient.Conf
 func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	transport := rt.(*http.Transport)
 	// TODO: this should be configured by the caller, not in this method.
-	dialer := &net.Dialer{
+	dialer := (&net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-	}
-	transport.Dial = dialer.Dial
+	}).Dial
+	transport.Dial = loopback.Dialer(dialer)
 	// Hold open more internal idle connections
 	// TODO: this should be configured by the caller, not in this method.
 	transport.MaxIdleConnsPerHost = 100

@@ -17,6 +17,7 @@ import (
 	knet "k8s.io/kubernetes/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/util/loopback"
 )
 
 // GetAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
@@ -47,14 +48,17 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 		return nil, err
 	}
 
+	dialer := (&net.Dialer{
+		// default from http.DefaultTransport
+		Timeout: 30 * time.Second,
+		// Lower the keep alive for connections.
+		KeepAlive: 1 * time.Second,
+	}).Dial
+
 	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			// default from http.DefaultTransport
-			Timeout: 30 * time.Second,
-			// Lower the keep alive for connections.
-			KeepAlive: 1 * time.Second,
-		}).Dial,
+		// Use a loopback dialer
+		Dial: loopback.Dialer(dialer),
 		// Because watches are very bursty, defends against long delays in watch reconnections.
 		MaxIdleConnsPerHost: 500,
 	})
@@ -78,14 +82,17 @@ func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclie
 		return nil, err
 	}
 
+	dialer := (&net.Dialer{
+		// default from http.DefaultTransport
+		Timeout: 30 * time.Second,
+		// Lower the keep alive for connections.
+		KeepAlive: 1 * time.Second,
+	}).Dial
+
 	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			// default from http.DefaultTransport
-			Timeout: 30 * time.Second,
-			// Lower the keep alive for connections.
-			KeepAlive: 1 * time.Second,
-		}).Dial,
+		// Use a loopback dialer
+		Dial: loopback.Dialer(dialer),
 		// Because watches are very bursty, defends against long delays in watch reconnections.
 		MaxIdleConnsPerHost: 500,
 	})

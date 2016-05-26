@@ -7,12 +7,13 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util/loopback"
 )
 
 // TryListen tries to open a connection on the given port and returns true if it succeeded.
@@ -24,88 +25,6 @@ func TryListen(network, hostPort string) (bool, error) {
 	}
 	defer l.Close()
 	return true, nil
-}
-
-type connPair struct {
-	conn net.Conn
-	err  error
-}
-
-type multiListener struct {
-	listeners []net.Listener
-	accept    chan connPair
-	stop      chan struct{}
-	once      sync.Once
-	wg        sync.WaitGroup
-}
-
-func NewMultiListener(listeners ...net.Listener) net.Listener {
-	l := &multiListener{
-		listeners: listeners,
-		accept:    make(chan connPair),
-		stop:      make(chan struct{}),
-	}
-	for i := range listeners {
-		l.wg.Add(1)
-		go l.Run(listeners[i])
-	}
-	return l
-}
-
-func (l *multiListener) Run(listener net.Listener) {
-	defer l.wg.Done()
-	for {
-		select {
-		case _, ok := <-l.stop:
-			if !ok {
-				return
-			}
-		default:
-		}
-		c, err := listener.Accept()
-		l.accept <- connPair{conn: c, err: err}
-	}
-}
-
-func (l *multiListener) Accept() (c net.Conn, err error) {
-	pair, ok := <-l.accept
-	if !ok {
-		return nil, fmt.Errorf("listener closed")
-	}
-	return pair.conn, pair.err
-}
-
-// Close invokes close on each listener in the list, then signals to the
-// accept workers to close, starts a goroutine to drain any new accepts
-// while the workers complete, waits for the workers to exit, and finally
-// returns. Each listener will only be closed once.
-func (l *multiListener) Close() error {
-	var firstErr error
-	l.once.Do(func() {
-		for i, li := range l.listeners {
-			if i == 0 {
-				firstErr = li.Close()
-			} else {
-				li.Close()
-			}
-		}
-		close(l.stop)
-		go func() {
-			// drain any connections that may not have been accepted yet
-			for pair := range l.accept {
-				if pair.conn != nil {
-					pair.conn.Close()
-				}
-			}
-		}()
-		l.wg.Wait()
-		close(l.accept)
-	})
-	return firstErr
-}
-
-func (l *multiListener) Addr() net.Addr {
-	return l.listeners[0].Addr()
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -128,7 +47,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 
 // ListenAndServe starts a server that listens on the provided TCP mode (as supported
 // by net.Listen)
-func ListenAndServe(srv *http.Server, network string) error {
+func ListenAndServe(srv *http.Server, network string, addrs ...string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":http"
@@ -138,7 +57,12 @@ func ListenAndServe(srv *http.Server, network string) error {
 		return err
 	}
 	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
-	return srv.Serve(ln)
+
+	all, err := loopback.NewListener(ln, addrs...)
+	if err != nil {
+		return err
+	}
+	return srv.Serve(all)
 }
 
 // AddCertKeyToTLSConfig loads an X509 certificate into the provided tls config.
@@ -156,7 +80,7 @@ func AddCertKeyToTLSConfig(config *tls.Config, certFile, keyFile string) error {
 
 // ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
 // by net.Listen).
-func ListenAndServeTLS(srv *http.Server, network string) error {
+func ListenAndServeTLS(srv *http.Server, network string, addrs ...string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"
@@ -168,7 +92,12 @@ func ListenAndServeTLS(srv *http.Server, network string) error {
 	}
 	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
 
-	tlsListener := tls.NewListener(ln, srv.TLSConfig)
+	all, err := loopback.NewListener(ln, addrs...)
+	if err != nil {
+		return err
+	}
+
+	tlsListener := tls.NewListener(all, srv.TLSConfig)
 	return srv.Serve(tlsListener)
 }
 
