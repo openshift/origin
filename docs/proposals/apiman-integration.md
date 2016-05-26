@@ -15,7 +15,7 @@ The OAuth token identifying a user in OpenShift will be utilized by APIMan to as
 APIMan components (e.g. gateway, management interface) integrated with the cluster will utilize mutual TLS for internal communication.
 
 #### Storage
-APIMan is capable of using several backends (e.g. ElasticSearch, Postgresql) to store configuration, policy, and metrics.  The initial integration will utilize an ElasticSearch cluster dedicated to APIMan.  The ElasticSearch image will be shared with aggregated logging.  The [ACL plugin](https://github.com/fabric8io/openshift-elasticsearch-plugin)<sup>[2](#r2)</sup> that is deployed as part of aggregated logging will be disabled in the APIMan ElasticSearch deployment. Additionally, the ElasicSearch index management<sup>[3](#r3)</sup>  will be modified so that it will not cull APIMan data.
+APIMan is capable of using several backends (e.g. ElasticSearch, Postgresql) to store configuration, policy, and metrics.  The initial integration will utilize an ElasticSearch cluster dedicated to APIMan.  The ElasticSearch image is a common image that is shared with aggregated logging.  The [ACL plugin](https://github.com/fabric8io/openshift-elasticsearch-plugin)<sup>[2](#r2)</sup> that is deployed as part of the common Elastisearch image will be configured accordingly to support APIMan, disabling some features that are unnecessary for it use. Additionally, the ElasicSearch index management<sup>[3](#r3)</sup>  will be modified so that it will not cull APIMan data.
 
 
 Cluster administrators can configure APIMan to use an alternate, off cluster ElasticSearch instance if desired.  Some organizations may have an existing instance of ElasticSearch cluster that already defines policy, and administrators may desire to use it instead of the one provided with aggregated logging.
@@ -61,11 +61,20 @@ Services intended to be managed and exposed as API Endpoints will be annotated<s
       api.service.kubernetes.io/description-path: cxfcdi/swagger.json
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
-Additionally, services will be further annotated identifying who is managing the service.  The proposed annotation is:
+Additionally services can further be annotated to take advantage of APIMan features: auto import/publish, and plans.  The proposed annotations are:
 ```
-  api.service.openshift.io/api-manager: apiman
+  annotation          value description                       example
+  apiman.io/publish   import or publish                       publish
+  apiman.io/plans     comma separated list of plan:version    gold:1.0,silver:1.1
 ```
-The initial implementation will support the value 'apiman' where other implementations may provide a value as needed.  Service providers will explicitly publish a service using the APIMan user interface.  Future iterations may include functionality to automatically publish a service when these annotations are applied.
+When a service includes the annotation `apiman.io/publish`, then
+- a value set to `import` will only import the service into APIMan
+- a value set to `publish` will import the service into APIMan and published to the APIMan gateway
+
+Plans are a pre-configured policy chain that is defined for a project.  Upon service import, APIMan will look for the `apiman.io/plans` annotation. 
+- If this annotation is not available or no plan is specified, the API will be set to 'Public'
+- If plans are specific then they are applied to the API and the plan `version` will default to 1.0, unless specified.
+
 
 ### OpenShift CLI Modifications
 The following changes are stretch goals for the initial release.  The OpenShift client binary will be updated to allow a user to:
