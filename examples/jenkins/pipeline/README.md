@@ -5,72 +5,71 @@ utilize pods run on OpenShift as Jenkins slaves.
 
 To walk through the example:
 
-1) Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
+1. Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
 
-	$ oc cluster up
+        $ oc cluster up
 
-If you do not use oc cluster up, ensure the imagestreams are registered in the openshift namespace, as well as the
+    If you do not use oc cluster up, ensure the imagestreams are registered in the openshift namespace, as well as the
 jenkins template represented by jenkinstemplate.json by running these commands as a cluster admin:
 
-	$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
-	$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/jenkinstemplate.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/jenkinstemplate.json -n openshift
 
-2) login as a normal user (any username is fine)
+2. login as a normal user (any username is fine)
 
-	$ oc login
+        $ oc login
 
-3) create a project for your user named "pipelineproject"
+3. create a project for your user named "pipelineproject"
 
-	$ oc new-project pipelineproject
+        $ oc new-project pipelineproject
 
-4) run this command to instantiate the template which will create a pipeline buildconfig and 
+4. run this command to instantiate the template which will create a pipeline buildconfig and 
 some other resources in your project:
 
-	$ oc new-app -f pipelinetemplate.json
+        $ oc new-app -f pipelinetemplate.json
 
-At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items
-in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
+    At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
 
-Note: this template grants the edit role to the default service account for your project so jenkins can manipulate your project.  
-If you do not use this template to create your pipeline buildconfig, you need to grant edit permission to the default service
-account:
+    Note: this template grants the edit role to the default service account for your project so jenkins can manipulate your project.  
 
-	$ oc policy add-role-to-user edit -z default -n pipelineproject
+    If you do not use this template to create your pipeline buildconfig, you need to grant edit permission to the default service account:
 
-5) View/Manage Jenkins
-If you have a router running (`oc cluster up` provides one), run:
+        $ oc policy add-role-to-user edit -z default -n pipelineproject
 
-	$ oc get route
+5. View/Manage Jenkins
 
-and access the host for the Jenkins route.
+    If you have a router running (`oc cluster up` provides one), run:
 
-If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") 
-and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+        $ oc get route
 
-The login/password are `admin/password`.
+    and access the host for the Jenkins route.
 
-Change the OpenShift project under which the Jenkins slave pods will be launched:
+    If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
-* Go to Manage Jenkins -> Configure System
-* Under the kubernetes plugin in the Cloud section, change the Kubernetes Namespace to `pipelineproject`.
+    The login/password are `admin/password`.
 
-This is also a good time to approve the Jenkinsfile that will be executed:
+    Change the OpenShift project under which the Jenkins slave pods will be launched:
 
-* Go to Manage Jenkins -> In-process Script Approval
-* Click approve on the waiting approval.
+    * Go to Manage Jenkins -> Configure System
+    * Under the kubernetes plugin in the Cloud section, change the Kubernetes Namespace to `pipelineproject`.
 
-We're working on the script approval requirement. More information from Jenkins:
+    This is also a good time to approve the Jenkinsfile that will be executed:
+
+    * Go to Manage Jenkins -> In-process Script Approval
+    * Click approve on the waiting approval.
+
+    We're working on removing the need to approve scripts. More information from Jenkins:
 
 	https://wiki.jenkins-ci.org/display/JENKINS/Script+Security+Plugin
 	An administrator may now go to Manage Jenkins » In-process Script Approval where a list of scripts 
 	pending approval will be shown. Assuming nothing dangerous-looking is being requested, just click Approve 
 	to let the script be run henceforth.
 
-6) Launch a new build
+6. Launch a new build
 
-	$ oc start-build sample-pipeline
+        $ oc start-build sample-pipeline
 
-Jenkins will: create an instance of the sample-pipeline job, launch a slave, trigger a build in openshift, trigger a
+    Jenkins will: create an instance of the sample-pipeline job, launch a slave, trigger a build in openshift, trigger a
 deployment in openshift, and tear the slave down.
 
-(If you monitor the pods in your default project, you will also see the slave pod get created and deleted).
+    If you monitor the pods in your default project, you will also see the slave pod get created and deleted.
