@@ -191,7 +191,7 @@ os::provision::get-network-plugin() {
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
-          "${plugin}" != "${cni}" ]]; then
+          "${plugin}" != "cni" ]]; then
     # Disable output when being called from the dind management script
     # since it may be doing something other than launching a cluster.
     if [[ "${dind_management_script}" = "false" ]]; then
