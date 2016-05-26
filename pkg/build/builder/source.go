@@ -113,14 +113,8 @@ func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) erro
 		err    error
 	)
 
-	finish := make(chan struct{}, 1)
-	go func() {
-		out, errOut, err = gitClient.ListRemote(url, "--heads")
-		close(finish)
-	}()
-	select {
-	case <-finish:
-	case <-time.After(timeout):
+	out, errOut, err = gitClient.TimedListRemote(timeout, url, "--heads")
+	if _, ok := err.(*git.TimeoutError); err != nil && ok {
 		return fmt.Errorf("timeout while waiting for remote repository %q", url)
 	}
 
