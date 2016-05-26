@@ -122,10 +122,30 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 			glog.Fatalf("Error parsing master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
 		}
 	}
+	servingServingCABundle := []byte{}
+	if c.Options.ControllerConfig.ServiceServingCert.Signer != nil && len(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile) > 0 {
+		servingServingCA, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
+		if err != nil {
+			glog.Fatalf("Error reading ca file for Service Serving Certificate Signer: %s: %v", c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, err)
+		}
+		if _, err := kcrypto.CertsFromPEM(servingServingCA); err != nil {
+			glog.Fatalf("Error parsing ca file for Service Serving Certificate Signer: %s: %v", c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, err)
+		}
+
+		// if we have a rootCA bundle add that too.  The rootCA will be used when hitting the default master service, since those are signed
+		// using a different CA by default.  The rootCA's key is more closely guarded than ours and if it is compromised, that power could
+		// be used to change the trusted signers for every pod anyway, so we're already effectively trusting it.
+		if len(rootCA) > 0 {
+			servingServingCABundle = append(servingServingCABundle, rootCA...)
+			servingServingCABundle = append(servingServingCABundle, []byte("\n")...)
+		}
+		servingServingCABundle = append(servingServingCABundle, servingServingCA...)
+	}
 
 	options := sacontroller.TokensControllerOptions{
-		TokenGenerator: serviceaccount.JWTTokenGenerator(privateKey),
-		RootCA:         rootCA,
+		TokenGenerator:   serviceaccount.JWTTokenGenerator(privateKey),
+		RootCA:           rootCA,
+		ServiceServingCA: servingServingCABundle,
 	}
 
 	go sacontroller.NewTokensController(clientadapter.FromUnversionedClient(c.KubeClient()), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)

@@ -178,7 +178,9 @@ os::cmd::expect_success_and_not_text 'oc status' 'pod\/test-deployment-config-1-
 
 # break mac os
 service_ip=$(oc get service/nginx -o=jsonpath={.spec.clusterIP})
-os::cmd::try_until_success "curl --cacert ${MASTER_CONFIG_DIR}/service-signer.crt --resolve nginx.service-serving-cert-generation.svc:443:${service_ip} https://nginx.service-serving-cert-generation.svc:443"
+os::cmd::try_until_success 'oc run --restart=Never --generator=run-pod/v1 --image=centos centos -- bash -c "curl --cacert /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt https://nginx.service-serving-cert-generation.svc:443"'
+os::cmd::try_until_text 'oc get pods/centos -o jsonpath={.status.phase}' "Succeeded"
+os::cmd::expect_success_and_text 'oc logs pods/centos' "Welcome to nginx"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
