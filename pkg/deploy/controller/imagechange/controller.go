@@ -5,22 +5,18 @@ import (
 
 	"github.com/golang/glog"
 
+	apierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	"github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-// ImageChangeController increments the version of a deployment config which has an image
-// change trigger when a tag update to a triggered ImageStream is detected.
-//
-// Use the ImageChangeControllerFactory to create this controller.
-type ImageChangeController struct {
-	listDeploymentConfigs func() ([]*deployapi.DeploymentConfig, error)
-	client                client.Interface
-}
 
 // fatalError is an error which can't be retried.
 type fatalError string
@@ -29,16 +25,41 @@ func (e fatalError) Error() string {
 	return fmt.Sprintf("fatal error handling image stream: %s", string(e))
 }
 
+// ImageChangeController watches image streams for any image updates and updates
+// any deployment configs that point to updated images.
+type ImageChangeController struct {
+	// queue contains image streams that need to be synced.
+	queue workqueue.RateLimitingInterface
+
+	// dn is used for updating deployment configs.
+	dn client.DeploymentConfigsNamespacer
+
+	// dcStore provides a local cache for deploymentconfigs.
+	dcStore oscache.StoreToDeploymentConfigLister
+	// dcController watches for changes to all deploymentconfigs.
+	dcController *framework.Controller
+	// streamStore provides a local cache for image streams.
+	streamStore oscache.StoreToImageStreamLister
+	// streamController watches for changes to all image streams.
+	streamController *framework.Controller
+
+	// recorder is used to record events.
+	// TODO: Use this to emit events on successful updates
+	recorder record.EventRecorder
+}
+
 // Handle processes image change triggers associated with imagestream.
 func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
-	configs, err := c.listDeploymentConfigs()
+	// TODO: Build an index from image stream to deploymentconfigs and avoid listing all dcs
+	configs, err := c.dcStore.List()
 	if err != nil {
 		return fmt.Errorf("couldn't get list of deployment configs while handling image stream %q: %v", imageapi.LabelForStream(stream), err)
 	}
 
 	// Find any configs which should be updated based on the new image state
 	configsToUpdate := []*deployapi.DeploymentConfig{}
-	for _, config := range configs {
+	for i := range configs {
+		config := &configs[i]
 		glog.V(4).Infof("Detecting image changes for deployment config %q", deployutil.LabelForDeploymentConfig(config))
 		hasImageChange := false
 
@@ -102,20 +123,27 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 	}
 
 	// Attempt to regenerate all configs which may contain image updates
-	anyFailed := false
-	for _, config := range configsToUpdate {
-		if _, err := c.client.DeploymentConfigs(config.Namespace).Update(config); err != nil {
-			anyFailed = true
-			glog.V(2).Infof("Couldn't update deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+	for i := range configsToUpdate {
+		config := configsToUpdate[i]
+		if _, err := c.dn.DeploymentConfigs(config.Namespace).Update(config); err != nil {
+			c.handleErr(err, config, stream)
 		}
 	}
 
-	if anyFailed {
-		return fatalError(fmt.Sprintf("couldn't update some deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream)))
-	}
-
-	glog.V(5).Infof("Updated all deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream))
 	return nil
+}
+
+func (c *ImageChangeController) handleErr(err error, config *deployapi.DeploymentConfig, stream *imageapi.ImageStream) {
+	switch {
+	case apierror.IsConflict(err):
+		// Retry since the cache needs some time to catch up. Conflict errors are common
+		// when a deployment config with an image change trigger is created.
+		c.enqueueImageStream(stream)
+	case apierror.IsNotFound(err):
+		// Do nothing
+	default:
+		glog.Infof("Cannot update deployment config %q for trigger on image stream %q: %v", deployutil.LabelForDeploymentConfig(config), imageapi.LabelForStream(stream), err)
+	}
 }
 
 // triggerMatchesImages decides whether a given trigger for config matches the provided image stream.

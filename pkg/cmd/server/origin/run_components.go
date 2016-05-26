@@ -352,10 +352,11 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 
 // RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	osclient := c.DeploymentImageChangeTriggerControllerClient()
-	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
-	controller := factory.Create()
-	controller.Run()
+	oc, kc := c.DeploymentImageChangeTriggerControllerClient()
+	controller := imagechangecontroller.NewImageChangeController(oc, kc)
+	// TODO: Make workers and stop channel configurable
+	workers, stopCh := 5, make(chan struct{})
+	go controller.Run(workers, stopCh)
 }
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided
