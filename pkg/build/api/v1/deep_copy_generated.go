@@ -661,6 +661,13 @@ func DeepCopy_v1_GitBuildSource(in GitBuildSource, out *GitBuildSource, c *conve
 	} else {
 		out.HTTPSProxy = nil
 	}
+	if in.URLCheckTimeoutSeconds != nil {
+		in, out := in.URLCheckTimeoutSeconds, &out.URLCheckTimeoutSeconds
+		*out = new(int)
+		**out = *in
+	} else {
+		out.URLCheckTimeoutSeconds = nil
+	}
 	return nil
 }
 

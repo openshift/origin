@@ -268,11 +268,12 @@ func (GenericWebHookEvent) SwaggerDoc() map[string]string {
 }
 
 var map_GitBuildSource = map[string]string{
-	"":           "GitBuildSource defines the parameters of a Git SCM",
-	"uri":        "uri points to the source that will be built. The structure of the source will depend on the type of build to run",
-	"ref":        "ref is the branch/tag/ref to build.",
-	"httpProxy":  "httpProxy is a proxy used to reach the git repository over http",
-	"httpsProxy": "httpsProxy is a proxy used to reach the git repository over https",
+	"":                       "GitBuildSource defines the parameters of a Git SCM",
+	"uri":                    "uri points to the source that will be built. The structure of the source will depend on the type of build to run",
+	"ref":                    "ref is the branch/tag/ref to build.",
+	"httpProxy":              "httpProxy is a proxy used to reach the git repository over http",
+	"httpsProxy":             "httpsProxy is a proxy used to reach the git repository over https",
+	"urlCheckTimeoutSeconds": "urlCheckTimeoutSeconds is the timeout in seconds to use when checking connectivity to the git server",
 }
 
 func (GitBuildSource) SwaggerDoc() map[string]string {

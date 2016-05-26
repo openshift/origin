@@ -283,6 +283,9 @@ type GitBuildSource struct {
 
 	// httpsProxy is a proxy used to reach the git repository over https
 	HTTPSProxy *string `json:"httpsProxy,omitempty"`
+
+	// urlCheckTimeoutSeconds is the timeout in seconds to use when checking connectivity to the git server
+	URLCheckTimeoutSeconds *int `json:"urlCheckTimeoutSeconds,omitempty"`
 }
 
 // SourceControlUser defines the identity of a user of source control

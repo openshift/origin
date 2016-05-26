@@ -1555,6 +1555,13 @@ func autoConvert_v1_GitBuildSource_To_api_GitBuildSource(in *GitBuildSource, out
 	} else {
 		out.HTTPSProxy = nil
 	}
+	if in.URLCheckTimeoutSeconds != nil {
+		in, out := &in.URLCheckTimeoutSeconds, &out.URLCheckTimeoutSeconds
+		*out = new(int)
+		**out = **in
+	} else {
+		out.URLCheckTimeoutSeconds = nil
+	}
 	return nil
 }
 
@@ -1581,6 +1588,13 @@ func autoConvert_api_GitBuildSource_To_v1_GitBuildSource(in *build_api.GitBuildS
 		**out = **in
 	} else {
 		out.HTTPSProxy = nil
+	}
+	if in.URLCheckTimeoutSeconds != nil {
+		in, out := &in.URLCheckTimeoutSeconds, &out.URLCheckTimeoutSeconds
+		*out = new(int)
+		**out = **in
+	} else {
+		out.URLCheckTimeoutSeconds = nil
 	}
 	return nil
 }
