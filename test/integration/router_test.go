@@ -314,7 +314,7 @@ func TestRouter(t *testing.T) {
 				Spec: routeapi.RouteSpec{
 					Host: tc.routeAlias,
 					Path: tc.routePath,
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: tc.serviceName,
 					},
 					TLS: tc.routeTLS,
@@ -448,7 +448,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
 				Path: "/test",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -504,7 +504,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
 				Path: "/test",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "altService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -540,7 +540,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -579,7 +579,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
 				Path: "/test",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -623,7 +623,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "altService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -661,7 +661,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "altService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -698,7 +698,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 				TLS: &routeapi.TLSConfig{
@@ -775,7 +775,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 			},
@@ -790,7 +790,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example2.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 			},
@@ -821,7 +821,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example2.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 			},
@@ -837,7 +837,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 			Spec: routeapi.RouteSpec{
 				Host: "www.example.com",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: "myService",
 				},
 			},
@@ -1401,7 +1401,7 @@ func generateTestEvents(fakeMasterAndPod *tr.TestHttpService, flag bool, service
 			Spec: routeapi.RouteSpec{
 				Host: routeAlias,
 				Path: "",
-				To: kapi.ObjectReference{
+				To: routeapi.RouteTargetReference{
 					Name: serviceName,
 				},
 				TLS: nil,

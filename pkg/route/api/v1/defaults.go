@@ -2,9 +2,13 @@ package v1
 
 import "k8s.io/kubernetes/pkg/runtime"
 
-func SetDefaults_RouteSpec(obj *RouteSpec) {
-	if len(obj.To.Kind) == 0 {
-		obj.To.Kind = "Service"
+func SetDefaults_RouteTargetReference(obj *RouteTargetReference) {
+	if len(obj.Kind) == 0 {
+		obj.Kind = "Service"
+	}
+	if obj.Weight == nil {
+		obj.Weight = new(int32)
+		*obj.Weight = 100
 	}
 }
 
@@ -24,7 +28,7 @@ func SetDefaults_TLSConfig(obj *TLSConfig) {
 
 func addDefaultingFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
-		SetDefaults_RouteSpec,
+		SetDefaults_RouteTargetReference,
 		SetDefaults_TLSConfig,
 	)
 	if err != nil {

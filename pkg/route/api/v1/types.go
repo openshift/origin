@@ -41,7 +41,12 @@ type RouteSpec struct {
 
 	// To is an object the route points to. Only the Service kind is allowed, and it will
 	// be defaulted to Service.
-	To kapi.ObjectReference `json:"to"`
+	To RouteTargetReference `json:"to"`
+
+	// AlternateBackends is an extension of the 'to' field. If more than one service needs to be
+	// pointed to, then use this field. Use the weight field in RouteTargetReference object
+	// to specify relative preference
+	AlternateBackends []RouteTargetReference `json:"alternateBackends,omitempty"`
 
 	// If specified, the port to be used by the router. Most routers will use all
 	// endpoints exposed by the service by default - set this value to instruct routers
@@ -50,6 +55,20 @@ type RouteSpec struct {
 
 	// TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig `json:"tls,omitempty"`
+}
+
+// RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+// kind is allowed. Use 'weight' field to emphasize one over others.
+type RouteTargetReference struct {
+	// The kind of target that the route is referring to. Currently, only 'Service' is allowed
+	Kind string `json:"kind"`
+
+	// Name of the service/target that is being referred to. e.g. name of the service
+	Name string `json:"name"`
+
+	// Weight as an integer between 1 and 256 that specifies the target's relative weight
+	// against other target reference objects
+	Weight *int32 `json:"weight"`
 }
 
 // RoutePort defines a port mapping from a router to an endpoint in the service endpoints.

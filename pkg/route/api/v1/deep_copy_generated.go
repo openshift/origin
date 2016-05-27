@@ -21,6 +21,7 @@ func init() {
 		DeepCopy_v1_RoutePort,
 		DeepCopy_v1_RouteSpec,
 		DeepCopy_v1_RouteStatus,
+		DeepCopy_v1_RouteTargetReference,
 		DeepCopy_v1_RouterShard,
 		DeepCopy_v1_TLSConfig,
 	); err != nil {
@@ -110,8 +111,19 @@ func DeepCopy_v1_RoutePort(in RoutePort, out *RoutePort, c *conversion.Cloner) e
 func DeepCopy_v1_RouteSpec(in RouteSpec, out *RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
-	if err := api_v1.DeepCopy_v1_ObjectReference(in.To, &out.To, c); err != nil {
+	if err := DeepCopy_v1_RouteTargetReference(in.To, &out.To, c); err != nil {
 		return err
+	}
+	if in.AlternateBackends != nil {
+		in, out := in.AlternateBackends, &out.AlternateBackends
+		*out = make([]RouteTargetReference, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_RouteTargetReference(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AlternateBackends = nil
 	}
 	if in.Port != nil {
 		in, out := in.Port, &out.Port
@@ -145,6 +157,19 @@ func DeepCopy_v1_RouteStatus(in RouteStatus, out *RouteStatus, c *conversion.Clo
 		}
 	} else {
 		out.Ingress = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_RouteTargetReference(in RouteTargetReference, out *RouteTargetReference, c *conversion.Cloner) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.Weight != nil {
+		in, out := in.Weight, &out.Weight
+		*out = new(int32)
+		**out = *in
+	} else {
+		out.Weight = nil
 	}
 	return nil
 }

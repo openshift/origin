@@ -25,9 +25,13 @@ type RouteSpec struct {
 	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string
 
-	// An object the route points to. Only the Service kind is allowed, and it will
+	// Objects that the route points to. Only the Service kind is allowed, and it will
 	// be defaulted to Service.
-	To kapi.ObjectReference
+	To RouteTargetReference
+
+	// Alternate objects that the route may want to point to. Use the 'weight' field to
+	// determine which ones of the several get more emphasis
+	AlternateBackends []RouteTargetReference
 
 	// If specified, the port to be used by the router. Most routers will use all
 	// endpoints exposed by the service by default - set this value to instruct routers
@@ -36,6 +40,14 @@ type RouteSpec struct {
 
 	//TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig
+}
+
+// RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+// kind is allowed. Use 'weight' field to emphasize one over others.
+type RouteTargetReference struct {
+	Kind   string
+	Name   string
+	Weight *int32
 }
 
 // RoutePort defines a port mapping from a router to an endpoint in the service endpoints.

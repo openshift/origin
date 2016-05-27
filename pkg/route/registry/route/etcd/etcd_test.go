@@ -48,7 +48,7 @@ func validRoute() *api.Route {
 			Name: "foo",
 		},
 		Spec: api.RouteSpec{
-			To: kapi.ObjectReference{
+			To: api.RouteTargetReference{
 				Name: "test",
 				Kind: "Service",
 			},
