@@ -36,7 +36,7 @@ var testBuildConfig = &api.BuildConfig{
 				},
 			},
 		},
-		BuildSpec: api.BuildSpec{
+		CommonSpec: api.CommonSpec{
 			Source: api.BuildSource{
 				Git: &api.GitBuildSource{
 					URI: "git://github.com/my/repo.git",
@@ -96,7 +96,7 @@ var buildConfig = &api.BuildConfig{
 				},
 			},
 		},
-		BuildSpec: api.BuildSpec{
+		CommonSpec: api.CommonSpec{
 			Source: api.BuildSource{
 				Git: &api.GitBuildSource{},
 			},
@@ -305,7 +305,7 @@ func setup(t *testing.T, filename, eventType, ref string) *testContext {
 						},
 					},
 				},
-				BuildSpec: api.BuildSpec{
+				CommonSpec: api.CommonSpec{
 					Source: api.BuildSource{
 						Git: &api.GitBuildSource{
 							URI: "git://github.com/my/repo.git",

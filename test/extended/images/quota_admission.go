@@ -407,8 +407,8 @@ func buildAndPushImage(oc *exutil.CLI, namespace, name, tag string, shouldBeDeni
 	bc, err := oc.REST().BuildConfigs(namespace).Get(name)
 	if err == nil {
 		g.By(fmt.Sprintf("changing build config %s to store result into %s", name, istName))
-		o.Expect(bc.Spec.BuildSpec.Output.To.Kind).To(o.Equal("ImageStreamTag"))
-		bc.Spec.BuildSpec.Output.To.Name = istName
+		o.Expect(bc.Spec.Output.To.Kind).To(o.Equal("ImageStreamTag"))
+		bc.Spec.Output.To.Name = istName
 		_, err := oc.REST().BuildConfigs(namespace).Update(bc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	} else {

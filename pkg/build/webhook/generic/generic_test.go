@@ -147,7 +147,7 @@ func TestMatchSecretMultipleGenericWebHooks(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -199,7 +199,7 @@ func TestEnvVarsMultipleGenericWebHooks(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -279,7 +279,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -314,7 +314,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "asdfkasdfasdfasdfadsfkjhkhkh",
@@ -350,7 +350,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -386,7 +386,7 @@ func TestExtractWithGitPayloadAndUTF8Charset(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -422,7 +422,7 @@ func TestExtractWithGitRefsPayload(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -458,7 +458,7 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "other",
@@ -495,7 +495,7 @@ func TestExtractWithKeyValuePairs(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -535,7 +535,7 @@ func TestExtractWithKeyValuePairsDisabled(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "master",
@@ -575,7 +575,7 @@ func TestGitlabPush(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{},
 				},
@@ -607,7 +607,7 @@ func TestNonJsonPush(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{},
 				},
@@ -646,7 +646,7 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 					},
 				},
 			},
-			BuildSpec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
 					Git: &api.GitBuildSource{
 						Ref: "other",

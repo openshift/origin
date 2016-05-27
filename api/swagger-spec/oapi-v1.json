@@ -17694,7 +17694,7 @@
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "resource requirements to execute the build"
+      "description": "resources computes resource requirements to execute the build."
      },
      "postCommit": {
       "$ref": "v1.BuildPostCommitSpec",
@@ -18474,6 +18474,9 @@
    "v1.BuildRequest": {
     "id": "v1.BuildRequest",
     "description": "BuildRequest is the resource used to pass parameters to build generator",
+    "required": [
+     "triggeredBy"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -18514,6 +18517,77 @@
        "$ref": "v1.EnvVar"
       },
       "description": "env contains additional environment variables you want to pass into a builder container"
+     },
+     "triggeredBy": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildTriggerCause"
+      },
+      "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
+     }
+    }
+   },
+   "v1.BuildTriggerCause": {
+    "id": "v1.BuildTriggerCause",
+    "description": "BuildTriggerCause holds information about a triggered build. It is used for displaying build trigger data for each build and build configuration in oc describe. It is also used to describe which triggers led to the most recent update in the build configuration.",
+    "properties": {
+     "message": {
+      "type": "string",
+      "description": "message is used to store a human readable message for why the build was triggered. E.g.: \"Manually triggered by user\", \"Configuration change\",etc."
+     },
+     "genericWebHook": {
+      "$ref": "v1.GenericWebHookCause",
+      "description": "genericWebHook holds data about a builds generic webhook trigger."
+     },
+     "githubWebHook": {
+      "$ref": "v1.GitHubWebHookCause",
+      "description": "gitHubWebHook represents data for a GitHub webhook that fired a specific build."
+     },
+     "imageChangeBuild": {
+      "$ref": "v1.ImageChangeCause",
+      "description": "imageChangeBuild stores information about an imagechange event that triggered a new build."
+     }
+    }
+   },
+   "v1.GenericWebHookCause": {
+    "id": "v1.GenericWebHookCause",
+    "description": "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
+    "properties": {
+     "revision": {
+      "$ref": "v1.SourceRevision",
+      "description": "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available."
+     },
+     "secret": {
+      "type": "string",
+      "description": "secret is the obfuscated webhook secret that triggered a build."
+     }
+    }
+   },
+   "v1.GitHubWebHookCause": {
+    "id": "v1.GitHubWebHookCause",
+    "description": "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
+    "properties": {
+     "revision": {
+      "$ref": "v1.SourceRevision",
+      "description": "revision is the git revision information of the trigger."
+     },
+     "secret": {
+      "type": "string",
+      "description": "secret is the obfuscated webhook secret that triggered a build."
+     }
+    }
+   },
+   "v1.ImageChangeCause": {
+    "id": "v1.ImageChangeCause",
+    "description": "ImageChangeCause contains information about the image that triggered a build",
+    "properties": {
+     "imageID": {
+      "type": "string",
+      "description": "imageID is the ID of the image that triggered a a new build."
+     },
+     "fromRef": {
+      "$ref": "v1.ObjectReference",
+      "description": "fromRef contains detailed information about an image that triggered a build."
      }
     }
    },
@@ -18573,9 +18647,10 @@
    },
    "v1.BuildSpec": {
     "id": "v1.BuildSpec",
-    "description": "BuildSpec encapsulates all the inputs necessary to represent a build.",
+    "description": "BuildSpec has the information to represent a build and also additional information about a build",
     "required": [
-     "strategy"
+     "strategy",
+     "triggeredBy"
     ],
     "properties": {
      "serviceAccount": {
@@ -18600,7 +18675,7 @@
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "resource requirements to execute the build"
+      "description": "resources computes resource requirements to execute the build."
      },
      "postCommit": {
       "$ref": "v1.BuildPostCommitSpec",
@@ -18610,6 +18685,13 @@
       "type": "integer",
       "format": "int64",
       "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
+     },
+     "triggeredBy": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildTriggerCause"
+      },
+      "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
      }
     }
    },

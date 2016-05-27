@@ -7,11 +7,12 @@ import (
 	kolder "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion/queryparams"
 
+	"reflect"
+
 	newer "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
 	older "github.com/openshift/origin/pkg/build/api/v1"
 	testutil "github.com/openshift/origin/test/util/api"
-	"reflect"
 )
 
 var Convert = knewer.Scheme.Convert
@@ -57,7 +58,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 func TestBuildConfigDefaulting(t *testing.T) {
 	buildConfig := &older.BuildConfig{
 		Spec: older.BuildConfigSpec{
-			BuildSpec: older.BuildSpec{
+			CommonSpec: older.CommonSpec{
 				Source: older.BuildSource{
 					Type: older.BuildSourceBinary,
 				},
@@ -88,7 +89,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -128,7 +129,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -168,7 +169,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
-				BuildSpec: older.BuildSpec{
+				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
 						Type: older.BuildSourceGit,
 						Git: &older.GitBuildSource{
@@ -259,7 +260,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
-				BuildSpec: newer.BuildSpec{
+				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
 					Strategy: newer.BuildStrategy{
 						DockerStrategy: &newer.DockerBuildStrategy{
@@ -275,7 +276,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
-				BuildSpec: newer.BuildSpec{
+				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
 					Strategy: newer.BuildStrategy{
 						SourceStrategy: &newer.SourceBuildStrategy{
@@ -291,7 +292,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 		{
 			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
-				BuildSpec: newer.BuildSpec{
+				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
 					Strategy: newer.BuildStrategy{
 						CustomStrategy: &newer.CustomBuildStrategy{
@@ -321,7 +322,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 	buildConfig := older.BuildConfig{
 		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: older.BuildConfigSpec{
-			BuildSpec: older.BuildSpec{
+			CommonSpec: older.CommonSpec{
 				Strategy: older.BuildStrategy{
 					Type: older.DockerBuildStrategyType,
 					DockerStrategy: &older.DockerBuildStrategy{
@@ -366,7 +367,7 @@ func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
 	buildConfig := older.BuildConfig{
 		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: older.BuildConfigSpec{
-			BuildSpec: older.BuildSpec{
+			CommonSpec: older.CommonSpec{
 				Strategy: older.BuildStrategy{
 					Type:           older.SourceBuildStrategyType,
 					SourceStrategy: &older.SourceBuildStrategy{},

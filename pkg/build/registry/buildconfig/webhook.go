@@ -45,8 +45,8 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 
 	config, err := w.registry.GetBuildConfig(ctx, name)
 	if err != nil {
-		// clients should not be able to find information about build configs in the system unless the config exists
-		// and the secret matches
+		// clients should not be able to find information about build configs in
+		// the system unless the config exists and the secret matches
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
@@ -63,13 +63,40 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		return nil
 	}
 
+	buildTriggerCauses := generateBuildTriggerInfo(revision, hookType, secret)
 	request := &buildapi.BuildRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
-		Revision:   revision,
-		Env:        envvars,
+		TriggeredBy: buildTriggerCauses,
+		ObjectMeta:  kapi.ObjectMeta{Name: name},
+		Revision:    revision,
+		Env:         envvars,
 	}
 	if _, err := w.instantiator.Instantiate(config.Namespace, request); err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}
 	return nil
+}
+
+func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secret string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
+	hiddenSecret := fmt.Sprintf("%s***", secret[:(len(secret)/2)])
+	switch {
+	case hookType == "generic":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Generic WebHook",
+				GenericWebHook: &buildapi.GenericWebHookCause{
+					Revision: revision,
+					Secret:   hiddenSecret,
+				},
+			})
+	case hookType == "github":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: "GitHub WebHook",
+				GitHubWebHook: &buildapi.GitHubWebHookCause{
+					Revision: revision,
+					Secret:   hiddenSecret,
+				},
+			})
+	}
+	return buildTriggerCauses
 }

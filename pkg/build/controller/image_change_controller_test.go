@@ -307,7 +307,7 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 			Name: "testBuildCfg",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
 					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{

@@ -186,37 +186,39 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{},
-			},
-			Source: src,
-			Strategy: buildapi.BuildStrategy{
-				CustomStrategy: &buildapi.CustomBuildStrategy{
-					From: kapi.ObjectReference{
+			CommonSpec: buildapi.CommonSpec{
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{},
+				},
+				Source: src,
+				Strategy: buildapi.BuildStrategy{
+					CustomStrategy: &buildapi.CustomBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "builder-image",
+						},
+						Env: []kapi.EnvVar{
+							{Name: "FOO", Value: "BAR"},
+						},
+						ExposeDockerSocket: true,
+						ForcePull:          forcePull,
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "builder-image",
+						Name: "docker-registry/repository/customBuild",
 					},
-					Env: []kapi.EnvVar{
-						{Name: "FOO", Value: "BAR"},
+					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
+				},
+				Resources: kapi.ResourceRequirements{
+					Limits: kapi.ResourceList{
+						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 					},
-					ExposeDockerSocket: true,
-					ForcePull:          forcePull,
 				},
+				CompletionDeadlineSeconds: &timeout,
 			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "docker-registry/repository/customBuild",
-				},
-				PushSecret: &kapi.LocalObjectReference{Name: "foo"},
-			},
-			Resources: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
-				},
-			},
-			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,

@@ -214,16 +214,17 @@ func printBuild(build *buildapi.Build, w io.Writer, opts kctl.PrintOptions) erro
 	if build.Status.Duration > 0 {
 		duration = build.Status.Duration.String()
 	}
-	from := describeSourceShort(build.Spec)
+	from := describeSourceShort(build.Spec.CommonSpec)
 	status := string(build.Status.Phase)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", build.Name, buildapi.StrategyType(build.Spec.Strategy), from, status, created, duration)
+
 	return err
 }
 
-func describeSourceShort(spec buildapi.BuildSpec) string {
+func describeSourceShort(spec buildapi.CommonSpec) string {
 	var from string
 	switch source := spec.Source; {
 	case source.Binary != nil:
@@ -251,7 +252,7 @@ func describeSourceShort(spec buildapi.BuildSpec) string {
 
 var nonCommitRev = regexp.MustCompile("[^a-fA-F0-9]")
 
-func describeSourceGitRevision(spec buildapi.BuildSpec) string {
+func describeSourceGitRevision(spec buildapi.CommonSpec) string {
 	var rev string
 	if spec.Revision != nil && spec.Revision.Git != nil {
 		rev = spec.Revision.Git.Commit
@@ -283,7 +284,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kctl.PrintOpti
 		return err
 	}
 
-	from := describeSourceShort(bc.Spec.BuildSpec)
+	from := describeSourceShort(bc.Spec.CommonSpec)
 
 	if opts.WithNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {

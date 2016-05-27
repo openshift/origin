@@ -22,7 +22,13 @@ func TestDefaults(t *testing.T) {
 	}{
 		{
 			External: &v1.Build{
-				Spec: v1.BuildSpec{Strategy: v1.BuildStrategy{Type: v1.DockerBuildStrategyType}},
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							Type: v1.DockerBuildStrategyType,
+						},
+					},
+				},
 			},
 			Internal: &api.Build{},
 			Ok: func(out runtime.Object) bool {
@@ -32,7 +38,13 @@ func TestDefaults(t *testing.T) {
 		},
 		{
 			External: &v1.Build{
-				Spec: v1.BuildSpec{Strategy: v1.BuildStrategy{SourceStrategy: &v1.SourceBuildStrategy{}}},
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							SourceStrategy: &v1.SourceBuildStrategy{},
+						},
+					},
+				},
 			},
 			Internal: &api.Build{},
 			Ok: func(out runtime.Object) bool {
@@ -42,7 +54,15 @@ func TestDefaults(t *testing.T) {
 		},
 		{
 			External: &v1.Build{
-				Spec: v1.BuildSpec{Strategy: v1.BuildStrategy{DockerStrategy: &v1.DockerBuildStrategy{From: &kapiv1.ObjectReference{}}}},
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							DockerStrategy: &v1.DockerBuildStrategy{
+								From: &kapiv1.ObjectReference{},
+							},
+						},
+					},
+				},
 			},
 			Internal: &api.Build{},
 			Ok: func(out runtime.Object) bool {
@@ -52,7 +72,13 @@ func TestDefaults(t *testing.T) {
 		},
 		{
 			External: &v1.Build{
-				Spec: v1.BuildSpec{Strategy: v1.BuildStrategy{CustomStrategy: &v1.CustomBuildStrategy{}}},
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							CustomStrategy: &v1.CustomBuildStrategy{},
+						},
+					},
+				},
 			},
 			Internal: &api.Build{},
 			Ok: func(out runtime.Object) bool {

@@ -267,7 +267,7 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 		},
 		Spec: buildapi.BuildConfigSpec{
 			Triggers: triggers,
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source:   *source,
 				Strategy: *strategy,
 				Output:   *output,

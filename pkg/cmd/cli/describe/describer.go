@@ -61,7 +61,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 	return m
 }
 
-// DescribableResources lists all resource types we can describe
+// DescribableResources lists all of the resource types we can describe
 func DescribableResources() []string {
 	// Include describable resources in kubernetes
 	keys := kctl.DescribableResources()
@@ -129,9 +129,9 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
-		describeBuildSpec(build.Spec, out)
+		describeCommonSpec(build.Spec.CommonSpec, out)
+		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
-		fmt.Fprintln(out, "")
 		kctl.DescribeEvents(events, out)
 
 		return nil
@@ -169,7 +169,8 @@ func nameAndNamespace(ns, name string) string {
 	}
 	return name
 }
-func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
+
+func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
@@ -184,25 +185,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		if p.Source.SourceSecret != nil {
 			formatString(out, "Source Secret", p.Source.SourceSecret.Name)
 		}
-		if p.Revision != nil && p.Revision.Git != nil {
-			rev := p.Revision.Git
-			formatString(out, "Commit", fmt.Sprintf("%s (%s)", rev.Commit[:7], rev.Message))
-
-			hasAuthor := len(rev.Author.Name) != 0
-			hasCommitter := len(rev.Committer.Name) != 0
-			if hasAuthor && hasCommitter {
-				if rev.Author.Name == rev.Committer.Name {
-					formatString(out, "Author/Committer", rev.Author.Name)
-				} else {
-					formatString(out, "Author/Committer", fmt.Sprintf("%s / %s", rev.Author.Name, rev.Committer.Name))
-				}
-
-			} else if hasAuthor {
-				formatString(out, "Author", rev.Author.Name)
-			} else if hasCommitter {
-				formatString(out, "Committer", rev.Committer.Name)
-			}
-		}
+		squashGitInfo(p.Revision, out)
 	}
 	if p.Source.Dockerfile != nil {
 		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
@@ -430,7 +413,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		} else {
 			formatString(out, "Latest Version", strconv.Itoa(buildConfig.Status.LastVersion))
 		}
-		describeBuildSpec(buildConfig.Spec.BuildSpec, out)
+		describeCommonSpec(buildConfig.Spec.CommonSpec, out)
 		formatString(out, "\nBuild Run Policy", string(buildConfig.Spec.RunPolicy))
 		d.DescribeTriggers(buildConfig, out)
 		if len(buildList.Items) == 0 {
@@ -1327,4 +1310,49 @@ func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, 
 
 	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name)
 	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
+}
+
+func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwriter.Writer) {
+	if causes == nil {
+		formatString(out, "\nBuild trigger cause", "<unknown>")
+	}
+
+	for _, cause := range causes {
+		formatString(out, "\nBuild trigger cause", cause.Message)
+
+		switch {
+		case cause.GitHubWebHook != nil:
+			squashGitInfo(cause.GitHubWebHook.Revision, out)
+			formatString(out, "Secret", cause.GitHubWebHook.Secret)
+
+		case cause.GenericWebHook != nil:
+			squashGitInfo(cause.GenericWebHook.Revision, out)
+			formatString(out, "Secret", cause.GenericWebHook.Secret)
+
+		case cause.ImageChangeBuild != nil:
+			formatString(out, "Image ID", cause.ImageChangeBuild.ImageID)
+			formatString(out, "Image Name/Kind", fmt.Sprintf("%s / %s", cause.ImageChangeBuild.FromRef.Name, cause.ImageChangeBuild.FromRef.Kind))
+		}
+	}
+	fmt.Fprintf(out, "\n")
+}
+
+func squashGitInfo(sourceRevision *buildapi.SourceRevision, out *tabwriter.Writer) {
+	if sourceRevision != nil && sourceRevision.Git != nil {
+		rev := sourceRevision.Git
+		formatString(out, "Commit", fmt.Sprintf("%s (%s)", rev.Commit[:7], rev.Message))
+		hasAuthor := len(rev.Author.Name) != 0
+		hasCommitter := len(rev.Committer.Name) != 0
+		if hasAuthor && hasCommitter {
+			if rev.Author.Name == rev.Committer.Name {
+				formatString(out, "Author/Committer", rev.Author.Name)
+			} else {
+				formatString(out, "Author/Committer", fmt.Sprintf("%s / %s", rev.Author.Name, rev.Committer.Name))
+			}
+		} else if hasAuthor {
+			formatString(out, "Author", rev.Author.Name)
+		} else if hasCommitter {
+			formatString(out, "Committer", rev.Committer.Name)
+		}
+	}
 }
