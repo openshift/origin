@@ -69,9 +69,21 @@ func initializeTestGitRepo(name string) (*testGitRepo, error) {
 	repo.Files = append(repo.Files, tmpfn)
 	initCmd := exec.Command("git", "init")
 	initCmd.Dir = dir
-	if out, err := initCmd.Output(); err != nil {
+	if out, err := initCmd.CombinedOutput(); err != nil {
 		return repo, fmt.Errorf("unable to initialize repository: %q", out)
 	}
+
+	configEmailCmd := exec.Command("git", "config", "user.email", "me@example.com")
+	configEmailCmd.Dir = dir
+	if out, err := configEmailCmd.CombinedOutput(); err != nil {
+		return repo, fmt.Errorf("unable to set git email prefs: %q", out)
+	}
+	configNameCmd := exec.Command("git", "config", "user.name", "Me Myself")
+	configNameCmd.Dir = dir
+	if out, err := configNameCmd.CombinedOutput(); err != nil {
+		return repo, fmt.Errorf("unable to set git name prefs: %q", out)
+	}
+
 	return repo, nil
 }
 
@@ -85,7 +97,7 @@ func (r *testGitRepo) addSubmodule() error {
 	}
 	subCmd := exec.Command("git", "submodule", "add", "file://"+subRepo.Path, "sub")
 	subCmd.Dir = r.Path
-	if out, err := subCmd.Output(); err != nil {
+	if out, err := subCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to add submodule: %q", out)
 	}
 	r.Submodule = subRepo
@@ -101,7 +113,7 @@ func (r *testGitRepo) getRef(offset int) (string, error) {
 	}
 	refCmd := exec.Command("git", "rev-parse", "HEAD"+q)
 	refCmd.Dir = r.Path
-	if out, err := refCmd.Output(); err != nil {
+	if out, err := refCmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("unable to checkout %d offset: %q", offset, out)
 	} else {
 		return strings.TrimSpace(string(out)), nil
@@ -111,7 +123,7 @@ func (r *testGitRepo) getRef(offset int) (string, error) {
 func (r *testGitRepo) createBranch(name string) error {
 	refCmd := exec.Command("git", "checkout", "-b", name)
 	refCmd.Dir = r.Path
-	if out, err := refCmd.Output(); err != nil {
+	if out, err := refCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to checkout new branch: %q", out)
 	}
 	return nil
@@ -120,7 +132,7 @@ func (r *testGitRepo) createBranch(name string) error {
 func (r *testGitRepo) switchBranch(name string) error {
 	refCmd := exec.Command("git", "checkout", name)
 	refCmd.Dir = r.Path
-	if out, err := refCmd.Output(); err != nil {
+	if out, err := refCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to checkout branch: %q", out)
 	}
 	return nil
@@ -143,12 +155,12 @@ func (r *testGitRepo) addCommit() error {
 	}
 	addCmd := exec.Command("git", "add", ".")
 	addCmd.Dir = r.Path
-	if out, err := addCmd.Output(); err != nil {
+	if out, err := addCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to add files to repo: %q", out)
 	}
 	commitCmd := exec.Command("git", "commit", "-a", "-m", "test commit")
 	commitCmd.Dir = r.Path
-	out, err := commitCmd.Output()
+	out, err := commitCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to commit: %q", out)
 	}
