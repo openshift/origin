@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -34,10 +35,10 @@ type ovsPlugin struct {
 	multitenant bool
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
-	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP)
+	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP, iptablesSyncPeriod)
 	if err != nil {
 		return nil, err
 	}
