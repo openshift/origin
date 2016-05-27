@@ -202,9 +202,10 @@ os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to lo
 # a docker compose file should be transformed into an application by the import command
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'warning: not all docker-compose fields were honored'
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'db: cpuset is not supported'
+os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'no-ports: no ports defined to send traffic to - no OpenShift service was created'
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o name --dry-run' 'service/redis'
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o name --as-template=other --dry-run' 'template/other'
-os::cmd::expect_failure 'diff --suppress-common-lines -y <(oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o yaml) test/fixtures/app-scenarios/docker-compose/complex/docker-compose.imported.yaml | grep -v secret'
+os::cmd::expect_success '[[ $(diff --suppress-common-lines -y <(oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/complex/docker-compose.yml -o yaml) test/fixtures/app-scenarios/docker-compose/complex/docker-compose.imported.yaml | grep -vE "ref\:|secret|uri\:" | wc -l) -eq 0 ]]'
 
 # verify a docker-compose.yml schema 2 resource can be transformed, and that it sets env vars correctly.
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/fixtures/app-scenarios/docker-compose/wordpress/docker-compose.yml -o yaml --as-template=other --dry-run' 'value: wordpress'
