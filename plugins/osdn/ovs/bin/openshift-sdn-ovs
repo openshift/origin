@@ -28,12 +28,6 @@ get_veth_host() {
     ip link show | sed -ne "s/^$veth_ifindex: \([^:@]*\).*/\1/p"
 }
 
-get_container_mac() {
-    local pid=$1
-
-    nsenter -n -t $pid -- ip link show dev eth0 | sed -n -e 's/.*link.ether \([^ ]*\).*/\1/p'
-}
-
 get_ipaddr_pid_veth() {
     network_mode=$(docker inspect --format "{{.HostConfig.NetworkMode}}" ${net_container})
     if [ "${network_mode}" == "host" ]; then
@@ -43,10 +37,19 @@ get_ipaddr_pid_veth() {
       # Get pod infra container
       net_container=$(echo ${network_mode} | cut -d ":" -f 2)
     fi
-    ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
+
+    ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
+    if [ -z "$ipaddr" ]; then
+	echo "Could not find IP address for container ${net_container}"
+	exit 1
+    fi
+
     veth_host=$(get_veth_host $pid)
-    macaddr=$(get_container_mac $pid)
+    if [ -z "$veth_host" ]; then
+	echo "Could not find host veth interface for container ${net_container}"
+	exit 1
+    fi
 }
 
 add_ovs_port() {
@@ -64,6 +67,15 @@ del_ovs_port() {
 
 add_ovs_flows() {
     ovs_port=$(ovs-vsctl get Interface ${veth_host} ofport)
+    if [ -z "$ovs_port" ]; then
+	echo "Could not find OVS port for veth device ${veth_host} of container ${net_container}"
+	exit 1
+    fi
+    macaddr=$(nsenter -n -t $pid -- ip link show dev eth0 | sed -n -e 's/.*link.ether \([^ ]*\).*/\1/p')
+    if [ -z "$macaddr" ]; then
+	echo "Could not find MAC address for container ${net_container}"
+	exit 1
+    fi
 
     # from container
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
