@@ -4,7 +4,7 @@ INSTALLHOST=127.0.0.1
 all: build install test
 
 build:
-	docker build -t atomic-registry-quickstart .
+	sudo docker build -t atomic-registry-quickstart .
 
 install:
 	sudo yum install -y atomic
@@ -13,7 +13,7 @@ install:
 	sudo atomic run $(TEST_IMAGE) $(INSTALLHOST)
 
 test:
-	bash test.sh 127.0.0.1
+	bash test.sh $INSTALLHOST
 
 clean:
 	sudo atomic uninstall --force $(TEST_IMAGE)
