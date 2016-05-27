@@ -91,7 +91,7 @@ a 'git clone' of the repository.
    provide credentials to the Git Server is by using a custom credential helper that will 
    send your OpenShift token by default to the server.
    ```sh
-   $ git config --global credential.http://gitserver-myproject.infra.openshift.com.helper \
+   $ git config --global credential.http://git-myproject.infra.openshift.com.helper \
          '!f() { echo "username=$(oc whoami)"; echo "password=$(oc whoami -t)"; }; f'
    ```
 
@@ -137,25 +137,25 @@ protocol to avoid transmission of source in plain text.
    apiVersion: v1
    kind: Route
    metadata:
-     name: gitserver
+     name: git
    spec:
-     host: gitserver-myproject.infra.openshift.com
+     host: git-myproject.infra.openshift.com
      tls:
        termination: edge
      to:
        kind: Service
-       name: gitserver
+       name: git
    ```
 
 2. If using a private certificate authority, configure your git client to use the private ca.crt file:
 
    ```sh
-   $ git config --global http.https://gitserver-myproject.infra.openshift.com.sslCAInfo /path/to/ca.crt
+   $ git config --global http.https://git-myproject.infra.openshift.com.sslCAInfo /path/to/ca.crt
    ```
 
    where the key is http.[git server URL].sslCAInfo
 
-3. Disable anonymous cloning. By default the gitserver will allow anonymous cloning to make it easier to 
+3. Disable anonymous cloning. By default the git server will allow anonymous cloning to make it easier to
    run builds without having to specify a secret. You can disable this by setting the `ALLOW_ANON_GIT_PULL`
    environment variable to `false`.
 
@@ -170,7 +170,7 @@ protocol to avoid transmission of source in plain text.
 Authentication
 --------------
 
-By default, the gitserver will authenticate using OpenShift user or service account credentials. For a user,
+By default, the git server will authenticate using OpenShift user or service account credentials. For a user,
 the credentials are the user name, and the user's token (from `oc whoami -t`). For a service account, the user
 name is the service account name and the password is the service account token. The token can
 be one of the 2 tokens created with the service account and stored in the service account secrets. These can 
@@ -199,7 +199,7 @@ The following command will add an environment variable to clone the openshift/ru
 it a name of `helloworld` inside the Git Server.
 
 ```sh
-$ oc set env dc/gitserver GIT_INITIAL_CLONE_1="https://github.com/openshift/ruby-hello-world.git;helloworld"
+$ oc set env dc/git GIT_INITIAL_CLONE_1="https://github.com/openshift/ruby-hello-world.git;helloworld"
 ```
 
 Automatically Starting Builds
