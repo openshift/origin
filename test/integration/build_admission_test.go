@@ -197,6 +197,18 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		t.Fatalf("Couldn't create ImageStreamMapping: %v", err)
 	}
 
+	template, err := testutil.GetTemplateFixture("../../examples/jenkins/jenkins-ephemeral-template.json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	template.Name = "jenkins"
+	template.Namespace = "openshift"
+
+	_, err = clusterAdminClient.Templates("openshift").Create(template)
+	if err != nil {
+		t.Fatalf("Couldn't create jenkins template: %v", err)
+	}
+
 	return
 }
 
