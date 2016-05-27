@@ -577,105 +577,6 @@ items:
     - subjectaccessreviews
     verbs:
     - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - localresourceaccessreviews
-    - localsubjectaccessreviews
-    - resourceaccessreviews
-    - subjectaccessreviews
-    verbs:
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - builds/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - builds/clone
-    verbs:
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - imagestreamimports
-    verbs:
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - minions
-    - nodes
-    - persistentvolumes
-    - securitycontextconstraints
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - projects
-    verbs:
-    - create
-    - deletecollection
-    - list
-    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -972,87 +873,6 @@ items:
     - get
     - list
     - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - builds/log
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - builds/clone
-    verbs:
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - imagestreamimports
-    verbs:
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - minions
-    - nodes
-    - persistentvolumes
-    - securitycontextconstraints
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - projects
-    verbs:
-    - list
-    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1199,8 +1019,6 @@ items:
     - projects
     verbs:
     - get
-    - list
-    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -1246,46 +1064,6 @@ items:
     - resourcequotausages
     verbs:
     - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - builds/clone
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - imagestreamimports
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - minions
-    - nodes
-    - persistentvolumes
-    - securitycontextconstraints
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - projects
-    verbs:
     - list
     - watch
 - apiVersion: v1
@@ -1933,7 +1711,6 @@ items:
     attributeRestrictions: null
     resources:
     - imagestreamimages
-    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/secrets
@@ -1947,6 +1724,13 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2022,7 +1806,6 @@ items:
     attributeRestrictions: null
     resources:
     - imagestreamimages
-    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreams/secrets
@@ -2036,6 +1819,13 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2069,7 +1859,6 @@ items:
     attributeRestrictions: null
     resources:
     - imagestreamimages
-    - imagestreamimports
     - imagestreammappings
     - imagestreams
     - imagestreamtags

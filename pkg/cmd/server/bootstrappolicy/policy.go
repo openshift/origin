@@ -211,16 +211,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("resourceaccessreviews", "subjectaccessreviews").RuleOrDie(),
-
-				// rules that shouldn't exist, but are here for the covers check until we're convinced of consistency
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(deployGroup).Resources("deploymentconfigs/log").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection", "patch", "update").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews", "subjectaccessreviews").RuleOrDie(),
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(buildGroup).Resources("builds/log").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection", "patch", "update").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiateBinary", "builds/clone").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection", "patch", "update").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("nodes", "persistentvolumes", "minions", "securitycontextconstraints").RuleOrDie(),
-				authorizationapi.NewRule("list", "watch", "create", "deletecollection").Groups(projectGroup).Resources("projects").RuleOrDie(),
 			},
 		},
 		{
@@ -265,15 +255,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// backwards compatibility
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
-
-				// rules that shouldn't exist, but are here for the covers check until we're convinced of consistency
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(deployGroup).Resources("deploymentconfigs/log").RuleOrDie(),
-				authorizationapi.NewRule("create", "delete", "deletecollection", "patch", "update").Groups(buildGroup).Resources("builds/log").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection", "patch", "update").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiateBinary", "builds/clone").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection", "patch", "update").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("nodes", "persistentvolumes", "minions", "securitycontextconstraints").RuleOrDie(),
-				authorizationapi.NewRule("list", "watch").Groups(projectGroup).Resources("projects").RuleOrDie(),
 			},
 		},
 		{
@@ -306,7 +287,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// pull images
 				// authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(projectGroup).Resources("projects").RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(projectGroup).Resources("projects").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes/status").RuleOrDie(),
@@ -316,12 +297,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// backwards compatibility
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
-
-				// rules that shouldn't exist, but are here for the covers check until we're convinced of consistency
-				authorizationapi.NewRule("get", "list", "watch").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiateBinary", "builds/clone").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
-				authorizationapi.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("nodes", "persistentvolumes", "minions", "securitycontextconstraints").RuleOrDie(),
-				authorizationapi.NewRule("list", "watch").Groups(projectGroup).Resources("projects").RuleOrDie(),
 			},
 		},
 		{
@@ -590,7 +565,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryAdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("rolebindings", "roles").RuleOrDie(),
@@ -609,7 +585,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryEditorRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
@@ -621,7 +598,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryViewerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("imagestreamimages", "imagestreamimports", "imagestreammappings", "imagestreams", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreamtags").RuleOrDie(),
 				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
