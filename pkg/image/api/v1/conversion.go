@@ -21,6 +21,8 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
 
 	gvString := in.DockerImageMetadataVersion
 	if len(gvString) == 0 {
@@ -44,6 +46,7 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 	if in.DockerImageLayers != nil {
 		out.DockerImageLayers = make([]ImageLayer, len(in.DockerImageLayers))
 		for i := range in.DockerImageLayers {
+			out.DockerImageLayers[i].MediaType = in.DockerImageLayers[i].MediaType
 			out.DockerImageLayers[i].Name = in.DockerImageLayers[i].Name
 			out.DockerImageLayers[i].LayerSize = in.DockerImageLayers[i].LayerSize
 		}
@@ -62,6 +65,15 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 		out.Signatures = nil
 	}
 
+	if in.DockerImageSignatures != nil {
+		out.DockerImageSignatures = nil
+		for _, v := range in.DockerImageSignatures {
+			out.DockerImageSignatures = append(out.DockerImageSignatures, v)
+		}
+	} else {
+		out.DockerImageSignatures = nil
+	}
+
 	return nil
 }
 
@@ -72,6 +84,8 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
 
 	version := in.DockerImageMetadataVersion
 	if len(version) == 0 {
@@ -95,6 +109,7 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 	if in.DockerImageLayers != nil {
 		out.DockerImageLayers = make([]newer.ImageLayer, len(in.DockerImageLayers))
 		for i := range in.DockerImageLayers {
+			out.DockerImageLayers[i].MediaType = in.DockerImageLayers[i].MediaType
 			out.DockerImageLayers[i].Name = in.DockerImageLayers[i].Name
 			out.DockerImageLayers[i].LayerSize = in.DockerImageLayers[i].LayerSize
 		}
@@ -111,6 +126,15 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 		}
 	} else {
 		out.Signatures = nil
+	}
+
+	if in.DockerImageSignatures != nil {
+		out.DockerImageSignatures = nil
+		for _, v := range in.DockerImageSignatures {
+			out.DockerImageSignatures = append(out.DockerImageSignatures, v)
+		}
+	} else {
+		out.DockerImageSignatures = nil
 	}
 
 	return nil

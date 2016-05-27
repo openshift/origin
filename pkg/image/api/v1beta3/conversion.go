@@ -21,6 +21,8 @@ func Convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversio
 
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
 
 	gvString := in.DockerImageMetadataVersion
 	if len(gvString) == 0 {
@@ -51,6 +53,8 @@ func Convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversio
 
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
 
 	version := in.DockerImageMetadataVersion
 	if len(version) == 0 {

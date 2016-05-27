@@ -111,8 +111,7 @@ func TestWatch(t *testing.T) {
 	)
 }
 
-const etcdManifest = `
-{
+const etcdManifest = `{
    "schemaVersion": 1, 
    "tag": "latest", 
    "name": "coreos/etcd", 
@@ -161,8 +160,7 @@ const etcdManifest = `
    ]
 }`
 
-const etcdManifestNoSignature = `
-{
+const etcdManifestNoSignature = `{
    "schemaVersion": 1, 
    "tag": "latest", 
    "name": "coreos/etcd", 
@@ -362,13 +360,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:54820434e2ccd1596892668504fef12ed980f0cc312f60eac93d6864445ba123", ResourceVersion: "1"},
+				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifestNoSignature,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:54820434e2ccd1596892668504fef12ed980f0cc312f60eac93d6864445ba123", ResourceVersion: "1"},
+				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,

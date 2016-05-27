@@ -437,8 +437,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("list").Groups(kapiGroup).Resources("limitranges", "resourcequotas").RuleOrDie(),
 
-				authorizationapi.NewRule("get", "delete").Groups(imageGroup).Resources("images").RuleOrDie(),
-				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreamimages", "imagestreamtags", "imagestreams/secrets").RuleOrDie(),
+				authorizationapi.NewRule("get", "delete").Groups(imageGroup).Resources("images", "imagestreamtags").RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreamimages", "imagestreams/secrets").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreammappings").RuleOrDie(),
 			},

@@ -202,6 +202,7 @@ func Convert_api_ImageImportStatus_To_v1_ImageImportStatus(in *image_api.ImageIm
 func autoConvert_v1_ImageLayer_To_api_ImageLayer(in *ImageLayer, out *image_api.ImageLayer, s conversion.Scope) error {
 	out.Name = in.Name
 	out.LayerSize = in.LayerSize
+	out.MediaType = in.MediaType
 	return nil
 }
 
@@ -212,6 +213,7 @@ func Convert_v1_ImageLayer_To_api_ImageLayer(in *ImageLayer, out *image_api.Imag
 func autoConvert_api_ImageLayer_To_v1_ImageLayer(in *image_api.ImageLayer, out *ImageLayer, s conversion.Scope) error {
 	out.Name = in.Name
 	out.LayerSize = in.LayerSize
+	out.MediaType = in.MediaType
 	return nil
 }
 

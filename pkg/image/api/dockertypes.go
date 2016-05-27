@@ -121,3 +121,27 @@ type DockerV1CompatibilityImage struct {
 type DockerV1CompatibilityImageSize struct {
 	Size int64 `json:"size,omitempty"`
 }
+
+// DockerImageConfig stores the image configuration
+type DockerImageConfig struct {
+	DockerImage `json:",inline"`
+	RootFS      *DockerConfigRootFS   `json:"rootfs,omitempty"`
+	History     []DockerConfigHistory `json:"history,omitempty"`
+	OSVersion   string                `json:"os.version,omitempty"`
+	OSFeatures  []string              `json:"os.features,omitempty"`
+}
+
+// DockerConfigHistory stores build commands that were used to create an image
+type DockerConfigHistory struct {
+	Created    unversioned.Time `json:"created"`
+	Author     string           `json:"author,omitempty"`
+	CreatedBy  string           `json:"created_by,omitempty"`
+	Comment    string           `json:"comment,omitempty"`
+	EmptyLayer bool             `json:"empty_layer,omitempty"`
+}
+
+// DockerConfigRootFS describes images root filesystem
+type DockerConfigRootFS struct {
+	Type    string   `json:"type"`
+	DiffIDs []string `json:"diff_ids,omitempty"`
+}

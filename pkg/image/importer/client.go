@@ -16,6 +16,8 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	registryclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
@@ -71,6 +73,11 @@ type repositoryRetriever struct {
 }
 
 func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+	named, err := reference.ParseNamed(repoName)
+	if err != nil {
+		return nil, err
+	}
+
 	t := r.context.Transport
 	if insecure && r.context.InsecureTransport != nil {
 		t = r.context.InsecureTransport
@@ -107,7 +114,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		),
 	)
 
-	repo, err := registryclient.NewRepository(context.Context(ctx), repoName, src.String(), rt)
+	repo, err := registryclient.NewRepository(context.Context(ctx), named, src.String(), rt)
 	if err != nil {
 		return nil, err
 	}
@@ -159,30 +166,54 @@ func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*api.Ima
 	if err != nil {
 		return nil, err
 	}
+	mediatype, payload, err := manifest.Payload()
+	if err != nil {
+		return nil, err
+	}
+
 	if len(d) > 0 {
 		dockerImage.ID = d.String()
 	} else {
-		if p, err := manifest.Payload(); err == nil {
-			d, err := digest.FromBytes(p)
-			if err != nil {
-				return nil, fmt.Errorf("unable to create digest from image payload: %v", err)
-			}
-			dockerImage.ID = d.String()
-		} else {
-			d, err := digest.FromBytes(manifest.Raw)
-			if err != nil {
-				return nil, fmt.Errorf("unable to create digest from image bytes: %v", err)
-			}
-			dockerImage.ID = d.String()
-		}
+		dockerImage.ID = digest.FromBytes(manifest.Canonical).String()
 	}
 	image := &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: dockerImage.ID,
 		},
-		DockerImageMetadata:        *dockerImage,
-		DockerImageManifest:        string(manifest.Raw),
-		DockerImageMetadataVersion: "1.0",
+		DockerImageMetadata:          *dockerImage,
+		DockerImageManifest:          string(payload),
+		DockerImageManifestMediaType: mediatype,
+		DockerImageMetadataVersion:   "1.0",
+	}
+
+	return image, nil
+}
+
+func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, d digest.Digest) (*api.Image, error) {
+	mediatype, payload, err := manifest.Payload()
+	if err != nil {
+		return nil, err
+	}
+
+	dockerImage, err := unmarshalDockerImage(imageConfig)
+	if err != nil {
+		return nil, err
+	}
+	if len(d) > 0 {
+		dockerImage.ID = d.String()
+	} else {
+		dockerImage.ID = digest.FromBytes(payload).String()
+	}
+
+	image := &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: dockerImage.ID,
+		},
+		DockerImageMetadata:          *dockerImage,
+		DockerImageManifest:          string(payload),
+		DockerImageConfig:            string(imageConfig),
+		DockerImageManifestMediaType: mediatype,
+		DockerImageMetadataVersion:   "1.0",
 	}
 
 	return image, nil
@@ -319,6 +350,11 @@ func (r *retryRepository) Blobs(ctx context.Context) distribution.BlobStore {
 	return retryBlobStore{BlobStore: r.Repository.Blobs(ctx), repo: r}
 }
 
+// Tags lists the tags under the named repository.
+func (r *retryRepository) Tags(ctx context.Context) distribution.TagService {
+	return &retryTags{TagService: r.Repository.Tags(ctx), repo: r}
+}
+
 // retryManifest wraps the manifest service and invokes retries on the repo.
 type retryManifest struct {
 	distribution.ManifestService
@@ -326,9 +362,9 @@ type retryManifest struct {
 }
 
 // Exists returns true if the manifest exists.
-func (r retryManifest) Exists(dgst digest.Digest) (bool, error) {
+func (r retryManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	for {
-		if exists, err := r.ManifestService.Exists(dgst); r.repo.shouldRetry(err) {
+		if exists, err := r.ManifestService.Exists(ctx, dgst); r.repo.shouldRetry(err) {
 			continue
 		} else {
 			return exists, err
@@ -336,10 +372,10 @@ func (r retryManifest) Exists(dgst digest.Digest) (bool, error) {
 	}
 }
 
-// Get retrieves the identified by the digest, if it exists.
-func (r retryManifest) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+// Get retrieves the manifest identified by the digest, if it exists.
+func (r retryManifest) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	for {
-		if m, err := r.ManifestService.Get(dgst); r.repo.shouldRetry(err) {
+		if m, err := r.ManifestService.Get(ctx, dgst, options...); r.repo.shouldRetry(err) {
 			continue
 		} else {
 			return m, err
@@ -347,51 +383,7 @@ func (r retryManifest) Get(dgst digest.Digest) (*schema1.SignedManifest, error) 
 	}
 }
 
-// Enumerate returns an array of manifest revisions in repository.
-func (r retryManifest) Enumerate() ([]digest.Digest, error) {
-	for {
-		if d, err := r.ManifestService.Enumerate(); r.repo.shouldRetry(err) {
-			continue
-		} else {
-			return d, err
-		}
-	}
-}
-
-// Tags lists the tags under the named repository.
-func (r retryManifest) Tags() ([]string, error) {
-	for {
-		if t, err := r.ManifestService.Tags(); r.repo.shouldRetry(err) {
-			continue
-		} else {
-			return t, err
-		}
-	}
-}
-
-// ExistsByTag returns true if the manifest exists.
-func (r retryManifest) ExistsByTag(tag string) (bool, error) {
-	for {
-		if exists, err := r.ManifestService.ExistsByTag(tag); r.repo.shouldRetry(err) {
-			continue
-		} else {
-			return exists, err
-		}
-	}
-}
-
-// GetByTag retrieves the named manifest, if it exists.
-func (r retryManifest) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
-	for {
-		if m, err := r.ManifestService.GetByTag(tag, options...); r.repo.shouldRetry(err) {
-			continue
-		} else {
-			return m, err
-		}
-	}
-}
-
-// retryManifest wraps the blob store and invokes retries on the repo.
+// retryBlobStore wraps the blob store and invokes retries on the repo.
 type retryBlobStore struct {
 	distribution.BlobStore
 	repo *retryRepository
@@ -423,6 +415,41 @@ func (r retryBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribut
 			continue
 		} else {
 			return rsc, err
+		}
+	}
+}
+
+type retryTags struct {
+	distribution.TagService
+	repo *retryRepository
+}
+
+func (r *retryTags) Get(ctx context.Context, tag string) (distribution.Descriptor, error) {
+	for {
+		if t, err := r.TagService.Get(ctx, tag); r.repo.shouldRetry(err) {
+			continue
+		} else {
+			return t, err
+		}
+	}
+}
+
+func (r *retryTags) All(ctx context.Context) ([]string, error) {
+	for {
+		if t, err := r.TagService.All(ctx); r.repo.shouldRetry(err) {
+			continue
+		} else {
+			return t, err
+		}
+	}
+}
+
+func (r *retryTags) Lookup(ctx context.Context, digest distribution.Descriptor) ([]string, error) {
+	for {
+		if t, err := r.TagService.Lookup(ctx, digest); r.repo.shouldRetry(err) {
+			continue
+		} else {
+			return t, err
 		}
 	}
 }

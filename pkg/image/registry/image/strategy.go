@@ -75,6 +75,13 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
 	newImage.Signatures = oldImage.Signatures
 
+	if oldImage.DockerImageSignatures != nil {
+		newImage.DockerImageSignatures = nil
+		for _, v := range oldImage.DockerImageSignatures {
+			newImage.DockerImageSignatures = append(newImage.DockerImageSignatures, v)
+		}
+	}
+
 	// allow an image update that results in the manifest matching the digest (the name)
 	newManifest := newImage.DockerImageManifest
 	newImage.DockerImageManifest = oldImage.DockerImageManifest
@@ -84,6 +91,17 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 			utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
 		} else if ok {
 			newImage.DockerImageManifest = newManifest
+		}
+	}
+
+	newImageConfig := newImage.DockerImageConfig
+	newImage.DockerImageConfig = oldImage.DockerImageConfig
+	if newImageConfig != oldImage.DockerImageConfig && len(newImageConfig) > 0 {
+		ok, err := api.ImageConfigMatchesImage(newImage, []byte(newImageConfig))
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("attempted to validate that a new config for %q mentioned in the manifest, but failed: %v", oldImage.Name, err))
+		} else if ok {
+			newImage.DockerImageConfig = newImageConfig
 		}
 	}
 
