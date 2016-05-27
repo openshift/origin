@@ -4,6 +4,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -12,6 +13,9 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		func(obj *RouteSpec) {
 			if len(obj.To.Kind) == 0 {
 				obj.To.Kind = "Service"
+			}
+			if obj.AdditionalTos == nil {
+				obj.AdditionalTos = make([]kapi.ObjectReference, 0)
 			}
 		},
 		func(obj *TLSConfig) {

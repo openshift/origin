@@ -47,6 +47,18 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		result = append(result, field.Invalid(specPath.Child("to", "kind"), route.Spec.To.Kind, "must reference a Service"))
 	}
 
+	if len(route.Spec.AdditionalTos) > 3 {
+		result = append(result, field.Required(specPath.Child("to"), "cannot specify more than 3 additional services"))
+	}
+	for _, svc := range route.Spec.AdditionalTos {
+		if len(svc.Name) == 0 {
+			result = append(result, field.Required(specPath.Child("to", "name"), ""))
+		}
+		if svc.Kind != "Service" {
+			result = append(result, field.Invalid(specPath.Child("to", "kind"), svc.Kind, "must reference a Service"))
+		}
+	}
+
 	if route.Spec.Port != nil {
 		switch target := route.Spec.Port.TargetPort; {
 		case target.Type == intstr.Int && target.IntVal == 0,

@@ -46,6 +46,9 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	// Limit to kind/name
 	// TODO: convert to LocalObjectReference
 	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+	for i, _ := range route.Spec.AdditionalTos {
+		route.Spec.AdditionalTos[i] = kapi.ObjectReference{Kind: route.Spec.AdditionalTos[i].Kind, Name: route.Spec.AdditionalTos[i].Name}
+	}
 	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
@@ -69,6 +72,9 @@ func (routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// Limit to kind/name
 	// TODO: convert to LocalObjectReference
 	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+	for i, _ := range route.Spec.AdditionalTos {
+		route.Spec.AdditionalTos[i] = kapi.ObjectReference{Kind: route.Spec.AdditionalTos[i].Kind, Name: route.Spec.AdditionalTos[i].Name}
+	}
 }
 
 func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {

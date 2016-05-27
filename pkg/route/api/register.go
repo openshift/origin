@@ -23,6 +23,7 @@ func Resource(resource string) unversioned.GroupResource {
 func AddToScheme(scheme *runtime.Scheme) {
 	// Add the API to Scheme.
 	addKnownTypes(scheme)
+	addDefaultingFuncs(scheme)
 }
 
 // Adds the list of known types to api.Scheme.
