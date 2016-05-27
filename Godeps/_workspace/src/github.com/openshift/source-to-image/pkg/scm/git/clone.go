@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
+// Clone knows how to clone a Git repository.
 type Clone struct {
 	Git
 	util.FileSystem

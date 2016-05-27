@@ -51,6 +51,9 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 	}
 	// Use STI Prepare() and download the 'run' script optionally.
 	s, err := sti.New(config, overrides)
+	if err != nil {
+		return nil, err
+	}
 	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
 
 	downloader := overrides.Downloader
@@ -86,7 +89,7 @@ func (builder *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
 // Build executes the ONBUILD kind of build
 func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	if config.BlockOnBuild {
-		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed.")
+		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
 	}
 	glog.V(2).Info("Preparing the source code for build")
 	// Change the installation directory for this config to store scripts inside
@@ -118,7 +121,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	glog.V(2).Info("Building the application source")
-	if err := builder.docker.BuildImage(opts); err != nil {
+	if err = builder.docker.BuildImage(opts); err != nil {
 		return nil, err
 	}
 
@@ -170,11 +173,11 @@ func (builder *OnBuild) copySTIScripts(config *api.Config) {
 	scriptsPath := filepath.Join(config.WorkingDir, "upload", "scripts")
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
 	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
-		glog.V(3).Infof("Found S2I 'run' script, copying to application source dir")
+		glog.V(3).Info("Found S2I 'run' script, copying to application source dir")
 		builder.fs.Copy(filepath.Join(scriptsPath, api.Run), filepath.Join(sourcePath, api.Run))
 	}
 	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
-		glog.V(3).Infof("Found S2I 'assemble' script, copying to application source dir")
+		glog.V(3).Info("Found S2I 'assemble' script, copying to application source dir")
 		builder.fs.Copy(filepath.Join(scriptsPath, api.Assemble), filepath.Join(sourcePath, api.Assemble))
 	}
 }

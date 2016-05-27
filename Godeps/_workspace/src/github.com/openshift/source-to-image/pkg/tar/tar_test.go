@@ -137,7 +137,7 @@ func TestCreateTarStreamIncludeParentDir(t *testing.T) {
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
 	}
-	if err := createTestFiles(tempDir, testFiles); err != nil {
+	if err = createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
 	}
 	th := New()
@@ -172,7 +172,7 @@ func TestCreateTar(t *testing.T) {
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
 	}
-	if err := createTestFiles(tempDir, testFiles); err != nil {
+	if err = createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
 	}
 	testLinks := []linkDesc{
@@ -181,7 +181,7 @@ func TestCreateTar(t *testing.T) {
 		{"link/okdirlink", "../dir01/dir02"},
 		{"link/errdirlink", "../dir01/.git"},
 	}
-	if err := createTestLinks(tempDir, testLinks); err != nil {
+	if err = createTestLinks(tempDir, testLinks); err != nil {
 		t.Fatalf("Cannot create link files: %v", err)
 	}
 
@@ -208,7 +208,7 @@ func TestCreateTarIncludeDotGit(t *testing.T) {
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", true, ""},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Allow .git content", false, ""},
 	}
-	if err := createTestFiles(tempDir, testFiles); err != nil {
+	if err = createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
 	}
 	testLinks := []linkDesc{
@@ -217,7 +217,7 @@ func TestCreateTarIncludeDotGit(t *testing.T) {
 		{"link/okdirlink", "../dir01/dir02"},
 		{"link/okdirlink2", "../dir01/.git"},
 	}
-	if err := createTestLinks(tempDir, testLinks); err != nil {
+	if err = createTestLinks(tempDir, testLinks); err != nil {
 		t.Fatalf("Cannot create link files: %v", err)
 	}
 
@@ -244,7 +244,7 @@ func TestCreateTarEmptyRegexp(t *testing.T) {
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Allow .git content", false, ""},
 	}
-	if err := createTestFiles(tempDir, testFiles); err != nil {
+	if err = createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
 	}
 	testLinks := []linkDesc{
@@ -253,7 +253,7 @@ func TestCreateTarEmptyRegexp(t *testing.T) {
 		{"link/okdirlink", "../dir01/dir02"},
 		{"link/okdirlink2", "../dir01/.git"},
 	}
-	if err := createTestLinks(tempDir, testLinks); err != nil {
+	if err = createTestLinks(tempDir, testLinks); err != nil {
 		t.Fatalf("Cannot create link files: %v", err)
 	}
 

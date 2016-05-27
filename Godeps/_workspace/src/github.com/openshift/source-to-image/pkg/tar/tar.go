@@ -108,7 +108,7 @@ func (t *stiTar) StreamDirAsTar(source, dest string, writer io.Writer) error {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
-	if err := fs.Copy(source, tmpDir); err != nil {
+	if err = fs.Copy(source, tmpDir); err != nil {
 		return err
 	}
 	// Skip chmod if on windows OS
@@ -198,7 +198,7 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 		if !info.IsDir() && !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
-				if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+				if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
 				return err
@@ -211,7 +211,7 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 				return nil
 			}
 			defer file.Close()
-			if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+			if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 				glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				return err
 			}
@@ -330,9 +330,9 @@ func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logge
 		select {
 		case err := <-errorChannel:
 			if err != nil {
-				glog.Errorf("Error extracting tar stream")
+				glog.Error("Error extracting tar stream")
 			} else {
-				glog.V(2).Infof("Done extracting tar stream")
+				glog.V(2).Info("Done extracting tar stream")
 			}
 			return err
 		case <-timeoutTimer.C:

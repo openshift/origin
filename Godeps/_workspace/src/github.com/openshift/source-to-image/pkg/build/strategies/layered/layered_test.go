@@ -152,7 +152,7 @@ func TestBuildErrorCreateTarFile(t *testing.T) {
 	l.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
 	_, err := l.Build(l.config)
 	if err == nil || err.Error() != "CreateTarError" {
-		t.Error("An error was expected for CreateTar, but got different: %v", err)
+		t.Errorf("An error was expected for CreateTar, but got different: %v", err)
 	}
 }
 
@@ -188,7 +188,7 @@ func TestBuildErrorOnBuildBlocked(t *testing.T) {
 	l.config.BlockOnBuild = true
 	l.config.HasOnBuild = true
 	_, err := l.Build(l.config)
-	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed.") {
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed") {
 		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
 	}
 }

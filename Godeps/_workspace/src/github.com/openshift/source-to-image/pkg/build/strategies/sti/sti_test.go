@@ -72,7 +72,7 @@ func newFakeSTI(f *FakeSTI) *STI {
 		garbage:   f,
 		layered:   &FakeDockerBuild{f},
 	}
-	s.source = &git.Clone{s.git, s.fs}
+	s.source = &git.Clone{Git: s.git, FileSystem: s.fs}
 	return s
 }
 
@@ -304,7 +304,7 @@ func testBuildHandler() *STI {
 		result:            &api.Result{},
 		callbackInvoker:   &test.FakeCallbackInvoker{},
 	}
-	s.source = &git.Clone{s.git, s.fs}
+	s.source = &git.Clone{Git: s.git, FileSystem: s.fs}
 	return s
 }
 
@@ -551,7 +551,7 @@ func TestFetchSource(t *testing.T) {
 		cloneExpected    bool
 		checkoutExpected bool
 		copyExpected     bool
-		source_path      string
+		sourcePath       string
 		expectedError    *error
 	}
 
@@ -564,7 +564,7 @@ func TestFetchSource(t *testing.T) {
 			cloneExpected:    false,
 			checkoutExpected: false,
 			copyExpected:     false,
-			source_path:      "invalid/path",
+			sourcePath:       "invalid/path",
 			expectedError:    &err,
 		},
 		// 1
@@ -603,10 +603,10 @@ func TestFetchSource(t *testing.T) {
 		if ft.refSpecified {
 			bh.config.Ref = "a-branch"
 		}
-		if len(ft.source_path) == 0 {
+		if len(ft.sourcePath) == 0 {
 			bh.config.Source = "a-repo-source"
 		} else {
-			bh.config.Source = ft.source_path
+			bh.config.Source = ft.sourcePath
 		}
 
 		expectedTargetDir := "/working-dir/upload/src"
@@ -620,7 +620,7 @@ func TestFetchSource(t *testing.T) {
 				continue
 			}
 			if (*ft.expectedError).(stierr.Error).ErrorCode != e.(stierr.Error).ErrorCode {
-				t.Errorf("Expected error code %s, got %s [%d]", (*ft.expectedError).(stierr.Error).ErrorCode, e.(stierr.Error).ErrorCode, testNum)
+				t.Errorf("Expected error code %d, got %d [%d]", (*ft.expectedError).(stierr.Error).ErrorCode, e.(stierr.Error).ErrorCode, testNum)
 			}
 		}
 		if ft.cloneExpected {

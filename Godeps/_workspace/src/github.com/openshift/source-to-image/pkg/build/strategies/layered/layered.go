@@ -23,6 +23,11 @@ import (
 
 const defaultDestination = "/tmp"
 
+// A Layered builder builds images by first performing a docker build to inject
+// (layer) the source code and s2i scripts into the builder image, prior to
+// running the new image with the assemble script. This is necessary when the
+// builder image does not include "sh" and "tar" as those tools are needed
+// during the normal source injection process.
 type Layered struct {
 	config     *api.Config
 	docker     docker.Docker
@@ -32,6 +37,7 @@ type Layered struct {
 	hasOnBuild bool
 }
 
+// New creates a Layered builder.
 func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
 	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
@@ -48,7 +54,7 @@ func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overr
 	}, nil
 }
 
-//getDestination returns the destination directory from the config
+// getDestination returns the destination directory from the config.
 func getDestination(config *api.Config) string {
 	destination := config.Destination
 	if len(destination) == 0 {
@@ -57,7 +63,8 @@ func getDestination(config *api.Config) string {
 	return destination
 }
 
-//checkValidDirWithContents will return true if the parameter provided is a valid, accessible directory that has contents (i.e. is not empty
+// checkValidDirWithContents returns true if the parameter provided is a valid,
+// accessible and non-empty directory.
 func checkValidDirWithContents(name string) bool {
 	items, err := ioutil.ReadDir(name)
 	if os.IsNotExist(err) {
@@ -66,8 +73,8 @@ func checkValidDirWithContents(name string) bool {
 	return !(err != nil || len(items) == 0)
 }
 
-//CreateDockerfile takes the various inputs and creates the Dockerfile used by the docker cmd
-// to create the image produces by s2i
+// CreateDockerfile takes the various inputs and creates the Dockerfile used by
+// the docker cmd to create the image produced by s2i.
 func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	buffer := bytes.Buffer{}
 
@@ -76,32 +83,32 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 		return err
 	}
 
-	locations := []string{
-		filepath.Join(getDestination(config), "scripts"),
-		filepath.Join(getDestination(config), "src"),
-	}
+	scriptsDir := filepath.Join(getDestination(config), "scripts")
+	sourcesDir := filepath.Join(getDestination(config), "src")
+
+	uploadScriptsDir := path.Join(config.WorkingDir, api.UploadScripts)
 
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", builder.config.BuilderImage))
 	// only COPY scripts dir if required scripts are present, i.e. the dir is not empty;
 	// even if the "scripts" dir exists, the COPY would fail if it was empty
-	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
+	scriptsIncluded := checkValidDirWithContents(uploadScriptsDir)
 	if scriptsIncluded {
-		glog.V(2).Infof("The scripts are included in %q directory", path.Join(config.WorkingDir, api.UploadScripts))
-		buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", locations[0]))
+		glog.V(2).Infof("The scripts are included in %q directory", uploadScriptsDir)
+		buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", scriptsDir))
 	} else {
 		// if an err on reading or opening dir, can't copy it
-		glog.V(2).Infof("Could not gather scripts from the directory %q", path.Join(config.WorkingDir, api.UploadScripts))
+		glog.V(2).Infof("Could not gather scripts from the directory %q", uploadScriptsDir)
 	}
-	buffer.WriteString(fmt.Sprintf("COPY src %s\n", locations[1]))
+	buffer.WriteString(fmt.Sprintf("COPY src %s\n", sourcesDir))
 
 	//TODO: We need to account for images that may not have chown. There is a proposal
 	//      to specify the owner for COPY here: https://github.com/docker/docker/pull/9934
 	if len(user) > 0 {
 		buffer.WriteString("USER root\n")
 		if scriptsIncluded {
-			buffer.WriteString(fmt.Sprintf("RUN chown -R %s %s %s\n", user, locations[0], locations[1]))
+			buffer.WriteString(fmt.Sprintf("RUN chown -R %s -- %s %s\n", user, scriptsDir, sourcesDir))
 		} else {
-			buffer.WriteString(fmt.Sprintf("RUN chown -R %s %s\n", user, locations[1]))
+			buffer.WriteString(fmt.Sprintf("RUN chown -R %s -- %s\n", user, sourcesDir))
 		}
 		buffer.WriteString(fmt.Sprintf("USER %s\n", user))
 	}
@@ -114,8 +121,8 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	return nil
 }
 
+// SourceTar returns a stream to the source tar file.
 // TODO: this should stop generating a file, and instead stream the tar.
-//SourceTar returns a stream to the source tar file
 func (builder *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload")
 	tarFileName, err := builder.tar.CreateTarFile(builder.config.WorkingDir, uploadDir)
@@ -125,10 +132,11 @@ func (builder *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	return builder.fs.Open(tarFileName)
 }
 
-//Build handles the `docker build` equivalent execution, returning the success/failure details
+// Build handles the `docker build` equivalent execution, returning the
+// success/failure details.
 func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	if config.HasOnBuild && config.BlockOnBuild {
-		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed.")
+		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
 	}
 
 	if err := builder.CreateDockerfile(config); err != nil {
@@ -142,7 +150,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	}
 	defer tarStream.Close()
 
-	dockerImageReference, err := docker.ParseDockerImageReference(builder.config.BuilderImage)
+	dockerImageReference, err := docker.ParseImageReference(builder.config.BuilderImage)
 	if err != nil {
 		return nil, err
 	}
