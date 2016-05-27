@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/golang/glog"
@@ -45,14 +46,27 @@ func (c *MasterConfig) auditHandler(handler http.Handler) http.Handler {
 		if len(asuser) == 0 {
 			asuser = "<self>"
 		}
+		requestedGroups := req.Header[authenticationapi.ImpersonateGroupHeader]
+		asgroups := "<lookup>"
+		if len(requestedGroups) == 0 {
+			asgroups = ""
+			first := true
+			for _, group := range requestedGroups {
+				if !first {
+					asgroups = asgroups + ","
+				}
+				asgroups = asgroups + fmt.Sprintf("%q", group)
+				first = false
+			}
+		}
 		namespace := kapi.NamespaceValue(ctx)
 		if len(namespace) == 0 {
 			namespace = "<none>"
 		}
 		id := uuid.NewRandom().String()
 
-		glog.Infof("AUDIT: id=%q ip=%q method=%q user=%q as=%q namespace=%q uri=%q",
-			id, net.GetClientIP(req), req.Method, user.GetName(), asuser, namespace, req.URL)
+		glog.Infof("AUDIT: id=%q ip=%q method=%q user=%q as=%q asgroups=%q namespace=%q uri=%q",
+			id, net.GetClientIP(req), req.Method, user.GetName(), asuser, asgroups, namespace, req.URL)
 		handler.ServeHTTP(&auditResponseWriter{w, id}, req)
 	})
 }

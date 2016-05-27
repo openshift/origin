@@ -15,6 +15,7 @@ const (
 	IdentityPreferredUsernameKey = "preferred_username"
 
 	ImpersonateUserHeader      = "Impersonate-User"
+	ImpersonateGroupHeader     = "Impersonate-Group"
 	ImpersonateUserScopeHeader = "Impersonate-User-Scope"
 )
 

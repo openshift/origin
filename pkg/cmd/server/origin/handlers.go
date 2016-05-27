@@ -302,17 +302,17 @@ func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handl
 
 func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		requestedSubject := req.Header.Get(authenticationapi.ImpersonateUserHeader)
-		if len(requestedSubject) == 0 {
+		requestedUser := req.Header.Get(authenticationapi.ImpersonateUserHeader)
+		if len(requestedUser) == 0 {
 			handler.ServeHTTP(w, req)
 			return
 		}
 
-		resource, namespace, name, err := parseRequestedSubject(requestedSubject)
-		if err != nil {
-			forbidden(err.Error(), nil, w, req)
-			return
-		}
+		subjects := authorizationapi.BuildSubjects([]string{requestedUser}, req.Header[authenticationapi.ImpersonateGroupHeader],
+			// validates whether the usernames are regular users or system users
+			uservalidation.ValidateUserName,
+			// validates group names are regular groups or system groups
+			uservalidation.ValidateGroupName)
 
 		ctx, exists := c.RequestContextMapper.Get(req)
 		if !exists {
@@ -320,22 +320,84 @@ func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
-		actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
-			Verb:         "impersonate",
-			APIGroup:     resource.Group,
-			Resource:     resource.Resource,
-			ResourceName: name,
-		}
-		authCheckCtx := kapi.WithNamespace(ctx, namespace)
+		// if groups are not specified, then we need to look them up differently depending on the type of user
+		// if they are specified, then they are the authority
+		groupsSpecified := len(req.Header[authenticationapi.ImpersonateGroupHeader]) > 0
 
-		allowed, reason, err := c.Authorizer.Authorize(authCheckCtx, actingAsAttributes)
-		if err != nil {
-			forbidden(err.Error(), actingAsAttributes, w, req)
-			return
-		}
-		if !allowed {
-			forbidden(reason, actingAsAttributes, w, req)
-			return
+		// make sure we're allowed to impersonate each subject.  While we're iterating through, start building username
+		// and group information
+		username := ""
+		groups := []string{}
+		for _, subject := range subjects {
+			actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
+				Verb: "impersonate",
+			}
+
+			switch subject.GetObjectKind().GroupVersionKind().GroupKind() {
+			case userapi.Kind(authorizationapi.GroupKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.GroupResource
+				actingAsAttributes.ResourceName = subject.Name
+				groups = append(groups, subject.Name)
+
+			case userapi.Kind(authorizationapi.SystemGroupKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.SystemGroupResource
+				actingAsAttributes.ResourceName = subject.Name
+				groups = append(groups, subject.Name)
+
+			case userapi.Kind(authorizationapi.UserKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.UserResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = subject.Name
+				if !groupsSpecified {
+					if actualGroups, err := c.GroupCache.GroupsFor(subject.Name); err == nil {
+						for _, group := range actualGroups {
+							groups = append(groups, group.Name)
+						}
+					}
+					groups = append(groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
+				}
+
+			case userapi.Kind(authorizationapi.SystemUserKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.SystemUserResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = subject.Name
+				if !groupsSpecified {
+					if subject.Name == bootstrappolicy.UnauthenticatedUsername {
+						groups = append(groups, bootstrappolicy.UnauthenticatedGroup)
+					} else {
+						groups = append(groups, bootstrappolicy.AuthenticatedGroup)
+					}
+				}
+
+			case kapi.Kind(authorizationapi.ServiceAccountKind):
+				actingAsAttributes.APIGroup = kapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.ServiceAccountResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = serviceaccount.MakeUsername(subject.Namespace, subject.Name)
+				if !groupsSpecified {
+					groups = append(serviceaccount.MakeGroupNames(subject.Namespace, subject.Name), bootstrappolicy.AuthenticatedGroup)
+				}
+
+			default:
+				forbidden(fmt.Sprintf("unknown subject type: %v", subject), actingAsAttributes, w, req)
+				return
+			}
+
+			authCheckCtx := kapi.WithNamespace(ctx, subject.Namespace)
+
+			allowed, reason, err := c.Authorizer.Authorize(authCheckCtx, actingAsAttributes)
+			if err != nil {
+				forbidden(err.Error(), actingAsAttributes, w, req)
+				return
+			}
+			if !allowed {
+				forbidden(reason, actingAsAttributes, w, req)
+				return
+			}
 		}
 
 		var extra map[string][]string
@@ -343,84 +405,16 @@ func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
 			extra = map[string][]string{authorizationapi.ScopesKey: requestScopes}
 		}
 
-		switch resource {
-		case kapi.Resource(authorizationapi.ServiceAccountResource):
-			newUser := &user.DefaultInfo{
-				Name:   serviceaccount.MakeUsername(namespace, name),
-				Groups: serviceaccount.MakeGroupNames(namespace, name),
-				Extra:  extra,
-			}
-			newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup)
-			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
-
-		case userapi.Resource(authorizationapi.UserResource):
-			newUser := &user.DefaultInfo{
-				Name:  name,
-				Extra: extra,
-			}
-			groups, err := c.GroupCache.GroupsFor(name)
-			if err == nil {
-				for _, group := range groups {
-					newUser.Groups = append(newUser.Groups, group.Name)
-				}
-			}
-
-			newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
-			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
-
-		case userapi.Resource(authorizationapi.SystemUserResource):
-			newUser := &user.DefaultInfo{
-				Name:  name,
-				Extra: extra,
-			}
-
-			if name == bootstrappolicy.UnauthenticatedUsername {
-				newUser.Groups = append(newUser.Groups, bootstrappolicy.UnauthenticatedGroup)
-			} else {
-				newUser.Groups = append(newUser.Groups, bootstrappolicy.AuthenticatedGroup)
-			}
-			c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
-
-		default:
-			forbidden(fmt.Sprintf("%v is an unhandled resource for acting-as", resource), nil, w, req)
-			return
+		newUser := &user.DefaultInfo{
+			Name:   username,
+			Groups: groups,
+			Extra:  extra,
 		}
+		c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
 
-		newCtx, _ := c.RequestContextMapper.Get(req)
 		oldUser, _ := kapi.UserFrom(ctx)
-		newUser, _ := kapi.UserFrom(newCtx)
 		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
 
 		handler.ServeHTTP(w, req)
 	})
-}
-
-func parseRequestedSubject(requestedSubject string) (unversioned.GroupResource, string, string, error) {
-	subjects := authorizationapi.BuildSubjects([]string{requestedSubject}, nil,
-		// validates whether the usernames are regular users or system users
-		uservalidation.ValidateUserName,
-		// validates group names, but we never pass any groups
-		func(s string, b bool) (bool, string) { return true, "" })
-
-	if len(subjects) == 0 {
-		return unversioned.GroupResource{}, "", "", fmt.Errorf("subject must be in the form of a username, not %v", requestedSubject)
-
-	}
-
-	resource := unversioned.GroupResource{}
-	switch subjects[0].GetObjectKind().GroupVersionKind().GroupKind() {
-	case userapi.Kind(authorizationapi.UserKind):
-		resource = userapi.Resource(authorizationapi.UserResource)
-
-	case userapi.Kind(authorizationapi.SystemUserKind):
-		resource = userapi.Resource(authorizationapi.SystemUserResource)
-
-	case kapi.Kind(authorizationapi.ServiceAccountKind):
-		resource = kapi.Resource(authorizationapi.ServiceAccountResource)
-
-	default:
-		return unversioned.GroupResource{}, "", "", fmt.Errorf("unknown subject type: %v", subjects[0])
-	}
-
-	return resource, subjects[0].Namespace, subjects[0].Name, nil
 }
