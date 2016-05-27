@@ -1,4 +1,8 @@
-<div ng-controller="KeyValuesController" class="labels">
+<ng-form hidden name="clean">
+  <input name="isClean" ng-model="keyValuesClean">
+</ng-form>
+
+<div class="labels">
     <div class="form-inline labels-edit" ng-show="editable">
       <ng-form class="edit-label" name="form" novalidate>
 
@@ -21,7 +25,8 @@
               spellcheck="false"
               osc-input-validator="key"
               osc-unique="entries"
-              on-enter="addEntry()">
+              on-enter="form.$valid && addEntry()"
+              ng-keyup="isClean()">
           </div>
 
           <div
@@ -39,18 +44,25 @@
               autocapitalize="off"
               spellcheck="false"
               osc-input-validator="value"
-              on-enter="addEntry()">
+              on-enter="form.$valid && addEntry()"
+              ng-keyup="isClean()">
           </div>
           <!-- We need to replace button tag with a link tag cause we are embedding this directive into different forms (BC edit
           form, from image form) and in order to be able to submit the top level form with hitting Enter key we needed to replace buttons with links.
           Based on: https://docs.angularjs.org/api/ng/directive/form#submitting-a-form-and-preventing-the-default-action -->
-          <a class="btn btn-default"
+          <a class="btn btn-default add-key-value"
             href=""
             role="button"
             ng-click="addEntry()"
             ng-disabled="form.$invalid || !key || !value">
             Add
           </a>
+        </div>
+
+        <div ng-if="showCommmitWarning" class="has-error">
+          <span class="help-block">
+            Please add or <a href="" ng-click="clear()">clear</a> this {{(keyTitle || 'key') | lowercase}}-{{(valueTitle || 'value') | lowercase}} pair
+          </span>
         </div>
 
         <div row class="has-error" ng-show="form.key.$error.oscUnique">
