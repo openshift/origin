@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	// "errors"
 	"fmt"
 	"io"
 
@@ -57,6 +58,9 @@ func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
 }
 
 func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
+	if len(args) > 0 {
+		return kcmdutil.UsageError(cmd, "%s", "no arguments should be provided")
+	}
 	if kcmdutil.GetFlagBool(cmd, "token") {
 		cfg, err := f.OpenShiftClientConfig.ClientConfig()
 		if err != nil {
