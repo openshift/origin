@@ -1225,6 +1225,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - imagestreams
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - builds/details
     verbs:
     - update
