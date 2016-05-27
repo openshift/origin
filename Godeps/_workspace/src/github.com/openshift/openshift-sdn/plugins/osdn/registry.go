@@ -73,6 +73,10 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 	return registry.oClient.HostSubnets().Create(hs)
 }
 
+func (registry *Registry) UpdateSubnet(hs *osapi.HostSubnet) (*osapi.HostSubnet, error) {
+	return registry.oClient.HostSubnets().Update(hs)
+}
+
 func (registry *Registry) GetAllPods() ([]kapi.Pod, error) {
 	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {

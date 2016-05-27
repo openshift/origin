@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -34,10 +35,10 @@ type ovsPlugin struct {
 	multitenant bool
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, error) {
+func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
-	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP)
+	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP, iptablesSyncPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -184,10 +185,17 @@ func isScriptError(err error) bool {
 }
 
 // Get the last command (which is prefixed with "+" because of "set -x") and its output
+// (Unless the script ended with "echo ...; exit", in which case we just return the
+// echoed text.)
 func getScriptError(output []byte) string {
 	lines := strings.Split(string(output), "\n")
-	for n := len(lines) - 1; n >= 0; n-- {
-		if strings.HasPrefix(lines[n], "+") {
+	last := len(lines)
+	for n := last - 1; n >= 0; n-- {
+		if strings.HasPrefix(lines[n], "+ exit") {
+			last = n
+		} else if strings.HasPrefix(lines[n], "+ echo") {
+			return strings.Join(lines[n+1:last], "\n")
+		} else if strings.HasPrefix(lines[n], "+") {
 			return strings.Join(lines[n:], "\n")
 		}
 	}
