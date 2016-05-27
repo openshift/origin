@@ -94,6 +94,13 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.Subjects[i].FieldPath = ""
 			}
 		},
+		func(j *authorizationapi.PolicyRule, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// if no groups are found, then we assume "".  This matches defaulting
+			if len(j.APIGroups) == 0 {
+				j.APIGroups = []string{""}
+			}
+		},
 		func(j *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			for i := range j.Subjects {

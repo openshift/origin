@@ -13,6 +13,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -124,11 +125,11 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter r
 		}, nil
 	case UserIndicator + UserAccessCheck:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 		}, nil
 	case UserIndicator + UserListProject:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("list"), Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("list"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized scope: %v", scope)
