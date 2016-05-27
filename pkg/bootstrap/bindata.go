@@ -1836,7 +1836,6 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "mysql-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "description": "MySQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mysql-database",
@@ -1848,28 +1847,18 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "name": "${DATABASE_SERVICE_NAME}"
       },
       "spec": {
         "ports": [
           {
             "name": "mysql",
-            "protocol": "TCP",
-            "port": 3306,
-            "targetPort": 3306,
-            "nodePort": 0
+            "port": 3306
           }
         ],
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
-        },
-        "portalIP": "",
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
+        }
       }
     },
     {
@@ -1893,8 +1882,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "name": "${DATABASE_SERVICE_NAME}"
       },
       "spec": {
         "strategy": {
@@ -1912,8 +1900,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                 "kind": "ImageStreamTag",
                 "name": "mysql:latest",
                 "namespace": "${NAMESPACE}"
-              },
-              "lastTriggeredImage": ""
+              }
             }
           },
           {
@@ -1926,7 +1913,6 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -1938,8 +1924,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                 "image": " ",
                 "ports": [
                   {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
+                    "containerPort": 3306
                   }
                 ],
                 "readinessProbe": {
@@ -1982,13 +1967,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                     "mountPath": "/var/lib/mysql/data"
                   }
                 ],
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
+                "imagePullPolicy": "IfNotPresent"
               }
             ],
             "volumes": [
@@ -1998,13 +1977,10 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                   "claimName": "${DATABASE_SERVICE_NAME}"
                 }
               }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
+            ]
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -2012,7 +1988,8 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
