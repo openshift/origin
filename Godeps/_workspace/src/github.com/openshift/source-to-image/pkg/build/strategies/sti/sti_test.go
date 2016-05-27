@@ -758,6 +758,11 @@ func TestExecuteOK(t *testing.T) {
 	rh.config.WorkingDir = "/working-dir"
 	rh.config.BuilderImage = "test/image"
 	rh.config.BuilderPullPolicy = api.PullAlways
+	rh.config.Environment = api.EnvironmentList{
+		api.EnvironmentSpec{"Key1", "Value1"},
+		api.EnvironmentSpec{"Key2", "Value2"},
+	}
+	expectedEnv := []string{"Key1=Value1", "Key2=Value2"}
 	th := rh.tar.(*test.FakeTar)
 	th.CreateTarResult = "/working-dir/test.tar"
 	fd := rh.docker.(*docker.FakeDocker)
@@ -807,6 +812,9 @@ func TestExecuteOK(t *testing.T) {
 	if pe.PostExecuteContainerID != "1234" {
 		t.Errorf("PostExecutor not called with expected ID: %s",
 			pe.PostExecuteContainerID)
+	}
+	if !reflect.DeepEqual(ro.Env, expectedEnv) {
+		t.Errorf("Unexpected container environment passed to RunContainer: %v, should be %v", ro.Env, expectedEnv)
 	}
 	if !reflect.DeepEqual(pe.PostExecuteDestination, "test-command") {
 		t.Errorf("PostExecutor not called with expected command: %s", pe.PostExecuteDestination)
