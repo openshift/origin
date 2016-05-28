@@ -317,7 +317,6 @@ func (builder *STI) createBuildEnvironment() []string {
 	env, err := scripts.GetEnvironment(builder.config)
 	if err != nil {
 		glog.V(1).Infof("No user environment provided (%v)", err)
-		return nil
 	}
 
 	return append(scripts.ConvertEnvironment(env), builder.generateConfigEnv()...)

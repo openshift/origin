@@ -452,7 +452,7 @@ func (e *EnvironmentList) Set(value string) error {
 		return fmt.Errorf("invalid environment format %q, must be NAME=VALUE", value)
 	}
 	if strings.Contains(parts[1], ",") && strings.Contains(parts[1], "=") {
-		glog.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", parts[1])
+		glog.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", value)
 	}
 	*e = append(*e, EnvironmentSpec{
 		Name:  strings.TrimSpace(parts[0]),
