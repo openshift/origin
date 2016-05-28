@@ -25,3 +25,13 @@ func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauth
 
 	return obj.(*oauthapi.OAuthAccessToken), err
 }
+
+// Get returns information about a particular image and error if one occurs.
+func (c *FakeOAuthAccessTokens) Get(name string) (*oauthapi.OAuthAccessToken, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("oauthaccesstokens", name), &oauthapi.OAuthAccessToken{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*oauthapi.OAuthAccessToken), err
+}

@@ -118,6 +118,12 @@ var timeNowFn = func() time.Time {
 	return time.Now()
 }
 
+// Receives a time.Duration and returns Docker go-utils'
+// human-readable output
+func formatToHumanDuration(dur time.Duration) string {
+	return units.HumanDuration(dur)
+}
+
 func formatRelativeTime(t time.Time) string {
 	return units.HumanDuration(timeNowFn().Sub(t))
 }

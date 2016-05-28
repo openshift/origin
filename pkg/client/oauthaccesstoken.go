@@ -12,6 +12,7 @@ type OAuthAccessTokensInterface interface {
 // OAuthAccessTokenInterface exposes methods on OAuthAccessTokens resources.
 type OAuthAccessTokenInterface interface {
 	Create(token *oauthapi.OAuthAccessToken) (*oauthapi.OAuthAccessToken, error)
+	Get(name string) (*oauthapi.OAuthAccessToken, error)
 	Delete(name string) error
 }
 
@@ -23,6 +24,13 @@ func newOAuthAccessTokens(c *Client) *oauthAccessTokenInterface {
 	return &oauthAccessTokenInterface{
 		r: c,
 	}
+}
+
+// Get returns information about a particular image and error if one occurs.
+func (c *oauthAccessTokenInterface) Get(name string) (result *oauthapi.OAuthAccessToken, err error) {
+	result = &oauthapi.OAuthAccessToken{}
+	err = c.r.Get().Resource("oAuthAccessTokens").Name(name).Do().Into(result)
+	return
 }
 
 // Delete removes the OAuthAccessToken on server

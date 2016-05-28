@@ -250,6 +250,11 @@ os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{
 echo "expose: ok"
 os::test::junit::declare_suite_end
 
+# Test OAuth access token describer
+os::cmd::expect_success 'oc create -f test/fixtures/oauthaccesstoken.yaml'
+os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
+echo "OAuth descriptor: ok"
+
 os::cmd::expect_success 'oc delete all --all'
 
 os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"

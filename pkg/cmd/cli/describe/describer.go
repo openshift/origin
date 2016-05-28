@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -54,6 +55,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		authorizationapi.Kind("ClusterPolicyBinding"): &ClusterPolicyBindingDescriber{c},
 		authorizationapi.Kind("ClusterRoleBinding"):   &ClusterRoleBindingDescriber{c},
 		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
+		oauthapi.Kind("OAuthAccessToken"):             &OAuthAccessTokenDescriber{c},
 		userapi.Kind("User"):                          &UserDescriber{c},
 		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
@@ -439,6 +441,33 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	})
 }
 
+// OAuthAccessTokenDescriber generates information about an OAuth Acess Token (OAuth)
+type OAuthAccessTokenDescriber struct {
+	client.Interface
+}
+
+func (d *OAuthAccessTokenDescriber) Describe(namespace, name string) (string, error) {
+	c := d.OAuthAccessTokens()
+	oAuthAccessToken, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	var timeCreated time.Time = oAuthAccessToken.ObjectMeta.CreationTimestamp.Time
+	var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, oAuthAccessToken.ObjectMeta)
+		formatString(out, "Scopes", oAuthAccessToken.Scopes)
+		formatString(out, "Expires In", formatToHumanDuration(timeExpired.Sub(time.Now())))
+		formatString(out, "User Name", oAuthAccessToken.UserName)
+		formatString(out, "User UID", oAuthAccessToken.UserUID)
+		formatString(out, "Client Name", oAuthAccessToken.ClientName)
+
+		return nil
+	})
+}
+
 // ImageDescriber generates information about a Image
 type ImageDescriber struct {
 	client.Interface
@@ -577,7 +606,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
-// ImageStreamDescriber generates information about a ImageStream
+// ImageStreamDescriber generates information about a ImageStream (Image).
 type ImageStreamDescriber struct {
 	client.Interface
 }
