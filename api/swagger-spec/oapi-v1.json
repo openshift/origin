@@ -19306,6 +19306,10 @@
       "type": "boolean",
       "description": "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action."
      },
+     "paused": {
+      "type": "boolean",
+      "description": "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers."
+     },
      "selector": {
       "type": "any",
       "description": "Selector is a label query over pods that should match the Replicas count."
