@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
-// DiscoveryClient implements the functions that dicovery server-supported API groups,
+// DiscoveryClient implements the functions that discovery server-supported API groups,
 // versions and resources.
 type DiscoveryClient struct {
 	*discovery.DiscoveryClient

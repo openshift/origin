@@ -104,7 +104,7 @@ func canTrigger(config, decoded *deployapi.DeploymentConfig) (bool, []deployapi.
 		}
 		ictCount++
 
-		// If this is the inital deployment then we need to wait for the image change controller
+		// If this is the initial deployment then we need to wait for the image change controller
 		// to resolve the image inside the pod template.
 		lastTriggered := t.ImageChangeParams.LastTriggeredImage
 		if len(lastTriggered) == 0 {

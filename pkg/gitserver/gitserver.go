@@ -142,8 +142,8 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-// NewEnviromentConfig sets up the initial config from environment variables
-func NewEnviromentConfig() (*Config, error) {
+// NewEnvironmentConfig sets up the initial config from environment variables
+func NewEnvironmentConfig() (*Config, error) {
 	config := NewDefaultConfig()
 
 	home := os.Getenv("GIT_HOME")

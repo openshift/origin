@@ -8,7 +8,7 @@ import (
 )
 
 // Convert_runtime_Object_To_runtime_RawExtension is conversion function that assumes that the runtime.Object you've embedded is in
-// the same GroupVersion that your containing type is in.  This is signficantly better than simply breaking.
+// the same GroupVersion that your containing type is in.  This is significantly better than simply breaking.
 // Given an ordered list of preferred external versions for a given encode or conversion call, the behavior of this function could be
 // made generic, predictable, and controllable.
 func Convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {

@@ -42,7 +42,7 @@ func bashQuote(env string) string {
 	return string(out)
 }
 
-// hasEnvName returns true if the provided enviroment contains the named ENV var.
+// hasEnvName returns true if the provided environment contains the named ENV var.
 func hasEnvName(env []string, name string) bool {
 	for _, e := range env {
 		if strings.HasPrefix(e, name+"=") {

@@ -64,7 +64,7 @@ func NewCommandGitServer(name string) *cobra.Command {
 }
 
 func RunGitServer() error {
-	config, err := gitserver.NewEnviromentConfig()
+	config, err := gitserver.NewEnvironmentConfig()
 	if err != nil {
 		return err
 	}

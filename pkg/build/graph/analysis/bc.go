@@ -275,7 +275,7 @@ func getImageStreamImageSuggestion(imageID string, imageStream *imageapi.ImageSt
 		// this time based annotation is set by pkg/image/controller/controller.go whenever import/tag operations are performed; unless
 		// in the midst of an import/tag operation, it stays set and serves as a timestamp for when the last operation occurred;
 		// so we will check if the image stream has been updated "recently";
-		// in case it is a slow link to the remote repo, see if if the check annotation occured within the last 5 minutes; if so, consider that as potentially "in progress"
+		// in case it is a slow link to the remote repo, see if if the check annotation occurred within the last 5 minutes; if so, consider that as potentially "in progress"
 		compareTime := checkTime.Add(5 * time.Minute)
 		currentTime, _ := time.Parse(time.RFC3339, unversioned.Now().UTC().Format(time.RFC3339))
 		if compareTime.Before(currentTime) {

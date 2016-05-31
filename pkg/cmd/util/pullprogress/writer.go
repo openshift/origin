@@ -15,7 +15,7 @@ const (
 
 // NewPullProgressWriter creates a writer that periodically reports
 // on pull progress of an image. It only reports when the state of the
-// different layers has changed and uses time threshholds to limit the
+// different layers has changed and uses time thresholds to limit the
 // rate of the reports.
 func NewPullProgressWriter(reportFn func(*ProgressReport)) io.Writer {
 	pipeIn, pipeOut := io.Pipe()

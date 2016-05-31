@@ -48,7 +48,7 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 		req.SetBasicAuth("admin", "password")
 		client := &http.Client{}
 		resp, _ := client.Do(req)
-		// the http req failing here (which we see occassionally in the ci.jenkins runs) could stem
+		// the http req failing here (which we see occasionally in the ci.jenkins runs) could stem
 		// from simply hitting our test jenkins server too soon ... so rather than returning false,err
 		// and aborting the poll, we return false, nil to try again
 		if resp == nil {
@@ -163,7 +163,7 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 
 			// the build and deployment is by far the most time consuming portion of the test jenkins job;
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
-			// jenkins for the sucessful job completion
+			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
 			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend")
 			if err != nil {

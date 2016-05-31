@@ -1196,12 +1196,12 @@ type AdmissionConfig struct {
 // ControllerConfig holds configuration values for controllers
 type ControllerConfig struct {
 	// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
-	// pods fullfilling a service to serve with.
+	// pods fulfilling a service to serve with.
 	ServiceServingCert ServiceServingCert `json:"serviceServingCert"`
 }
 
 // ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
-// pods fullfilling a service to serve with.
+// pods fulfilling a service to serve with.
 type ServiceServingCert struct {
 	// Signer holds the signing information used to automatically sign serving certificates.
 	// If this value is nil, then certs are not signed automatically.
