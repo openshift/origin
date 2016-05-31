@@ -33,6 +33,8 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 			config := testapi.OkDeploymentConfig(1)
 			config.Namespace = kapi.NamespaceDefault
 			config.Spec.Triggers[0].ImageChangeParams.Automatic = false
+			// The image has been resolved at least once before.
+			config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage = testapi.DockerImageReference
 
 			return []*deployapi.DeploymentConfig{config}, nil
 		},
@@ -118,11 +120,14 @@ func TestHandle_changeForUnregisteredTag(t *testing.T) {
 // match) properly.
 func TestHandle_matchScenarios(t *testing.T) {
 	tests := []struct {
+		name string
+
 		param   *deployapi.DeploymentTriggerImageChangeParams
 		matches bool
 	}{
-		// Update from empty last image ID to a new one with explicit namespaces
 		{
+			name: "automatic=true, initial trigger, explicit namespace",
+
 			param: &deployapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
@@ -131,8 +136,9 @@ func TestHandle_matchScenarios(t *testing.T) {
 			},
 			matches: true,
 		},
-		// Update from empty last image ID to a new one with implicit namespaces
 		{
+			name: "automatic=true, initial trigger, implicit namespace",
+
 			param: &deployapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
@@ -141,18 +147,31 @@ func TestHandle_matchScenarios(t *testing.T) {
 			},
 			matches: true,
 		},
-		// Update from empty last image ID to a new one, but not marked automatic
 		{
+			name: "automatic=false, initial trigger",
+
 			param: &deployapi.DeploymentTriggerImageChangeParams{
 				Automatic:          false,
 				ContainerNames:     []string{"container1"},
 				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
+			matches: true,
+		},
+		{
+			name: "(no-op) automatic=false, already triggered",
+
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          false,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(testapi.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: testapi.DockerImageReference,
+			},
 			matches: false,
 		},
-		// Updated image ID is equal to the last triggered ID
 		{
+			name: "(no-op) automatic=true, image is already deployed",
+
 			param: &deployapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
@@ -161,8 +180,9 @@ func TestHandle_matchScenarios(t *testing.T) {
 			},
 			matches: false,
 		},
-		// Trigger stream reference doesn't match
 		{
+			name: "(no-op) trigger doesn't match the stream",
+
 			param: &deployapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
@@ -173,13 +193,13 @@ func TestHandle_matchScenarios(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		updated := false
 
 		fake := &testclient.Fake{}
 		fake.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			if !test.matches {
-				t.Fatalf("unexpected deploymentconfig update for scenario %d", i)
+				t.Fatal("unexpected deploymentconfig update")
 			}
 			updated = true
 			return true, nil, nil
@@ -201,15 +221,15 @@ func TestHandle_matchScenarios(t *testing.T) {
 			client: fake,
 		}
 
-		t.Logf("running scenario: %d", i)
+		t.Logf("running test %q", test.name)
 		stream := makeStream(testapi.ImageStreamName, imageapi.DefaultImageTag, testapi.DockerImageReference, testapi.ImageID)
 		if err := controller.Handle(stream); err != nil {
-			t.Fatalf("unexpected error for scenario %v: %v", i, err)
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		// assert updates occurred
 		if test.matches && !updated {
-			t.Fatalf("expected update for scenario: %v", test)
+			t.Fatal("expected an update")
 		}
 	}
 }
