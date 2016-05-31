@@ -20,12 +20,18 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
+type NetworkInfo struct {
+	ClusterNetwork   *net.IPNet
+	ServiceNetwork   *net.IPNet
+	HostSubnetLength int
+}
+
 type Registry struct {
-	oClient          *osclient.Client
-	kClient          *kclient.Client
-	serviceNetwork   *net.IPNet
-	clusterNetwork   *net.IPNet
-	hostSubnetLength int
+	oClient *osclient.Client
+	kClient *kclient.Client
+
+	// Cache cluster network information
+	NetworkInfo *NetworkInfo
 }
 
 type ResourceName string
@@ -126,75 +132,68 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 	return nil, nil
 }
 
-func (registry *Registry) UpdateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
+func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	if err != nil {
 		return err
 	}
-	cn.Network = clusterNetwork.String()
-	cn.HostSubnetLength = subnetLength
-	cn.ServiceNetwork = serviceNetwork.String()
+	cn.Network = ni.ClusterNetwork.String()
+	cn.HostSubnetLength = ni.HostSubnetLength
+	cn.ServiceNetwork = ni.ServiceNetwork.String()
 	_, err = registry.oClient.ClusterNetwork().Update(cn)
 	return err
 }
 
-func (registry *Registry) CreateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
+func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	cn := &osapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
-		Network:          clusterNetwork.String(),
-		HostSubnetLength: subnetLength,
-		ServiceNetwork:   serviceNetwork.String(),
+		Network:          ni.ClusterNetwork.String(),
+		HostSubnetLength: ni.HostSubnetLength,
+		ServiceNetwork:   ni.ServiceNetwork.String(),
 	}
 	_, err := registry.oClient.ClusterNetwork().Create(cn)
 	return err
 }
 
-func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*net.IPNet, int, *net.IPNet, error) {
+func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
-		return nil, -1, nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
+		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
 	}
 
 	_, sn, err := net.ParseCIDR(serviceNetwork)
 	if err != nil {
-		return nil, -1, nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+		return nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
 	}
 
 	if hostSubnetLength <= 0 || hostSubnetLength > 32 {
-		return nil, -1, nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
+		return nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
 	}
-	return cn, hostSubnetLength, sn, nil
+
+	return &NetworkInfo{
+		ClusterNetwork:   cn,
+		ServiceNetwork:   sn,
+		HostSubnetLength: hostSubnetLength,
+	}, nil
 }
 
-func (registry *Registry) cacheClusterNetwork() error {
-	// don't hit up the master if we have the values already
-	if registry.clusterNetwork != nil && registry.serviceNetwork != nil {
-		return nil
+func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
+	// Check if we got cached network info
+	if registry.NetworkInfo != nil {
+		return registry.NetworkInfo, nil
 	}
 
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	if err != nil {
-		return err
-	}
-
-	registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
-
-	return err
-}
-
-func (registry *Registry) GetNetworkInfo() (*net.IPNet, int, *net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return nil, -1, nil, err
-	}
-	return registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, nil
-}
-
-func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
 		return nil, err
 	}
-	return registry.clusterNetwork, nil
+
+	registry.NetworkInfo, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
+	if err != nil {
+		return nil, err
+	}
+	return registry.NetworkInfo, nil
 }
 
 func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {

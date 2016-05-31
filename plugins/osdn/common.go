@@ -92,7 +92,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	return nil
 }
 
-func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
+func (oc *OsdnController) validateNetworkConfig(ni *NetworkInfo) error {
 	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
 	// This will ensure both the kube/multitenant scripts and master validations use the same name.
 	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
@@ -104,17 +104,17 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 
 	// Ensure cluster and service network don't overlap with host networks
 	for _, ipNet := range hostIPNets {
-		if ipNet.Contains(clusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", clusterNetwork.IP.String(), ipNet.String()))
+		if ipNet.Contains(ni.ClusterNetwork.IP) {
+			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
 		}
-		if clusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), clusterNetwork.String()))
+		if ni.ClusterNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
 		}
-		if ipNet.Contains(serviceNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", serviceNetwork.String(), ipNet.String()))
+		if ipNet.Contains(ni.ServiceNetwork.IP) {
+			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
 		}
-		if serviceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), serviceNetwork.String()))
+		if ni.ServiceNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
 		}
 	}
 
@@ -129,8 +129,8 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
 			continue
 		}
-		if !clusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, clusterNetwork.String()))
+		if !ni.ClusterNetwork.Contains(subnetIP) {
+			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
 		}
 	}
 
@@ -140,22 +140,23 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 		return err
 	}
 	for _, svc := range services {
-		if !serviceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
-			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, serviceNetwork.String()))
+		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
+			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}
 	}
 
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
-	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
+func (oc *OsdnController) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool, error) {
+	oldNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
 	}
-	if clusterNetworkCIDR != clusterNetwork.String() ||
-		hostSubnetLength != hostBitsPerSubnet ||
-		serviceNetworkCIDR != serviceNetwork.String() {
+
+	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
+		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
+		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() {
 		return true, nil
 	}
 	return false, nil
@@ -163,27 +164,26 @@ func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hos
 
 func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
-	hostBitsPerSubnet := int(clusterBitsPerSubnet)
-	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
+	ni, err := ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR)
 	if err != nil {
 		return err
 	}
 
-	changed, net_err := oc.isClusterNetworkChanged(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
+	changed, net_err := oc.isClusterNetworkChanged(ni)
 	if changed {
-		if err := oc.validateNetworkConfig(clusterNetwork, serviceNetwork); err != nil {
+		if err := oc.validateNetworkConfig(ni); err != nil {
 			return err
 		}
-		if err := oc.Registry.UpdateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+		if err := oc.Registry.UpdateClusterNetwork(ni); err != nil {
 			return err
 		}
 	} else if net_err != nil {
-		if err := oc.Registry.CreateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+		if err := oc.Registry.CreateClusterNetwork(ni); err != nil {
 			return err
 		}
 	}
 
-	if err := oc.pluginHooks.PluginStartMaster(clusterNetwork, clusterBitsPerSubnet); err != nil {
+	if err := oc.pluginHooks.PluginStartMaster(ni.ClusterNetwork, clusterBitsPerSubnet); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 	return nil
@@ -191,13 +191,13 @@ func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerS
 
 func (oc *OsdnController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
-	clusterNetwork, err := oc.Registry.GetClusterNetwork()
+	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
+		log.Errorf("Failed to get network information: %v", err)
 		return err
 	}
 
-	nodeIPTables := NewNodeIPTables(clusterNetwork.String(), oc.iptablesSyncPeriod)
+	nodeIPTables := NewNodeIPTables(ni.ClusterNetwork.String(), oc.iptablesSyncPeriod)
 	if err := nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
