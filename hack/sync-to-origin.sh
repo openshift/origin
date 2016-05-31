@@ -35,13 +35,13 @@ validate_args() {
     sdn_repo_dir=$(readlink -f -- $sdn_repo_dir)
 }
 
-handle_uncommited_sdn_changes() {
+handle_uncommitted_sdn_changes() {
     dir=$1
     if [ -d "$dir" ]; then
         pushd $origin_repo_dir >/dev/null
         if (git diff $dir 2>/dev/null | grep -q '+++ ') || \
            (git diff $dir --cached 2>/dev/null | grep -q '+++ '); then
-            echo "Warning: openshift origin repo has uncommited sdn changes under '$dir'"
+            echo "Warning: openshift origin repo has uncommitted sdn changes under '$dir'"
             echo -n "Continue to override the changes?[y/n]: "
             read input
 	    input=$(echo $input | tr '[:upper:]' '[:lower:]')
@@ -65,8 +65,8 @@ copy_files_to_origin() {
         echo "Warning: openshift origin repo doesn't contain sdn dirs under '$origin_sdn_pkg_dir'"
     fi
 
-    # If any uncommited sdn changes found in origin repo, get user input before proceeding further
-    handle_uncommited_sdn_changes $origin_sdn_pkg_dir
+    # If any uncommitted sdn changes found in origin repo, get user input before proceeding further
+    handle_uncommitted_sdn_changes $origin_sdn_pkg_dir
 
     # Move old origin sdn changes to temporary sync dir 
     mv -f $origin_sdn_pkg_dir $temp_sync_dir
