@@ -36,6 +36,7 @@ type PluginHooks interface {
 
 type OsdnController struct {
 	pluginHooks        PluginHooks
+	pluginName         string
 	Registry           *Registry
 	localIP            string
 	localSubnet        *osapi.HostSubnet
@@ -50,7 +51,7 @@ type OsdnController struct {
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string, iptablesSyncPeriod time.Duration) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, pluginName string, hostname string, selfIP string, iptablesSyncPeriod time.Duration) error {
 
 	log.Infof("Starting with configured hostname %q (IP %q), iptables sync period %q", hostname, selfIP, iptablesSyncPeriod.String())
 
@@ -74,13 +75,10 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 			selfIP = defaultIP.String()
 		}
 	}
-	if multitenant {
-		log.Infof("Initializing multi-tenant plugin for %s (%s)", hostname, selfIP)
-	} else {
-		log.Infof("Initializing single-tenant plugin for %s (%s)", hostname, selfIP)
-	}
+	log.Infof("Initializing %s plugin for %s (%s)", pluginName, hostname, selfIP)
 
 	oc.pluginHooks = pluginHooks
+	oc.pluginName = pluginName
 	oc.Registry = registry
 	oc.localIP = selfIP
 	oc.HostName = hostname
@@ -156,7 +154,8 @@ func (oc *OsdnController) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool
 
 	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
 		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
-		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() {
+		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
+		curNetwork.PluginName != oldNetwork.PluginName {
 		return true, nil
 	}
 	return false, nil
@@ -164,7 +163,7 @@ func (oc *OsdnController) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool
 
 func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
-	ni, err := ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR)
+	ni, err := ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR, oc.pluginName)
 	if err != nil {
 		return err
 	}
@@ -193,8 +192,7 @@ func (oc *OsdnController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
 	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		log.Errorf("Failed to get network information: %v", err)
-		return err
+		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
 	nodeIPTables := NewNodeIPTables(ni.ClusterNetwork.String(), oc.iptablesSyncPeriod)

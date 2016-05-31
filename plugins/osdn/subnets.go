@@ -110,7 +110,6 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	// Assume we are working with IPv4
 	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		log.Errorf("Failed to get network information: %v", err)
 		return false, err
 	}
 	networkChanged, err := oc.pluginHooks.SetupSDN(oc.localSubnet.Subnet, ni.ClusterNetwork.String(), ni.ServiceNetwork.String(), mtu)

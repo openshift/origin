@@ -24,6 +24,7 @@ type NetworkInfo struct {
 	ClusterNetwork   *net.IPNet
 	ServiceNetwork   *net.IPNet
 	HostSubnetLength int
+	PluginName       string
 }
 
 type Registry struct {
@@ -140,6 +141,7 @@ func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 	cn.Network = ni.ClusterNetwork.String()
 	cn.HostSubnetLength = ni.HostSubnetLength
 	cn.ServiceNetwork = ni.ServiceNetwork.String()
+	cn.PluginName = ni.PluginName
 	_, err = registry.oClient.ClusterNetwork().Update(cn)
 	return err
 }
@@ -151,12 +153,13 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 		Network:          ni.ClusterNetwork.String(),
 		HostSubnetLength: ni.HostSubnetLength,
 		ServiceNetwork:   ni.ServiceNetwork.String(),
+		PluginName:       ni.PluginName,
 	}
 	_, err := registry.oClient.ClusterNetwork().Create(cn)
 	return err
 }
 
-func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*NetworkInfo, error) {
+func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
@@ -175,6 +178,7 @@ func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork
 		ClusterNetwork:   cn,
 		ServiceNetwork:   sn,
 		HostSubnetLength: hostSubnetLength,
+		PluginName:       pluginName,
 	}, nil
 }
 
@@ -189,7 +193,7 @@ func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
 		return nil, err
 	}
 
-	registry.NetworkInfo, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
+	registry.NetworkInfo, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
 	if err != nil {
 		return nil, err
 	}
