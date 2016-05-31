@@ -79,6 +79,13 @@ items:
           - name: GENERATE_ARTIFACTS
             value: "true"
 
+          # The strategy to use when creating build artifacts from a repository. 
+          # With the default empty value, a Docker build  will be generated if 
+          # a Dockerfile is present in the repository. Otherwise, a source build 
+          # will be created. Valid values are: "", docker, source
+          - name: BUILD_STRATEGY
+            value: ""
+
           # The script to use for custom language detection on a
           # repository. See hooks/detect-language for an example.
           # To use new-app's default detection, leave this variable

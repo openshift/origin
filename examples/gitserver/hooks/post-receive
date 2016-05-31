@@ -16,18 +16,24 @@ function detect {
   local repoURL="$1"
   local repoName="$2"
   local detectionScript=${DETECTION_SCRIPT:-}
+  local buildStrategy=${BUILD_STRATEGY:-}
+  local strategyArg=""
+  if [[ -n "$buildStrategy" ]]; then 
+    strategyArg="--strategy=${buildStrategy}"
+  fi
+
   # The purpose of using a custom detection script is that users can customize the 
   # 'detect-language' script to return the image that's appropriate for their needs. 
   # It is possible to just have new-app do code detection. In that case, just set
   # the DETECTION_SCRIPT variable to an empty string.
   if [[ -z $detectionScript ]]; then
-    oc new-app "${repoURL}"
+    oc new-app "${repoURL}" $strategyArg
   else
     if ! lang=$($(dirname $0)/${detectionScript}); then
       return
     fi
     echo "detect: found language ${lang} for ${repoName}"
-    oc new-app "${lang}~${repoURL}"
+    oc new-app "${lang}~${repoURL}" $strategyArg
   fi
   # TODO: when a command to set a secret is available,
   # set an optional secret on the resulting build configuration
