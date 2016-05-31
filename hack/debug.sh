@@ -280,7 +280,7 @@ get_config_path_from_service() {
     service_type=$1
     # 'atomic-openshift-node.service', 'atomic-openshift-master-controllers.service', etc
     service_name=$2
-    config=$(ps wwaux | grep -v grep | sed -ne "s/.*openshift start ${service_type} --config=\([^ ]*\.yaml\).*/\1/p")
+    config=$(ps wwaux | grep -v grep | sed -ne "s/.*openshift start ${service_type} --.*config=\([^ ]*\.yaml\).*/\1/p")
     if [ -z "$config" ]; then
 	config=$(systemctl show -p ExecStart $service_name | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
 	if [ "$config" == "\${CONFIG_FILE}" ]; then
