@@ -129,7 +129,7 @@ func TestTimedCommandTimeout(t *testing.T) {
 		if _, ok := output.err.(*TimeoutError); !ok {
 			t.Fatalf("expected command to fail due to timeout, got: %v", output.err)
 		}
-	case <-time.After(10 * timeout):
+	case <-time.After(1000 * timeout):
 		t.Fatalf("expected command to have timed out, but it didn't")
 	}
 }
