@@ -63,11 +63,11 @@ func (c *localSubjectAccessReviews) Create(sar *authorizationapi.LocalSubjectAcc
 		}
 		deprecatedResponse := &authorizationapi.SubjectAccessReviewResponse{}
 
-		req, err := overrideAuth(c.token, c.r.Post().Namespace(c.ns).Resource("subjectAccessReviews"))
-		if err != nil {
-			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		deprecatedReq, deprecatedAttemptErr := overrideAuth(c.token, c.r.Post().Namespace(c.ns).Resource("subjectAccessReviews"))
+		if deprecatedAttemptErr != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, deprecatedAttemptErr
 		}
-		deprecatedAttemptErr := req.Body(deprecatedSAR).Do().Into(deprecatedResponse)
+		deprecatedAttemptErr = deprecatedReq.Body(deprecatedSAR).Do().Into(deprecatedResponse)
 		if deprecatedAttemptErr == nil {
 			err = nil
 			result = deprecatedResponse
