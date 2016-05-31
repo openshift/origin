@@ -157,7 +157,7 @@ angular.module('openshiftConsole')
           deferred.resolve({
             token: fragmentParams.access_token,
             ttl: fragmentParams.expires_in,
-            then: stateData.state,
+            then: stateData.then,
             verified: stateData.verified
           });
           return deferred.promise;
