@@ -586,7 +586,7 @@ func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...st
 		Consumes(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// initHealthCheckRoute initializes an HTTP endpoint for health checking.
 // OpenShift is deemed healthy if the API server can respond with an OK messages
 func initHealthCheckRoute(root *restful.WebService, path string) {
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
@@ -613,7 +613,7 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Produces(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// initHealthCheckRoute initializes an HTTP endpoint for health checking.
 // OpenShift is deemed healthy if the API server can respond with an OK messages
 func initMetricsRoute(root *restful.WebService, path string) {
 	h := prometheus.Handler()

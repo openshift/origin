@@ -173,7 +173,7 @@ func (ImageStreamStatus) SwaggerDoc() map[string]string {
 var map_ImageStreamTag = map[string]string{
 	"":           "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
 	"metadata":   "Standard object's metadata.",
-	"tag":        "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occured to this image stream.",
+	"tag":        "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
 	"generation": "Generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or Conditions will be filled out indicating any error.",
 	"conditions": "Conditions is an array of conditions that apply to the image stream tag.",
 	"image":      "Image associated with the ImageStream and tag.",

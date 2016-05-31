@@ -68,7 +68,7 @@ type f5LTM struct {
 	passthroughRoutes map[string]passthroughRoute
 }
 
-// f5LTMCfg holds configuration for connecting to and issueing iControl
+// f5LTMCfg holds configuration for connecting to and issuing iControl
 // requests against an F5 BIG-IP instance.
 type f5LTMCfg struct {
 	// host specifies the hostname or IP address of the F5 BIG-IP host.
@@ -708,7 +708,7 @@ func (f5 *f5LTM) checkPartitionPathExists(pathName string) (bool, error) {
 	return true, nil
 }
 
-// addPartitionPath adds a new partition path to the folder heirarchy.
+// addPartitionPath adds a new partition path to the folder hierarchy.
 func (f5 *f5LTM) addPartitionPath(pathName string) (bool, error) {
 	glog.V(4).Infof("Creating partition path %q ...", pathName)
 
@@ -744,7 +744,7 @@ func (f5 *f5LTM) ensurePartitionPathExists(pathName string) error {
 		return nil
 	}
 
-	// We have to loop thru the path hierarchy and add components
+	// We have to loop through the path hierarchy and add components
 	// individually if they don't exist.
 
 	// Get path components - we need to remove the leading empty path

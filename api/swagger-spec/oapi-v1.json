@@ -2036,7 +2036,7 @@
         "type": "string",
         "paramType": "query",
         "name": "sinceTime",
-        "description": "sinceTime is an RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+        "description": "sinceTime is an RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -5289,7 +5289,7 @@
         "type": "string",
         "paramType": "query",
         "name": "sinceTime",
-        "description": "An RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+        "description": "An RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
         "required": false,
         "allowMultiple": false
        },
@@ -21644,7 +21644,7 @@
      },
      "tag": {
       "$ref": "v1.TagReference",
-      "description": "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occured to this image stream."
+      "description": "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream."
      },
      "generation": {
       "type": "integer",

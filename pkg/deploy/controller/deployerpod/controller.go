@@ -146,7 +146,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 
-		// If the deployment was canceled, trigger a reconcilation of its deployment config
+		// If the deployment was canceled, trigger a reconciliation of its deployment config
 		// so that the latest complete deployment can immediately rollback in place of the
 		// canceled deployment.
 		if nextStatus == deployapi.DeploymentStatusFailed && deployutil.IsDeploymentCancelled(deployment) {

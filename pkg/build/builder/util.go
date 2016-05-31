@@ -51,7 +51,7 @@ func readNetClsCGroup(reader io.Reader) string {
 }
 
 // getDockerNetworkMode determines whether the builder is running as a container
-// by examining /proc/self/cgroup. This contenxt is then passed to source-to-image.
+// by examining /proc/self/cgroup. This context is then passed to source-to-image.
 func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {

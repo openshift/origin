@@ -10,7 +10,7 @@ import (
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 )
 
-// RelevantBuilds returns the lastSuccessful build, lastUnsuccesful build, and a list of active builds
+// RelevantBuilds returns the lastSuccessful build, lastUnsuccessful build, and a list of active builds
 func RelevantBuilds(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (*buildgraph.BuildNode, *buildgraph.BuildNode, []*buildgraph.BuildNode) {
 	var (
 		lastSuccessfulBuild   *buildgraph.BuildNode

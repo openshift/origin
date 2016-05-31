@@ -411,7 +411,7 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 }
 
 // TestHandle_canceledDeploymentTrigger ensures that a canceled deployment
-// will trigger a reconcilation of its deploymentconfig (via an annotation
+// will trigger a reconciliation of its deploymentconfig (via an annotation
 // update) so that rolling back can happen on the spot and not rely on the
 // deploymentconfig cache resync interval.
 func TestHandle_canceledDeploymentTriggerTest(t *testing.T) {

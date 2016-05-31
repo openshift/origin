@@ -156,7 +156,7 @@ func TestCreateImageImport(t *testing.T) {
 			}},
 		},
 		{
-			// 7: insecure annotation should be overriden by the flag
+			// 7: insecure annotation should be overridden by the flag
 			name: "testis",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{

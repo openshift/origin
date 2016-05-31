@@ -232,7 +232,7 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 // consume.
 func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
-	// TODO: allow source info to be overriden by build
+	// TODO: allow source info to be overridden by build
 	sourceInfo := &git.SourceInfo{}
 	if d.build.Spec.Source.Git != nil {
 		var errors []error

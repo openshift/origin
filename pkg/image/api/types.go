@@ -198,7 +198,7 @@ type ImageStreamTag struct {
 	kapi.ObjectMeta
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
-	// if only pushes have occured to this image stream.
+	// if only pushes have occurred to this image stream.
 	Tag *TagReference
 
 	// Generation is the current generation of the tagged image - if tag is provided

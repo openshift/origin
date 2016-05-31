@@ -100,7 +100,7 @@ func createMissingScaleRefMarker(hpaNode *kubenodes.HorizontalPodAutoscalerNode,
 // can assume that it will be handled before this step. Therefore, we are only concerned with finding HPAs that are trying to
 // scale the same resources.
 //
-// The algorithm that is used to implement this check is decribed as follows:
+// The algorithm that is used to implement this check is described as follows:
 //  - create a sub-graph containing only HPA nodes and other nodes that can be scaled, as well as any scaling edges or other
 //    edges used to connect between objects that can be scaled
 //  - for every resulting edge in the new sub-graph, create an edge in the reverse direction

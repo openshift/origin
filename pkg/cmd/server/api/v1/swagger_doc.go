@@ -117,7 +117,7 @@ func (CertInfo) SwaggerDoc() map[string]string {
 
 var map_ControllerConfig = map[string]string{
 	"":                   "ControllerConfig holds configuration values for controllers",
-	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fullfilling a service to serve with.",
+	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
 }
 
 func (ControllerConfig) SwaggerDoc() map[string]string {
@@ -726,7 +726,7 @@ func (ServiceAccountConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceServingCert = map[string]string{
-	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fullfilling a service to serve with.",
+	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
 	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
 }
 
