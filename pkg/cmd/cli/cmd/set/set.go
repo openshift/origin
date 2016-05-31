@@ -36,6 +36,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 				NewCmdEnv(name, f, in, out),
 				NewCmdVolume(name, f, out, errout),
 				NewCmdProbe(name, f, out, errout),
+				NewCmdDeploymentHook(name, f, out, errout),
 			},
 		},
 		{
