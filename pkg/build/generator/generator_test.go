@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/api/validation"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -680,6 +681,18 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Annotations[buildapi.BuildNumberAnnotation] != "13" {
 		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildapi.BuildNumberAnnotation])
+	}
+
+	// Test long name
+	bc.Name = strings.Repeat("a", 100)
+	build, err = generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	build.Namespace = "test-namespace"
+	errors := validation.ValidateBuild(build)
+	if len(errors) > 0 {
+		t.Fatalf("Unexpected validation errors %v", errors)
 	}
 }
 
