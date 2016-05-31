@@ -68,6 +68,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&serviceLoader{namespace: namespace, lister: d.K},
 		&serviceAccountLoader{namespace: namespace, lister: d.K},
 		&secretLoader{namespace: namespace, lister: d.K},
+		&pvcLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
 		&petsetLoader{namespace: namespace, lister: d.K.Apps()},
@@ -119,6 +120,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
+	deployedges.AddAllVolumeClaimEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 	routeedges.AddAllRouteEdges(g)
@@ -376,6 +378,7 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
 		deployanalysis.FindDeploymentConfigTriggerErrors,
+		deployanalysis.FindPersistentVolumeClaimWarnings,
 		buildanalysis.FindMissingInputImageStreams,
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
@@ -1331,6 +1334,30 @@ func (l *secretLoader) Load() error {
 func (l *secretLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsureSecretNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type pvcLoader struct {
+	namespace string
+	lister    kclient.PersistentVolumeClaimsNamespacer
+	items     []kapi.PersistentVolumeClaim
+}
+
+func (l *pvcLoader) Load() error {
+	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *pvcLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsurePersistentVolumeClaimNode(g, &l.items[i])
 	}
 
 	return nil

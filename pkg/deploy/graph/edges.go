@@ -3,6 +3,8 @@ package graph
 import (
 	"github.com/gonum/graph"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -18,6 +20,8 @@ const (
 	UsedInDeploymentEdgeKind = "UsedInDeployment"
 	// DeploymentEdgeKind points from DeploymentConfigs to the ReplicationControllers that are fulfilling the deployment
 	DeploymentEdgeKind = "Deployment"
+	// VolumeClaimEdgeKind goes from DeploymentConfigs to PersistentVolumeClaims indicating a request for persistent storage.
+	VolumeClaimEdgeKind = "VolumeClaim"
 )
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
@@ -80,6 +84,34 @@ func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
 		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
 			AddDeploymentEdges(g, dcNode)
+		}
+	}
+}
+
+func AddVolumeClaimEdges(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNode) {
+	for _, volume := range dcNode.DeploymentConfig.Spec.Template.Spec.Volumes {
+		source := volume.VolumeSource
+		if source.PersistentVolumeClaim == nil {
+			continue
+		}
+
+		syntheticClaim := &kapi.PersistentVolumeClaim{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      source.PersistentVolumeClaim.ClaimName,
+				Namespace: dcNode.DeploymentConfig.Namespace,
+			},
+		}
+
+		pvcNode := kubegraph.FindOrCreateSyntheticPVCNode(g, syntheticClaim)
+		// TODO: Consider direction
+		g.AddEdge(dcNode, pvcNode, VolumeClaimEdgeKind)
+	}
+}
+
+func AddAllVolumeClaimEdges(g osgraph.Graph) {
+	for _, node := range g.Nodes() {
+		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
+			AddVolumeClaimEdges(g, dcNode)
 		}
 	}
 }
