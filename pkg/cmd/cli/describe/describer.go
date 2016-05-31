@@ -1369,7 +1369,13 @@ func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwri
 func squashGitInfo(sourceRevision *buildapi.SourceRevision, out *tabwriter.Writer) {
 	if sourceRevision != nil && sourceRevision.Git != nil {
 		rev := sourceRevision.Git
-		formatString(out, "Commit", fmt.Sprintf("%s (%s)", rev.Commit[:7], rev.Message))
+		var commit string
+		if len(rev.Commit) > 7 {
+			commit = rev.Commit[:7]
+		} else {
+			commit = rev.Commit
+		}
+		formatString(out, "Commit", fmt.Sprintf("%s (%s)", commit, rev.Message))
 		hasAuthor := len(rev.Author.Name) != 0
 		hasCommitter := len(rev.Committer.Name) != 0
 		if hasAuthor && hasCommitter {
