@@ -122,22 +122,22 @@ func TestCovers(t *testing.T) {
 		}
 	}
 
-	if covers, _ := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, _ := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, _ := rulevalidation.Covers(admin.Rules, viewer.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(admin.Rules, viewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, _ := rulevalidation.Covers(admin.Rules, registryAdmin.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(admin.Rules, registryAdmin.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, _ := rulevalidation.Covers(registryAdmin.Rules, registryEditor.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryEditor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, _ := rulevalidation.Covers(registryAdmin.Rules, registryViewer.Rules); !covers {
-		t.Errorf("failed to cover")
+	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryViewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
 }
