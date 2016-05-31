@@ -304,6 +304,7 @@ os::cmd::expect_success_and_text 'oc whoami' 'test-user'
 os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
+os::cmd::expect_failure_and_text 'oc whoami -c -t test_arg' 'no arguments'
 
 # test config files from the --config flag
 os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
