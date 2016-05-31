@@ -450,7 +450,6 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			if len(options.Commit) > 0 {
 				commit = options.Commit
 			}
-			fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 			info, gitErr := gitRefInfo(git, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
@@ -464,6 +463,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			}
 
 			if asRepo {
+				fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
 				}
