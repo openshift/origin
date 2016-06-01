@@ -280,9 +280,12 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 		return nil, docker.ErrNoSuchImage
 	}
 
-	repository, _ := docker.ParseRepositoryTag(from)
+	repository, tag := docker.ParseRepositoryTag(from)
+	if len(tag) == 0 {
+		tag = "latest"
+	}
 
-	glog.V(4).Infof("attempting to pull %s with auth from repository %s", from, repository)
+	glog.V(4).Infof("attempting to pull %s with auth from repository %s:%s", from, repository, tag)
 
 	// TODO: we may want to abstract looping over multiple credentials
 	auth, _ := e.AuthFn(repository)
@@ -298,7 +301,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	for _, config := range auth {
 		// TODO: handle IDs?
 		// TODO: use RawJSONStream:true and handle the output nicely
-		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out}, config); err == nil {
+		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out, Tag: tag}, config); err == nil {
 			break
 		}
 		lastErr = err
