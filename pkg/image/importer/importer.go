@@ -50,6 +50,9 @@ type ImageStreamImporter struct {
 	limiter   flowcontrol.RateLimiter
 
 	digestToRepositoryCache map[gocontext.Context]map[manifestKey]*api.Image
+
+	// digestToLayerSizeCache maps layer digests to size.
+	digestToLayerSizeCache map[string]int64
 }
 
 // NewImageStreamImport creates an importer that will load images from a remote Docker registry into an
@@ -65,33 +68,35 @@ func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo in
 		limiter:   limiter,
 
 		digestToRepositoryCache: make(map[gocontext.Context]map[manifestKey]*api.Image),
+		digestToLayerSizeCache:  make(map[string]int64),
 	}
 }
 
-// contextImageCache returns the image cache entry for a context.
-func (i *ImageStreamImporter) contextImageCache(ctx gocontext.Context) map[manifestKey]*api.Image {
-	cache := i.digestToRepositoryCache[ctx]
-	if cache == nil {
-		cache = make(map[manifestKey]*api.Image)
-		i.digestToRepositoryCache[ctx] = cache
+// contextImageCache initializes the image cache entry for a context and layer size cache.
+func (i *ImageStreamImporter) contextImageCache(ctx gocontext.Context) {
+	if i.digestToLayerSizeCache == nil {
+		i.digestToLayerSizeCache = make(map[string]int64)
 	}
-	return cache
+	if _, ok := i.digestToRepositoryCache[ctx]; !ok {
+		i.digestToRepositoryCache[ctx] = make(map[manifestKey]*api.Image)
+	}
 }
 
 // Import tries to complete the provided isi object with images loaded from remote registries.
 func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *api.ImageStreamImport) error {
-	cache := i.contextImageCache(ctx)
-	importImages(ctx, i.retriever, isi, cache, i.limiter)
-	importFromRepository(ctx, i.retriever, isi, i.maximumTagsPerRepo, cache, i.limiter)
+	i.contextImageCache(ctx)
+	i.importImages(ctx, i.retriever, isi, i.limiter)
+	i.importFromRepository(ctx, i.retriever, isi, i.maximumTagsPerRepo, i.limiter)
 	return nil
 }
 
 // importImages updates the passed ImageStreamImport object and sets Status for each image based on whether the import
 // succeeded or failed. Cache is updated with any loaded images. Limiter is optional and controls how fast images are updated.
-func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, cache map[manifestKey]*api.Image, limiter flowcontrol.RateLimiter) {
+func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, limiter flowcontrol.RateLimiter) {
 	tags := make(map[manifestKey][]int)
 	ids := make(map[manifestKey][]int)
 	repositories := make(map[repositoryKey]*importRepository)
+	cache := i.digestToRepositoryCache[ctx]
 
 	isi.Status.Images = make([]api.ImageImportStatus, len(isi.Spec.Images))
 	for i := range isi.Spec.Images {
@@ -146,7 +151,7 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 
 	// for each repository we found, import all tags and digests
 	for key, repo := range repositories {
-		importRepositoryFromDocker(ctx, retriever, repo, limiter)
+		i.importRepositoryFromDocker(ctx, retriever, repo, limiter)
 		for _, tag := range repo.Tags {
 			j := manifestKey{repositoryKey: key}
 			j.value = tag.Name
@@ -194,10 +199,11 @@ func importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *api
 // importFromRepository imports the repository named on the ImageStreamImport, if any, importing up to maximumTags, and reporting
 // status on each image that is attempted to be imported. If the repository cannot be found or tags cannot be retrieved, the repository
 // status field is set.
-func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, maximumTags int, cache map[manifestKey]*api.Image, limiter flowcontrol.RateLimiter) {
+func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, isi *api.ImageStreamImport, maximumTags int, limiter flowcontrol.RateLimiter) {
 	if isi.Spec.Repository == nil {
 		return
 	}
+	cache := i.digestToRepositoryCache[ctx]
 	isi.Status.Repository = &api.RepositoryImportStatus{}
 	status := isi.Status.Repository
 
@@ -223,7 +229,7 @@ func importFromRepository(ctx gocontext.Context, retriever RepositoryRetriever, 
 		Insecure:    spec.ImportPolicy.Insecure,
 		MaximumTags: maximumTags,
 	}
-	importRepositoryFromDocker(ctx, retriever, repo, limiter)
+	i.importRepositoryFromDocker(ctx, retriever, repo, limiter)
 
 	if repo.Err != nil {
 		status.Status = imageImportStatus(repo.Err, "", "repository")
@@ -299,9 +305,43 @@ func formatRepositoryError(repository *importRepository, refName string, refID s
 	return
 }
 
+// calculateImageSize gets and updates size of each image layer. If manifest v2 is converted to v1,
+// then it loses information about layers size. We have to get this information from server again.
+func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo distribution.Repository, image *api.Image) error {
+	bs := repo.Blobs(ctx)
+
+	layerSet := sets.NewString()
+	size := int64(0)
+	for i := range image.DockerImageLayers {
+		layer := &image.DockerImageLayers[i]
+
+		if layerSet.Has(layer.Name) {
+			continue
+		}
+		layerSet.Insert(layer.Name)
+
+		if layerSize, ok := isi.digestToLayerSizeCache[layer.Name]; ok {
+			size += layerSize
+			continue
+		}
+
+		desc, err := bs.Stat(ctx, digest.Digest(layer.Name))
+		if err != nil {
+			return err
+		}
+
+		isi.digestToLayerSizeCache[layer.Name] = desc.Size
+		layer.LayerSize = desc.Size
+		size += desc.Size
+	}
+
+	image.DockerImageMetadata.Size = size
+	return nil
+}
+
 // importRepositoryFromDocker loads the tags and images requested in the passed importRepository, obeying the
 // optional rate limiter.  Errors are set onto the individual tags and digest objects.
-func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter flowcontrol.RateLimiter) {
+func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter flowcontrol.RateLimiter) {
 	glog.V(5).Infof("importing remote Docker repository registry=%s repository=%s insecure=%t", repository.Registry, repository.Name, repository.Insecure)
 	// retrieve the repository
 	repo, err := retriever.Repository(ctx, repository.Registry, repository.Name, repository.Insecure)
@@ -430,6 +470,12 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 			importDigest.Err = err
 			continue
 		}
+		if importDigest.Image.DockerImageMetadata.Size == 0 {
+			if err := isi.calculateImageSize(ctx, repo, importDigest.Image); err != nil {
+				importDigest.Err = err
+				continue
+			}
+		}
 	}
 
 	for i := range repository.Tags {
@@ -473,6 +519,12 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 		if err := api.ImageWithMetadata(importTag.Image); err != nil {
 			importTag.Err = err
 			continue
+		}
+		if importTag.Image.DockerImageMetadata.Size == 0 {
+			if err := isi.calculateImageSize(ctx, repo, importTag.Image); err != nil {
+				importTag.Err = err
+				continue
+			}
 		}
 	}
 }
