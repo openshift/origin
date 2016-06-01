@@ -1,18 +1,21 @@
 package origin
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/net"
+	utilnet "k8s.io/kubernetes/pkg/util/net"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 )
 
+// auditResponseWriter implements http.ResponseWriter interface.
 type auditResponseWriter struct {
 	http.ResponseWriter
 	id string
@@ -22,6 +25,31 @@ func (a *auditResponseWriter) WriteHeader(code int) {
 	glog.Infof("AUDIT: id=%q response=\"%d\"", a.id, code)
 	a.ResponseWriter.WriteHeader(code)
 }
+
+var _ http.ResponseWriter = &auditResponseWriter{}
+
+// fancyResponseWriterDelegator implements http.CloseNotifier, http.Flusher and
+// http.Hijacker which are needed to make certain http operation (eg. watch, rsh, etc)
+// working.
+type fancyResponseWriterDelegator struct {
+	*auditResponseWriter
+}
+
+func (f *fancyResponseWriterDelegator) CloseNotify() <-chan bool {
+	return f.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
+func (f *fancyResponseWriterDelegator) Flush() {
+	f.ResponseWriter.(http.Flusher).Flush()
+}
+
+func (f *fancyResponseWriterDelegator) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return f.ResponseWriter.(http.Hijacker).Hijack()
+}
+
+var _ http.CloseNotifier = &fancyResponseWriterDelegator{}
+var _ http.Flusher = &fancyResponseWriterDelegator{}
+var _ http.Hijacker = &fancyResponseWriterDelegator{}
 
 // auditHandler is responsible for logging audit information for all the
 // request coming to server. Each audit log contains two entries:
@@ -66,7 +94,20 @@ func (c *MasterConfig) auditHandler(handler http.Handler) http.Handler {
 		id := uuid.NewRandom().String()
 
 		glog.Infof("AUDIT: id=%q ip=%q method=%q user=%q as=%q asgroups=%q namespace=%q uri=%q",
-			id, net.GetClientIP(req), req.Method, user.GetName(), asuser, asgroups, namespace, req.URL)
-		handler.ServeHTTP(&auditResponseWriter{w, id}, req)
+			id, utilnet.GetClientIP(req), req.Method, user.GetName(), asuser, asgroups, namespace, req.URL)
+		handler.ServeHTTP(constructResponseWriter(w, id), req)
 	})
+}
+
+func constructResponseWriter(responseWriter http.ResponseWriter, id string) http.ResponseWriter {
+	delegate := &auditResponseWriter{ResponseWriter: responseWriter, id: id}
+	// check if the ResponseWriter we're wrapping is the fancy one we need
+	// or if the basic is sufficient
+	_, cn := responseWriter.(http.CloseNotifier)
+	_, fl := responseWriter.(http.Flusher)
+	_, hj := responseWriter.(http.Hijacker)
+	if cn && fl && hj {
+		return &fancyResponseWriterDelegator{delegate}
+	}
+	return delegate
 }
