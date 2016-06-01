@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -19,7 +20,10 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
-	storage := NewREST(etcdStorage)
+	storage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	if err != nil {
+		t.Fatal(err)
+	}
 	return storage, server
 }
 

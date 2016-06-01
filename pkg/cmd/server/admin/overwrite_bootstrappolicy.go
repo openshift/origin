@@ -38,9 +38,9 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 const OverwriteBootstrapPolicyCommandName = "overwrite-policy"
@@ -105,25 +105,12 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	// Connect and setup etcd interfaces
-	_, err = etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		return err
-	}
-	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		return err
-	}
+	optsGetter := restoptions.NewConfigGetter(*masterConfig)
 
-	storage, err := newStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		return err
-	}
-
-	return OverwriteBootstrapPolicy(storage, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
+	return OverwriteBootstrapPolicy(optsGetter, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
+func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
 	if !change {
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
@@ -143,11 +130,29 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 		return r.Err()
 	}
 
-	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(storage))
-	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(storage))
+	policyStorage, err := policyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return err
+	}
+	policyRegistry := policyregistry.NewRegistry(policyStorage)
 
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(storage))
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(storage))
+	policyBindingStorage, err := policybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return err
+	}
+	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
+
+	clusterPolicyStorage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return err
+	}
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
+
+	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return err
+	}
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyRegistry,

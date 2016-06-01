@@ -13,11 +13,15 @@ import (
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	"github.com/openshift/origin/pkg/deploy/api/test"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _, _ := NewREST(etcdStorage, testclient.NewSimpleFake())
+	storage, _, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), testclient.NewSimpleFake())
+	if err != nil {
+		t.Fatal(err)
+	}
 	return storage, server
 }
 

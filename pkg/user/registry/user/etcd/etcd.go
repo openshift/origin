@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for users against etcd
@@ -29,7 +29,8 @@ type REST struct {
 const EtcdPrefix = "/users"
 
 // NewREST returns a RESTStorage object that will work against users
-func NewREST(s storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.User{} },
 		NewListFunc: func() runtime.Object { return &api.UserList{} },
@@ -47,13 +48,15 @@ func NewREST(s storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("users"),
 
-		Storage: s,
+		CreateStrategy: user.Strategy,
+		UpdateStrategy: user.Strategy,
 	}
 
-	store.CreateStrategy = user.Strategy
-	store.UpdateStrategy = user.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{*store}, nil
 }
 
 // Get retrieves the item from etcd.

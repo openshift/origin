@@ -84,15 +84,29 @@ const (
 func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	mux := c.getMux(container)
 
-	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, clientRegistry)
 
-	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
+	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	if err != nil {
+		return nil, err
+	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter, c.EtcdBackends...)
+
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	if err != nil {
+		return nil, err
+	}
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper, combinedOAuthClientGetter)
+
+	clientAuthStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	if err != nil {
+		return nil, err
+	}
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	errorPageHandler, err := c.getErrorHandler()
