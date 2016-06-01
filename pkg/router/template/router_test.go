@@ -11,7 +11,7 @@ import (
 
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
 func TestCreateServiceUnit(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit("test")
 
@@ -22,7 +22,7 @@ func TestCreateServiceUnit(t *testing.T) {
 
 // TestDeleteServiceUnit tests that deleted service units no longer exist in state
 func TestDeleteServiceUnit(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -39,7 +39,7 @@ func TestDeleteServiceUnit(t *testing.T) {
 
 // TestAddEndpoints test adding endpoints to service units
 func TestAddEndpoints(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -74,7 +74,7 @@ func TestAddEndpoints(t *testing.T) {
 
 // Test that AddEndpoints returns true and false correctly for changed endpoints.
 func TestAddEndpointDuplicates(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 	if _, ok := router.FindServiceUnit(suKey); !ok {
@@ -144,7 +144,7 @@ func TestAddEndpointDuplicates(t *testing.T) {
 
 // TestDeleteEndpoints tests removing endpoints from service units
 func TestDeleteEndpoints(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -185,7 +185,7 @@ func TestDeleteEndpoints(t *testing.T) {
 
 // TestRouteKey tests that route keys are created as expected
 func TestRouteKey(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -283,7 +283,7 @@ func TestRouteKey(t *testing.T) {
 
 // TestAddRoute tests adding a service alias config to a service unit
 func TestAddRoute(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -363,7 +363,7 @@ func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *t
 
 // TestRemoveRoute tests removing a ServiceAliasConfig from a ServiceUnit
 func TestRemoveRoute(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -470,7 +470,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 		},
 	}
 
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	for _, tc := range testCases {
 		result := router.shouldWriteCerts(tc.cfg)
 		if result != tc.shouldWriteCerts {
@@ -565,7 +565,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	}
 
 	// setup the router
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 	routeWithBadServiceKey := routeKey(routeWithBadService)
 	routeWithBadServiceCfgKey := router.routeKey(routeWithBadService)
 	routeWithGoodServiceKey := routeKey(routeWithGoodService)
@@ -633,7 +633,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 // TestAddRouteEdgeTerminationInsecurePolicy tests adding an insecure edge
 // terminated routes to a service unit
 func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
-	router := newFakeTemplateRouter()
+	router := NewFakeTemplateRouter()
 
 	testCases := []struct {
 		Name           string

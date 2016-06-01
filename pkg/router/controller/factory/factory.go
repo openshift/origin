@@ -81,6 +81,12 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 			}
 			return eventType, obj.(*routeapi.Route), nil
 		},
+		EndpointsListConsumed: func() bool {
+			return endpointsEventQueue.ListConsumed()
+		},
+		RoutesListConsumed: func() bool {
+			return routeEventQueue.ListConsumed()
+		},
 		Namespaces: factory.Namespaces,
 		// check namespaces a bit more often than we resync events, so that we aren't always waiting
 		// the maximum interval for new items to come into the list

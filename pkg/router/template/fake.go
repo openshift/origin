@@ -1,12 +1,14 @@
 package templaterouter
 
-// newFakeTemplateRouter provides an empty template router with a simple certificate manager
+// NewFakeTemplateRouter provides an empty template router with a simple certificate manager
 // backed by a fake cert writer for testing
-func newFakeTemplateRouter() *templateRouter {
+func NewFakeTemplateRouter() *templateRouter {
 	fakeCertManager, _ := newSimpleCertificateManager(newFakeCertificateManagerConfig(), &fakeCertWriter{})
 	return &templateRouter{
-		state:       map[string]ServiceUnit{},
-		certManager: fakeCertManager,
+		state:                        map[string]ServiceUnit{},
+		certManager:                  fakeCertManager,
+		rateLimitedCommitFunction:    nil,
+		rateLimitedCommitStopChannel: make(chan struct{}),
 	}
 }
 

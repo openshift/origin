@@ -30,6 +30,12 @@ type RouterController struct {
 	NextRoute     func() (watch.EventType, *routeapi.Route, error)
 	NextEndpoints func() (watch.EventType, *kapi.Endpoints, error)
 
+	RoutesListConsumed    func() bool
+	EndpointsListConsumed func() bool
+	routesListConsumed    bool
+	endpointsListConsumed bool
+	filteredByNamespace   bool
+
 	Namespaces            NamespaceLister
 	NamespaceSyncInterval time.Duration
 	NamespaceWaitInterval time.Duration
@@ -54,6 +60,12 @@ func (c *RouterController) HandleNamespaces() {
 			c.lock.Lock()
 			defer c.lock.Unlock()
 
+			// Namespace filtering is assumed to be have been
+			// performed so long as the plugin event handler is called
+			// at least once.
+			c.filteredByNamespace = true
+			c.updateLastSyncProcessed()
+
 			glog.V(4).Infof("Updating watched namespaces: %v", namespaces)
 			if err := c.Plugin.HandleNamespaces(namespaces); err != nil {
 				utilruntime.HandleError(err)
@@ -77,6 +89,11 @@ func (c *RouterController) HandleRoute() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	// Change the local sync state within the lock to ensure that all
+	// event handlers have the same view of sync state.
+	c.routesListConsumed = c.RoutesListConsumed()
+	c.updateLastSyncProcessed()
+
 	glog.V(4).Infof("Processing Route: %s -> %s", route.Name, route.Spec.To.Name)
 	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
 	glog.V(4).Infof("           Event: %s", eventType)
@@ -97,7 +114,22 @@ func (c *RouterController) HandleEndpoints() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	// Change the local sync state within the lock to ensure that all
+	// event handlers have the same view of sync state.
+	c.endpointsListConsumed = c.EndpointsListConsumed()
+	c.updateLastSyncProcessed()
+
 	if err := c.Plugin.HandleEndpoints(eventType, endpoints); err != nil {
+		utilruntime.HandleError(err)
+	}
+}
+
+// updateLastSyncProcessed notifies the plugin if the most recent sync
+// of router resources has been completed.
+func (c *RouterController) updateLastSyncProcessed() {
+	lastSyncProcessed := c.endpointsListConsumed && c.routesListConsumed &&
+		(c.Namespaces == nil || c.filteredByNamespace)
+	if err := c.Plugin.SetLastSyncProcessed(lastSyncProcessed); err != nil {
 		utilruntime.HandleError(err)
 	}
 }
