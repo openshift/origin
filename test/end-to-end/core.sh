@@ -79,8 +79,16 @@ echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
 echo "[INFO] Pulled ruby-22-centos7"
 
+os::cmd::expect_success "oc create serviceaccount ipfailover"
+os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
+os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --credentials=${KUBECONFIG} --service-account=ipfailover"
+
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
+
+echo "[INFO] Waiting for IP failover to deploy"
+os::cmd::try_until_text "oc get rc/ipfailover-1 --template \"{{ index .metadata.annotations \\\"openshift.io/deployment.phase\\\" }}\"" "Complete"
+os::cmd::expect_success "oc delete all -l ipfailover=ipfailover"
 
 # check to make sure that logs for rc works
 os::cmd::expect_success "oc logs rc/docker-registry-1 > /dev/null"
