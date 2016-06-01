@@ -90,6 +90,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		dc, err := GenerateDeploymentConfig(tc.Name, options, selector)
 		if err != nil {
 			t.Errorf("Test case for %s got an error %v where none was expected", tc.Name, err)
+			continue
 		}
 		if tc.Name != dc.Name {
 			t.Errorf("Test case for %s got DeploymentConfig name %v where %v was expected", tc.Name, dc.Name, tc.Name)

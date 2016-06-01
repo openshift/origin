@@ -70,10 +70,12 @@ os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECO
 echo "router: ok"
 
 # test ipfailover
-os::cmd::expect_success_and_text 'oadm ipfailover --dry-run' 'Creating IP failover'
-os::cmd::expect_success_and_text 'oadm ipfailover --dry-run' 'Success \(DRY RUN\)'
-os::cmd::expect_success_and_text 'oadm ipfailover --dry-run -o yaml' 'name: ipfailover'
-os::cmd::expect_success_and_text 'oadm ipfailover --dry-run -o name' 'deploymentconfig/ipfailover'
+os::cmd::expect_failure_and_text 'oadm ipfailover --dry-run' 'you must specify at least one virtual IP address'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run' 'Creating IP failover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run' 'Success \(DRY RUN\)'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o yaml' 'name: ipfailover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o name' 'deploymentconfig/ipfailover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o yaml' '1.2.3.4'
 # TODO add tests for normal ipfailover creation
 # os::cmd::expect_success_and_text 'oadm ipfailover' 'deploymentconfig "ipfailover" created'
 # os::cmd::expect_failure_and_text 'oadm ipfailover' 'Error from server: deploymentconfig "ipfailover" already exists'
