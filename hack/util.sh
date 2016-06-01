@@ -641,7 +641,9 @@ function install_registry {
 }
 
 function wait_for_registry {
-	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
+	wait_for_command "oc get endpoints docker-registry --template='{{ len .subsets }}' --config='${ADMIN_KUBECONFIG}' | grep -q '[1-9][0-9]*'" $((5*TIME_MIN))
+	local readyjs='{.items[*].status.conditions[?(@.type=="Ready")].status}'
+	wait_for_command "oc get pod -l deploymentconfig=docker-registry -o jsonpath='$readyjs' --config='${ADMIN_KUBECONFIG}' | grep -qi true" $TIME_MIN
 }
 
 
