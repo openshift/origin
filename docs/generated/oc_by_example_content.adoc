@@ -686,7 +686,7 @@ Start OpenShift on Docker with reasonable defaults
 
   # Start OpenShift using a specific public host name
   oc cluster up --public-hostname=my.address.example.com
-  
+
   # Start OpenShift and preserve data and config between restarts
   oc cluster up --host-data-dir=/mydata --use-existing-config
 

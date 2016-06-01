@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -68,7 +69,7 @@ A public hostname can also be specified for the server with the --public-hostnam
 
   # Start OpenShift using a specific public host name
   %[1]s --public-hostname=my.address.example.com
-  
+
   # Start OpenShift and preserve data and config between restarts
   %[1]s --host-data-dir=/mydata --use-existing-config
 
@@ -633,6 +634,11 @@ func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, erro
 }
 
 func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
+	if ip := net.ParseIP(c.PublicHostname); ip != nil && !ip.IsUnspecified() {
+		fmt.Fprintf(out, "Using public hostname IP %s as the host IP\n", ip)
+		return ip.String(), nil
+	}
+
 	if len(c.DockerMachine) > 0 {
 		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
 		ip, err := dockermachine.IP(c.DockerMachine)
