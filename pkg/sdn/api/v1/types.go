@@ -17,6 +17,8 @@ type ClusterNetwork struct {
 	HostSubnetLength int `json:"hostsubnetlength"`
 	// ServiceNetwork is the CIDR string to specify the service network
 	ServiceNetwork string `json:"serviceNetwork"`
+	// PluginName is the name of the network plugin
+	PluginName string `json:"pluginName,omitempty"`
 }
 
 // ClusterNetworkList is a collection of ClusterNetworks
