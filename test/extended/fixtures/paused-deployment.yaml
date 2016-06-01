@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: paused
+spec:
+  paused: true
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: paused
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "100"
