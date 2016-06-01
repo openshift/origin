@@ -531,7 +531,7 @@ func (NodeConfig) SwaggerDoc() map[string]string {
 
 var map_NodeNetworkConfig = map[string]string{
 	"":                  "NodeNetworkConfig provides network options for the node",
-	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin",
+	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.",
 	"mtu":               "Maximum transmission unit for the network packets",
 }
 
