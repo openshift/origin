@@ -70,7 +70,39 @@ func needsNormalizing(in string) bool {
 }
 
 func (r PolicyRule) String() string {
-	return fmt.Sprintf("PolicyRule{Verbs:%v, APIGroups:%v, Resources:%v, ResourceNames:%v, Restrictions:%v}", r.Verbs.List(), r.APIGroups, r.Resources.List(), r.ResourceNames.List(), r.AttributeRestrictions)
+	return "PolicyRule" + r.CompactString()
+}
+
+// CompactString exposes a compact string representation for use in escalation error messages
+func (r PolicyRule) CompactString() string {
+	formatStringParts := []string{}
+	formatArgs := []interface{}{}
+	if len(r.Verbs) > 0 {
+		formatStringParts = append(formatStringParts, "Verbs:%q")
+		formatArgs = append(formatArgs, r.Verbs.List())
+	}
+	if len(r.APIGroups) > 0 {
+		formatStringParts = append(formatStringParts, "APIGroups:%q")
+		formatArgs = append(formatArgs, r.APIGroups)
+	}
+	if len(r.Resources) > 0 {
+		formatStringParts = append(formatStringParts, "Resources:%q")
+		formatArgs = append(formatArgs, r.Resources.List())
+	}
+	if len(r.ResourceNames) > 0 {
+		formatStringParts = append(formatStringParts, "ResourceNames:%q")
+		formatArgs = append(formatArgs, r.ResourceNames.List())
+	}
+	if r.AttributeRestrictions != nil {
+		formatStringParts = append(formatStringParts, "Restrictions:%q")
+		formatArgs = append(formatArgs, r.AttributeRestrictions)
+	}
+	if len(r.NonResourceURLs) > 0 {
+		formatStringParts = append(formatStringParts, "NonResourceURLs:%q")
+		formatArgs = append(formatArgs, r.NonResourceURLs.List())
+	}
+	formatString := "{" + strings.Join(formatStringParts, ", ") + "}"
+	return fmt.Sprintf(formatString, formatArgs...)
 }
 
 func getRoleBindingValues(roleBindingMap map[string]*RoleBinding) []*RoleBinding {

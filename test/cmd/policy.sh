@@ -121,7 +121,7 @@ os::cmd::try_until_failure "oc policy who-can update hpa.extensions | grep -q al
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
 cp ${OS_ROOT}/test/fixtures/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
-os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempt to grant extra privileges"
+os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "cannot grant extra privileges"
 
 echo "policy: ok"
 os::test::junit::declare_suite_end
