@@ -108,6 +108,8 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+
+	patchstorage "github.com/openshift/origin/pkg/patch/registry/patch"
 )
 
 const (
@@ -515,6 +517,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		"patches":            patchstorage.NewREST(registered.RESTMapper(), c.KubeClient(), c.PrivilegedLoopbackOpenShiftClient),
 
 		"routes":        routeStorage,
 		"routes/status": routeStatusStorage,
