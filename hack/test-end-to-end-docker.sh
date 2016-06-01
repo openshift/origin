@@ -21,6 +21,8 @@ os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
+configure_os_server
+
 function cleanup()
 {
 	out=$?
