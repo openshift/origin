@@ -7,10 +7,10 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
@@ -18,7 +18,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against Build objects.
-func NewREST(s storage.Interface) (*REST, *DetailsREST) {
+func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	prefix := "/builds"
 
 	store := &etcdgeneric.Etcd{
@@ -42,13 +42,16 @@ func NewREST(s storage.Interface) (*REST, *DetailsREST) {
 		DeleteStrategy:      build.Strategy,
 		Decorator:           build.Decorator,
 		ReturnDeletedObject: false,
-		Storage:             s,
+	}
+
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, nil, err
 	}
 
 	detailsStore := *store
 	detailsStore.UpdateStrategy = build.DetailsStrategy
 
-	return &REST{store}, &DetailsREST{&detailsStore}
+	return &REST{store}, &DetailsREST{&detailsStore}, nil
 }
 
 type DetailsREST struct {

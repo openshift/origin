@@ -212,13 +212,18 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 
 // ensureComponentAuthorizationRules initializes the cluster policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	if err != nil {
+		glog.Errorf("Error creating policy storage: %v", err)
+		return
+	}
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
 	ctx := kapi.WithNamespace(kapi.NewContext(), "")
 
 	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(c.RESTOptionsGetter, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 
@@ -228,7 +233,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	// Wait until the policy cache has caught up before continuing
 	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: authorizationapi.GroupName, Resource: "clusterpolicies"}}
-	err := wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	err = wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		result, err := c.PolicyClient().SubjectAccessReviews().Create(review)
 		if err == nil && result.Allowed {
 			return true, nil

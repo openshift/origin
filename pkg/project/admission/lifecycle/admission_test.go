@@ -19,6 +19,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -155,9 +156,12 @@ func TestAdmissionLifecycle(t *testing.T) {
 
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false)
+
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, "", false),
+		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
+		EtcdHelper:          etcdHelper,
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}

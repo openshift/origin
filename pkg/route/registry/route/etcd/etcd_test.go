@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/route/api"
 	_ "github.com/openshift/origin/pkg/route/api/install"
 	"github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type testAllocator struct {
@@ -33,7 +34,10 @@ func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 
 func newStorage(t *testing.T, allocator *testAllocator) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _ := NewREST(etcdStorage, allocator)
+	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), allocator)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return storage, server
 }
 

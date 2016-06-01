@@ -7,10 +7,10 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for images against etcd.
@@ -19,7 +19,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	prefix := "/images"
 
 	store := &etcdgeneric.Etcd{
@@ -56,8 +56,11 @@ func NewREST(s storage.Interface) *REST {
 		UpdateStrategy: image.Strategy,
 
 		ReturnDeletedObject: false,
-
-		Storage: s,
 	}
-	return &REST{store}
+
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, err
+	}
+
+	return &REST{store}, nil
 }

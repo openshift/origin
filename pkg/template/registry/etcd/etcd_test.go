@@ -11,11 +11,15 @@ import (
 
 	"github.com/openshift/origin/pkg/template/api"
 	_ "github.com/openshift/origin/pkg/template/api/install"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage := NewREST(etcdStorage)
+	storage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	if err != nil {
+		t.Fatal(err)
+	}
 	return storage, server
 }
 
