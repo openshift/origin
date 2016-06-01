@@ -12,6 +12,7 @@ type ClusterNetwork struct {
 	Network          string
 	HostSubnetLength int
 	ServiceNetwork   string
+	PluginName       string
 }
 
 type ClusterNetworkList struct {
