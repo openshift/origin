@@ -102,8 +102,17 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
 	}
 
-	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+	if isi.Status.Images[0].Image == nil || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
 		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
+	}
+	if isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 {
+		image, err := c.Images().Get(isi.Status.Images[0].Image.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(image.DockerImageManifest, `"schemaVersion": 1,`) {
+			t.Fatalf("image has zero size, but schema version was not 1: %#v\n%s", isi.Status.Images[0].Image, image.DockerImageManifest)
+		}
 	}
 
 	stream := isi.Status.Import
