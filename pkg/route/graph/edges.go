@@ -24,6 +24,15 @@ func AddRouteEdges(g osgraph.MutableUniqueGraph, node *routegraph.RouteNode) {
 
 	serviceNode := kubegraph.FindOrCreateSyntheticServiceNode(g, syntheticService)
 	g.AddEdge(node, serviceNode, ExposedThroughRouteEdgeKind)
+
+	for _, svc := range node.Spec.AdditionalTos {
+		syntheticService := &kapi.Service{}
+		syntheticService.Namespace = node.Namespace
+		syntheticService.Name = svc.Name
+
+		serviceNode := kubegraph.FindOrCreateSyntheticServiceNode(g, syntheticService)
+		g.AddEdge(node, serviceNode, ExposedThroughRouteEdgeKind)
+	}
 }
 
 // AddAllRouteEdges adds service edges to all route nodes in the given graph

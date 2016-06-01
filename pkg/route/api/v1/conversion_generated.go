@@ -277,6 +277,18 @@ func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.Rou
 	if err := s.Convert(&in.To, &out.To, 0); err != nil {
 		return err
 	}
+	if in.AdditionalTos != nil {
+		in, out := &in.AdditionalTos, &out.AdditionalTos
+		*out = make([]api.ObjectReference, len(*in))
+		for i := range *in {
+			// TODO: Inefficient conversion - can we improve it?
+			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AdditionalTos = nil
+	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
 		*out = new(route_api.RoutePort)
@@ -311,6 +323,18 @@ func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *Rou
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.To, &out.To, 0); err != nil {
 		return err
+	}
+	if in.AdditionalTos != nil {
+		in, out := &in.AdditionalTos, &out.AdditionalTos
+		*out = make([]api_v1.ObjectReference, len(*in))
+		for i := range *in {
+			// TODO: Inefficient conversion - can we improve it?
+			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AdditionalTos = nil
 	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port

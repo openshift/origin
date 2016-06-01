@@ -113,6 +113,17 @@ func DeepCopy_v1_RouteSpec(in RouteSpec, out *RouteSpec, c *conversion.Cloner) e
 	if err := api_v1.DeepCopy_v1_ObjectReference(in.To, &out.To, c); err != nil {
 		return err
 	}
+	if in.AdditionalTos != nil {
+		in, out := in.AdditionalTos, &out.AdditionalTos
+		*out = make([]api_v1.ObjectReference, len(in))
+		for i := range in {
+			if err := api_v1.DeepCopy_v1_ObjectReference(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AdditionalTos = nil
+	}
 	if in.Port != nil {
 		in, out := in.Port, &out.Port
 		*out = new(RoutePort)
