@@ -11,7 +11,7 @@ describe("KeyValuesEntryController", function(){
        controller = _$controller_("KeyValuesEntryController", {$scope: scope});
       });
     });
-    
+
     describe("#edit", function(){
       it("should copy the original value", function(){
         scope.edit();
@@ -19,7 +19,7 @@ describe("KeyValuesEntryController", function(){
         expect(scope.editing).toEqual(true);
       });
     });
-    
+
     describe("#cancel", function(){
       it("should reset value to the original value", function(){
         scope.originalValue = "bar";
@@ -28,7 +28,7 @@ describe("KeyValuesEntryController", function(){
         expect(scope.editing).toEqual(false);
       });
     });
-    
+
     describe("#update", function(){
       var entries = { foo: "abc"};
       it("should update the entries for the key when the value is not empty", function(){
@@ -39,91 +39,92 @@ describe("KeyValuesEntryController", function(){
     });
 });
 
-describe("KeyValuesController", function(){
-  var scope, controller;
+describe('oscKeyValues', function() {
+  var scope;
+  var isolateScope;
+  var ctrl;
+  var elem;
 
-  beforeEach(function(){
-    scope = { 
-      entries: { "foo": "bar"},
-      form: {
-        $dirty: false,
-        $setPristine: function(){},
-        $setUntouched: function(){},
-        $setValidity: function(){},
-        $setDirty: function() {
-          scope.form.$dirty = true;
-        }
-      },
-      readonlyKeys: ""
-    };
-    inject(function(_$controller_){
-      // The injector unwraps the underscores (_) from around the parameter names when matching
-     controller = _$controller_("KeyValuesController", {$scope: scope});
+  beforeEach(module('openshiftConsole'));
+  beforeEach(inject(function($rootScope, $compile) {
+    elem = angular.element('<osc-key-values></osc-key-values>');
+    scope = $rootScope.$new();
+    $compile(elem)(scope);
+    ctrl = elem.controller;
+    $rootScope.$digest();
+  }));
+
+  describe('#addEntry', function() {
+    it("should not add the entry if the key is in the readonly list", function(){
+      // a gotcha of testing directives with an isolate $scope,
+      // you cannot use the scope passed to $compile(elem)(scope);
+      isolateScope = elem.isolateScope();
+      isolateScope.entries = {};
+      isolateScope.readonlyKeys = "abc";
+      isolateScope.key = "abc";
+      isolateScope.value = "xyz";
+      isolateScope.addEntry();
+      expect(isolateScope.entries["abc"]).toBe(undefined);
+      expect(isolateScope.key).toEqual("abc");
+      expect(isolateScope.value).toEqual("xyz");
     });
-    
+
+    it("should add the key/value to the scope", function(){
+      isolateScope = elem.isolateScope();
+      isolateScope.entries = {};
+      isolateScope.key = "foo";
+      isolateScope.value = "bar";
+      isolateScope.addEntry();
+      isolateScope.key = "abc";
+      isolateScope.value = "def";
+      isolateScope.addEntry();
+      expect(isolateScope.entries["foo"]).toEqual("bar");
+      expect(isolateScope.entries["abc"]).toEqual("def");
+      expect(isolateScope.key).toEqual(null);
+      expect(isolateScope.value).toEqual(null);
+    });
   });
-  
+
+  describe('#deleteEntry', function() {
+    it("should delete the key/value from the scope", function(){
+      isolateScope = elem.isolateScope();
+      isolateScope.entries = {
+        "foo" : "bar"
+      };
+      isolateScope.deleteEntry("foo");
+      expect(isolateScope.entries["foo"]).toBe(undefined);
+      expect(isolateScope.form.$dirty).toBe(true);
+    });
+  });
+
   describe("#allowDelete", function(){
 
     it("should when the deletePolicy equals always", function(){
-      expect(scope.allowDelete("foo")).toBe(true);
+      isolateScope = elem.isolateScope();
+      expect(isolateScope.allowDelete("foo")).toBe(true);
     });
-    
+
     it("should not when the deletePolicy equals never", function(){
-      scope.deletePolicy = "never";
-      expect(scope.allowDelete("foo")).toBe(false);
+      isolateScope = elem.isolateScope();
+      isolateScope.deletePolicy = "never";
+      expect(isolateScope.allowDelete("foo")).toBe(false);
     });
-    
+
     it("should when the deletePolicy equals added and the entry was not originally in entries", function(){
-      scope.deletePolicy = "added";
-      scope.key = "abc";
-      scope.value = "def";
-      scope.addEntry();
-      expect(scope.allowDelete("abc")).toBe(true);
+      isolateScope = elem.isolateScope();
+      isolateScope.entries = {};
+      isolateScope.deletePolicy = "added";
+      isolateScope.key = "abc";
+      isolateScope.value = "def";
+      isolateScope.addEntry();
+      expect(isolateScope.allowDelete("abc")).toBe(true);
     });
 
     it("should not when the deletePolicy equals added and the entry was originally in entries", function(){
-      scope.deletePolicy = "added";
-      expect(scope.allowDelete("foo")).toBe(false);
+      isolateScope.deletePolicy = "added";
+      expect(isolateScope.allowDelete("foo")).toBe(false);
     });
 
   });
 
-  describe("#addEntry", function(){
-    it("should not add the entry if the key is in the readonly list", function(){
-      scope.readonlyKeys = "abc";
-      scope.key = "abc";
-      scope.value = "xyz";
-      scope.addEntry();
-      expect(scope.entries["abc"]).toBe(undefined);
-      expect(scope.key).toEqual("abc");
-      expect(scope.value).toEqual("xyz");
-    });
-    
-    it("should add the key/value to the scope", function(){
-      scope.key = "foo";
-      scope.value = "bar";
-      scope.addEntry();
-      scope.key = "abc";
-      scope.value = "def";
-      scope.addEntry();
-      expect(scope.entries["foo"]).toEqual("bar");
-      expect(scope.entries["abc"]).toEqual("def");
-      expect(scope.key).toEqual(null);
-      expect(scope.value).toEqual(null);
-    });
-      
-  });
-  
-  describe("#deleteEntry", function(){
-    //TODO add test for nonrecognized key?
-    
-    it("should delete the key/value from the scope", function(){
-      scope.deleteEntry("foo");
-      expect(scope.entries["foo"]).toBe(undefined);
-      expect(scope.form.$dirty).toBe(true);
-    });
-  });
 });
-
-
