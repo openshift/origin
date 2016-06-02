@@ -50,11 +50,11 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 				continue
 			}
 
-			// All initial deployments (latestVersion == 0) should have their images resolved in order
-			// to be able to work and not try to pull non-existent images from DockerHub.
-			// Deployments with automatic set to false that have been deployed at least once (latestVersion > 0)
-			// shouldn't have their images updated.
-			if !params.Automatic && config.Status.LatestVersion != 0 {
+			// All initial deployments should have their images resolved in order to
+			// be able to work and not try to pull non-existent images from DockerHub.
+			// Deployments with automatic set to false that have been deployed at least
+			// once shouldn't have their images updated.
+			if !params.Automatic && len(params.LastTriggeredImage) > 0 {
 				continue
 			}
 
