@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -283,6 +284,16 @@ func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
 		tag = DefaultImageTag
 	}
 	return name, tag, len(parts) == 2
+}
+
+// StreamKeyFromTagRef returns the image stream key from an ImageStreamTag
+// object reference.
+func StreamKeyFromTagRef(ref kapi.ObjectReference) (string, bool) {
+	if ref.Kind != "ImageStreamTag" {
+		return "", false
+	}
+	name, _, _ := SplitImageStreamTag(ref.Name)
+	return ref.Namespace + "/" + name, true
 }
 
 // JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag

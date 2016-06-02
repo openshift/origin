@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -102,6 +103,21 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 		}
 	}
 	return false
+}
+
+func ImageStreamKeysFor(config *deployapi.DeploymentConfig) []string {
+	imageStreamKeys := []string{}
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type != deployapi.DeploymentTriggerOnImageChange {
+			continue
+		}
+		key, ok := imageapi.StreamKeyFromTagRef(trigger.ImageChangeParams.From)
+		if !ok {
+			continue
+		}
+		imageStreamKeys = append(imageStreamKeys, key)
+	}
+	return imageStreamKeys
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
