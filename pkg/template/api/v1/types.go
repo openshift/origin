@@ -52,10 +52,24 @@ type Parameter struct {
 	// expression during the Template to Config transformation. Optional.
 	Value string `json:"value,omitempty"`
 
-	// Generate specifies the generator to be used to generate random string
+	// generate specifies the generator to be used to generate random string
 	// from an input value specified by From field. The result string is
 	// stored into Value field. If empty, no generator is being used, leaving
 	// the result Value untouched. Optional.
+	//
+	// The only supported generator is "expression", which accepts a "from"
+	// value in the form of a simple regular expression containing the
+	// range expression "[a-zA-Z0-9]", and the length expression "a{length}".
+	//
+	// Examples:
+	//
+	// from             | value
+	// -----------------------------
+	// "test[0-9]{1}x"  | "test7x"
+	// "[0-1]{8}"       | "01001100"
+	// "0x[A-F0-9]{4}"  | "0xB3AF"
+	// "[a-zA-Z0-9]{8}" | "hW4yQU5i"
+	//
 	Generate string `json:"generate,omitempty"`
 
 	// From is an input value for the generator. Optional.

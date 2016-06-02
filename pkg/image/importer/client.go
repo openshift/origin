@@ -3,6 +3,7 @@ package importer
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -265,13 +266,21 @@ func NewRetryRepository(repo distribution.Repository, retries int, interval time
 	}
 }
 
+// isTemporaryHTTPError returns true if the error indicates a temporary or partial HTTP faliure
+func isTemporaryHTTPError(err error) bool {
+	if e, ok := err.(net.Error); ok && e != nil {
+		return e.Temporary() || e.Timeout()
+	}
+	return false
+}
+
 // shouldRetry returns true if the error is not an unauthorized error, if there are no retries left, or if
 // we have already retried once and it has been longer than r.limit since we retried the first time.
 func (r *retryRepository) shouldRetry(err error) bool {
 	if err == nil {
 		return false
 	}
-	if !isDockerError(err, errcode.ErrorCodeUnauthorized) {
+	if !isDockerError(err, errcode.ErrorCodeUnauthorized) && !isTemporaryHTTPError(err) {
 		return false
 	}
 

@@ -1290,6 +1290,23 @@ Display one or many resources
 ====
 
 
+== oc import app.json
+Import an app.json definition into OpenShift
+
+====
+
+[options="nowrap"]
+----
+  # Import a directory containing an app.json file
+  $ oc import app.json -f .
+
+  # Turn an app.json file into a template
+  $ oc import app.json -f ./app.json -o yaml --as-template
+
+----
+====
+
+
 == oc import docker-compose
 Import a docker-compose.yml project into OpenShift
 
