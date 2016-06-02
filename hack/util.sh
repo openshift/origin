@@ -74,6 +74,7 @@ function configure_os_server {
 	openshift start \
 	--write-config=${SERVER_CONFIG_DIR} \
 	--create-certs=false \
+	--dns="tcp://${API_HOST}:53" \
 	--listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	--master="${MASTER_ADDR}" \
 	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
@@ -144,7 +145,6 @@ function start_os_server {
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-	 --dns="tcp://${API_HOST}:53" \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 --logspec='*importer=5' \
@@ -198,7 +198,6 @@ function start_os_master {
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
-	 --dns="tcp://${API_HOST}:53" \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --loglevel=4 --logspec='*importer=5' \
 	&>"${LOG_DIR}/openshift.log" &
