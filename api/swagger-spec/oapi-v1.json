@@ -5480,6 +5480,67 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.DeploymentConfigRollback",
+      "method": "POST",
+      "summary": "create rollback of a DeploymentConfigRollback",
+      "nickname": "createNamespacedDeploymentConfigRollbackRollback",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeploymentConfigRollback",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the DeploymentConfigRollback",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.DeploymentConfigRollback"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/scale",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -20285,6 +20346,7 @@
     "id": "v1.DeploymentConfigRollback",
     "description": "DeploymentConfigRollback provides the input to rollback generation.",
     "required": [
+     "name",
      "spec"
     ],
     "properties": {
@@ -20295,6 +20357,14 @@
      "apiVersion": {
       "type": "string",
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the deployment config that will be rolled back."
+     },
+     "updatedAnnotations": {
+      "type": "object",
+      "description": "UpdatedAnnotations is a set of new annotations that will be added in the deployment config."
      },
      "spec": {
       "$ref": "v1.DeploymentConfigRollbackSpec",
@@ -20316,6 +20386,11 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "From points to a ReplicationController which is a deployment."
+     },
+     "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision to rollback to. If set to 0, rollback to the last revision."
      },
      "includeTriggers": {
       "type": "boolean",
