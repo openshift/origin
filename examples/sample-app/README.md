@@ -22,7 +22,7 @@ For more information, see these articles:
 * http://opensource.com/business/14/7/docker-security-selinux
 * https://docs.docker.com/articles/security/
 
-The OpenShift security model will continue to evolve and tighten as we head towards production ready code.
+The OpenShift security model will continue to evolve and tighten going forward.
 
 Setup
 -----
