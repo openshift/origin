@@ -57,7 +57,8 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	// Persist status
 	newDc.Status = oldDc.Status
 
-	// oc deploy --latest from new clients
+	// oc deploy --latest from new clients and image change controller updates on deployment
+	// configs without config change triggers.
 	if newVersion == oldVersion && deployutil.IsInstantiated(newDc) {
 		// TODO: Have an endpoint for this and avoid hacking it here.
 		newDc.Status.LatestVersion = oldVersion + 1
