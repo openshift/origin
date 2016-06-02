@@ -372,6 +372,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				// push and pull images
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
+				// allow auto-provisioning when pushing an image that doesn't have an imagestream yet
+				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreams").RuleOrDie(),
 				authorizationapi.NewRule("update").Groups(buildGroup).Resources("builds/details").RuleOrDie(),
 			},
 		},

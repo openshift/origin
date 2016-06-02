@@ -338,6 +338,8 @@ os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+No
 
 # Image pruning
 echo "[INFO] Validating image pruning"
+# builder service account should have the power to create new image streams: prune in this case
+os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
 os::cmd::expect_success 'docker pull busybox'
 os::cmd::expect_success 'docker pull gcr.io/google_containers/pause'
 os::cmd::expect_success 'docker pull openshift/hello-openshift'
