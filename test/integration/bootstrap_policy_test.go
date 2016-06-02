@@ -9,16 +9,14 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -110,18 +108,9 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("timeout: %v", err)
 	}
 
-	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	optsGetter := restoptions.NewConfigGetter(*masterConfig)
 
-	storageVersion := unversioned.GroupVersion{Group: "", Version: masterConfig.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, storageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+	if err := admin.OverwriteBootstrapPolicy(optsGetter, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

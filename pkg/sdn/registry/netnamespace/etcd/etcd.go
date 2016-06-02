@@ -7,10 +7,10 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for sdn against etcd
@@ -21,7 +21,7 @@ type REST struct {
 const etcdPrefix = "/registry/sdnnetnamespaces"
 
 // NewREST returns a RESTStorage object that will work against netnamespaces
-func NewREST(s storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.NetNamespace{} },
 		NewListFunc: func() runtime.Object { return &api.NetNamespaceList{} },
@@ -37,13 +37,15 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return netnamespace.Matcher(label, field)
 		},
-		QualifiedResource: api.Resource("netnamespace"),
+		QualifiedResource: api.Resource("netnamespaces"),
 
-		Storage: s,
+		CreateStrategy: netnamespace.Strategy,
+		UpdateStrategy: netnamespace.Strategy,
 	}
 
-	store.CreateStrategy = netnamespace.Strategy
-	store.UpdateStrategy = netnamespace.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{*store}, nil
 }

@@ -7,12 +7,12 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for oauth client authorizations against etcd
@@ -23,7 +23,8 @@ type REST struct {
 const EtcdPrefix = "/oauth/clientauthorizations"
 
 // NewREST returns a RESTStorage object that will work against oauth clients
-func NewREST(s storage.Interface, clientGetter oauthclient.Getter) *REST {
+func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthClientAuthorization{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthClientAuthorizationList{} },
@@ -41,11 +42,13 @@ func NewREST(s storage.Interface, clientGetter oauthclient.Getter) *REST {
 		},
 		QualifiedResource: api.Resource("oauthclientauthorizations"),
 
-		Storage: s,
+		CreateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
+		UpdateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
 	}
 
-	store.CreateStrategy = oauthclientauthorization.NewStrategy(clientGetter)
-	store.UpdateStrategy = oauthclientauthorization.NewStrategy(clientGetter)
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{*store}, nil
 }

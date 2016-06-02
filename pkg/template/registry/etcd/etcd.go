@@ -7,10 +7,10 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/registry"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for templates against etcd
@@ -19,7 +19,8 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against templates.
-func NewREST(s storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+
 	prefix := "/templates"
 
 	store := &etcdgeneric.Etcd{
@@ -43,9 +44,11 @@ func NewREST(s storage.Interface) *REST {
 		UpdateStrategy: registry.Strategy,
 
 		ReturnDeletedObject: true,
-
-		Storage: s,
 	}
 
-	return &REST{store}
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, err
+	}
+
+	return &REST{store}, nil
 }
