@@ -21,6 +21,7 @@ import (
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 )
 
 func init() {
@@ -77,6 +78,9 @@ var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
 // we choose not to handle in this plugin
 var resourcesToIgnore = []unversioned.GroupKind{
 	extensions.Kind("DaemonSet"),
+	securityapi.Kind("PodSpecSelfSubjectReview"),
+	securityapi.Kind("PodSpecSubjectReview"),
+	securityapi.Kind("PodSpecReview"),
 }
 
 func shouldCheckResource(resource unversioned.GroupResource, kind unversioned.GroupKind) (bool, error) {

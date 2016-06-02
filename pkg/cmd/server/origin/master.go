@@ -108,6 +108,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+	"github.com/openshift/origin/pkg/security/registry/podspecreview"
+	"github.com/openshift/origin/pkg/security/registry/podspecselfsubjectreview"
+	"github.com/openshift/origin/pkg/security/registry/podspecsubjectreview"
 )
 
 const (
@@ -425,6 +428,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
+	podSpecReviewStorage := podspecreview.NewREST(c.SecurityCache)
+	podSpecSelfSubjectReviewStorage := podspecselfsubjectreview.NewREST(c.SecurityCache)
+	podSpecSubjectReviewStorage := podspecsubjectreview.NewREST(c.SecurityCache)
+
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
@@ -551,6 +558,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+
+		"podSpecReview":            podSpecReviewStorage,
+		"podSpecSelfSubjectReview": podSpecSelfSubjectReviewStorage,
+		"podSpecSubjectReview":     podSpecSubjectReviewStorage,
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {

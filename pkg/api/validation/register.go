@@ -23,6 +23,8 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapivalidation "github.com/openshift/origin/pkg/security/api/validation"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -88,4 +90,7 @@ func registerAll() {
 	Validator.MustRegister(&userapi.Identity{}, uservalidation.ValidateIdentity, uservalidation.ValidateIdentityUpdate)
 	Validator.MustRegister(&userapi.UserIdentityMapping{}, uservalidation.ValidateUserIdentityMapping, uservalidation.ValidateUserIdentityMappingUpdate)
 	Validator.MustRegister(&userapi.Group{}, uservalidation.ValidateGroup, uservalidation.ValidateGroupUpdate)
+	Validator.MustRegister(&securityapi.PodSpecReview{}, securityapivalidation.ValidatePodSpecReview, nil)
+	Validator.MustRegister(&securityapi.PodSpecSelfSubjectReview{}, securityapivalidation.ValidatePodSpecSelfSubjectReview, nil)
+	Validator.MustRegister(&securityapi.PodSpecSubjectReview{}, securityapivalidation.ValidatePodSpecSubjectReview, nil)
 }

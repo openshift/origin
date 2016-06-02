@@ -6,12 +6,14 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/cache"
+	securitycache "github.com/openshift/origin/pkg/security/cache"
 )
 
 type PluginInitializer struct {
 	OpenshiftClient client.Interface
 	ProjectCache    *cache.ProjectCache
 	Authorizer      authorizer.Authorizer
+	SecurityCache   *securitycache.SecurityCache
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -26,6 +28,9 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		}
 		if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
 			wantsAuthorizer.SetAuthorizer(i.Authorizer)
+		}
+		if wantsSecurityCache, ok := plugin.(WantsSecurityCache); ok {
+			wantsSecurityCache.SetSecurityCache(i.SecurityCache)
 		}
 	}
 }

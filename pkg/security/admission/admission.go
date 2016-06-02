@@ -8,17 +8,15 @@ import (
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
+	securitycache "github.com/openshift/origin/pkg/security/cache"
 	"github.com/openshift/origin/pkg/security/uid"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -28,60 +26,34 @@ import (
 
 func init() {
 	kadmission.RegisterPlugin("SecurityContextConstraint", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		constraintAdmitter := NewConstraint(client)
-		constraintAdmitter.Run()
-		return constraintAdmitter, nil
+		return NewConstraint(client), nil
 	})
 }
 
 type constraint struct {
 	*kadmission.Handler
 	client clientset.Interface
-
-	reflector *cache.Reflector
-	stopChan  chan struct{}
-	store     cache.Store
+	cache  *securitycache.SecurityCache
 }
 
 var _ kadmission.Interface = &constraint{}
+var _ = oadmission.WantsSecurityCache(&constraint{})
+var _ = oadmission.Validator(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
 func NewConstraint(kclient clientset.Interface) *constraint {
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	reflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return kclient.Core().SecurityContextConstraints().List(options)
-			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return kclient.Core().SecurityContextConstraints().Watch(options)
-			},
-		},
-		&kapi.SecurityContextConstraints{},
-		store,
-		0,
-	)
-
 	return &constraint{
 		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
 		client:  kclient,
-
-		store:     store,
-		reflector: reflector,
 	}
+
 }
 
 func (a *constraint) Run() {
-	if a.stopChan == nil {
-		a.stopChan = make(chan struct{})
-		a.reflector.RunUntil(a.stopChan)
+	if !a.cache.Running() {
+		a.cache.Run()
 	}
-}
-func (a *constraint) Stop() {
-	if a.stopChan != nil {
-		close(a.stopChan)
-		a.stopChan = nil
-	}
+	glog.V(2).Infof("securityCache is already running...")
 }
 
 // Admit determines if the pod should be admitted based on the requested security context
@@ -113,7 +85,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
-	matchedConstraints, err := getMatchingSecurityContextConstraints(c.store, a.GetUserInfo())
+	matchedConstraints, err := GetMatchingSecurityContextConstraints(c.cache, a.GetUserInfo())
 	if err != nil {
 		return kadmission.NewForbidden(a, err)
 	}
@@ -122,7 +94,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	if len(pod.Spec.ServiceAccountName) > 0 {
 		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
 		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
-		saConstraints, err := getMatchingSecurityContextConstraints(c.store, userInfo)
+		saConstraints, err := GetMatchingSecurityContextConstraints(c.cache, userInfo)
 		if err != nil {
 			return kadmission.NewForbidden(a, err)
 		}
@@ -312,19 +284,17 @@ func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namesp
 
 // getMatchingSecurityContextConstraints returns constraints from the store that match the group,
 // uid, or user of the service account.
-func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
+func GetMatchingSecurityContextConstraints(cache *securitycache.SecurityCache, userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
 	matchedConstraints := make([]*kapi.SecurityContextConstraints, 0)
-
-	for _, c := range store.List() {
-		constraint, ok := c.(*kapi.SecurityContextConstraints)
-		if !ok {
-			return nil, errors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
-		}
-		if ConstraintAppliesTo(constraint, userInfo) {
-			matchedConstraints = append(matchedConstraints, constraint)
+	securityContextList, err := cache.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range securityContextList {
+		if ConstraintAppliesTo(c, userInfo) {
+			matchedConstraints = append(matchedConstraints, c)
 		}
 	}
-
 	return matchedConstraints, nil
 }
 
@@ -533,4 +503,16 @@ func logProviders(pod *kapi.Pod, providers []scc.SecurityContextConstraintsProvi
 	for _, err := range providerCreationErrs {
 		glog.V(4).Infof("provider creation error: %v", err)
 	}
+}
+
+func (c *constraint) SetSecurityCache(cache *securitycache.SecurityCache) {
+	glog.Infof("Assigning to constraint.cache %v", cache)
+	c.cache = cache
+}
+
+func (c *constraint) Validate() error {
+	if c.cache == nil {
+		return fmt.Errorf("SecurityContextConstraint plugin not valid: cache not initialized")
+	}
+	return nil
 }
