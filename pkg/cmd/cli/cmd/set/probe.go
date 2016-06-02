@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -76,8 +77,9 @@ type ProbeOptions struct {
 
 	Encoder runtime.Encoder
 
-	ShortOutput bool
-	Mapper      meta.RESTMapper
+	ShortOutput   bool
+	Mapper        meta.RESTMapper
+	OutputVersion unversioned.GroupVersion
 
 	PrintObject            func(runtime.Object) error
 	UpdatePodSpecForObject func(runtime.Object, func(spec *kapi.PodSpec) error) (bool, error)
@@ -166,6 +168,16 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}
@@ -304,16 +316,7 @@ func (o *ProbeOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		var infos []*resource.Info
-		for _, patch := range patches {
-			info := patch.Info
-			if patch.Err != nil {
-				fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
-				continue
-			}
-			infos = append(infos, info)
-		}
-		object, err := resource.AsVersionedObject(infos, !singular, "", nil)
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

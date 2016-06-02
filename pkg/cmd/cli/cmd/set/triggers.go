@@ -13,6 +13,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -78,8 +79,9 @@ type TriggersOptions struct {
 
 	Encoder runtime.Encoder
 
-	ShortOutput bool
-	Mapper      meta.RESTMapper
+	ShortOutput   bool
+	Mapper        meta.RESTMapper
+	OutputVersion unversioned.GroupVersion
 
 	PrintTable  bool
 	PrintObject func(runtime.Object) error
@@ -148,6 +150,16 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 
 func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}
@@ -271,24 +283,8 @@ func (o *TriggersOptions) Run() error {
 	if singular && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if len(patches) == 0 {
-		return nil
-	}
-
 	if o.PrintObject != nil {
-		var infos []*resource.Info
-		for _, patch := range patches {
-			info := patch.Info
-			if patch.Err != nil {
-				fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
-				continue
-			}
-			infos = append(infos, info)
-		}
-		if len(infos) == 0 {
-			return cmdutil.ErrExit
-		}
-		object, err := resource.AsVersionedObject(infos, !singular, "", nil)
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}
