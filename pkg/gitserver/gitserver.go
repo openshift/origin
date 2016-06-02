@@ -143,6 +143,9 @@ func NewDefaultConfig() *Config {
 }
 
 // NewEnvironmentConfig sets up the initial config from environment variables
+// TODO break out the code that generates the handler functions so that they
+// can be individually unit tested. Also separate out the code that generates
+// the initial set of clones.
 func NewEnvironmentConfig() (*Config, error) {
 	config := NewDefaultConfig()
 
@@ -271,15 +274,11 @@ func NewEnvironmentConfig() (*Config, error) {
 		}
 		config.AuthMessage = fmt.Sprintf("Authenticating against username/password allow-push=%t", config.AllowPush)
 		username, password := parts[0], parts[1]
-		config.AuthenticatorFn = auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
+		authHandlerFn := auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
 			if info.Push {
 				if !config.AllowPush {
 					glog.V(5).Infof("Denying push request because it is disabled in config.")
 					return false, nil
-				}
-				if allowAnonymousGet {
-					glog.V(5).Infof("Allowing pull because anonymous get is enabled")
-					return true, nil
 				}
 			}
 			if info.Username != username || info.Password != password {
@@ -288,6 +287,10 @@ func NewEnvironmentConfig() (*Config, error) {
 			}
 			return true, nil
 		})
+		if allowAnonymousGet {
+			authHandlerFn = anonymousHandler(authHandlerFn)
+		}
+		config.AuthenticatorFn = authHandlerFn
 	}
 
 	if value := os.Getenv("GIT_LISTEN"); len(value) > 0 {
