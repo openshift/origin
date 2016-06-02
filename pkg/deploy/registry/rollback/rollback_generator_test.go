@@ -41,7 +41,7 @@ func TestGeneration(t *testing.T) {
 		rollbackSpecs = append(rollbackSpecs, spec)
 	}
 
-	generator := &RollbackGenerator{}
+	generator := NewRollbackGenerator()
 
 	// Test every combination.
 	for _, spec := range rollbackSpecs {

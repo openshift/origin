@@ -726,6 +726,20 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 
 func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 	rollback := &api.DeploymentConfigRollback{
+		Name: "config",
+		Spec: api.DeploymentConfigRollbackSpec{
+			Revision: 2,
+		},
+	}
+
+	errs := ValidateDeploymentConfigRollback(rollback)
+	if len(errs) > 0 {
+		t.Errorf("Unxpected non-empty error list: %v", errs)
+	}
+}
+
+func TestValidateDeploymentConfigRollbackDeprecatedOK(t *testing.T) {
+	rollback := &api.DeploymentConfigRollback{
 		Spec: api.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name: "deployment",
@@ -733,7 +747,7 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 		},
 	}
 
-	errs := ValidateDeploymentConfigRollback(rollback)
+	errs := ValidateDeploymentConfigRollbackDeprecated(rollback)
 	if len(errs) > 0 {
 		t.Errorf("Unxpected non-empty error list: %v", errs)
 	}
@@ -744,6 +758,59 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
+	errorCases := map[string]struct {
+		D api.DeploymentConfigRollback
+		T field.ErrorType
+		F string
+	}{
+		"missing name": {
+			api.DeploymentConfigRollback{
+				Spec: api.DeploymentConfigRollbackSpec{
+					Revision: 2,
+				},
+			},
+			field.ErrorTypeRequired,
+			"name",
+		},
+		"invalid name": {
+			api.DeploymentConfigRollback{
+				Name: "*_*myconfig",
+				Spec: api.DeploymentConfigRollbackSpec{
+					Revision: 2,
+				},
+			},
+			field.ErrorTypeInvalid,
+			"name",
+		},
+		"invalid revision": {
+			api.DeploymentConfigRollback{
+				Name: "config",
+				Spec: api.DeploymentConfigRollbackSpec{
+					Revision: -1,
+				},
+			},
+			field.ErrorTypeInvalid,
+			"spec.revision",
+		},
+	}
+
+	for k, v := range errorCases {
+		errs := ValidateDeploymentConfigRollback(&v.D)
+		if len(errs) == 0 {
+			t.Errorf("Expected failure for scenario %q", k)
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %q: %v", k, v.T, errs[i])
+			}
+			if errs[i].Field != v.F {
+				t.Errorf("%s: expected errors to have field %q: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateDeploymentConfigRollbackDeprecatedInvalidFields(t *testing.T) {
 	errorCases := map[string]struct {
 		D api.DeploymentConfigRollback
 		T field.ErrorType
@@ -773,7 +840,7 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 	}
 
 	for k, v := range errorCases {
-		errs := ValidateDeploymentConfigRollback(&v.D)
+		errs := ValidateDeploymentConfigRollbackDeprecated(&v.D)
 		if len(errs) == 0 {
 			t.Errorf("Expected failure for scenario %s", k)
 		}

@@ -8,19 +8,28 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// RollbackGenerator generates a new DeploymentConfig by merging a pair of DeploymentConfigs
-// in a configurable way.
-type RollbackGenerator struct{}
+// RollbackGenerator generates a new deployment config by merging a pair of deployment
+// configs in a configurable way.
+type RollbackGenerator interface {
+	// GenerateRollback creates a new deployment config by merging to onto from
+	// based on the options provided by spec. The latestVersion of the result is
+	// unconditionally incremented, as rollback candidates should be possible
+	// to be deployed manually regardless of other system behavior such as
+	// triggering.
+	//
+	// Any image change triggers on the new config are disabled to prevent
+	// triggered deployments from immediately replacing the rollback.
+	GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
+}
 
-// GenerateRollback creates a new DeploymentConfig by merging to onto from
-// based on the options provided by spec. The LatestVersion of the result is
-// unconditionally incremented, as rollback candidates are should be possible
-// to be deployed manually regardless of other system behavior such as
-// triggering.
-//
-// Any image change triggers on the new config are disabled to prevent
-// triggered deployments from immediately replacing the rollback.
-func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+// NewRollbackGenerator returns a new rollback generator.
+func NewRollbackGenerator() RollbackGenerator {
+	return &rollbackGenerator{}
+}
+
+type rollbackGenerator struct{}
+
+func (g *rollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 	rollback := &deployapi.DeploymentConfig{}
 
 	if err := kapi.Scheme.Convert(&from, &rollback); err != nil {
@@ -62,6 +71,7 @@ func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 	}
 
 	// TODO: add a new cause?
+	// TODO: Instantiate instead of incrementing latestVersion
 	rollback.Status.LatestVersion++
 
 	return rollback, nil

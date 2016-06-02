@@ -2,18 +2,30 @@ package rollback
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+var codec = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+
+type terribleGenerator struct{}
+
+func (tg *terribleGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+	return nil, kerrors.NewInternalError(errors.New("something terrible happened"))
+}
+
+var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
@@ -42,28 +54,20 @@ func TestCreateInvalid(t *testing.T) {
 }
 
 func TestCreateOk(t *testing.T) {
-	rest := REST{
-		generator: Client{
-			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				return &deployapi.DeploymentConfig{}, nil
-			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-				return deployment, nil
-			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return deploytest.OkDeploymentConfig(1), nil
-			},
-		},
-		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
-	}
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deploytest.OkDeploymentConfig(2), nil
+	})
+	kc := &ktestclient.Fake{}
+	kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		return true, deployment, nil
+	})
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
-				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
-			},
+			Revision: 1,
 		},
 	})
 
@@ -76,33 +80,32 @@ func TestCreateOk(t *testing.T) {
 	}
 
 	if _, ok := obj.(*deployapi.DeploymentConfig); !ok {
-		t.Errorf("expected a DeploymentConfig, got a %#v", obj)
+		t.Errorf("expected a deployment config, got a %#v", obj)
 	}
 }
 
 func TestCreateGeneratorError(t *testing.T) {
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deploytest.OkDeploymentConfig(2), nil
+	})
+	kc := &ktestclient.Fake{}
+	kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		return true, deployment, nil
+	})
+
 	rest := REST{
-		generator: Client{
-			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
-			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-				return deployment, nil
-			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return deploytest.OkDeploymentConfig(1), nil
-			},
-		},
-		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
+		generator: &terribleGenerator{},
+		dn:        oc,
+		rn:        kc,
+		codec:     kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
-				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
-			},
+			Revision: 1,
 		},
 	})
 
@@ -112,30 +115,20 @@ func TestCreateGeneratorError(t *testing.T) {
 }
 
 func TestCreateMissingDeployment(t *testing.T) {
-	rest := REST{
-		generator: Client{
-			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				t.Fatal("unexpected call to generator")
-				return nil, errors.New("something terrible happened")
-			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound(kapi.Resource("replicationController"), name)
-			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
-				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
-				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
-			},
-		},
-		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
-	}
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deploytest.OkDeploymentConfig(2), nil
+	})
+	kc := &ktestclient.Fake{}
+	kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		return true, nil, kerrors.NewNotFound(kapi.Resource("replicationController"), deployment.Name)
+	})
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
-				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
-			},
+			Revision: 1,
 		},
 	})
 
@@ -149,33 +142,22 @@ func TestCreateMissingDeployment(t *testing.T) {
 }
 
 func TestCreateInvalidDeployment(t *testing.T) {
-	rest := REST{
-		generator: Client{
-			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				t.Fatal("unexpected call to generator")
-				return nil, errors.New("something terrible happened")
-			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				// invalidate the encoded config
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
-				return deployment, nil
-			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
-				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
-				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
-			},
-		},
-		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
-	}
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deploytest.OkDeploymentConfig(2), nil
+	})
+	kc := &ktestclient.Fake{}
+	kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		// invalidate the encoded config
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
+		return true, deployment, nil
+	})
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
-				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
-			},
+			Revision: 1,
 		},
 	})
 
@@ -189,29 +171,21 @@ func TestCreateInvalidDeployment(t *testing.T) {
 }
 
 func TestCreateMissingDeploymentConfig(t *testing.T) {
-	rest := REST{
-		generator: Client{
-			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				t.Fatal("unexpected call to generator")
-				return nil, errors.New("something terrible happened")
-			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-				return deployment, nil
-			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
-			},
-		},
-		codec: kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
-	}
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		dc := deploytest.OkDeploymentConfig(2)
+		return true, nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), dc.Name)
+	})
+	kc := &ktestclient.Fake{}
+	kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		return true, deployment, nil
+	})
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
-				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
-			},
+			Revision: 1,
 		},
 	})
 
@@ -222,10 +196,4 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 	if obj != nil {
 		t.Error("Unexpected result obj")
 	}
-}
-
-func TestNew(t *testing.T) {
-	// :)
-	rest := NewREST(Client{}, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-	rest.New()
 }

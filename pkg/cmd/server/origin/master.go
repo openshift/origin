@@ -518,12 +518,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		},
 	}
 	configClient, kclient := c.DeploymentConfigClients()
-	deployRollback := &deployrollback.RollbackGenerator{}
 	deployRollbackClient := deployrollback.Client{
 		DCFn: deployConfigRegistry.GetDeploymentConfig,
 		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
-		GRFn: deployRollback.GenerateRollback,
+		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
 	}
+	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.EtcdHelper.Codec())
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
@@ -568,12 +568,15 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":         deployConfigStorage,
-		"deploymentConfigs/scale":   deployConfigScaleStorage,
-		"deploymentConfigs/status":  deployConfigStatusStorage,
+		"deploymentConfigs":          deployConfigStorage,
+		"deploymentConfigs/scale":    deployConfigScaleStorage,
+		"deploymentConfigs/status":   deployConfigStatusStorage,
+		"deploymentConfigs/rollback": deployConfigRollbackStorage,
+		"deploymentConfigs/log":      deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+
+		// TODO: Deprecate these
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
-		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.EtcdHelper.Codec()),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateStorage,

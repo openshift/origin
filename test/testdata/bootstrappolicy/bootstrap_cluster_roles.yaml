@@ -557,6 +557,7 @@ items:
     resources:
     - deploymentconfigrollbacks
     - deploymentconfigs
+    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -871,6 +872,7 @@ items:
     resources:
     - deploymentconfigrollbacks
     - deploymentconfigs
+    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -1103,10 +1105,8 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - deploymentconfigrollbacks
     - deploymentconfigs
     - deploymentconfigs/scale
-    - generatedeploymentconfigs
     verbs:
     - get
     - list

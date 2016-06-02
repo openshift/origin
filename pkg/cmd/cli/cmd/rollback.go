@@ -227,7 +227,7 @@ func (o *RollbackOptions) Run() error {
 			IncludeReplicationMeta: o.IncludeScalingSettings,
 		},
 	}
-	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).Rollback(rollback)
+	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).RollbackDeprecated(rollback)
 	if err != nil {
 		return err
 	}

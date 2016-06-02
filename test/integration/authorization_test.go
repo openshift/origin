@@ -97,7 +97,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 	// remove resources without read APIs
 	nonreadingResources := []unversioned.GroupResource{
 		buildapi.Resource("buildconfigs/instantiatebinary"), buildapi.Resource("buildconfigs/instantiate"), buildapi.Resource("builds/clone"),
-		deployapi.Resource("deploymentconfigrollbacks"), deployapi.Resource("generatedeploymentconfigs"),
+		deployapi.Resource("deploymentconfigrollbacks"), deployapi.Resource("generatedeploymentconfigs"), deployapi.Resource("deploymentconfigs/rollback"),
 		imageapi.Resource("imagestreamimports"), imageapi.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"), kapi.Resource("namespaces/finalize"),
