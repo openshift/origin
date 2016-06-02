@@ -198,6 +198,9 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 		if !info.IsDir() && !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
+				if dir == path {
+					return nil
+				}
 				if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
