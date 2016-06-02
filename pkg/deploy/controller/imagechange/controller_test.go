@@ -11,11 +11,30 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	testapi "github.com/openshift/origin/pkg/deploy/api/test"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
 	flag.Set("v", "5")
+}
+
+func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
+	return &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: kapi.NamespaceDefault},
+		Status: imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{
+				tag: {
+					Items: []imageapi.TagEvent{
+						{
+							DockerImageReference: dir,
+							Image:                image,
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // TestHandle_changeForNonAutomaticTag ensures that an image update for which
@@ -214,20 +233,80 @@ func TestHandle_matchScenarios(t *testing.T) {
 	}
 }
 
-func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: kapi.NamespaceDefault},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				tag: {
-					Items: []imageapi.TagEvent{
-						{
-							DockerImageReference: dir,
-							Image:                image,
-						},
-					},
-				},
-			},
+func TestInstantiate(t *testing.T) {
+	tests := []struct {
+		name string
+
+		config       *deployapi.DeploymentConfig
+		configChange bool
+		imageChange  bool
+		automatic    bool
+
+		expected bool
+	}{
+		{
+			name: "with config change",
+
+			config:       testapi.OkDeploymentConfig(1),
+			configChange: true,
+			imageChange:  true,
+			automatic:    true,
+
+			expected: false,
 		},
+		{
+			name: "no config change, automatic=true",
+
+			config:       testapi.OkDeploymentConfig(1),
+			configChange: false,
+			imageChange:  true,
+			automatic:    true,
+
+			expected: true,
+		},
+		{
+			name: "no config change, automatic=false",
+
+			config:       testapi.OkDeploymentConfig(1),
+			configChange: false,
+			imageChange:  true,
+			automatic:    false,
+
+			expected: false,
+		},
+		{
+			name: "no config change, no image change",
+
+			config:       testapi.OkDeploymentConfig(1),
+			configChange: false,
+			imageChange:  false,
+
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		dc := test.config
+
+		if test.automatic && !test.imageChange {
+			t.Errorf("%s: cannot specify automatic=true and imageChange=false", test.name)
+			continue
+		}
+
+		switch {
+		case !test.configChange:
+			testapi.RemoveTriggerTypes(dc, deployapi.DeploymentTriggerOnConfigChange)
+		case !test.imageChange:
+			testapi.RemoveTriggerTypes(dc, deployapi.DeploymentTriggerOnImageChange)
+		}
+
+		if !test.automatic {
+			dc.Spec.Triggers = append(dc.Spec.Triggers, testapi.OkNonAutomaticICT())
+		}
+
+		instantiate(dc)
+		if exp, got := test.expected, deployutil.IsInstantiated(dc); exp != got {
+			t.Errorf("%s: expected config to be instantiated: %t, got: %t", test.name, exp, got)
+		}
 	}
 }

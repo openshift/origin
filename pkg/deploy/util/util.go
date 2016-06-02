@@ -257,12 +257,11 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
-func Instantiate(dc deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+func Instantiate(dc *deployapi.DeploymentConfig) {
 	if dc.Annotations == nil {
 		dc.Annotations = make(map[string]string)
 	}
 	dc.Annotations[deployapi.DeploymentInstantiatedAnnotation] = deployapi.DeploymentInstantiatedAnnotationValue
-	return &dc
 }
 
 func IsInstantiated(dc *deployapi.DeploymentConfig) bool {

@@ -230,10 +230,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		}
 	}
 
-	if config.Annotations == nil {
-		config.Annotations = make(map[string]string)
-	}
-	config.Annotations[deployapi.DeploymentInstantiatedAnnotation] = deployapi.DeploymentInstantiatedAnnotationValue
+	deployutil.Instantiate(config)
 	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err != nil {
 		return err

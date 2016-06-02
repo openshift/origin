@@ -4,6 +4,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -181,6 +182,21 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 	}
 }
 
+func OkNonAutomaticICT() deployapi.DeploymentTriggerPolicy {
+	return deployapi.DeploymentTriggerPolicy{
+		Type: deployapi.DeploymentTriggerOnImageChange,
+		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+			ContainerNames: []string{
+				"container1",
+			},
+			From: kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
+			},
+		},
+	}
+}
+
 func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
 	config.Spec.Test = true
 	return config
@@ -198,4 +214,21 @@ func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) 
 			MaxReplicas: max,
 		},
 	}
+}
+
+func RemoveTriggerTypes(config *deployapi.DeploymentConfig, triggerTypes ...deployapi.DeploymentTriggerType) {
+	types := sets.NewString()
+	for _, triggerType := range triggerTypes {
+		types.Insert(string(triggerType))
+	}
+
+	remaining := []deployapi.DeploymentTriggerPolicy{}
+	for _, trigger := range config.Spec.Triggers {
+		if types.Has(string(trigger.Type)) {
+			continue
+		}
+		remaining = append(remaining, trigger)
+	}
+
+	config.Spec.Triggers = remaining
 }
