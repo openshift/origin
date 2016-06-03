@@ -7,11 +7,11 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"
 	rest "github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
@@ -19,7 +19,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against routes.
-func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *StatusREST) {
+func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*REST, *StatusREST, error) {
 	strategy := rest.NewStrategy(allocator)
 	prefix := "/routes"
 
@@ -42,14 +42,16 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *Statu
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+	}
 
-		Storage: s,
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, nil, err
 	}
 
 	statusStore := *store
 	statusStore.UpdateStrategy = rest.StatusStrategy
 
-	return &REST{store}, &StatusREST{&statusStore}
+	return &REST{store}, &StatusREST{&statusStore}, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of a route.

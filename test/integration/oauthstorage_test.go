@@ -12,9 +12,6 @@ import (
 	"golang.org/x/oauth2"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
@@ -25,7 +22,9 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 type testUser struct {
@@ -57,18 +56,29 @@ func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, e
 func TestOAuthStorage(t *testing.T) {
 	testutil.RequireEtcd(t)
 
-	groupMeta := registered.GroupOrDie(api.GroupName)
-	etcdClient, err := testutil.MakeNewEtcdClient()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupMeta.GroupVersions...), etcdtest.PathPrefix(), false)
 
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	optsGetter := restoptions.NewConfigGetter(*masterOptions)
+
+	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
+
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientStorage := clientetcd.NewREST(etcdHelper)
+
+	clientStorage, err := clientetcd.NewREST(optsGetter)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}

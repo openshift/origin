@@ -18,6 +18,7 @@ import (
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type AuthConfig struct {
@@ -26,8 +27,8 @@ type AuthConfig struct {
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 
-	// EtcdHelper provides storage capabilities
-	EtcdHelper storage.Interface
+	// RESTOptionsGetter provides storage and RESTOption lookup
+	RESTOptionsGetter restoptions.Getter
 
 	// EtcdBackends is a list of storage interfaces, each of which talks to a single etcd backend.
 	// These are only used to ensure newly created tokens are distributed to all backends before returning them for use.
@@ -42,17 +43,12 @@ type AuthConfig struct {
 	HandlerWrapper handlerWrapper
 }
 
-func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
-	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
-	if err != nil {
-		return nil, err
-	}
-	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := NewEtcdStorage(etcdClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up server storage: %v", err)
-	}
+func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
+	options := masterConfig.Options
 
+	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
+
+	// TODO: need to build this per-resource to make sure we're hitting the right etcds
 	// Build a list of storage.Interface objects, each of which only speaks to one of the etcd backends
 	etcdBackends := []storage.Interface{}
 	for _, url := range options.EtcdClientInfo.URLs {
@@ -89,16 +85,23 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
 	}
 
-	userStorage := useretcd.NewREST(etcdHelper)
+	userStorage, err := useretcd.NewREST(masterConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(etcdHelper)
+
+	identityStorage, err := identityetcd.NewREST(masterConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
 	ret := &AuthConfig{
 		Options: *options.OAuthConfig,
 
 		AssetPublicAddresses: assetPublicURLs,
-		EtcdHelper:           etcdHelper,
+		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,
 		EtcdBackends:         etcdBackends,
 
 		IdentityRegistry: identityRegistry,

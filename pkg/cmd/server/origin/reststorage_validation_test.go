@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -14,6 +15,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // KnownUpdateValidationExceptions is the list of types that are known to not have an update validation function registered
@@ -81,8 +83,11 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false)
+
 	return &MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, "", false),
+		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
+		EtcdHelper:          etcdHelper,
 	}
 }

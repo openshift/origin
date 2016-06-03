@@ -7,10 +7,10 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/hostsubnet"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for sdn against etcd
@@ -21,7 +21,7 @@ type REST struct {
 const etcdPrefix = "/registry/sdnsubnets"
 
 // NewREST returns a RESTStorage object that will work against subnets
-func NewREST(s storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.HostSubnet{} },
 		NewListFunc: func() runtime.Object { return &api.HostSubnetList{} },
@@ -39,11 +39,13 @@ func NewREST(s storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("hostsubnets"),
 
-		Storage: s,
+		CreateStrategy: hostsubnet.Strategy,
+		UpdateStrategy: hostsubnet.Strategy,
 	}
 
-	store.CreateStrategy = hostsubnet.Strategy
-	store.UpdateStrategy = hostsubnet.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{*store}, nil
 }

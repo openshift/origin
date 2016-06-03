@@ -446,7 +446,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	unprotectedInstallers := []origin.APIInstaller{}
 
 	if oc.Options.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(oc.Options)
+		authConfig, err := origin.BuildAuthConfig(oc)
 		if err != nil {
 			return err
 		}

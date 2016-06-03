@@ -7,11 +7,11 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 const ClusterPolicyBindingPath = "/authorization/cluster/policybindings"
@@ -21,11 +21,12 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(s storage.Interface) *REST {
+func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicyBinding{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyBindingList{} },
-		QualifiedResource: authorizationapi.Resource("clusterpolicybinding"),
+		QualifiedResource: authorizationapi.Resource("clusterpolicybindings"),
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return ClusterPolicyBindingPath
 		},
@@ -41,9 +42,11 @@ func NewStorage(s storage.Interface) *REST {
 
 		CreateStrategy: clusterpolicybinding.Strategy,
 		UpdateStrategy: clusterpolicybinding.Strategy,
-
-		Storage: s,
 	}
 
-	return &REST{store}
+	if err := restoptions.ApplyOptions(optsGetter, store, ClusterPolicyBindingPath); err != nil {
+		return nil, err
+	}
+
+	return &REST{store}, nil
 }

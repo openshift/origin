@@ -7,11 +7,11 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for image streams against etcd.
@@ -21,7 +21,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST) {
+func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST, error) {
 	prefix := "/imagestreams"
 
 	store := etcdgeneric.Etcd{
@@ -50,28 +50,32 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 		QualifiedResource: api.Resource("imagestreams"),
 
 		ReturnDeletedObject: false,
-		Storage:             s,
 	}
 
 	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
-	rest := &REST{subjectAccessReviewRegistry: subjectAccessReviewRegistry}
+	rest := &REST{Etcd: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
 	strategy.ImageStreamGetter = rest
-
-	statusStore := store
-	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
-
-	internalStore := store
-	internalStrategy := imagestream.NewInternalStrategy(strategy)
-	internalStore.CreateStrategy = internalStrategy
-	internalStore.UpdateStrategy = internalStrategy
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	rest.Etcd = &store
+	if err := restoptions.ApplyOptions(optsGetter, &store, prefix); err != nil {
+		return nil, nil, nil, err
+	}
 
-	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}
+	statusStore := store
+	statusStore.Decorator = nil
+	statusStore.CreateStrategy = nil
+	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
+
+	internalStore := store
+	internalStrategy := imagestream.NewInternalStrategy(strategy)
+	internalStore.Decorator = nil
+	internalStore.CreateStrategy = internalStrategy
+	internalStore.UpdateStrategy = internalStrategy
+
+	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.

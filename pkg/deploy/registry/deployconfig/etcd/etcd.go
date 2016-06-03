@@ -14,11 +14,11 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	"github.com/openshift/origin/pkg/deploy/util"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 )
 
@@ -29,7 +29,7 @@ type REST struct {
 
 // NewStorage returns a DeploymentConfigStorage containing the REST storage for
 // DeploymentConfig objects and their Scale subresources.
-func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *ScaleREST) {
+func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *ScaleREST, error) {
 	prefix := "/deploymentconfigs"
 
 	store := &etcdgeneric.Etcd{
@@ -52,7 +52,10 @@ func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNam
 		UpdateStrategy:      deployconfig.Strategy,
 		DeleteStrategy:      deployconfig.Strategy,
 		ReturnDeletedObject: false,
-		Storage:             s,
+	}
+
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, nil, err
 	}
 
 	deploymentConfigREST := &REST{store}
@@ -61,7 +64,7 @@ func NewREST(s storage.Interface, rcNamespacer kclient.ReplicationControllersNam
 		rcNamespacer: rcNamespacer,
 	}
 
-	return deploymentConfigREST, scaleREST
+	return deploymentConfigREST, scaleREST, nil
 }
 
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.

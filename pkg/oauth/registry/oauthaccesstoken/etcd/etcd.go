@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/observe"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for access tokens against etcd
@@ -27,7 +28,7 @@ type REST struct {
 const EtcdPrefix = "/oauth/accesstokens"
 
 // NewREST returns a RESTStorage object that will work against access tokens
-func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
+func NewREST(optsGetter restoptions.Getter, backends ...storage.Interface) (*REST, error) {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthAccessToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAccessTokenList{} },
@@ -50,10 +51,12 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("oauthaccesstokens"),
 
-		Storage: s,
+		CreateStrategy: oauthaccesstoken.Strategy,
 	}
 
-	store.CreateStrategy = oauthaccesstoken.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+		return nil, err
+	}
 
 	if len(backends) > 0 {
 		// Build identical stores that talk to a single etcd, so we can verify the token is distributed after creation
@@ -64,14 +67,14 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 			watchers = append(watchers, &watcher)
 		}
 		// Observe the cluster for the particular resource version, requiring at least one backend to succeed
-		observer := observe.NewClusterObserver(s.Versioner(), watchers, 1)
+		observer := observe.NewClusterObserver(store.Storage.Versioner(), watchers, 1)
 		// After creation, wait for the new token to propagate
 		store.AfterCreate = func(obj runtime.Object) error {
 			return observer.ObserveResourceVersion(obj.(*api.OAuthAccessToken).ResourceVersion, 5*time.Second)
 		}
 	}
 
-	return &REST{store}
+	return &REST{store}, nil
 }
 
 func (r *REST) New() runtime.Object {
