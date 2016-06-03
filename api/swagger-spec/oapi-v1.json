@@ -23056,6 +23056,9 @@
    "v1.SelfSubjectRulesReview": {
     "id": "v1.SelfSubjectRulesReview",
     "description": "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
+    "required": [
+     "spec"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -23065,9 +23068,29 @@
       "type": "string",
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
+     "spec": {
+      "$ref": "v1.SelfSubjectRulesReviewSpec",
+      "description": "Spec adds information about how to conduct the check"
+     },
      "status": {
       "$ref": "v1.SubjectRulesReviewStatus",
       "description": "Status is completed by the server to tell which permissions you have"
+     }
+    }
+   },
+   "v1.SelfSubjectRulesReviewSpec": {
+    "id": "v1.SelfSubjectRulesReviewSpec",
+    "description": "SelfSubjectRulesReviewSpec adds information about how to conduct the check",
+    "required": [
+     "scopes"
+    ],
+    "properties": {
+     "scopes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil means \"use the scopes on this request\"."
      }
     }
    },

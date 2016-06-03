@@ -21,6 +21,7 @@ os::cmd::expect_success 'oc login -u scoped-user -p asdf'
 os::cmd::expect_success 'oc login -u system:admin'
 username=$(oc get user/scoped-user -o jsonpath={.metadata.name})
 useruid=$(oc get user/scoped-user -o jsonpath={.metadata.uid})
+os::cmd::expect_success_and_text "oc policy can-i --list -n cmd-authentication --as=scoped-user" 'get.*pods'
 
 whoamitoken=$(oc process -f ${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
 os::cmd::expect_success_and_text 'oc get user/~ --token="${whoamitoken}"' "${username}"
@@ -42,12 +43,15 @@ os::cmd::expect_success 'oc get secrets --token="${allescalatingpowerstoken}" -n
 # scopes allow it, but authorization doesn't
 os::cmd::expect_failure_and_text 'oc get secrets --token="${allescalatingpowerstoken}" -n default' 'cannot list secrets in project'
 os::cmd::expect_success_and_text 'oc get projects --token="${allescalatingpowerstoken}"' 'cmd-authentication'
+os::cmd::expect_success_and_text "oc policy can-i --list --token=${allescalatingpowerstoken} -n cmd-authentication" 'get.*pods'
 
 accesstoken=$(oc process -f ${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml TOKEN_PREFIX=access SCOPE=user:check-access USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')
 os::cmd::expect_success_and_text 'curl -k -XPOST -H "Content-Type: application/json" -H "Authorization: Bearer ${accesstoken}" ${API_SCHEME}://${API_HOST}:${API_PORT}/oapi/v1/namespaces/cmd-authentication/localsubjectaccessreviews -d @${OS_ROOT}/test/testdata/authentication/localsubjectaccessreview.json' '"kind": "SubjectAccessReviewResponse"'
 os::cmd::expect_success_and_text 'oc policy can-i create pods --token=${accesstoken} -n cmd-authentication --ignore-scopes' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create pods --token=${accesstoken} -n cmd-authentication' 'no'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token=${accesstoken} -n cmd-authentication --scopes='role:admin:*'" 'yes'
+os::cmd::expect_success_and_text "oc policy can-i --list --token=${accesstoken} -n cmd-authentication --scopes='role:admin:*'" 'get.*pods'
+os::cmd::expect_success_and_not_text "oc policy can-i --list --token=${accesstoken} -n cmd-authentication" 'get.*pods'
 
 
 os::test::junit::declare_suite_end

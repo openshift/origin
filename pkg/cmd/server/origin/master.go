@@ -406,8 +406,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	groupStorage, err := groupetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver)
-
 	policyStorage, err := policyetcd.NewStorage(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
@@ -422,6 +420,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
+	// TODO collapse onto common cache once we've gotten shared informers from kube
+	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, clusterPolicyRegistry)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyRegistry,
 		policyBindingRegistry,

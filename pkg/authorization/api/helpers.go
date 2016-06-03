@@ -327,3 +327,11 @@ func (r *PolicyRuleBuilder) Rule() (PolicyRule, error) {
 
 	return r.PolicyRule, nil
 }
+
+type SortableRuleSlice []PolicyRule
+
+func (s SortableRuleSlice) Len() int      { return len(s) }
+func (s SortableRuleSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s SortableRuleSlice) Less(i, j int) bool {
+	return strings.Compare(s[i].String(), s[j].String()) < 0
+}
