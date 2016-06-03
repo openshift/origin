@@ -36,7 +36,9 @@ function cleanup()
 	dump_container_logs
 
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+	if [[ -n "${ADMIN_KUBECONFIG:-}" ]]; then
+		oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+	fi
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
@@ -56,7 +58,6 @@ function cleanup()
 		set -u
 	fi
 
-	# TODO soltysh: restore the if back once #8399 is resolved
 	journalctl --unit docker.service --since -15minutes > "${LOG_DIR}/docker.log"
 
 	delete_empty_logs

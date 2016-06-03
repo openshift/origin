@@ -9,9 +9,10 @@ RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
-COPY . /var/lib/origin/ipfailover/keepalived/
+COPY . /var/lib/ipfailover/keepalived/
 
 LABEL io.k8s.display-name="OpenShift Origin IP Failover" \
       io.k8s.description="This is a component of OpenShift Origin and runs a clustered keepalived instance across multiple hosts to allow highly available IP addresses."
 EXPOSE 1985
-ENTRYPOINT ["/var/lib/origin/ipfailover/keepalived/monitor.sh"]
+WORKDIR /var/lib/ipfailover
+ENTRYPOINT ["/var/lib/ipfailover/keepalived/monitor.sh"]
