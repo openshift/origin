@@ -183,6 +183,8 @@ func (o *RollbackOptions) Run() error {
 		return err
 	}
 
+	configName := ""
+
 	// Interpret the resource to resolve a target for rollback.
 	var target *kapi.ReplicationController
 	switch r := obj.(type) {
@@ -198,6 +200,7 @@ func (o *RollbackOptions) Run() error {
 
 		// A specific deployment was used.
 		target = r
+		configName = deployutil.DeploymentConfigNameFor(obj)
 	case *deployapi.DeploymentConfig:
 		if r.Spec.Paused {
 			return fmt.Errorf("cannot rollback a paused deployment config")
@@ -210,6 +213,7 @@ func (o *RollbackOptions) Run() error {
 			return err
 		}
 		target = deployment
+		configName = r.Name
 	}
 	if target == nil {
 		return fmt.Errorf("%s is not a valid deployment or deployment config", o.TargetName)
@@ -217,17 +221,23 @@ func (o *RollbackOptions) Run() error {
 
 	// Set up the rollback and generate a new rolled back config.
 	rollback := &deployapi.DeploymentConfigRollback{
+		Name: configName,
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name: target.Name,
 			},
+			Revision:               int64(o.DesiredVersion),
 			IncludeTemplate:        true,
 			IncludeTriggers:        o.IncludeTriggers,
 			IncludeStrategy:        o.IncludeStrategy,
 			IncludeReplicationMeta: o.IncludeScalingSettings,
 		},
 	}
-	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).RollbackDeprecated(rollback)
+	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).Rollback(rollback)
+	if kerrors.IsNotFound(err) {
+		// Fallback to the old path for new clients talking to old servers.
+		newConfig, err = o.oc.DeploymentConfigs(o.Namespace).RollbackDeprecated(rollback)
+	}
 	if err != nil {
 		return err
 	}
