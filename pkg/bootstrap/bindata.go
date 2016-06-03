@@ -139,7 +139,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -155,6 +155,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "openshift/nodejs-010-centos7:latest"
+            }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/nodejs-4-centos7:latest"
             }
           }
         ]
@@ -702,7 +717,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -718,6 +733,21 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
+            }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/nodejs-4-rhel7:latest"
             }
           }
         ]

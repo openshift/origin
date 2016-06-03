@@ -79,7 +79,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -95,6 +95,21 @@
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
+            }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/nodejs-4-rhel7:latest"
             }
           }
         ]
