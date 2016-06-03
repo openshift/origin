@@ -129,12 +129,13 @@ func (o *ImportImageOptions) Validate(cmd *cobra.Command) error {
 
 // Run contains all the necessary functionality for the OpenShift cli import-image command.
 func (o *ImportImageOptions) Run() error {
+	// TODO: add dry-run
 	stream, isi, err := o.createImageImport()
 	if err != nil {
 		return err
 	}
 
-	// TODO: add dry-run
+	// Attempt the new, direct import path
 	result, err := o.isClient.Import(isi)
 	switch {
 	case err == client.ErrImageStreamImportUnsupported:
@@ -251,38 +252,15 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 	stream, err := o.isClient.Get(o.Name)
 	from := o.From
 	tag := o.Tag
+
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return nil, nil, err
 		}
-
-		// the stream is new
 		if !o.Confirm {
 			return nil, nil, fmt.Errorf("no image stream named %q exists, pass --confirm to create and import", o.Name)
 		}
-		if len(from) == 0 {
-			from = o.Target
-		}
-		if o.All {
-			stream = &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: o.Name},
-				Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
-			}
-		} else {
-			stream = &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: o.Name},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						tag: {
-							From: &kapi.ObjectReference{
-								Kind: "DockerImage",
-								Name: from,
-							},
-						},
-					},
-				},
-			}
-		}
+		from, stream = o.newImageStream()
 
 	} else {
 		// the stream already exists
@@ -291,76 +269,17 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		}
 
 		if o.All {
-			// importing a whole repository
-			// TODO soltysh: write tests to cover all the possible usecases!!!
-			if len(from) == 0 {
-				if len(stream.Spec.DockerImageRepository) == 0 {
-					// FIXME soltysh:
-					return nil, nil, fmt.Errorf("flag --all is applicable only to images with spec.dockerImageRepository defined")
-				}
-				from = stream.Spec.DockerImageRepository
+			// importing the entire repository
+			from, err = o.importAll(stream)
+			if err != nil {
+				return nil, nil, err
 			}
-			if from != stream.Spec.DockerImageRepository {
-				if !o.Confirm {
-					if len(stream.Spec.DockerImageRepository) == 0 {
-						return nil, nil, fmt.Errorf("the image stream does not currently import an entire Docker repository, pass --confirm to update")
-					}
-					return nil, nil, fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
-				}
-				stream.Spec.DockerImageRepository = from
-			}
-
 		} else {
 			// importing a single tag
-
-			// follow any referential tags to the destination
-			finalTag, existing, ok, multiple := imageapi.FollowTagReference(stream, tag)
-			if !ok && multiple {
-				return nil, nil, fmt.Errorf("tag %q on the image stream is a reference to %q, which does not exist", tag, finalTag)
+			from, err = o.importTag(stream)
+			if err != nil {
+				return nil, nil, err
 			}
-
-			if ok {
-				// disallow changing an existing tag
-				if existing.From == nil || existing.From.Kind != "DockerImage" {
-					return nil, nil, fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
-				}
-				if len(from) != 0 && from != existing.From.Name {
-					if multiple {
-						return nil, nil, fmt.Errorf("the tag %q points to the tag %q which points to %q - use the 'tag' command if you want to change the source to %q", tag, finalTag, existing.From.Name, from)
-					}
-					return nil, nil, fmt.Errorf("the tag %q points to %q - use the 'tag' command if you want to change the source to %q", tag, existing.From.Name, from)
-				}
-
-				// set the target item to import
-				from = existing.From.Name
-				if multiple {
-					tag = finalTag
-				}
-
-				// clear the legacy annotation
-				delete(existing.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
-				// reset the generation
-				zero := int64(0)
-				existing.Generation = &zero
-
-			} else {
-				// create a new tag
-				if len(from) == 0 {
-					from = stream.Spec.DockerImageRepository
-				}
-				// if the from is still empty this means there's no such tag defined
-				// nor we can't create any from .spec.dockerImageRepository
-				if len(from) == 0 {
-					return nil, nil, fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
-				}
-				existing = &imageapi.TagReference{
-					From: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: from,
-					},
-				}
-			}
-			stream.Spec.Tags[tag] = *existing
 		}
 	}
 
@@ -369,7 +288,6 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		return nil, nil, fmt.Errorf("unexpected error, from is empty")
 	}
 
-	// Attempt the new, direct import path
 	isi := &imageapi.ImageStreamImport{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:            stream.Name,
@@ -404,4 +322,110 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 	}
 
 	return stream, isi, nil
+}
+
+func (o *ImportImageOptions) newImageStream() (string, *imageapi.ImageStream) {
+	from := o.From
+	tag := o.Tag
+	if len(from) == 0 {
+		from = o.Target
+	}
+	var stream *imageapi.ImageStream
+	if o.All {
+		stream = &imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
+		}
+	}
+	stream = &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+		Spec: imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{
+				tag: {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: from,
+					},
+				},
+			},
+		},
+	}
+	return from, stream
+}
+
+func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (string, error) {
+	from := o.From
+	if len(from) == 0 {
+		if len(stream.Spec.DockerImageRepository) == 0 {
+			// FIXME soltysh: support all spec.Tags
+			return "", fmt.Errorf("flag --all is applicable only to images with spec.dockerImageRepository defined")
+		}
+		from = stream.Spec.DockerImageRepository
+	}
+	if from != stream.Spec.DockerImageRepository {
+		if !o.Confirm {
+			if len(stream.Spec.DockerImageRepository) == 0 {
+				return "", fmt.Errorf("the image stream does not currently import an entire Docker repository, pass --confirm to update")
+			}
+			return "", fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
+		}
+		stream.Spec.DockerImageRepository = from
+	}
+
+	return from, nil
+}
+
+func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (string, error) {
+	from := o.From
+	tag := o.Tag
+	// follow any referential tags to the destination
+	finalTag, existing, ok, multiple := imageapi.FollowTagReference(stream, tag)
+	if !ok && multiple {
+		return "", fmt.Errorf("tag %q on the image stream is a reference to %q, which does not exist", tag, finalTag)
+	}
+
+	if ok {
+		// disallow changing an existing tag
+		if existing.From == nil || existing.From.Kind != "DockerImage" {
+			return "", fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
+		}
+		if len(from) != 0 && from != existing.From.Name {
+			if multiple {
+				return "", fmt.Errorf("the tag %q points to the tag %q which points to %q - use the 'tag' command if you want to change the source to %q", tag, finalTag, existing.From.Name, from)
+			}
+			return "", fmt.Errorf("the tag %q points to %q - use the 'tag' command if you want to change the source to %q", tag, existing.From.Name, from)
+		}
+
+		// set the target item to import
+		from = existing.From.Name
+		if multiple {
+			tag = finalTag
+		}
+
+		// clear the legacy annotation
+		delete(existing.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+		// reset the generation
+		zero := int64(0)
+		existing.Generation = &zero
+
+	} else {
+		// create a new tag
+		if len(from) == 0 {
+			from = stream.Spec.DockerImageRepository
+		}
+		// if the from is still empty this means there's no such tag defined
+		// nor we can't create any from .spec.dockerImageRepository
+		if len(from) == 0 {
+			return "", fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
+		}
+		existing = &imageapi.TagReference{
+			From: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: from,
+			},
+		}
+	}
+	stream.Spec.Tags[tag] = *existing
+
+	return from, nil
 }
