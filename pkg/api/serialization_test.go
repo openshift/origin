@@ -257,6 +257,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			if j.Spec.Template != nil && len(j.Spec.Template.Spec.Containers) == 1 {
+				containerName := j.Spec.Template.Spec.Containers[0].Name
+				if p := j.Spec.Strategy.RecreateParams; p != nil {
+					defaultHookContainerName(p.Pre, containerName)
+					defaultHookContainerName(p.Mid, containerName)
+					defaultHookContainerName(p.Post, containerName)
+				}
+				if p := j.Spec.Strategy.RollingParams; p != nil {
+					defaultHookContainerName(p.Pre, containerName)
+					defaultHookContainerName(p.Post, containerName)
+				}
+			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -271,9 +283,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 					s := int64(120)
 					params.TimeoutSeconds = &s
 				}
-				defaultLifecycleHook(params.Pre)
-				defaultLifecycleHook(params.Mid)
-				defaultLifecycleHook(params.Post)
 				j.RecreateParams = params
 			case deploy.DeploymentStrategyTypeRolling:
 				params := &deploy.RollingDeploymentStrategyParams{}
@@ -306,8 +315,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 						},
 					}
 				}
-				defaultLifecycleHook(params.Pre)
-				defaultLifecycleHook(params.Post)
 				if c.RandBool() {
 					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
 					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
@@ -417,13 +424,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 	return item
 }
 
-func defaultLifecycleHook(hook *deploy.LifecycleHook) {
+func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}
 	for i := range hook.TagImages {
 		if len(hook.TagImages[i].ContainerName) == 0 {
-			hook.TagImages[i].ContainerName = "test"
+			hook.TagImages[i].ContainerName = containerName
+		}
+	}
+	if hook.ExecNewPod != nil {
+		if len(hook.ExecNewPod.ContainerName) == 0 {
+			hook.ExecNewPod.ContainerName = containerName
 		}
 	}
 }
