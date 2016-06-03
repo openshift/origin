@@ -7,6 +7,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
+// Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
 func defaultHookContainerName(hook *LifecycleHook, containerName string) {
 	if hook == nil {
 		return
