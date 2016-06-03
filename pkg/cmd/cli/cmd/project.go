@@ -123,11 +123,11 @@ func (o ProjectOptions) RunProject() error {
 	clientCfg := o.ClientConfig
 	out := o.Out
 
+	currentContext := config.Contexts[config.CurrentContext]
+	currentProject := currentContext.Namespace
+
 	// No argument provided, we will just print info
 	if len(o.ProjectName) == 0 {
-		currentContext := config.Contexts[config.CurrentContext]
-		currentProject := currentContext.Namespace
-
 		if len(currentProject) > 0 {
 			if o.DisplayShort {
 				fmt.Fprintln(out, currentProject)
@@ -256,6 +256,10 @@ func (o ProjectOptions) RunProject() error {
 	// if there is no namespace, then the only information we can provide is the context and server
 	case (len(namespaceInUse) == 0):
 		fmt.Fprintf(out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
+
+	// inform them that they are already in the project they are trying to switch to
+	case currentProject == namespaceInUse:
+		fmt.Fprintf(out, "Already on project %q on server %q.\n", currentProject, clientCfg.Host)
 
 	// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 	// a context name they didn't choose
