@@ -114,6 +114,7 @@ items:
           kind: ImageStreamTag
           name: imagesourceapp:latest
       type: ImageChange
+    - type: ConfigChange
 
 
 - apiVersion: v1
@@ -159,4 +160,5 @@ items:
           kind: ImageStreamTag
           name: imagedockerapp:latest
       type: ImageChange
+    - type: ConfigChange
       
