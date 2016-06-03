@@ -265,7 +265,7 @@ func (s *S2IBuilder) Build() error {
 		} else {
 			glog.V(2).Infof("No push secret provided")
 		}
-		glog.V(1).Infof("Pushing %s image ...", pushTag)
+		glog.V(1).Infof("Pushing image %s ...", pushTag)
 		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
 			// write extended error message to assist in problem resolution
 			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)
@@ -281,7 +281,7 @@ func (s *S2IBuilder) Build() error {
 			}
 			return errors.New(msg)
 		}
-		glog.V(1).Infof("Successfully pushed %s", pushTag)
+		glog.V(1).Infof("Push successful")
 	}
 	return nil
 }

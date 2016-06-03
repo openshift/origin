@@ -14,7 +14,7 @@ import (
 	"github.com/golang/glog"
 
 	starterrors "github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/cmd/util/pullprogress"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 const openShiftInsecureCIDR = "172.30.0.0/16"
@@ -118,31 +118,11 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	}
 	glog.V(5).Infof("Image %q not found. Pulling", image)
 	fmt.Fprintf(out, "Pulling image %s\n", image)
-	extracting := false
-	var outputStream io.Writer
-	writeProgress := func(r *pullprogress.ProgressReport) {
-		if extracting {
-			return
-		}
-		if r.Downloading == 0 && r.Waiting == 0 && r.Extracting > 0 {
-			fmt.Fprintf(out, "Extracting\n")
-			extracting = true
-			return
-		}
-		plural := "s"
-		if r.Downloading == 1 {
-			plural = " "
-		}
-		fmt.Fprintf(out, "Downloading %d layer%s (%3.0f%%)", r.Downloading, plural, r.DownloadPct)
-		if r.Waiting > 0 {
-			fmt.Fprintf(out, ", %d waiting\n", r.Waiting)
-		} else {
-			fmt.Fprintf(out, "\n")
-		}
+	logProgress := func(s string) {
+		fmt.Fprintf(out, "%s\n", s)
 	}
-	if !glog.V(5) {
-		outputStream = pullprogress.NewPullProgressWriter(writeProgress)
-	} else {
+	outputStream := imageprogress.NewPullWriter(logProgress)
+	if glog.V(5) {
 		outputStream = out
 	}
 	err = h.client.PullImage(docker.PullImageOptions{
@@ -153,7 +133,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
-	fmt.Fprintf(out, "Image pull comlete\n")
+	fmt.Fprintf(out, "Image pull complete\n")
 	return nil
 }
 
