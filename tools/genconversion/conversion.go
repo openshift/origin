@@ -44,6 +44,8 @@ func main() {
 		"github.com/openshift/origin/pkg/template/api",
 		"github.com/openshift/origin/pkg/user/api/v1",
 		"github.com/openshift/origin/pkg/user/api",
+		"github.com/openshift/origin/pkg/security/api/v1",
+		"github.com/openshift/origin/pkg/security/api",
 	}
 
 	arguments.GoHeaderFilePath = "hack/boilerplate.txt"

@@ -19,6 +19,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
@@ -44,6 +45,9 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),
 	reflect.TypeOf(&buildapi.BuildRequest{}),
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),
+	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
+	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
+	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started
