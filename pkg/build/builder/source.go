@@ -21,10 +21,15 @@ import (
 )
 
 const (
-	// urlCheckTimeout is the timeout used to check the source URL
-	// If fetching the URL exceeds the timeout, then the build will
-	// not proceed further and stop
-	urlCheckTimeout = 16 * time.Second
+	// initialURLCheckTimeout is the initial timeout used to check the
+	// source URL.  If fetching the URL exceeds the timeout, then a longer
+	// timeout will be tried until the fetch either succeeds or the build
+	// itself times out.
+	initialURLCheckTimeout = 16 * time.Second
+
+	// timeoutIncrementFactor is the factor to use when increasing
+	// the timeout after each unsuccessful try
+	timeoutIncrementFactor = 4
 )
 
 type gitAuthError string
@@ -104,8 +109,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 // remote repository failed to authenticate.
 // Since this is calling the 'git' binary, the proxy settings should be
 // available for this command.
-func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) error {
-	glog.V(4).Infof("git ls-remote --heads %s", url)
+func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duration) error {
 
 	var (
 		out    string
@@ -113,26 +117,34 @@ func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) erro
 		err    error
 	)
 
-	out, errOut, err = gitClient.TimedListRemote(timeout, url, "--heads")
-	if _, ok := err.(*git.TimeoutError); err != nil && ok {
-		return fmt.Errorf("timeout while waiting for remote repository %q", url)
+	timeout := initialTimeout
+	for {
+		glog.V(4).Infof("git ls-remote --heads %s", url)
+		out, errOut, err = gitClient.TimedListRemote(timeout, url, "--heads")
+		if len(out) != 0 {
+			glog.V(4).Infof(out)
+		}
+		if len(errOut) != 0 {
+			glog.V(4).Infof(errOut)
+		}
+		if err != nil {
+			if _, ok := err.(*git.TimeoutError); ok {
+				timeout = timeout * timeoutIncrementFactor
+				glog.Infof("WARNING: timed out waiting for git server, will wait %s", timeout)
+				continue
+			}
+		}
+		break
 	}
-
-	if len(out) != 0 {
-		glog.V(4).Infof(out)
+	if err != nil {
+		combinedOut := out + errOut
+		switch {
+		case strings.Contains(combinedOut, "Authentication failed"):
+			return gitAuthError(url)
+		case strings.Contains(combinedOut, "not found"):
+			return gitNotFoundError(url)
+		}
 	}
-	if len(errOut) != 0 {
-		glog.V(4).Infof(errOut)
-	}
-
-	combinedOut := out + errOut
-	switch {
-	case strings.Contains(combinedOut, "Authentication failed"):
-		return gitAuthError(url)
-	case strings.Contains(combinedOut, "not found"):
-		return gitNotFoundError(url)
-	}
-
 	return err
 }
 
