@@ -95,9 +95,9 @@ func mockREST(version, desired int, status api.DeploymentStatus) *REST {
 	// Used for testing validation errors prior to getting replication controllers.
 	if desired > version {
 		return &REST{
-			ConfigGetter:   fakeDn,
-			ConnectionInfo: connectionInfo,
-			Timeout:        defaultTimeout,
+			dn:       fakeDn,
+			connInfo: connectionInfo,
+			timeout:  defaultTimeout,
 		}
 	}
 
@@ -147,11 +147,11 @@ func mockREST(version, desired int, status api.DeploymentStatus) *REST {
 	}
 
 	return &REST{
-		ConfigGetter:     fakeDn,
-		DeploymentGetter: fakeRn,
-		PodGetter:        fakePn,
-		ConnectionInfo:   connectionInfo,
-		Timeout:          defaultTimeout,
+		dn:       fakeDn,
+		rn:       fakeRn,
+		pn:       fakePn,
+		connInfo: connectionInfo,
+		timeout:  defaultTimeout,
 	}
 }
 
@@ -268,7 +268,9 @@ func TestRESTGet(t *testing.T) {
 			t.Errorf("%s: location streamer mismatch: expected\n%#v\ngot\n%#v\n", test.testName, test.expected, got)
 			e := test.expected.(*genericrest.LocationStreamer)
 			a := got.(*genericrest.LocationStreamer)
-			t.Errorf("%s: expected url:\n%v\ngot:\n%v\n", test.testName, e.Location, a.Location)
+			if e.Location.String() != a.Location.String() {
+				t.Errorf("%s: expected url:\n%v\ngot:\n%v\n", test.testName, e.Location, a.Location)
+			}
 		}
 	}
 }
