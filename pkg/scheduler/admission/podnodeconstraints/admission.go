@@ -64,23 +64,23 @@ type podNodeConstraints struct {
 // TODO: Include a function that will extract the PodSpec from the resource for
 // each type added here.
 var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
-	kapi.Resource("pods"):                   kapi.Kind("Pod"),
-	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
-	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
-	batch.Resource("jobs"):                  batch.Kind("Job"),
-	extensions.Resource("deployments"):      extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"):      extensions.Kind("ReplicaSet"),
-	extensions.Resource("jobs"):             extensions.Kind("Job"),
-	deployapi.Resource("deploymentconfigs"): deployapi.Kind("DeploymentConfig"),
+	kapi.Resource("pods"):                                       kapi.Kind("Pod"),
+	kapi.Resource("podtemplates"):                               kapi.Kind("PodTemplate"),
+	kapi.Resource("replicationcontrollers"):                     kapi.Kind("ReplicationController"),
+	batch.Resource("jobs"):                                      batch.Kind("Job"),
+	extensions.Resource("deployments"):                          extensions.Kind("Deployment"),
+	extensions.Resource("replicasets"):                          extensions.Kind("ReplicaSet"),
+	extensions.Resource("jobs"):                                 extensions.Kind("Job"),
+	deployapi.Resource("deploymentconfigs"):                     deployapi.Kind("DeploymentConfig"),
+	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
+	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
+	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),
 }
 
 // resourcesToIgnore is a list of resource kinds that contain a PodSpec that
 // we choose not to handle in this plugin
 var resourcesToIgnore = []unversioned.GroupKind{
 	extensions.Kind("DaemonSet"),
-	securityapi.Kind("PodSecurityPolicySelfSubjectReview"), // TODO: should this go through admission?
-	securityapi.Kind("PodSecurityPolicySubjectReview"),     // TODO: should this go through admission?
-	securityapi.Kind("PodSecurityPolicyReview"),            // TODO: should this go through admission?
 }
 
 func shouldCheckResource(resource unversioned.GroupResource, kind unversioned.GroupKind) (bool, error) {
@@ -157,6 +157,12 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 		return r.Spec.Template.Spec, nil
 	case *deployapi.DeploymentConfig:
 		return r.Spec.Template.Spec, nil
+	case *securityapi.PodSecurityPolicySubjectReview:
+		return r.Spec.PodSpec, nil
+	case *securityapi.PodSecurityPolicySelfSubjectReview:
+		return r.Spec.PodSpec, nil
+	case *securityapi.PodSecurityPolicyReview:
+		return r.Spec.PodSpec, nil
 	}
 	return kapi.PodSpec{}, kapierrors.NewInternalError(fmt.Errorf("No PodSpec available for supplied admission attribute"))
 }

@@ -12,6 +12,7 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 
 	admission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -213,6 +214,24 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 			groupresource: deployapi.Resource("podtemplates"),
 			prefix:        "PodTemplate",
 		},
+		{
+			resource:      podSecurityPolicySubjectReview,
+			kind:          securityapi.Kind("PodSecurityPolicySubjectReview"),
+			groupresource: securityapi.Resource("podsecuritypolicysubjectreviews"),
+			prefix:        "PodSecurityPolicy",
+		},
+		{
+			resource:      podSecurityPolicySelfSubjectReview,
+			kind:          securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
+			groupresource: securityapi.Resource("podsecuritypolicyselfsubjectreviews"),
+			prefix:        "PodSecurityPolicy",
+		},
+		{
+			resource:      podSecurityPolicyReview,
+			kind:          securityapi.Kind("PodSecurityPolicyReview"),
+			groupresource: securityapi.Resource("podsecuritypolicyreviews"),
+			prefix:        "PodSecurityPolicy",
+		},
 	}
 	testparams := []struct {
 		nodeselector     bool
@@ -313,6 +332,14 @@ func emptyNodeSelectorPod() *kapi.Pod {
 	return pod
 }
 
+func podSpec(setNodeSelector bool) *kapi.PodSpec {
+	ps := &kapi.PodSpec{}
+	if setNodeSelector {
+		ps.NodeSelector = map[string]string{"bogus": "frank"}
+	}
+	return ps
+}
+
 func podTemplateSpec(setNodeSelector bool) *kapi.PodTemplateSpec {
 	pts := &kapi.PodTemplateSpec{}
 	if setNodeSelector {
@@ -360,6 +387,24 @@ func deploymentConfig(setNodeSelector bool) runtime.Object {
 	dc := &deployapi.DeploymentConfig{}
 	dc.Spec.Template = podTemplateSpec(setNodeSelector)
 	return dc
+}
+
+func podSecurityPolicySubjectReview(setNodeSelector bool) runtime.Object {
+	pspsr := &securityapi.PodSecurityPolicySubjectReview{}
+	pspsr.Spec.PodSpec = *podSpec(setNodeSelector)
+	return pspsr
+}
+
+func podSecurityPolicySelfSubjectReview(setNodeSelector bool) runtime.Object {
+	pspssr := &securityapi.PodSecurityPolicySelfSubjectReview{}
+	pspssr.Spec.PodSpec = *podSpec(setNodeSelector)
+	return pspssr
+}
+
+func podSecurityPolicyReview(setNodeSelector bool) runtime.Object {
+	pspr := &securityapi.PodSecurityPolicyReview{}
+	pspr.Spec.PodSpec = *podSpec(setNodeSelector)
+	return pspr
 }
 
 func checkAdmitError(t *testing.T, err error, expectedError error, prefix string) {
