@@ -142,7 +142,11 @@ func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 	cn.HostSubnetLength = ni.HostSubnetLength
 	cn.ServiceNetwork = ni.ServiceNetwork.String()
 	cn.PluginName = ni.PluginName
-	_, err = registry.oClient.ClusterNetwork().Update(cn)
+	updatedNetwork, err := registry.oClient.ClusterNetwork().Update(cn)
+	if err != nil {
+		return err
+	}
+	log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
 	return err
 }
 
@@ -155,7 +159,11 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 		ServiceNetwork:   ni.ServiceNetwork.String(),
 		PluginName:       ni.PluginName,
 	}
-	_, err := registry.oClient.ClusterNetwork().Create(cn)
+	updatedNetwork, err := registry.oClient.ClusterNetwork().Create(cn)
+	if err != nil {
+		return err
+	}
+	log.Infof("Created ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
 	return err
 }
 
@@ -285,4 +293,8 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.Even
 	// Existing items in the event queue will have watch.Modified event type
 	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
 	return eventQueue
+}
+
+func clusterNetworkToString(n *osapi.ClusterNetwork) string {
+	return fmt.Sprintf("%s (network: %q, hostSubnetBits: %d, serviceNetwork: %q, pluginName: %q)", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 }

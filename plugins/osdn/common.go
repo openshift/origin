@@ -252,5 +252,5 @@ func GetPodContainerID(pod *kapi.Pod) string {
 }
 
 func HostSubnetToString(subnet *osapi.HostSubnet) string {
-	return fmt.Sprintf("%s [host: '%s'] [ip: '%s'] [subnet: '%s']", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
+	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }
