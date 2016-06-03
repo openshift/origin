@@ -9,6 +9,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	_ "github.com/openshift/origin/pkg/build/api/install"
 )
 
 func TestBuildValidationSuccess(t *testing.T) {
@@ -2317,6 +2319,85 @@ func TestValidatePostCommit(t *testing.T) {
 	for _, tt := range tests {
 		if got := validatePostCommit(tt.spec, path); !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("validatePostCommitSpec(%+v) = %v, want %v", tt.spec, got, tt.want)
+		}
+	}
+}
+
+func TestDiffBuildSpec(t *testing.T) {
+	tests := []struct {
+		name         string
+		older, newer buildapi.BuildSpec
+		expected     string
+	}{
+		{
+			name: "context dir",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						ContextDir: "context-dir",
+					},
+				},
+			},
+			expected: `{"spec":{"source":{"contextDir":"context-dir"}}}`,
+		},
+		{
+			name: "same git build source",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			expected: "{}",
+		},
+		{
+			name: "different git build source",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/ose/origin.git",
+						},
+					},
+				},
+			},
+			expected: `{"spec":{"source":{"git":{"ref":"https://github.com/ose/origin.git"}}}}`,
+		},
+	}
+	for _, test := range tests {
+		diff, err := diffBuildSpec(test.newer, test.older)
+		if err != nil {
+			t.Errorf("%s: unexpected: %v", test.name, err)
+			continue
+		}
+		if diff != test.expected {
+			t.Errorf("%s: expected: %s, got: %s", test.name, test.expected, diff)
 		}
 	}
 }
