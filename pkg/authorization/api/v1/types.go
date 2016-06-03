@@ -120,8 +120,18 @@ type NamedRoleBinding struct {
 type SelfSubjectRulesReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
+	// Spec adds information about how to conduct the check
+	Spec SelfSubjectRulesReviewSpec `json:"spec"`
+
 	// Status is completed by the server to tell which permissions you have
 	Status SubjectRulesReviewStatus `json:"status,omitempty"`
+}
+
+// SelfSubjectRulesReviewSpec adds information about how to conduct the check
+type SelfSubjectRulesReviewSpec struct {
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil means "use the scopes on this request".
+	Scopes []string `json:"scopes"`
 }
 
 // SubjectRulesReviewStatus is contains the result of a rules check
