@@ -23,7 +23,6 @@ type DeploymentConfigInterface interface {
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
-	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	GetScale(name string) (*extensions.Scale, error)
 	UpdateScale(scale *extensions.Scale) (*extensions.Scale, error)
@@ -90,13 +89,6 @@ func (c *deploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error
 		Resource("deploymentConfigs").
 		VersionedParams(&opts, kapi.ParameterCodec).
 		Watch()
-}
-
-// Generate generates a new deploymentConfig for the given name.
-func (c *deploymentConfigs) Generate(name string) (result *deployapi.DeploymentConfig, err error) {
-	result = &deployapi.DeploymentConfig{}
-	err = c.r.Get().Namespace(c.ns).Resource("generateDeploymentConfigs").Name(name).Do().Into(result)
-	return
 }
 
 // Rollback rolls a deploymentConfig back to a previous configuration
