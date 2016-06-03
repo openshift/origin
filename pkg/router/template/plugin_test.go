@@ -226,6 +226,13 @@ func (r *TestRouter) Commit() {
 	r.Committed = true
 }
 
+func (r *TestRouter) SetSkipCommit(skipCommit bool) {
+}
+
+func (r *TestRouter) HasServiceUnit(key string) bool {
+	return false
+}
+
 // TestHandleEndpoints test endpoint watch events
 func TestHandleEndpoints(t *testing.T) {
 	testCases := []struct {

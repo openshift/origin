@@ -55,10 +55,14 @@ testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
-pushd "${testdir}" &>/dev/null
-echo "Building test executable..."
-CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
-popd &>/dev/null
+if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
+  echo "WARNING: Skipping build due to OPENSHIFT_SKIP_BUILD"
+else
+  pushd "${testdir}" &>/dev/null
+    echo "Building test executable..."
+    CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
+  popd &>/dev/null
+fi
 
 os::log::start_system_logger
 
@@ -66,8 +70,12 @@ function exectest() {
 	echo "Running $1..."
 
 	result=1
-	if [ -n "${VERBOSE-}" ]; then
-		"${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1
+	if [ -n "${DEBUG-}" ]; then
+		dlv exec "${testexec}" -- -test.run="^$1$" "${@:2}"
+		result=$?
+		out=
+	elif [ -n "${VERBOSE-}" ]; then
+		out=$("${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	else
 		out=$("${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)

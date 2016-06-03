@@ -302,3 +302,7 @@ func (a *StatusAdmitter) HandleEndpoints(eventType watch.EventType, route *kapi.
 func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return a.plugin.HandleNamespaces(namespaces)
 }
+
+func (a *StatusAdmitter) SetLastSyncProcessed(processed bool) error {
+	return a.plugin.SetLastSyncProcessed(processed)
+}

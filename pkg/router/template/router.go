@@ -75,6 +75,8 @@ type templateRouter struct {
 	rateLimitedCommitStopChannel chan struct{}
 	// lock is a mutex used to prevent concurrent router reloads.
 	lock sync.Mutex
+	// the router should only reload when the value is false
+	skipCommit bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -149,14 +151,8 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		rateLimitedCommitStopChannel: make(chan struct{}),
 	}
 
-	keyFunc := func(_ interface{}) (string, error) {
-		return "templaterouter", nil
-	}
-
 	numSeconds := int(cfg.reloadInterval.Seconds())
-	router.rateLimitedCommitFunction = ratelimiter.NewRateLimitedFunction(keyFunc, numSeconds, router.commitAndReload)
-	router.rateLimitedCommitFunction.RunUntil(router.rateLimitedCommitStopChannel)
-	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", numSeconds)
+	router.EnableRateLimiter(numSeconds, router.commitAndReload)
 
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
@@ -182,6 +178,16 @@ func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 		}
 	}
 	return endpoints
+}
+
+func (r *templateRouter) EnableRateLimiter(interval int, handlerFunc ratelimiter.HandlerFunc) {
+	keyFunc := func(_ interface{}) (string, error) {
+		return "templaterouter", nil
+	}
+
+	r.rateLimitedCommitFunction = ratelimiter.NewRateLimitedFunction(keyFunc, interval, handlerFunc)
+	r.rateLimitedCommitFunction.RunUntil(r.rateLimitedCommitStopChannel)
+	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", interval)
 }
 
 // writeDefaultCert is called a single time during init to write out the default certificate
@@ -214,7 +220,11 @@ func (r *templateRouter) readState() error {
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
 func (r *templateRouter) Commit() {
-	r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+	if r.skipCommit {
+		glog.V(4).Infof("Skipping router commit until last sync has been processed")
+	} else {
+		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+	}
 }
 
 // commitAndReload refreshes the backend and persists the router state.
@@ -312,6 +322,9 @@ func (r *templateRouter) reloadRouter() error {
 }
 
 func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceUnit)
 	}
@@ -334,18 +347,33 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 		EndpointTable:       []Endpoint{},
 	}
 
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	r.state[id] = service
 }
 
-// FindServiceUnit finds the service with the given id.
-func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
+// findMatchingServiceUnit finds the service with the given id - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) findMatchingServiceUnit(id string) (ServiceUnit, bool) {
 	v, ok := r.state[id]
 	return v, ok
 }
 
+// FindServiceUnit finds the service with the given id.
+func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	return r.findMatchingServiceUnit(id)
+}
+
 // DeleteServiceUnit deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
-	svcUnit, ok := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	svcUnit, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
 	}
@@ -353,15 +381,20 @@ func (r *templateRouter) DeleteServiceUnit(id string) {
 	for _, cfg := range svcUnit.ServiceAliasConfigs {
 		r.cleanUpServiceAliasConfig(&cfg)
 	}
+
 	delete(r.state, id)
 }
 
 // DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
-	service, ok := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	service, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
 	}
+
 	service.EndpointTable = []Endpoint{}
 
 	r.state[id] = service
@@ -391,8 +424,6 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 
 // AddRoute adds a route for the given id
 func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
-	frontend, _ := r.FindServiceUnit(id)
-
 	backendKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
@@ -450,6 +481,11 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 		}
 	}
 
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	frontend, _ := r.findMatchingServiceUnit(id)
+
 	//create or replace
 	frontend.ServiceAliasConfigs[backendKey] = config
 	r.state[id] = frontend
@@ -478,6 +514,9 @@ func (r *templateRouter) cleanUpdates(frontendKey string, backendKey string) {
 
 // RemoveRoute removes the given route for the given id.
 func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	serviceUnit, ok := r.state[id]
 	if !ok {
 		return
@@ -494,7 +533,9 @@ func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 
 // AddEndpoints adds new Endpoints for the given id.
 func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
-	frontend, _ := r.FindServiceUnit(id)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	frontend, _ := r.findMatchingServiceUnit(id)
 
 	//only make the change if there is a difference
 	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
@@ -574,6 +615,24 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 		return false
 	}
 	return false
+}
+
+// SetSkipCommit indicates to the router whether requests to
+// commit/reload should be skipped.
+func (r *templateRouter) SetSkipCommit(skipCommit bool) {
+	if r.skipCommit != skipCommit {
+		glog.V(4).Infof("Updating skip commit to: %s", skipCommit)
+		r.skipCommit = skipCommit
+	}
+}
+
+// HasServiceUnit attempts to retrieve a service unit for the given
+// key, returning a boolean indication of whether the key is known.
+func (r *templateRouter) HasServiceUnit(key string) bool {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	_, ok := r.state[key]
+	return ok
 }
 
 // hasRequiredEdgeCerts ensures that at least a host certificate and key are provided.

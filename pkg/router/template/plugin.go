@@ -53,6 +53,10 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
+	// HasServiceUnit indicates whether the router has a service unit
+	// for the given key.
+	HasServiceUnit(key string) bool
+
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.
@@ -74,6 +78,9 @@ type routerInterface interface {
 	// Commit applies the changes in the background. It kicks off a rate-limited
 	// commit (persist router state + refresh the backend) that coalesces multiple changes.
 	Commit()
+
+	// SetSkipCommit indicates to the router whether commits should be skipped
+	SetSkipCommit(skipCommit bool)
 }
 
 func env(name, defaultValue string) string {
@@ -188,6 +195,11 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)
 	p.Router.Commit()
+	return nil
+}
+
+func (p *TemplatePlugin) SetLastSyncProcessed(processed bool) error {
+	p.Router.SetSkipCommit(!processed)
 	return nil
 }
 

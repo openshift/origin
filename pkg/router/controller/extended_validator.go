@@ -73,3 +73,7 @@ func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routea
 func (p *ExtendedValidator) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
+
+func (p *ExtendedValidator) SetLastSyncProcessed(processed bool) error {
+	return p.plugin.SetLastSyncProcessed(processed)
+}
