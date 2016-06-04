@@ -167,7 +167,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration: zeroDuration,
 				},
 			},
-			"waiting for 1m0s",
+			"waiting for 1m",
 		},
 		{ // 1 - build pending
 			&buildapi.Build{
@@ -177,7 +177,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration: zeroDuration,
 				},
 			},
-			"waiting for 1m0s",
+			"waiting for 1m",
 		},
 		{ // 2 - build running
 			&buildapi.Build{
@@ -188,7 +188,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:       duration,
 				},
 			},
-			"running for 1m0s",
+			"running for 1m",
 		},
 		{ // 3 - build completed
 			&buildapi.Build{
@@ -200,7 +200,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"1m0s",
+			"1m",
 		},
 		{ // 4 - build failed
 			&buildapi.Build{
@@ -212,7 +212,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"1m0s",
+			"1m",
 		},
 		{ // 5 - build error
 			&buildapi.Build{
@@ -224,7 +224,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"1m0s",
+			"1m",
 		},
 		{ // 6 - build cancelled before running, start time wasn't set yet
 			&buildapi.Build{
@@ -235,7 +235,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"waited for 2m0s",
+			"waited for 2m",
 		},
 		{ // 7 - build cancelled while running, start time is set already
 			&buildapi.Build{
@@ -247,7 +247,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"1m0s",
+			"1m",
 		},
 		{ // 8 - build failed before running, start time wasn't set yet
 			&buildapi.Build{
@@ -258,7 +258,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"waited for 2m0s",
+			"waited for 2m",
 		},
 		{ // 9 - build error before running, start time wasn't set yet
 			&buildapi.Build{
@@ -269,12 +269,12 @@ func TestDescribeBuildDuration(t *testing.T) {
 					Duration:            duration,
 				},
 			},
-			"waited for 2m0s",
+			"waited for 2m",
 		},
 	}
 
 	for i, tc := range tests {
-		if actual, expected := describeBuildDuration(tc.build), tc.output; actual != expected {
+		if actual, expected := describeBuildDuration(tc.build), tc.output; !strings.Contains(actual, expected) {
 			t.Errorf("(%d) expected duration output %s, got %s", i, expected, actual)
 		}
 	}
