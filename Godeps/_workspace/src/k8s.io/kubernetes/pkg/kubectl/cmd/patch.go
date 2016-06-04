@@ -21,13 +21,16 @@ import (
 	"io"
 	"strings"
 
+	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/util/yaml"
 )
 
@@ -36,8 +39,9 @@ var patchTypes = map[string]api.PatchType{"json": api.JSONPatchType, "merge": ap
 // PatchOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
 // referencing the cmd.Flags()
 type PatchOptions struct {
-	Filenames []string
-	Recursive bool
+	LocalFilenames []string
+	Filenames      []string
+	Recursive      bool
 }
 
 const (
@@ -85,10 +89,23 @@ func NewCmdPatch(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	usage := "Filename, directory, or URL to a file identifying the resource to update"
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
 	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
+
+	cmd.Flags().StringSliceVar(&options.LocalFilenames, "local-file", []string{}, "Filename, directory, or URL to a file to update")
+	annotations := []string{}
+	for _, ext := range resource.FileExtensions {
+		annotations = append(annotations, strings.TrimLeft(ext, "."))
+	}
+	cmd.Flags().SetAnnotation("local-file", cobra.BashCompFilenameExt, annotations)
+
 	return cmd
 }
 
 func RunPatch(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, shortOutput bool, options *PatchOptions) error {
+	switch {
+	case len(options.LocalFilenames) != 0 && (len(options.Filenames) != 0 || len(args) != 0):
+		return fmt.Errorf("cannot specify --local-file and server resources")
+	}
+
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -113,11 +130,18 @@ func RunPatch(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return fmt.Errorf("unable to parse %q: %v", patch, err)
 	}
 
+	filesToRead := []string{}
+	if len(options.LocalFilenames) == 0 {
+		filesToRead = options.Filenames
+	} else {
+		filesToRead = options.LocalFilenames
+	}
+
 	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
+		FilenameParam(enforceNamespace, options.Recursive, filesToRead...).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()
@@ -141,20 +165,72 @@ func RunPatch(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return err
 	}
 
-	helper := resource.NewHelper(client, mapping)
-	patchedObject, err := helper.Patch(namespace, name, patchType, patchBytes)
+	modifyServerResources := len(options.LocalFilenames) == 0
+	if modifyServerResources {
+		helper := resource.NewHelper(client, mapping)
+		patchedObject, err := helper.Patch(namespace, name, patchType, patchBytes)
+		if err != nil {
+			return err
+		}
+		if cmdutil.ShouldRecord(cmd, info) {
+			if err := cmdutil.RecordChangeCause(patchedObject, f.Command()); err == nil {
+				// don't return an error on failure.  The patch itself succeeded, its only the hint for that change that failed
+				// don't bother checking for failures of this replace, because a failure to indicate the hint doesn't fail the command
+				// also, don't force the replacement.  If the replacement fails on a resourceVersion conflict, then it means this
+				// record hint is likely to be invalid anyway, so avoid the bad hint
+				resource.NewHelper(client, mapping).Replace(namespace, name, false, patchedObject)
+			}
+		}
+		cmdutil.PrintSuccess(mapper, shortOutput, out, "", name, "patched")
+		return nil
+	}
+
+	patchedObj, err := api.Scheme.DeepCopy(info.VersionedObject)
 	if err != nil {
 		return err
 	}
-	if cmdutil.ShouldRecord(cmd, info) {
-		if err := cmdutil.RecordChangeCause(patchedObject, f.Command()); err == nil {
-			// don't return an error on failure.  The patch itself succeeded, its only the hint for that change that failed
-			// don't bother checking for failures of this replace, because a failure to indicate the hint doesn't fail the command
-			// also, don't force the replacement.  If the replacement fails on a resourceVersion conflict, then it means this
-			// record hint is likely to be invalid anyway, so avoid the bad hint
-			resource.NewHelper(client, mapping).Replace(namespace, name, false, patchedObject)
-		}
+
+	originalObjJS, err := runtime.Encode(api.Codecs.LegacyCodec(), info.VersionedObject.(runtime.Object))
+	if err != nil {
+		return err
 	}
-	cmdutil.PrintSuccess(mapper, shortOutput, out, "", name, "patched")
+	originalPatchedObjJS, err := getPatchedJS(patchType, originalObjJS, patchBytes, patchedObj.(runtime.Object))
+	if err != nil {
+		return err
+	}
+
+	rawExtension := &runtime.Unknown{
+		Raw: originalPatchedObjJS,
+	}
+	// fmt.Fprintf(out, "%s", string(originalPatchedObjJS))
+	printer, _, err := kubectl.GetPrinter("yaml", "")
+	if err != nil {
+		return err
+	}
+	if err := printer.PrintObj(rawExtension, out); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func getPatchedJS(patchType api.PatchType, originalJS, patchJS []byte, obj runtime.Object) ([]byte, error) {
+	switch patchType {
+	case api.JSONPatchType:
+		patchObj, err := jsonpatch.DecodePatch(patchJS)
+		if err != nil {
+			return nil, err
+		}
+		return patchObj.Apply(originalJS)
+
+	case api.MergePatchType:
+		return jsonpatch.MergePatch(originalJS, patchJS)
+
+	case api.StrategicMergePatchType:
+		return strategicpatch.StrategicMergePatchData(originalJS, patchJS, obj)
+
+	default:
+		// only here as a safety net - go-restful filters content-type
+		return nil, fmt.Errorf("unknown Content-Type header for patch: %v", patchType)
+	}
 }

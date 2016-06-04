@@ -202,7 +202,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute))
 
 		mapper := restmapper.NewDiscoveryRESTMapper(cachedDiscoverClient)
-		mapper = NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: mapper})
+		mapper = NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: restMapper})
 		return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 	}
 
