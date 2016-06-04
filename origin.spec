@@ -22,12 +22,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 84f89a009869ace6147acadd65168ea0dbdbad48
+%global commit 30cd1b4fdce316e68da410943196f9a55c9fe140
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.41-9-g84f89a0 -X github.com/openshift/origin/pkg/version.commitFromGit 84f89a0 -X k8s.io/kubernetes/pkg/version.gitCommit 84f89a0 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.42-80-g30cd1b4 -X github.com/openshift/origin/pkg/version.commitFromGit 30cd1b4 -X k8s.io/kubernetes/pkg/version.gitCommit 30cd1b4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.1.0
+Version:        3.2.1.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -486,6 +486,89 @@ fi
 
 
 %changelog
+* Sat Jun 04 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.1
+- UPSTREAM 8287 Suppress router reload during sync (marun@redhat.com)
+- UPSTREAM 8893 Sync access to router state (smitram@gmail.com)
+- UPSTREAM: 25487: pod constraints func for quota validates resources
+  (decarr@redhat.com)
+- UPSTREAM: 24514: Quota ignores pod compute resources on updates
+  (decarr@redhat.com)
+- Skip registry client v1 and v2 tests until we push with 1.10
+  (ccoleman@redhat.com)
+- Allow size of image to be zero when schema1 from Hub (ccoleman@redhat.com)
+- UPSTREAM: 25161: Sort resources in quota errors to avoid duplicate events
+  (decarr@redhat.com)
+- Bug 1342091 - Add additional interfaces implementation for handling watches,
+  rsh, etc. (maszulik@redhat.com)
+- Add watch caching to origin types (jliggitt@redhat.com)
+- Fix login redirect (spadgett@redhat.com)
+- UPSTREAM: 24403: kubectl: use platform-agnostic helper in edit
+  (mkargaki@redhat.com)
+- Backport bug #1333118: adding labels and envs is tricky
+  (admin@benjaminapetersen.me)
+- Document things, remove /usr/bin/docker mount from contrib systemd unit
+  (sdodson@redhat.com)
+- chroot docker to the rootfs (sdodson@redhat.com)
+- Truncate labels of builds generated from a BuildConfig (cewong@redhat.com)
+- Truncate build pod label to allowed size (cewong@redhat.com)
+- Service account token controller startup change (jliggitt@redhat.com)
+- [RPMs] Refactor golang BuildRequires (sdodson@redhat.com)
+- UPSTREAM: 23858: Convert service account token controller to use a work queue
+  (jliggitt@redhat.com)
+- UPSTREAM: 24052: add built-in ratelimiter to workqueue (deads@redhat.com)
+- UPSTREAM: 23444: fake util.clock tick (jliggitt@redhat.com)
+- UPSTREAM: 23444: make delayed workqueue use channels with single writer
+  (jliggitt@redhat.com)
+- UPSTREAM: 23444: add a delayed queueing option to the workqueue
+  (deads@redhat.com)
+- Fix extended validation test expected error count. Probably needs to do error
+  check rather than exact error count match. (smitram@gmail.com)
+-   o Add basic validation for route TLS configuration - checks that     input
+  is "syntactically" valid.   o Checkpoint initial code.   o Add support for
+  validating route tls config.   o Add option for validating route tls config.
+  o Validation fixes.   o Check private key + cert mismatches.   o Add tests.
+  o Record route rejection.   o Hook into add route processing + store invalid
+  service alias configs     in another place - easy to check prior errors on
+  readmission.   o Remove entry from invalid service alias configs upon route
+  removal.   o Add generated completions.   o Bug fixes.   o Recording
+  rejecting routes is not working completely.   o Fix status update problem -
+  we should set the status to admitted     only if we had no errors handling a
+  route.   o Rework to use a new controller - extended_validator as per
+  @smarterclayton comments.   o Cleanup validation as per @liggitt comments.
+  o Update bash completions.   o Fixup older validation unit tests.   o Changes
+  as per @liggitt review comments + cleanup tests.   o Fix failing test.
+  (smitram@gmail.com)
+- Bug 1334485 - Empty overview page (jhadvig@redhat.com)
+- UPSTREAM: 25907: Fix detection of docker cgroup on RHEL (agoldste@redhat.com)
+- UPSTREAM: 25472: tolerate nil error in HandleError (deads@redhat.com)
+- UPSTREAM: 25690: Fixes panic on round tripper when TLS under a proxy
+  (ffranz@redhat.com)
+- platformmanagement_public_704: Added basic auditing (maszulik@redhat.com)
+- Bug 1333118 - Make for CLI tools a standalone help page (jhadvig@redhat.com)
+- allow project request limits on system users and service accounts
+  (deads@redhat.com)
+- Bug 1333172 - differ between route hostname and navigation within the console
+  (jhadvig@redhat.com)
+- Updating Help > Documentation links to use helpLink filter
+  (rhamilto@redhat.com)
+- UPSTREAM: 25501: SplitHostPort is needed since Request.RemoteAddr has the
+  host:port format (maszulik@redhat.com)
+- Remove gaps from build chart for deleted builds (spadgett@redhat.com)
+- Check for pod creation in scc exec admission (jliggitt@redhat.com)
+- Include ext-searchbox.js for Ace editor search (spadgett@redhat.com)
+- UPSTREAM: 25369: Return 'too old' errors from watch cache via watch stream
+  (jliggitt@redhat.com)
+- Update logo and support css structure to enable a more flexible dimensions
+  (sgoodwin@redhat.com)
+- Calculate effective limit min in UI for request/limit ratio
+  (spadgett@redhat.com)
+- Disable UI scaling for in progress deployment (spadgett@redhat.com)
+- Fix timing issue scaling deployments (spadgett@redhat.com)
+- Show newlines and links in template descriptions (spadgett@redhat.com)
+- UPSTREAM: 25077: PLEG: reinspect pods that failed prior inspections
+  (agoldste@redhat.com)
+- Update spec to 4.2.1 (tdawson@redhat.com)
+
 * Thu May 05 2016 Troy Dawson <tdawson@redhat.com> 3.2.0.42
 - UPSTREAM: 24924: fix PrepareForUpdate bug for HPA (jliggitt@redhat.com)
 - UPSTREAM: 24924: fix PrepareForUpdate bug for PV and PVC
