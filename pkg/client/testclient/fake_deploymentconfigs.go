@@ -61,15 +61,6 @@ func (c *FakeDeploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, e
 	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("deploymentconfigs", c.Namespace, opts))
 }
 
-func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("generatedeploymentconfigs", c.Namespace, name), &deployapi.DeploymentConfig{})
-	if obj == nil {
-		return nil, err
-	}
-
-	return obj.(*deployapi.DeploymentConfig), err
-}
-
 func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
 	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("deploymentconfigrollbacks", c.Namespace, inObj), inObj)
 	if obj == nil {
