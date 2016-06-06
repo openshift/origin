@@ -8810,6 +8810,96 @@
     ]
    },
    {
+    "path": "/oapi/v1/imagesignatures",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.ImageSignature",
+      "method": "POST",
+      "summary": "create a ImageSignature",
+      "nickname": "createImageSignature",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ImageSignature",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ImageSignature"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/imagesignatures/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "unversioned.Status",
+      "method": "DELETE",
+      "summary": "delete a ImageSignature",
+      "nickname": "deleteImageSignature",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ImageSignature",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "unversioned.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreamimages/{name}",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -23440,12 +23530,24 @@
    },
    "v1.ImageSignature": {
     "id": "v1.ImageSignature",
-    "description": "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. There are two mandatory fields provided by client: Type and Content. They should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
+    "description": "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. Mandatory fields should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
     "required": [
      "type",
      "content"
     ],
     "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
+     },
      "type": {
       "type": "string",
       "description": "Required: Describes a type of stored blob."
@@ -23496,7 +23598,7 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "Type of job condition, Complete or Failed."
+      "description": "Type of signature condition, Complete or Failed."
      },
      "status": {
       "type": "string",

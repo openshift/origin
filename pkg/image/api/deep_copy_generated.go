@@ -493,6 +493,12 @@ func DeepCopy_api_ImageList(in ImageList, out *ImageList, c *conversion.Cloner) 
 }
 
 func DeepCopy_api_ImageSignature(in ImageSignature, out *ImageSignature, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api.DeepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
 	out.Type = in.Type
 	if in.Content != nil {
 		in, out := in.Content, &out.Content

@@ -130,7 +130,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale", "deploymentconfigs/log",
 					"deploymentconfigs/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("images", "imagestreams", "imagestreamtags", "imagestreamimages",
+				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("images", "imagesignatures", "imagestreams", "imagestreamtags", "imagestreamimages",
 					"imagestreams/status").RuleOrDie(),
 				// pull images
 				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
@@ -446,6 +446,15 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("delete").Groups(imageGroup).Resources("images").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(imageGroup).Resources("images", "imagestreams").RuleOrDie(),
 				authorizationapi.NewRule("update").Groups(imageGroup).Resources("imagestreams/status").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImageSignerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("get").Groups(imageGroup).Resources("images", "imagestreams/layers").RuleOrDie(),
+				authorizationapi.NewRule("create", "delete").Groups(imageGroup).Resources("imagesignatures").RuleOrDie(),
 			},
 		},
 		{

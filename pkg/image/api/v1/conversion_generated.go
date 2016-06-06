@@ -261,6 +261,12 @@ func Convert_api_ImageList_To_v1_ImageList(in *image_api.ImageList, out *ImageLi
 }
 
 func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *image_api.ImageSignature, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	out.Type = in.Type
 	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
 		return err
@@ -305,6 +311,12 @@ func Convert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *im
 }
 
 func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *image_api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	out.Type = in.Type
 	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
 		return err
