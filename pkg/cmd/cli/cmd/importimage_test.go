@@ -14,14 +14,15 @@ import (
 
 func TestCreateImageImport(t *testing.T) {
 	testCases := map[string]struct {
-		name     string
-		from     string
-		stream   *imageapi.ImageStream
-		all      bool
-		confirm  bool
-		insecure *bool
-		err      string
-		expected *imageapi.ImageStreamImportSpec
+		name               string
+		from               string
+		stream             *imageapi.ImageStream
+		all                bool
+		confirm            bool
+		insecure           *bool
+		err                string
+		expectedImages     []imageapi.ImageImportSpec
+		expectedRepository *imageapi.RepositoryImportSpec
 	}{
 		"import from non-existing": {
 			name: "nonexisting",
@@ -30,23 +31,17 @@ func TestCreateImageImport(t *testing.T) {
 		"confirmed import from non-existing": {
 			name:    "nonexisting",
 			confirm: true,
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "nonexisting"},
-					To:   &kapi.LocalObjectReference{Name: "latest"},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "nonexisting"},
+				To:   &kapi.LocalObjectReference{Name: "latest"},
+			}},
 		},
 		"confirmed import all from non-existing": {
 			name:    "nonexisting",
 			all:     true,
 			confirm: true,
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "nonexisting"},
-				},
+			expectedRepository: &imageapi.RepositoryImportSpec{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "nonexisting"},
 			},
 		},
 		"import from .spec.dockerImageRepository": {
@@ -58,13 +53,10 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
-					To:   &kapi.LocalObjectReference{Name: "latest"},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
+				To:   &kapi.LocalObjectReference{Name: "latest"},
+			}},
 		},
 		"import all from .spec.dockerImageRepository": {
 			name: "testis",
@@ -76,11 +68,8 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
-				},
+			expectedRepository: &imageapi.RepositoryImportSpec{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
 			},
 		},
 		"import all from .spec.dockerImageRepository with different from": {
@@ -108,29 +97,104 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "totally/different/spec"},
-				},
+			expectedRepository: &imageapi.RepositoryImportSpec{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "totally/different/spec"},
 			},
 		},
-		"import all error for .spec.dockerImageRepository": {
+		"import all from .spec.tags": {
 			name: "testis",
 			all:  true,
-			err:  "all is applicable only to images with spec.dockerImageRepository",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"latest": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"}},
+						"other":  {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+					To:   &kapi.LocalObjectReference{Name: "latest"},
+				},
+				{
+					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:   &kapi.LocalObjectReference{Name: "other"},
+				},
+			},
+		},
+		"import all from .spec.tags with insecure annotation": {
+			name: "testis",
+			all:  true,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "testis",
+					Namespace:   "other",
+					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"latest": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"}},
+						"other":  {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+					To:           &kapi.LocalObjectReference{Name: "latest"},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+				},
+			},
+		},
+		"import all from .spec.tags with insecure flag": {
+			name:     "testis",
+			all:      true,
+			insecure: newBool(true),
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"latest": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"}},
+						"other":  {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+					To:           &kapi.LocalObjectReference{Name: "latest"},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+				},
+			},
+		},
+		"import all from .spec.tags no DockerImage tags": {
+			name: "testis",
+			all:  true,
+			err:  "does not have tags pointing to external docker images",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"latest": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "otheris:latest"}},
 					},
 				},
 			},
 		},
 		"empty image stream": {
 			name: "testis",
-			err:  "image stream has not defined anything to import",
+			err:  "does not have valid docker images",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
 			},
@@ -148,13 +212,10 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
-					To:   &kapi.LocalObjectReference{Name: "latest"},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+				To:   &kapi.LocalObjectReference{Name: "latest"},
+			}},
 		},
 		"import existing tag": {
 			name: "testis:existing",
@@ -169,13 +230,10 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
-					To:   &kapi.LocalObjectReference{Name: "existing"},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"},
+				To:   &kapi.LocalObjectReference{Name: "existing"},
+			}},
 		},
 		"import non-existing tag": {
 			name: "testis:latest",
@@ -205,14 +263,11 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
-					To:           &kapi.LocalObjectReference{Name: "latest"},
-					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
+				To:           &kapi.LocalObjectReference{Name: "latest"},
+				ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+			}},
 		},
 		"insecure flag overrides insecure annotation": {
 			name:     "testis",
@@ -228,14 +283,11 @@ func TestCreateImageImport(t *testing.T) {
 					Tags: make(map[string]imageapi.TagReference),
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
-				Import: true,
-				Images: []imageapi.ImageImportSpec{{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
-					To:           &kapi.LocalObjectReference{Name: "latest"},
-					ImportPolicy: imageapi.TagImportPolicy{Insecure: false},
-				}},
-			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
+				To:           &kapi.LocalObjectReference{Name: "latest"},
+				ImportPolicy: imageapi.TagImportPolicy{Insecure: false},
+			}},
 		},
 	}
 
@@ -275,10 +327,33 @@ func TestCreateImageImport(t *testing.T) {
 			continue
 		}
 		// check values
-		if !kapi.Semantic.DeepEqual(isi.Spec, *test.expected) {
-			t.Errorf("%s: unexpected import spec, expected %#v, got %#v", name, test.expected, isi.Spec)
+		if !listEqual(isi.Spec.Images, test.expectedImages) {
+			t.Errorf("%s: unexpected import images, expected %#v, got %#v", name, test.expectedImages, isi.Spec.Images)
+		}
+		if !kapi.Semantic.DeepEqual(isi.Spec.Repository, test.expectedRepository) {
+			t.Errorf("%s: unexpected import repository, expected %#v, got %#v", name, test.expectedRepository, isi.Spec.Repository)
 		}
 	}
+}
+
+func listEqual(actual, expected []imageapi.ImageImportSpec) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+
+	for _, a := range actual {
+		found := false
+		for _, e := range expected {
+			if kapi.Semantic.DeepEqual(a, e) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 func newBool(a bool) *bool {

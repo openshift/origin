@@ -249,10 +249,9 @@ func (o *ImportImageOptions) waitForImport(resourceVersion string) (*imageapi.Im
 }
 
 func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imageapi.ImageStreamImport, error) {
+	var isi *imageapi.ImageStreamImport
 	stream, err := o.isClient.Get(o.Name)
-	from := o.From
-	tag := o.Tag
-
+	// no stream, try creating one
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return nil, nil, err
@@ -260,140 +259,85 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		if !o.Confirm {
 			return nil, nil, fmt.Errorf("no image stream named %q exists, pass --confirm to create and import", o.Name)
 		}
-		from, stream = o.newImageStream()
-
-	} else {
-		// the stream already exists
-		if len(stream.Spec.DockerImageRepository) == 0 && len(stream.Spec.Tags) == 0 {
-			return nil, nil, fmt.Errorf("image stream has not defined anything to import")
-		}
-
-		if o.All {
-			// importing the entire repository
-			from, err = o.importAll(stream)
-			if err != nil {
-				return nil, nil, err
-			}
-		} else {
-			// importing a single tag
-			from, err = o.importTag(stream)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
+		stream, isi = o.newImageStream()
+		return stream, isi, nil
 	}
 
-	if len(from) == 0 {
-		// catch programmer error
-		return nil, nil, fmt.Errorf("unexpected error, from is empty")
+	// the stream already exists
+	if len(stream.Spec.DockerImageRepository) == 0 && len(stream.Spec.Tags) == 0 {
+		return nil, nil, fmt.Errorf("image stream does not have valid docker images to be imported")
 	}
 
-	isi := &imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:            stream.Name,
-			Namespace:       o.Namespace,
-			ResourceVersion: stream.ResourceVersion,
-		},
-		Spec: imageapi.ImageStreamImportSpec{Import: true},
-	}
-	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
-	insecure := insecureAnnotation == "true"
-	// --insecure flag (if provided) takes precedence over insecure annotation
-	if o.Insecure != nil {
-		insecure = *o.Insecure
-	}
 	if o.All {
-		isi.Spec.Repository = &imageapi.RepositoryImportSpec{
-			From: kapi.ObjectReference{
-				Kind: "DockerImage",
-				Name: from,
-			},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+		// importing the entire repository
+		isi, err = o.importAll(stream)
+		if err != nil {
+			return nil, nil, err
 		}
 	} else {
-		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
-			From: kapi.ObjectReference{
-				Kind: "DockerImage",
-				Name: from,
-			},
-			To:           &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
-		})
+		// importing a single tag
+		isi, err = o.importTag(stream)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return stream, isi, nil
 }
 
-func (o *ImportImageOptions) newImageStream() (string, *imageapi.ImageStream) {
+func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, error) {
 	from := o.From
-	tag := o.Tag
+	// update ImageStream appropriately
 	if len(from) == 0 {
-		from = o.Target
-	}
-	var stream *imageapi.ImageStream
-	if o.All {
-		stream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
-			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
+		if len(stream.Spec.DockerImageRepository) != 0 {
+			from = stream.Spec.DockerImageRepository
+		} else {
+			tags := make(map[string]string)
+			for name, tag := range stream.Spec.Tags {
+				if tag.From != nil && tag.From.Kind == "DockerImage" {
+					tags[name] = tag.From.Name
+				}
+			}
+			if len(tags) == 0 {
+				return nil, fmt.Errorf("image stream does not have tags pointing to external docker images")
+			}
+			return o.newImageStreamImportTags(stream, tags), nil
 		}
-	}
-	stream = &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
-		Spec: imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{
-				tag: {
-					From: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: from,
-					},
-				},
-			},
-		},
-	}
-	return from, stream
-}
-
-func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (string, error) {
-	from := o.From
-	if len(from) == 0 {
-		if len(stream.Spec.DockerImageRepository) == 0 {
-			// FIXME soltysh: support all spec.Tags
-			return "", fmt.Errorf("flag --all is applicable only to images with spec.dockerImageRepository defined")
-		}
-		from = stream.Spec.DockerImageRepository
 	}
 	if from != stream.Spec.DockerImageRepository {
 		if !o.Confirm {
 			if len(stream.Spec.DockerImageRepository) == 0 {
-				return "", fmt.Errorf("the image stream does not currently import an entire Docker repository, pass --confirm to update")
+				return nil, fmt.Errorf("the image stream does not currently import an entire Docker repository, pass --confirm to update")
 			}
-			return "", fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
+			return nil, fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
 		}
 		stream.Spec.DockerImageRepository = from
 	}
 
-	return from, nil
+	// and create accompanying ImageStreamImport
+	return o.newImageStreamImportAll(stream, from), nil
 }
 
-func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (string, error) {
+func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, error) {
 	from := o.From
 	tag := o.Tag
 	// follow any referential tags to the destination
 	finalTag, existing, ok, multiple := imageapi.FollowTagReference(stream, tag)
 	if !ok && multiple {
-		return "", fmt.Errorf("tag %q on the image stream is a reference to %q, which does not exist", tag, finalTag)
+		return nil, fmt.Errorf("tag %q on the image stream is a reference to %q, which does not exist", tag, finalTag)
 	}
 
+	// update ImageStream appropriately
 	if ok {
 		// disallow changing an existing tag
 		if existing.From == nil || existing.From.Kind != "DockerImage" {
-			return "", fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
+			return nil, fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
 		}
 		if len(from) != 0 && from != existing.From.Name {
 			if multiple {
-				return "", fmt.Errorf("the tag %q points to the tag %q which points to %q - use the 'tag' command if you want to change the source to %q", tag, finalTag, existing.From.Name, from)
+				return nil, fmt.Errorf("the tag %q points to the tag %q which points to %q - use the 'tag' command if you want to change the source to %q", tag, finalTag, existing.From.Name, from)
 			}
-			return "", fmt.Errorf("the tag %q points to %q - use the 'tag' command if you want to change the source to %q", tag, existing.From.Name, from)
+			return nil, fmt.Errorf("the tag %q points to %q - use the 'tag' command if you want to change the source to %q", tag, existing.From.Name, from)
 		}
 
 		// set the target item to import
@@ -416,7 +360,7 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (string, er
 		// if the from is still empty this means there's no such tag defined
 		// nor we can't create any from .spec.dockerImageRepository
 		if len(from) == 0 {
-			return "", fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
+			return nil, fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
 		}
 		existing = &imageapi.TagReference{
 			From: &kapi.ObjectReference{
@@ -427,5 +371,92 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (string, er
 	}
 	stream.Spec.Tags[tag] = *existing
 
-	return from, nil
+	// and create accompanying ImageStreamImport
+	return o.newImageStreamImportTags(stream, map[string]string{tag: from}), nil
+}
+
+func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.ImageStreamImport) {
+	from := o.From
+	tag := o.Tag
+	if len(from) == 0 {
+		from = o.Target
+	}
+	var stream *imageapi.ImageStream
+	// create new ImageStream
+	if o.All {
+		stream = &imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
+		}
+	} else {
+		stream = &imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			Spec: imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{
+					tag: {
+						From: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: from,
+						},
+					},
+				},
+			},
+		}
+	}
+	// and accompanying ImageStreamImport
+	var isi *imageapi.ImageStreamImport
+	if o.All {
+		isi = o.newImageStreamImportAll(stream, from)
+	} else {
+		isi = o.newImageStreamImportTags(stream, map[string]string{tag: from})
+	}
+
+	return stream, isi
+}
+
+func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, bool) {
+	isi := &imageapi.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:            stream.Name,
+			Namespace:       o.Namespace,
+			ResourceVersion: stream.ResourceVersion,
+		},
+		Spec: imageapi.ImageStreamImportSpec{Import: true},
+	}
+	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+	insecure := insecureAnnotation == "true"
+	// --insecure flag (if provided) takes precedence over insecure annotation
+	if o.Insecure != nil {
+		insecure = *o.Insecure
+	}
+
+	return isi, insecure
+}
+
+func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStream, from string) *imageapi.ImageStreamImport {
+	isi, insecure := o.newImageStreamImport(stream)
+	isi.Spec.Repository = &imageapi.RepositoryImportSpec{
+		From: kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: from,
+		},
+		ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+	}
+
+	return isi
+}
+
+func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStream, tags map[string]string) *imageapi.ImageStreamImport {
+	isi, insecure := o.newImageStreamImport(stream)
+	for tag, from := range tags {
+		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
+			From: kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: from,
+			},
+			To:           &kapi.LocalObjectReference{Name: tag},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+		})
+	}
+	return isi
 }
