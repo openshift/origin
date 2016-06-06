@@ -18,6 +18,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
@@ -32,16 +33,18 @@ type Strategy struct {
 	kapi.NameGenerator
 	defaultRegistry   DefaultRegistry
 	tagVerifier       *TagVerifier
+	limitVerifier     imageadmission.LimitVerifier
 	ImageStreamGetter ResourceGetter
 }
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry) Strategy {
+func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
 	return Strategy{
 		ObjectTyper:     kapi.Scheme,
 		NameGenerator:   kapi.SimpleNameGenerator,
 		defaultRegistry: defaultRegistry,
+		limitVerifier:   limitVerifier,
 		tagVerifier:     &TagVerifier{subjectAccessReviewClient},
 	}
 }
@@ -76,6 +79,15 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 	}
 	errs := s.tagVerifier.Verify(nil, stream, user)
 	errs = append(errs, s.tagsChanged(nil, stream)...)
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = stream.Namespace
+	}
+	if err := s.limitVerifier.VerifyLimits(ns, stream); err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	errs = append(errs, validation.ValidateImageStream(stream)...)
 	return errs
 }
@@ -470,11 +482,19 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 	if !ok {
 		return field.ErrorList{field.Forbidden(field.NewPath("imageStream"), stream.Name)}
 	}
-
 	oldStream := old.(*api.ImageStream)
 
 	errs := s.tagVerifier.Verify(oldStream, stream, user)
 	errs = append(errs, s.tagsChanged(oldStream, stream)...)
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = stream.Namespace
+	}
+	if err := s.limitVerifier.VerifyLimits(ns, stream); err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	errs = append(errs, validation.ValidateImageStreamUpdate(stream, oldStream)...)
 	return errs
 }
@@ -511,9 +531,22 @@ func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	updateObservedGenerationForStatusUpdate(stream, oldStream)
 }
 
-func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	newIS := obj.(*api.ImageStream)
+	errs := field.ErrorList{}
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = newIS.Namespace
+	}
+	err := s.limitVerifier.VerifyLimits(ns, newIS)
+	if err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	// TODO: merge valid fields after update
-	return validation.ValidateImageStreamStatusUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+	errs = append(errs, validation.ValidateImageStreamStatusUpdate(newIS, old.(*api.ImageStream))...)
+	return errs
 }
 
 // MatchImageStream returns a generic matcher for a given label and field selector.

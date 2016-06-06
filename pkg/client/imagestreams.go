@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 var ErrImageStreamImportUnsupported = errors.New("the server does not support directly importing images - create an image stream with tags or the dockerImageRepository field set")
@@ -139,7 +140,7 @@ func transformUnsupported(err error) error {
 	// enabled by policy. A create request will return a Forbidden(403) error.
 	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
 	// in clients.
-	if apierrs.IsForbidden(err) {
+	if apierrs.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
 		return ErrImageStreamImportUnsupported
 	}
 	return err

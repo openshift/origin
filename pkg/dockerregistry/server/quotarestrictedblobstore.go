@@ -2,48 +2,104 @@
 // the wrappers cause manifests to be stored in OpenShift's etcd store instead of registry's storage.
 // Registry's middleware API is utilized to register the object factories.
 //
-// Module with quotaRestrictedBlobStore defines a wrapper for upstream blob store that does an image quota
-// check before committing image layer to a registry. Master server contains admission check that will refuse
-// the manifest if the image exceeds whatever quota set. But the check occurs too late (after the layers are
-// written). This addition allows us to refuse the layers and thus keep the storage clean.
+// Module with quotaRestrictedBlobStore defines a wrapper for upstream blob store that does an image quota and
+// limits check before committing image layer to a registry. Master server contains admission check that will
+// refuse the manifest if the image exceeds whatever quota or limit set. But the check occurs too late (after
+// the layers are written). This addition allows us to refuse the layers and thus keep the storage clean.
 //
-// There are few things to keep in mind:
-//
-//   1. Origin master calculates image sizes from the contents of the layers. Registry, on the other hand,
-//      deals with layers themselves that contain some overhead required to store file attributes, and the
-//      layers are compressed. Thus we compare apples with pears. The check is primarily useful when the quota
-//      is already almost reached.
-//
-//   2. During a push, multiple layers are uploaded. Uploaded layer does not raise the usage of any resource.
-//      The usage will be raised during admission check once the manifest gets uploaded.
-//
-//   3. Here, we take into account just a single layer, not the image as a whole because the layers are
-//      uploaded before the manifest.
-//
-//      This leads to a situation where several layers can be written until a big enough layer will be
-//      received that exceeds quota limit.
-//
-//   3. Image stream size quota doesn't accumulate. Iow, its usage is NOT permanently stored in a resource
-//      quota object. It's updated just for a very short period of time between an ImageStreamMapping object
-//      is allowed by admission plugin to be created and subsequent quota refresh triggered by resource quota
-//      controller. Therefore its check will probably not ever trigger unless uploaded layer is really big. We
-//      could compute the usage here from corresponding image stream. We don't do so to keep the push
-//      efficient.
+// *Note*: Here, we take into account just a single layer, not the image as a whole because the layers are
+// uploaded before the manifest. This leads to a situation where several layers can be written until a big
+// enough layer will be received that exceeds the limit.
 package server
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/quota"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
+
+const (
+	defaultProjectCacheTTL = time.Minute
+)
+
+// newQuotaEnforcingConfig creates caches for quota objects. The objects are stored with given eviction
+// timeout. Caches will only be initialized if the given ttl is positive. Options are gathered from
+// configuration file and will be overriden by enforceQuota and projectCacheTTL environment variable values.
+func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
+	buildOptionValues := func(optionName string, override string) []string {
+		optValues := []string{}
+		if value, ok := options[optionName]; ok {
+			var res string
+			switch v := value.(type) {
+			case string:
+				res = v
+			case bool:
+				res = fmt.Sprintf("%t", v)
+			default:
+				res = fmt.Sprintf("%v", v)
+			}
+			if len(res) > 0 {
+				optValues = append(optValues, res)
+			}
+		}
+		if len(override) > 0 {
+			optValues = append(optValues, override)
+		}
+		return optValues
+	}
+
+	enforce := false
+	for _, s := range buildOptionValues("enforcequota", enforceQuota) {
+		enforce = s == "true"
+	}
+	if !enforce {
+		context.GetLogger(ctx).Info("quota enforcement disabled")
+		return &quotaEnforcingConfig{
+			enforcementDisabled:  true,
+			projectCacheDisabled: true,
+		}
+	}
+
+	ttl := defaultProjectCacheTTL
+	for _, s := range buildOptionValues("projectcachettl", projectCacheTTL) {
+		parsed, err := time.ParseDuration(s)
+		if err != nil {
+			logrus.Errorf("failed to parse project cache ttl %q: %v", s, err)
+			continue
+		}
+		ttl = parsed
+	}
+
+	if ttl <= 0 {
+		context.GetLogger(ctx).Info("not using project caches for quota objects")
+		return &quotaEnforcingConfig{
+			projectCacheDisabled: true,
+		}
+	}
+
+	context.GetLogger(ctx).Infof("caching project quota objects with TTL %s", ttl.String())
+	return &quotaEnforcingConfig{
+		limitRanges: newProjectObjectListCache(ttl),
+	}
+}
+
+// quotaEnforcingConfig holds configuration and caches of object lists keyed by project name. Caches are
+// thread safe and shall be reused by all middleware layers.
+type quotaEnforcingConfig struct {
+	// if set, disables quota enforcement
+	enforcementDisabled bool
+	// if set, disables use of caching of quota objects per project
+	projectCacheDisabled bool
+	// a cache of limit range objects keyed by project name
+	limitRanges projectObjectListStore
+}
 
 // quotaRestrictedBlobStore wraps upstream blob store with a guard preventing big layers exceeding image quotas
 // from being saved.
@@ -54,17 +110,6 @@ type quotaRestrictedBlobStore struct {
 }
 
 var _ distribution.BlobStore = &quotaRestrictedBlobStore{}
-
-func (bs *quotaRestrictedBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
-	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobStore).Put: starting")
-
-	if err := admitBlobWrite(ctx, bs.repo); err != nil {
-		context.GetLogger(ctx).Error(err.Error())
-		return distribution.Descriptor{}, err
-	}
-
-	return bs.BlobStore.Put(ctx, mediaType, p)
-}
 
 // Create wraps returned blobWriter with quota guard wrapper.
 func (bs *quotaRestrictedBlobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
@@ -111,50 +156,60 @@ type quotaRestrictedBlobWriter struct {
 func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional distribution.Descriptor) (canonical distribution.Descriptor, err error) {
 	context.GetLogger(ctx).Debug("(*quotaRestrictedBlobWriter).Commit: starting")
 
-	if err := admitBlobWrite(ctx, bw.repo); err != nil {
-		context.GetLogger(ctx).Error(err.Error())
+	if err := admitBlobWrite(ctx, bw.repo, provisional.Size); err != nil {
 		return distribution.Descriptor{}, err
 	}
 
-	can, err := bw.BlobWriter.Commit(ctx, provisional)
-	return can, err
+	return bw.BlobWriter.Commit(ctx, provisional)
 }
 
-// admitBlobWrite checks whether the blob does not exceed image quota, if set. Returns
-// ErrAccessDenied error if the quota is exceeded.
-func admitBlobWrite(ctx context.Context, repo *repository) error {
-	rqs, err := repo.quotaClient.ResourceQuotas(repo.namespace).List(kapi.ListOptions{})
-	if err != nil {
-		if kerrors.IsForbidden(err) {
-			context.GetLogger(ctx).Warnf("Cannot list resourcequotas because of outdated cluster roles: %v", err)
-			return nil
+// admitBlobWrite checks whether the blob does not exceed image limit ranges if set. Returns ErrAccessDenied
+// error if the limit is exceeded.
+func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
+	if size < 1 {
+		return nil
+	}
+
+	var (
+		lrs *kapi.LimitRangeList
+		err error
+	)
+
+	if !quotaEnforcing.projectCacheDisabled {
+		obj, exists, _ := quotaEnforcing.limitRanges.get(repo.namespace)
+		if exists {
+			lrs = obj.(*kapi.LimitRangeList)
 		}
-		context.GetLogger(ctx).Errorf("Failed to list resourcequotas: %v", err)
-		return err
 	}
-
-	usage := kapi.ResourceList{
-		// we are about to tag a single image to an image stream
-		imageapi.ResourceImages: *resource.NewQuantity(1, resource.DecimalSI),
-	}
-	resources := quota.ResourceNames(usage)
-
-	for _, rq := range rqs.Items {
-		newUsage := quota.Add(usage, rq.Status.Used)
-		newUsage = quota.Mask(newUsage, resources)
-		requested := quota.Mask(rq.Spec.Hard, resources)
-
-		allowed, exceeded := quota.LessThanOrEqual(newUsage, requested)
-		if !allowed {
-			details := make([]string, len(exceeded))
-			by := quota.Subtract(newUsage, requested)
-			for i, r := range exceeded {
-				details[i] = fmt.Sprintf("%s limited to %s by %s", r, requested[r], by[r])
+	if lrs == nil {
+		context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", repo.namespace)
+		lrs, err = repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
+		if err != nil {
+			context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
+			return err
+		}
+		if !quotaEnforcing.projectCacheDisabled {
+			err = quotaEnforcing.limitRanges.add(repo.namespace, lrs)
+			if err != nil {
+				context.GetLogger(ctx).Errorf("failed to cache limit range list: %v", err)
 			}
-			context.GetLogger(ctx).Error("Refusing to write blob exceeding quota: " + strings.Join(details, ", "))
-			return distribution.ErrAccessDenied
 		}
 	}
+
+	for _, limitrange := range lrs.Items {
+		context.GetLogger(ctx).Debugf("processing limit range %s/%s", limitrange.Namespace, limitrange.Name)
+		for _, limit := range limitrange.Spec.Limits {
+			if err := imageadmission.AdmitImage(size, limit); err != nil {
+				context.GetLogger(ctx).Errorf("refusing to write blob exceeding limit range %s: %s", limitrange.Name, err.Error())
+				return distribution.ErrAccessDenied
+			}
+		}
+	}
+
+	// TODO(1): admit also against openshift.io/ImageStream quota resource when we have image stream cache in the
+	// registry
+	// TODO(2): admit also against openshift.io/imagestreamimages and openshift.io/imagestreamtags resources once
+	// we have image stream cache in the registry
 
 	return nil
 }

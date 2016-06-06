@@ -33,8 +33,9 @@ const (
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
 )
 
-// TODO remove (base, tag, id)
-func parseRepositoryTag(repos string) (string, string, string) {
+// parseRepositoryTag splits a string into its name component and either tag or id if present.
+// TODO remove
+func parseRepositoryTag(repos string) (base string, tag string, id string) {
 	n := strings.Index(repos, "@")
 	if n >= 0 {
 		parts := strings.Split(repos, "@")
@@ -48,6 +49,49 @@ func parseRepositoryTag(repos string) (string, string, string) {
 		return repos[:n], tag, ""
 	}
 	return repos, "", ""
+}
+
+// ParseImageStreamImageName splits a string into its name component and ID component, and returns an error
+// if the string is not in the right form.
+func ParseImageStreamImageName(input string) (name string, id string, err error) {
+	segments := strings.SplitN(input, "@", 3)
+	switch len(segments) {
+	case 2:
+		name = segments[0]
+		id = segments[1]
+		if len(name) == 0 || len(id) == 0 {
+			err = fmt.Errorf("image stream image name %q must have a name and ID", input)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one @ in the isimage name %q", input)
+	}
+	return
+}
+
+// ParseImageStreamTagName splits a string into its name component and tag component, and returns an error
+// if the string is not in the right form.
+func ParseImageStreamTagName(istag string) (name string, tag string, err error) {
+	if strings.Contains(istag, "@") {
+		err = fmt.Errorf("%q is an image stream image, not an image stream tag", istag)
+		return
+	}
+	segments := strings.SplitN(istag, ":", 3)
+	switch len(segments) {
+	case 2:
+		name = segments[0]
+		tag = segments[1]
+		if len(name) == 0 || len(tag) == 0 {
+			err = fmt.Errorf("image stream tag name %q must have a name and a tag", istag)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one : delimiter in the istag %q", istag)
+	}
+	return
+}
+
+// MakeImageStreamImageName creates a name for image stream image object from an image stream name and an id.
+func MakeImageStreamImageName(name, id string) string {
+	return fmt.Sprintf("%s@%s", name, id)
 }
 
 func isRegistryName(str string) bool {
@@ -307,9 +351,10 @@ func JoinImageStreamTag(name, tag string) string {
 // NormalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
 // if no tag has been specified.
 func NormalizeImageStreamTag(name string) string {
-	if !strings.Contains(name, ":") {
+	stripped, tag, ok := SplitImageStreamTag(name)
+	if !ok {
 		// Default to latest
-		return JoinImageStreamTag(name, DefaultImageTag)
+		return JoinImageStreamTag(stripped, tag)
 	}
 	return name
 }

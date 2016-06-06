@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,6 +23,23 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
+)
+
+const (
+	// DockerRegistryURLEnvVar is a mandatory environment variable name specifying url of internal docker
+	// registry. All references to pushed images will be prefixed with its value.
+	DockerRegistryURLEnvVar = "DOCKER_REGISTRY_URL"
+
+	// EnforceQuotaEnvVar is a boolean environment variable that allows to turn quota enforcement on or off.
+	// By default, quota enforcement is off. It overrides openshift middleware configuration option.
+	// Recognized values are "true" and "false".
+	EnforceQuotaEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"
+
+	// ProjectCacheTTLEnvVar is an environment variable specifying an eviction timeout for project quota
+	// objects. It takes a valid time duration string (e.g. "2m"). If empty, you get the default timeout. If
+	// zero (e.g. "0m"), caching is disabled.
+	ProjectCacheTTLEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL"
 )
 
 var (
@@ -36,6 +52,9 @@ var (
 	// insecureTransport is the transport pool that does not verify remote TLS certificates for use
 	// during pullthrough against registries marked as insecure.
 	insecureTransport http.RoundTripper
+	// quotaEnforcing contains shared caches of quota objects keyed by project name. Will be initialized
+	// only if the quota is enforced. See EnforceQuotaEnvVar.
+	quotaEnforcing *quotaEnforcingConfig
 )
 
 func init() {
@@ -49,11 +68,14 @@ func init() {
 	// DefaultRegistryClient before starting a registry.
 	repomw.Register("openshift",
 		func(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-			registryClient, quotaClient, err := DefaultRegistryClient.Clients()
+			registryOSClient, kClient, err := DefaultRegistryClient.Clients()
 			if err != nil {
 				return nil, err
 			}
-			return newRepositoryWithClient(registryClient, quotaClient, ctx, repo, options)
+			if quotaEnforcing == nil {
+				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
+			}
+			return newRepositoryWithClient(registryOSClient, kClient, kClient, ctx, repo, options)
 		},
 	)
 
@@ -69,12 +91,13 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	ctx            context.Context
-	quotaClient    kclient.ResourceQuotasNamespacer
-	registryClient client.Interface
-	registryAddr   string
-	namespace      string
-	name           string
+	ctx              context.Context
+	quotaClient      kclient.ResourceQuotasNamespacer
+	limitClient      kclient.LimitRangesNamespacer
+	registryOSClient client.Interface
+	registryAddr     string
+	namespace        string
+	name             string
 
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
@@ -88,10 +111,17 @@ type repository struct {
 var _ distribution.ManifestService = &repository{}
 
 // newRepositoryWithClient returns a new repository middleware.
-func newRepositoryWithClient(registryClient client.Interface, quotaClient kclient.ResourceQuotasNamespacer, ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-	registryAddr := os.Getenv("DOCKER_REGISTRY_URL")
+func newRepositoryWithClient(
+	registryOSClient client.Interface,
+	quotaClient kclient.ResourceQuotasNamespacer,
+	limitClient kclient.LimitRangesNamespacer,
+	ctx context.Context,
+	repo distribution.Repository,
+	options map[string]interface{},
+) (distribution.Repository, error) {
+	registryAddr := os.Getenv(DockerRegistryURLEnvVar)
 	if len(registryAddr) == 0 {
-		return nil, errors.New("DOCKER_REGISTRY_URL is required")
+		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
 	}
 
 	pullthrough := false
@@ -109,14 +139,15 @@ func newRepositoryWithClient(registryClient client.Interface, quotaClient kclien
 	return &repository{
 		Repository: repo,
 
-		ctx:            ctx,
-		quotaClient:    quotaClient,
-		registryClient: registryClient,
-		registryAddr:   registryAddr,
-		namespace:      nameParts[0],
-		name:           nameParts[1],
-		pullthrough:    pullthrough,
-		cachedLayers:   cachedLayers,
+		ctx:              ctx,
+		quotaClient:      quotaClient,
+		limitClient:      limitClient,
+		registryOSClient: registryOSClient,
+		registryAddr:     registryAddr,
+		namespace:        nameParts[0],
+		name:             nameParts[1],
+		pullthrough:      pullthrough,
+		cachedLayers:     cachedLayers,
 	}, nil
 }
 
@@ -135,20 +166,27 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	repo := repository(*r)
 	repo.ctx = ctx
 
-	bs := &quotaRestrictedBlobStore{
-		BlobStore: r.Repository.Blobs(ctx),
-		repo:      &repo,
-	}
-	if !r.pullthrough {
-		return bs
+	bs := r.Repository.Blobs(ctx)
+
+	if quotaEnforcing != nil {
+		bs = &quotaRestrictedBlobStore{
+			BlobStore: bs,
+
+			repo: &repo,
+		}
 	}
 
-	return &pullthroughBlobStore{
-		BlobStore: bs,
+	if r.pullthrough {
+		bs = &pullthroughBlobStore{
+			BlobStore: bs,
 
-		repo:          &repo,
-		digestToStore: make(map[string]distribution.BlobStore),
+			repo:          &repo,
+			digestToStore: make(map[string]distribution.BlobStore),
+		}
 	}
+
+	return bs
+
 }
 
 // Tags lists the tags under the named repository.
@@ -187,13 +225,13 @@ func (r *repository) ExistsByTag(tag string) (bool, error) {
 // Get retrieves the manifest with digest `dgst`.
 func (r *repository) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
 	if _, err := r.getImageStreamImage(dgst); err != nil {
-		context.GetLogger(r.ctx).Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
 		return nil, err
 	}
 
 	image, err := r.getImage(dgst)
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error retrieving image %s: %v", dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("error retrieving image %s: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -218,7 +256,7 @@ func (r *repository) GetByTag(tag string, options ...distribution.ManifestServic
 	imageStreamTag, err := r.getImageStreamTag(tag)
 	if err != nil {
 		// TODO: typed errors
-		context.GetLogger(r.ctx).Errorf("Error getting ImageStreamTag %q: %v", tag, err)
+		context.GetLogger(r.ctx).Errorf("error getting ImageStreamTag %q: %v", tag, err)
 		return nil, err
 	}
 	image := &imageStreamTag.Image
@@ -239,14 +277,14 @@ func (r *repository) GetByTag(tag string, options ...distribution.ManifestServic
 
 	dgst, err := digest.ParseDigest(imageStreamTag.Image.Name)
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
+		context.GetLogger(r.ctx).Errorf("error parsing digest %q: %v", imageStreamTag.Image.Name, err)
 		return nil, err
 	}
 
 	if localImage, err := r.getImage(dgst); err != nil {
 		// if the image is managed by OpenShift and we cannot load the image, report an error
 		if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
-			context.GetLogger(r.ctx).Errorf("Error getting image %q: %v", dgst.String(), err)
+			context.GetLogger(r.ctx).Errorf("error getting image %q: %v", dgst.String(), err)
 			return nil, err
 		}
 	} else {
@@ -263,7 +301,7 @@ func (r *repository) GetByTag(tag string, options ...distribution.ManifestServic
 
 	// check the previous error here
 	if referenceErr != nil {
-		context.GetLogger(r.ctx).Errorf("Error parsing image %q: %v", image.DockerImageReference, referenceErr)
+		context.GetLogger(r.ctx).Errorf("error parsing image %q: %v", image.DockerImageReference, referenceErr)
 		return nil, referenceErr
 	}
 
@@ -278,14 +316,14 @@ func (r *repository) pullthroughGetByTag(image *imageapi.Image, ref imageapi.Doc
 
 	repo, err := retriever.Repository(r.ctx, defaultRef.RegistryURL(), defaultRef.RepositoryName(), false)
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error getting remote repository for image %q: %v", image.DockerImageReference, err)
+		context.GetLogger(r.ctx).Errorf("error getting remote repository for image %q: %v", image.DockerImageReference, err)
 		return nil, err
 	}
 
 	// get a manifest context
 	manifests, err := repo.Manifests(r.ctx)
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error getting manifests for image %q: %v", image.DockerImageReference, err)
+		context.GetLogger(r.ctx).Errorf("error getting manifests for image %q: %v", image.DockerImageReference, err)
 		return nil, err
 	}
 
@@ -293,12 +331,12 @@ func (r *repository) pullthroughGetByTag(image *imageapi.Image, ref imageapi.Doc
 	if len(ref.ID) > 0 {
 		dgst, err := digest.ParseDigest(ref.ID)
 		if err != nil {
-			context.GetLogger(r.ctx).Errorf("Error getting manifests for image %q: %v", image.DockerImageReference, err)
+			context.GetLogger(r.ctx).Errorf("error getting manifests for image %q: %v", image.DockerImageReference, err)
 			return nil, err
 		}
 		manifest, err := manifests.Get(dgst)
 		if err != nil {
-			context.GetLogger(r.ctx).Errorf("Error getting manifest from remote server for image %q: %v", image.DockerImageReference, err)
+			context.GetLogger(r.ctx).Errorf("error getting manifest from remote server for image %q: %v", image.DockerImageReference, err)
 			return nil, err
 		}
 		r.rememberLayers(manifest, cacheName)
@@ -308,7 +346,7 @@ func (r *repository) pullthroughGetByTag(image *imageapi.Image, ref imageapi.Doc
 	// fetch this by tag
 	manifest, err := manifests.GetByTag(ref.Tag, options...)
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error getting manifest from remote server for image %q: %v", image.DockerImageReference, err)
+		context.GetLogger(r.ctx).Errorf("error getting manifest from remote server for image %q: %v", image.DockerImageReference, err)
 		return nil, err
 	}
 
@@ -353,22 +391,22 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 		return err
 	}
 
-	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+	if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
-			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
-		if kerrors.IsForbidden(statusErr) {
-			context.GetLogger(r.ctx).Errorf("Denied creating ImageStreamMapping: %v", statusErr)
+		if quotautil.IsErrorQuotaExceeded(statusErr) {
+			context.GetLogger(r.ctx).Errorf("denied creating ImageStreamMapping: %v", statusErr)
 			return distribution.ErrAccessDenied
 		}
 
 		status := statusErr.ErrStatus
 		if status.Code != http.StatusNotFound || (strings.ToLower(status.Details.Kind) != "imagestream" /*pre-1.2*/ && strings.ToLower(status.Details.Kind) != "imagestreams") || status.Details.Name != r.name {
-			context.GetLogger(r.ctx).Errorf("Error creating ImageStreamMapping: %s", err)
+			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
 			return err
 		}
 
@@ -380,18 +418,26 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 
 		client, ok := UserClientFrom(r.ctx)
 		if !ok {
-			context.GetLogger(r.ctx).Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
+			context.GetLogger(r.ctx).Errorf("error creating user client to auto provision image stream: Origin user client unavailable")
 			return statusErr
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			context.GetLogger(r.ctx).Errorf("Error auto provisioning image stream: %s", err)
+			if quotautil.IsErrorQuotaExceeded(err) {
+				context.GetLogger(r.ctx).Errorf("denied creating ImageStream: %v", err)
+				return distribution.ErrAccessDenied
+			}
+			context.GetLogger(r.ctx).Errorf("error auto provisioning ImageStream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
-		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			context.GetLogger(r.ctx).Errorf("Error creating image stream mapping: %s", err)
+		if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+			if quotautil.IsErrorQuotaExceeded(err) {
+				context.GetLogger(r.ctx).Errorf("denied a creation of ImageStreamMapping: %v", err)
+				return distribution.ErrAccessDenied
+			}
+			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
 			return err
 		}
 	}
@@ -404,7 +450,7 @@ func (r *repository) Put(manifest *schema1.SignedManifest) error {
 
 	for _, signature := range signatures {
 		if err := r.Signatures().Put(dgst, signature); err != nil {
-			context.GetLogger(r.ctx).Errorf("Error storing signature: %s", err)
+			context.GetLogger(r.ctx).Errorf("error storing signature: %s", err)
 			return err
 		}
 	}
@@ -429,7 +475,7 @@ func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, ima
 		// DockerImageLayers represents manifest.Manifest.FSLayers in reversed order
 		desc, err := blobs.Stat(r.ctx, manifest.Manifest.FSLayers[len(image.DockerImageLayers)-i-1].BlobSum)
 		if err != nil {
-			context.GetLogger(r.ctx).Errorf("Failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
+			context.GetLogger(r.ctx).Errorf("failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
 			return err
 		}
 		layer.Size = desc.Size
@@ -441,7 +487,7 @@ func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, ima
 	}
 
 	image.DockerImageMetadata.Size = size
-	context.GetLogger(r.ctx).Infof("Total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, size)
+	context.GetLogger(r.ctx).Infof("total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, size)
 
 	return nil
 }
@@ -460,9 +506,9 @@ func (r *repository) Delete(dgst digest.Digest) error {
 // importContext loads secrets for this image stream and returns a context for getting distribution
 // clients to remote repositories.
 func (r *repository) importContext() importer.RepositoryRetriever {
-	secrets, err := r.registryClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
+	secrets, err := r.registryOSClient.ImageStreamSecrets(r.namespace).Secrets(r.name, kapi.ListOptions{})
 	if err != nil {
-		context.GetLogger(r.ctx).Errorf("Error getting secrets for repository %q: %v", r.Name(), err)
+		context.GetLogger(r.ctx).Errorf("error getting secrets for repository %q: %v", r.Name(), err)
 		secrets = &kapi.SecretList{}
 	}
 	credentials := importer.NewCredentialsForSecrets(secrets.Items)
@@ -471,24 +517,24 @@ func (r *repository) importContext() importer.RepositoryRetriever {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
-	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
+	return r.registryOSClient.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
-	return r.registryClient.Images().Get(dgst.String())
+	return r.registryOSClient.Images().Get(dgst.String())
 }
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(tag string) (*imageapi.ImageStreamTag, error) {
-	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
+	return r.registryOSClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the image belongs to the image stream.
 func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // rememberLayers caches the provided layers

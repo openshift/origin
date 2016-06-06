@@ -31,8 +31,24 @@ const (
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
 
-	// ResourceImages represents a number of images in a project.
-	ResourceImages kapi.ResourceName = "openshift.io/images"
+	// ResourceImageStreams represents a number of image streams in a project.
+	ResourceImageStreams kapi.ResourceName = "openshift.io/imagestreams"
+
+	// ResourceImageStreamImages represents a number of unique references to images in all image stream
+	// statuses of a project.
+	ResourceImageStreamImages kapi.ResourceName = "openshift.io/images"
+
+	// ResourceImageStreamTags represents a number of unique references to images in all image stream specs
+	// of a project.
+	ResourceImageStreamTags kapi.ResourceName = "openshift.io/image-tags"
+
+	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
+	// the maximum size of an image.
+	LimitTypeImage kapi.LimitType = "openshift.io/Image"
+
+	// Limit that applies to image streams. Used with a max[resource] LimitRangeItem to set the maximum number
+	// of resource. Where the resource is one of "openshift.io/images" and "openshift.io/image-tags".
+	LimitTypeImageStream kapi.LimitType = "openshift.io/ImageStream"
 )
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
