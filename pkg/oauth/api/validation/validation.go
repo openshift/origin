@@ -227,9 +227,9 @@ func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 		// for those without an ascii table, that's `!`, `#-[`, `]-~` inclusive.
 		for _, ch := range scope {
 			switch {
-			case ch == rune("!"[0]):
-			case ch >= rune("#"[0]) && ch <= rune("]"[0]):
-			case ch >= rune("]"[0]) && ch <= rune("~"[0]):
+			case ch == '!':
+			case ch >= '#' && ch <= '[':
+			case ch >= ']' && ch <= '~':
 			default:
 				allErrs = append(allErrs, field.Invalid(fldPath.Index(i), scope, fmt.Sprintf("%v not allowed", ch)))
 				illegalCharacter = true
