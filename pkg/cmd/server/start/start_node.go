@@ -280,7 +280,7 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig)
+	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS))
 	if err != nil {
 		return err
 	}
@@ -316,6 +316,11 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	if components.Enabled(ComponentProxy) {
 		config.RunProxy()
 	}
+	if components.Enabled(ComponentDNS) {
+		config.RunDNS()
+	}
+
+	config.RunServiceStores(components.Enabled(ComponentProxy), components.Enabled(ComponentDNS))
 
 	return nil
 }

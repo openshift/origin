@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -131,7 +133,14 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.StartAPI = true
 	masterArgs.StartControllers = true
+	masterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
+		// use node DNS
+		// config.DNSConfig = nil
+		return nil
+	}
+
 	nodeArgs := NewDefaultNodeArgs()
+	nodeArgs.Components.DefaultEnable(ComponentDNS)
 
 	listenArg := NewDefaultListenArg()
 	masterArgs.ListenArg = listenArg
@@ -208,6 +217,36 @@ func (o *AllInOneOptions) Complete() error {
 	o.NodeArgs.DefaultKubernetesURL = masterAddr
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
 	o.NodeArgs.MasterCertDir = o.MasterOptions.MasterArgs.ConfigDir.Value()
+
+	// For backward compatibility of DNS queries to the master service IP, enabling node DNS
+	// continues to start the master DNS, but the container DNS server will be the node's.
+	// However, if the user has provided an override DNSAddr, we need to honor the value if
+	// the port is not 53 and we do that by disabling node DNS.
+	if !o.IsRunFromConfig() && o.NodeArgs.Components.Enabled(ComponentDNS) {
+		dnsAddr := &o.MasterOptions.MasterArgs.DNSBindAddr
+
+		if dnsAddr.Provided {
+			if dnsAddr.Port == 53 {
+				// the user has set the DNS port to 53, which is the effective default (node on 53, master on 8053)
+				dnsAddr.Port = 8053
+				dnsAddr.URL.Host = net.JoinHostPort(dnsAddr.Host, strconv.Itoa(dnsAddr.Port))
+			} else {
+				// if the user set the DNS port to anything but 53, disable node DNS since ClusterDNS (and glibc)
+				// can't look up DNS on anything other than 53, so we'll continue to use the proxy.
+				o.NodeArgs.Components.Disable(ComponentDNS)
+				glog.V(2).Infof("Node DNS may not be used with a non-standard DNS port %d - disabled node DNS", dnsAddr.Port)
+			}
+		}
+
+		// if node DNS is still enabled, then default the node cluster DNS to a reachable master address
+		if o.NodeArgs.Components.Enabled(ComponentDNS) && o.NodeArgs.ClusterDNS == nil {
+			if dnsIP, err := findLocalIPForDNS(o.MasterOptions.MasterArgs); err == nil {
+				o.NodeArgs.ClusterDNS = dnsIP
+			} else {
+				glog.V(2).Infof("Unable to find a local address to report as the node DNS - not using node DNS: %v", err)
+			}
+		}
+	}
 
 	return nil
 }

@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -33,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/dns"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -60,6 +63,16 @@ type NodeConfig struct {
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 
+	// ServiceStore is reused between proxy and DNS
+	ServiceStore cache.Store
+	// EndpointsStore is reused between proxy and DNS
+	EndpointsStore cache.Store
+	// ServicesReady is closed when the service and endpoint stores are ready to be used
+	ServicesReady chan struct{}
+
+	// DNSConfig controls the DNS configuration.
+	DNSServer *dns.Server
+
 	// Maximum transmission unit for the network packets
 	MTU uint
 	// SDNPlugin is an optional SDN plugin
@@ -68,7 +81,7 @@ type NodeConfig struct {
 	FilteringEndpointsHandler osdnapi.FilteringEndpointsConfigHandler
 }
 
-func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
+func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enableDNS bool) (*NodeConfig, error) {
 	originClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
 	if err != nil {
 		return nil, err
@@ -148,6 +161,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 110
 	server.SerializeImagePulls = false // disable serial image pulls by default
+	if enableDNS {
+		// if we are running local DNS, skydns will load the default recursive nameservers for us
+		server.ResolverConfig = ""
+	}
 
 	switch server.NetworkPluginName {
 	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
@@ -280,12 +297,45 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		KubeletServer: server,
 		KubeletConfig: cfg,
 
+		ServicesReady: make(chan struct{}),
+
 		ProxyConfig: proxyconfig,
 
 		MTU: options.NetworkConfig.MTU,
 
 		SDNPlugin:                 sdnPlugin,
 		FilteringEndpointsHandler: endpointFilter,
+	}
+
+	if enableDNS {
+		dnsConfig, err := dns.NewServerDefaults()
+		if err != nil {
+			return nil, fmt.Errorf("DNS configuration was not possible: %v", err)
+		}
+		if len(options.DNSIP) > 0 {
+			dnsConfig.DnsAddr = options.DNSIP + ":53"
+		}
+		dnsConfig.Domain = server.ClusterDomain + "."
+		dnsConfig.Local = "openshift.default.svc." + dnsConfig.Domain
+
+		services, serviceStore := dns.NewCachedServiceAccessorAndStore()
+		endpoints, endpointsStore := dns.NewCachedEndpointsAccessorAndStore()
+		if !enableProxy {
+			endpoints = kubeClient
+			endpointsStore = nil
+		}
+
+		// TODO: use kubeletConfig.ResolverConfig as an argument to etcd in the event the
+		//   user sets it, instead of passing it to the kubelet.
+
+		config.ServiceStore = serviceStore
+		config.EndpointsStore = endpointsStore
+		config.DNSServer = &dns.Server{
+			Config:      dnsConfig,
+			Services:    services,
+			Endpoints:   endpoints,
+			MetricsName: "node",
+		}
 	}
 
 	return config, nil
