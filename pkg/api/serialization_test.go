@@ -23,7 +23,6 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
@@ -341,61 +340,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
-		},
-		func(j *kapi.PodSecurityContext, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion == v1beta3.SchemeGroupVersion {
-				// v1beta3 does not contain the PodSecurityContext type.  For this API version, only fuzz
-				// the host namespace fields.  The fields set to nil here are the other fields of the
-				// PodSecurityContext that will not roundtrip correctly from internal->v1beta3->internal.
-				j.SELinuxOptions = nil
-				j.RunAsUser = nil
-				j.RunAsNonRoot = nil
-				j.SupplementalGroups = nil
-				j.FSGroup = nil
-			}
-		},
-		func(j *kapi.GitRepoVolumeSource, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion == v1beta3.SchemeGroupVersion {
-				// these fields are set to their empty state when testing v1beta3
-				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
-				j.Directory = ""
-			}
-		},
-		func(j *kapi.ISCSIVolumeSource, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion == v1beta3.SchemeGroupVersion {
-				// these fields are set to their empty state when testing v1beta3
-				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
-				j.ISCSIInterface = ""
-			} else if j.ISCSIInterface == "" {
-				// otherwise an empty value defaults to "default"
-				j.ISCSIInterface = "default"
-			}
-		},
-		func(j *kapi.CephFSVolumeSource, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			// this field does not exist on v1beta3
-			j.Path = ""
-		},
-		func(j *kapi.Event, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion == v1beta3.SchemeGroupVersion {
-				// these fields are set to their empty state when testing v1beta3
-				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
-				j.Type = ""
-			}
-		},
-		func(j *kapi.Probe, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion == v1beta3.SchemeGroupVersion {
-				// these fields are set to their empty state when testing v1beta3
-				// they were added to v1 after v1beta3 was disabled as a storage or API version, so we don't have to support v1beta3 round-tripping
-				j.PeriodSeconds = 0
-				j.SuccessThreshold = 0
-				j.FailureThreshold = 0
-			}
 		},
 		func(j *runtime.Object, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.

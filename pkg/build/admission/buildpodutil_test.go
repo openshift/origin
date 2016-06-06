@@ -45,7 +45,7 @@ func TestIsBuildPod(t *testing.T) {
 
 func TestGetBuild(t *testing.T) {
 	build := u.Build().WithDockerStrategy()
-	for _, version := range []string{"v1", "v1beta3"} {
+	for _, version := range []string{"v1"} {
 		pod := u.Pod().WithBuild(t, build.AsBuild(), version)
 		resultBuild, resultVersion, err := GetBuild(pod.ToAttributes())
 		if err != nil {
@@ -62,7 +62,7 @@ func TestGetBuild(t *testing.T) {
 
 func TestSetBuild(t *testing.T) {
 	build := u.Build().WithSourceStrategy()
-	for _, version := range []string{"v1", "v1beta3"} {
+	for _, version := range []string{"v1"} {
 		pod := u.Pod().WithEnvVar("BUILD", "foo")
 		groupVersion, err := unversioned.ParseGroupVersion(version)
 		if err != nil {

@@ -25,7 +25,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
-  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  DB_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
@@ -33,7 +33,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
-  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
   wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -92,7 +92,7 @@ os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "500
 os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
@@ -294,14 +294,14 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #echo "[INFO] Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
-#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #os::build:wait_for_end "docker"
 #wait_for_app "docker"
 
 #echo "[INFO] Applying Custom application config"
 #oc create -n custom -f "${CUSTOM_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
-#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #os::build:wait_for_end "custom"
 #wait_for_app "custom"
 
@@ -310,7 +310,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+os::cmd::try_until_text "oc get endpoints router --output-version=v1 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 echo "[INFO] Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"

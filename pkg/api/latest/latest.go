@@ -15,13 +15,13 @@ var Version = unversioned.GroupVersion{Group: "", Version: "v1"}
 
 // OldestVersion is the string that represents the oldest server version supported,
 // for client code that wants to hardcode the lowest common denominator.
-var OldestVersion = unversioned.GroupVersion{Group: "", Version: "v1beta3"}
+var OldestVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
 // Versions is the list of versions that are recognized in code. The order provided
 // may be assumed to be most preferred to least preferred, and clients may
 // choose to prefer the earlier items in the list over the latter items when presented
 // with a set of versions to choose.
-var Versions = []unversioned.GroupVersion{{Group: "", Version: "v1"}, {Group: "", Version: "v1beta3"}}
+var Versions = []unversioned.GroupVersion{{Group: "", Version: "v1"}}
 
 // originTypes are the hardcoded types defined by the OpenShift API.
 var originTypes map[unversioned.GroupVersionKind]bool

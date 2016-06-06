@@ -191,8 +191,7 @@ func (s *TestHttpService) Start() error {
 
 func (s *TestHttpService) startMaster() error {
 	masterServer := http.NewServeMux()
-	// TODO: this is incorrect
-	apis := []string{"v1beta3", "v1"}
+	apis := []string{"v1"}
 
 	for _, version := range apis {
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)

@@ -17,11 +17,6 @@ type DiscoveryClient struct {
 
 // ServerResourcesForGroupVersion returns the supported resources for a group and version.
 func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (resources *unversioned.APIResourceList, err error) {
-	// we don't expose this version
-	if groupVersion == "v1beta3" {
-		return &unversioned.APIResourceList{}, nil
-	}
-
 	parentList, err := d.DiscoveryClient.ServerResourcesForGroupVersion(groupVersion)
 	if err != nil {
 		return parentList, err

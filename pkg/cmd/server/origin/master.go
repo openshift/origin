@@ -33,7 +33,6 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -116,20 +115,17 @@ import (
 )
 
 const (
-	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
-	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
-	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
-	KubernetesAPIGroupPrefix  = "/apis"  // TODO: make configurable
-	OpenShiftAPIV1Beta3       = "v1beta3"
-	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
-	swaggerAPIPrefix          = "/swaggerapi/"
+	LegacyOpenShiftAPIPrefix = "/osapi" // TODO: make configurable
+	OpenShiftAPIPrefix       = "/oapi"  // TODO: make configurable
+	KubernetesAPIPrefix      = "/api"   // TODO: make configurable
+	KubernetesAPIGroupPrefix = "/apis"  // TODO: make configurable
+	OpenShiftAPIV1           = "v1"
+	OpenShiftAPIPrefixV1     = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
+	swaggerAPIPrefix         = "/swaggerapi/"
 )
 
 var (
-	excludedV1Beta3Types = sets.NewString()
-	excludedV1Types      = excludedV1Beta3Types
+	excludedV1Types = sets.NewString()
 
 	// TODO: correctly solve identifying requests by type
 	longRunningRE = regexp.MustCompile("watch|proxy|logs?|exec|portforward|attach")
@@ -328,8 +324,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 		switch service.RootPath() {
 		case "/":
 			root = service
-		case OpenShiftAPIPrefixV1Beta3:
-			service.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		case OpenShiftAPIPrefixV1:
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
@@ -725,25 +719,6 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Context:                     c.getRequestContextMapper(),
 		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
 	}
-}
-
-// api_v1beta3 returns the resources and codec for API version v1beta3.
-func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		if excludedV1Beta3Types.Has(k) {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Root = LegacyOpenShiftAPIPrefix
-	version.Storage = storage
-	version.GroupVersion = v1beta3.SchemeGroupVersion
-	version.Serializer = kapi.Codecs
-	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
-	return version
 }
 
 // api_v1 returns the resources and codec for API version v1.

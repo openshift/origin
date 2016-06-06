@@ -593,8 +593,8 @@ saved copy to include the latest resource version.`
   # Use an alternative editor
   OC_EDITOR="nano" %[1]s edit dc/my-deployment
 
-  # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-  %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
+  # Edit the service 'docker-registry' in JSON using the v1 API format:
+  %[1]s edit svc/docker-registry --output-version=v1 -o json`
 )
 
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {

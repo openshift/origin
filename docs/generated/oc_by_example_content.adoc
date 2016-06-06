@@ -32,7 +32,7 @@ Decrypt data encrypted with "oc adm ca encrypt"
 ----
 	# Decrypt an encrypted file to a cleartext file:
 	oc adm ca decrypt --key=secret.key --in=secret.encrypted --out=secret.decrypted
-	
+
 	# Decrypt from stdin to stdout:
 	oc adm ca decrypt --key=secret.key < secret2.encrypted > secret2.decrypted
 
@@ -49,7 +49,7 @@ Encrypt data with AES-256-CBC encryption
 ----
 	# Encrypt the content of secret.txt with a generated key:
 	oc adm ca encrypt --genkey=secret.key --in=secret.txt --out=secret.encrypted
-	
+
 	# Encrypt the content of secret2.txt with an existing key:
 	oc adm ca encrypt --key=secret.key < secret2.txt > secret2.encrypted
 
@@ -89,7 +89,7 @@ Change configuration files for the client
 ----
   # Change the config context to use
   oc adm config use-context my-context
-  
+
   # Set the value of a config preference
   oc adm config set preferences.some true
 ----
@@ -118,10 +118,10 @@ Sets a cluster entry in kubeconfig
 ----
   # Set only the server field on the e2e cluster entry without touching other values.
   oc adm config set-cluster e2e --server=https://1.2.3.4
-  
+
   # Embed certificate authority data for the e2e cluster entry
   oc adm config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
-  
+
   # Disable cert checking for the dev cluster entry
   oc adm config set-cluster e2e --insecure-skip-tls-verify=true
 ----
@@ -151,10 +151,10 @@ Sets a user entry in kubeconfig
   # Set only the "client-key" field on the "cluster-admin"
   # entry, without touching other values:
   oc adm config set-credentials cluster-admin --client-key=~/.kube/admin.key
-  
+
   # Set basic auth for the "cluster-admin" entry
   oc adm config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
-  
+
   # Embed client certificate data in the "cluster-admin" entry
   oc adm config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
 ----
@@ -170,7 +170,7 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 ----
   # Show Merged kubeconfig settings.
   oc adm config view
-  
+
   # Get the password for the e2e user
   oc adm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
@@ -571,7 +571,7 @@ Install a router
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
   oc adm router router-west --stats-port=0
-  
+
 ----
 ====
 
@@ -755,7 +755,7 @@ Change configuration files for the client
 ----
   # Change the config context to use
   oc config use-context my-context
-  
+
   # Set the value of a config preference
   oc config set preferences.some true
 ----
@@ -784,10 +784,10 @@ Sets a cluster entry in kubeconfig
 ----
   # Set only the server field on the e2e cluster entry without touching other values.
   oc config set-cluster e2e --server=https://1.2.3.4
-  
+
   # Embed certificate authority data for the e2e cluster entry
   oc config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
-  
+
   # Disable cert checking for the dev cluster entry
   oc config set-cluster e2e --insecure-skip-tls-verify=true
 ----
@@ -817,10 +817,10 @@ Sets a user entry in kubeconfig
   # Set only the "client-key" field on the "cluster-admin"
   # entry, without touching other values:
   oc config set-credentials cluster-admin --client-key=~/.kube/admin.key
-  
+
   # Set basic auth for the "cluster-admin" entry
   oc config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
-  
+
   # Embed client certificate data in the "cluster-admin" entry
   oc config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
 ----
@@ -836,7 +836,7 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 ----
   # Show Merged kubeconfig settings.
   oc config view
-  
+
   # Get the password for the e2e user
   oc config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
@@ -873,7 +873,7 @@ Create a resource by filename or stdin
 ----
   # Create a pod using the data in pod.json.
   oc create -f pod.json
-  
+
   # Create a pod based on the JSON passed into stdin.
   cat pod.json | oc create -f -
 ----
@@ -889,10 +889,10 @@ Create a configMap from a local file, directory or literal value.
 ----
   # Create a new configmap named my-config with keys for each file in folder bar
   oc create configmap my-config --from-file=path/to/bar
-  
+
   # Create a new configmap named my-config with specified keys instead of names on disk
   oc create configmap my-config --from-file=key1=/path/to/bar/file1.txt --from-file=key2=/path/to/bar/file2.txt
-  
+
   # Create a new configMap named my-config with key1=config1 and key2=config2
   oc create configmap my-config --from-literal=key1=config1 --from-literal=key2=config2
 ----
@@ -973,7 +973,7 @@ Create a route that uses edge TLS termination
 ----
   # Create an edge route named "my-route" that exposes frontend service.
   oc create route edge my-route --service=frontend
-  
+
   # Create an edge route that exposes the frontend service and specify a path.
   # If the route name is omitted, the service name will be re-used.
   oc create route edge --service=frontend --path /assets
@@ -990,7 +990,7 @@ Create a route that uses passthrough TLS termination
 ----
   # Create a passthrough route named "my-route" that exposes the frontend service.
   oc create route passthrough my-route --service=frontend
-  
+
   # Create a passthrough route that exposes the frontend service and specify
   # a hostname. If the route name is omitted, the service name will be re-used.
   oc create route passthrough --service=frontend --hostname=www.example.com
@@ -1007,7 +1007,7 @@ Create a route that uses reencrypt TLS termination
 ----
   # Create a route named "my-route" that exposes the frontend service.
   oc create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
-  
+
   # Create a reencrypt route that exposes the frontend service and re-use
   # the service name as the route name.
   oc create route reencrypt --service=frontend --dest-ca-cert cert.cert
@@ -1037,10 +1037,10 @@ Create a secret from a local file, directory or literal value.
 ----
   # Create a new secret named my-secret with keys for each file in folder bar
   oc create secret generic my-secret --from-file=path/to/bar
-  
+
   # Create a new secret named my-secret with specified keys instead of names on disk
   oc create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
-  
+
   # Create a new secret named my-secret with key1=supersecret and key2=topsecret
   oc create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret
 ----
@@ -1194,8 +1194,8 @@ Edit a resource on the server
   # Use an alternative editor
   OC_EDITOR="nano" oc edit dc/my-deployment
 
-  # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-  oc edit svc/docker-registry --output-version=v1beta3 -o json
+  # Edit the service 'docker-registry' in JSON using the v1 API format:
+  oc edit svc/docker-registry --output-version=v1 -o json
 ----
 ====
 
@@ -1295,9 +1295,6 @@ Export resources so they can be used elsewhere
 
   # export to JSON
   oc export service -o json
-
-  # convert a file on disk to the latest API version (in YAML, the default)
-  oc export -f a_v1beta3_service.json --output-version=v1 --exact
 ----
 ====
 
@@ -1969,7 +1966,7 @@ Generate a new token for a service account.
   # Generate a new token for service account 'default'
   oc serviceaccounts new-token 'default'
 
-  # Generate a new token for service account 'default' and apply 
+  # Generate a new token for service account 'default' and apply
   # labels 'foo' and 'bar' to the new token for identification
   # oc serviceaccounts new-token 'default' --labels foo=foo-value,bar=bar-value
 

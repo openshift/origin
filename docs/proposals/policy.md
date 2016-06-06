@@ -205,7 +205,7 @@ This API answers the question: which users and groups can perform the specified 
 // input
 {
 	"kind": "ResourceAccessReview",
-	"apiVersion": "v1beta3",
+	"apiVersion": "v1",
 	"verb": "list",
 	"resource": "replicationcontrollers"
 }
@@ -218,7 +218,7 @@ accessReviewResult, err := Client.ResourceAccessReviews(namespace).Create(resour
 // output
 {
 	"kind": "ResourceAccessReviewResponse",
-	"apiVersion": "v1beta3",
+	"apiVersion": "v1",
 	"namespace": "default"
 	"users": ["Clark", "Hubert"],
 	"groups": ["cluster-admins"]
@@ -262,13 +262,13 @@ This API answers the question: can a user or group (use authenticated user if no
 // input
 {
 	"kind": "SubjectAccessReview",
-	"apiVersion": "v1beta3",
+	"apiVersion": "v1",
 	"verb": "create",
 	"resource": "pods",
 	"user": "Clark",
 	"content": {
 		"kind": "pods",
-		"apiVersion": "v1beta3"
+		"apiVersion": "v1"
 		// rest of pod content
 	}
 }
@@ -281,7 +281,7 @@ accessReviewResult, err := Client.SubjectAccessReviews(namespace).Create(subject
 // output
 {
 	"kind": "SubjectAccessReviewResponse",
-	"apiVersion": "v1beta3",
+	"apiVersion": "v1",
 	"namespace": "default",
 	"allowed": true
 }
