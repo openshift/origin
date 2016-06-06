@@ -1291,7 +1291,7 @@ Display one or many resources
 
 
 == oc import app.json
-Import an app.json definition into OpenShift
+Import an app.json definition into OpenShift (experimental)
 
 ====
 
@@ -1308,7 +1308,7 @@ Import an app.json definition into OpenShift
 
 
 == oc import docker-compose
-Import a docker-compose.yml project into OpenShift
+Import a docker-compose.yml project into OpenShift (experimental)
 
 ====
 
