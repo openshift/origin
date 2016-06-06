@@ -90,6 +90,14 @@ os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
 os::cmd::try_until_success 'oc get rc/database-1'
 
+os::test::junit::declare_suite_start "cmd/deployments/get"
+os::cmd::expect_success_and_text "oc get dc --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_text "oc get dc frontend --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_not_text "oc get dc" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_not_text "oc get dc frontend" "app=dockerbuild,template=application-template-dockerbuild"
+echo "get: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/deployments/rollback"
 os::cmd::expect_success 'oc rollback database --to-version=1 -o=yaml'
 os::cmd::expect_success 'oc rollback dc/database --to-version=1 -o=yaml'
