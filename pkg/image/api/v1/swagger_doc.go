@@ -26,6 +26,7 @@ var map_Image = map[string]string{
 	"dockerImageMetadataVersion": "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\"",
 	"dockerImageManifest":        "DockerImageManifest is the raw JSON of the manifest",
 	"dockerImageLayers":          "DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.",
+	"signatures":                 "Signatures holds all signatures of the image.",
 }
 
 func (Image) SwaggerDoc() map[string]string {
@@ -73,6 +74,22 @@ var map_ImageList = map[string]string{
 
 func (ImageList) SwaggerDoc() map[string]string {
 	return map_ImageList
+}
+
+var map_ImageSignature = map[string]string{
+	"":              "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. There are two mandatory fields provided by client: Type and Content. They should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
+	"type":          "Required: Describes a type of stored blob.",
+	"content":       "Required: An opaque binary string which is an image's signature.",
+	"conditions":    "Conditions represent the latest available observations of a signature's current state.",
+	"imageIdentity": "A human readable string representing image's identity. It could be a product name and version, or an image pull spec (e.g. \"registry.access.redhat.com/rhel7/rhel:7.2\").",
+	"signedClaims":  "Contains claims from the signature.",
+	"created":       "If specified, it is the time of signature's creation.",
+	"issuedBy":      "If specified, it holds information about an issuer of signing certificate or key (a person or entity who signed the signing certificate or key).",
+	"issuedTo":      "If specified, it holds information about a subject of signing certificate or key (a person or entity who signed the image).",
+}
+
+func (ImageSignature) SwaggerDoc() map[string]string {
+	return map_ImageSignature
 }
 
 var map_ImageStream = map[string]string{
@@ -224,6 +241,47 @@ var map_RepositoryImportStatus = map[string]string{
 
 func (RepositoryImportStatus) SwaggerDoc() map[string]string {
 	return map_RepositoryImportStatus
+}
+
+var map_SignatureCondition = map[string]string{
+	"":                   "SignatureCondition describes an image signature condition of particular kind at particular probe time.",
+	"type":               "Type of job condition, Complete or Failed.",
+	"status":             "Status of the condition, one of True, False, Unknown.",
+	"lastProbeTime":      "Last time the condition was checked.",
+	"lastTransitionTime": "Last time the condition transit from one status to another.",
+	"reason":             "(brief) reason for the condition's last transition.",
+	"message":            "Human readable message indicating details about last transition.",
+}
+
+func (SignatureCondition) SwaggerDoc() map[string]string {
+	return map_SignatureCondition
+}
+
+var map_SignatureGenericEntity = map[string]string{
+	"":             "SignatureGenericEntity holds a generic information about a person or entity who is an issuer or a subject of signing certificate or key.",
+	"organization": "Organization name.",
+	"commonName":   "Common name (e.g. openshift-signing-service).",
+}
+
+func (SignatureGenericEntity) SwaggerDoc() map[string]string {
+	return map_SignatureGenericEntity
+}
+
+var map_SignatureIssuer = map[string]string{
+	"": "SignatureIssuer holds information about an issuer of signing certificate or key.",
+}
+
+func (SignatureIssuer) SwaggerDoc() map[string]string {
+	return map_SignatureIssuer
+}
+
+var map_SignatureSubject = map[string]string{
+	"":            "SignatureSubject holds information about a person or entity who created the signature.",
+	"publicKeyID": "If present, it is a human readable key id of public key belonging to the subject used to verify image signature. It should contain at least 64 lowest bits of public key's fingerprint (e.g. 0x685ebe62bf278440).",
+}
+
+func (SignatureSubject) SwaggerDoc() map[string]string {
+	return map_SignatureSubject
 }
 
 var map_TagEvent = map[string]string{

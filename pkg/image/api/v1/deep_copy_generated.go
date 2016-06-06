@@ -20,6 +20,7 @@ func init() {
 		DeepCopy_v1_ImageImportStatus,
 		DeepCopy_v1_ImageLayer,
 		DeepCopy_v1_ImageList,
+		DeepCopy_v1_ImageSignature,
 		DeepCopy_v1_ImageStream,
 		DeepCopy_v1_ImageStreamImage,
 		DeepCopy_v1_ImageStreamImport,
@@ -34,6 +35,10 @@ func init() {
 		DeepCopy_v1_NamedTagEventList,
 		DeepCopy_v1_RepositoryImportSpec,
 		DeepCopy_v1_RepositoryImportStatus,
+		DeepCopy_v1_SignatureCondition,
+		DeepCopy_v1_SignatureGenericEntity,
+		DeepCopy_v1_SignatureIssuer,
+		DeepCopy_v1_SignatureSubject,
 		DeepCopy_v1_TagEvent,
 		DeepCopy_v1_TagEventCondition,
 		DeepCopy_v1_TagImportPolicy,
@@ -76,6 +81,17 @@ func DeepCopy_v1_Image(in Image, out *Image, c *conversion.Cloner) error {
 		}
 	} else {
 		out.DockerImageLayers = nil
+	}
+	if in.Signatures != nil {
+		in, out := in.Signatures, &out.Signatures
+		*out = make([]ImageSignature, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_ImageSignature(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Signatures = nil
 	}
 	return nil
 }
@@ -140,6 +156,66 @@ func DeepCopy_v1_ImageList(in ImageList, out *ImageList, c *conversion.Cloner) e
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_ImageSignature(in ImageSignature, out *ImageSignature, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Content != nil {
+		in, out := in.Content, &out.Content
+		*out = make([]byte, len(in))
+		copy(*out, in)
+	} else {
+		out.Content = nil
+	}
+	if in.Conditions != nil {
+		in, out := in.Conditions, &out.Conditions
+		*out = make([]SignatureCondition, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_SignatureCondition(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.ImageIdentity = in.ImageIdentity
+	if in.SignedClaims != nil {
+		in, out := in.SignedClaims, &out.SignedClaims
+		*out = make(map[string]string)
+		for key, val := range in {
+			(*out)[key] = val
+		}
+	} else {
+		out.SignedClaims = nil
+	}
+	if in.Created != nil {
+		in, out := in.Created, &out.Created
+		*out = new(unversioned.Time)
+		if err := unversioned.DeepCopy_unversioned_Time(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Created = nil
+	}
+	if in.IssuedBy != nil {
+		in, out := in.IssuedBy, &out.IssuedBy
+		*out = new(SignatureIssuer)
+		if err := DeepCopy_v1_SignatureIssuer(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedBy = nil
+	}
+	if in.IssuedTo != nil {
+		in, out := in.IssuedTo, &out.IssuedTo
+		*out = new(SignatureSubject)
+		if err := DeepCopy_v1_SignatureSubject(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedTo = nil
 	}
 	return nil
 }
@@ -429,6 +505,41 @@ func DeepCopy_v1_RepositoryImportStatus(in RepositoryImportStatus, out *Reposito
 	} else {
 		out.AdditionalTags = nil
 	}
+	return nil
+}
+
+func DeepCopy_v1_SignatureCondition(in SignatureCondition, out *SignatureCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	if err := unversioned.DeepCopy_unversioned_Time(in.LastProbeTime, &out.LastProbeTime, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_Time(in.LastTransitionTime, &out.LastTransitionTime, c); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func DeepCopy_v1_SignatureGenericEntity(in SignatureGenericEntity, out *SignatureGenericEntity, c *conversion.Cloner) error {
+	out.Organization = in.Organization
+	out.CommonName = in.CommonName
+	return nil
+}
+
+func DeepCopy_v1_SignatureIssuer(in SignatureIssuer, out *SignatureIssuer, c *conversion.Cloner) error {
+	if err := DeepCopy_v1_SignatureGenericEntity(in.SignatureGenericEntity, &out.SignatureGenericEntity, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_v1_SignatureSubject(in SignatureSubject, out *SignatureSubject, c *conversion.Cloner) error {
+	if err := DeepCopy_v1_SignatureGenericEntity(in.SignatureGenericEntity, &out.SignatureGenericEntity, c); err != nil {
+		return err
+	}
+	out.PublicKeyID = in.PublicKeyID
 	return nil
 }
 
