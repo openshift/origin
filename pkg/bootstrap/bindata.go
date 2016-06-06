@@ -2588,6 +2588,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
+        "annotations": {
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+          "service.openshift.io/infrastructure": "true"
+        },
         "creationTimestamp": null
       },
       "spec": {
