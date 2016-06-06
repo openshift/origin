@@ -18,3 +18,5 @@ middleware:
     - name: openshift
       options:
         pullthrough: true
+  storage:
+    - name: openshift

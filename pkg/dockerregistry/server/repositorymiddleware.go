@@ -135,10 +135,16 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	repo := repository(*r)
 	repo.ctx = ctx
 
-	bs := &quotaRestrictedBlobStore{
+	quotaBS := &quotaRestrictedBlobStore{
 		BlobStore: r.Repository.Blobs(ctx),
 		repo:      &repo,
 	}
+
+	bs := &localBlobStore{
+		BlobStore: quotaBS,
+		repo:      &repo,
+	}
+
 	if !r.pullthrough {
 		return bs
 	}
