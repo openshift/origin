@@ -20,6 +20,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	imageedges "github.com/openshift/origin/pkg/image/graph"
 )
 
 func TestServiceGroup(t *testing.T) {
@@ -127,6 +128,26 @@ func TestBareDCGroup(t *testing.T) {
 	}
 
 	if e, a := 1, len(bareDCPipelines[0].Images); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestAllBCImageInputs(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/prereq-image-present.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
+
+	coveredNodes := IntSet{}
+
+	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
+
+	if e, a := 4, len(bareBCPipelines); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 }
