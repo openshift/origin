@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
@@ -39,6 +40,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	bc := obj.(*api.BuildConfig)
+	bc.Status = api.BuildConfigStatus{}
 	dropUnknownTriggers(bc)
 }
 
@@ -60,6 +62,22 @@ func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBuildConfigUpdate(obj.(*api.BuildConfig), old.(*api.BuildConfig))
+}
+
+// Export prepares the object for exporting.
+func (s strategy) Export(obj runtime.Object, exact bool) error {
+	s.PrepareForCreate(obj)
+	bc, ok := obj.(*api.BuildConfig)
+	if !ok {
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	oapi.ExportObjectMeta(&bc.ObjectMeta, exact)
+	for i := range bc.Spec.Triggers {
+		if p := bc.Spec.Triggers[i].ImageChange; p != nil {
+			p.LastTriggeredImageID = ""
+		}
+	}
+	return nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

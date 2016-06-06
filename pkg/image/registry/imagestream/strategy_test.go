@@ -1264,3 +1264,57 @@ func TestTagRefChanged(t *testing.T) {
 		}
 	}
 }
+
+func TestExport(t *testing.T) {
+	strategy := Strategy{}
+	exported := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "test",
+			Namespace: "other",
+		},
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"v1": {
+					Annotations: map[string]string{"an": "annotation"},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			DockerImageRepository: "foo/bar",
+			Tags: map[string]api.TagEventList{
+				"v1": {
+					Items: []api.TagEvent{{Image: "the image"}},
+				},
+			},
+		},
+	}
+	expected := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:       "test",
+			Namespace:  "",
+			Generation: 1,
+		},
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"v1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "foo/bar:v1",
+					},
+					Annotations: map[string]string{"an": "annotation"},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{},
+		},
+	}
+
+	if err := strategy.Export(exported, false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !reflect.DeepEqual(exported, expected) {
+		t.Fatalf("expected:\n%#v\n\ngot:\n%#v", expected, exported)
+	}
+}

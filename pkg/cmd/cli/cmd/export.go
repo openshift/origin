@@ -107,6 +107,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, false, filenames...).
+		ExportParam(true).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Flatten()

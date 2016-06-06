@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
@@ -75,6 +76,17 @@ func (s *strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fie
 	oldIST := old.(*api.ImageStreamTag)
 
 	return validation.ValidateImageStreamTagUpdate(newIST, oldIST)
+}
+
+// Export prepares the object for exporting.
+func (s *strategy) Export(obj runtime.Object, exact bool) error {
+	ist, ok := obj.(*api.ImageStreamTag)
+	if !ok {
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	oapi.ExportObjectMeta(&ist.ObjectMeta, exact)
+	oapi.ExportObjectMeta(&ist.Image.ObjectMeta, exact)
+	return nil
 }
 
 // MatchImageStreamTag returns a generic matcher for a given label and field selector.

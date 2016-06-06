@@ -99,6 +99,16 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return newISTag(tag, imageStream, image, false)
 }
 
+// Export retrieves an image that has been tagged by stream and tag. `id` is of the format <stream name>:<tag>.
+func (r *REST) Export(ctx kapi.Context, name string, opts unversioned.ExportOptions) (runtime.Object, error) {
+	obj, err := r.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	err = Strategy.Export(obj, opts.Exact)
+	return obj, err
+}
+
 func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	istag, ok := obj.(*api.ImageStreamTag)
 	if !ok {

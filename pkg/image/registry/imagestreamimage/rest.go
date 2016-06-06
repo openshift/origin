@@ -5,8 +5,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -89,4 +91,14 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	return &isi, nil
+}
+
+func (r *REST) Export(ctx kapi.Context, name string, opts unversioned.ExportOptions) (runtime.Object, error) {
+	obj, err := r.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	isimage := obj.(*api.ImageStreamImage)
+	oapi.ExportObjectMeta(&isimage.ObjectMeta, opts.Exact)
+	return obj, nil
 }

@@ -33,6 +33,15 @@ os::cmd::expect_success 'oc export all --all-namespaces'
 # make sure the deprecated flag doesn't fail
 os::cmd::expect_success 'oc export all --all'
 
+os::cmd::expect_success_and_not_text "oc get dc/database --template='{{ .status.latestVersion }}'" '<no value>'
+os::cmd::expect_success_and_text "oc get dc/database --export --template='{{ .status.latestVersion }}'" '<no value>'
+os::cmd::expect_success_and_not_text "oc get bc/ruby-sample-build --template='{{ .status.lastVersion }}'" '0'
+os::cmd::expect_success_and_text "oc get bc/ruby-sample-build --export --template='{{ .status.lastVersion }}'" '0'
+os::cmd::expect_success_and_text "oc get is ruby-22-centos7 --template='{{.status.dockerImageRepository}}'" 'ruby-22-centos7'
+os::cmd::expect_success_and_not_text "oc get is ruby-22-centos7 --export --template='{{.status.dockerImageRepository}}'" 'ruby-22-centos7'
+os::cmd::expect_success_and_not_text "oc get istag ruby-22-centos7:latest --template='{{.image.metadata.creationTimestamp}}'" '<no value>'
+os::cmd::expect_success_and_text "oc get istag ruby-22-centos7:latest --export --template='{{.image.metadata.creationTimestamp}}'" '<no value>'
+
 os::cmd::expect_success_and_not_text "oc export svc --template='{{range .items}}{{.metadata.name}}{{\"\n\"}}{{end}}' | wc -l" '^0' # don't expect a leading zero, i.e. expect non-zero count
 os::cmd::expect_success_and_text 'oc export svc --as-template=template' 'kind: Template'
 os::cmd::expect_success_and_not_text 'oc export svc' 'clusterIP'

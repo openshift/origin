@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -504,6 +505,80 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 func (s Strategy) Decorate(obj runtime.Object) error {
 	ir := obj.(*api.ImageStream)
 	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
+	return nil
+}
+
+// Export prepares the object for exporting.
+func (Strategy) Export(obj runtime.Object, exact bool) error {
+	// TODO: Export a usable image stream
+	is, ok := obj.(*api.ImageStream)
+	if !ok {
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	oapi.ExportObjectMeta(&is.ObjectMeta, exact)
+	if exact {
+		return nil
+	}
+	// if we point to a docker image repository upstream, copy only the spec tags
+	if len(is.Spec.DockerImageRepository) > 0 {
+		is.Status = api.ImageStreamStatus{}
+		return nil
+	}
+	// create an image stream that mirrors (each spec tag points to the remote image stream)
+	if len(is.Status.DockerImageRepository) > 0 {
+		ref, err := api.ParseDockerImageReference(is.Status.DockerImageRepository)
+		if err != nil {
+			return err
+		}
+		newSpec := api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{},
+		}
+		for name, tag := range is.Status.Tags {
+			if len(tag.Items) > 0 {
+				// copy annotations
+				existing := is.Spec.Tags[name]
+				// point directly to that registry
+				ref.Tag = name
+				existing.From = &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: ref.String(),
+				}
+				newSpec.Tags[name] = existing
+			}
+		}
+		for name, ref := range is.Spec.Tags {
+			if _, ok := is.Status.Tags[name]; ok {
+				continue
+			}
+			// TODO: potentially trim some of these
+			newSpec.Tags[name] = ref
+		}
+		is.Spec = newSpec
+		is.Status = api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{},
+		}
+		return nil
+	}
+
+	// otherwise, try to snapshot the most recent image as spec items
+	newSpec := api.ImageStreamSpec{
+		Tags: map[string]api.TagReference{},
+	}
+	for name, tag := range is.Status.Tags {
+		if len(tag.Items) > 0 {
+			// copy annotations
+			existing := is.Spec.Tags[name]
+			existing.From = &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: tag.Items[0].DockerImageReference,
+			}
+			newSpec.Tags[name] = existing
+		}
+	}
+	is.Spec = newSpec
+	is.Status = api.ImageStreamStatus{
+		Tags: map[string]api.TagEventList{},
+	}
 	return nil
 }
 

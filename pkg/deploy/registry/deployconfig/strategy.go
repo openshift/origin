@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -44,6 +45,11 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)
 	dc.Generation = 1
 	dc.Status = api.DeploymentConfigStatus{}
+	for i := range dc.Spec.Triggers {
+		if p := dc.Spec.Triggers[i].ImageChangeParams; p != nil {
+			p.LastTriggeredImage = ""
+		}
+	}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
@@ -96,6 +102,17 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 // CheckGracefulDelete allows a deployment config to be gracefully deleted.
 func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
 	return false
+}
+
+// Export prepares the object for exporting.
+func (s strategy) Export(obj runtime.Object, exact bool) error {
+	dc, ok := obj.(*api.DeploymentConfig)
+	if !ok {
+		return fmt.Errorf("unexpected object: %v", obj)
+	}
+	oapi.ExportObjectMeta(&dc.ObjectMeta, exact)
+	s.PrepareForCreate(dc)
+	return nil
 }
 
 // statusStrategy implements behavior for DeploymentConfig status updates.

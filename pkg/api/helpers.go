@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 )
 
@@ -50,5 +52,21 @@ func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabe
 			return label, value, nil
 		}
 		return "", "", fmt.Errorf("field label not supported: %s", label)
+	}
+}
+
+// TODO: Move this upstream
+func ExportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
+	objMeta.UID = ""
+	if !exact {
+		objMeta.Namespace = ""
+	}
+	objMeta.CreationTimestamp = unversioned.Time{}
+	objMeta.DeletionTimestamp = nil
+	objMeta.ResourceVersion = ""
+	objMeta.Generation = 1
+	objMeta.SelfLink = ""
+	if len(objMeta.GenerateName) > 0 && !exact {
+		objMeta.Name = ""
 	}
 }

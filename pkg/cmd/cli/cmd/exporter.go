@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/registry/controller"
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	"k8s.io/kubernetes/pkg/registry/namespace"
@@ -22,9 +21,8 @@ import (
 	"k8s.io/kubernetes/pkg/registry/serviceaccount"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildrest "github.com/openshift/origin/pkg/build/registry/build"
-	buildconfigrest "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -43,23 +41,9 @@ type defaultExporter struct{}
 func (e *defaultExporter) AddExportOptions(flags *pflag.FlagSet) {
 }
 
-func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
-	objMeta.UID = ""
-	if !exact {
-		objMeta.Namespace = ""
-	}
-	objMeta.CreationTimestamp = unversioned.Time{}
-	objMeta.DeletionTimestamp = nil
-	objMeta.ResourceVersion = ""
-	objMeta.SelfLink = ""
-	if len(objMeta.GenerateName) > 0 && !exact {
-		objMeta.Name = ""
-	}
-}
-
 func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 	if meta, err := kapi.ObjectMetaFor(obj); err == nil {
-		exportObjectMeta(meta, exact)
+		oapi.ExportObjectMeta(meta, exact)
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
 	}
@@ -91,18 +75,9 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 		pod.Strategy.PrepareForCreate(obj)
 	case *kapi.PodTemplate:
 	case *kapi.Service:
-		// TODO: service does not yet have a strategy
-		t.Status = kapi.ServiceStatus{}
-		if exact {
-			return nil
-		}
+		// moved in the server
 		if t.Spec.ClusterIP != kapi.ClusterIPNone {
 			t.Spec.ClusterIP = ""
-		}
-		if t.Spec.Type == kapi.ServiceTypeNodePort {
-			for i := range t.Spec.Ports {
-				t.Spec.Ports[i].NodePort = 0
-			}
 		}
 	case *kapi.Secret:
 		secret.Strategy.PrepareForCreate(obj)
@@ -141,107 +116,19 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 		t.Secrets = newMountableSecrets
 
 	case *deployapi.DeploymentConfig:
-		// TODO: when internal refactor is completed use status reset
-		t.Status.LatestVersion = 0
-		t.Status.Details = nil
-		for i := range t.Spec.Triggers {
-			if p := t.Spec.Triggers[i].ImageChangeParams; p != nil {
-				p.LastTriggeredImage = ""
-			}
-		}
+		// moved in the server
 	case *buildapi.BuildConfig:
-		buildconfigrest.Strategy.PrepareForCreate(obj)
-		// TODO: should be handled by prepare for create
-		t.Status.LastVersion = 0
-		for i := range t.Spec.Triggers {
-			if p := t.Spec.Triggers[i].ImageChange; p != nil {
-				p.LastTriggeredImageID = ""
-			}
-		}
+		// moved in the server
 	case *buildapi.Build:
-		buildrest.Strategy.PrepareForCreate(obj)
-		// TODO: should be handled by prepare for create
-		t.Status.Duration = 0
-		t.Status.Phase = buildapi.BuildPhaseNew
-		t.Status.StartTimestamp = nil
-		t.Status.CompletionTimestamp = nil
-		if exact {
-			return nil
-		}
-		if t.Status.Config != nil {
-			t.Status.Config = &kapi.ObjectReference{Name: t.Status.Config.Name}
-		}
+		// moved in the server
 	case *routeapi.Route:
 	case *imageapi.Image:
 	case *imageapi.ImageStream:
-		if exact {
-			return nil
-		}
-		// if we point to a docker image repository upstream, copy only the spec tags
-		if len(t.Spec.DockerImageRepository) > 0 {
-			t.Status = imageapi.ImageStreamStatus{}
-			break
-		}
-		// create an image stream that mirrors (each spec tag points to the remote image stream)
-		if len(t.Status.DockerImageRepository) > 0 {
-			ref, err := imageapi.ParseDockerImageReference(t.Status.DockerImageRepository)
-			if err != nil {
-				return err
-			}
-			newSpec := imageapi.ImageStreamSpec{
-				Tags: map[string]imageapi.TagReference{},
-			}
-			for name, tag := range t.Status.Tags {
-				if len(tag.Items) > 0 {
-					// copy annotations
-					existing := t.Spec.Tags[name]
-					// point directly to that registry
-					ref.Tag = name
-					existing.From = &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: ref.String(),
-					}
-					newSpec.Tags[name] = existing
-				}
-			}
-			for name, ref := range t.Spec.Tags {
-				if _, ok := t.Status.Tags[name]; ok {
-					continue
-				}
-				// TODO: potentially trim some of these
-				newSpec.Tags[name] = ref
-			}
-			t.Spec = newSpec
-			t.Status = imageapi.ImageStreamStatus{
-				Tags: map[string]imageapi.TagEventList{},
-			}
-			break
-		}
-
-		// otherwise, try to snapshot the most recent image as spec items
-		newSpec := imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{},
-		}
-		for name, tag := range t.Status.Tags {
-			if len(tag.Items) > 0 {
-				// copy annotations
-				existing := t.Spec.Tags[name]
-				existing.From = &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: tag.Items[0].DockerImageReference,
-				}
-				newSpec.Tags[name] = existing
-			}
-		}
-		t.Spec = newSpec
-		t.Status = imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{},
-		}
-
+		// moved in the server
 	case *imageapi.ImageStreamTag:
-		exportObjectMeta(&t.Image.ObjectMeta, exact)
+		// moved in the server
 	case *imageapi.ImageStreamImage:
-		exportObjectMeta(&t.Image.ObjectMeta, exact)
+		// moved in the server
 
 	default:
 		glog.V(4).Infof("No export strategy defined for objects of type %v", reflect.TypeOf(obj))

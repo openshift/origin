@@ -51,6 +51,7 @@ func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationCont
 		CreateStrategy:      deployconfig.Strategy,
 		UpdateStrategy:      deployconfig.Strategy,
 		DeleteStrategy:      deployconfig.Strategy,
+		ExportStrategy:      deployconfig.Strategy,
 		ReturnDeletedObject: false,
 	}
 
