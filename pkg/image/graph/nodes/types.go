@@ -102,6 +102,15 @@ type ImageStreamImageNode struct {
 	IsFound bool
 }
 
+func (n ImageStreamImageNode) ImageSpec() string {
+	return n.ImageStreamImage.Namespace + "/" + n.ImageStreamImage.Name
+}
+
+func (n ImageStreamImageNode) ImageTag() string {
+	_, id, _ := imageapi.SplitImageStreamImage(n.ImageStreamImage.Name)
+	return id
+}
+
 func (n ImageStreamImageNode) Object() interface{} {
 	return n.ImageStreamImage
 }

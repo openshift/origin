@@ -285,6 +285,17 @@ func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
 	return name, tag, len(parts) == 2
 }
 
+// SplitImageStreamImage turns the name of an ImageStreamImage into Name and ID.
+// It returns false if the ID was not properly specified in the name.
+func SplitImageStreamImage(nameAndID string) (name string, id string, ok bool) {
+	parts := strings.SplitN(nameAndID, "@", 2)
+	name = parts[0]
+	if len(parts) > 1 {
+		id = parts[1]
+	}
+	return name, id, len(parts) == 2
+}
+
 // JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag
 func JoinImageStreamTag(name, tag string) string {
 	if len(tag) == 0 {
