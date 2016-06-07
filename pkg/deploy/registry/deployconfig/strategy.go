@@ -44,6 +44,12 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)
 	dc.Generation = 1
 	dc.Status = api.DeploymentConfigStatus{}
+
+	for i := range dc.Spec.Triggers {
+		if params := dc.Spec.Triggers[i].ImageChangeParams; params != nil {
+			params.LastTriggeredImage = ""
+		}
+	}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
