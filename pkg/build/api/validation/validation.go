@@ -7,13 +7,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -36,10 +41,36 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
 	}
 	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), "content of spec is not printed out, please refer to the \"details\"", "spec is immutable"))
+		diff, err := diffBuildSpec(build.Spec, older.Spec)
+		if err != nil {
+			glog.V(2).Infof("Error calculating build spec patch: %v", err)
+			diff = "[unknown]"
+		}
+		detail := fmt.Sprintf("spec is immutable, diff: %s", diff)
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), "content of spec is not printed out, please refer to the details", detail))
 	}
 
 	return allErrs
+}
+
+func diffBuildSpec(newer buildapi.BuildSpec, older buildapi.BuildSpec) (string, error) {
+	codec := kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion)
+	newerObj := &buildapi.Build{Spec: newer}
+	olderObj := &buildapi.Build{Spec: older}
+
+	newerJSON, err := runtime.Encode(codec, newerObj)
+	if err != nil {
+		return "", fmt.Errorf("error encoding newer: %v", err)
+	}
+	olderJSON, err := runtime.Encode(codec, olderObj)
+	if err != nil {
+		return "", fmt.Errorf("error encoding older: %v", err)
+	}
+	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.Build{})
+	if err != nil {
+		return "", fmt.Errorf("error creating a strategic patch: %v", err)
+	}
+	return string(patch), nil
 }
 
 // refKey returns a key for the given ObjectReference. If the ObjectReference
