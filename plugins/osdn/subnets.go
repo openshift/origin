@@ -108,12 +108,12 @@ func (oc *OsdnController) SubnetStartNode(mtu uint) (bool, error) {
 	}
 
 	// Assume we are working with IPv4
-	clusterNetwork, _, servicesNetwork, err := oc.Registry.GetNetworkInfo()
+	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
+		log.Errorf("Failed to get network information: %v", err)
 		return false, err
 	}
-	networkChanged, err := oc.pluginHooks.SetupSDN(oc.localSubnet.Subnet, clusterNetwork.String(), servicesNetwork.String(), mtu)
+	networkChanged, err := oc.pluginHooks.SetupSDN(oc.localSubnet.Subnet, ni.ClusterNetwork.String(), ni.ServiceNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
@@ -255,9 +255,9 @@ func (oc *OsdnController) validateNode(nodeIP string) error {
 		return fmt.Errorf("Invalid node IP %q", nodeIP)
 	}
 
-	clusterNet, err := oc.Registry.GetClusterNetwork()
+	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		return fmt.Errorf("Failed to get Cluster Network address: %v", err)
+		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
 	// Ensure each node's NodeIP is not contained by the cluster network,
@@ -267,8 +267,8 @@ func (oc *OsdnController) validateNode(nodeIP string) error {
 		return fmt.Errorf("Failed to parse node IP %s", nodeIP)
 	}
 
-	if clusterNet.Contains(ipaddr) {
-		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, clusterNet.String())
+	if ni.ClusterNetwork.Contains(ipaddr) {
+		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
 	}
 
 	return nil
