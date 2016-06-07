@@ -296,7 +296,6 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 		Client:                  bcClient,
 		KubeClient:              kClient,
 		BuildConfigInstantiator: bcInstantiator,
-		JenkinsConfig:           c.Options.JenkinsPipelineConfig,
 	}
 	factory.Create().Run()
 }

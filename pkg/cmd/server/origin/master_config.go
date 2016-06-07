@@ -191,7 +191,15 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"ProjectRequestLimit", "OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", imageadmission.PluginName, quotaadmission.PluginName}
+	admissionControlPluginNames := []string{
+		"ProjectRequestLimit",
+		"OriginNamespaceLifecycle",
+		"PodNodeConstraints",
+		"JenkinsBootstrapper",
+		"BuildByStrategy",
+		imageadmission.PluginName,
+		quotaadmission.PluginName,
+	}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
@@ -206,10 +214,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	authorizer := newAuthorizer(ruleResolver, policyClient, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
-		OpenshiftClient:     privilegedLoopbackOpenShiftClient,
-		ProjectCache:        projectCache,
-		OriginQuotaRegistry: quotaRegistry,
-		Authorizer:          authorizer,
+		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
+		ProjectCache:          projectCache,
+		OriginQuotaRegistry:   quotaRegistry,
+		Authorizer:            authorizer,
+		JenkinsPipelineConfig: options.JenkinsPipelineConfig,
+		RESTClientConfig:      *privilegedLoopbackClientConfig,
 	}
 
 	plugins := []admission.Interface{}

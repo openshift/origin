@@ -8,6 +8,7 @@ import (
 
 	// Admission control plug-ins used by OpenShift
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
+	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"

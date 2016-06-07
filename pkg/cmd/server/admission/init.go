@@ -2,18 +2,22 @@ package admission
 
 import (
 	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
 type PluginInitializer struct {
-	OpenshiftClient     client.Interface
-	ProjectCache        *cache.ProjectCache
-	OriginQuotaRegistry quota.Registry
-	Authorizer          authorizer.Authorizer
+	OpenshiftClient       client.Interface
+	ProjectCache          *cache.ProjectCache
+	OriginQuotaRegistry   quota.Registry
+	Authorizer            authorizer.Authorizer
+	JenkinsPipelineConfig configapi.JenkinsPipelineConfig
+	RESTClientConfig      restclient.Config
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -31,6 +35,12 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		}
 		if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
 			wantsAuthorizer.SetAuthorizer(i.Authorizer)
+		}
+		if wantsJenkinsPipelineConfig, ok := plugin.(WantsJenkinsPipelineConfig); ok {
+			wantsJenkinsPipelineConfig.SetJenkinsPipelineConfig(i.JenkinsPipelineConfig)
+		}
+		if wantsRESTClientConfig, ok := plugin.(WantsRESTClientConfig); ok {
+			wantsRESTClientConfig.SetRESTClientConfig(i.RESTClientConfig)
 		}
 	}
 }
