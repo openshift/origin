@@ -84,15 +84,13 @@ function configure_os_server {
 	--images="${USE_IMAGES}"
 
 
-	# Don't try this at home. We don't have flags for setting etcd ports in the config, but we want
-	# deconflicted ones. Use sed to replace defaults in a completely unsafe way.
-	# And be sure to use the same limit for bulk image import from repository in tests and server.
-	os::util::sed \
-		-e "s/:4001$/:${ETCD_PORT}/g" \
-		-e "s/:7001$/:${ETCD_PEER_PORT}/g" \
-		-e "s/\(maxImagesBulkImportedPerRepository:\s*\)\(.*\)/\1${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-\2}/" \
-		${SERVER_CONFIG_DIR}/master/master-config.yaml
-
+	cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
+	openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
+	openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
+	openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls/0\", \"value\": \"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"},{\"op\": \"remove\", \"path\": \"/etcdClientInfo/urls/1\"}]" | \
+	openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
+	openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
+	openshift ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
