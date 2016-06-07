@@ -218,7 +218,7 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 		return err
 	}
 
-	return rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, modifyingRole)
+	return rulevalidation.ConfirmNoEscalation(ctx, authorizationapi.Resource("rolebinding"), roleBinding.Name, m.RuleResolver, modifyingRole)
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.

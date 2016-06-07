@@ -2,17 +2,20 @@ package rulevalidation
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 )
 
-func ConfirmNoEscalation(ctx kapi.Context, ruleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
+func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, name string, ruleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	ruleResolutionErrors := []error{}
 
 	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
@@ -37,8 +40,23 @@ func ConfirmNoEscalation(ctx kapi.Context, ruleResolver AuthorizationRuleResolve
 
 	ownerRightsCover, missingRights := Covers(ownerRules, role.Rules())
 	if !ownerRightsCover {
+		if compactedMissingRights, err := CompactRules(missingRights); err == nil {
+			missingRights = compactedMissingRights
+		}
+
+		missingRightsStrings := make([]string, 0, len(missingRights))
+		for _, missingRight := range missingRights {
+			missingRightsStrings = append(missingRightsStrings, missingRight.CompactString())
+		}
+		sort.Strings(missingRightsStrings)
 		user, _ := kapi.UserFrom(ctx)
-		return kapierrors.NewUnauthorized(fmt.Sprintf("attempt to grant extra privileges: %v user=%v ownerrules=%v ruleResolutionErrors=%v", missingRights, user, ownerRules, ruleResolutionErrors))
+		var internalErr error
+		if len(ruleResolutionErrors) > 0 {
+			internalErr = fmt.Errorf("user %q cannot grant extra privileges:\n%v\nrule resolution errors: %v)", user.GetName(), strings.Join(missingRightsStrings, "\n"), ruleResolutionErrors)
+		} else {
+			internalErr = fmt.Errorf("user %q cannot grant extra privileges:\n%v", user.GetName(), strings.Join(missingRightsStrings, "\n"))
+		}
+		return kapierrors.NewForbidden(resource, name, internalErr)
 	}
 
 	return nil
