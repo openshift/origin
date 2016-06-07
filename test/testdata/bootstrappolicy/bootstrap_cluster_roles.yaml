@@ -1879,6 +1879,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - egressfirewalls
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - clusternetworks
     verbs:
     - get

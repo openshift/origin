@@ -26,4 +26,8 @@ func TestFieldSelectorConversions(t *testing.T) {
 		api.NetNamespaceToSelectableFields(&api.NetNamespace{}),
 	)
 
+	testutil.CheckFieldLabelConversions(t, "v1", "EgressNetworkPolicy",
+		// Ensure all currently returned labels are supported
+		api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}),
+	)
 }
