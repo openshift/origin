@@ -337,7 +337,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 
 	var deployments []kapi.ReplicationController
 	if d.count == -1 || d.count > 1 {
-		list, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: labels.Set(config.Spec.Selector).AsSelector()})
+		list, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err
 		}
