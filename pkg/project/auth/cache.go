@@ -105,6 +105,9 @@ func (s *neverSkipSynchronizer) SkipSynchronize(prevState string, versionedObjec
 
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
+	// allKnownNamespaces we track all the known namespaces, so we can detect deletes.
+	// TODO remove this in favor of a list/watch mechanism for projects
+	allKnownNamespaces        sets.String
 	namespaceStore            cache.Store
 	namespaceInterface        kclient.NamespaceInterface
 	lastSyncResourceVersioner LastSyncResourceVersioner
@@ -132,6 +135,7 @@ type AuthorizationCache struct {
 // NewAuthorizationCache creates a new AuthorizationCache
 func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.NamespaceInterface, policyClient policyclient.ReadOnlyPolicyClient) *AuthorizationCache {
 	result := &AuthorizationCache{
+		allKnownNamespaces:        sets.String{},
 		namespaceStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
 		namespaceInterface:        namespaceInterface,
 		lastSyncResourceVersioner: &unchangingLastSyncResourceVersioner{},
@@ -203,7 +207,7 @@ func (ac *AuthorizationCache) RemoveWatcher(watcher CacheWatcher) {
 }
 
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
-func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) *sets.String {
+func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) sets.String {
 	namespaceSet := sets.NewString()
 	items := ac.namespaceStore.List()
 	for i := range items {
@@ -217,7 +221,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
 		}
 	}
-	return &namespaceSet
+	return namespaceSet
 }
 
 // synchronizePolicies synchronizes access over each policy
@@ -257,15 +261,19 @@ func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore c
 }
 
 // purgeDeletedNamespaces will remove all namespaces enumerated in a reviewRecordStore that are not in the namespace set
-func purgeDeletedNamespaces(namespaceSet *sets.String, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
+func (ac *AuthorizationCache) purgeDeletedNamespaces(oldNamespaces, newNamespaces sets.String, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
 	reviewRecordItems := reviewRecordStore.List()
 	for i := range reviewRecordItems {
 		reviewRecord := reviewRecordItems[i].(*reviewRecord)
-		if !namespaceSet.Has(reviewRecord.namespace) {
+		if !newNamespaces.Has(reviewRecord.namespace) {
 			deleteNamespaceFromSubjects(userSubjectRecordStore, reviewRecord.users, reviewRecord.namespace)
 			deleteNamespaceFromSubjects(groupSubjectRecordStore, reviewRecord.groups, reviewRecord.namespace)
 			reviewRecordStore.Delete(reviewRecord)
 		}
+	}
+
+	for namespace := range oldNamespaces.Difference(newNamespaces) {
+		ac.notifyWatchers(namespace, nil, sets.String{}, sets.String{})
 	}
 }
 
@@ -327,10 +335,10 @@ func (ac *AuthorizationCache) synchronize() {
 	}
 
 	// iterate over caches and synchronize our three caches
-	namespaceSet := ac.synchronizeNamespaces(userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
+	newKnownNamespaces := ac.synchronizeNamespaces(userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
 	ac.synchronizePolicies(userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
 	ac.synchronizePolicyBindings(userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
-	purgeDeletedNamespaces(namespaceSet, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
+	ac.purgeDeletedNamespaces(ac.allKnownNamespaces, newKnownNamespaces, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore)
 
 	// if we did a full rebuild, now we swap the fully rebuilt cache
 	if invalidateCache {
@@ -338,6 +346,7 @@ func (ac *AuthorizationCache) synchronize() {
 		ac.groupSubjectRecordStore = groupSubjectRecordStore
 		ac.reviewRecordStore = reviewRecordStore
 	}
+	ac.allKnownNamespaces = newKnownNamespaces
 
 	// we were able to update our cache since this last observation period
 	ac.lastState = currentState
@@ -486,24 +495,11 @@ func addSubjectsToNamespace(subjectRecordStore cache.Store, subjects []string, n
 	}
 }
 
-func (ac *AuthorizationCache) notifyWatchers(namespace string, exists *reviewRecord, latestUsers, latestGroups sets.String) {
-	existingGroups := sets.String{}
-	existingUsers := sets.String{}
-	if exists != nil {
-		existingGroups = sets.NewString(exists.groups...)
-		existingUsers = sets.NewString(exists.users...)
-	}
-
-	// calculate once to avoid fanning out.
-	removedUsers := existingUsers.Difference(latestUsers)
-	removedGroups := existingGroups.Difference(latestGroups)
-	addedUsers := latestUsers.Difference(existingUsers)
-	addedGroups := latestGroups.Difference(existingGroups)
-
+func (ac *AuthorizationCache) notifyWatchers(namespace string, exists *reviewRecord, users, groups sets.String) {
 	ac.watcherLock.Lock()
 	defer ac.watcherLock.Unlock()
 	for _, watcher := range ac.watchers {
-		watcher.GroupMembershipChanged(namespace, latestUsers, latestGroups, removedUsers, removedGroups, addedUsers, addedGroups)
+		watcher.GroupMembershipChanged(namespace, users, groups)
 	}
 }
 
