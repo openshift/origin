@@ -33,6 +33,10 @@ var _ = g.Describe("[job] openshift can execute jobs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(podNames)).Should(o.Equal(1))
 
+				g.By("waiting for a job...")
+				err = exeutil.WaitForAJob(oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()), name, 2*time.Minute)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				g.By("checking job status...")
 				jobs, err := oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
 				o.Expect(err).NotTo(o.HaveOccurred())
