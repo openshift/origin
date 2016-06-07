@@ -255,6 +255,17 @@ if [[ -n "${junit_report}" ]]; then
         cat "${test_error_file}"
     fi
 
+    if grep -q 'WARNING: DATA RACE' "${test_output_file}"; then
+        locations=( $( sed -n '/WARNING: DATA RACE/=' "${test_output_file}") )
+        if [[ "${#locations[@]}" -gt 1 ]]; then
+            echo "[WARNING] \`go test\` detected data races."
+            echo "[WARNING] Details can be found in the full output file at lines ${locations[*]}."
+        else
+            echo "[WARNING] \`go test\` detected a data race."
+            echo "[WARNING] Details can be found in the full output file at line ${locations[*]}."
+        fi
+    fi
+
     echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
     echo "[INFO] jUnit XML report placed at ${junit_report_file}"
     exit "${test_return_code}"
@@ -278,7 +289,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
     # clean up all of the individual coverage reports as they have been subsumed into the report at ${coverage_output_dir}/coverage.html
     # we can clean up all of the coverage reports at once as they all exist in subdirectories of ${coverage_output_dir}/${OS_GO_PACKAGE}
     # and they are the only files found in those subdirectories
-    rm -rf "${coverage_output_dir}/${OS_GO_PACKAGE}"
+    rm -rf "${coverage_output_dir:?}/${OS_GO_PACKAGE}"
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test ${gotest_flags} ${test_packages}
