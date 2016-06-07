@@ -15,6 +15,11 @@ func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
 		DeepCopy_v1_ClusterNetwork,
 		DeepCopy_v1_ClusterNetworkList,
+		DeepCopy_v1_EgressNetworkPolicy,
+		DeepCopy_v1_EgressNetworkPolicyList,
+		DeepCopy_v1_EgressNetworkPolicyPeer,
+		DeepCopy_v1_EgressNetworkPolicyRule,
+		DeepCopy_v1_EgressNetworkPolicySpec,
 		DeepCopy_v1_HostSubnet,
 		DeepCopy_v1_HostSubnetList,
 		DeepCopy_v1_NetNamespace,
@@ -56,6 +61,68 @@ func DeepCopy_v1_ClusterNetworkList(in ClusterNetworkList, out *ClusterNetworkLi
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_EgressNetworkPolicy(in EgressNetworkPolicy, out *EgressNetworkPolicy, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_v1_EgressNetworkPolicySpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_v1_EgressNetworkPolicyList(in EgressNetworkPolicyList, out *EgressNetworkPolicyList, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := in.Items, &out.Items
+		*out = make([]EgressNetworkPolicy, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_EgressNetworkPolicy(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_EgressNetworkPolicyPeer(in EgressNetworkPolicyPeer, out *EgressNetworkPolicyPeer, c *conversion.Cloner) error {
+	out.CIDRSelector = in.CIDRSelector
+	return nil
+}
+
+func DeepCopy_v1_EgressNetworkPolicyRule(in EgressNetworkPolicyRule, out *EgressNetworkPolicyRule, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if err := DeepCopy_v1_EgressNetworkPolicyPeer(in.To, &out.To, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_v1_EgressNetworkPolicySpec(in EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, c *conversion.Cloner) error {
+	if in.Egress != nil {
+		in, out := in.Egress, &out.Egress
+		*out = make([]EgressNetworkPolicyRule, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_EgressNetworkPolicyRule(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Egress = nil
 	}
 	return nil
 }

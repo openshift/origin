@@ -48,6 +48,7 @@ items:
     - bindings
     - componentstatuses
     - configmaps
+    - egressnetworkpolicies
     - endpoints
     - events
     - limitranges
@@ -1879,7 +1880,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - egressfirewalls
+    - egressnetworkpolicies
     verbs:
     - get
     - list
