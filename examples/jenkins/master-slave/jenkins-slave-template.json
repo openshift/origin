@@ -38,7 +38,7 @@
       "name": "SLAVE_REPO_CONTEXTDIR",
       "displayName": "Context Directory",
       "description": "The sub-directory inside the repository.",
-      "value": "examples/jenkins-master/slave"
+      "value": "examples/jenkins/master-slave/slave"
     },
     {
       "name": "SLAVE_REPO_REF",

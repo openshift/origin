@@ -4034,9 +4034,9 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
