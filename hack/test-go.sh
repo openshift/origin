@@ -289,7 +289,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
     # clean up all of the individual coverage reports as they have been subsumed into the report at ${coverage_output_dir}/coverage.html
     # we can clean up all of the coverage reports at once as they all exist in subdirectories of ${coverage_output_dir}/${OS_GO_PACKAGE}
     # and they are the only files found in those subdirectories
-    rm -rf "${coverage_output_dir}/${OS_GO_PACKAGE}"
+    rm -rf "${coverage_output_dir:?}/${OS_GO_PACKAGE}"
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test ${gotest_flags} ${test_packages}
