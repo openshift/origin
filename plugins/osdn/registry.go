@@ -134,7 +134,7 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 }
 
 func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	cn := &osapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
-		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
+		ObjectMeta:       kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
 		Network:          ni.ClusterNetwork.String(),
 		HostSubnetLength: ni.HostSubnetLength,
 		ServiceNetwork:   ni.ServiceNetwork.String(),
@@ -196,7 +196,7 @@ func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
 		return registry.NetworkInfo, nil
 	}
 
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err != nil {
 		return nil, err
 	}
