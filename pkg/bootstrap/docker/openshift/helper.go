@@ -268,14 +268,14 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		return "", errors.NewError("cannot get state of OpenShift container %s", h.containerName).WithCause(err)
 	}
 	if !running {
-		return "", ErrOpenShiftFailedToStart(h.containerName)
+		return "", ErrOpenShiftFailedToStart(h.containerName).WithDetails(h.OriginLog())
 	}
 
 	// Wait until the API server is listening
 	fmt.Fprintf(out, "Waiting for API server to start listening\n")
 	masterHost := fmt.Sprintf("%s:8443", opt.ServerIP)
 	if err = cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
-		return "", ErrTimedOutWaitingForStart(h.containerName)
+		return "", ErrTimedOutWaitingForStart(h.containerName).WithDetails(h.OriginLog())
 	}
 	// Check for healthz endpoint to be ready
 	client, err := masterHTTPClient(configDir)
@@ -285,7 +285,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	for {
 		resp, ierr := client.Get(h.healthzReadyURL(opt.ServerIP))
 		if ierr != nil {
-			return "", errors.NewError("cannot access master readiness URL %s", h.healthzReadyURL(opt.ServerIP)).WithCause(err)
+			return "", errors.NewError("cannot access master readiness URL %s", h.healthzReadyURL(opt.ServerIP)).WithCause(err).WithDetails(h.OriginLog())
 		}
 		if resp.StatusCode == http.StatusOK {
 			break
@@ -300,10 +300,18 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if rerr == nil {
 			responseBody = string(body)
 		}
-		return "", errors.NewError("server is not ready. Response (%d): %s", resp.StatusCode, responseBody).WithCause(ierr)
+		return "", errors.NewError("server is not ready. Response (%d): %s", resp.StatusCode, responseBody).WithCause(ierr).WithDetails(h.OriginLog())
 	}
 	fmt.Fprintf(out, "OpenShift server started\n")
 	return configDir, nil
+}
+
+func (h *Helper) OriginLog() string {
+	log := h.dockerHelper.ContainerLog(h.containerName, 10)
+	if len(log) > 0 {
+		return fmt.Sprintf("Last 10 lines of %q container log:\n%s\n", h.containerName, log)
+	}
+	return fmt.Sprintf("No log available from %q container\n", h.containerName)
 }
 
 func (h *Helper) healthzReadyURL(ip string) string {
