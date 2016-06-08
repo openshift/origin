@@ -39,19 +39,25 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 	}
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = images
-	cfg := &registry.RegistryConfig{
-		Name:           "registry",
-		Type:           "docker-registry",
-		ImageTemplate:  imageTemplate,
-		Ports:          "5000",
-		Replicas:       1,
-		Labels:         "docker-registry=default",
-		Volume:         "/registry",
-		ServiceAccount: "registry",
+	opts := &registry.RegistryOptions{
+		Config: &registry.RegistryConfig{
+			Name:           "registry",
+			Type:           "docker-registry",
+			ImageTemplate:  imageTemplate,
+			Ports:          "5000",
+			Replicas:       1,
+			Labels:         "docker-registry=default",
+			Volume:         "/registry",
+			ServiceAccount: "registry",
+		},
 	}
 	cmd := registry.NewCmdRegistry(f, "", "registry", out)
 	output := &bytes.Buffer{}
-	err = registry.RunCmdRegistry(f, cmd, output, cfg, []string{})
+	err = opts.Complete(f, cmd, output, []string{})
+	if err != nil {
+		return errors.NewError("error completing the registry configuration").WithCause(err)
+	}
+	err = opts.RunCmdRegistry()
 	glog.V(4).Infof("Registry command output:\n%s", output.String())
 	if err != nil {
 		return errors.NewError("cannot install registry").WithCause(err).WithDetails(h.OriginLog())
