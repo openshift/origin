@@ -68,7 +68,9 @@ func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, sla
 }
 
 func cleanup(oc *exutil.CLI) {
+	exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("all", "--all", "-n", oc.Namespace()).Execute()
+	exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("pvc", "--all", "-n", oc.Namespace()).Execute()
 	exutil.CleanupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace())
 }
@@ -84,6 +86,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		exutil.CheckOpenShiftNamespaceImageStreams(oc)
 		err = oc.Run("new-app").Args("-f", tc.TemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -92,12 +95,11 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), helperName)
-		if err != nil {
-			exutil.DumpDeploymentLogs(helperName, oc)
-		}
+		g.By("waiting for the deployment to complete")
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), helperName, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("waiting for an endpoint")
 		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -106,16 +108,19 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 			tableCounter++
 			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
+			g.By("creating replication helpers")
 			master, slaves, helper := CreateMySQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", helperName), slaveCount)
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, slaves)).NotTo(o.HaveOccurred())
 
 			// Test if we can query as root
+			g.By("wait for mysql-master endpoint")
 			oc.KubeFramework().WaitForAnEndpoint("mysql-master")
 			err := helper.TestRemoteLogin(oc, "mysql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Create a new table with random name
+			g.By("create new table")
 			_, err = master.Query(oc, fmt.Sprintf("CREATE TABLE %s (col1 VARCHAR(20), col2 VARCHAR(20));", table))
 			o.Expect(err).NotTo(o.HaveOccurred())
 

@@ -123,10 +123,7 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins")
-		if err != nil {
-			exutil.DumpDeploymentLogs("jenkins", oc)
-		}
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("get ip and port for jenkins service")
@@ -165,15 +162,9 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend")
-			if err != nil {
-				exutil.DumpDeploymentLogs("frontend", oc)
-			}
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod")
-			if err != nil {
-				exutil.DumpDeploymentLogs("frontend-prod", oc)
-			}
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")

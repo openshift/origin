@@ -40,13 +40,73 @@ var TestContext e2e.TestContextType
 
 const pvPrefix = "pv-"
 
+//CheckOpenShiftNamespaceImageStreams is a temporary workaround for the intermittent
+// issue seen in extended tests where *something* is deleteing the pre-loaded, languange
+// imagestreams from the OpenShift namespace
+func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
+	missing := false
+	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
+	for _, lang := range langs {
+		_, err := oc.REST().ImageStreams("openshift").Get(lang)
+		if err != nil {
+			missing = true
+			break
+		}
+	}
+
+	if missing {
+		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams corrupted \n\n")
+		DumpImageStreams(oc)
+		out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
+		err = fmt.Errorf("something has tampered with the image streams in the openshift namespace; look at audits in master log; \n%s\n", out)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	} else {
+		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams OK \n\n")
+	}
+
+}
+
+//DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
+// as part of debugging when the language imagestreams in the openshift namespace seem to disappear
+func DumpImageStreams(oc *CLI) {
+	out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in openshift namespace: \n%s\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in openshift namespace: %+v\n", err)
+	}
+	out, err = oc.Run("get").Args("is").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in dynamic test namespace: \n%s\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in dynamic test namespace: %+v\n", err)
+	}
+	ids, err := ListImages()
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  got error on docker images %+v\n", err)
+	} else {
+		for _, id := range ids {
+			fmt.Fprintf(g.GinkgoWriter, " found local image %s\n", id)
+		}
+	}
+}
+
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
 	bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bc).Output()
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %+v\n\n", err)
+
+		// there have been some issues with oc new-app where build don't appear to even be started;
+		// temporarily trying a start-build to see what is up
+		/*err = oc.Run("start-build").Args(bc).Execute()
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n GGM start-build error for %s is %+v", bc, err)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n GGM start build after new-app hiccup for %s worked\n", bc)
+		}*/
 	}
 
 	// if we suspect that we are filling up the registry file syste, call ExamineDiskUsage / ExaminePodDiskUsage
@@ -58,6 +118,12 @@ func DumpBuildLogs(bc string, oc *CLI) {
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dc string, oc *CLI) {
 	out, err := oc.Run("get").Args("pods", "-o", "json").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n Pod JSON dump: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on Pod JSON dump: %+v\n\n", err)
+	}
+	// pod logs were proving redundant .. leaving code that dumps them commented out for now in case we want to pull back in
 	if err == nil {
 		b := []byte(out)
 		var list kapi.PodList
@@ -83,6 +149,14 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
 	}
+	// temporary debug around deployments not even getting started with oc new-app
+	/*out, err = oc.Run("deploy").Args(dc, "--latest").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s is OK\n", dc)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s got error %+v\n\n", dc, err)
+	}*/
+	// temporary debug dump the local images for the neutered, deploy doesn't even start scenario
 
 }
 
@@ -287,7 +361,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 // When isOK returns true, WaitForADeployment returns nil, when isFailed returns
 // true, WaitForADeployment returns an error including the deployment status.
 // WaitForADeployment waits for at most a certain timeout (non-configurable).
-func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool) error {
+func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool, oc *CLI) error {
 	timeout := 15 * time.Minute
 
 	// closing done signals that any pending operation should be aborted.
@@ -318,12 +392,26 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 		if err != nil {
 			return err, false
 		}
+		// multiple deployments are conceivable; so we look to see how the latest depoy does
+		var lastRC *kapi.ReplicationController
 		for _, rc := range list.Items {
-			err, matched := okOrFailed(&rc)
+			if lastRC == nil {
+				lastRC = &rc
+				continue
+			}
+			// assuming won't have to deal with more than 9 deployments
+			if lastRC.GetName() <= rc.GetName() {
+				lastRC = &rc
+			}
+		}
+
+		if lastRC != nil {
+			err, matched := okOrFailed(lastRC)
 			if matched {
 				return err, false
 			}
 		}
+
 		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: list.ResourceVersion})
 		if err != nil {
 			return err, false
@@ -337,9 +425,16 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 					return nil, true
 				}
 				if rc, ok := val.Object.(*kapi.ReplicationController); ok {
-					err, matched := okOrFailed(rc)
-					if matched {
-						return err, false
+					if lastRC == nil {
+						lastRC = rc
+					}
+					// multiple deployments are conceivable; so we look to see how the latest depoy does
+					if lastRC.GetName() <= rc.GetName() {
+						lastRC = rc
+						err, matched := okOrFailed(rc)
+						if matched {
+							return err, false
+						}
 					}
 				}
 			case <-done:
@@ -365,15 +460,20 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 
 	select {
 	case err := <-errCh:
+		if err != nil {
+			DumpDeploymentLogs(name, oc)
+		}
 		return err
 	case <-time.After(timeout):
+		DumpDeploymentLogs(name, oc)
+		// end for timing issues where we miss watch updates
 		return fmt.Errorf("timed out waiting for deployment %q after %v", name, timeout)
 	}
 }
 
 // WaitForADeploymentToComplete waits for a deployment to complete.
-func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string) error {
-	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn)
+func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string, oc *CLI) error {
+	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn, oc)
 }
 
 func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {

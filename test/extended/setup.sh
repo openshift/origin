@@ -94,6 +94,11 @@ function os::test::extended::setup {
           sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
     fi
     configure_os_server
+    #turn on audit logging for extended tests ... mimic what is done in util.sh configure_os_server, but don't
+    # put change there - only want this for extended tests
+    echo "[INFO] Turn on audit logging"
+    cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml
+    openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml --patch="{\"auditConfig\": {\"enabled\": true}}"  > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
     # Similar to above check, if the XFS volume dir mount point exists enable
     # local storage quota in node-config.yaml so these tests can pass:
