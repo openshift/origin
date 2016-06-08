@@ -5,6 +5,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+const (
+	ClusterNetworkDefault = "default"
+)
+
 // ClusterNetwork describes a cluster network
 type ClusterNetwork struct {
 	unversioned.TypeMeta `json:",inline"`
