@@ -156,7 +156,7 @@ func TestProjectMustExist(t *testing.T) {
 
 func TestProjectWatch(t *testing.T) {
 	testutil.RequireEtcd(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -181,21 +181,9 @@ func TestProjectWatch(t *testing.T) {
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	waitForAdd("ns-01", w, t)
 
-	select {
-	case event := <-w.ResultChan():
-		if event.Type != watch.Added {
-			t.Errorf("expected added, got %v", event)
-		}
-		project := event.Object.(*projectapi.Project)
-		if project.Name != "ns-01" {
-			t.Fatalf("expected %v, got %#v", "ns-01", project)
-		}
-
-	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
-	}
-
+	// TEST FOR ADD/REMOVE ACCESS
 	joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -209,58 +197,31 @@ func TestProjectWatch(t *testing.T) {
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// wait for the add
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
-			t.Logf("got %#v %#v", event, project)
-			if event.Type == watch.Added && project.Name == "ns-02" {
-				return
-			}
-
-		case <-time.After(3 * time.Second):
-			t.Fatalf("timeout")
-		}
-	}
+	waitForAdd("ns-02", w, t)
 
 	if err := addBob.RemoveRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	waitForDelete("ns-02", w, t)
 
-	// wait for the delete
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
-			t.Logf("got %#v %#v", event, project)
-			if event.Type == watch.Deleted && project.Name == "ns-02" {
-				return
-			}
-
-		case <-time.After(3 * time.Second):
-			t.Fatalf("timeout")
-		}
+	// TEST FOR DELETE PROJECT
+	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-03", "bob"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
+	waitForAdd("ns-03", w, t)
+
+	if err := bobClient.Projects().Delete("ns-03"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// wait for the delete
+	waitForDelete("ns-03", w, t)
 
 	// test the "start from beginning watch"
 	beginningWatch, err := bobClient.Projects().Watch(kapi.ListOptions{ResourceVersion: "0"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	select {
-	case event := <-beginningWatch.ResultChan():
-		if event.Type != watch.Added {
-			t.Errorf("expected added, got %v", event)
-		}
-		project := event.Object.(*projectapi.Project)
-		if project.Name != "ns-01" {
-			t.Fatalf("expected %v, got %#v", "ns-01", project)
-		}
-
-	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout")
-	}
+	waitForAdd("ns-01", beginningWatch, t)
 
 	fromNowWatch, err := bobClient.Projects().Watch(kapi.ListOptions{})
 	if err != nil {
@@ -273,4 +234,35 @@ func TestProjectWatch(t *testing.T) {
 	case <-time.After(3 * time.Second):
 	}
 
+}
+
+func waitForDelete(projectName string, w watch.Interface, t *testing.T) {
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if event.Type == watch.Deleted && project.Name == projectName {
+				return
+			}
+
+		case <-time.After(30 * time.Second):
+			t.Fatalf("timeout: %v", projectName)
+		}
+	}
+}
+func waitForAdd(projectName string, w watch.Interface, t *testing.T) {
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if event.Type == watch.Added && project.Name == projectName {
+				return
+			}
+
+		case <-time.After(30 * time.Second):
+			t.Fatalf("timeout: %v", projectName)
+		}
+	}
 }

@@ -21,7 +21,7 @@ import (
 type CacheWatcher interface {
 	// GroupMembershipChanged is called serially for all changes for all watchers.  This method MUST NOT BLOCK.
 	// The serial nature makes reasoning about the code easy, but if you block in this method you will doom all watchers.
-	GroupMembershipChanged(namespaceName string, latestUsers, latestGroups, removedUsers, removedGroups, addedUsers, addedGroups sets.String)
+	GroupMembershipChanged(namespaceName string, users, groups sets.String)
 }
 
 type WatchableCache interface {
@@ -106,15 +106,13 @@ func NewUserProjectWatcher(username string, groups []string, projectCache *proje
 	return w
 }
 
-func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, latestUsers, lastestGroups, removedUsers, removedGroups, addedUsers, addedGroups sets.String) {
-	hasAccess := latestUsers.Has(w.username) || lastestGroups.HasAny(w.groups...)
-	removed := !hasAccess && (removedUsers.Has(w.username) || removedGroups.HasAny(w.groups...))
+func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, users, groups sets.String) {
+	hasAccess := users.Has(w.username) || groups.HasAny(w.groups...)
+	_, known := w.knownProjects[namespaceName]
 
 	switch {
-	case removed:
-		if _, known := w.knownProjects[namespaceName]; !known {
-			return
-		}
+	// this means that we were removed from the project
+	case !hasAccess && known:
 		delete(w.knownProjects, namespaceName)
 
 		select {
