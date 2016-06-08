@@ -137,6 +137,9 @@ echo "[INFO] Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
+echo "[INFO] Docker start with GCS"
+os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
+
 # check to make sure an image-pusher can push an image
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'
 os::cmd::expect_success 'oc login -u pusher -p pass'
