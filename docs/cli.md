@@ -554,7 +554,7 @@ This forwards one or more local ports to a pod.
 The general form is:
 
 ```bash
-$ oc port-forward -p <pod> <forwarding-spec> [...]
+$ oc port-forward <pod> <forwarding-spec> [...]
 ```
 
 where *forwarding-spec* is either a single port (integer), or a pair of ports separated by a colon `<outside>:<inside>`.
@@ -565,15 +565,15 @@ Some examples are:
 ```bash
 # Listen on ports 5000 and 6000 locally, forwarding data
 # to/from ports 5000 and 6000 in the pod.
-$ oc port-forward -p mypod 5000 6000
+$ oc port-forward mypod 5000 6000
 
 # Listen on 8888 locally, forwarding to 5000 in the pod.
-$ oc port-forward -p mypod 8888:5000
+$ oc port-forward mypod 8888:5000
 
 # Listen on a random port locally, forwarding to 5000 in the pod.
 # (These invocations are equivalent.)
-$ oc port-forward -p mypod :5000
-$ oc port-forward -p mypod 0:5000
+$ oc port-forward mypod :5000
+$ oc port-forward mypod 0:5000
 ```
 
 ### oc proxy

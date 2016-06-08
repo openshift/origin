@@ -1560,16 +1560,16 @@ Forward one or more local ports to a pod.
 [options="nowrap"]
 ----
   # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  oc port-forward -p mypod 5000 6000
+  oc port-forward mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod 8888:5000
+  oc port-forward mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod :5000
+  oc port-forward mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod 0:5000
+  oc port-forward mypod 0:5000
 ----
 ====
 
