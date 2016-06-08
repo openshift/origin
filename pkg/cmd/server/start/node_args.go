@@ -16,8 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
-
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -82,7 +80,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 		args.Components.Bind(flags, prefix+"%s", "The set of node components to")
 	}
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
 
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
@@ -96,7 +94,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	args.Components.Bind(flags, "%s", "The set of network components to")
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
@@ -149,13 +147,6 @@ func ValidateRuntime(config *configapi.NodeConfig, components *utilflags.Compone
 	}
 	if actual.Len() == 0 {
 		return fmt.Errorf("at least one node component must be enabled (%s)", strings.Join(components.Allowed().List(), ", "))
-	}
-
-	switch strings.ToLower(config.NetworkConfig.NetworkPluginName) {
-	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
-		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the SDN plugin must be run in the same process as the kubelet")
-		}
 	}
 	return nil
 }
