@@ -23,18 +23,11 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
         $ oc new-project pipelineproject
 
-4. run this command to instantiate the template which will create a pipeline buildconfig and 
-some other resources in your project:
+4. run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
         $ oc new-app -f pipelinetemplate.json
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
-
-    Note: this template grants the edit role to the default service account for your project so jenkins can manipulate your project.  
-
-    If you do not use this template to create your pipeline buildconfig, you need to grant edit permission to the default service account:
-
-        $ oc policy add-role-to-user edit -z default -n pipelineproject
 
 5. View/Manage Jenkins
 

@@ -472,25 +472,7 @@
         }
       },
       "status": {}
-    },
-    {
-        "kind": "RoleBinding",
-        "apiVersion": "v1",
-        "metadata": {
-            "name": "default_edit"
-        },
-        "groupNames": null,
-        "subjects": [
-            {
-                "kind": "ServiceAccount",
-                "name": "default"
-            }
-        ],
-        "roleRef": {
-            "name": "edit"
-        }
     }
-
   ],
   "parameters": [
     {
