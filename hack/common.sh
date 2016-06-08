@@ -42,6 +42,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   cmd/gitserver
   cmd/recycle
 )
+readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
   examples/deployment
@@ -199,7 +200,12 @@ EOF
 
   # use the regular gopath for building
   if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
-    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    # Prepend OS_EXTRA_GOPATH to the GOPATH if it is defined.
+    if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
+      export GOPATH=${OS_EXTRA_GOPATH}:${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    else
+      export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
+    fi
     export OS_TARGET_BIN=${OS_GOPATH}/bin
     return
   fi
