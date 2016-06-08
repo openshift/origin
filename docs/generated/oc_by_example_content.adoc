@@ -1901,6 +1901,28 @@ Generate a new token for a service account.
 ====
 
 
+== oc set build-hook
+Update a build hook on a build config
+
+====
+
+[options="nowrap"]
+----
+  # Clear post-commit hook on a build config
+  oc set build-hook bc/mybuild --post-commit --remove
+
+  # Set the post-commit hook to execute a test suite using a new entrypoint
+  oc set build-hook bc/mybuild --post-commit --command -- /bin/bash -c /var/lib/test-image.sh
+
+  # Set the post-commit hook to execute a shell script
+  oc set build-hook bc/mybuild --post-commit --script="/var/lib/test-image.sh param1 param2 && /var/lib/done.sh"
+
+  # Set the post-commit hook as a set of arguments to the default image entrypoint
+  oc set build-hook bc/mybuild --post-commit  -- arg1 arg2
+----
+====
+
+
 == oc set env
 Update environment variables on a pod template
 

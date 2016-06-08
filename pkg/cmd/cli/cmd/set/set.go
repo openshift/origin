@@ -42,6 +42,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 			Message: "Manage application flows:",
 			Commands: []*cobra.Command{
 				NewCmdTriggers(name, f, out, errout),
+				NewCmdBuildHook(name, f, out, errout),
 			},
 		},
 	}
