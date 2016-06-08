@@ -1,6 +1,7 @@
 FROM centos:centos7
 MAINTAINER http://openshift.io
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN yum install -y tar bind-utils && yum clean all
 
 ENV ETCD_RELEASE v2.0.10

@@ -15,6 +15,7 @@ COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
 COPY lib/systemd/system/docker.service.d/docker-sdn-ovs.conf /usr/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf
 COPY scripts/* /usr/local/bin/
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo && \
     INSTALL_PKGS="libmnl libnetfilter_conntrack openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \

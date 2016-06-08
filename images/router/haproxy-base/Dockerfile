@@ -11,6 +11,7 @@ FROM openshift/origin-base
 #       this is temporary and should be removed when the container is switch to an empty-dir
 #       with gid support.
 #
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN INSTALL_PKGS="haproxy iptables lsof" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \

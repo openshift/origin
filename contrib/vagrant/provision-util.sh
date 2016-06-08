@@ -268,6 +268,7 @@ os::provision::install-pkgs() {
   # container is expected to have installed packages as part of image
   # creation.
   if ! os::provision::in-container; then
+    getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
     yum install -y deltarpm
     yum update -y
     yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils \

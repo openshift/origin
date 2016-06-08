@@ -1,5 +1,6 @@
 FROM centos/ruby-22-centos7:latest
 USER root
+RUN getent hosts mirrorlist.centos.org
 RUN yum -y install expect
 RUN echo "root:redhat" | chpasswd
 USER 1001

@@ -19,6 +19,7 @@ USER 1001
 `
 		testDockerfile2 = `
 FROM centos:7
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN yum install -y httpd
 USER 1001
 `

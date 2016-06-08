@@ -8,6 +8,7 @@ ENV ZOOKEEPER_VERSION 3.4.6
 
 EXPOSE 2181 2888 3888
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN  curl http://apache.mirrors.pair.com/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz | tar -xzf - -C /opt \
     && yum install -y gettext && yum clean all \
     && mv /opt/zookeeper-${ZOOKEEPER_VERSION} /opt/zookeeper \

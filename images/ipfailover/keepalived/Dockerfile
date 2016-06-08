@@ -5,6 +5,7 @@
 #
 FROM openshift/origin
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \

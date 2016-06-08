@@ -14,6 +14,7 @@ ENV VERSION=1.6 \
     TMPDIR=/openshifttmp
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN mkdir $TMPDIR && \
     INSTALL_PKGS="gcc zip mercurial" && \
     yum install -y $INSTALL_PKGS && \

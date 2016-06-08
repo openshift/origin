@@ -9,6 +9,7 @@ ORIGIN_ROOT=$(
 )
 USERNAME=vagrant
 
+getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 yum install -y deltarpm
 yum update -y
 yum install -y docker-io go git bash-completion
