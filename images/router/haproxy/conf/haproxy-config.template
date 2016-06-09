@@ -121,11 +121,11 @@ frontend public_ssl
 # traffic
 ##########################################################################
 backend be_sni
-  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
+  server fe_sni 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} weight 1 send-proxy
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:10444 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
   mode http
 
   # Remove port from Host header
@@ -158,11 +158,11 @@ frontend fe_sni
 ##########################################################################
 # backend for when sni does not exist, or ssl term needs to happen on the edge
 backend be_no_sni
-  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+  server fe_no_sni 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} weight 1 send-proxy
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:10443 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
   mode http
 
   # Remove port from Host header
