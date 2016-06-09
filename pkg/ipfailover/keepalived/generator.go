@@ -88,6 +88,16 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		MountPath: libModulesPath,
 	}
 
+	livenessProbe := &kapi.Probe{
+		InitialDelaySeconds: 10,
+
+		Handler: kapi.Handler{
+			Exec: &kapi.ExecAction{
+				Command: []string{"pgrep", "keepalived"},
+			},
+		},
+	}
+
 	privileged := true
 	return &kapi.Container{
 		Name:  containerName,
@@ -99,6 +109,7 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		ImagePullPolicy: kapi.PullIfNotPresent,
 		VolumeMounts:    mounts,
 		Env:             env.List(),
+		LivenessProbe:   livenessProbe,
 	}
 }
 
