@@ -31,7 +31,7 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
-	defaultRegistry   DefaultRegistry
+	defaultRegistry   api.DefaultRegistry
 	tagVerifier       *TagVerifier
 	limitVerifier     imageadmission.LimitVerifier
 	ImageStreamGetter ResourceGetter
@@ -39,7 +39,7 @@ type Strategy struct {
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
+func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
 	return Strategy{
 		ObjectTyper:     kapi.Scheme,
 		NameGenerator:   kapi.SimpleNameGenerator,
@@ -559,19 +559,6 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 		fields := api.ImageStreamToSelectableFields(ir)
 		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
-type DefaultRegistry interface {
-	DefaultRegistry() (string, bool)
-}
-
-// DefaultRegistryFunc implements DefaultRegistry for a simple function.
-type DefaultRegistryFunc func() (string, bool)
-
-// DefaultRegistry implements the DefaultRegistry interface for a function.
-func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
-	return fn()
 }
 
 // InternalStrategy implements behavior for updating both the spec and status
