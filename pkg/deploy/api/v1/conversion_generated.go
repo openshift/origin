@@ -391,6 +391,7 @@ func autoConvert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *Deploym
 	}
 	out.Replicas = in.Replicas
 	out.Test = in.Test
+	out.Paused = in.Paused
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
 		*out = make(map[string]string, len(*in))
@@ -437,6 +438,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_
 	}
 	out.Replicas = in.Replicas
 	out.Test = in.Test
+	out.Paused = in.Paused
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
 		*out = make(map[string]string, len(*in))

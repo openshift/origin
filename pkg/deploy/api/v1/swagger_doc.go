@@ -84,6 +84,7 @@ var map_DeploymentConfigSpec = map[string]string{
 	"triggers": "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion.",
 	"replicas": "Replicas is the number of desired replicas.",
 	"test":     "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.",
+	"paused":   "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers.",
 	"selector": "Selector is a label query over pods that should match the Replicas count.",
 	"template": "Template is the object that describes the pod that will be created if insufficient replicas are detected.",
 }

@@ -268,6 +268,10 @@ type DeploymentConfigSpec struct {
 	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
 	Test bool `json:"test"`
 
+	// Paused indicates that the deployment config is paused resulting in no new deployments on template
+	// changes or changes in the template caused by other triggers.
+	Paused bool `json:"paused,omitempty"`
+
 	// Selector is a label query over pods that should match the Replicas count.
 	Selector map[string]string `json:"selector,omitempty"`
 

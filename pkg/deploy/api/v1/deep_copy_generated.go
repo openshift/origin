@@ -159,6 +159,7 @@ func DeepCopy_v1_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentCo
 	}
 	out.Replicas = in.Replicas
 	out.Test = in.Test
+	out.Paused = in.Paused
 	if in.Selector != nil {
 		in, out := in.Selector, &out.Selector
 		*out = make(map[string]string)

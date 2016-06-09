@@ -35,8 +35,7 @@ func (e fatalError) Error() string {
 
 // Handle processes change triggers for config.
 func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentConfig) error {
-	if !deployutil.HasChangeTrigger(config) {
-		glog.V(5).Infof("Ignoring deployment config %q; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
+	if !deployutil.HasChangeTrigger(config) || config.Spec.Paused {
 		return nil
 	}
 

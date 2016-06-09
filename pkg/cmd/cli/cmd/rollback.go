@@ -150,7 +150,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 // a rollback.
 func (o *RollbackOptions) Validate() error {
 	if len(o.TargetName) == 0 {
-		return fmt.Errorf("a deployment or deploymentconfig name is required")
+		return fmt.Errorf("a deployment or deployment config name is required")
 	}
 	if o.DesiredVersion < 0 {
 		return fmt.Errorf("the to version must be >= 0")
@@ -187,9 +187,21 @@ func (o *RollbackOptions) Run() error {
 	var target *kapi.ReplicationController
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
+		dcName := deployutil.DeploymentConfigNameFor(r)
+		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName)
+		if err != nil {
+			return err
+		}
+		if dc.Spec.Paused {
+			return fmt.Errorf("cannot rollback a paused deployment config")
+		}
+
 		// A specific deployment was used.
 		target = r
 	case *deployapi.DeploymentConfig:
+		if r.Spec.Paused {
+			return fmt.Errorf("cannot rollback a paused deployment config")
+		}
 		// A deploymentconfig was used. Find the target deployment by the
 		// specified version, or by a lookup of the last completed deployment if
 		// no version was supplied.
@@ -200,7 +212,7 @@ func (o *RollbackOptions) Run() error {
 		target = deployment
 	}
 	if target == nil {
-		return fmt.Errorf("%s is not a valid deployment or deploymentconfig", o.TargetName)
+		return fmt.Errorf("%s is not a valid deployment or deployment config", o.TargetName)
 	}
 
 	// Set up the rollback and generate a new rolled back config.
@@ -297,7 +309,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 		break
 	}
 	if obj == nil {
-		return nil, fmt.Errorf("%s is not a valid deployment or deploymentconfig", targetName)
+		return nil, fmt.Errorf("%s is not a valid deployment or deployment config", targetName)
 	}
 	return obj, nil
 }
