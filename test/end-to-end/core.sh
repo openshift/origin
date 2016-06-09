@@ -272,7 +272,8 @@ os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
 os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 # Test retrieving application logs from dc
-oc logs dc/frontend | grep "Connecting to production database"
+os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production database'
+os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
 
 # Port forwarding
 echo "[INFO] Validating port-forward"
