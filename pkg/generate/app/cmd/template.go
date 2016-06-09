@@ -40,7 +40,7 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	// TODO: in the future, this should be more automatic
 	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
-		return nil, fmt.Errorf("error processing template %s: %v", name, errs)
+		return nil, fmt.Errorf("error processing template %s: %v", name, err)
 	}
 
 	return result, nil
