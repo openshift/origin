@@ -41,6 +41,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   cmd/dockerregistry
   cmd/gitserver
 )
+readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
   examples/deployment
