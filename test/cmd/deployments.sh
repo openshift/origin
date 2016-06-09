@@ -131,4 +131,44 @@ os::cmd::expect_success 'oc delete hpa/test-deployment-config'
 echo "autoscale: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
+# Validate the set deployment-hook command
+arg="-f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set deployment-hook" "error: one or more deployment configs"
+os::cmd::expect_failure_and_text "oc set deployment-hook ${arg}" "error: you must specify one of --pre, --mid, or --post"
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre  -o yaml -- echo 'hello world'" 'pre:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre  -o yaml -- echo 'hello world'" 'execNewPod:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre  -o yaml -- echo 'hello world'" '\- echo'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre  -o yaml -- echo 'hello world'" '\- hello world'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --post -o yaml -- echo 'hello world'" 'post:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --mid  -o yaml -- echo 'hello world'" 'mid:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --failure-policy=ignore -o yaml -- echo 'hello world'" 'failurePolicy: Ignore'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --failure-policy=retry  -o yaml -- echo 'hello world'" 'failurePolicy: Retry'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --failure-policy=abort  -o yaml -- echo 'hello world'" 'failurePolicy: Abort'
+# Non-existent container
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
+# Non-existent volume
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
+# Existing container
+os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'
+# Existing volume
+os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --pre --volumes=vol1 -o yaml -- echo 'hello world'" 'does not have a volume named'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --volumes=vol1 -o yaml -- echo 'hello world'" '\- vol1'
+# Server object tests
+os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set deployment-hook dc/test-deployment-config --pre" "you must specify a command"
+os::cmd::expect_success_and_text "oc set deployment-hook test-deployment-config --pre -- echo 'hello world'" "updated"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -- echo 'hello world'" "was not changed"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "pre:"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --failure-policy=abort -- echo 'test'" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "failurePolicy: Abort"
+os::cmd::expect_success_and_text "oc set deployment-hook --all --pre -- echo 'all dc'" "updated"
+os::cmd::expect_success_and_text "oc get dc -o yaml" "all dc"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "pre:"
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+echo "set deployment-hook: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end

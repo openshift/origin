@@ -1923,6 +1923,26 @@ Update a build hook on a build config
 ====
 
 
+== oc set deployment-hook
+Update a deployment hook on a deployment config
+
+====
+
+[options="nowrap"]
+----
+  # Clear pre and post hooks on a deployment config
+  oc set deployment-hook dc/myapp --remove --pre --post
+
+  # Set the pre deployment hook to execute a db migration command for an application
+  # using the data volume from the application
+  oc set deployment-hook dc/myapp --pre -v data -- /var/lib/migrate-db.sh
+
+  # Set a mid deployment hook along with additional environment variables
+  oc set deployment-hook dc/myapp --mid -v data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh
+----
+====
+
+
 == oc set env
 Update environment variables on a pod template
 
