@@ -213,8 +213,8 @@ const (
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
-func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
-	cmd := kcmd.NewCmdPortForward(f.Factory)
+func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdPortForward(f.Factory, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
 	return cmd

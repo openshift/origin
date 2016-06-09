@@ -564,7 +564,7 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 			return &t.Spec.Template, err
 		case *extensions.DaemonSet:
 			return &t.Spec.Template, err
-		case *extensions.Job:
+		case *batch.Job:
 			return &t.Spec.Template, err
 		}
 		return nil, err
@@ -643,7 +643,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
-func podNameForJob(job *extensions.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
+func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
 	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err

@@ -3,7 +3,6 @@ package deploymentconfig
 import (
 	"sort"
 	"strconv"
-	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -678,7 +677,8 @@ func TestHandleScenarios(t *testing.T) {
 
 		if e, a := test.expectedReplicas, config.Spec.Replicas; e != a {
 			t.Errorf("expected config replicas to be %d, got %d", e, a)
-			t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			// TODO: Disable as the recorder.Events is now `chan string`
+			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
 		}
 		anyDeploymentMismatches := false
 		for i := 0; i < len(expectedDeployments); i++ {
@@ -689,7 +689,9 @@ func TestHandleScenarios(t *testing.T) {
 			}
 		}
 		if anyDeploymentMismatches {
-			t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			// TODO: Disable as the recorder.Events is now `chan string`
+			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			t.Fatalf("deployment mismatches detected")
 		}
 	}
 }

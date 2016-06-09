@@ -69,7 +69,14 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 
 	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
-	masterArgs.EtcdDir = path.Join(basedir, "etcd")
+
+	// Allows to override the default etcd directory from the shell script.
+	etcdDir := os.Getenv("TEST_ETCD_DIR")
+	if len(etcdDir) == 0 {
+		etcdDir = path.Join(basedir, "etcd")
+	}
+
+	masterArgs.EtcdDir = etcdDir
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()

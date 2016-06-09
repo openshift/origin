@@ -373,7 +373,7 @@ func replicaSet(setNodeSelector bool) runtime.Object {
 }
 
 func job(setNodeSelector bool) runtime.Object {
-	j := &extensions.Job{}
+	j := &batch.Job{}
 	j.Spec.Template = *podTemplateSpec(setNodeSelector)
 	return j
 }

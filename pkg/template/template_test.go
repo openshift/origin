@@ -270,31 +270,6 @@ func TestEvaluateLabels(t *testing.T) {
 			}`,
 			Labels: map[string]string{"key3": "v3"},
 		},
-		"when the root object has labels and no metadata": {
-			Input: `{
-				"kind":"Template", "apiVersion":"v1",
-				"objects": [
-					{
-						"kind": "Service", "apiVersion": "v1beta3",
-						"labels": {
-							"key1": "v1",
-							"key2": "v2"
-						}
-					}
-				]
-			}`,
-			Output: `{
-				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
-				"objects":[
-					{
-						"apiVersion":"v1beta3","kind":"Service",
-						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
-					}
-				],
-				"labels":{"key3":"v3"}
-			}`,
-			Labels: map[string]string{"key3": "v3"},
-		},
 		"when the root object has labels and metadata": {
 			Input: `{
 				"kind":"Template", "apiVersion":"v1",

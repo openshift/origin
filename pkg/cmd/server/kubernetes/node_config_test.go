@@ -117,6 +117,7 @@ func TestProxyConfig(t *testing.T) {
 	expectedDefaultConfig := &proxyoptions.ProxyServerConfig{
 		KubeProxyConfiguration: componentconfig.KubeProxyConfiguration{
 			BindAddress:        "0.0.0.0",
+			ClusterCIDR:        "",
 			HealthzPort:        10249,         // disabled
 			HealthzBindAddress: "127.0.0.1",   // disabled
 			OOMScoreAdj:        &oomScoreAdj,  // disabled

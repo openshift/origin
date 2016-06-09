@@ -53,7 +53,8 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 }
 
 func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) {
-	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry)
+	// TODO: Make the number of evaluators configurable?
+	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry, 5)
 	if err != nil {
 		glog.Fatalf("failed to initialize %s plugin: %v", PluginName, err)
 	}

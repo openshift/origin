@@ -67,7 +67,8 @@ os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQ
 # verify we can create from a template when some objects in the template declare an app label
 # the app label should still be applied to the other objects in the template.
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-sample-build'
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
+# verify the existing app label on an object is overridden by new-app
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
 
 # check search
 os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.5, 5.6, latest"
@@ -195,7 +196,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
 jsonfile="${OS_ROOT}/test/testdata/invalid.json"
-os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": at offset 8: invalid character '}' after object key"
+os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": json: line 0: invalid character '}' after object key"
 
 # a docker compose file should be transformed into an application by the import command
 os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'warning: not all docker-compose fields were honored'

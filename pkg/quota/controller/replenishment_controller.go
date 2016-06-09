@@ -30,7 +30,7 @@ func NewReplenishmentControllerFactory(osClient osclient.Interface) kresourcequo
 	}
 }
 
-func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (*framework.Controller, error) {
+func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (framework.ControllerInterface, error) {
 	switch options.GroupKind {
 	case imageapi.Kind("ImageStream"):
 		_, result := framework.NewInformer(

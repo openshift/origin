@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -585,7 +585,7 @@ func WaitForAJob(c kclient.JobInterface, name string, timeout time.Duration) err
 		// TODO soltysh: replace this with a function once such exist, currently
 		// it's private in the controller
 		for _, c := range j.Status.Conditions {
-			if (c.Type == extensions.JobComplete || c.Type == extensions.JobFailed) && c.Status == kapi.ConditionTrue {
+			if (c.Type == batch.JobComplete || c.Type == batch.JobFailed) && c.Status == kapi.ConditionTrue {
 				return true, nil
 			}
 		}
