@@ -4715,7 +4715,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
     },
     {
       "name": "DJANGO_SECRET_KEY",
-      "displayName": "Djange Secret Key",
+      "displayName": "Django Secret Key",
       "description": "Set this to a long random string.",
       "generate": "expression",
       "from": "[\\w]{50}"
