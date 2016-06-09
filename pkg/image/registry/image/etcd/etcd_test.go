@@ -273,8 +273,8 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference == "openshift/ruby-19-centos-2" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 0 {
@@ -310,8 +310,8 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference != "openshift/ruby-19-centos" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 28643712 {
@@ -347,8 +347,8 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference != "openshift/ruby-19-centos" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 28643712 {

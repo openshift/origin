@@ -70,7 +70,6 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	oldImage := old.(*api.Image)
 
 	// image metadata cannot be altered
-	newImage.DockerImageReference = oldImage.DockerImageReference
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
