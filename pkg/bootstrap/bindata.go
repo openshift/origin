@@ -2619,10 +2619,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
                     "value": "https://kubernetes.default:443"
                   },
                   {
-                    "name": "KUBERNETES_NAMESPACE",
-                    "value": "${PROJECT}"
-                  },
-                  {
                     "name": "KUBERNETES_TRUST_CERTIFICATES",
                     "value": "true"
                   }
@@ -2748,12 +2744,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
       "value": "openshift"
-    },
-    {
-      "name": "PROJECT",
-      "displayName": "Project",
-      "description": "The target project where jenkins pipeline operations should be performed/slaves launched.",
-      "value": "pipelineproject"
     },
     {
       "name": "JENKINS_SERVICE_NAME",
