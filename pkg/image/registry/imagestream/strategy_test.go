@@ -1039,6 +1039,12 @@ func TestTagsChanged(t *testing.T) {
 				Tags: test.existingTagHistory,
 			},
 		}
+		// we can't reuse the same map twice, it causes both to be modified during updates
+		var previousTagHistory = test.existingTagHistory
+		if previousTagHistory != nil {
+			obj, _ := kapi.Scheme.DeepCopy(previousTagHistory)
+			previousTagHistory, _ = obj.(map[string]api.TagEventList)
+		}
 		previousStream := &api.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "stream",
@@ -1048,7 +1054,7 @@ func TestTagsChanged(t *testing.T) {
 			},
 			Status: api.ImageStreamStatus{
 				DockerImageRepository: test.stream,
-				Tags: test.existingTagHistory,
+				Tags: previousTagHistory,
 			},
 		}
 		if test.previous == nil {

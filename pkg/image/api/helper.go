@@ -628,7 +628,7 @@ func tagsChanged(new, old []TagEvent) (changed bool, deleted bool) {
 	case len(old) == 0:
 		return true, false
 	default:
-		return new[0] == old[0], false
+		return new[0] != old[0], false
 	}
 }
 

@@ -1411,3 +1411,44 @@ func TestPrioritizeTags(t *testing.T) {
 		t.Errorf("unexpected order: %v", tags)
 	}
 }
+
+func TestTagsChanged(t *testing.T) {
+	tests := map[string]struct {
+		new     []TagEvent
+		old     []TagEvent
+		changed bool
+		deleted bool
+	}{
+		"both empty": {
+			new:     []TagEvent{},
+			old:     []TagEvent{},
+			changed: false,
+			deleted: false,
+		},
+		"new image": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{},
+			changed: true,
+			deleted: false,
+		},
+		"image deleted": {
+			new:     []TagEvent{},
+			old:     []TagEvent{{Image: "oldimage"}},
+			changed: true,
+			deleted: true,
+		},
+		"image changed": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{{Image: "oldImage"}},
+			changed: true,
+			deleted: false,
+		},
+	}
+	for name, test := range tests {
+		changed, deleted := tagsChanged(test.new, test.old)
+		if changed != test.changed || deleted != test.deleted {
+			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
+				name, test.changed, test.deleted, changed, deleted)
+		}
+	}
+}
