@@ -39,7 +39,9 @@ During transformation fields in the app.json syntax that are not relevant when r
 a containerized platform will be ignored and a warning printed.
 
 The command will create objects unless you pass the -o yaml or --as-template flags to generate a
-configuration file for later use.`
+configuration file for later use.
+
+Experimental: This command is under active development and may change without notice.`
 
 	appJSONExample = `  # Import a directory containing an app.json file
   $ %[1]s app.json -f .
@@ -81,7 +83,7 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	}
 	cmd := &cobra.Command{
 		Use:     "app.json -f APPJSON",
-		Short:   "Import an app.json definition into OpenShift",
+		Short:   "Import an app.json definition into OpenShift (experimental)",
 		Long:    appJSONLong,
 		Example: fmt.Sprintf(appJSONExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
