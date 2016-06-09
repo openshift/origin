@@ -153,6 +153,8 @@ func parseFromReference(stream *api.ImageStream, from *kapi.ObjectReference) (st
 // tagsChanged updates stream.Status.Tags based on the old and new image stream.
 // if the old stream is nil, all tags are considered additions.
 func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
+	internalRegistry, hasInternalRegistry := s.defaultRegistry.DefaultRegistry()
+
 	var errs field.ErrorList
 
 	oldTags := map[string]api.TagReference{}
@@ -218,10 +220,21 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
 			errs = append(errs, field.Invalid(fromPath.Child("name"), tagRef.From.Name, fmt.Sprintf("error generating tag event: %v", err)))
 			continue
 		}
-
 		if event == nil {
 			// referenced tag or ID doesn't exist, which is ok
 			continue
+		}
+
+		// if this is not a reference tag, and the tag points to the internal registry for the other namespace, alter it to
+		// point to this stream so that pulls happen from this stream in the future.
+		if !tagRef.Reference {
+			if ref, err := api.ParseDockerImageReference(event.DockerImageReference); err == nil {
+				if hasInternalRegistry && ref.Registry == internalRegistry && ref.Namespace == streamRef.Namespace && ref.Name == streamRef.Name {
+					ref.Namespace = stream.Namespace
+					ref.Name = stream.Name
+					event.DockerImageReference = ref.Exact()
+				}
+			}
 		}
 
 		stream.Spec.Tags[tag] = tagRef

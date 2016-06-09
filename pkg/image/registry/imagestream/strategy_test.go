@@ -518,6 +518,7 @@ func TestLimitVerifier(t *testing.T) {
 			limitVerifier: &testutil.FakeImageStreamLimitVerifier{
 				ImageStreamEvaluator: tc.isEvaluator,
 			},
+			defaultRegistry: &fakeDefaultRegistry{},
 		}
 
 		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
@@ -1054,7 +1055,9 @@ func TestTagsChanged(t *testing.T) {
 			previousStream = nil
 		}
 
-		s := &Strategy{}
+		s := &Strategy{
+			defaultRegistry: &fakeDefaultRegistry{},
+		}
 		s.ImageStreamGetter = &fakeImageStreamGetter{test.otherStream}
 		err := s.tagsChanged(previousStream, stream)
 		if len(err) > 0 {
