@@ -151,47 +151,6 @@ func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 }
 
 func addConversionFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
-		func(config *BuildConfigSpec) {
-			if len(config.RunPolicy) == 0 {
-				config.RunPolicy = BuildRunPolicySerial
-			}
-		},
-		func(source *BuildSource) {
-			if (source != nil) && (source.Type == BuildSourceBinary) && (source.Binary == nil) {
-				source.Binary = &BinaryBuildSource{}
-			}
-		},
-		func(strategy *BuildStrategy) {
-			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) && (strategy.DockerStrategy == nil) {
-				strategy.DockerStrategy = &DockerBuildStrategy{}
-			}
-		},
-		func(obj *SourceBuildStrategy) {
-			if len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
-			}
-		},
-		func(obj *DockerBuildStrategy) {
-			if obj.From != nil && len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
-			}
-		},
-		func(obj *CustomBuildStrategy) {
-			if len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
-			}
-		},
-		func(obj *BuildTriggerPolicy) {
-			if obj.Type == ImageChangeBuildTriggerType && obj.ImageChange == nil {
-				obj.ImageChange = &ImageChangeTrigger{}
-			}
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
 	scheme.AddConversionFuncs(
 		Convert_v1_BuildConfig_To_api_BuildConfig,
 		Convert_api_BuildConfig_To_v1_BuildConfig,
