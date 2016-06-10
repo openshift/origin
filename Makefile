@@ -71,7 +71,7 @@ update: build
 	hack/update-generated-docs.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
-.PHONE: update
+.PHONY: update
 
 # Run unit tests.
 #
