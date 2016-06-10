@@ -17,6 +17,24 @@ import (
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func init() {
+	prometheus.MustRegister(buildDurations)
+}
+
+var (
+	buildDurations = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "openshift",
+			Subsystem: "builds",
+			Name:      "duration_seconds",
+			Help:      "Distribution of builds duration (in seconds).",
+		},
+		[]string{"namespace", "buildconfig", "node"},
+	)
 )
 
 // BuildController watches build resources and manages their state
@@ -316,6 +334,12 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		if buildutil.IsBuildComplete(build) {
 			now := unversioned.Now()
 			build.Status.CompletionTimestamp = &now
+			duration := now.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+			buildDurations.With(prometheus.Labels{
+				"namespace":   build.Namespace,
+				"buildconfig": buildutil.ConfigNameForBuild(build),
+				"node":        pod.Spec.NodeName,
+			}).Observe(duration.Seconds())
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
 			now := unversioned.Now()
