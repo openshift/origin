@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -236,17 +235,11 @@ func (e *ClientExecutor) Cleanup() error {
 // CreateScratchImage creates a new, zero byte layer that is identical to "scratch"
 // except that the resulting image will have two layers.
 func (e *ClientExecutor) CreateScratchImage() (string, error) {
-	random := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, random); err != nil {
+	random, err := randSeq(imageSafeCharacters, 24)
+	if err != nil {
 		return "", err
 	}
-	s := strings.Map(func(r rune) rune {
-		if r == '-' || r == '_' {
-			return 'a'
-		}
-		return r
-	}, strings.TrimRight(base64.URLEncoding.EncodeToString(random), "="))
-	name := strings.ToLower(fmt.Sprintf("scratch-%s", s))
+	name := fmt.Sprintf("scratch-%s", random)
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
@@ -257,6 +250,26 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 		Source:      "-",
 		InputStream: buf,
 	})
+}
+
+// imageSafeCharacters are characters allowed to be part of a Docker image name.
+const imageSafeCharacters = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+// randSeq returns a sequence of random characters drawn from source. It returns
+// an error if cryptographic randomness is not available or source is more than 255
+// characters.
+func randSeq(source string, n int) (string, error) {
+	if len(source) > 255 {
+		return "", fmt.Errorf("source must be less than 256 bytes long")
+	}
+	random := make([]byte, n)
+	if _, err := io.ReadFull(rand.Reader, random); err != nil {
+		return "", err
+	}
+	for i := range random {
+		random[i] = source[random[i]%byte(len(source))]
+	}
+	return string(random), nil
 }
 
 // CleanupImage attempts to remove the provided image.
