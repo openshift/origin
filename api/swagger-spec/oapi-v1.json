@@ -21063,6 +21063,13 @@
        "$ref": "v1.ImageLayer"
       },
       "description": "DockerImageLayers represents the layers in the image. May not be set if the image does not define that data."
+     },
+     "signatures": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ImageSignature"
+      },
+      "description": "Signatures holds all signatures of the image."
      }
     }
    },
@@ -21082,6 +21089,123 @@
       "type": "integer",
       "format": "int64",
       "description": "Size of the layer as defined by the underlying store."
+     }
+    }
+   },
+   "v1.ImageSignature": {
+    "id": "v1.ImageSignature",
+    "description": "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. There are two mandatory fields provided by client: Type and Content. They should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
+    "required": [
+     "type",
+     "content"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Required: Describes a type of stored blob."
+     },
+     "content": {
+      "type": "array",
+      "items": {
+       "$ref": "integer"
+      },
+      "description": "Required: An opaque binary string which is an image's signature."
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.SignatureCondition"
+      },
+      "description": "Conditions represent the latest available observations of a signature's current state."
+     },
+     "imageIdentity": {
+      "type": "string",
+      "description": "A human readable string representing image's identity. It could be a product name and version, or an image pull spec (e.g. \"registry.access.redhat.com/rhel7/rhel:7.2\")."
+     },
+     "signedClaims": {
+      "type": "any",
+      "description": "Contains claims from the signature."
+     },
+     "created": {
+      "type": "string",
+      "description": "If specified, it is the time of signature's creation."
+     },
+     "issuedBy": {
+      "$ref": "v1.SignatureIssuer",
+      "description": "If specified, it holds information about an issuer of signing certificate or key (a person or entity who signed the signing certificate or key)."
+     },
+     "issuedTo": {
+      "$ref": "v1.SignatureSubject",
+      "description": "If specified, it holds information about a subject of signing certificate or key (a person or entity who signed the image)."
+     }
+    }
+   },
+   "v1.SignatureCondition": {
+    "id": "v1.SignatureCondition",
+    "description": "SignatureCondition describes an image signature condition of particular kind at particular probe time.",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of job condition, Complete or Failed."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the condition, one of True, False, Unknown."
+     },
+     "lastProbeTime": {
+      "type": "string",
+      "description": "Last time the condition was checked."
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "description": "Last time the condition transit from one status to another."
+     },
+     "reason": {
+      "type": "string",
+      "description": "(brief) reason for the condition's last transition."
+     },
+     "message": {
+      "type": "string",
+      "description": "Human readable message indicating details about last transition."
+     }
+    }
+   },
+   "v1.SignatureIssuer": {
+    "id": "v1.SignatureIssuer",
+    "description": "SignatureIssuer holds information about an issuer of signing certificate or key.",
+    "properties": {
+     "organization": {
+      "type": "string",
+      "description": "Organization name."
+     },
+     "commonName": {
+      "type": "string",
+      "description": "Common name (e.g. openshift-signing-service)."
+     }
+    }
+   },
+   "v1.SignatureSubject": {
+    "id": "v1.SignatureSubject",
+    "description": "SignatureSubject holds information about a person or entity who created the signature.",
+    "required": [
+     "publicKeyID"
+    ],
+    "properties": {
+     "organization": {
+      "type": "string",
+      "description": "Organization name."
+     },
+     "commonName": {
+      "type": "string",
+      "description": "Common name (e.g. openshift-signing-service)."
+     },
+     "publicKeyID": {
+      "type": "string",
+      "description": "If present, it is a human readable key id of public key belonging to the subject used to verify image signature. It should contain at least 64 lowest bits of public key's fingerprint (e.g. 0x685ebe62bf278440)."
      }
     }
    },

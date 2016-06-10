@@ -52,6 +52,17 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 		out.DockerImageLayers = nil
 	}
 
+	if in.Signatures != nil {
+		out.Signatures = make([]ImageSignature, len(in.Signatures))
+		for i := range in.Signatures {
+			if err := s.Convert(&in.Signatures[i], &out.Signatures[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Signatures = nil
+	}
+
 	return nil
 }
 
@@ -90,6 +101,17 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 		}
 	} else {
 		out.DockerImageLayers = nil
+	}
+
+	if in.Signatures != nil {
+		out.Signatures = make([]newer.ImageSignature, len(in.Signatures))
+		for i := range in.Signatures {
+			if err := s.Convert(&in.Signatures[i], &out.Signatures[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Signatures = nil
 	}
 
 	return nil

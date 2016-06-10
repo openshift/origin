@@ -7,6 +7,7 @@ package v1
 import (
 	image_api "github.com/openshift/origin/pkg/image/api"
 	api "k8s.io/kubernetes/pkg/api"
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	reflect "reflect"
@@ -26,6 +27,8 @@ func init() {
 		Convert_api_ImageLayer_To_v1_ImageLayer,
 		Convert_v1_ImageList_To_api_ImageList,
 		Convert_api_ImageList_To_v1_ImageList,
+		Convert_v1_ImageSignature_To_api_ImageSignature,
+		Convert_api_ImageSignature_To_v1_ImageSignature,
 		Convert_v1_ImageStream_To_api_ImageStream,
 		Convert_api_ImageStream_To_v1_ImageStream,
 		Convert_v1_ImageStreamImage_To_api_ImageStreamImage,
@@ -52,6 +55,14 @@ func init() {
 		Convert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec,
 		Convert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus,
 		Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus,
+		Convert_v1_SignatureCondition_To_api_SignatureCondition,
+		Convert_api_SignatureCondition_To_v1_SignatureCondition,
+		Convert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity,
+		Convert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity,
+		Convert_v1_SignatureIssuer_To_api_SignatureIssuer,
+		Convert_api_SignatureIssuer_To_v1_SignatureIssuer,
+		Convert_v1_SignatureSubject_To_api_SignatureSubject,
+		Convert_api_SignatureSubject_To_v1_SignatureSubject,
 		Convert_v1_TagEvent_To_api_TagEvent,
 		Convert_api_TagEvent_To_v1_TagEvent,
 		Convert_v1_TagEventCondition_To_api_TagEventCondition,
@@ -286,6 +297,132 @@ func autoConvert_api_ImageList_To_v1_ImageList(in *image_api.ImageList, out *Ima
 
 func Convert_api_ImageList_To_v1_ImageList(in *image_api.ImageList, out *ImageList, s conversion.Scope) error {
 	return autoConvert_api_ImageList_To_v1_ImageList(in, out, s)
+}
+
+func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *image_api.ImageSignature, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*ImageSignature))(in)
+	}
+	out.Type = in.Type
+	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
+		return err
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]image_api.SignatureCondition, len(*in))
+		for i := range *in {
+			if err := Convert_v1_SignatureCondition_To_api_SignatureCondition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.ImageIdentity = in.ImageIdentity
+	if in.SignedClaims != nil {
+		in, out := &in.SignedClaims, &out.SignedClaims
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.SignedClaims = nil
+	}
+	if in.Created != nil {
+		in, out := &in.Created, &out.Created
+		*out = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Created = nil
+	}
+	if in.IssuedBy != nil {
+		in, out := &in.IssuedBy, &out.IssuedBy
+		*out = new(image_api.SignatureIssuer)
+		if err := Convert_v1_SignatureIssuer_To_api_SignatureIssuer(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedBy = nil
+	}
+	if in.IssuedTo != nil {
+		in, out := &in.IssuedTo, &out.IssuedTo
+		*out = new(image_api.SignatureSubject)
+		if err := Convert_v1_SignatureSubject_To_api_SignatureSubject(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedTo = nil
+	}
+	return nil
+}
+
+func Convert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *image_api.ImageSignature, s conversion.Scope) error {
+	return autoConvert_v1_ImageSignature_To_api_ImageSignature(in, out, s)
+}
+
+func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *image_api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*image_api.ImageSignature))(in)
+	}
+	out.Type = in.Type
+	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
+		return err
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]SignatureCondition, len(*in))
+		for i := range *in {
+			if err := Convert_api_SignatureCondition_To_v1_SignatureCondition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.ImageIdentity = in.ImageIdentity
+	if in.SignedClaims != nil {
+		in, out := &in.SignedClaims, &out.SignedClaims
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.SignedClaims = nil
+	}
+	if in.Created != nil {
+		in, out := &in.Created, &out.Created
+		*out = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Created = nil
+	}
+	if in.IssuedBy != nil {
+		in, out := &in.IssuedBy, &out.IssuedBy
+		*out = new(SignatureIssuer)
+		if err := Convert_api_SignatureIssuer_To_v1_SignatureIssuer(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedBy = nil
+	}
+	if in.IssuedTo != nil {
+		in, out := &in.IssuedTo, &out.IssuedTo
+		*out = new(SignatureSubject)
+		if err := Convert_api_SignatureSubject_To_v1_SignatureSubject(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.IssuedTo = nil
+	}
+	return nil
+}
+
+func Convert_api_ImageSignature_To_v1_ImageSignature(in *image_api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
+	return autoConvert_api_ImageSignature_To_v1_ImageSignature(in, out, s)
 }
 
 func autoConvert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *image_api.ImageStream, s conversion.Scope) error {
@@ -886,6 +1023,132 @@ func autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *ima
 
 func Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *image_api.RepositoryImportStatus, out *RepositoryImportStatus, s conversion.Scope) error {
 	return autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in, out, s)
+}
+
+func autoConvert_v1_SignatureCondition_To_api_SignatureCondition(in *SignatureCondition, out *image_api.SignatureCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SignatureCondition))(in)
+	}
+	out.Type = image_api.SignatureConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastProbeTime, &out.LastProbeTime, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_v1_SignatureCondition_To_api_SignatureCondition(in *SignatureCondition, out *image_api.SignatureCondition, s conversion.Scope) error {
+	return autoConvert_v1_SignatureCondition_To_api_SignatureCondition(in, out, s)
+}
+
+func autoConvert_api_SignatureCondition_To_v1_SignatureCondition(in *image_api.SignatureCondition, out *SignatureCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*image_api.SignatureCondition))(in)
+	}
+	out.Type = SignatureConditionType(in.Type)
+	out.Status = api_v1.ConditionStatus(in.Status)
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastProbeTime, &out.LastProbeTime, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
+		return err
+	}
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_api_SignatureCondition_To_v1_SignatureCondition(in *image_api.SignatureCondition, out *SignatureCondition, s conversion.Scope) error {
+	return autoConvert_api_SignatureCondition_To_v1_SignatureCondition(in, out, s)
+}
+
+func autoConvert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity(in *SignatureGenericEntity, out *image_api.SignatureGenericEntity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SignatureGenericEntity))(in)
+	}
+	out.Organization = in.Organization
+	out.CommonName = in.CommonName
+	return nil
+}
+
+func Convert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity(in *SignatureGenericEntity, out *image_api.SignatureGenericEntity, s conversion.Scope) error {
+	return autoConvert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity(in, out, s)
+}
+
+func autoConvert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity(in *image_api.SignatureGenericEntity, out *SignatureGenericEntity, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*image_api.SignatureGenericEntity))(in)
+	}
+	out.Organization = in.Organization
+	out.CommonName = in.CommonName
+	return nil
+}
+
+func Convert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity(in *image_api.SignatureGenericEntity, out *SignatureGenericEntity, s conversion.Scope) error {
+	return autoConvert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity(in, out, s)
+}
+
+func autoConvert_v1_SignatureIssuer_To_api_SignatureIssuer(in *SignatureIssuer, out *image_api.SignatureIssuer, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SignatureIssuer))(in)
+	}
+	if err := Convert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity(&in.SignatureGenericEntity, &out.SignatureGenericEntity, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_SignatureIssuer_To_api_SignatureIssuer(in *SignatureIssuer, out *image_api.SignatureIssuer, s conversion.Scope) error {
+	return autoConvert_v1_SignatureIssuer_To_api_SignatureIssuer(in, out, s)
+}
+
+func autoConvert_api_SignatureIssuer_To_v1_SignatureIssuer(in *image_api.SignatureIssuer, out *SignatureIssuer, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*image_api.SignatureIssuer))(in)
+	}
+	if err := Convert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity(&in.SignatureGenericEntity, &out.SignatureGenericEntity, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_SignatureIssuer_To_v1_SignatureIssuer(in *image_api.SignatureIssuer, out *SignatureIssuer, s conversion.Scope) error {
+	return autoConvert_api_SignatureIssuer_To_v1_SignatureIssuer(in, out, s)
+}
+
+func autoConvert_v1_SignatureSubject_To_api_SignatureSubject(in *SignatureSubject, out *image_api.SignatureSubject, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SignatureSubject))(in)
+	}
+	if err := Convert_v1_SignatureGenericEntity_To_api_SignatureGenericEntity(&in.SignatureGenericEntity, &out.SignatureGenericEntity, s); err != nil {
+		return err
+	}
+	out.PublicKeyID = in.PublicKeyID
+	return nil
+}
+
+func Convert_v1_SignatureSubject_To_api_SignatureSubject(in *SignatureSubject, out *image_api.SignatureSubject, s conversion.Scope) error {
+	return autoConvert_v1_SignatureSubject_To_api_SignatureSubject(in, out, s)
+}
+
+func autoConvert_api_SignatureSubject_To_v1_SignatureSubject(in *image_api.SignatureSubject, out *SignatureSubject, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*image_api.SignatureSubject))(in)
+	}
+	if err := Convert_api_SignatureGenericEntity_To_v1_SignatureGenericEntity(&in.SignatureGenericEntity, &out.SignatureGenericEntity, s); err != nil {
+		return err
+	}
+	out.PublicKeyID = in.PublicKeyID
+	return nil
+}
+
+func Convert_api_SignatureSubject_To_v1_SignatureSubject(in *image_api.SignatureSubject, out *SignatureSubject, s conversion.Scope) error {
+	return autoConvert_api_SignatureSubject_To_v1_SignatureSubject(in, out, s)
 }
 
 func autoConvert_v1_TagEvent_To_api_TagEvent(in *TagEvent, out *image_api.TagEvent, s conversion.Scope) error {
