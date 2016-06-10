@@ -5,7 +5,6 @@ package integration
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -280,8 +279,6 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for the initial deploymentconfig update in response to the imagestream update")
 
-	timeout := time.After(30 * time.Second)
-
 	// This is the initial deployment with automatic=false in its ICT - it should be updated to pullSpec
 out:
 	for {
@@ -300,8 +297,6 @@ out:
 			if e, a := updated, newConfig.Spec.Template.Spec.Containers[0].Image; e == a {
 				break out
 			}
-		case <-timeout:
-			t.Fatalf("timed out waiting for the image update to happen")
 		}
 	}
 
@@ -328,8 +323,6 @@ out:
 			if e, a := updated, newConfig.Spec.Template.Spec.Containers[0].Image; e == a {
 				t.Fatalf("unexpected image update, expected initial image to be the same")
 			}
-		case <-timeout:
-			return
 		}
 	}
 }
