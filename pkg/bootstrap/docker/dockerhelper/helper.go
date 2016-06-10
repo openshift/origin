@@ -1,12 +1,14 @@
 package dockerhelper
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/blang/semver"
@@ -205,6 +207,22 @@ func (h *Helper) HostIP() string {
 	}
 	glog.V(5).Infof("Cannot use Docker endpoint (%s) because it is not using one of the following protocols: tcp, http, https", endpoint)
 	return ""
+}
+
+func (h *Helper) ContainerLog(container string, numLines int) string {
+	output := &bytes.Buffer{}
+	err := h.client.Logs(docker.LogsOptions{
+		Container:    container,
+		Tail:         strconv.Itoa(numLines),
+		OutputStream: output,
+		ErrorStream:  output,
+		Stdout:       true,
+		Stderr:       true,
+	})
+	if err != nil {
+		glog.V(1).Infof("Error getting container %q log: %v", container, err)
+	}
+	return output.String()
 }
 
 func (h *Helper) StopAndRemoveContainer(container string) error {

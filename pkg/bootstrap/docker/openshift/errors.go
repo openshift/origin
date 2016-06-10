@@ -2,17 +2,19 @@ package openshift
 
 import (
 	"fmt"
+
+	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 )
 
 // ErrOpenShiftFailedToStart is thrown when the OpenShift server failed to start
-func ErrOpenShiftFailedToStart(container string) error {
-	return fmt.Errorf("Could not start OpenShift container %q", container)
+func ErrOpenShiftFailedToStart(container string) errors.Error {
+	return errors.NewError("could not start OpenShift container %q", container)
 }
 
 // ErrTimedOutWaitingForStart is thrown when the OpenShift server can't be pinged after reasonable
 // amount of time.
-func ErrTimedOutWaitingForStart(container string) error {
-	return fmt.Errorf("Could not start OpenShift container %q", container)
+func ErrTimedOutWaitingForStart(container string) errors.Error {
+	return errors.NewError("timed out waiting for OpenShift container %q", container)
 }
 
 type errPortsNotAvailable struct {

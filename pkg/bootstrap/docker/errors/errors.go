@@ -15,6 +15,7 @@ type Error interface {
 	error
 	WithCause(error) Error
 	WithSolution(string, ...interface{}) Error
+	WithDetails(string) Error
 }
 
 func NewError(msg string, args ...interface{}) Error {
@@ -40,6 +41,10 @@ func (e *internalError) Cause() error {
 
 func (e *internalError) Solution() string {
 	return e.solution
+}
+
+func (e *internalError) Details() string {
+	return e.details
 }
 
 func (e *internalError) WithCause(err error) Error {

@@ -611,7 +611,7 @@ func (c *ClientStartConfig) importObjects(out io.Writer, locations map[string]st
 		glog.V(2).Infof("Importing %s from %s", name, location)
 		err = openshift.ImportObjects(f, openShiftNamespace, location)
 		if err != nil {
-			return err
+			return errors.NewError("cannot import %s", name).WithCause(err).WithDetails(c.OpenShiftHelper().OriginLog())
 		}
 	}
 	return nil
