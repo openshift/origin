@@ -223,7 +223,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	defer imageWatch.Stop()
 
 	image := fmt.Sprintf("sha256:%s", deploytest.ImageID)
-	pullSpec := fmt.Sprintf("registry:8080/%s/%s@%s", testutil.Namespace(), deploytest.ImageStreamName, image)
+	pullSpec := fmt.Sprintf("registry:5000/%s/%s@%s", testutil.Namespace(), deploytest.ImageStreamName, image)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	mapping := &imageapi.ImageStreamMapping{
@@ -280,7 +280,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for the initial deploymentconfig update in response to the imagestream update")
 
-	timeout := time.After(30 * time.Second)
+	timeout := time.After(2 * time.Minute)
 
 	// This is the initial deployment with automatic=false in its ICT - it should be updated to pullSpec
 out:
