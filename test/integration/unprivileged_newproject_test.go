@@ -139,7 +139,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	template, err := testutil.GetTemplateFixture("fixtures/project-request-template-with-quota.yaml")
+	template, err := testutil.GetTemplateFixture("testdata/project-request-template-with-quota.yaml")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

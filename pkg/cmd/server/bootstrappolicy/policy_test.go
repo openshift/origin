@@ -58,7 +58,7 @@ func TestBootstrapClusterRoles(t *testing.T) {
 }
 
 func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
-	filename := filepath.Join("../../../../test/fixtures/bootstrappolicy", fixtureFilename)
+	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)

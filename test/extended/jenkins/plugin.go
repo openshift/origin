@@ -83,7 +83,7 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 }
 
 func jenkinsJobBytes(filename, namespace string) []byte {
-	pre := exutil.FixturePath("fixtures", filename)
+	pre := exutil.FixturePath("testdata", filename)
 	post := exutil.ArtifactPath(filename)
 	err := exutil.VarSubOnFile(pre, post, "PROJECT_NAME", namespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -110,7 +110,7 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 		var testingSnapshot bool
 		if len(hexIDs) > 0 && err == nil {
 			// found an openshift pipeline plugin test image, must be testing a proposed change to the plugin
-			jenkinsEphemeralPath = exutil.FixturePath("fixtures", "jenkins-ephemeral-template-test-new-plugin.json")
+			jenkinsEphemeralPath = exutil.FixturePath("testdata", "jenkins-ephemeral-template-test-new-plugin.json")
 			testingSnapshot = true
 		} else {
 			// no test image, testing the base jenkins image with the current, supported version of the plugin

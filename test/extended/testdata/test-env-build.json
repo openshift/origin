@@ -14,7 +14,7 @@
       "git":{
         "uri":"https://github.com/openshift/origin"
       },
-      "contextDir":"test/extended/fixtures/sti-environment-build-app"
+      "contextDir":"test/extended/testdata/sti-environment-build-app"
     },
     "strategy":{
       "type":"Source",

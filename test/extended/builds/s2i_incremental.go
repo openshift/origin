@@ -20,8 +20,8 @@ var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 	)
 
 	var (
-		templateFixture      = exutil.FixturePath("fixtures", "incremental-auth-build.json")
-		podAndServiceFixture = exutil.FixturePath("fixtures", "test-build-podsvc.json")
+		templateFixture      = exutil.FixturePath("testdata", "incremental-auth-build.json")
+		podAndServiceFixture = exutil.FixturePath("testdata", "test-build-podsvc.json")
 		oc                   = exutil.NewCLI("build-sti-inc", exutil.KubeConfigPath())
 	)
 

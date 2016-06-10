@@ -12,7 +12,7 @@
       "git":{
         "uri":"https://github.com/openshift/origin"
       },
-      "contextDir":"test/extended/fixtures/test-build-app"
+      "contextDir":"test/extended/testdata/test-build-app"
     },
     "strategy":{
       "type":"Docker",

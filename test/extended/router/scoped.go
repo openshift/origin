@@ -17,7 +17,7 @@ import (
 var _ = g.Describe("[networking][router] openshift routers", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("fixtures", "scoped-router.yaml")
+		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
 		oc         = exutil.NewCLI("scoped-router", exutil.KubeConfigPath())
 	)
 

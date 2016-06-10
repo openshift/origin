@@ -15,8 +15,8 @@ import (
 var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builders", func() {
 	defer g.GinkgoRecover()
 	var (
-		s2ibuilderFixture      = exutil.FixturePath("..", "extended", "fixtures", "s2i-dropcaps", "rootable-ruby")
-		rootAccessBuildFixture = exutil.FixturePath("..", "extended", "fixtures", "s2i-dropcaps", "root-access-build.yaml")
+		s2ibuilderFixture      = exutil.FixturePath("..", "extended", "testdata", "s2i-dropcaps", "rootable-ruby")
+		rootAccessBuildFixture = exutil.FixturePath("..", "extended", "testdata", "s2i-dropcaps", "root-access-build.yaml")
 		oc                     = exutil.NewCLI("build-s2i-dropcaps", exutil.KubeConfigPath())
 	)
 

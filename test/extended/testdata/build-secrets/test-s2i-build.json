@@ -12,10 +12,10 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/mfojtik/origin",
+        "uri":"https://github.com/openshift/origin",
         "ref": "secrets"
       },
-      "contextDir":"test/extended/fixtures/test-build-app",
+      "contextDir":"test/extended/testdata/test-build-app",
       "secrets": [
         {
           "secret": { "name": "testsecret" },
@@ -39,7 +39,7 @@
           "kind":"DockerImage",
           "name":"centos/ruby-22-centos7"
         },
-        "scripts":"https://raw.githubusercontent.com/mfojtik/origin/secrets/test/extended/fixtures/build-secrets/s2i"
+        "scripts":"https://raw.githubusercontent.com/openshift/origin/secrets/test/extended/testdata/build-secrets/s2i"
       }
     },
     "output":{

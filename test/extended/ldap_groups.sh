@@ -53,7 +53,7 @@ oc login ${MASTER_ADDR} -u ldap -p password --certificate-authority=${MASTER_CON
 oc new-project openldap
 
 # create all the resources we need
-oc create -f test/extended/fixtures/ldap
+oc create -f test/extended/testdata/ldap
 
 is_event_template=(               \
 "{{with \$tags := .status.tags}}" \

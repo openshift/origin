@@ -12,10 +12,10 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/mfojtik/origin",
+        "uri":"https://github.com/openshift/origin",
         "ref": "secrets"
       },
-      "contextDir":"test/extended/fixtures/build-secrets",
+      "contextDir":"test/extended/testdata/build-secrets",
       "secrets": [
         {
           "secret": { "name": "testsecret" },
