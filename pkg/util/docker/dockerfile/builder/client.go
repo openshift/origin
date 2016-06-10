@@ -17,6 +17,8 @@ import (
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 // ClientExecutor can run Docker builds from a Docker client.
@@ -298,10 +300,22 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	}
 
 	var lastErr error
+	outputProgress := func(s string) {
+		e.LogFn("%s", s)
+	}
 	for _, config := range auth {
 		// TODO: handle IDs?
-		// TODO: use RawJSONStream:true and handle the output nicely
-		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out, Tag: tag}, config); err == nil {
+		pullImageOptions := docker.PullImageOptions{
+			Repository:    from,
+			Tag:           tag,
+			OutputStream:  imageprogress.NewPullWriter(outputProgress),
+			RawJSONStream: true,
+		}
+		if glog.V(5) {
+			pullImageOptions.OutputStream = os.Stderr
+			pullImageOptions.RawJSONStream = false
+		}
+		if err = e.Client.PullImage(pullImageOptions, config); err == nil {
 			break
 		}
 		lastErr = err
