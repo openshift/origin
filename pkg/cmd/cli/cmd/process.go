@@ -51,10 +51,7 @@ output to the create command over STDIN (using the '-f -' option) or redirect it
   %[1]s process openshift//foo
 
   # Convert template.json into resource list
-  cat template.json | %[1]s process -f -
-
-  # Combine multiple templates into single resource list
-  cat template.json second_template.json | %[1]s process -f -`
+  cat template.json | %[1]s process -f -`
 )
 
 // NewCmdProcess implements the OpenShift cli process command

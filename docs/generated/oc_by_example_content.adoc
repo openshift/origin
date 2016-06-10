@@ -1598,9 +1598,6 @@ Process a template into list of resources
 
   # Convert template.json into resource list
   cat template.json | oc process -f -
-
-  # Combine multiple templates into single resource list
-  cat template.json second_template.json | oc process -f -
 ----
 ====
 
