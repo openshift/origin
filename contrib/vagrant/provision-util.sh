@@ -208,6 +208,11 @@ os::provision::base-provision() {
   local origin_root=$1
   local is_master=${2:-false}
 
+  # Ensure that secrets can be correctly mounted for pods.
+  if os::provision::in-container; then
+    mount --make-shared /
+  fi
+
   # Add a convenience symlink to the gopath repo
   ln -sf "${origin_root}" /
 
