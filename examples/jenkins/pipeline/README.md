@@ -5,6 +5,8 @@ utilize pods run on OpenShift as Jenkins slaves.
 
 To walk through the example:
 
+0. If using `oc cluster up`, be sure to grab the [latest oc command](https://github.com/openshift/origin/releases/latest)
+
 1. Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
 
         $ oc cluster up
@@ -25,7 +27,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
 4. run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
-        $ oc new-app -f pipelinetemplate.json
+        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/pipelinetemplate.json
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
 
@@ -54,8 +56,8 @@ jenkins template represented by jenkinstemplate.json by running these commands a
     We're working on removing the need to approve scripts. More information from Jenkins:
 
 	https://wiki.jenkins-ci.org/display/JENKINS/Script+Security+Plugin
-	An administrator may now go to Manage Jenkins » In-process Script Approval where a list of scripts 
-	pending approval will be shown. Assuming nothing dangerous-looking is being requested, just click Approve 
+	An administrator may now go to Manage Jenkins » In-process Script Approval where a list of scripts
+	pending approval will be shown. Assuming nothing dangerous-looking is being requested, just click Approve
 	to let the script be run henceforth.
 
 6. Launch a new build
