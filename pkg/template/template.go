@@ -163,7 +163,8 @@ func (p *Processor) GenerateParameterValues(t *api.Template) *field.Error {
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return field.NotFound(templatePath, param)
+				err := fmt.Errorf("template.parameters[%v]: Invalid '%v' generator for parameter %s", i, param.Generate, param.Name)
+				return field.Invalid(templatePath.Child("Generate"), param.Generate, err.Error())
 			}
 			if generator == nil {
 				err := fmt.Errorf("template.parameters[%v]: Invalid '%v' generator for parameter %s", i, param.Generate, param.Name)
