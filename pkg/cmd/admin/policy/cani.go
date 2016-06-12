@@ -23,7 +23,7 @@ import (
 
 const CanIRecommendedName = "can-i"
 
-type canIOptions struct {
+type CanIOptions struct {
 	AllNamespaces     bool
 	ListAll           bool
 	Quiet             bool
@@ -41,7 +41,7 @@ type canIOptions struct {
 }
 
 func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	o := &canIOptions{
+	o := &CanIOptions{
 		Out: out,
 	}
 
@@ -65,6 +65,8 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				os.Exit(2)
 			}
 		},
+		SuggestFor:         []string{"what-can-i-do"},
+		DisableSuggestions: false,
 	}
 
 	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "Check the specified action in all namespaces.")
@@ -84,7 +86,7 @@ const (
 	tabwriterFlags    = 0
 )
 
-func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
+func (o *CanIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
 	}
@@ -133,7 +135,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	return nil
 }
 
-func (o *canIOptions) Run() (bool, error) {
+func (o *CanIOptions) Run() (bool, error) {
 	if o.ListAll {
 		return true, o.listAllPermissions()
 	}
@@ -168,7 +170,7 @@ func (o *canIOptions) Run() (bool, error) {
 	return response.Allowed, nil
 }
 
-func (o *canIOptions) listAllPermissions() error {
+func (o *CanIOptions) listAllPermissions() error {
 	whatCanIDo, err := o.RulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(&authorizationapi.SelfSubjectRulesReview{})
 	if err != nil {
 		return err
