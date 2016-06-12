@@ -15,7 +15,7 @@ import (
 )
 
 func TestCredentialsForSecrets(t *testing.T) {
-	data, err := ioutil.ReadFile("../../../test/fixtures/image-secrets.json")
+	data, err := ioutil.ReadFile("../../../test/testdata/image-secrets.json")
 	if err != nil {
 		t.Fatal(err)
 	}

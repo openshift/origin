@@ -2,19 +2,17 @@
   "kind":"BuildConfig",
   "apiVersion":"v1",
   "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
-    }
+    "name":"docker-build"
   },
   "spec":{
+    "completionDeadlineSeconds": 5,
     "triggers":[],
     "source":{
       "type":"Git",
       "git":{
         "uri":"https://github.com/openshift/origin"
       },
-      "contextDir":"test/extended/fixtures/test-build-app"
+      "contextDir":"test/extended/testdata/test-build-app"
     },
     "strategy":{
       "type":"Docker",
@@ -23,12 +21,6 @@
           "kind":"DockerImage",
           "name":"centos/ruby-22-centos7"
         }
-      }
-    },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
       }
     }
   }

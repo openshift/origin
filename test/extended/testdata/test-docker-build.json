@@ -12,28 +12,12 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/mfojtik/origin",
-        "ref": "secrets"
+        "uri":"https://github.com/openshift/origin"
       },
-      "contextDir":"test/extended/fixtures/build-secrets",
-      "secrets": [
-        {
-          "secret": { "name": "testsecret" },
-          "destinationDir": "secret-dir"
-        },
-        {
-          "secret": { "name": "testsecret2" }
-        }
-      ]
+      "contextDir":"test/extended/testdata/test-build-app"
     },
     "strategy":{
       "type":"Docker",
-      "env": [
-        {
-          "name": "BUILD_LOGLEVEL",
-          "value": "5"
-        }
-      ],
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",

@@ -26,7 +26,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// Create all fixtures
-		oc.Run("create").Args("-f", exutil.FixturePath("..", "extended", "fixtures", "run_policy")).Execute()
+		oc.Run("create").Args("-f", exutil.FixturePath("..", "extended", "testdata", "run_policy")).Execute()
 	})
 
 	g.Describe("build configuration with Parallel build run policy", func() {

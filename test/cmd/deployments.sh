@@ -24,7 +24,7 @@ os::test::junit::declare_suite_start "cmd/deployments"
 
 os::cmd::expect_success 'oc get deploymentConfigs'
 os::cmd::expect_success 'oc get dc'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
@@ -54,7 +54,7 @@ os::cmd::expect_success_and_text 'oc env dc/test-deployment-config OTHER=foo -o 
 os::cmd::expect_success_and_text 'echo OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success 'oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
-os::cmd::expect_success_and_not_text 'oc env -f test/integration/fixtures/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1beta3'
+os::cmd::expect_success_and_not_text 'oc env -f test/integration/testdata/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1beta3'
 os::cmd::expect_success 'oc env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'A=a'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'B=b'
@@ -123,7 +123,7 @@ echo "stop: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/autoscale"
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 os::cmd::expect_success 'oc autoscale dc/test-deployment-config --max 5'
 os::cmd::expect_success_and_text "oc get hpa/test-deployment-config --template='{{.spec.maxReplicas}}'" "5"
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
@@ -133,7 +133,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
 # Validate the set deployment-hook command
-arg="-f test/integration/fixtures/test-deployment-config.yaml"
+arg="-f test/integration/testdata/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook" "error: one or more deployment configs"
 os::cmd::expect_failure_and_text "oc set deployment-hook ${arg}" "error: you must specify one of --pre, --mid, or --post"
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre  -o yaml -- echo 'hello world'" 'pre:'
@@ -156,7 +156,7 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --containe
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --pre --volumes=vol1 -o yaml -- echo 'hello world'" 'does not have a volume named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --pre --volumes=vol1 -o yaml -- echo 'hello world'" '\- vol1'
 # Server object tests
-os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook dc/test-deployment-config --pre" "you must specify a command"
 os::cmd::expect_success_and_text "oc set deployment-hook test-deployment-config --pre -- echo 'hello world'" "updated"
 os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -- echo 'hello world'" "was not changed"

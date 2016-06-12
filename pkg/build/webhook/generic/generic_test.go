@@ -31,7 +31,7 @@ func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
 }
 
 func GivenRequestWithPayloadAndContentType(t *testing.T, filename, contentType string) *http.Request {
-	data, err := ioutil.ReadFile("fixtures/" + filename)
+	data, err := ioutil.ReadFile("testdata/" + filename)
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil
@@ -42,7 +42,7 @@ func GivenRequestWithPayloadAndContentType(t *testing.T, filename, contentType s
 }
 
 func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
-	data, err := ioutil.ReadFile("fixtures/post-receive-git.json")
+	data, err := ioutil.ReadFile("testdata/post-receive-git.json")
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil

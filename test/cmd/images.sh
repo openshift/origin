@@ -27,14 +27,14 @@ os::test::junit::declare_suite_start "cmd/images"
 
 os::test::junit::declare_suite_start "cmd/images/images"
 os::cmd::expect_success 'oc get images'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-image.json'
 os::cmd::expect_success 'oc delete images test'
 echo "images: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images/imagestreams"
 os::cmd::expect_success 'oc get imageStreams'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-image-stream.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-image-stream.json'
 # verify that creating a registry fills out .status.dockerImageRepository
 if os::cmd::expect_success_and_not_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" '.'; then
   # create the registry
@@ -191,7 +191,7 @@ os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1 --alias' 'Tag
 os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
 
 # test deleting a spec tag using oc tag
-os::cmd::expect_success 'oc create -f test/fixtures/test-stream.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/test-stream.yaml'
 os::cmd::expect_success_and_text 'oc tag test-stream:latest -d' 'Deleted'
 os::cmd::expect_success 'oc delete is/test-stream'
 echo "tag: ok"

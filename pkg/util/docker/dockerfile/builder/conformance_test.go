@@ -65,23 +65,23 @@ type conformanceTest struct {
 func TestConformanceInternal(t *testing.T) {
 	testCases := []conformanceTest{
 		{
-			ContextDir: "fixtures/dir",
+			ContextDir: "testdata/dir",
 		},
 		// TODO: Fix this test
 		// {
-		// 	ContextDir: "fixtures/ignore",
+		// 	ContextDir: "testdata/ignore",
 		// },
 		{
-			Dockerfile: "fixtures/Dockerfile.env",
+			Dockerfile: "testdata/Dockerfile.env",
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.edgecases",
+			Dockerfile: "testdata/Dockerfile.edgecases",
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.exposedefault",
+			Dockerfile: "testdata/Dockerfile.exposedefault",
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.add",
+			Dockerfile: "testdata/Dockerfile.add",
 		},
 	}
 

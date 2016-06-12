@@ -23,11 +23,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "deployment-simple.yaml")
-		customDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "custom-deployment.yaml")
-		generationFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment.yaml")
-		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "paused-deployment.yaml")
+		deploymentFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
+		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
+		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {

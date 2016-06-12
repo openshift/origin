@@ -14,10 +14,16 @@
       "git":{
         "uri":"https://github.com/openshift/origin"
       },
-      "contextDir":"test/extended/fixtures/sti-environment-build-app"
+      "contextDir":"test/extended/testdata/test-build-app"
     },
     "strategy":{
       "type":"Source",
+      "env": [
+        {
+          "name": "BUILD_LOGLEVEL",
+          "value": "5"
+        }
+      ],
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",

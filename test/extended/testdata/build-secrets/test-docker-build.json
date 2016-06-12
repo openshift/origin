@@ -12,14 +12,14 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/mfojtik/origin",
+        "uri":"https://github.com/openshift/origin",
         "ref": "secrets"
       },
-      "contextDir":"test/extended/fixtures/test-build-app",
+      "contextDir":"test/extended/testdata/build-secrets",
       "secrets": [
         {
           "secret": { "name": "testsecret" },
-          "destinationDir": "/tmp"
+          "destinationDir": "secret-dir"
         },
         {
           "secret": { "name": "testsecret2" }
@@ -27,19 +27,18 @@
       ]
     },
     "strategy":{
-      "type":"Source",
+      "type":"Docker",
       "env": [
         {
           "name": "BUILD_LOGLEVEL",
           "value": "5"
         }
       ],
-      "sourceStrategy":{
+      "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
           "name":"centos/ruby-22-centos7"
-        },
-        "scripts":"https://raw.githubusercontent.com/mfojtik/origin/secrets/test/extended/fixtures/build-secrets/s2i"
+        }
       }
     },
     "output":{

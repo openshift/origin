@@ -69,7 +69,7 @@ func TestBuilder(t *testing.T) {
 		ErrFn      func(err error) bool
 	}{
 		{
-			Dockerfile: "fixtures/dir/Dockerfile",
+			Dockerfile: "testdata/dir/Dockerfile",
 			From:       "busybox",
 			Copies: []Copy{
 				{Src: ".", Dest: []string{"/"}, Download: false},
@@ -81,7 +81,7 @@ func TestBuilder(t *testing.T) {
 			},
 		},
 		{
-			Dockerfile: "fixtures/ignore/Dockerfile",
+			Dockerfile: "testdata/ignore/Dockerfile",
 			From:       "busybox",
 			Copies: []Copy{
 				{Src: ".", Dest: []string{"/"}},
@@ -91,7 +91,7 @@ func TestBuilder(t *testing.T) {
 			},
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.env",
+			Dockerfile: "testdata/Dockerfile.env",
 			From:       "busybox",
 			Config: docker.Config{
 				Env:   []string{"name=value", "name2=value2a            value2b", "name1=value1", "name3=value3a\\n\"value3b\"", "name4=value4a\\\\nvalue4b"},
@@ -99,7 +99,7 @@ func TestBuilder(t *testing.T) {
 			},
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.edgecases",
+			Dockerfile: "testdata/Dockerfile.edgecases",
 			From:       "busybox",
 			Copies: []Copy{
 				{Src: ".", Dest: []string{"/"}, Download: true},
@@ -126,7 +126,7 @@ func TestBuilder(t *testing.T) {
 			},
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.exposedefault",
+			Dockerfile: "testdata/Dockerfile.exposedefault",
 			From:       "busybox",
 			Config: docker.Config{
 				ExposedPorts: map[docker.Port]struct{}{"3469/tcp": {}},
@@ -134,7 +134,7 @@ func TestBuilder(t *testing.T) {
 			},
 		},
 		{
-			Dockerfile: "fixtures/Dockerfile.add",
+			Dockerfile: "testdata/Dockerfile.add",
 			From:       "busybox",
 			Copies: []Copy{
 				{Src: "https://github.com/openshift/origin/raw/master/README.md", Dest: []string{"/README.md"}, Download: true},
@@ -220,14 +220,14 @@ func TestCalcCopyInfo(t *testing.T) {
 	}{
 		{
 			origPath:       "subdir/*",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths:          map[string]struct{}{"subdir/file2": {}},
 		},
 		{
 			origPath:       "*",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -238,7 +238,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       ".",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -249,7 +249,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       "/.",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -260,7 +260,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       "subdir/",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -269,7 +269,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       "subdir",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -278,7 +278,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       "subdir/.",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -286,17 +286,17 @@ func TestCalcCopyInfo(t *testing.T) {
 			},
 		},
 		{
-			origPath:       "fixtures/dir/subdir/.",
+			origPath:       "testdata/dir/subdir/.",
 			rootPath:       "",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
-				"fixtures/dir/subdir/": {},
+				"testdata/dir/subdir/": {},
 			},
 		},
 		{
 			origPath:       "subdir/",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{
@@ -305,7 +305,7 @@ func TestCalcCopyInfo(t *testing.T) {
 		},
 		{
 			origPath:       "subdir/",
-			rootPath:       "fixtures/dir",
+			rootPath:       "testdata/dir",
 			allowWildcards: true,
 			errFn:          nilErr,
 			paths: map[string]struct{}{

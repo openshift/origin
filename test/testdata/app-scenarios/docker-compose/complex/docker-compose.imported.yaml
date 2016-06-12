@@ -30,7 +30,7 @@ items:
     postCommit: {}
     resources: {}
     source:
-      contextDir: test/fixtures/app-scenarios/docker-compose/complex/nginx
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/nginx
       git:
         ref: master
         uri: git@github.com:openshift/origin.git
@@ -84,7 +84,7 @@ items:
     postCommit: {}
     resources: {}
     source:
-      contextDir: test/fixtures/app-scenarios/docker-compose/complex/app
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/app
       git:
         ref: master
         uri: git@github.com:openshift/origin.git

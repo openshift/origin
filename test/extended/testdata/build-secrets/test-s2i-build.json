@@ -12,9 +12,19 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/openshift/origin"
+        "uri":"https://github.com/openshift/origin",
+        "ref": "secrets"
       },
-      "contextDir":"test/extended/fixtures/test-build-app"
+      "contextDir":"test/extended/testdata/test-build-app",
+      "secrets": [
+        {
+          "secret": { "name": "testsecret" },
+          "destinationDir": "/tmp"
+        },
+        {
+          "secret": { "name": "testsecret2" }
+        }
+      ]
     },
     "strategy":{
       "type":"Source",
@@ -28,7 +38,8 @@
         "from":{
           "kind":"DockerImage",
           "name":"centos/ruby-22-centos7"
-        }
+        },
+        "scripts":"https://raw.githubusercontent.com/openshift/origin/secrets/test/extended/testdata/build-secrets/s2i"
       }
     },
     "output":{
