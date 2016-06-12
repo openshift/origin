@@ -9,26 +9,22 @@ FROM openshift/origin-base
 ENV VERSION=1.4.2 \
     GOARM=5 \
     GOPATH=/go \
-    GOROOT=/usr/local/go \
+    GOROOT=/usr/lib/golang \
     OS_VERSION_FILE=/go/src/github.com/openshift/origin/os-version-defs \
     TMPDIR=/openshifttmp
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="gcc zip mercurial" && \
+    INSTALL_PKGS="gcc zip mercurial golang golang-vet golang-cover golang-pkg-darwin-amd64 golang-pkg-windows-amd64 golang-pkg-linux-386" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
-    curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
-    go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint && \
+    go get github.com/tools/godep && \
     touch /os-build-image
-
-# Allows building Origin sources mounted using volume
-COPY openshift-origin-build.sh /usr/bin/openshift-origin-build.sh
 
 WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \
       io.k8s.description="This is the standard release image for OpenShift Origin and contains the necessary build tools to build the platform."
 
 # Expect a tar with the source of OpenShift Origin (and /os-version-defs in the root)
-CMD hack/build-cross.sh
+CMD bsdtar mxzf - && hack/build-cross.sh

@@ -23,9 +23,6 @@ RUN mkdir $TMPDIR && \
     go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint && \
     touch /os-build-image
 
-# Allows building Origin sources mounted using volume
-COPY openshift-origin-build.sh /usr/bin/openshift-origin-build.sh
-
 WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \
       io.k8s.description="This is the standard release image for OpenShift Origin and contains the necessary build tools to build the platform."
