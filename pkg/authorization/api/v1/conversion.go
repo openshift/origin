@@ -178,11 +178,13 @@ func Convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRu
 }
 
 func Convert_v1_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
 	out.Roles = make(map[string]*newer.Role)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
 func Convert_api_Policy_To_v1_Policy(in *newer.Policy, out *Policy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
 	out.Roles = make([]NamedRole, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
@@ -213,11 +215,13 @@ func Convert_api_RoleBinding_To_v1_RoleBinding(in *newer.RoleBinding, out *RoleB
 }
 
 func Convert_v1_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
 	out.RoleBindings = make(map[string]*newer.RoleBinding)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
 func Convert_api_PolicyBinding_To_v1_PolicyBinding(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
 	out.RoleBindings = make([]NamedRoleBinding, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }

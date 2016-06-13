@@ -96,6 +96,7 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	}
 
 	delete(owningPolicyBinding.RoleBindings, name)
+	owningPolicyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding); err != nil {
 		return nil, err
@@ -140,6 +141,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
 	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+	policyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, err
@@ -194,6 +196,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
 	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+	policyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, false, err
