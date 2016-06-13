@@ -220,7 +220,9 @@ func (h *Helper) ListContainerNames() ([]string, error) {
 	}
 	names := []string{}
 	for _, c := range containers {
-		names = append(names, c.Names[0])
+		if len(c.Names) > 0 {
+			names = append(names, c.Names[0])
+		}
 	}
 	return names, nil
 }
