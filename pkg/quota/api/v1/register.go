@@ -1,12 +1,11 @@
 package v1
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-const GroupName = "quota.openshift.io"
+const GroupName = ""
 
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
 
@@ -27,7 +26,6 @@ func AddToScheme(scheme *runtime.Scheme) {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&kapi.ListOptions{},
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
 	)
