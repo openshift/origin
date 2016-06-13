@@ -3,7 +3,6 @@ package rulevalidation
 import (
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -12,14 +11,6 @@ import (
 
 	"github.com/openshift/origin/pkg/authorization/api"
 )
-
-type sortableRuleSlice []api.PolicyRule
-
-func (s sortableRuleSlice) Len() int      { return len(s) }
-func (s sortableRuleSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s sortableRuleSlice) Less(i, j int) bool {
-	return strings.Compare(s[i].String(), s[j].String()) < 0
-}
 
 func TestCompactRules(t *testing.T) {
 	testcases := map[string]struct {
@@ -138,8 +129,8 @@ func TestCompactRules(t *testing.T) {
 			continue
 		}
 
-		sort.Stable(sortableRuleSlice(compacted))
-		sort.Stable(sortableRuleSlice(tc.Expected))
+		sort.Stable(api.SortableRuleSlice(compacted))
+		sort.Stable(api.SortableRuleSlice(tc.Expected))
 		if !reflect.DeepEqual(compacted, tc.Expected) {
 			t.Errorf("%s: Expected\n%#v\ngot\n%#v", k, tc.Expected, compacted)
 			continue

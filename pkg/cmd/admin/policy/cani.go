@@ -169,7 +169,12 @@ func (o *canIOptions) Run() (bool, error) {
 }
 
 func (o *canIOptions) listAllPermissions() error {
-	whatCanIDo, err := o.RulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(&authorizationapi.SelfSubjectRulesReview{})
+	rulesReview := &authorizationapi.SelfSubjectRulesReview{}
+	if len(o.Scopes) > 0 {
+		rulesReview.Spec.Scopes = o.Scopes
+	}
+
+	whatCanIDo, err := o.RulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(rulesReview)
 	if err != nil {
 		return err
 	}

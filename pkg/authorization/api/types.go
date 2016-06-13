@@ -138,8 +138,19 @@ type PolicyBinding struct {
 type SelfSubjectRulesReview struct {
 	unversioned.TypeMeta
 
+	// Spec adds information about how to conduct the check
+	Spec SelfSubjectRulesReviewSpec
+
 	// Status is completed by the server to tell which permissions you have
 	Status SubjectRulesReviewStatus
+}
+
+// SelfSubjectRulesReviewSpec adds information about how to conduct the check
+type SelfSubjectRulesReviewSpec struct {
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil for a self-SubjectRulesReview, means "use the scopes on this request".
+	// Nil for a regular SubjectRulesReview, means the same as empty.
+	Scopes []string
 }
 
 // SubjectRulesReviewStatus is contains the result of a rules check

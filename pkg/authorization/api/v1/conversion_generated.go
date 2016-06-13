@@ -63,6 +63,8 @@ func init() {
 		Convert_api_RoleList_To_v1_RoleList,
 		Convert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview,
 		Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview,
+		Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec,
+		Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec,
 		Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		Convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
@@ -774,6 +776,9 @@ func autoConvert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in *Sel
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
+	if err := Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
 	if err := Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
@@ -791,6 +796,9 @@ func autoConvert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *aut
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
+	if err := Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
 	if err := Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
@@ -799,6 +807,42 @@ func autoConvert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *aut
 
 func Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *authorization_api.SelfSubjectRulesReview, out *SelfSubjectRulesReview, s conversion.Scope) error {
 	return autoConvert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in, out, s)
+}
+
+func autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *authorization_api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SelfSubjectRulesReviewSpec))(in)
+	}
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
+	}
+	return nil
+}
+
+func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *authorization_api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s)
+}
+
+func autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *authorization_api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*authorization_api.SelfSubjectRulesReviewSpec))(in)
+	}
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
+	}
+	return nil
+}
+
+func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *authorization_api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *SubjectAccessReviewResponse, out *authorization_api.SubjectAccessReviewResponse, s conversion.Scope) error {
