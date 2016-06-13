@@ -876,6 +876,19 @@ Manually create an identity (only needed if automatic creation is disabled).
 ====
 
 
+== oc create imagestream
+Create a new empty image stream.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new image stream
+  oc create imagestream mysql
+----
+====
+
+
 == oc create namespace
 Create a namespace with the specified name.
 

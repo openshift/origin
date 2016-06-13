@@ -31,7 +31,7 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
-	defaultRegistry   DefaultRegistry
+	defaultRegistry   api.DefaultRegistry
 	tagVerifier       *TagVerifier
 	limitVerifier     imageadmission.LimitVerifier
 	ImageStreamGetter ResourceGetter
@@ -39,7 +39,7 @@ type Strategy struct {
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
+func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
 	return Strategy{
 		ObjectTyper:     kapi.Scheme,
 		NameGenerator:   kapi.SimpleNameGenerator,
@@ -153,6 +153,8 @@ func parseFromReference(stream *api.ImageStream, from *kapi.ObjectReference) (st
 // tagsChanged updates stream.Status.Tags based on the old and new image stream.
 // if the old stream is nil, all tags are considered additions.
 func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
+	internalRegistry, hasInternalRegistry := s.defaultRegistry.DefaultRegistry()
+
 	var errs field.ErrorList
 
 	oldTags := map[string]api.TagReference{}
@@ -218,10 +220,21 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
 			errs = append(errs, field.Invalid(fromPath.Child("name"), tagRef.From.Name, fmt.Sprintf("error generating tag event: %v", err)))
 			continue
 		}
-
 		if event == nil {
 			// referenced tag or ID doesn't exist, which is ok
 			continue
+		}
+
+		// if this is not a reference tag, and the tag points to the internal registry for the other namespace, alter it to
+		// point to this stream so that pulls happen from this stream in the future.
+		if !tagRef.Reference {
+			if ref, err := api.ParseDockerImageReference(event.DockerImageReference); err == nil {
+				if hasInternalRegistry && ref.Registry == internalRegistry && ref.Namespace == streamRef.Namespace && ref.Name == streamRef.Name {
+					ref.Namespace = stream.Namespace
+					ref.Name = stream.Name
+					event.DockerImageReference = ref.Exact()
+				}
+			}
 		}
 
 		stream.Spec.Tags[tag] = tagRef
@@ -559,19 +572,6 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 		fields := api.ImageStreamToSelectableFields(ir)
 		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
-type DefaultRegistry interface {
-	DefaultRegistry() (string, bool)
-}
-
-// DefaultRegistryFunc implements DefaultRegistry for a simple function.
-type DefaultRegistryFunc func() (string, bool)
-
-// DefaultRegistry implements the DefaultRegistry interface for a function.
-func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
-	return fn()
 }
 
 // InternalStrategy implements behavior for updating both the spec and status

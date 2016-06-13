@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/api/validation"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 )
@@ -25,48 +24,21 @@ const maxRetriesOnConflict = 10
 type REST struct {
 	imageRegistry       image.Registry
 	imageStreamRegistry imagestream.Registry
+	strategy            Strategy
 }
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry) *REST {
+func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, defaultRegistry api.DefaultRegistry) *REST {
 	return &REST{
 		imageRegistry:       imageRegistry,
 		imageStreamRegistry: imageStreamRegistry,
+		strategy:            NewStrategy(defaultRegistry),
 	}
 }
-
-// imageStreamMappingStrategy implements behavior for image stream mappings.
-type imageStreamMappingStrategy struct {
-	runtime.ObjectTyper
-	kapi.NameGenerator
-}
-
-// Strategy is the default logic that applies when creating ImageStreamMapping
-// objects via the REST API.
-var Strategy = imageStreamMappingStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
 
 // New returns a new ImageStreamMapping for use with Create.
 func (r *REST) New() runtime.Object {
 	return &api.ImageStreamMapping{}
-}
-
-// NamespaceScoped is true for image stream mappings.
-func (s imageStreamMappingStrategy) NamespaceScoped() bool {
-	return true
-}
-
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s imageStreamMappingStrategy) PrepareForCreate(obj runtime.Object) {
-}
-
-// Canonicalize normalizes the object after validation.
-func (s imageStreamMappingStrategy) Canonicalize(obj runtime.Object) {
-}
-
-// Validate validates a new ImageStreamMapping.
-func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
-	mapping := obj.(*api.ImageStreamMapping)
-	return validation.ValidateImageStreamMapping(mapping)
 }
 
 // Create registers a new image (if it doesn't exist) and updates the
@@ -75,7 +47,7 @@ func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Objec
 // ImageStream has no tag diffs from the previous state. If tag diffs are
 // detected, the conflict error is returned.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+	if err := rest.BeforeCreate(s.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
 

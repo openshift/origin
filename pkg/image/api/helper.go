@@ -33,6 +33,19 @@ const (
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
 )
 
+// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
+type DefaultRegistry interface {
+	DefaultRegistry() (string, bool)
+}
+
+// DefaultRegistryFunc implements DefaultRegistry for a simple function.
+type DefaultRegistryFunc func() (string, bool)
+
+// DefaultRegistry implements the DefaultRegistry interface for a function.
+func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
+	return fn()
+}
+
 // parseRepositoryTag splits a string into its name component and either tag or id if present.
 // TODO remove
 func parseRepositoryTag(repos string) (base string, tag string, id string) {
