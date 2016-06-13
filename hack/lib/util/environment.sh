@@ -132,7 +132,7 @@ function os::util::environment::update_path_var() {
 function os::util::environment::setup_tmpdir_vars() {
     local sub_dir=$1
 
-    BASETMPDIR="${TPMDIR:-/tmp}/openshift/${sub_dir}"
+    BASETMPDIR="${TMPDIR:-/tmp}/openshift/${sub_dir}"
     export BASETMPDIR
     LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
     export LOG_DIR
