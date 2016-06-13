@@ -374,9 +374,10 @@ func TestEnforcingServiceAccount(t *testing.T) {
 	}
 	sa.Annotations[serviceaccountadmission.EnforceMountableSecretsAnnotation] = "true"
 
-	time.Sleep(5)
-
-	_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+		return err
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
