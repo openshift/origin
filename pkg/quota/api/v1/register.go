@@ -3,7 +3,9 @@ package v1
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
+	versionedwatch "k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 const GroupName = "quota.openshift.io"
@@ -30,7 +32,12 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&kapi.ListOptions{},
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
+
+		&kapiv1.DeleteOptions{},
+		&kapiv1.ListOptions{},
 	)
+
+	versionedwatch.AddToGroupVersion(scheme, SchemeGroupVersion)
 }
 
 func (obj *ClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
