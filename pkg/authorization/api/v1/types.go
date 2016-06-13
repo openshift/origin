@@ -77,6 +77,9 @@ type Policy struct {
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
+	// LastModified is the last time that any part of the Policy was created, updated, or deleted
+	LastModified unversioned.Time `json:"lastModified"`
+
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
 	Roles []NamedRole `json:"roles"`
 }
@@ -87,6 +90,9 @@ type PolicyBinding struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
+	LastModified unversioned.Time `json:"lastModified"`
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef"`
