@@ -3820,6 +3820,561 @@
     ]
    },
    {
+    "path": "/oapi/v1/clusterresourcequotas",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.ClusterResourceQuotaList",
+      "method": "GET",
+      "summary": "list or watch objects of kind ClusterResourceQuota",
+      "nickname": "listClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuotaList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "POST",
+      "summary": "create a ClusterResourceQuota",
+      "nickname": "createClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ClusterResourceQuota",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "unversioned.Status",
+      "method": "DELETE",
+      "summary": "delete collection of ClusterResourceQuota",
+      "nickname": "deletecollectionClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "unversioned.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/clusterresourcequotas",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch individual changes to a list of ClusterResourceQuota",
+      "nickname": "watchClusterResourceQuotaList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/clusterresourcequotas/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "GET",
+      "summary": "read the specified ClusterResourceQuota",
+      "nickname": "readClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "PUT",
+      "summary": "replace the specified ClusterResourceQuota",
+      "nickname": "replaceClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ClusterResourceQuota",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "PATCH",
+      "summary": "partially update the specified ClusterResourceQuota",
+      "nickname": "patchClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "unversioned.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "unversioned.Status",
+      "method": "DELETE",
+      "summary": "delete a ClusterResourceQuota",
+      "nickname": "deleteClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "unversioned.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/clusterresourcequotas/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch changes to an object of kind ClusterResourceQuota",
+      "nickname": "watchClusterResourceQuota",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/clusterrolebindings",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -20222,6 +20777,198 @@
      "roleRef": {
       "$ref": "v1.ObjectReference",
       "description": "RoleRef can only reference the current namespace and the global namespace If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role"
+     }
+    }
+   },
+   "v1.ClusterResourceQuotaList": {
+    "id": "v1.ClusterResourceQuotaList",
+    "description": "ClusterResourceQuotaList is a collection of ClusterResourceQuotas",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "unversioned.ListMeta",
+      "description": "Standard object's metadata."
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ClusterResourceQuota"
+      },
+      "description": "Items is a list of ClusterResourceQuotas"
+     }
+    }
+   },
+   "v1.ClusterResourceQuota": {
+    "id": "v1.ClusterResourceQuota",
+    "description": "ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to synthetic ResourceQuota object to allow quota evaluation re-use.",
+    "required": [
+     "metadata",
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object's metadata."
+     },
+     "spec": {
+      "$ref": "v1.ClusterResourceQuotaSpec",
+      "description": "Spec defines the desired quota"
+     },
+     "status": {
+      "$ref": "v1.ClusterResourceQuotaStatus",
+      "description": "Status defines the actual enforced quota and its current usage"
+     }
+    }
+   },
+   "v1.ClusterResourceQuotaSpec": {
+    "id": "v1.ClusterResourceQuotaSpec",
+    "description": "ClusterResourceQuotaSpec defines the desired quota restrictions",
+    "required": [
+     "selector",
+     "quota"
+    ],
+    "properties": {
+     "selector": {
+      "$ref": "unversioned.LabelSelector",
+      "description": "Selector is the label selector used to match projects.  It is not allowed to be empty and should only select active projects on the scale of dozens (though it can select many more less active projects).  These projects will contend on object creation through this resource."
+     },
+     "quota": {
+      "$ref": "v1.ResourceQuotaSpec",
+      "description": "Quota defines the desired quota"
+     }
+    }
+   },
+   "unversioned.LabelSelector": {
+    "id": "unversioned.LabelSelector",
+    "description": "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
+    "properties": {
+     "matchLabels": {
+      "type": "object",
+      "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed."
+     },
+     "matchExpressions": {
+      "type": "array",
+      "items": {
+       "$ref": "unversioned.LabelSelectorRequirement"
+      },
+      "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed."
+     }
+    }
+   },
+   "unversioned.LabelSelectorRequirement": {
+    "id": "unversioned.LabelSelectorRequirement",
+    "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+    "required": [
+     "key",
+     "operator"
+    ],
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "key is the label key that the selector applies to."
+     },
+     "operator": {
+      "type": "string",
+      "description": "operator represents a key's relationship to a set of values. Valid operators ard In, NotIn, Exists and DoesNotExist."
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch."
+     }
+    }
+   },
+   "v1.ResourceQuotaSpec": {
+    "id": "v1.ResourceQuotaSpec",
+    "description": "ResourceQuotaSpec defines the desired hard limits to enforce for Quota.",
+    "properties": {
+     "hard": {
+      "type": "object",
+      "description": "Hard is the set of desired hard limits for each named resource. More info: http://releases.k8s.io/HEAD/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota"
+     },
+     "scopes": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ResourceQuotaScope"
+      },
+      "description": "A collection of filters that must match each object tracked by a quota. If not specified, the quota matches all objects."
+     }
+    }
+   },
+   "v1.ResourceQuotaScope": {
+    "id": "v1.ResourceQuotaScope",
+    "properties": {}
+   },
+   "v1.ClusterResourceQuotaStatus": {
+    "id": "v1.ClusterResourceQuotaStatus",
+    "description": "ClusterResourceQuotaStatus defines the actual enforced quota and its current usage",
+    "required": [
+     "total",
+     "namespaces"
+    ],
+    "properties": {
+     "total": {
+      "$ref": "v1.ResourceQuotaStatus",
+      "description": "Total defines the actual enforced quota and its current usage across all namespaces"
+     },
+     "namespaces": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ResourceQuotaStatusByNamespace"
+      },
+      "description": "Namespaces slices the usage by namespace.  This division allows for quick resolution of deletion reconcilation inside of a single namespace without requiring a recalculation across all namespaces.  This can be used to pull the deltas for a given namespace."
+     }
+    }
+   },
+   "v1.ResourceQuotaStatus": {
+    "id": "v1.ResourceQuotaStatus",
+    "description": "ResourceQuotaStatus defines the enforced hard limits and observed use.",
+    "properties": {
+     "hard": {
+      "type": "object",
+      "description": "Hard is the set of enforced hard limits for each named resource. More info: http://releases.k8s.io/HEAD/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota"
+     },
+     "used": {
+      "type": "object",
+      "description": "Used is the current observed total usage of the resource in the namespace."
+     }
+    }
+   },
+   "v1.ResourceQuotaStatusByNamespace": {
+    "id": "v1.ResourceQuotaStatusByNamespace",
+    "description": "ResourceQuotaStatusByNamespace gives status for a particular namespace",
+    "required": [
+     "namespace",
+     "status"
+    ],
+    "properties": {
+     "namespace": {
+      "type": "string",
+      "description": "Namespace the namespace this status applies to"
+     },
+     "status": {
+      "$ref": "v1.ResourceQuotaStatus",
+      "description": "Status indicates how many resources have been consumed by this namespace"
      }
     }
    },

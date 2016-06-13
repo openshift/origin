@@ -17,6 +17,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -37,6 +38,7 @@ var (
 	deployGroup      = deployapi.GroupName
 	imageGroup       = imageapi.GroupName
 	projectGroup     = projectapi.GroupName
+	quotaGroup       = quotaapi.GroupName
 	routeGroup       = routeapi.GroupName
 	templateGroup    = templateapi.GroupName
 	userGroup        = userapi.GroupName
@@ -136,6 +138,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(oauthGroup).Resources("oauthclientauthorizations").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(projectGroup).Resources("projectrequests", "projects").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("clusterresourcequotas").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes", "routes/status").RuleOrDie(),
 
