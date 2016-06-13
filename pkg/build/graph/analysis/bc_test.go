@@ -24,7 +24,7 @@ func TestUnpushableBuild(t *testing.T) {
 	imageedges.AddAllImageStreamImageRefEdges(g)
 
 	markers := FindUnpushableBuildConfigs(g, osgraph.DefaultNamer)
-	if e, a := 1, len(markers); e != a {
+	if e, a := 2, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
@@ -33,9 +33,10 @@ func TestUnpushableBuild(t *testing.T) {
 	}
 
 	actualBC := osgraph.GetTopLevelContainerNode(g, markers[0].Node)
-	expectedBC := g.Find(osgraph.UniqueName("BuildConfig|example/ruby-hello-world"))
-	if e, a := expectedBC.ID(), actualBC.ID(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+	expectedBC1 := g.Find(osgraph.UniqueName("BuildConfig|example/ruby-hello-world"))
+	expectedBC2 := g.Find(osgraph.UniqueName("BuildConfig|example/ruby-hello-world-2"))
+	if e1, e2, a := expectedBC1.ID(), expectedBC2.ID(), actualBC.ID(); e1 != a && e2 != a {
+		t.Errorf("expected either %v or %v, got %v", e1, e2, a)
 	}
 
 	actualIST := markers[0].RelatedNodes[0]
@@ -228,5 +229,8 @@ func TestLatestBuildFailed(t *testing.T) {
 
 	if got, expected := markers[0].Key, LatestBuildFailedErr; got != expected {
 		t.Fatalf("expected marker key %q, got %q", expected, got)
+	}
+	if !strings.Contains(markers[0].Suggestion.String(), "oc logs -f bc/ruby-hello-world") {
+		t.Fatalf("expected oc logs -f bc/ruby-hello-world, got %s", markers[0].Suggestion.String())
 	}
 }

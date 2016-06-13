@@ -63,7 +63,7 @@ func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *deploygraph.DeploymentC
 				}
 			}
 
-			if bcNode := buildedges.BuildConfigForTag(g, istNode); bcNode != nil {
+			for _, bcNode := range buildedges.BuildConfigsForTag(g, istNode) {
 				// Avoid warning for the dc image trigger in case there is a build in flight.
 				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildutil.IsBuildComplete(latestBuild.Build) {
 					return nil

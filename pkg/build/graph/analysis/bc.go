@@ -162,6 +162,91 @@ func FindCircularBuilds(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	return markers
 }
 
+// multiBCStartBuildSuggestion builds the `oc start-build` suggestion string with multiple build configs
+func multiBCStartBuildSuggestion(bcNodes []*buildgraph.BuildConfigNode) string {
+	var ret string
+	if len(bcNodes) > 1 {
+		ret = "Run one of the following commands: "
+	}
+	for i, bcNode := range bcNodes {
+		// use of f.ResourceName(bcNode) will produce a string like  oc start-build BuildConfig|example/ruby-hello-world
+		ret = ret + fmt.Sprintf("oc start-build %s", bcNode.BuildConfig.GetName())
+		if i < (len(bcNodes) - 1) {
+			ret = ret + ", "
+		}
+	}
+	return ret
+}
+
+// bcNodesToRelatedNodes takes an array of BuildConfigNode's and returns an array of graph.Node's for the Marker.RelatedNodes field
+func bcNodesToRelatedNodes(bcNodes []*buildgraph.BuildConfigNode) []graph.Node {
+	relatedNodes := []graph.Node{}
+	for _, bcNode := range bcNodes {
+		relatedNodes = append(relatedNodes, graph.Node(bcNode))
+	}
+	return relatedNodes
+}
+
+// findPendingTagMarkers is the guts behind FindPendingTags .... break out some of the content and reduce some indentation
+func findPendingTagMarkers(istNode *imagegraph.ImageStreamTagNode, g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	buildFound := false
+	bcNodes := buildedges.BuildConfigsForTag(g, graph.Node(istNode))
+	for _, bcNode := range bcNodes {
+		latestBuild := buildedges.GetLatestBuild(g, bcNode)
+
+		// A build config points to the non existent tag but no current build exists.
+		if latestBuild == nil {
+			continue
+		}
+		buildFound = true
+
+		// A build config points to the non existent tag but something is going on with
+		// the latest build.
+		// TODO: Handle other build phases.
+		switch latestBuild.Build.Status.Phase {
+		case buildapi.BuildPhaseCancelled:
+			// TODO: Add a warning here.
+		case buildapi.BuildPhaseError:
+			// TODO: Add a warning here.
+		case buildapi.BuildPhaseComplete:
+			// We should never hit this. The output of our build is missing but the build is complete.
+			// Most probably the user has messed up?
+		case buildapi.BuildPhaseFailed:
+			// Since the tag hasn't been populated yet, we assume there hasn't been a successful
+			// build so far.
+			markers = append(markers, osgraph.Marker{
+				Node:         graph.Node(latestBuild),
+				RelatedNodes: []graph.Node{graph.Node(istNode), graph.Node(bcNode)},
+
+				Severity:   osgraph.ErrorSeverity,
+				Key:        LatestBuildFailedErr,
+				Message:    fmt.Sprintf("%s has failed.", f.ResourceName(latestBuild)),
+				Suggestion: osgraph.Suggestion(fmt.Sprintf("Inspect the build failure with 'oc logs -f bc/%s'", bcNode.BuildConfig.GetName())),
+			})
+		default:
+			// Do nothing when latest build is new, pending, or running.
+		}
+
+	}
+
+	// if no current builds exist for any of the build configs, append marker for that
+	// but ignore ISTs which have no build configs
+	if !buildFound && len(bcNodes) > 0 {
+		markers = append(markers, osgraph.Marker{
+			Node:         graph.Node(istNode),
+			RelatedNodes: bcNodesToRelatedNodes(bcNodes),
+
+			Severity:   osgraph.WarningSeverity,
+			Key:        TagNotAvailableWarning,
+			Message:    fmt.Sprintf("%s needs to be imported or created by a build.", f.ResourceName(istNode)),
+			Suggestion: osgraph.Suggestion(multiBCStartBuildSuggestion(bcNodes)),
+		})
+	}
+	return markers
+}
+
 // FindPendingTags inspects all imageStreamTags that serve as outputs to builds.
 //
 // Precedence of failures:
@@ -172,49 +257,8 @@ func FindPendingTags(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 
 	for _, uncastIstNode := range g.NodesByKind(imagegraph.ImageStreamTagNodeKind) {
 		istNode := uncastIstNode.(*imagegraph.ImageStreamTagNode)
-		if bcNode := buildedges.BuildConfigForTag(g, uncastIstNode); bcNode != nil && !istNode.Found() {
-			latestBuild := buildedges.GetLatestBuild(g, bcNode)
-
-			// A build config points to the non existent tag but no current build exists.
-			if latestBuild == nil {
-				markers = append(markers, osgraph.Marker{
-					Node:         graph.Node(bcNode),
-					RelatedNodes: []graph.Node{uncastIstNode},
-
-					Severity:   osgraph.WarningSeverity,
-					Key:        TagNotAvailableWarning,
-					Message:    fmt.Sprintf("%s needs to be imported or created by a build.", f.ResourceName(istNode)),
-					Suggestion: osgraph.Suggestion(fmt.Sprintf("oc start-build %s", f.ResourceName(bcNode))),
-				})
-				continue
-			}
-
-			// A build config points to the non existent tag but something is going on with
-			// the latest build.
-			// TODO: Handle other build phases.
-			switch latestBuild.Build.Status.Phase {
-			case buildapi.BuildPhaseCancelled:
-				// TODO: Add a warning here.
-			case buildapi.BuildPhaseError:
-				// TODO: Add a warning here.
-			case buildapi.BuildPhaseComplete:
-				// We should never hit this. The output of our build is missing but the build is complete.
-				// Most probably the user has messed up?
-			case buildapi.BuildPhaseFailed:
-				// Since the tag hasn't been populated yet, we assume there hasn't been a successful
-				// build so far.
-				markers = append(markers, osgraph.Marker{
-					Node:         graph.Node(latestBuild),
-					RelatedNodes: []graph.Node{uncastIstNode, graph.Node(bcNode)},
-
-					Severity:   osgraph.ErrorSeverity,
-					Key:        LatestBuildFailedErr,
-					Message:    fmt.Sprintf("%s has failed.", f.ResourceName(latestBuild)),
-					Suggestion: osgraph.Suggestion(fmt.Sprintf("Inspect the build failure with 'oc logs %s'", f.ResourceName(latestBuild))),
-				})
-			default:
-				// Do nothing when latest build is new, pending, or running.
-			}
+		if !istNode.Found() {
+			markers = append(markers, findPendingTagMarkers(istNode, g, f)...)
 		}
 	}
 
