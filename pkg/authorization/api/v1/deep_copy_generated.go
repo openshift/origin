@@ -340,9 +340,6 @@ func DeepCopy_v1_Policy(in Policy, out *Policy, c *conversion.Cloner) error {
 	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 		return err
 	}
-	if err := unversioned.DeepCopy_unversioned_Time(in.LastModified, &out.LastModified, c); err != nil {
-		return err
-	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
 		*out = make([]NamedRole, len(in))
@@ -362,9 +359,6 @@ func DeepCopy_v1_PolicyBinding(in PolicyBinding, out *PolicyBinding, c *conversi
 		return err
 	}
 	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
-		return err
-	}
-	if err := unversioned.DeepCopy_unversioned_Time(in.LastModified, &out.LastModified, c); err != nil {
 		return err
 	}
 	if err := api_v1.DeepCopy_v1_ObjectReference(in.PolicyRef, &out.PolicyRef, c); err != nil {

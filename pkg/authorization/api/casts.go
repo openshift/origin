@@ -22,7 +22,6 @@ func ToPolicy(in *ClusterPolicy) *Policy {
 
 	ret := &Policy{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.LastModified = in.LastModified
 	ret.Roles = ToRoleMap(in.Roles)
 
 	return ret
@@ -74,7 +73,6 @@ func ToClusterPolicy(in *Policy) *ClusterPolicy {
 
 	ret := &ClusterPolicy{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.LastModified = in.LastModified
 	ret.Roles = ToClusterRoleMap(in.Roles)
 
 	return ret
@@ -128,7 +126,6 @@ func ToPolicyBinding(in *ClusterPolicyBinding) *PolicyBinding {
 
 	ret := &PolicyBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.LastModified = in.LastModified
 	ret.PolicyRef = ToPolicyRef(in.PolicyRef)
 	ret.RoleBindings = ToRoleBindingMap(in.RoleBindings)
 
@@ -195,7 +192,6 @@ func ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyBinding {
 
 	ret := &ClusterPolicyBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.LastModified = in.LastModified
 	ret.PolicyRef = ToClusterPolicyRef(in.PolicyRef)
 	ret.RoleBindings = ToClusterRoleBindingMap(in.RoleBindings)
 

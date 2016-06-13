@@ -1111,7 +1111,6 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, policy.ObjectMeta)
-		formatString(out, "Last Modified", policy.LastModified)
 
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range sets.StringKeySet(policy.Roles).List() {
@@ -1200,7 +1199,6 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, policyBinding.ObjectMeta)
-		formatString(out, "Last Modified", policyBinding.LastModified)
 		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
 
 		// using .List() here because I always want the sorted order that it provides

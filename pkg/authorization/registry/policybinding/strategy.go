@@ -101,7 +101,6 @@ func NewEmptyPolicyBinding(namespace, policyNamespace, policyBindingName string)
 	binding.Name = policyBindingName
 	binding.Namespace = namespace
 	binding.CreationTimestamp = unversioned.Now()
-	binding.LastModified = unversioned.Now()
 	binding.PolicyRef = kapi.ObjectReference{Name: authorizationapi.PolicyName, Namespace: policyNamespace}
 	binding.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
 

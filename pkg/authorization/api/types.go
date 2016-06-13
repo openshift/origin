@@ -111,9 +111,6 @@ type Policy struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
 
-	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified unversioned.Time
-
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
 	Roles map[string]*Role
 }
@@ -124,9 +121,6 @@ type PolicyBinding struct {
 	unversioned.TypeMeta
 	// Standard object's metadata.
 	kapi.ObjectMeta
-
-	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified unversioned.Time
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference

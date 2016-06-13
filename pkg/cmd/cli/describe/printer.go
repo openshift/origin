@@ -39,8 +39,8 @@ var (
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "REPLICAS", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
-	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
-	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
+	policyColumns           = []string{"NAME", "ROLES"}
+	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS"}
 	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
 
@@ -611,7 +611,7 @@ func printPolicy(policy *authorizationapi.Policy, w io.Writer, opts kctl.PrintOp
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", policy.Name, rolesString, policy.LastModified); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s", policy.Name, rolesString); err != nil {
 		return err
 	}
 	if err := appendItemLabels(policy.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -641,7 +641,7 @@ func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writ
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", policyBinding.Name, roleBindingsString, policyBinding.LastModified); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s", policyBinding.Name, roleBindingsString); err != nil {
 		return err
 	}
 	if err := appendItemLabels(policyBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {

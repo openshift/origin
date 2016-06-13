@@ -22350,7 +22350,6 @@
     "id": "v1.Policy",
     "description": "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
     "required": [
-     "lastModified",
      "roles"
     ],
     "properties": {
@@ -22365,10 +22364,6 @@
      "metadata": {
       "$ref": "v1.ObjectMeta",
       "description": "Standard object's metadata."
-     },
-     "lastModified": {
-      "type": "string",
-      "description": "LastModified is the last time that any part of the Policy was created, updated, or deleted"
      },
      "roles": {
       "type": "array",
@@ -22457,7 +22452,6 @@
     "id": "v1.PolicyBinding",
     "description": "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
     "required": [
-     "lastModified",
      "policyRef",
      "roleBindings"
     ],
@@ -22473,10 +22467,6 @@
      "metadata": {
       "$ref": "v1.ObjectMeta",
       "description": "Standard object's metadata."
-     },
-     "lastModified": {
-      "type": "string",
-      "description": "LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted"
      },
      "policyRef": {
       "$ref": "v1.ObjectReference",
