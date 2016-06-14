@@ -156,6 +156,7 @@ func TestUpdate(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
+		Subjects:   []kapi.ObjectReference{{Name: "bob", Kind: "User"}},
 	}
 
 	obj, created, err := storage.Update(ctx, roleBinding)
@@ -168,6 +169,47 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.RoleBinding:
+		if !reflect.DeepEqual(roleBinding, obj) {
+			t.Errorf("Updated roleBinding does not match input roleBinding."+
+				" Expected: %v, Got: %v", roleBinding, obj)
+		}
+	default:
+		t.Errorf("Unexpected result type: %v", obj)
+	}
+}
+
+func TestUpdateNoOp(t *testing.T) {
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+
+	storage := makeTestStorage()
+	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		RoleRef:    kapi.ObjectReference{Name: "admin"},
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
+	}
+	original := obj.(*authorizationapi.RoleBinding)
+
+	roleBinding := &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
+		RoleRef:    kapi.ObjectReference{Name: "admin"},
+	}
+
+	obj, created, err := storage.Update(ctx, roleBinding)
+	if err != nil || created {
+		t.Errorf("Unexpected error %v", err)
+	}
+
+	switch o := obj.(type) {
+	case *unversioned.Status:
+		t.Errorf("Unexpected operation error: %v", obj)
+
+	case *authorizationapi.RoleBinding:
+		if original.ResourceVersion != o.ResourceVersion {
+			t.Errorf("Expected no change to role binding. Expected: %s, Got: %s", original.ResourceVersion, o.ResourceVersion)
+		}
 		if !reflect.DeepEqual(roleBinding, obj) {
 			t.Errorf("Updated roleBinding does not match input roleBinding."+
 				" Expected: %v, Got: %v", roleBinding, obj)

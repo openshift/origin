@@ -176,8 +176,14 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, obj runtime.Object, allowE
 		return nil, false, err
 	}
 
-	if _, exists := policy.Roles[role.Name]; !exists {
+	oldRole, exists := policy.Roles[role.Name]
+	if !exists {
 		return nil, false, kapierrors.NewNotFound(authorizationapi.Resource("role"), role.Name)
+	}
+
+	// non-mutating change
+	if kapi.Semantic.DeepEqual(oldRole, role) {
+		return role, false, nil
 	}
 
 	role.ResourceVersion = policy.ResourceVersion
@@ -224,7 +230,7 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 	policy.Name = authorizationapi.PolicyName
 	policy.Namespace = namespace
 	policy.CreationTimestamp = unversioned.Now()
-	policy.LastModified = unversioned.Now()
+	policy.LastModified = policy.CreationTimestamp
 	policy.Roles = make(map[string]*authorizationapi.Role)
 
 	return policy
