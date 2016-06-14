@@ -22,12 +22,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 30cd1b4fdce316e68da410943196f9a55c9fe140
+%global commit 6c74cf1f49076b906e7a750bf8dd8efe46b31fd0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.0.42-80-g30cd1b4 -X github.com/openshift/origin/pkg/version.commitFromGit 30cd1b4 -X k8s.io/kubernetes/pkg/version.gitCommit 30cd1b4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.1.1-12-g6c74cf1 -X github.com/openshift/origin/pkg/version.commitFromGit 6c74cf1 -X k8s.io/kubernetes/pkg/version.gitCommit 6c74cf1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.1.1
+Version:        3.2.1.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -486,6 +486,18 @@ fi
 
 
 %changelog
+* Tue Jun 14 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.2
+- UPSTREAM: 27227: Counting pod volume towards PV limit even if PV/PVC is
+  missing (abhgupta@redhat.com)
+- UPSTREAM 22568: Considering all nodes for the scheduler cache to allow
+  lookups (abhgupta@redhat.com)
+- Use our golang-1.4 build image in OSE (ccoleman@redhat.com)
+- Add a GCS test to verify it is compiled in (ccoleman@redhat.com)
+- Build dockerregistry with tag `include_gcs` (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Distribution dependencies
+  (ccoleman@redhat.com)
+- Upstream PR8615 - haproxy Cookie id leaks info (pcameron@redhat.com)
+
 * Sat Jun 04 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.1
 - UPSTREAM 8287 Suppress router reload during sync (marun@redhat.com)
 - UPSTREAM 8893 Sync access to router state (smitram@gmail.com)
