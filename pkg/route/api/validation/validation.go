@@ -64,6 +64,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }

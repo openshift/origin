@@ -116,50 +116,6 @@ func TestUpdate(t *testing.T) {
 	)
 }
 
-func TestUpdateWithAllocation(t *testing.T) {
-	allocator := &testAllocator{Hostname: "bar"}
-	storage, server := newStorage(t, allocator)
-	defer server.Terminate(t)
-
-	// create a route with a populated host
-	originalRoute := validRoute()
-	originalRoute.Spec.Host = "foo"
-	created, err := storage.Create(kapi.NewDefaultContext(), originalRoute)
-	if err != nil {
-		t.Fatalf("error creating valid route to test allocations: %v", err)
-	}
-
-	createdRoute := created.(*api.Route)
-	if createdRoute.Spec.Host != "foo" {
-		t.Fatalf("unexpected host on createdRoute: %#v", createdRoute)
-	}
-	if _, ok := createdRoute.Annotations[route.HostGeneratedAnnotationKey]; ok {
-		t.Fatalf("created route should not have the generated host annotation")
-	}
-
-	// update the route to set the host to empty
-	createdRoute.Spec.Host = ""
-	updated, _, err := storage.Update(kapi.NewDefaultContext(), createdRoute)
-	if err != nil {
-		t.Fatalf("error updating route to test allocations: %v", err)
-	}
-
-	// route should now have the allocated host of bar and the generated host annotation
-	updatedRoute := updated.(*api.Route)
-	if updatedRoute == nil {
-		t.Fatalf("expected updatedRoute to not be nil")
-	}
-	if updatedRoute.Spec.Host != "bar" {
-		t.Fatalf("unexpected route: %#v", updatedRoute)
-	}
-	if v, ok := updatedRoute.Annotations[route.HostGeneratedAnnotationKey]; !ok || v != "true" {
-		t.Fatalf("unexpected route: %#v", updatedRoute)
-	}
-	if !allocator.Allocate || !allocator.Generate {
-		t.Fatalf("unexpected allocator: %#v", allocator)
-	}
-}
-
 func TestList(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)

@@ -60,13 +60,6 @@ func (s routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// Limit to kind/name
 	// TODO: convert to LocalObjectReference
 	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
-
-	// if the route host has been updated to empty we should allocate the host
-	err := s.allocateHost(route)
-	if err != nil {
-		// TODO: this will be changed when moved to a controller
-		utilruntime.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
-	}
 }
 
 // allocateHost allocates a host name ONLY if the host name on the route is empty and an allocator
