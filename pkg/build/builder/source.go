@@ -166,7 +166,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	var path string
 	if len(source.AsFile) > 0 {
-		glog.V(2).Infof("Receiving source from STDIN as file %s", source.AsFile)
+		glog.V(0).Infof("Receiving source from STDIN as file %s", source.AsFile)
 		path = filepath.Join(dir, source.AsFile)
 
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0664)
@@ -182,13 +182,13 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 		return nil
 	}
 
-	glog.V(1).Infof("Receiving source from STDIN as archive ...")
+	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
 	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		glog.V(2).Infof("Extracting...\n%s", string(out))
+		glog.V(0).Infof("Extracting...\n%s", string(out))
 		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
 	return nil
@@ -210,7 +210,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
 
 	// Recursive clone if we're not going to checkout a ref and submodule update later
-	glog.V(2).Infof("Cloning source from %s", gitSource.URI)
+	glog.V(0).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
 	quiet := !glog.Is(5)

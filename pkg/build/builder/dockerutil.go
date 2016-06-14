@@ -58,7 +58,7 @@ type DockerClient interface {
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	repository, tag := docker.ParseRepositoryTag(name)
 	logProgress := func(s string) {
-		glog.V(1).Infof("%s", s)
+		glog.V(0).Infof("%s", s)
 	}
 	opts := docker.PushImageOptions{
 		Name:          repository,
