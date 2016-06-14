@@ -5,42 +5,42 @@
 
 # os::text::reset resets the terminal output to default if it is called in a TTY
 function os::text::reset() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput sgr0
 	fi
 }
 
 # os::text::bold sets the terminal output to bold text if it is called in a TTY
 function os::text::bold() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput bold
 	fi
 }
 
 # os::text::red sets the terminal output to red text if it is called in a TTY
 function os::text::red() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput setaf 1
 	fi
 }
 
 # os::text::green sets the terminal output to green text if it is called in a TTY
 function os::text::green() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput setaf 2
 	fi
 }
 
 # os::text::blue sets the terminal output to blue text if it is called in a TTY
 function os::text::blue() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput setaf 4
 	fi
 }
 
 # os::text::yellow sets the terminal output to yellow text if it is called in a TTY
 function os::text::yellow() {
-	if [ -t 1 ]; then
+	if [[ -t 1 ]]; then
 		tput setaf 11
 	fi
 }
@@ -49,7 +49,7 @@ function os::text::yellow() {
 # terminal and leaves the cursor on that line to allow for overwriting that text
 # if it is called in a TTY
 function os::text::clear_last_line() {
-	if [ -t 1 ]; then 
+	if [[ -t 1 ]]; then 
 		tput cuu 1
 		tput el
 	fi
