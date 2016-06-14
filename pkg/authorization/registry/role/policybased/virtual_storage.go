@@ -93,6 +93,7 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	}
 
 	delete(policy.Roles, name)
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, err
@@ -130,6 +131,7 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 
 	role.ResourceVersion = policy.ResourceVersion
 	policy.Roles[role.Name] = role
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, err
@@ -180,6 +182,7 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, obj runtime.Object, allowE
 
 	role.ResourceVersion = policy.ResourceVersion
 	policy.Roles[role.Name] = role
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, false, err
@@ -221,6 +224,7 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 	policy.Name = authorizationapi.PolicyName
 	policy.Namespace = namespace
 	policy.CreationTimestamp = unversioned.Now()
+	policy.LastModified = unversioned.Now()
 	policy.Roles = make(map[string]*authorizationapi.Role)
 
 	return policy

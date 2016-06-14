@@ -174,9 +174,10 @@ func (NamedRoleBinding) SwaggerDoc() map[string]string {
 }
 
 var map_Policy = map[string]string{
-	"":         "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
-	"metadata": "Standard object's metadata.",
-	"roles":    "Roles holds all the Roles held by this Policy, mapped by Role.Name",
+	"":             "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
+	"metadata":     "Standard object's metadata.",
+	"lastModified": "LastModified is the last time that any part of the Policy was created, updated, or deleted",
+	"roles":        "Roles holds all the Roles held by this Policy, mapped by Role.Name",
 }
 
 func (Policy) SwaggerDoc() map[string]string {
@@ -186,6 +187,7 @@ func (Policy) SwaggerDoc() map[string]string {
 var map_PolicyBinding = map[string]string{
 	"":             "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
 	"metadata":     "Standard object's metadata.",
+	"lastModified": "LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted",
 	"policyRef":    "PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference",
 	"roleBindings": "RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name",
 }

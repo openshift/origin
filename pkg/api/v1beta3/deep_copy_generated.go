@@ -350,6 +350,11 @@ func deepCopy_v1beta3_Policy(in v1beta3.Policy, out *v1beta3.Policy, c *conversi
 	} else {
 		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
 	}
+	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
+		return err
+	} else {
+		out.LastModified = newVal.(unversioned.Time)
+	}
 	if in.Roles != nil {
 		out.Roles = make([]v1beta3.NamedRole, len(in.Roles))
 		for i := range in.Roles {
@@ -373,6 +378,11 @@ func deepCopy_v1beta3_PolicyBinding(in v1beta3.PolicyBinding, out *v1beta3.Polic
 		return err
 	} else {
 		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
+	}
+	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
+		return err
+	} else {
+		out.LastModified = newVal.(unversioned.Time)
 	}
 	if newVal, err := c.DeepCopy(in.PolicyRef); err != nil {
 		return err
