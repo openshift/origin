@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -23,6 +25,7 @@ import (
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name
 const ReconcileClusterRoleBindingsRecommendedName = "reconcile-cluster-role-bindings"
 
+// ReconcileClusterRoleBindingsOptions contains all the necessary functionality for the OpenShift cli reconcile-cluster-role-bindings command
 type ReconcileClusterRoleBindingsOptions struct {
 	// RolesToReconcile says which roles should have their default bindings reconciled.
 	// An empty or nil slice means reconcile all of them.
@@ -34,6 +37,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 	ExcludeSubjects []kapi.ObjectReference
 
 	Out    io.Writer
+	Err    io.Writer
 	Output string
 
 	RoleBindingClient client.ClusterRoleBindingInterface
@@ -66,9 +70,10 @@ You can see which recommended cluster role bindings have changed by choosing an 
 )
 
 // NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command
-func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
 	o := &ReconcileClusterRoleBindingsOptions{
 		Out:   out,
+		Err:   err,
 		Union: true,
 	}
 
@@ -143,15 +148,15 @@ func (o *ReconcileClusterRoleBindingsOptions) Validate() error {
 	return nil
 }
 
-// ReconcileClusterRoleBindingsOptions contains all the necessary functionality for the OpenShift cli reconcile-cluster-role-bindings command
 func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cmd *cobra.Command, f *clientcmd.Factory) error {
-	changedClusterRoleBindings, err := o.ChangedClusterRoleBindings()
-	if err != nil {
-		return err
+	changedClusterRoleBindings, fetchErr := o.ChangedClusterRoleBindings()
+	if fetchErr != nil && !IsClusterRoleBindingLookupError(fetchErr) {
+		// we got an error that isn't due to a partial match, so we can't continue
+		return fetchErr
 	}
 
 	if len(changedClusterRoleBindings) == 0 {
-		return nil
+		return fetchErr
 	}
 
 	if (len(o.Output) != 0) && !o.Confirmed {
@@ -162,19 +167,22 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		mapper, _ := f.Object(false)
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 		if err := fn(list); err != nil {
-			return err
+			return kutilerrors.NewAggregate([]error{fetchErr, err})
 		}
 	}
 
 	if o.Confirmed {
-		return o.ReplaceChangedRoleBindings(changedClusterRoleBindings)
+		if err := o.ReplaceChangedRoleBindings(changedClusterRoleBindings); err != nil {
+			return kutilerrors.NewAggregate([]error{fetchErr, err})
+		}
 	}
 
-	return nil
+	return fetchErr
 }
 
 // ChangedClusterRoleBindings returns the role bindings that must be created and/or updated to
-// match the recommended bootstrap policy
+// match the recommended bootstrap policy. If roles to reconcile are provided, but not all are
+// found, all partial results are returned.
 func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*authorizationapi.ClusterRoleBinding, error) {
 	changedRoleBindings := []*authorizationapi.ClusterRoleBinding{}
 
@@ -212,7 +220,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 
 	if len(rolesNotFound) != 0 {
 		// return the known changes and the error so that a caller can decide if he wants a partial update
-		return changedRoleBindings, fmt.Errorf("did not find requested cluster role %s", rolesNotFound.List())
+		return changedRoleBindings, NewClusterRoleBindingLookupError(rolesNotFound.List())
 	}
 
 	return changedRoleBindings, nil
@@ -330,4 +338,27 @@ func DiffObjectReferenceLists(list1 []kapi.ObjectReference, list2 []kapi.ObjectR
 		}
 	}
 	return
+}
+
+func NewClusterRoleBindingLookupError(rolesNotFound []string) error {
+	return &clusterRoleBindingLookupError{
+		rolesNotFound: rolesNotFound,
+	}
+}
+
+type clusterRoleBindingLookupError struct {
+	rolesNotFound []string
+}
+
+func (e *clusterRoleBindingLookupError) Error() string {
+	return fmt.Sprintf("did not find requested cluster roles: %s", strings.Join(e.rolesNotFound, ", "))
+}
+
+func IsClusterRoleBindingLookupError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*clusterRoleBindingLookupError)
+	return ok
 }
