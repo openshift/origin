@@ -1,4 +1,4 @@
-package configchange
+package generictrigger
 
 import (
 	"testing"

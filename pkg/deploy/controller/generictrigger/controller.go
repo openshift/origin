@@ -1,4 +1,4 @@
-package configchange
+package generictrigger
 
 import (
 	"fmt"
@@ -13,12 +13,12 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentConfigChangeController increments the version of a
+// DeploymentTriggerController increments the version of a
 // DeploymentConfig which has a config change trigger when a pod template
 // change is detected.
 //
-// Use the DeploymentConfigChangeControllerFactory to create this controller.
-type DeploymentConfigChangeController struct {
+// Use the DeploymentTriggerControllerFactory to create this controller.
+type DeploymentTriggerController struct {
 	client  osclient.Interface
 	kClient kclient.Interface
 
@@ -34,7 +34,7 @@ func (e fatalError) Error() string {
 }
 
 // Handle processes change triggers for config.
-func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentConfig) error {
+func (c *DeploymentTriggerController) Handle(config *deployapi.DeploymentConfig) error {
 	if !deployutil.HasChangeTrigger(config) || config.Spec.Paused {
 		return nil
 	}
@@ -71,7 +71,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 // decodeFromLatest will try to return the decoded version of the current deploymentconfig found
 // in the annotations of its latest deployment. If there is no previous deploymentconfig (ie.
 // latestVersion == 0), the returned deploymentconfig will be the same.
-func (c *DeploymentConfigChangeController) decodeFromLatest(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+func (c *DeploymentTriggerController) decodeFromLatest(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}
@@ -153,7 +153,7 @@ func triggeredByDifferentImage(ictParams deployapi.DeploymentTriggerImageChangeP
 	return false
 }
 
-func (c *DeploymentConfigChangeController) updateStatus(config *deployapi.DeploymentConfig, causes []deployapi.DeploymentCause) error {
+func (c *DeploymentTriggerController) updateStatus(config *deployapi.DeploymentConfig, causes []deployapi.DeploymentCause) error {
 	config.Status.LatestVersion++
 	config.Status.Details = new(deployapi.DeploymentDetails)
 	config.Status.Details.Causes = causes

@@ -1,4 +1,4 @@
-package configchange
+package generictrigger
 
 import (
 	"time"
@@ -18,9 +18,8 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentConfigChangeControllerFactory can create a
-// DeploymentConfigChangeController that watches all DeploymentConfigs.
-type DeploymentConfigChangeControllerFactory struct {
+// DeploymentTriggerControllerFactory can create a DeploymentTriggerController that watches all DeploymentConfigs.
+type DeploymentTriggerControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
@@ -29,8 +28,8 @@ type DeploymentConfigChangeControllerFactory struct {
 	Codec runtime.Codec
 }
 
-// Create creates a DeploymentConfigChangeController.
-func (factory *DeploymentConfigChangeControllerFactory) Create() controller.RunnableController {
+// Create creates a DeploymentTriggerController.
+func (factory *DeploymentTriggerControllerFactory) Create() controller.RunnableController {
 	deploymentConfigLW := &cache.ListWatch{
 		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -45,7 +44,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
-	changeController := &DeploymentConfigChangeController{
+	triggerController := &DeploymentTriggerController{
 		client:  factory.Client,
 		kClient: factory.KubeClient,
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
@@ -72,7 +71,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 		),
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
-			return changeController.Handle(config)
+			return triggerController.Handle(config)
 		},
 	}
 }
