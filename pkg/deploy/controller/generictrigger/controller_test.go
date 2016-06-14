@@ -14,18 +14,15 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
+var codec = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+
 // TestHandle_newConfigNoTriggers ensures that a change to a config with no
 // triggers doesn't result in a new config version bump.
 func TestHandle_newConfigNoTriggers(t *testing.T) {
 	fake := &testclient.Fake{}
 	kFake := &ktestclient.Fake{}
-	controller := &DeploymentConfigChangeController{
-		client:  fake,
-		kClient: kFake,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-		},
-	}
+
+	controller := NewDeploymentTriggerController(fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
 	config.Namespace = kapi.NamespaceDefault
@@ -54,13 +51,7 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 	})
 	kFake := &ktestclient.Fake{}
 
-	controller := &DeploymentConfigChangeController{
-		client:  fake,
-		kClient: kFake,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-		},
-	}
+	controller := NewDeploymentTriggerController(fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault
@@ -132,13 +123,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 			return true, deployment, nil
 		})
 
-		controller := &DeploymentConfigChangeController{
-			client:  fake,
-			kClient: kFake,
-			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-			},
-		}
+		controller := NewDeploymentTriggerController(fake, kFake, codec)
 
 		s.modify(config)
 		if err := controller.Handle(config); err != nil {
@@ -184,13 +169,7 @@ func TestHandle_waitForImageController(t *testing.T) {
 		return true, nil, nil
 	})
 
-	controller := &DeploymentConfigChangeController{
-		client:  fake,
-		kClient: kFake,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-		},
-	}
+	controller := NewDeploymentTriggerController(fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault
@@ -257,13 +236,7 @@ func TestHandle_automaticImageUpdates(t *testing.T) {
 			return true, deployment, nil
 		})
 
-		controller := &DeploymentConfigChangeController{
-			client:  fake,
-			kClient: kFake,
-			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-				return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-			},
-		}
+		controller := NewDeploymentTriggerController(fake, kFake, codec)
 
 		config := testapi.OkDeploymentConfig(test.version)
 		config.Namespace = kapi.NamespaceDefault
@@ -281,6 +254,360 @@ func TestHandle_automaticImageUpdates(t *testing.T) {
 
 		if test.expectedUpdate != updated {
 			t.Errorf("%s: expected update: %t, got update: %t", test.name, test.expectedUpdate, updated)
+		}
+	}
+}
+
+func TestCanTrigger(t *testing.T) {
+	tests := []struct {
+		name string
+
+		config  *deployapi.DeploymentConfig
+		decoded *deployapi.DeploymentConfig
+
+		expected       bool
+		expectedCauses []deployapi.DeploymentCause
+	}{
+		{
+			name: "nil decoded config",
+
+			config:  testapi.OkDeploymentConfig(1),
+			decoded: nil,
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "no trigger",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(),
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "config change trigger only",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+
+			expected:       true,
+			expectedCauses: testapi.OkConfigChangeDetails().Causes,
+		},
+		{
+			name: "config change trigger only [no change][initial]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+
+			expected:       true,
+			expectedCauses: testapi.OkConfigChangeDetails().Causes,
+		},
+		{
+			name: "config change trigger only [no change]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "image change trigger only [automatic=false]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(), // Irrelevant change
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkNonAutomaticICT(), // Image still to be resolved but it's false anyway
+					},
+				},
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkNonAutomaticICT(),
+					},
+				},
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "image change trigger only [automatic=false][image triggered]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(), // Image has been updated in the template but automatic=false
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkTriggeredNonAutomatic(),
+					},
+				},
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkNonAutomaticICT(),
+					},
+				},
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "image change trigger only [automatic=true]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkTriggeredImageChange(),
+					},
+				},
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+			},
+
+			expected:       true,
+			expectedCauses: testapi.OkImageChangeDetails().Causes,
+		},
+		{
+			name: "image change trigger only [automatic=true][no change]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "config change and image change trigger [automatic=false][initial][image resolved]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkTriggeredNonAutomatic(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkNonAutomaticICT(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+
+			expected:       true,
+			expectedCauses: testapi.OkConfigChangeDetails().Causes,
+		},
+		{
+			name: "config change and image change trigger [automatic=false][initial]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkNonAutomaticICT(), // Image is not resolved yet
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkNonAutomaticICT(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "config change and image change trigger [automatic=true][initial]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(), // Pod template has changed but the image in the template is yet to be updated
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+		{
+			name: "config change and image change trigger [automatic=true][initial][image triggered]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplateChanged(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkTriggeredImageChange(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(0),
+			},
+
+			expected:       true,
+			expectedCauses: testapi.OkImageChangeDetails().Causes,
+		},
+		{
+			name: "config change and image change trigger [automatic=true][no change]",
+
+			config: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+			decoded: &deployapi.DeploymentConfig{
+				Spec: deployapi.DeploymentConfigSpec{
+					Template: testapi.OkPodTemplate(),
+					Triggers: []deployapi.DeploymentTriggerPolicy{
+						testapi.OkConfigChangeTrigger(),
+						testapi.OkImageChangeTrigger(),
+					},
+				},
+				Status: testapi.OkDeploymentConfigStatus(1),
+			},
+
+			expected:       false,
+			expectedCauses: nil,
+		},
+	}
+
+	for _, test := range tests {
+		got, gotCauses := canTrigger(test.config, test.decoded)
+		if test.expected != got {
+			t.Errorf("%s: expected to trigger: %t, got: %t", test.name, test.expected, got)
+			continue
+		}
+		if !kapi.Semantic.DeepEqual(test.expectedCauses, gotCauses) {
+			t.Errorf("%s: expected causes:\n%#v\ngot:\n%#v", test.name, test.expectedCauses, gotCauses)
 		}
 	}
 }

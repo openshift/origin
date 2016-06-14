@@ -15,7 +15,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeploymentTriggerControllerFactory can create a DeploymentTriggerController that watches all DeploymentConfigs.
@@ -44,13 +43,7 @@ func (factory *DeploymentTriggerControllerFactory) Create() controller.RunnableC
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
-	triggerController := &DeploymentTriggerController{
-		client:  factory.Client,
-		kClient: factory.KubeClient,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
-		},
-	}
+	triggerController := NewDeploymentTriggerController(factory.Client, factory.KubeClient, factory.Codec)
 
 	return &controller.RetryController{
 		Queue: queue,

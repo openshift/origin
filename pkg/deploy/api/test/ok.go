@@ -160,6 +160,12 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 	}
 }
 
+func OkPodTemplateChanged() *kapi.PodTemplateSpec {
+	template := OkPodTemplate()
+	template.Spec.Containers[0].Image = DockerImageReference
+	return template
+}
+
 func OkPodTemplateMissingImage(missing ...string) *kapi.PodTemplateSpec {
 	set := sets.NewString(missing...)
 	template := OkPodTemplate()
@@ -194,19 +200,22 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 	}
 }
 
+func OkTriggeredImageChange() deployapi.DeploymentTriggerPolicy {
+	ict := OkImageChangeTrigger()
+	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
+	return ict
+}
+
 func OkNonAutomaticICT() deployapi.DeploymentTriggerPolicy {
-	return deployapi.DeploymentTriggerPolicy{
-		Type: deployapi.DeploymentTriggerOnImageChange,
-		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-			ContainerNames: []string{
-				"container1",
-			},
-			From: kapi.ObjectReference{
-				Kind: "ImageStreamTag",
-				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
-			},
-		},
-	}
+	ict := OkImageChangeTrigger()
+	ict.ImageChangeParams.Automatic = false
+	return ict
+}
+
+func OkTriggeredNonAutomatic() deployapi.DeploymentTriggerPolicy {
+	ict := OkNonAutomaticICT()
+	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
+	return ict
 }
 
 func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
