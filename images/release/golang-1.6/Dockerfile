@@ -15,7 +15,7 @@ ENV VERSION=1.6.2 \
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="gcc zip mercurial" && \
+    INSTALL_PKGS="make gcc zip mercurial" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
@@ -27,5 +27,5 @@ WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \
       io.k8s.description="This is the standard release image for OpenShift Origin and contains the necessary build tools to build the platform."
 
-# Expect a tar with the source of OpenShift Origin (and /os-version-defs in the root)
-CMD bsdtar mxzf - && hack/build-cross.sh
+# Expect the working directory to be populated with the repo source
+CMD hack/build-cross.sh
