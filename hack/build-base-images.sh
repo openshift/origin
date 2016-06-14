@@ -25,6 +25,7 @@ if [[ -z "${oc}" ]]; then
 fi
 
 function build() {
+  echo "[INFO] Building image \"$1\" from directory \"$2\""
   "${oc}" ex dockerbuild $2 $1
 }
 
