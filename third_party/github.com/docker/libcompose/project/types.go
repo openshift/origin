@@ -222,6 +222,22 @@ type EnvironmentLookup interface {
 	Lookup(key, serviceName string, config *ServiceConfig) []string
 }
 
+// ComposableEnvLookup is a structure that implements the EnvironmentLookup interface.
+// It holds an ordered list of EnvironmentLookup to call to look for the environment value.
+type ComposableEnvLookup struct {
+	Lookups []EnvironmentLookup
+}
+
+// EnvfileLookup is a structure that implements the EnvironmentLookup interface.
+// It holds the path of the file where to lookup environment values.
+type EnvfileLookup struct {
+	Path string
+}
+
+// OsEnvLookup is a "bare" structure that implements the EnvironmentLookup interface
+type OsEnvLookup struct {
+}
+
 // ResourceLookup defines methods to provides file loading.
 type ResourceLookup interface {
 	Lookup(file, relativeTo string) ([]byte, string, error)
