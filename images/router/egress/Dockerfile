@@ -5,6 +5,7 @@
 
 FROM openshift/origin-base
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN yum install -y iproute && \
     yum clean all
 

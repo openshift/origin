@@ -13,6 +13,7 @@ COPY . /go/src/github.com/openshift/origin
 ENV GOPATH=/go \
     PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN yum install -y golang && yum clean all && \
     go get github.com/openshift/origin && \
     hack/build-go.sh && \

@@ -16,6 +16,7 @@
 #
 FROM openshift/origin-base
 
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN INSTALL_PKGS="gettext automake make docker" && \
     yum install -y --enablerepo=centosplus $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \

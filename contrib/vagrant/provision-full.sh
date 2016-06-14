@@ -3,6 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
+getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 yum update -y
 yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which
 

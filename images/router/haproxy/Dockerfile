@@ -10,6 +10,7 @@ FROM openshift/origin
 #       this is temporary and should be removed when the container is switch to an empty-dir
 #       with gid support.
 #
+RUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org
 RUN yum -y install haproxy && \
     mkdir -p /var/lib/haproxy/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \

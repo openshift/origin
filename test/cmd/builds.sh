@@ -33,7 +33,7 @@ os::cmd::expect_success 'oc get bc/test'
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
 
 # Build from Dockerfile with output to ImageStreamTag
-os::cmd::expect_success "oc new-build --dockerfile=\$'FROM centos:7\nRUN yum install -y httpd'"
+os::cmd::expect_success "oc new-build --dockerfile=\$'FROM centos:7\nRUN getent ahostsv4 mirrorlist.centos.org && ping -c 1 mirrorlist.centos.org\nRUN yum install -y httpd'"
 os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^ImageStreamTag centos:latest$'
 
 # Build from a binary with no inputs requires name
