@@ -2565,10 +2565,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "annotations": {
-          "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
-          "service.openshift.io/infrastructure": "true"
-        },
         "creationTimestamp": null
       },
       "spec": {
@@ -2715,6 +2711,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
        "apiVersion": "v1",
        "metadata": {
          "name": "${JENKINS_SERVICE_NAME}",
+         "annotations": {
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.openshift.io/infrastructure": "true"
+         },
          "creationTimestamp": null
        },
        "spec": {
@@ -2805,6 +2805,9 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "creationTimestamp": null,
         "labels": {
           "name": "sample-pipeline"
+        },
+        "annotations": {
+          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"frontend\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
         }
       },
       "spec": {
