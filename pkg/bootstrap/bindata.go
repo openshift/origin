@@ -2805,6 +2805,9 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "creationTimestamp": null,
         "labels": {
           "name": "sample-pipeline"
+        },
+        "annotations": {
+          "downstream.openshift.io/deployments": "[{\"name\": \"frontend\", \"namespace\": \"\"}]"
         }
       },
       "spec": {
