@@ -368,7 +368,8 @@ Right now you can see what's happening with OpenShift development at:
 
 https://github.com/openshift/origin[github.com/openshift/origin]
 
-Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
+Ready to play with some code? Hop down and read up on our link:#the-roadmap[roadmap] for ideas on where you can contribute.
+You can also try to take a stab at any issue tagged with the https://github.com/openshift/origin/issues?q=is%3Aissue+is%3Aopen+label%3Ahelp-wanted[help-wanted] label.
 
 *If you are interested in contributing to Kubernetes directly:* +
 https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
