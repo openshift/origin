@@ -55,6 +55,25 @@ function os::text::clear_last_line() {
 	fi
 }
 
+# os::text::clear_string attempts to clear the entirety of a string from the terminal.
+# If the string contains literal tabs or other characters that take up more than one
+# character space in output, or if the window size is changed before this function
+# is called, it will not function correctly.
+# No action is taken if this is called outside of a TTY
+function os::text::clear_string() {
+    local -r string="$1"
+    if [[ -t 1 ]]; then
+        echo "${string}" | while read line; do
+            # num_lines is the number of terminal lines this one line of output
+            # would have taken up with the current terminal width in columns
+            local num_lines=$(( ${#line} / $( tput cols ) ))
+            for (( i = 0; i <= num_lines; i++ )); do
+                os::text::clear_last_line
+            done
+        done
+    fi
+}
+
 # os::text::print_bold prints all input in bold text
 function os::text::print_bold() {
 	os::text::bold
