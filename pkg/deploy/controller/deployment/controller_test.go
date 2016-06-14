@@ -673,9 +673,9 @@ func TestHandle_cancelNew(t *testing.T) {
 	}
 }
 
-func TestHandle_cancelNewWithDeployers(t *testing.T) {
+func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
-	updatedDeployer := false
+	deletedDeployer := false
 
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
@@ -696,12 +696,12 @@ func TestHandle_cancelNewWithDeployers(t *testing.T) {
 				t.Fatalf("unexpected call to make container")
 				return nil, nil
 			},
-			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				updatedDeployer = true
-				return nil, nil
-			},
 			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
 				return []kapi.Pod{*relatedPod(deployment)}, nil
+			},
+			deletePodFunc: func(namespace, name string) error {
+				deletedDeployer = true
+				return nil
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) *kapi.Container {
@@ -718,16 +718,16 @@ func TestHandle_cancelNewWithDeployers(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
-	if !updatedDeployer {
-		t.Fatalf("expected deployer update")
+	if !deletedDeployer {
+		t.Fatalf("expected deployer delete")
 	}
 }
 
-// TestHandle_cancelPendingRunning ensures that deployer pods are terminated
+// TestHandle_cleanupPendingRunning ensures that deployer pods are deleted
 // for deployments in post-New phases.
-func TestHandle_cancelPendingRunning(t *testing.T) {
+func TestHandle_cleanupPendingRunning(t *testing.T) {
 	deployerPodCount := 3
-	updatedPods := []kapi.Pod{}
+	deletedPods := 0
 
 	controller := &DeploymentController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
@@ -744,9 +744,9 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
 				return ttlNonZeroPod(), nil
 			},
-			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				updatedPods = append(updatedPods, *pod)
-				return pod, nil
+			deletePodFunc: func(namespace, name string) error {
+				deletedPods++
+				return nil
 			},
 			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
 				pods := []kapi.Pod{}
@@ -768,7 +768,7 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 	}
 
 	for _, status := range cases {
-		updatedPods = []kapi.Pod{}
+		deletedPods = 0
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
 		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
@@ -777,13 +777,8 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if e, a := len(updatedPods), deployerPodCount; e != a {
-			t.Fatalf("expected %d updated pods, got %d", e, a)
-		}
-		for _, pod := range updatedPods {
-			if e, a := int64(1), *pod.Spec.ActiveDeadlineSeconds; e != a {
-				t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
-			}
+		if e, a := deletedPods, deployerPodCount; e != a {
+			t.Fatalf("expected %d deleted pods, got %d", e, a)
 		}
 	}
 }
