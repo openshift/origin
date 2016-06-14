@@ -42,7 +42,7 @@ fi
 gzip -f "${context}/archive.tar"
 
 # Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -e "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-}" -i --cidfile="${context}/cid" openshift/origin-release
+cat "${context}/archive.tar.gz" | docker run -e "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-}" -i --cidfile="${context}/cid" openshift/origin-release:golang-1.4
 docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 docker rm $(cat ${context}/cid)

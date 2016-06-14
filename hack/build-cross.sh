@@ -31,7 +31,12 @@ os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 # linux-only, and are compiled with flags to make them static for use in Docker
 # images "FROM scratch".
 OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
-os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+# Pass the necessary tags
+# IMPORTANT: For 3.2.x, use the vendor/src directory on the GOPATH, since 3.2.x is built with Go 1.4.2 which does not
+#   support the vendor/ directory.
+OS_EXTRA_GOPATH="${OS_ROOT}/Godeps/_workspace/src/github.com/docker/distribution/vendor" \
+  OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" \
+  os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 
 # Make the primary client/server release.
 OS_RELEASE_ARCHIVE="openshift-origin"
