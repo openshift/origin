@@ -1194,7 +1194,7 @@ Perform a direct Docker build
 [options="nowrap"]
 ----
   # Build the current directory into a single layer and tag
-  oc dockerbuild . myimage:latest
+  oc ex dockerbuild . myimage:latest
 ----
 ====
 
