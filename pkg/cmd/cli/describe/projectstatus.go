@@ -733,6 +733,21 @@ func describeBuildInPipeline(f formatter, pipeline graphview.ImagePipeline, name
 	if pipeline.BaseImage != nil {
 		retStr = retStr + fmt.Sprintf(" on %s", describeImageTagInPipeline(f, pipeline.BaseImage, namespace))
 	}
+	if pipeline.BaseBuilds != nil && len(pipeline.BaseBuilds) > 0 {
+		bcList := "bc/" + pipeline.BaseBuilds[0]
+		for i, bc := range pipeline.BaseBuilds {
+			if i == 0 {
+				continue
+			}
+			bcList = bcList + ", bc/" + bc
+		}
+		retStr = retStr + fmt.Sprintf(" (from %s)", bcList)
+	} else if pipeline.ScheduledImport {
+		// technically, an image stream produced by a bc could also have a scheduled import,
+		// but in the interest of saving space, we'll only note this possibility when there is no input BC
+		// (giving the input BC precedence)
+		retStr = retStr + " (import scheduled)"
+	}
 	return retStr
 }
 

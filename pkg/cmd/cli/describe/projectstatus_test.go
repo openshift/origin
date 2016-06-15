@@ -125,6 +125,30 @@ func TestProjectStatus(t *testing.T) {
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
 			},
 		},
+		"build chains": {
+			Path: "../../../../pkg/api/graph/test/build-chains.json",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"from bc/frontend",
+			},
+		},
+		"scheduled image stream": {
+			Path: "../../../../pkg/api/graph/test/prereq-image-present-with-sched.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"import scheduled",
+			},
+		},
 		"standalone rc": {
 			Path: "../../../../pkg/api/graph/test/bare-rc.yaml",
 			Extra: []runtime.Object{
