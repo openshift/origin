@@ -174,7 +174,8 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	os::test::junit::declare_test_start
 
 	local name=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}" "${grep_args}" "${test_eval_func}")
-	echo "Running ${name}..."
+    local preamble="Running ${name}..."
+	echo "${preamble}"
 	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'	
 	junit_log+=( "${name//$'\n'/;}" )
 
@@ -193,11 +194,8 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
 	local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
-	# some commands are multi-line, so we may need to clear more than just the previous line
-	local cmd_length=$(echo "${cmd}" | wc -l)
-	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
-	done
+    # clear the preamble so we can print out the success or error message
+	os::text::clear_string "${preamble}"
 
 	local return_code
 	if (( cmd_succeeded && test_succeeded )); then
@@ -460,7 +458,8 @@ function os::cmd::internal::run_until_exit_code() {
 	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
-	echo "Running ${description}..."
+    local preamble="Running ${description}..."
+	echo "${preamble}"
 	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
 	junit_log+=( "${description//$'\n'/;}" )
 	
@@ -481,11 +480,8 @@ function os::cmd::internal::run_until_exit_code() {
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
 	local time_elapsed=$(echo "scale=9; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
-	# some commands are multi-line, so we may need to clear more than just the previous line
-	local cmd_length=$(echo "${cmd}" | wc -l)
-	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
-	done
+    # clear the preamble so we can print out the success or error message
+    os::text::clear_string "${preamble}"
 
 	local return_code
 	if (( cmd_succeeded )); then
@@ -541,7 +537,8 @@ function os::cmd::internal::run_until_text() {
 	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "os::cmd::internal::success_func")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
-	echo "Running ${description}..."
+    local preamble="Running ${description}..."
+	echo "${preamble}"
 	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
 	junit_log+=( "${description//$'\n'/;}" )
 	
@@ -564,11 +561,8 @@ function os::cmd::internal::run_until_text() {
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
 	local time_elapsed=$(echo "scale=9; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
-	# some commands are multi-line, so we may need to clear more than just the previous line
-	local cmd_length=$(echo "${cmd}" | wc -l)
-	for (( i=0; i<${cmd_length}; i++ )); do
-		os::text::clear_last_line
-	done
+    # clear the preamble so we can print out the success or error message
+    os::text::clear_string "${preamble}"
 
 	local return_code
 	if (( test_succeeded )); then
