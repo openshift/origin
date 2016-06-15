@@ -250,6 +250,43 @@ func TestCreateImageImport(t *testing.T) {
 				},
 			},
 		},
+		"import tag from .spec.tags": {
+			name: "testis:mytag",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+						},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+				To:   &kapi.LocalObjectReference{Name: "mytag"},
+			}},
+		},
+		"import tag from .spec.tags with Kind != DockerImage": {
+			name: "testis:mytag",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "someimage:mytag"},
+						},
+					},
+				},
+			},
+			err: "tag \"mytag\" points to existing ImageStreamTag \"someimage:mytag\", it cannot be re-imported",
+		},
 		"use insecure annotation": {
 			name: "testis",
 			stream: &imageapi.ImageStream{

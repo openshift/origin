@@ -329,8 +329,12 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 
 	// update ImageStream appropriately
 	if ok {
+		// disallow re-importing anything other than DockerImage
+		if existing.From != nil && existing.From.Kind != "DockerImage" {
+			return nil, fmt.Errorf("tag %q points to existing %s %q, it cannot be re-imported", tag, existing.From.Kind, existing.From.Name)
+		}
 		// disallow changing an existing tag
-		if existing.From == nil || existing.From.Kind != "DockerImage" {
+		if existing.From == nil {
 			return nil, fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
 		}
 		if len(from) != 0 && from != existing.From.Name {
