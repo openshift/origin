@@ -19,7 +19,7 @@ type Leaser interface {
 	// lease is acquired, and the provided channel will be closed when the lease is lost. If the
 	// function returns true, the lease will be released on exit. If the function returns false,
 	// the lease will be held.
-	AcquireAndHold(chan struct{})
+	AcquireAndHold(chan error)
 	// Release returns any active leases
 	Release()
 }
@@ -54,7 +54,7 @@ func NewEtcd(client *etcdclient.Client, key, value string, ttl uint64) Leaser {
 		value:  value,
 		ttl:    ttl,
 
-		waitFraction:         0.75,
+		waitFraction:         0.66,
 		pauseInterval:        time.Second,
 		maxRetries:           10,
 		minimumRetryInterval: 100 * time.Millisecond,
@@ -62,7 +62,7 @@ func NewEtcd(client *etcdclient.Client, key, value string, ttl uint64) Leaser {
 }
 
 // AcquireAndHold implements an acquire and release of a lease.
-func (e *Etcd) AcquireAndHold(notify chan struct{}) {
+func (e *Etcd) AcquireAndHold(notify chan error) {
 	for {
 		ok, ttl, index, err := e.tryAcquire()
 		if err != nil {
@@ -76,12 +76,12 @@ func (e *Etcd) AcquireAndHold(notify chan struct{}) {
 		}
 
 		// notify
-		notify <- struct{}{}
+		notify <- nil
 		defer close(notify)
 
 		// hold the lease
 		if err := e.tryHold(ttl, index); err != nil {
-			utilruntime.HandleError(err)
+			notify <- err
 		}
 		break
 	}

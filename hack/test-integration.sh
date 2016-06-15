@@ -85,7 +85,7 @@ function exectest() {
 		exit 0
 	else
 		os::text::print_red "failed  $1"
-		echo "${out}"
+		echo "${out:-}"
 
 		exit 1
 	fi

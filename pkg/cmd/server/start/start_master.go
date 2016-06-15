@@ -520,8 +520,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
 		// this ensures no code is still running as a controller, and allows a process manager to reset
 		// the controller to come back into a candidate state and compete for the lease
-		oc.ControllerPlug.WaitForStop()
-		glog.Fatalf("Controller shutdown requested")
+		if err := oc.ControllerPlug.WaitForStop(); err != nil {
+			glog.Fatalf("Controller shutdown due to lease being lost: %v", err)
+		}
+		glog.Fatalf("Controller graceful shutdown requested")
 	}()
 
 	oc.ControllerPlug.WaitForStart()
