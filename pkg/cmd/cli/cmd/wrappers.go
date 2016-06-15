@@ -199,16 +199,16 @@ const (
 	portForwardLong = `Forward 1 or more local ports to a pod`
 
 	portForwardExample = `  # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  %[1]s port-forward -p mypod 5000 6000
+  %[1]s port-forward mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod 8888:5000
+  %[1]s port-forward mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod :5000
+  %[1]s port-forward mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod 0:5000`
+  %[1]s port-forward mypod 0:5000`
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
@@ -216,6 +216,7 @@ func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
 	cmd := kcmd.NewCmdPortForward(f.Factory)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
+	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
