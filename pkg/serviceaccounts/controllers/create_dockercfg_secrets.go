@@ -47,7 +47,8 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 		queue:  workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 	}
 
-	e.serviceAccountCache, e.serviceAccountController = framework.NewInformer(
+	var serviceAccountCache cache.Store
+	serviceAccountCache, e.serviceAccountController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return e.client.ServiceAccounts(api.NamespaceAll).List(options)
@@ -73,6 +74,7 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 		},
 	)
 
+	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
 	e.syncHandler = e.syncServiceAccount
 	e.dockerURL = options.DefaultDockerURL
 
@@ -86,7 +88,7 @@ type DockercfgController struct {
 	dockerURL     string
 	dockerURLLock sync.Mutex
 
-	serviceAccountCache      cache.Store
+	serviceAccountCache      MutationCache
 	serviceAccountController *framework.Controller
 
 	queue workqueue.RateLimitingInterface
@@ -210,6 +212,10 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 			serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets, api.LocalObjectReference{Name: mountableDockercfgSecrets.List()[0]})
 		}
 
+		updatedSA, err := e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		if err == nil {
+			e.serviceAccountCache.Mutation(updatedSA)
+		}
 		return err
 	}
 
@@ -218,28 +224,35 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		return err
 	}
 
-	// I saw conflicts popping up.  Need to retry at least once, I chose five at random.
 	first := true
 	err = client.RetryOnConflict(client.DefaultBackoff, func() error {
 		if !first {
-			serviceAccount, err = e.client.ServiceAccounts(serviceAccount.Namespace).Get(serviceAccount.Name)
+			obj, exists, err := e.serviceAccountCache.GetByKey(key)
 			if err != nil {
 				return err
 			}
-
-			// somehow a dockercfg secret appeared.  cleanup the secret we made and return
-			if !needsDockercfgSecret(serviceAccount) {
+			if !exists || !needsDockercfgSecret(obj.(*api.ServiceAccount)) || serviceAccount.UID != obj.(*api.ServiceAccount).UID {
+				// somehow a dockercfg secret appeared or the SA disappeared.  cleanup the secret we made and return
 				glog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
 				e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name)
 				return nil
 			}
+
+			uncastSA, err := api.Scheme.DeepCopy(obj)
+			if err != nil {
+				return err
+			}
+			serviceAccount = uncastSA.(*api.ServiceAccount)
 		}
 		first = false
 
 		serviceAccount.Secrets = append(serviceAccount.Secrets, api.ObjectReference{Name: dockercfgSecret.Name})
 		serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets, api.LocalObjectReference{Name: dockercfgSecret.Name})
 
-		_, err = e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedSA, err := e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		if err == nil {
+			e.serviceAccountCache.Mutation(updatedSA)
+		}
 		return err
 	})
 
