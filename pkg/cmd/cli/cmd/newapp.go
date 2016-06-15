@@ -639,10 +639,29 @@ func transformError(err error, commandName, commandPath string, groups errorGrou
 		return
 	case newapp.ErrMultipleMatches:
 		buf := &bytes.Buffer{}
-		for _, match := range t.Matches {
+		for i, match := range t.Matches {
+
+			// If we have more than 5 matches, stop output and recommend searching
+			// after the fifth
+			if i >= 5 {
+				groups.Add(
+					"multiple-matches",
+					heredoc.Docf(`
+						The argument %[1]q could apply to the following Docker images, OpenShift image streams, or templates:
+
+						%[2]sTo view a full list of matches, use 'oc new-app -S %[1]s'`, t.Value, buf.String(),
+					),
+					t,
+					t.Errs...,
+				)
+
+				return
+			}
+
 			fmt.Fprintf(buf, "* %s\n", match.Description)
 			fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", match.Argument)
 		}
+
 		groups.Add(
 			"multiple-matches",
 			heredoc.Docf(`
