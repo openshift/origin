@@ -37,10 +37,6 @@ type TSIG struct {
 	OtherData  string `dns:"size-hex"`
 }
 
-func (rr *TSIG) Header() *RR_Header {
-	return &rr.Hdr
-}
-
 // TSIG has no official presentation format, but this will suffice.
 
 func (rr *TSIG) String() string {
@@ -56,15 +52,6 @@ func (rr *TSIG) String() string {
 		" " + strconv.Itoa(int(rr.OtherLen)) +
 		" " + rr.OtherData
 	return s
-}
-
-func (rr *TSIG) len() int {
-	return rr.Hdr.len() + len(rr.Algorithm) + 1 + 6 +
-		4 + len(rr.MAC)/2 + 1 + 6 + len(rr.OtherData)/2 + 1
-}
-
-func (rr *TSIG) copy() RR {
-	return &TSIG{*rr.Hdr.copyHeader(), rr.Algorithm, rr.TimeSigned, rr.Fudge, rr.MACSize, rr.MAC, rr.OrigId, rr.Error, rr.OtherLen, rr.OtherData}
 }
 
 // The following values must be put in wireformat, so that the MAC can be calculated.
@@ -125,7 +112,7 @@ func TsigGenerate(m *Msg, secret, requestMAC string, timersOnly bool) ([]byte, s
 
 	t := new(TSIG)
 	var h hash.Hash
-	switch rr.Algorithm {
+	switch strings.ToLower(rr.Algorithm) {
 	case HmacMD5:
 		h = hmac.New(md5.New, []byte(rawsecret))
 	case HmacSHA1:
@@ -191,7 +178,7 @@ func TsigVerify(msg []byte, secret, requestMAC string, timersOnly bool) error {
 	}
 
 	var h hash.Hash
-	switch tsig.Algorithm {
+	switch strings.ToLower(tsig.Algorithm) {
 	case HmacMD5:
 		h = hmac.New(md5.New, rawsecret)
 	case HmacSHA1:
