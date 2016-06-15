@@ -1,0 +1,19 @@
+[Unit]
+Description=Atomic Registry Console
+Documentation=https://github.com/cockpit-project/cockpit
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=GOTRACEBACK=crash
+ExecStartPre=-/usr/bin/docker rm -f atomic-registry-console
+ExecStart=/usr/bin/docker run --rm --env-file=/etc/sysconfig/atomic-registry-console --name atomic-registry-console -p 9090:9090 --net=host -u 1001 cockpit/kubernetes
+ExecStop=/usr/bin/docker stop atomic-registry-console
+LimitNOFILE=131072
+LimitCORE=infinity
+SyslogIdentifier=atomic-registry-console
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
