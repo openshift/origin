@@ -115,6 +115,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
+	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(version.NewVersionCommand(name, true))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
@@ -172,4 +173,45 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
 	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
 	return experimental
+}
+
+const (
+	completion_long = `Output shell completion code for the given shell (bash or zsh).
+
+This command prints shell code which must be evaluation to provide interactive
+completion of kubectl commands.
+`
+	completion_example = `
+$ source <(kubectl completion bash)
+
+will load the kubectl completion code for bash. Note that this depends on the bash-completion
+framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+
+$ brew install bash-completion
+$ source $(brew --prefix)/etc/bash_completion
+$ source <(kubectl completion bash)
+
+If you use zsh, the following will load kubectl zsh completion:
+
+$ source <(kubectl completion zsh)
+`
+)
+
+func newCompletionCommand(name, fullName string) *cobra.Command {
+	out := os.Stdout
+
+	completion := &cobra.Command{
+		Use:     "completion SHELL",
+		Short:   "Output shell completion code for the given shell (bash or zsh)",
+		Long:    completion_long,
+		Example: completion_example,
+		Run: func(cmd *cobra.Command, args []string) {
+
+		},
+	}
+
+	f := clientcmd.New(completion.PersistentFlags())
+
+	return cmd.NewCmdCompletion(fullName, f, out)
+
 }

@@ -77,6 +77,8 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 				// TODO: these probably belong in a sub command
 				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out),
 				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out),
+
+				cmd.NewCmdCompletion(fullName, f, out),
 			},
 		},
 		{
