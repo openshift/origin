@@ -20,7 +20,7 @@ RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/; \
 VOLUME ["/run", "/tmp"]
 
 ## Install packages
-RUN dnf -y update && dnf -y install git golang hg tar make \
+RUN dnf -y update && dnf -y install git golang hg tar make findutils \
   hostname bind-utils iproute iputils which procps-ng openssh-server \
   # Node-specific packages
   docker openvswitch bridge-utils ethtool iptables-services \

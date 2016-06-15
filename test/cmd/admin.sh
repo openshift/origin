@@ -5,9 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 trap os::test::junit::reconcile_output EXIT
 
@@ -288,7 +286,7 @@ os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
 encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
 os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
 os::cmd::expect_success "oadm policy add-scc-to-user privileged system:serviceaccount:default:router"
-os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*-haproxy-router:'
+os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*\-haproxy\-router:'
 os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
 os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
@@ -308,7 +306,7 @@ echo "registry daemonset: ok"
 
 # Test running a registry
 os::cmd::expect_failure_and_text 'oadm registry --dry-run' 'does not exist'
-os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*-docker-registry'
+os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*\-docker\-registry'
 os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'

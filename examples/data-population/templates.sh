@@ -11,8 +11,8 @@ echo "Populating templates"
 
 export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
 
-ORIGIN_ROOT=$(dirname "${BASH_SOURCE}")/../..
-EXAMPLES_ROOT=${ORIGIN_ROOT}/examples
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+EXAMPLES_ROOT=${OS_ROOT}/examples
 
 TEMPLATES="$EXAMPLES_ROOT/db-templates
 $EXAMPLES_ROOT/sample-app/application-template-*

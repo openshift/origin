@@ -1,5 +1,5 @@
 #!/bin/bash
-source "${ORIGIN_ROOT}/contrib/node/install-sdn.sh"
+source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
 os::provision::join() {
   local IFS="$1"
