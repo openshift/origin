@@ -82,13 +82,13 @@ func defaultNamespace(value, defaultValue string) string {
 	return value
 }
 
-// BuildConfigForTag returns the buildConfig that points to the provided imageStreamTag.
-// TODO: Handle multiple buildconfigs pointing to the same tag.
-func BuildConfigForTag(g osgraph.Graph, istag graph.Node) *buildgraph.BuildConfigNode {
+// BuildConfigsForTag returns the buildConfig that points to the provided imageStreamTag.
+func BuildConfigsForTag(g osgraph.Graph, istag graph.Node) []*buildgraph.BuildConfigNode {
+	bcs := []*buildgraph.BuildConfigNode{}
 	for _, bcNode := range g.PredecessorNodesByEdgeKind(istag, BuildOutputEdgeKind) {
-		return bcNode.(*buildgraph.BuildConfigNode)
+		bcs = append(bcs, bcNode.(*buildgraph.BuildConfigNode))
 	}
-	return nil
+	return bcs
 }
 
 // GetLatestBuild returns the latest build for the provided buildConfig.
