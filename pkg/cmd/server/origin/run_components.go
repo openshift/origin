@@ -32,10 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
 	deployerpodcontroller "github.com/openshift/origin/pkg/deploy/controller/deployerpod"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
+	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
@@ -353,10 +353,10 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	controller.Run()
 }
 
-// RunDeploymentConfigChangeController starts the deployment config change controller process.
-func (c *MasterConfig) RunDeploymentConfigChangeController() {
-	osclient, kclient := c.DeploymentConfigChangeControllerClients()
-	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
+// RunDeploymentTriggerController starts the deployment trigger controller process.
+func (c *MasterConfig) RunDeploymentTriggerController() {
+	osclient, kclient := c.DeploymentTriggerControllerClients()
+	factory := triggercontroller.DeploymentTriggerControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
 		Codec:      c.EtcdHelper.Codec(),

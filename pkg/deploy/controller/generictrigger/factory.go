@@ -1,4 +1,4 @@
-package configchange
+package generictrigger
 
 import (
 	"time"
@@ -15,12 +15,10 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentConfigChangeControllerFactory can create a
-// DeploymentConfigChangeController that watches all DeploymentConfigs.
-type DeploymentConfigChangeControllerFactory struct {
+// DeploymentTriggerControllerFactory can create a DeploymentTriggerController that watches all DeploymentConfigs.
+type DeploymentTriggerControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
@@ -29,8 +27,8 @@ type DeploymentConfigChangeControllerFactory struct {
 	Codec runtime.Codec
 }
 
-// Create creates a DeploymentConfigChangeController.
-func (factory *DeploymentConfigChangeControllerFactory) Create() controller.RunnableController {
+// Create creates a DeploymentTriggerController.
+func (factory *DeploymentTriggerControllerFactory) Create() controller.RunnableController {
 	deploymentConfigLW := &cache.ListWatch{
 		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -45,13 +43,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
-	changeController := &DeploymentConfigChangeController{
-		client:  factory.Client,
-		kClient: factory.KubeClient,
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
-		},
-	}
+	triggerController := NewDeploymentTriggerController(factory.Client, factory.KubeClient, factory.Codec)
 
 	return &controller.RetryController{
 		Queue: queue,
@@ -72,7 +64,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 		),
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
-			return changeController.Handle(config)
+			return triggerController.Handle(config)
 		},
 	}
 }

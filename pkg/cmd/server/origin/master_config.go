@@ -582,8 +582,8 @@ func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *k
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// DeploymentConfigChangeControllerClients returns the deploymentConfig config change controller client objects
-func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
+// DeploymentTriggerControllerClients returns the deploymentConfig trigger controller client objects
+func (c *MasterConfig) DeploymentTriggerControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
