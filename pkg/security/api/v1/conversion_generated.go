@@ -9,7 +9,6 @@ import (
 	api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -39,9 +38,6 @@ func init() {
 }
 
 func autoConvert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSecurityPolicyReview, out *security_api.PodSecurityPolicyReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicyReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -59,9 +55,6 @@ func Convert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSe
 }
 
 func autoConvert_api_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *security_api.PodSecurityPolicyReview, out *PodSecurityPolicyReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicyReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -79,9 +72,6 @@ func Convert_api_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *secur
 }
 
 func autoConvert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(in *PodSecurityPolicyReviewSpec, out *security_api.PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicyReviewSpec))(in)
-	}
 	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -100,9 +90,6 @@ func Convert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(i
 }
 
 func autoConvert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(in *security_api.PodSecurityPolicyReviewSpec, out *PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicyReviewSpec))(in)
-	}
 	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -121,9 +108,6 @@ func Convert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(i
 }
 
 func autoConvert_v1_PodSecurityPolicyReviewStatus_To_api_PodSecurityPolicyReviewStatus(in *PodSecurityPolicyReviewStatus, out *security_api.PodSecurityPolicyReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicyReviewStatus))(in)
-	}
 	if in.AllowedServiceAccounts != nil {
 		in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
 		*out = make([]security_api.ServiceAccountPodSecurityPolicyReviewStatus, len(*in))
@@ -143,9 +127,6 @@ func Convert_v1_PodSecurityPolicyReviewStatus_To_api_PodSecurityPolicyReviewStat
 }
 
 func autoConvert_api_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyReviewStatus(in *security_api.PodSecurityPolicyReviewStatus, out *PodSecurityPolicyReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicyReviewStatus))(in)
-	}
 	if in.AllowedServiceAccounts != nil {
 		in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
 		*out = make([]ServiceAccountPodSecurityPolicyReviewStatus, len(*in))
@@ -165,9 +146,6 @@ func Convert_api_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyReviewStat
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicySelfSubjectReview, out *security_api.PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicySelfSubjectReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -185,9 +163,6 @@ func Convert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfS
 }
 
 func autoConvert_api_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicySelfSubjectReview(in *security_api.PodSecurityPolicySelfSubjectReview, out *PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicySelfSubjectReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -205,9 +180,6 @@ func Convert_api_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicySelfS
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicySelfSubjectReviewSpec(in *PodSecurityPolicySelfSubjectReviewSpec, out *security_api.PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicySelfSubjectReviewSpec))(in)
-	}
 	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -219,9 +191,6 @@ func Convert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicyS
 }
 
 func autoConvert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicySelfSubjectReviewSpec(in *security_api.PodSecurityPolicySelfSubjectReviewSpec, out *PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicySelfSubjectReviewSpec))(in)
-	}
 	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -233,9 +202,6 @@ func Convert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicyS
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubjectReview, out *security_api.PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicySubjectReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -253,9 +219,6 @@ func Convert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectRe
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubjectReview(in *security_api.PodSecurityPolicySubjectReview, out *PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicySubjectReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -273,9 +236,6 @@ func Convert_api_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubjectRe
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubjectReviewSpec(in *PodSecurityPolicySubjectReviewSpec, out *security_api.PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicySubjectReviewSpec))(in)
-	}
 	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -295,9 +255,6 @@ func Convert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubje
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubjectReviewSpec(in *security_api.PodSecurityPolicySubjectReviewSpec, out *PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicySubjectReviewSpec))(in)
-	}
 	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
 		return err
 	}
@@ -317,9 +274,6 @@ func Convert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubje
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReviewStatus_To_api_PodSecurityPolicySubjectReviewStatus(in *PodSecurityPolicySubjectReviewStatus, out *security_api.PodSecurityPolicySubjectReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PodSecurityPolicySubjectReviewStatus))(in)
-	}
 	if in.AllowedBy != nil {
 		in, out := &in.AllowedBy, &out.AllowedBy
 		*out = new(api.ObjectReference)
@@ -342,9 +296,6 @@ func Convert_v1_PodSecurityPolicySubjectReviewStatus_To_api_PodSecurityPolicySub
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolicySubjectReviewStatus(in *security_api.PodSecurityPolicySubjectReviewStatus, out *PodSecurityPolicySubjectReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.PodSecurityPolicySubjectReviewStatus))(in)
-	}
 	if in.AllowedBy != nil {
 		in, out := &in.AllowedBy, &out.AllowedBy
 		*out = new(api_v1.ObjectReference)
@@ -367,9 +318,6 @@ func Convert_api_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolicySub
 }
 
 func autoConvert_v1_ServiceAccountPodSecurityPolicyReviewStatus_To_api_ServiceAccountPodSecurityPolicyReviewStatus(in *ServiceAccountPodSecurityPolicyReviewStatus, out *security_api.ServiceAccountPodSecurityPolicyReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ServiceAccountPodSecurityPolicyReviewStatus))(in)
-	}
 	if err := Convert_v1_PodSecurityPolicySubjectReviewStatus_To_api_PodSecurityPolicySubjectReviewStatus(&in.PodSecurityPolicySubjectReviewStatus, &out.PodSecurityPolicySubjectReviewStatus, s); err != nil {
 		return err
 	}
@@ -382,9 +330,6 @@ func Convert_v1_ServiceAccountPodSecurityPolicyReviewStatus_To_api_ServiceAccoun
 }
 
 func autoConvert_api_ServiceAccountPodSecurityPolicyReviewStatus_To_v1_ServiceAccountPodSecurityPolicyReviewStatus(in *security_api.ServiceAccountPodSecurityPolicyReviewStatus, out *ServiceAccountPodSecurityPolicyReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*security_api.ServiceAccountPodSecurityPolicyReviewStatus))(in)
-	}
 	if err := Convert_api_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolicySubjectReviewStatus(&in.PodSecurityPolicySubjectReviewStatus, &out.PodSecurityPolicySubjectReviewStatus, s); err != nil {
 		return err
 	}
