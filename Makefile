@@ -133,7 +133,7 @@ endif
 # Example:
 #   make test
 test: check
-	$(MAKE) test-tools test-integration test-assets -o build
+	# $(MAKE) test-tools test-integration test-assets -o build
 	$(MAKE) test-end-to-end -o build
 .PHONY: test
 
