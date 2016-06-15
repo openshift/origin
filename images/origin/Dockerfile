@@ -31,4 +31,9 @@ ENV HOME=/root \
 VOLUME /var/lib/origin
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
+LABEL RUN docker run -d --name "origin" \
+          --privileged --net=host \
+          -v /:/rootfs:ro -v /var/run:/var/run:rw \
+          -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
+          -v /var/lib/openshift/openshift.local.volumes:/var/lib/openshift/opens
 ENTRYPOINT ["/usr/bin/openshift"]
