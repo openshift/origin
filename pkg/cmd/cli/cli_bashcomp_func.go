@@ -54,7 +54,8 @@ __custom_func() {
     case ${last_command} in
  
         # first arg is the kind according to ValidArgs, second is resource name
-        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale )
+        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale |\
+        oc_set_env | oc_set_volumes | oc_set_probes | oc_set_triggers)
             __oc_get_resource
             return
             ;;
@@ -83,9 +84,17 @@ __custom_func() {
             ;;
  
         # first arg is a build config name
-        oc_start-build | oc_cancel-build)
+        oc_start-build)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get buildconfigs
+            fi;
+            return
+            ;;
+
+        # first arg is a build name
+        oc_cancel-build)
+            if [[ ${#nouns[@]} -eq 0 ]]; then
+                __oc_parse_get build
             fi;
             return
             ;;

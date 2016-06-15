@@ -51,6 +51,15 @@ to generate the API structure for a template to which you can add parameters and
 )
 
 func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+
+	// retrieve a list of handled resources from printer as valid args
+	validArgs := []string{}
+	p, err := f.Printer(nil, false, false, false, false, false, false, []string{})
+	kcmdutil.CheckErr(err)
+	if p != nil {
+		validArgs = p.HandledResources()
+	}
+
 	exporter := &defaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
@@ -65,6 +74,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 			}
 			kcmdutil.CheckErr(err)
 		},
+		ValidArgs: validArgs,
 	}
 	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
 	cmd.Flags().Bool("exact", false, "Preserve fields that may be cluster specific, such as service portalIPs or generated names")
