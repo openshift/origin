@@ -61,9 +61,10 @@ Services intended to be managed and exposed as API Endpoints will be annotated<s
       api.service.kubernetes.io/description-path: cxfcdi/swagger.json
       api.service.kubernetes.io/description-language: SwaggerJSON
 ```
-Additionally services can further be annotated to take advantage of APIMan features: auto import/publish, and plans.  The proposed annotations are:
+Additionally, services can further be annotated to take advantage of APIMan features: auto import/publish, and plans.  The proposed annotations are:
 ```
   annotation          value description                       example
+  ----------          -----------------                       -------
   apiman.io/publish   import or publish                       publish
   apiman.io/plans     comma separated list of plan:version    gold:1.0,silver:1.1
 ```
@@ -73,33 +74,7 @@ When a service includes the annotation `apiman.io/publish`, then
 
 Plans are a pre-configured policy chain that is defined for a project.  Upon service import, APIMan will look for the `apiman.io/plans` annotation. 
 - If this annotation is not available or no plan is specified, the API will be set to 'Public'
-- If plans are specific then they are applied to the API and the plan `version` will default to 1.0, unless specified.
-
-
-### OpenShift CLI Modifications
-The following changes are stretch goals for the initial release.  The OpenShift client binary will be updated to allow a user to:
-
- * Expose a service as an API endpoint
- * Hide an API endpoint.  
-
-Executing the command will update the service's annotations as described in the service annotation section.  Proposed syntax:
-
-``` oc set api-service SERVICENAME ```
-
-  with override options and the defaults:
-  
-```  
-    --protocol               REST
-    --scheme                 https
-    --path                   ""
-    --description-path       swagger.json
-    --description-language   SwaggerJSON
-```
-  Identifying a service as an API endpoint will additionally create a named route for the service that has the same route host as that of API Gateway.  The output of the command should return a route to the service.
-
-Hiding an API endpoint will remove the annotations from a service.  The change will additionally cause APIMan to remove this service endpoint.  Possible usage syntax:
-
-```oc unset api-service SERVICENAME```
+- If plans are provided, they are applied to the API and the plan `version` will default to 1.0, unless specified.
 
 ### OpenShift Web Console UI Extension
 A custom extension<sup>[6](#r6)</sup> will be created and deployed with the OpenShift web console to support API endpoints.  The extension will allow a user to navigate to the APIMan management interface to:
@@ -114,7 +89,7 @@ The extension will provide the following details to the APIMan management interf
 * User's Oauth token
 * Back link to the openshift web console
 
-Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration and the auth proxy<sup>[8](#r8)</sup>.  It is necessary for security reasons to not add the token as a query parameter.  
+Calls from the extension to the APIMan management interface will utilize a REST POST call where the oauth token is part of the payload.  It will utilize a similiar design<sup>[7](#r7)</sup> that is realized by the OpenShift origin aggregated logging integration.  It is necessary for security reasons to not add the token as a query parameter.  
 
 ### APIMan Gateway
 The APIMan gateway will be deployed as a cluster-wide infrastructure component to handle services exposed as API endpoints.  Internal and external clients will use the gateway to access APIs.  Admins can configure the cluster to limit direct access to services and require consumers of API endpoints to utilize the gateway by deploying the multi-tenant SDN plugin.  This plugin controls service to service communication between projects and will force traffic through the gateway.  A route will be created as a well known endpoint to the APIMan gateway through which all API services traffic will flow.
@@ -124,7 +99,7 @@ The details of service authentication and consumption depend upon the type (i.e 
 
 ## Concerns
 ### Scalability
-There is a concern that utilizing ElasticSearch for storage is not as well understood as other options (e.g Postgresql).  Additionally, performance testing will need to be conducted to confirm the impact of adding a second, small ElasticSearch cluster to the infrastructure.  An alternative solution is to deploy a different storage engine which is better understood, has a smaller resource footprint but introduces scaling challenges.  APIMan can also generate metrics data which impacts its storage requirements; metrics could be off-loaded to the existing origin metrics<sup>[9](#r9)</sup> solution.  There is an existing RFE to investigate this change.  APIMan will initially be deployed with metrics disabled to minimize its storage requirements.
+There is a concern that utilizing ElasticSearch for storage is not as well understood as other options (e.g Postgresql).  Additionally, performance testing will need to be conducted to confirm the impact of adding a second, small ElasticSearch cluster to the infrastructure.  An alternative solution is to deploy a different storage engine which is better understood, has a smaller resource footprint but introduces scaling challenges.  APIMan can also generate metrics data which impacts its storage requirements; metrics could be off-loaded to the existing origin metrics<sup>[8](#r8)</sup> solution.  There is an existing RFE to investigate this change.  APIMan will initially be deployed with metrics disabled to minimize its storage requirements.
 
 ### Certificates
 This proposal provides a deployer component to handle CA and client certificates similiar to what is provided as with origin metrics and aggregated logging.  The same concerns that affect aggregated logging and metrics apply to APIMan: certificate expiration, certificate generation, etc.
@@ -140,5 +115,4 @@ We need to better understand and document how placing the APIMan gateway behind 
 * <span id="r5">[5]</span> Service Discovery - https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/service-discovery.md
 * <span id="r6">[6]</span> Web Console Extensions - https://docs.openshift.org/latest/install_config/web_console_customization.html
 * <span id="r7">[7]</span> Kibana API Discovery - https://github.com/openshift/origin/blob/master/assets/app/scripts/directives/logViewer.js#L337
-* <span id="r8">[8]</span> OpenShift Auth Proxy - https://github.com/fabric8io/openshift-auth-proxy
-* <span id="r9">[9]</span> Origin Metrics - https://github.com/openshift/origin-metrics
+* <span id="r8">[8]</span> Origin Metrics - https://github.com/openshift/origin-metrics
