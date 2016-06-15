@@ -19,7 +19,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"

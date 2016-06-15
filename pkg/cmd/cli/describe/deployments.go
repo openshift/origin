@@ -45,7 +45,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 }
 
 // Describe returns the description of a DeploymentConfig
-func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
+func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	var deploymentConfig *deployapi.DeploymentConfig
 	if d.config != nil {
 		// If a deployment config is already provided use that.

@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/coreos/go-systemd/dbus"
 	rktapi "github.com/coreos/rkt/api/v1alpha"
@@ -78,7 +79,7 @@ func (f *fakeRktInterface) InspectPod(ctx context.Context, in *rktapi.InspectPod
 			return &rktapi.InspectPodResponse{Pod: pod}, f.err
 		}
 	}
-	return &rktapi.InspectPodResponse{Pod: nil}, f.err
+	return &rktapi.InspectPodResponse{}, fmt.Errorf("pod %q not found", in.Id)
 }
 
 func (f *fakeRktInterface) ListImages(ctx context.Context, in *rktapi.ListImagesRequest, opts ...grpc.CallOption) (*rktapi.ListImagesResponse, error) {
@@ -163,6 +164,10 @@ func (f *fakeRuntimeHelper) GetClusterDNS(pod *api.Pod) ([]string, []string, err
 	return f.dnsServers, f.dnsSearches, f.err
 }
 
-func (f *fakeRuntimeHelper) GeneratePodHostNameAndDomain(pod *api.Pod) (string, string) {
-	return f.hostName, f.hostDomain
+func (f *fakeRuntimeHelper) GeneratePodHostNameAndDomain(pod *api.Pod) (string, string, error) {
+	return f.hostName, f.hostDomain, nil
+}
+
+func (f *fakeRuntimeHelper) GetPodDir(podUID types.UID) string {
+	return "/poddir/" + string(podUID)
 }

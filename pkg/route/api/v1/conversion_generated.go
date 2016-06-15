@@ -10,7 +10,6 @@ import (
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -40,9 +39,6 @@ func init() {
 }
 
 func autoConvert_v1_Route_To_api_Route(in *Route, out *route_api.Route, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Route))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -64,9 +60,6 @@ func Convert_v1_Route_To_api_Route(in *Route, out *route_api.Route, s conversion
 }
 
 func autoConvert_api_Route_To_v1_Route(in *route_api.Route, out *Route, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.Route))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -88,9 +81,6 @@ func Convert_api_Route_To_v1_Route(in *route_api.Route, out *Route, s conversion
 }
 
 func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *route_api.RouteIngress, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteIngress))(in)
-	}
 	out.Host = in.Host
 	out.RouterName = in.RouterName
 	if in.Conditions != nil {
@@ -112,9 +102,6 @@ func Convert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *route_ap
 }
 
 func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *route_api.RouteIngress, out *RouteIngress, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteIngress))(in)
-	}
 	out.Host = in.Host
 	out.RouterName = in.RouterName
 	if in.Conditions != nil {
@@ -136,9 +123,6 @@ func Convert_api_RouteIngress_To_v1_RouteIngress(in *route_api.RouteIngress, out
 }
 
 func autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *RouteIngressCondition, out *route_api.RouteIngressCondition, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteIngressCondition))(in)
-	}
 	out.Type = route_api.RouteIngressConditionType(in.Type)
 	out.Status = api.ConditionStatus(in.Status)
 	out.Reason = in.Reason
@@ -160,9 +144,6 @@ func Convert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *RouteIngr
 }
 
 func autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *route_api.RouteIngressCondition, out *RouteIngressCondition, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteIngressCondition))(in)
-	}
 	out.Type = RouteIngressConditionType(in.Type)
 	out.Status = api_v1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
@@ -184,9 +165,6 @@ func Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *route_api
 }
 
 func autoConvert_v1_RouteList_To_api_RouteList(in *RouteList, out *route_api.RouteList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -212,9 +190,6 @@ func Convert_v1_RouteList_To_api_RouteList(in *RouteList, out *route_api.RouteLi
 }
 
 func autoConvert_api_RouteList_To_v1_RouteList(in *route_api.RouteList, out *RouteList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -240,9 +215,6 @@ func Convert_api_RouteList_To_v1_RouteList(in *route_api.RouteList, out *RouteLi
 }
 
 func autoConvert_v1_RoutePort_To_api_RoutePort(in *RoutePort, out *route_api.RoutePort, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RoutePort))(in)
-	}
 	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
 		return err
 	}
@@ -254,9 +226,6 @@ func Convert_v1_RoutePort_To_api_RoutePort(in *RoutePort, out *route_api.RoutePo
 }
 
 func autoConvert_api_RoutePort_To_v1_RoutePort(in *route_api.RoutePort, out *RoutePort, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RoutePort))(in)
-	}
 	if err := api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
 		return err
 	}
@@ -268,9 +237,7 @@ func Convert_api_RoutePort_To_v1_RoutePort(in *route_api.RoutePort, out *RoutePo
 }
 
 func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteSpec))(in)
-	}
+	SetDefaults_RouteSpec(in)
 	out.Host = in.Host
 	out.Path = in.Path
 	// TODO: Inefficient conversion - can we improve it?
@@ -303,9 +270,6 @@ func Convert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSp
 }
 
 func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *RouteSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteSpec))(in)
-	}
 	out.Host = in.Host
 	out.Path = in.Path
 	// TODO: Inefficient conversion - can we improve it?
@@ -338,9 +302,6 @@ func Convert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *RouteSp
 }
 
 func autoConvert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *route_api.RouteStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouteStatus))(in)
-	}
 	if in.Ingress != nil {
 		in, out := &in.Ingress, &out.Ingress
 		*out = make([]route_api.RouteIngress, len(*in))
@@ -360,9 +321,6 @@ func Convert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *route_api.R
 }
 
 func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *route_api.RouteStatus, out *RouteStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouteStatus))(in)
-	}
 	if in.Ingress != nil {
 		in, out := &in.Ingress, &out.Ingress
 		*out = make([]RouteIngress, len(*in))
@@ -382,9 +340,6 @@ func Convert_api_RouteStatus_To_v1_RouteStatus(in *route_api.RouteStatus, out *R
 }
 
 func autoConvert_v1_RouterShard_To_api_RouterShard(in *RouterShard, out *route_api.RouterShard, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RouterShard))(in)
-	}
 	out.ShardName = in.ShardName
 	out.DNSSuffix = in.DNSSuffix
 	return nil
@@ -395,9 +350,6 @@ func Convert_v1_RouterShard_To_api_RouterShard(in *RouterShard, out *route_api.R
 }
 
 func autoConvert_api_RouterShard_To_v1_RouterShard(in *route_api.RouterShard, out *RouterShard, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.RouterShard))(in)
-	}
 	out.ShardName = in.ShardName
 	out.DNSSuffix = in.DNSSuffix
 	return nil
@@ -408,9 +360,7 @@ func Convert_api_RouterShard_To_v1_RouterShard(in *route_api.RouterShard, out *R
 }
 
 func autoConvert_v1_TLSConfig_To_api_TLSConfig(in *TLSConfig, out *route_api.TLSConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*TLSConfig))(in)
-	}
+	SetDefaults_TLSConfig(in)
 	out.Termination = route_api.TLSTerminationType(in.Termination)
 	out.Certificate = in.Certificate
 	out.Key = in.Key
@@ -425,9 +375,6 @@ func Convert_v1_TLSConfig_To_api_TLSConfig(in *TLSConfig, out *route_api.TLSConf
 }
 
 func autoConvert_api_TLSConfig_To_v1_TLSConfig(in *route_api.TLSConfig, out *TLSConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*route_api.TLSConfig))(in)
-	}
 	out.Termination = TLSTerminationType(in.Termination)
 	out.Certificate = in.Certificate
 	out.Key = in.Key

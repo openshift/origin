@@ -90,7 +90,7 @@ func packageForGroup(gv unversioned.GroupVersion, typeList []*types.Type, packag
 						OptionalName: strings.ToLower(c.Namers["private"].Name(t)),
 					},
 					outputPackage: outputPackagePath,
-					group:         gv.Group,
+					group:         normalization.BeforeFirstDot(gv.Group),
 					typeToMatch:   t,
 					imports:       generator.NewImportTracker(),
 				})
@@ -98,10 +98,11 @@ func packageForGroup(gv unversioned.GroupVersion, typeList []*types.Type, packag
 
 			generators = append(generators, &genGroup{
 				DefaultGen: generator.DefaultGen{
-					OptionalName: gv.Group + "_client",
+					OptionalName: normalization.BeforeFirstDot(gv.Group) + "_client",
 				},
 				outputPackage: outputPackagePath,
 				group:         gv.Group,
+				version:       gv.Version,
 				types:         typeList,
 				imports:       generator.NewImportTracker(),
 			})
@@ -197,7 +198,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		return generator.Packages(packageList)
 	}
 
-	orderer := namer.Orderer{namer.NewPrivateNamer(0)}
+	orderer := namer.Orderer{Namer: namer.NewPrivateNamer(0)}
 	for _, gv := range customArgs.GroupVersions {
 		types := gvToTypes[gv]
 		packageList = append(packageList, packageForGroup(normalization.GroupVersion(gv), orderer.OrderTypes(types), typedClientBasePath, arguments.OutputBase, boilerplate, generatedBy))

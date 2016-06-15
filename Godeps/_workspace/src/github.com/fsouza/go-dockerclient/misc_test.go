@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"sort"
 	"testing"
 )
 
@@ -71,32 +70,29 @@ func TestInfo(t *testing.T) {
 	body := `{
      "Containers":11,
      "Images":16,
-     "Debug":0,
+     "Debug":false,
      "NFd":11,
      "NGoroutines":21,
-     "MemoryLimit":1,
-     "SwapLimit":0
+     "MemoryLimit":true,
+     "SwapLimit":false
 }`
 	fakeRT := FakeRoundTripper{message: body, status: http.StatusOK}
 	client := newTestClient(&fakeRT)
-	expected := Env{}
-	expected.SetInt("Containers", 11)
-	expected.SetInt("Images", 16)
-	expected.SetBool("Debug", false)
-	expected.SetInt("NFd", 11)
-	expected.SetInt("NGoroutines", 21)
-	expected.SetBool("MemoryLimit", true)
-	expected.SetBool("SwapLimit", false)
+	expected := &DockerInfo{
+		Containers:  11,
+		Images:      16,
+		Debug:       false,
+		NFd:         11,
+		NGoroutines: 21,
+		MemoryLimit: true,
+		SwapLimit:   false,
+	}
 	info, err := client.Info()
 	if err != nil {
 		t.Fatal(err)
 	}
-	infoSlice := []string(*info)
-	expectedSlice := []string(expected)
-	sort.Strings(infoSlice)
-	sort.Strings(expectedSlice)
-	if !reflect.DeepEqual(expectedSlice, infoSlice) {
-		t.Errorf("Info(): Wrong result.\nWant %#v.\nGot %#v.", expected, *info)
+	if !reflect.DeepEqual(expected, info) {
+		t.Errorf("Info(): Wrong result.\nWant %#v.\nGot %#v.", expected, info)
 	}
 	req := fakeRT.requests[0]
 	if req.Method != "GET" {

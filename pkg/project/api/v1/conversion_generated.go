@@ -9,7 +9,6 @@ import (
 	api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -31,9 +30,6 @@ func init() {
 }
 
 func autoConvert_v1_Project_To_api_Project(in *Project, out *project_api.Project, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Project))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -55,9 +51,6 @@ func Convert_v1_Project_To_api_Project(in *Project, out *project_api.Project, s 
 }
 
 func autoConvert_api_Project_To_v1_Project(in *project_api.Project, out *Project, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*project_api.Project))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -79,9 +72,6 @@ func Convert_api_Project_To_v1_Project(in *project_api.Project, out *Project, s 
 }
 
 func autoConvert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *project_api.ProjectList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ProjectList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -107,9 +97,6 @@ func Convert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *project_api
 }
 
 func autoConvert_api_ProjectList_To_v1_ProjectList(in *project_api.ProjectList, out *ProjectList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*project_api.ProjectList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -135,9 +122,6 @@ func Convert_api_ProjectList_To_v1_ProjectList(in *project_api.ProjectList, out 
 }
 
 func autoConvert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *project_api.ProjectRequest, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ProjectRequest))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -155,9 +139,6 @@ func Convert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *pr
 }
 
 func autoConvert_api_ProjectRequest_To_v1_ProjectRequest(in *project_api.ProjectRequest, out *ProjectRequest, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*project_api.ProjectRequest))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -175,9 +156,6 @@ func Convert_api_ProjectRequest_To_v1_ProjectRequest(in *project_api.ProjectRequ
 }
 
 func autoConvert_v1_ProjectSpec_To_api_ProjectSpec(in *ProjectSpec, out *project_api.ProjectSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ProjectSpec))(in)
-	}
 	if in.Finalizers != nil {
 		in, out := &in.Finalizers, &out.Finalizers
 		*out = make([]api.FinalizerName, len(*in))
@@ -195,9 +173,6 @@ func Convert_v1_ProjectSpec_To_api_ProjectSpec(in *ProjectSpec, out *project_api
 }
 
 func autoConvert_api_ProjectSpec_To_v1_ProjectSpec(in *project_api.ProjectSpec, out *ProjectSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*project_api.ProjectSpec))(in)
-	}
 	if in.Finalizers != nil {
 		in, out := &in.Finalizers, &out.Finalizers
 		*out = make([]api_v1.FinalizerName, len(*in))
@@ -215,9 +190,6 @@ func Convert_api_ProjectSpec_To_v1_ProjectSpec(in *project_api.ProjectSpec, out 
 }
 
 func autoConvert_v1_ProjectStatus_To_api_ProjectStatus(in *ProjectStatus, out *project_api.ProjectStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ProjectStatus))(in)
-	}
 	out.Phase = api.NamespacePhase(in.Phase)
 	return nil
 }
@@ -227,9 +199,6 @@ func Convert_v1_ProjectStatus_To_api_ProjectStatus(in *ProjectStatus, out *proje
 }
 
 func autoConvert_api_ProjectStatus_To_v1_ProjectStatus(in *project_api.ProjectStatus, out *ProjectStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*project_api.ProjectStatus))(in)
-	}
 	out.Phase = api_v1.NamespacePhase(in.Phase)
 	return nil
 }

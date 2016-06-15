@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -24,6 +25,10 @@ type FakeClientConfig struct {
 	NS       string
 	Explicit bool
 	Err      error
+}
+
+func (c *FakeClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return nil
 }
 
 // RawConfig returns the merged result of all overrides

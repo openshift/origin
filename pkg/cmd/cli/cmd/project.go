@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -26,7 +26,7 @@ type ProjectOptions struct {
 	ClientConfig *restclient.Config
 	ClientFn     func() (*client.Client, error)
 	Out          io.Writer
-	PathOptions  *kubecmdconfig.PathOptions
+	PathOptions  *kclientcmd.PathOptions
 
 	ProjectName  string
 	ProjectOnly  bool
@@ -238,7 +238,7 @@ func (o ProjectOptions) RunProject() error {
 		contextInUse = merged.CurrentContext
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config, true); err != nil {
+	if err := kclientcmd.ModifyConfig(o.PathOptions, config, true); err != nil {
 		return err
 	}
 

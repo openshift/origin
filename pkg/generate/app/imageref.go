@@ -385,7 +385,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 			}
 
 			container.Ports = append(container.Ports, kapi.ContainerPort{
-				ContainerPort: port,
+				ContainerPort: int32(port),
 				Protocol:      kapi.Protocol(strings.ToUpper(p.Proto())),
 			})
 		}

@@ -249,7 +249,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		inputImage.ContainerFn = func(c *kapi.Container) {
 			for _, s := range ports {
 				if port, err := strconv.Atoi(s); err == nil {
-					c.Ports = append(c.Ports, kapi.ContainerPort{ContainerPort: port})
+					c.Ports = append(c.Ports, kapi.ContainerPort{ContainerPort: int32(port)})
 				}
 			}
 			if len(formation.Command) > 0 {

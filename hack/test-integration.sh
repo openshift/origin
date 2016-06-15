@@ -65,6 +65,9 @@ os::log::start_system_logger
 function exectest() {
 	echo "Running $1..."
 
+	export TEST_ETCD_DIR="${TMPDIR:-/tmp}/etcd-${1}"
+	rm -fr "${TEST_ETCD_DIR}"
+	mkdir -p "${TEST_ETCD_DIR}"
 	result=1
 	if [ -n "${DEBUG-}" ]; then
 		dlv exec "${testexec}" -- -test.run="^$1$" "${@:2}"
@@ -82,6 +85,8 @@ function exectest() {
 
 	if [[ ${result} -eq 0 ]]; then
 		os::text::print_green "ok      $1"
+		# Remove the etcd directory to cleanup the space.
+		rm -rf "${TEST_ETCD_DIR}"
 		exit 0
 	else
 		os::text::print_red "failed  $1"

@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -146,7 +147,7 @@ func (o *ImportImageOptions) Run() error {
 
 		// optimization, use the image stream returned by the call
 		d := describe.ImageStreamDescriber{Interface: o.osClient}
-		info, err := d.Describe(o.Namespace, stream.Name)
+		info, err := d.Describe(o.Namespace, stream.Name, kctl.DescriberSettings{})
 		if err != nil {
 			return err
 		}
@@ -191,7 +192,7 @@ func (o *ImportImageOptions) Run() error {
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
 	d := describe.ImageStreamDescriber{Interface: o.osClient}
-	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)
+	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kctl.DescriberSettings{})
 	if err != nil {
 		return err
 	}

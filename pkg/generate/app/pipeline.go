@@ -320,7 +320,7 @@ func UniqueContainerToServicePorts(ports []kapi.ContainerPort) []kapi.ServicePor
 	var result []kapi.ServicePort
 	svcPorts := map[string]struct{}{}
 	for _, p := range ports {
-		name := portName(p.ContainerPort, p.Protocol)
+		name := portName(int(p.ContainerPort), p.Protocol)
 		_, exists := svcPorts[name]
 		if exists {
 			continue
@@ -330,7 +330,7 @@ func UniqueContainerToServicePorts(ports []kapi.ContainerPort) []kapi.ServicePor
 			Name:       name,
 			Port:       p.ContainerPort,
 			Protocol:   p.Protocol,
-			TargetPort: intstr.FromInt(p.ContainerPort),
+			TargetPort: intstr.FromInt(int(p.ContainerPort)),
 		})
 	}
 	return result

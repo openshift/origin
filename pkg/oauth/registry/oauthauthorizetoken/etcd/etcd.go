@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
@@ -23,7 +23,7 @@ import (
 // rest implements a RESTStorage for authorize tokens against etcd
 type REST struct {
 	// Cannot inline because we don't want the Update function
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 const EtcdPrefix = "/oauth/authorizetokens"
@@ -31,7 +31,7 @@ const EtcdPrefix = "/oauth/authorizetokens"
 // NewREST returns a RESTStorage object that will work against authorize tokens
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {

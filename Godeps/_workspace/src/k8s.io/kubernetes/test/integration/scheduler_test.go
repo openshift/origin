@@ -58,8 +58,7 @@ func TestUnschedulableNodes(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		m.Handler.ServeHTTP(w, req)
 	}))
-	// TODO: Uncomment when fix #19254
-	// defer s.Close()
+	defer s.Close()
 
 	masterConfig := framework.NewIntegrationTestMasterConfig()
 	m, err := master.New(masterConfig)
@@ -69,7 +68,7 @@ func TestUnschedulableNodes(t *testing.T) {
 
 	restClient := client.NewOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
-	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName)
+	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName, api.DefaultHardPodAffinitySymmetricWeight, api.DefaultFailureDomains)
 	schedulerConfig, err := schedulerConfigFactory.Create()
 	if err != nil {
 		t.Fatalf("Couldn't create scheduler config: %v", err)
@@ -233,7 +232,7 @@ func DoTestUnschedulableNodes(t *testing.T, restClient *client.Client, nodeStore
 		pod := &api.Pod{
 			ObjectMeta: api.ObjectMeta{Name: "node-scheduling-test-pod"},
 			Spec: api.PodSpec{
-				Containers: []api.Container{{Name: "container", Image: "kubernetes/pause:go"}},
+				Containers: []api.Container{{Name: "container", Image: "gcr.io/google_containers/pause-amd64:3.0"}},
 			},
 		}
 		myPod, err := restClient.Pods(api.NamespaceDefault).Create(pod)
@@ -316,7 +315,7 @@ func TestMultiScheduler(t *testing.T) {
 	// 1. create and start default-scheduler
 	restClient := client.NewOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
-	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName)
+	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName, api.DefaultHardPodAffinitySymmetricWeight, api.DefaultFailureDomains)
 	schedulerConfig, err := schedulerConfigFactory.Create()
 	if err != nil {
 		t.Fatalf("Couldn't create scheduler config: %v", err)
@@ -387,7 +386,7 @@ func TestMultiScheduler(t *testing.T) {
 	// 5. create and start a scheduler with name "foo-scheduler"
 	restClient2 := client.NewOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
-	schedulerConfigFactory2 := factory.NewConfigFactory(restClient2, "foo-scheduler")
+	schedulerConfigFactory2 := factory.NewConfigFactory(restClient2, "foo-scheduler", api.DefaultHardPodAffinitySymmetricWeight, api.DefaultFailureDomains)
 	schedulerConfig2, err := schedulerConfigFactory2.Create()
 	if err != nil {
 		t.Errorf("Couldn't create scheduler config: %v", err)
@@ -461,7 +460,7 @@ func createPod(name string, annotation map[string]string) *api.Pod {
 	return &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: name, Annotations: annotation},
 		Spec: api.PodSpec{
-			Containers: []api.Container{{Name: "container", Image: "kubernetes/pause:go"}},
+			Containers: []api.Container{{Name: "container", Image: "gcr.io/google_containers/pause-amd64:3.0"}},
 		},
 	}
 }
@@ -485,7 +484,7 @@ func TestAllocatable(t *testing.T) {
 	// 1. create and start default-scheduler
 	restClient := client.NewOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
-	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName)
+	schedulerConfigFactory := factory.NewConfigFactory(restClient, api.DefaultSchedulerName, api.DefaultHardPodAffinitySymmetricWeight, api.DefaultFailureDomains)
 	schedulerConfig, err := schedulerConfigFactory.Create()
 	if err != nil {
 		t.Fatalf("Couldn't create scheduler config: %v", err)
@@ -522,7 +521,7 @@ func TestAllocatable(t *testing.T) {
 			Containers: []api.Container{
 				{
 					Name:  "container",
-					Image: "kubernetes/pause:go",
+					Image: "gcr.io/google_containers/pause-amd64:3.0",
 					Resources: api.ResourceRequirements{
 						Requests: api.ResourceList{
 							api.ResourceCPU:    *resource.NewMilliQuantity(20, resource.DecimalSI),

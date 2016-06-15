@@ -61,7 +61,8 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		//a different namespace.
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
-			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"), err, "label could not be applied"))
+			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
+				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
 		template.Objects[i] = newItem
 	}
@@ -71,7 +72,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 
 func stripNamespace(obj runtime.Object) {
 	// Remove namespace from the item
-	if itemMeta, err := meta.Accessor(obj); err == nil {
+	if itemMeta, err := meta.Accessor(obj); err == nil && len(itemMeta.GetNamespace()) > 0 {
 		itemMeta.SetNamespace("")
 		return
 	}

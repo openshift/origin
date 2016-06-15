@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -83,7 +84,7 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false)
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)
 
 	return &MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},

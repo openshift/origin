@@ -137,7 +137,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdLogs(cmd.LogsRecommendedName, fullName, f, out),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
-				cmd.NewCmdPortForward(fullName, f),
+				cmd.NewCmdPortForward(fullName, f, out, errout),
 				cmd.NewCmdDebug(fullName, f, in, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdProxy(fullName, f, out),

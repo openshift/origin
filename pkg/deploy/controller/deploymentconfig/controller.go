@@ -186,8 +186,8 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		// The active/latest deployment follows the config unless this is its first
 		// sync or if an external change to the deployment replicas is detected.
 		lastActiveReplicas, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
-		if !hasLastActiveReplicas || lastActiveReplicas != activeDeployment.Spec.Replicas {
-			activeReplicas = activeDeployment.Spec.Replicas
+		if !hasLastActiveReplicas || lastActiveReplicas != int(activeDeployment.Spec.Replicas) {
+			activeReplicas = int(activeDeployment.Spec.Replicas)
 			source = fmt.Sprintf("the latest/active deployment %q which was scaled directly or has not previously been synced", deployutil.LabelForDeployment(activeDeployment))
 		}
 	case activeDeploymentExists && !activeDeploymentIsLatest:
@@ -203,7 +203,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			activeReplicas = latestDesiredReplicas
 			source = fmt.Sprintf("the desired replicas of latest deployment %q which has not been previously synced", deployutil.LabelForDeployment(latestDeployment))
 		} else if activeDeployment.Spec.Replicas > 0 {
-			activeReplicas = activeDeployment.Spec.Replicas
+			activeReplicas = int(activeDeployment.Spec.Replicas)
 			source = fmt.Sprintf("the active deployment %q which has not been previously synced", deployutil.LabelForDeployment(activeDeployment))
 		}
 	case !activeDeploymentExists && latestHasDesiredReplicas:
@@ -238,7 +238,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	for _, deployment := range existingDeployments.Items {
 		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
 
-		oldReplicaCount := deployment.Spec.Replicas
+		oldReplicaCount := int(deployment.Spec.Replicas)
 		newReplicaCount := 0
 		if isActiveDeployment {
 			newReplicaCount = activeReplicas
@@ -250,7 +250,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
-			deployment.Spec.Replicas = newReplicaCount
+			deployment.Spec.Replicas = int32(newReplicaCount)
 			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(newReplicaCount)
 			_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err != nil {

@@ -42,6 +42,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apimachinery"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -102,8 +103,6 @@ type Factory struct {
 	HistoryViewer func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error)
 	// Returns a Rollbacker for changing the rollback version of the specified RESTMapping type or an error
 	Rollbacker func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error)
-	// PodSelectorForObject returns the pod selector associated with the provided object
-	PodSelectorForObject func(object runtime.Object) (string, error)
 	// MapBasedSelectorForObject returns the map-based selector associated with the provided object. If a
 	// new set-based selector is provided, an error is returned if the selector cannot be converted to a
 	// map-based selector
@@ -320,6 +319,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return c.AutoscalingClient.RESTClient, nil
 			case batch.GroupName:
 				return c.BatchClient.RESTClient, nil
+			case apps.GroupName:
+				return c.AppsClient.RESTClient, nil
 			case extensions.GroupName:
 				return c.ExtensionsClient.RESTClient, nil
 			case api.SchemeGroupVersion.Group:
@@ -364,41 +365,6 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, showLabels bool, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 			return kubectl.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, showLabels, absoluteTimestamps, columnLabels), nil
 		},
-		PodSelectorForObject: func(object runtime.Object) (string, error) {
-			// TODO: replace with a swagger schema based approach (identify pod selector via schema introspection)
-			switch t := object.(type) {
-			case *api.ReplicationController:
-				return kubectl.MakeLabels(t.Spec.Selector), nil
-			case *api.Pod:
-				if len(t.Labels) == 0 {
-					return "", fmt.Errorf("the pod has no labels and cannot be exposed")
-				}
-				return kubectl.MakeLabels(t.Labels), nil
-			case *api.Service:
-				if t.Spec.Selector == nil {
-					return "", fmt.Errorf("the service has no pod selector set")
-				}
-				return kubectl.MakeLabels(t.Spec.Selector), nil
-			case *extensions.Deployment:
-				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
-				if err != nil {
-					return "", fmt.Errorf("invalid label selector: %v", err)
-				}
-				return selector.String(), nil
-			case *extensions.ReplicaSet:
-				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
-				if err != nil {
-					return "", fmt.Errorf("failed to convert label selector to selector: %v", err)
-				}
-				return selector.String(), nil
-			default:
-				gvk, err := api.Scheme.ObjectKind(object)
-				if err != nil {
-					return "", err
-				}
-				return "", fmt.Errorf("cannot extract pod selector from %v", gvk)
-			}
-		},
 		MapBasedSelectorForObject: func(object runtime.Object) (string, error) {
 			// TODO: replace with a swagger schema based approach (identify pod selector via schema introspection)
 			switch t := object.(type) {
@@ -418,14 +384,14 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				// TODO(madhusudancs): Make this smarter by admitting MatchExpressions with Equals
 				// operator, DoubleEquals operator and In operator with only one element in the set.
 				if len(t.Spec.Selector.MatchExpressions) > 0 {
-					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format")
+					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format", t.Spec.Selector.MatchExpressions)
 				}
 				return kubectl.MakeLabels(t.Spec.Selector.MatchLabels), nil
 			case *extensions.ReplicaSet:
 				// TODO(madhusudancs): Make this smarter by admitting MatchExpressions with Equals
 				// operator, DoubleEquals operator and In operator with only one element in the set.
 				if len(t.Spec.Selector.MatchExpressions) > 0 {
-					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format")
+					return "", fmt.Errorf("couldn't convert expressions - \"%+v\" to map-based selector format", t.Spec.Selector.MatchExpressions)
 				}
 				return kubectl.MakeLabels(t.Spec.Selector.MatchLabels), nil
 			default:
@@ -669,7 +635,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
 				pod, _, err := GetFirstPod(client, t.Namespace, selector, 1*time.Minute, sortBy)
 				return pod, err
-			case *extensions.Job:
+			case *batch.Job:
 				selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
 				if err != nil {
 					return nil, fmt.Errorf("invalid label selector: %v", err)
@@ -712,30 +678,26 @@ func GetFirstPod(client client.Interface, namespace string, selector labels.Sele
 		return pods[0], len(podList.Items), nil
 	}
 
-	// Watch for ready pods.
+	// Watch until we observe a pod
 	options.ResourceVersion = podList.ResourceVersion
 	w, err := client.Pods(namespace).Watch(options)
 	if err != nil {
-		return nil, len(podList.Items), err
+		return nil, 0, err
 	}
 	defer w.Stop()
 
 	condition := func(event watch.Event) (bool, error) {
-		pod, ok := event.Object.(*api.Pod)
-		if !ok {
-			return false, fmt.Errorf("%#v is not a pod event", event)
-		}
-		return api.IsPodReady(pod), nil
+		return event.Type == watch.Added || event.Type == watch.Modified, nil
 	}
 	event, err := watch.Until(timeout, w, condition)
 	if err != nil {
-		return nil, len(podList.Items), err
+		return nil, 0, err
 	}
 	pod, ok := event.Object.(*api.Pod)
 	if !ok {
-		return nil, len(podList.Items), fmt.Errorf("%#v is not a pod event", event)
+		return nil, 0, fmt.Errorf("%#v is not a pod event", event)
 	}
-	return pod, len(podList.Items), nil
+	return pod, 1, nil
 }
 
 // Command will stringify and return all environment arguments ie. a command run by a client
@@ -776,7 +738,7 @@ func getPorts(spec api.PodSpec) []string {
 	result := []string{}
 	for _, container := range spec.Containers {
 		for _, port := range container.Ports {
-			result = append(result, strconv.Itoa(port.ContainerPort))
+			result = append(result, strconv.Itoa(int(port.ContainerPort)))
 		}
 	}
 	return result
@@ -786,7 +748,7 @@ func getPorts(spec api.PodSpec) []string {
 func getServicePorts(spec api.ServiceSpec) []string {
 	result := []string{}
 	for _, servicePort := range spec.Ports {
-		result = append(result, strconv.Itoa(servicePort.Port))
+		result = append(result, strconv.Itoa(int(servicePort.Port)))
 	}
 	return result
 }
@@ -928,6 +890,13 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 		}
 		return getSchemaAndValidate(c.c.AutoscalingClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
 	}
+	if gvk.Group == apps.GroupName {
+		if c.c.AppsClient == nil {
+			return errors.New("unable to validate: no autoscaling client")
+		}
+		return getSchemaAndValidate(c.c.AppsClient.RESTClient, data, "apis/", gvk.GroupVersion().String(), c.cacheDir)
+	}
+
 	if gvk.Group == batch.GroupName {
 		if c.c.BatchClient == nil {
 			return errors.New("unable to validate: no batch client")

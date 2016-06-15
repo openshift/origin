@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -212,8 +213,8 @@ const (
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
-func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
-	cmd := kcmd.NewCmdPortForward(f.Factory)
+func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdPortForward(f.Factory, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
 	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
@@ -593,7 +594,7 @@ Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/
 )
 
 func NewCmdConfig(parentName, name string) *cobra.Command {
-	pathOptions := &config.PathOptions{
+	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
 		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,

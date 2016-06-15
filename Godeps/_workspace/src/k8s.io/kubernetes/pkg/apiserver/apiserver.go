@@ -36,7 +36,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/metrics"
-	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/flushwriter"
@@ -46,7 +45,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func init() {
@@ -84,6 +82,8 @@ type APIGroupVersion struct {
 
 	Mapper meta.RESTMapper
 
+	// Serializer is used to determine how to convert responses from API methods into bytes to send over
+	// the wire.
 	Serializer     runtime.NegotiatedSerializer
 	ParameterCodec runtime.ParameterCodec
 
@@ -162,21 +162,21 @@ func (g *APIGroupVersion) newInstaller() *APIInstaller {
 }
 
 // TODO: document all handlers
-// InstallSupport registers the APIServer support functions
-func InstallSupport(mux Mux, ws *restful.WebService, checks ...healthz.HealthzChecker) {
-	// TODO: convert healthz and metrics to restful and remove container arg
-	healthz.InstallHandler(mux, checks...)
-	mux.Handle("/metrics", prometheus.Handler())
+// InstallVersionHandler registers the APIServer's `/version` handler
+func InstallVersionHandler(mux Mux, container *restful.Container) {
 
 	// Set up a service to return the git code version.
-	ws.Path("/version")
-	ws.Doc("git code version from which this is built")
-	ws.Route(
-		ws.GET("/").To(handleVersion).
+	versionWS := new(restful.WebService)
+	versionWS.Path("/version")
+	versionWS.Doc("git code version from which this is built")
+	versionWS.Route(
+		versionWS.GET("/").To(handleVersion).
 			Doc("get the code version").
 			Operation("getCodeVersion").
 			Produces(restful.MIME_JSON).
 			Consumes(restful.MIME_JSON))
+
+	container.Add(versionWS)
 }
 
 // InstallLogsSupport registers the APIServer log support function into a mux.
@@ -274,9 +274,16 @@ type StripVersionNegotiatedSerializer struct {
 	runtime.NegotiatedSerializer
 }
 
-func (n StripVersionNegotiatedSerializer) EncoderForVersion(serializer runtime.Serializer, gv unversioned.GroupVersion) runtime.Encoder {
-	encoder := n.NegotiatedSerializer.EncoderForVersion(serializer, gv)
-	return stripVersionEncoder{encoder, serializer}
+func (n StripVersionNegotiatedSerializer) EncoderForVersion(encoder runtime.Encoder, gv unversioned.GroupVersion) runtime.Encoder {
+	serializer, ok := encoder.(runtime.Serializer)
+	if !ok {
+		// The stripVersionEncoder needs both an encoder and decoder, but is called from a context that doesn't have access to the
+		// decoder. We do a best effort cast here (since this code path is only for backwards compatibility) to get access to the caller's
+		// decoder.
+		panic(fmt.Sprintf("Unable to extract serializer from %#v", encoder))
+	}
+	versioned := n.NegotiatedSerializer.EncoderForVersion(encoder, gv)
+	return stripVersionEncoder{versioned, serializer}
 }
 
 func keepUnversioned(group string) bool {
@@ -422,14 +429,14 @@ func write(statusCode int, gv unversioned.GroupVersion, s runtime.NegotiatedSeri
 
 // writeNegotiated renders an object in the content type negotiated by the client
 func writeNegotiated(s runtime.NegotiatedSerializer, gv unversioned.GroupVersion, w http.ResponseWriter, req *http.Request, statusCode int, object runtime.Object) {
-	serializer, contentType, err := negotiateOutputSerializer(req, s)
+	serializer, err := negotiateOutputSerializer(req, s)
 	if err != nil {
 		status := errToAPIStatus(err)
 		writeRawJSON(int(status.Code), status, w)
 		return
 	}
 
-	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Type", serializer.MediaType)
 	w.WriteHeader(statusCode)
 
 	encoder := s.EncoderForVersion(serializer, gv)

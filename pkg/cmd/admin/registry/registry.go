@@ -337,7 +337,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = enforceQuota
 	healthzPort := defaultPort
 	if len(opts.ports) > 0 {
-		healthzPort = opts.ports[0].ContainerPort
+		healthzPort = int(opts.ports[0].ContainerPort)
 		env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
 		env["REGISTRY_HTTP_NET"] = "tcp"
 	}

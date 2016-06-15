@@ -1,8 +1,16 @@
 package client
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+
+	"github.com/docker/engine-api/types"
+	"golang.org/x/net/context"
 )
 
 func TestGetAPIPath(t *testing.T) {
@@ -21,6 +29,7 @@ func TestGetAPIPath(t *testing.T) {
 		{"v1.22", "/containers/json", nil, "/v1.22/containers/json"},
 		{"v1.22", "/containers/json", url.Values{}, "/v1.22/containers/json"},
 		{"v1.22", "/containers/json", url.Values{"s": []string{"c"}}, "/v1.22/containers/json?s=c"},
+		{"v1.22", "/networks/kiwl$%^", nil, "/v1.22/networks/kiwl$%25%5E"},
 	}
 
 	for _, cs := range cases {
@@ -66,6 +75,45 @@ func TestParseHost(t *testing.T) {
 		}
 		if cs.base != b {
 			t.Fatalf("expected base %s, got %s", cs.base, b)
+		}
+	}
+}
+
+func TestUpdateClientVersion(t *testing.T) {
+	client := &Client{
+		transport: newMockClient(nil, func(req *http.Request) (*http.Response, error) {
+			splitQuery := strings.Split(req.URL.Path, "/")
+			queryVersion := splitQuery[1]
+			b, err := json.Marshal(types.Version{
+				APIVersion: queryVersion,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(bytes.NewReader(b)),
+			}, nil
+		}),
+	}
+
+	cases := []struct {
+		v string
+	}{
+		{"1.20"},
+		{"v1.21"},
+		{"1.22"},
+		{"v1.22"},
+	}
+
+	for _, cs := range cases {
+		client.UpdateClientVersion(cs.v)
+		r, err := client.ServerVersion(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.TrimPrefix(r.APIVersion, "v") != strings.TrimPrefix(cs.v, "v") {
+			t.Fatalf("Expected %s, got %s", cs.v, r.APIVersion)
 		}
 	}
 }

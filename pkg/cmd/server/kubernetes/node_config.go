@@ -362,7 +362,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	proxyconfig.HealthzBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
-	oomScoreAdj := 0
+	oomScoreAdj := int32(0)
 	proxyconfig.OOMScoreAdj = &oomScoreAdj
 	proxyconfig.ResourceContainer = ""
 

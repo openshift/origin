@@ -14,17 +14,17 @@ type mockClient struct {
 }
 
 // TLSConfig returns the TLS configuration.
-func (t *mockClient) TLSConfig() *tls.Config {
+func (m *mockClient) TLSConfig() *tls.Config {
 	return &tls.Config{}
 }
 
 // Scheme returns protocol scheme to use.
-func (t *mockClient) Scheme() string {
+func (m *mockClient) Scheme() string {
 	return "http"
 }
 
 // Secure returns true if there is a TLS configuration.
-func (t *mockClient) Secure() bool {
+func (m *mockClient) Secure() bool {
 	return false
 }
 

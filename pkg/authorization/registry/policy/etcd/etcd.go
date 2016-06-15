@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -16,20 +16,20 @@ import (
 const PolicyPath = "/authorization/local/policies"
 
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
 func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.Policy{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyList{} },
 		QualifiedResource: authorizationapi.Resource("policies"),
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, PolicyPath)
+			return registry.NamespaceKeyRootFunc(ctx, PolicyPath)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, PolicyPath, id)
+			return registry.NamespaceKeyFunc(ctx, PolicyPath, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*authorizationapi.Policy).Name, nil

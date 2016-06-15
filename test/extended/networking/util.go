@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -108,7 +108,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 			Ports: []api.ServicePort{
 				{
 					Protocol: api.ProtocolTCP,
-					Port:     servicePort,
+					Port:     int32(servicePort),
 				},
 			},
 			Selector: map[string]string{

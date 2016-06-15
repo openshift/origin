@@ -59,7 +59,7 @@ func validRoute() *api.Route {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestCreate(
 		// valid
 		validRoute(),
@@ -94,7 +94,7 @@ func TestCreateWithAllocation(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	test.TestUpdate(
 		validRoute(),
@@ -119,7 +119,7 @@ func TestUpdate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validRoute(),
 	)
@@ -128,7 +128,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t, &testAllocator{})
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validRoute(),
 	)
@@ -137,7 +137,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(
 		validRoute(),
 	)
@@ -146,7 +146,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validRoute()
 	valid.Name = "foo"

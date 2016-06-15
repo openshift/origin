@@ -3,15 +3,19 @@ package dockermachine
 import (
 	"bufio"
 	"bytes"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 
+	dockerclient "github.com/docker/engine-api/client"
+	"github.com/docker/go-connections/tlsconfig"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/localcmd"
+	"k8s.io/kubernetes/pkg/util/net"
 )
 
 const (
@@ -105,10 +109,10 @@ func Start(name string) error {
 }
 
 // Client returns a Docker client for the given Docker machine
-func Client(name string) (*docker.Client, error) {
+func Client(name string) (*docker.Client, *dockerclient.Client, error) {
 	output, _, err := localcmd.New(dockerMachineBinary()).Args("env", name).Output()
 	if err != nil {
-		return nil, ErrDockerMachineExec("env", err)
+		return nil, nil, ErrDockerMachineExec("env", err)
 	}
 	scanner := bufio.NewScanner(bytes.NewBufferString(output))
 	var (
@@ -138,7 +142,7 @@ func Client(name string) (*docker.Client, error) {
 		}
 	}
 	var client *docker.Client
-	if tlsVerify {
+	if len(certPath) > 0 {
 		cert := filepath.Join(certPath, "cert.pem")
 		key := filepath.Join(certPath, "key.pem")
 		ca := filepath.Join(certPath, "ca.pem")
@@ -147,10 +151,35 @@ func Client(name string) (*docker.Client, error) {
 		client, err = docker.NewVersionedClient(dockerHost, "")
 	}
 	if err != nil {
-		return nil, errors.NewError("could not get Docker client for machine %s", name).WithCause(err)
+		return nil, nil, errors.NewError("could not get Docker client for machine %s", name).WithCause(err)
 	}
 	client.SkipServerVersionCheck = true
-	return client, nil
+
+	var httpClient *http.Client
+	if len(certPath) > 0 {
+		tlscOptions := tlsconfig.Options{
+			CAFile:             filepath.Join(certPath, "ca.pem"),
+			CertFile:           filepath.Join(certPath, "cert.pem"),
+			KeyFile:            filepath.Join(certPath, "key.pem"),
+			InsecureSkipVerify: !tlsVerify,
+		}
+		tlsc, tlsErr := tlsconfig.Client(tlscOptions)
+		if tlsErr != nil {
+			return nil, nil, errors.NewError("could not create TLS config client for machine %s", name).WithCause(tlsErr)
+		}
+		httpClient = &http.Client{
+			Transport: net.SetTransportDefaults(&http.Transport{
+				TLSClientConfig: tlsc,
+			}),
+		}
+	}
+
+	engineAPIClient, err := dockerclient.NewClient(dockerHost, "", httpClient, nil)
+	if err != nil {
+		return nil, nil, errors.NewError("cannot create Docker engine API client").WithCause(err)
+	}
+
+	return client, engineAPIClient, nil
 }
 
 // IsAvailable returns true if the docker-machine executable can be found in the PATH

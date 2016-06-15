@@ -45,7 +45,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 func TestDeployer_deployScenarios(t *testing.T) {
 	mkd := func(version int, status deployapi.DeploymentStatus, replicas int, desired int) *kapi.ReplicationController {
 		deployment := mkdeployment(version, status)
-		deployment.Spec.Replicas = replicas
+		deployment.Spec.Replicas = int32(replicas)
 		if desired > 0 {
 			deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desired)
 		}

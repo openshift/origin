@@ -1,4 +1,4 @@
-#!/bin/bash
+# bash completion for openshift                            -*- shell-script -*-
 
 __debug()
 {
@@ -12,7 +12,7 @@ __debug()
 __my_init_completion()
 {
     COMPREPLY=()
-    _get_comp_words_by_ref cur prev words cword
+    _get_comp_words_by_ref "$@" cur prev words cword
 }
 
 __index_of_word()
@@ -38,7 +38,7 @@ __contains_word()
 
 __handle_reply()
 {
-    __debug "${FUNCNAME}"
+    __debug "${FUNCNAME[0]}"
     case $cur in
         -*)
             if [[ $(type -t compopt) = "builtin" ]]; then
@@ -52,7 +52,28 @@ __handle_reply()
             fi
             COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
             if [[ $(type -t compopt) = "builtin" ]]; then
-                [[ $COMPREPLY == *= ]] || compopt +o nospace
+                [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
+            fi
+
+            # complete after --flag=abc
+            if [[ $cur == *=* ]]; then
+                if [[ $(type -t compopt) = "builtin" ]]; then
+                    compopt +o nospace
+                fi
+
+                local index flag
+                flag="${cur%%=*}"
+                __index_of_word "${flag}" "${flags_with_completion[@]}"
+                if [[ ${index} -ge 0 ]]; then
+                    COMPREPLY=()
+                    PREFIX=""
+                    cur="${cur#*=}"
+                    ${flags_completion[${index}]}
+                    if [ -n "${ZSH_VERSION}" ]; then
+                        # zfs completion needs --flag= prefix
+                        eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
+                    fi
+                fi
             fi
             return 0;
             ;;
@@ -81,9 +102,15 @@ __handle_reply()
     fi
     COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
 
+    if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
+        COMPREPLY=( $(compgen -W "${noun_aliases[*]}" -- "$cur") )
+    fi
+
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
         declare -F __custom_func >/dev/null && __custom_func
     fi
+
+    __ltrim_colon_completions "$cur"
 }
 
 # The arguments should be in the form "ext1|ext2|extn"
@@ -101,18 +128,29 @@ __handle_subdirs_in_dir_flag()
 
 __handle_flag()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     # if a command required a flag, and we found it, unset must_have_one_flag()
     local flagname=${words[c]}
+    local flagvalue
     # if the word contained an =
     if [[ ${words[c]} == *"="* ]]; then
-        flagname=${flagname%=*} # strip everything after the =
+        flagvalue=${flagname#*=} # take in as flagvalue after the =
+        flagname=${flagname%%=*} # strip everything after the =
         flagname="${flagname}=" # but put the = back
     fi
-    __debug "${FUNCNAME}: looking for ${flagname}"
+    __debug "${FUNCNAME[0]}: looking for ${flagname}"
     if __contains_word "${flagname}" "${must_have_one_flag[@]}"; then
         must_have_one_flag=()
+    fi
+
+    # keep flag value with flagname as flaghash
+    if [ -n "${flagvalue}" ] ; then
+        flaghash[${flagname}]=${flagvalue}
+    elif [ -n "${words[ $((c+1)) ]}" ] ; then
+        flaghash[${flagname}]=${words[ $((c+1)) ]}
+    else
+        flaghash[${flagname}]="true" # pad "true" for bool flag
     fi
 
     # skip the argument to a two word flag
@@ -124,16 +162,17 @@ __handle_flag()
         fi
     fi
 
-    # skip the flag itself
     c=$((c+1))
 
 }
 
 __handle_noun()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     if __contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    elif __contains_word "${words[c]}" "${noun_aliases[@]}"; then
         must_have_one_noun=()
     fi
 
@@ -143,16 +182,20 @@ __handle_noun()
 
 __handle_command()
 {
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     local next_command
     if [[ -n ${last_command} ]]; then
-        next_command="_${last_command}_${words[c]}"
+        next_command="_${last_command}_${words[c]//:/__}"
     else
-        next_command="_${words[c]}"
+        if [[ $c -eq 0 ]]; then
+            next_command="_$(basename "${words[c]//:/__}")"
+        else
+            next_command="_${words[c]//:/__}"
+        fi
     fi
     c=$((c+1))
-    __debug "${FUNCNAME}: looking for ${next_command}"
+    __debug "${FUNCNAME[0]}: looking for ${next_command}"
     declare -F $next_command >/dev/null && $next_command
 }
 
@@ -162,10 +205,12 @@ __handle_word()
         __handle_reply
         return
     fi
-    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
     if [[ "${words[c]}" == -* ]]; then
         __handle_flag
     elif __contains_word "${words[c]}" "${commands[@]}"; then
+        __handle_command
+    elif [[ $c -eq 0 ]] && __contains_word "$(basename "${words[c]}")" "${commands[@]}"; then
         __handle_command
     else
         __handle_noun
@@ -193,6 +238,7 @@ _openshift_start_master_api()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_master_controllers()
@@ -214,6 +260,7 @@ _openshift_start_master_controllers()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_master()
@@ -261,6 +308,7 @@ _openshift_start_master()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_node()
@@ -293,6 +341,7 @@ _openshift_start_node()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_network()
@@ -320,6 +369,7 @@ _openshift_start_network()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_etcd()
@@ -341,6 +391,7 @@ _openshift_start_etcd()
     must_have_one_flag=()
     must_have_one_flag+=("--config=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes_apiserver()
@@ -358,7 +409,6 @@ _openshift_start_kubernetes_apiserver()
     flags+=("--admission-control-config-file=")
     flags+=("--advertise-address=")
     flags+=("--allow-privileged")
-    flags+=("--api-prefix=")
     flags+=("--apiserver-count=")
     flags+=("--authorization-mode=")
     flags+=("--authorization-policy-file=")
@@ -371,6 +421,7 @@ _openshift_start_kubernetes_apiserver()
     flags+=("--cloud-provider=")
     flags+=("--cors-allowed-origins=")
     flags+=("--delete-collection-workers=")
+    flags+=("--deserialization-cache-size=")
     flags+=("--enable-swagger-ui")
     flags+=("--etcd-cafile=")
     flags+=("--etcd-certfile=")
@@ -415,6 +466,8 @@ _openshift_start_kubernetes_apiserver()
     flags+=("--service-node-ports=")
     flags+=("--ssh-keyfile=")
     flags+=("--ssh-user=")
+    flags+=("--storage-backend=")
+    flags+=("--storage-media-type=")
     flags+=("--storage-version=")
     flags+=("--storage-versions=")
     flags+=("--tls-cert-file=")
@@ -427,6 +480,7 @@ _openshift_start_kubernetes_apiserver()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes_controller-manager()
@@ -452,6 +506,7 @@ _openshift_start_kubernetes_controller-manager()
     flags+=("--concurrent-replicaset-syncs=")
     flags+=("--concurrent-resource-quota-syncs=")
     flags+=("--concurrent-serviceaccount-token-syncs=")
+    flags+=("--controller-start-interval=")
     flags+=("--daemonset-lookup-cache-size=")
     flags+=("--deleting-pods-burst=")
     flags+=("--deleting-pods-qps=")
@@ -459,6 +514,7 @@ _openshift_start_kubernetes_controller-manager()
     flags+=("--enable-hostpath-provisioner")
     flags+=("--horizontal-pod-autoscaler-sync-period=")
     flags+=("--kube-api-burst=")
+    flags+=("--kube-api-content-type=")
     flags+=("--kube-api-qps=")
     flags+=("--kubeconfig=")
     flags+=("--leader-elect")
@@ -495,6 +551,7 @@ _openshift_start_kubernetes_controller-manager()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes_kubelet()
@@ -532,6 +589,9 @@ _openshift_start_kubernetes_kubelet()
     flags+=("--enable-server")
     flags+=("--event-burst=")
     flags+=("--event-qps=")
+    flags+=("--eviction-hard=")
+    flags+=("--eviction-soft=")
+    flags+=("--eviction-soft-grace-period=")
     flags+=("--experimental-flannel-overlay")
     flags+=("--file-check-frequency=")
     flags+=("--hairpin-mode=")
@@ -545,6 +605,7 @@ _openshift_start_kubernetes_kubelet()
     flags+=("--image-gc-high-threshold=")
     flags+=("--image-gc-low-threshold=")
     flags+=("--kube-api-burst=")
+    flags+=("--kube-api-content-type=")
     flags+=("--kube-api-qps=")
     flags+=("--kube-reserved=")
     flags+=("--kubeconfig=")
@@ -601,6 +662,7 @@ _openshift_start_kubernetes_kubelet()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes_proxy()
@@ -615,6 +677,7 @@ _openshift_start_kubernetes_proxy()
 
     flags+=("--bind-address=")
     flags+=("--cleanup-iptables")
+    flags+=("--cluster-cidr=")
     flags+=("--config-sync-period=")
     flags+=("--conntrack-max=")
     flags+=("--conntrack-tcp-timeout-established=")
@@ -624,6 +687,7 @@ _openshift_start_kubernetes_proxy()
     flags+=("--iptables-masquerade-bit=")
     flags+=("--iptables-sync-period=")
     flags+=("--kube-api-burst=")
+    flags+=("--kube-api-content-type=")
     flags+=("--kube-api-qps=")
     flags+=("--kubeconfig=")
     flags+=("--masquerade-all")
@@ -638,6 +702,7 @@ _openshift_start_kubernetes_proxy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes_scheduler()
@@ -654,7 +719,10 @@ _openshift_start_kubernetes_scheduler()
     flags+=("--algorithm-provider=")
     flags+=("--bind-pods-burst=")
     flags+=("--bind-pods-qps=")
+    flags+=("--failure-domains=")
+    flags+=("--hard-pod-affinity-symmetric-weight=")
     flags+=("--kube-api-burst=")
+    flags+=("--kube-api-content-type=")
     flags+=("--kube-api-qps=")
     flags+=("--kubeconfig=")
     flags+=("--leader-elect")
@@ -671,6 +739,7 @@ _openshift_start_kubernetes_scheduler()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start_kubernetes()
@@ -693,6 +762,7 @@ _openshift_start_kubernetes()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_start()
@@ -747,6 +817,7 @@ _openshift_start()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_new-project()
@@ -792,6 +863,7 @@ _openshift_admin_new-project()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_who-can()
@@ -833,6 +905,7 @@ _openshift_admin_policy_who-can()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-user()
@@ -873,6 +946,7 @@ _openshift_admin_policy_remove-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-group()
@@ -913,6 +987,7 @@ _openshift_admin_policy_remove-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-role-to-user()
@@ -956,6 +1031,7 @@ _openshift_admin_policy_add-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-role-to-group()
@@ -997,6 +1073,7 @@ _openshift_admin_policy_add-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-role-from-user()
@@ -1040,6 +1117,7 @@ _openshift_admin_policy_remove-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-role-from-group()
@@ -1081,6 +1159,7 @@ _openshift_admin_policy_remove-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-cluster-role-to-user()
@@ -1121,6 +1200,7 @@ _openshift_admin_policy_add-cluster-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-cluster-role-to-group()
@@ -1161,6 +1241,7 @@ _openshift_admin_policy_add-cluster-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-cluster-role-from-user()
@@ -1201,6 +1282,7 @@ _openshift_admin_policy_remove-cluster-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-cluster-role-from-group()
@@ -1241,6 +1323,7 @@ _openshift_admin_policy_remove-cluster-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-scc-to-user()
@@ -1283,6 +1366,7 @@ _openshift_admin_policy_add-scc-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_add-scc-to-group()
@@ -1323,6 +1407,7 @@ _openshift_admin_policy_add-scc-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-scc-from-user()
@@ -1365,6 +1450,7 @@ _openshift_admin_policy_remove-scc-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_remove-scc-from-group()
@@ -1405,6 +1491,7 @@ _openshift_admin_policy_remove-scc-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_reconcile-cluster-roles()
@@ -1429,9 +1516,6 @@ _openshift_admin_policy_reconcile-cluster-roles()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -1461,6 +1545,7 @@ _openshift_admin_policy_reconcile-cluster-roles()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_reconcile-cluster-role-bindings()
@@ -1488,9 +1573,6 @@ _openshift_admin_policy_reconcile-cluster-role-bindings()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -1519,6 +1601,7 @@ _openshift_admin_policy_reconcile-cluster-role-bindings()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy_reconcile-sccs()
@@ -1545,9 +1628,6 @@ _openshift_admin_policy_reconcile-sccs()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -1576,6 +1656,7 @@ _openshift_admin_policy_reconcile-sccs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_policy()
@@ -1634,6 +1715,7 @@ _openshift_admin_policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups_new()
@@ -1674,6 +1756,7 @@ _openshift_admin_groups_new()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups_add-users()
@@ -1714,6 +1797,7 @@ _openshift_admin_groups_add-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups_remove-users()
@@ -1754,6 +1838,7 @@ _openshift_admin_groups_remove-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups_sync()
@@ -1783,9 +1868,6 @@ _openshift_admin_groups_sync()
     flags_completion+=("__handle_filename_extension_flag yaml|yml")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--whitelist=")
@@ -1819,6 +1901,7 @@ _openshift_admin_groups_sync()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups_prune()
@@ -1869,6 +1952,7 @@ _openshift_admin_groups_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_groups()
@@ -1914,6 +1998,7 @@ _openshift_admin_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_router()
@@ -1989,6 +2074,7 @@ _openshift_admin_router()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ipfailover()
@@ -2051,6 +2137,7 @@ _openshift_admin_ipfailover()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_registry()
@@ -2113,6 +2200,7 @@ _openshift_admin_registry()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_build-chain()
@@ -2158,6 +2246,7 @@ _openshift_admin_build-chain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_diagnostics()
@@ -2207,6 +2296,7 @@ _openshift_admin_diagnostics()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_manage-node()
@@ -2238,9 +2328,6 @@ _openshift_admin_manage-node()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -2269,6 +2356,7 @@ _openshift_admin_manage-node()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_prune_builds()
@@ -2314,6 +2402,7 @@ _openshift_admin_prune_builds()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_prune_deployments()
@@ -2359,6 +2448,7 @@ _openshift_admin_prune_deployments()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_prune_images()
@@ -2401,6 +2491,7 @@ _openshift_admin_prune_images()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_prune_groups()
@@ -2451,6 +2542,7 @@ _openshift_admin_prune_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_prune()
@@ -2495,6 +2587,7 @@ _openshift_admin_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_view()
@@ -2522,9 +2615,6 @@ _openshift_admin_config_view()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -2551,6 +2641,7 @@ _openshift_admin_config_view()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_set-cluster()
@@ -2590,6 +2681,7 @@ _openshift_admin_config_set-cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_set-credentials()
@@ -2631,6 +2723,7 @@ _openshift_admin_config_set-credentials()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_set-context()
@@ -2668,6 +2761,7 @@ _openshift_admin_config_set-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_set()
@@ -2680,6 +2774,7 @@ _openshift_admin_config_set()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--set-raw-bytes=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -2706,6 +2801,7 @@ _openshift_admin_config_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_unset()
@@ -2744,6 +2840,7 @@ _openshift_admin_config_unset()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_current-context()
@@ -2782,6 +2879,7 @@ _openshift_admin_config_current-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config_use-context()
@@ -2820,6 +2918,7 @@ _openshift_admin_config_use-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_config()
@@ -2866,6 +2965,7 @@ _openshift_admin_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-kubeconfig()
@@ -2910,6 +3010,7 @@ _openshift_admin_create-kubeconfig()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-api-client-config()
@@ -2966,6 +3067,7 @@ _openshift_admin_create-api-client-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_pod-network_join-projects()
@@ -3008,6 +3110,7 @@ _openshift_admin_pod-network_join-projects()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_pod-network_make-projects-global()
@@ -3049,6 +3152,7 @@ _openshift_admin_pod-network_make-projects-global()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_pod-network()
@@ -3091,6 +3195,7 @@ _openshift_admin_pod-network()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-bootstrap-project-template()
@@ -3114,9 +3219,6 @@ _openshift_admin_create-bootstrap-project-template()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -3146,6 +3248,7 @@ _openshift_admin_create-bootstrap-project-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-bootstrap-policy-file()
@@ -3190,6 +3293,7 @@ _openshift_admin_create-bootstrap-policy-file()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-login-template()
@@ -3230,6 +3334,7 @@ _openshift_admin_create-login-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-provider-selection-template()
@@ -3270,6 +3375,7 @@ _openshift_admin_create-provider-selection-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-error-template()
@@ -3310,6 +3416,7 @@ _openshift_admin_create-error-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_overwrite-policy()
@@ -3358,6 +3465,7 @@ _openshift_admin_overwrite-policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_create-node-config()
@@ -3432,6 +3540,7 @@ _openshift_admin_create-node-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_create-master-certs()
@@ -3480,6 +3589,7 @@ _openshift_admin_ca_create-master-certs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_create-key-pair()
@@ -3527,6 +3637,7 @@ _openshift_admin_ca_create-key-pair()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_create-server-cert()
@@ -3584,6 +3695,7 @@ _openshift_admin_ca_create-server-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_create-signer-cert()
@@ -3635,6 +3747,7 @@ _openshift_admin_ca_create-signer-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_encrypt()
@@ -3687,6 +3800,7 @@ _openshift_admin_ca_encrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca_decrypt()
@@ -3736,6 +3850,7 @@ _openshift_admin_ca_decrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_ca()
@@ -3782,6 +3897,7 @@ _openshift_admin_ca()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin_options()
@@ -3822,6 +3938,7 @@ _openshift_admin_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_admin()
@@ -3885,6 +4002,7 @@ _openshift_admin()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_types()
@@ -3925,6 +4043,7 @@ _openshift_cli_types()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_login()
@@ -3969,6 +4088,7 @@ _openshift_cli_login()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_new-project()
@@ -4011,6 +4131,7 @@ _openshift_cli_new-project()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_new-app()
@@ -4087,6 +4208,7 @@ _openshift_cli_new-app()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_status()
@@ -4132,6 +4254,7 @@ _openshift_cli_status()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_project()
@@ -4174,6 +4297,7 @@ _openshift_cli_project()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_projects()
@@ -4216,6 +4340,7 @@ _openshift_cli_projects()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_explain()
@@ -4258,6 +4383,7 @@ _openshift_cli_explain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_cluster_up()
@@ -4313,6 +4439,7 @@ _openshift_cli_cluster_up()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_cluster_down()
@@ -4354,6 +4481,7 @@ _openshift_cli_cluster_down()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_cluster()
@@ -4396,6 +4524,7 @@ _openshift_cli_cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_deploy()
@@ -4440,6 +4569,7 @@ _openshift_cli_deploy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_rollback()
@@ -4494,6 +4624,7 @@ _openshift_cli_rollback()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_new-build()
@@ -4561,6 +4692,7 @@ _openshift_cli_new-build()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_start-build()
@@ -4615,6 +4747,7 @@ _openshift_cli_start-build()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_cancel-build()
@@ -4658,6 +4791,7 @@ _openshift_cli_cancel-build()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_import-image()
@@ -4702,6 +4836,7 @@ _openshift_cli_import-image()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_tag()
@@ -4749,6 +4884,7 @@ _openshift_cli_tag()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_get()
@@ -4786,9 +4922,6 @@ _openshift_cli_get()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--watch")
     flags+=("-w")
@@ -4856,6 +4989,7 @@ _openshift_cli_get()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -4877,6 +5011,81 @@ _openshift_cli_get()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_cli_describe()
@@ -4900,6 +5109,7 @@ _openshift_cli_describe()
     flags+=("-R")
     flags+=("--selector=")
     two_word_flags+=("-l")
+    flags+=("--show-events")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -4956,6 +5166,7 @@ _openshift_cli_describe()
     must_have_one_noun+=("oauthaccesstoken")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("policy")
     must_have_one_noun+=("policybinding")
@@ -4973,6 +5184,45 @@ _openshift_cli_describe()
     must_have_one_noun+=("template")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("configmaps")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hpa")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("jobs")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_cli_edit()
@@ -5028,6 +5278,138 @@ _openshift_cli_edit()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("configmap")
+    must_have_one_noun+=("daemonset")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ingress")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("job")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podsecuritypolicy")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("thirdpartyresourcedata")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_cli_set_env()
@@ -5087,6 +5469,7 @@ _openshift_cli_set_env()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set_volumes()
@@ -5158,6 +5541,7 @@ _openshift_cli_set_volumes()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set_probe()
@@ -5201,9 +5585,6 @@ _openshift_cli_set_probe()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--timeout-seconds=")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -5233,6 +5614,7 @@ _openshift_cli_set_probe()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set_deployment-hook()
@@ -5274,9 +5656,6 @@ _openshift_cli_set_deployment-hook()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--volumes=")
     two_word_flags+=("-v")
     flags+=("--api-version=")
@@ -5307,6 +5686,7 @@ _openshift_cli_set_deployment-hook()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set_triggers()
@@ -5350,9 +5730,6 @@ _openshift_cli_set_triggers()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -5381,6 +5758,7 @@ _openshift_cli_set_triggers()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set_build-hook()
@@ -5417,9 +5795,6 @@ _openshift_cli_set_build-hook()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -5448,6 +5823,7 @@ _openshift_cli_set_build-hook()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_set()
@@ -5494,6 +5870,7 @@ _openshift_cli_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_label()
@@ -5532,9 +5909,6 @@ _openshift_cli_label()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -5599,6 +5973,7 @@ _openshift_cli_label()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -5620,6 +5995,81 @@ _openshift_cli_label()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_cli_annotate()
@@ -5658,9 +6108,6 @@ _openshift_cli_annotate()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -5689,6 +6136,42 @@ _openshift_cli_annotate()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("componentstatuse")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("service")
+    noun_aliases=()
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("cs")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hpa")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("secrets")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_cli_expose()
@@ -5739,9 +6222,6 @@ _openshift_cli_expose()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -5771,6 +6251,21 @@ _openshift_cli_expose()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("service")
+    noun_aliases=()
+    noun_aliases+=("deployments")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("rs")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_cli_delete()
@@ -5794,6 +6289,7 @@ _openshift_cli_delete()
     flags+=("--grace-period=")
     flags+=("--ignore-not-found")
     flags+=("--include-extended-apis")
+    flags+=("--now")
     flags+=("--output=")
     two_word_flags+=("-o")
     flags+=("--recursive")
@@ -5864,6 +6360,7 @@ _openshift_cli_delete()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -5885,6 +6382,81 @@ _openshift_cli_delete()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_cli_scale()
@@ -5945,6 +6517,7 @@ _openshift_cli_scale()
     must_have_one_noun+=("deploymentconfig")
     must_have_one_noun+=("job")
     must_have_one_noun+=("replicationcontroller")
+    noun_aliases=()
 }
 
 _openshift_cli_autoscale()
@@ -5985,9 +6558,6 @@ _openshift_cli_autoscale()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -6017,6 +6587,7 @@ _openshift_cli_autoscale()
     must_have_one_flag=()
     must_have_one_flag+=("--max=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets_new()
@@ -6042,9 +6613,6 @@ _openshift_cli_secrets_new()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--api-version=")
@@ -6075,6 +6643,7 @@ _openshift_cli_secrets_new()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets_new-dockercfg()
@@ -6101,9 +6670,6 @@ _openshift_cli_secrets_new-dockercfg()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -6133,6 +6699,7 @@ _openshift_cli_secrets_new-dockercfg()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets_new-basicauth()
@@ -6164,9 +6731,6 @@ _openshift_cli_secrets_new-basicauth()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--username=")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -6196,6 +6760,7 @@ _openshift_cli_secrets_new-basicauth()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets_new-sshauth()
@@ -6228,9 +6793,6 @@ _openshift_cli_secrets_new-sshauth()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -6259,6 +6821,7 @@ _openshift_cli_secrets_new-sshauth()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets_add()
@@ -6300,6 +6863,7 @@ _openshift_cli_secrets_add()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_secrets()
@@ -6345,6 +6909,7 @@ _openshift_cli_secrets()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_serviceaccounts_get-token()
@@ -6385,6 +6950,7 @@ _openshift_cli_serviceaccounts_get-token()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_serviceaccounts_new-token()
@@ -6428,6 +6994,7 @@ _openshift_cli_serviceaccounts_new-token()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_serviceaccounts()
@@ -6470,6 +7037,7 @@ _openshift_cli_serviceaccounts()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_logs()
@@ -6524,6 +7092,7 @@ _openshift_cli_logs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_rsh()
@@ -6571,6 +7140,7 @@ _openshift_cli_rsh()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_rsync()
@@ -6623,6 +7193,7 @@ _openshift_cli_rsync()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_port-forward()
@@ -6665,6 +7236,7 @@ _openshift_cli_port-forward()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_debug()
@@ -6735,6 +7307,7 @@ _openshift_cli_debug()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_exec()
@@ -6783,6 +7356,7 @@ _openshift_cli_exec()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_proxy()
@@ -6838,6 +7412,7 @@ _openshift_cli_proxy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_attach()
@@ -6884,6 +7459,7 @@ _openshift_cli_attach()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_run()
@@ -6933,10 +7509,8 @@ _openshift_cli_run()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--tty")
+    flags+=("-t")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -6966,6 +7540,7 @@ _openshift_cli_run()
     must_have_one_flag=()
     must_have_one_flag+=("--image=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_new-project()
@@ -7011,6 +7586,7 @@ _openshift_cli_adm_new-project()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_who-can()
@@ -7052,6 +7628,7 @@ _openshift_cli_adm_policy_who-can()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-user()
@@ -7092,6 +7669,7 @@ _openshift_cli_adm_policy_remove-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-group()
@@ -7132,6 +7710,7 @@ _openshift_cli_adm_policy_remove-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-role-to-user()
@@ -7175,6 +7754,7 @@ _openshift_cli_adm_policy_add-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-role-to-group()
@@ -7216,6 +7796,7 @@ _openshift_cli_adm_policy_add-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-role-from-user()
@@ -7259,6 +7840,7 @@ _openshift_cli_adm_policy_remove-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-role-from-group()
@@ -7300,6 +7882,7 @@ _openshift_cli_adm_policy_remove-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-cluster-role-to-user()
@@ -7340,6 +7923,7 @@ _openshift_cli_adm_policy_add-cluster-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-cluster-role-to-group()
@@ -7380,6 +7964,7 @@ _openshift_cli_adm_policy_add-cluster-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-cluster-role-from-user()
@@ -7420,6 +8005,7 @@ _openshift_cli_adm_policy_remove-cluster-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-cluster-role-from-group()
@@ -7460,6 +8046,7 @@ _openshift_cli_adm_policy_remove-cluster-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-scc-to-user()
@@ -7502,6 +8089,7 @@ _openshift_cli_adm_policy_add-scc-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_add-scc-to-group()
@@ -7542,6 +8130,7 @@ _openshift_cli_adm_policy_add-scc-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-scc-from-user()
@@ -7584,6 +8173,7 @@ _openshift_cli_adm_policy_remove-scc-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_remove-scc-from-group()
@@ -7624,6 +8214,7 @@ _openshift_cli_adm_policy_remove-scc-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_reconcile-cluster-roles()
@@ -7648,9 +8239,6 @@ _openshift_cli_adm_policy_reconcile-cluster-roles()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -7680,6 +8268,7 @@ _openshift_cli_adm_policy_reconcile-cluster-roles()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_reconcile-cluster-role-bindings()
@@ -7707,9 +8296,6 @@ _openshift_cli_adm_policy_reconcile-cluster-role-bindings()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -7738,6 +8324,7 @@ _openshift_cli_adm_policy_reconcile-cluster-role-bindings()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy_reconcile-sccs()
@@ -7764,9 +8351,6 @@ _openshift_cli_adm_policy_reconcile-sccs()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -7795,6 +8379,7 @@ _openshift_cli_adm_policy_reconcile-sccs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_policy()
@@ -7853,6 +8438,7 @@ _openshift_cli_adm_policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups_new()
@@ -7893,6 +8479,7 @@ _openshift_cli_adm_groups_new()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups_add-users()
@@ -7933,6 +8520,7 @@ _openshift_cli_adm_groups_add-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups_remove-users()
@@ -7973,6 +8561,7 @@ _openshift_cli_adm_groups_remove-users()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups_sync()
@@ -8002,9 +8591,6 @@ _openshift_cli_adm_groups_sync()
     flags_completion+=("__handle_filename_extension_flag yaml|yml")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--whitelist=")
@@ -8038,6 +8624,7 @@ _openshift_cli_adm_groups_sync()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups_prune()
@@ -8088,6 +8675,7 @@ _openshift_cli_adm_groups_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_groups()
@@ -8133,6 +8721,7 @@ _openshift_cli_adm_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_router()
@@ -8208,6 +8797,7 @@ _openshift_cli_adm_router()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ipfailover()
@@ -8270,6 +8860,7 @@ _openshift_cli_adm_ipfailover()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_registry()
@@ -8332,6 +8923,7 @@ _openshift_cli_adm_registry()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_build-chain()
@@ -8377,6 +8969,7 @@ _openshift_cli_adm_build-chain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_diagnostics()
@@ -8426,6 +9019,7 @@ _openshift_cli_adm_diagnostics()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_manage-node()
@@ -8457,9 +9051,6 @@ _openshift_cli_adm_manage-node()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -8488,6 +9079,7 @@ _openshift_cli_adm_manage-node()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_prune_builds()
@@ -8533,6 +9125,7 @@ _openshift_cli_adm_prune_builds()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_prune_deployments()
@@ -8578,6 +9171,7 @@ _openshift_cli_adm_prune_deployments()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_prune_images()
@@ -8620,6 +9214,7 @@ _openshift_cli_adm_prune_images()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_prune_groups()
@@ -8670,6 +9265,7 @@ _openshift_cli_adm_prune_groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_prune()
@@ -8714,6 +9310,7 @@ _openshift_cli_adm_prune()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_view()
@@ -8741,9 +9338,6 @@ _openshift_cli_adm_config_view()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -8770,6 +9364,7 @@ _openshift_cli_adm_config_view()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_set-cluster()
@@ -8809,6 +9404,7 @@ _openshift_cli_adm_config_set-cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_set-credentials()
@@ -8850,6 +9446,7 @@ _openshift_cli_adm_config_set-credentials()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_set-context()
@@ -8887,6 +9484,7 @@ _openshift_cli_adm_config_set-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_set()
@@ -8899,6 +9497,7 @@ _openshift_cli_adm_config_set()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--set-raw-bytes=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -8925,6 +9524,7 @@ _openshift_cli_adm_config_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_unset()
@@ -8963,6 +9563,7 @@ _openshift_cli_adm_config_unset()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_current-context()
@@ -9001,6 +9602,7 @@ _openshift_cli_adm_config_current-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config_use-context()
@@ -9039,6 +9641,7 @@ _openshift_cli_adm_config_use-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_config()
@@ -9085,6 +9688,7 @@ _openshift_cli_adm_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-kubeconfig()
@@ -9129,6 +9733,7 @@ _openshift_cli_adm_create-kubeconfig()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-api-client-config()
@@ -9185,6 +9790,7 @@ _openshift_cli_adm_create-api-client-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_pod-network_join-projects()
@@ -9227,6 +9833,7 @@ _openshift_cli_adm_pod-network_join-projects()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_pod-network_make-projects-global()
@@ -9268,6 +9875,7 @@ _openshift_cli_adm_pod-network_make-projects-global()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_pod-network()
@@ -9310,6 +9918,7 @@ _openshift_cli_adm_pod-network()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-bootstrap-project-template()
@@ -9333,9 +9942,6 @@ _openshift_cli_adm_create-bootstrap-project-template()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -9365,6 +9971,7 @@ _openshift_cli_adm_create-bootstrap-project-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-bootstrap-policy-file()
@@ -9409,6 +10016,7 @@ _openshift_cli_adm_create-bootstrap-policy-file()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-login-template()
@@ -9449,6 +10057,7 @@ _openshift_cli_adm_create-login-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-provider-selection-template()
@@ -9489,6 +10098,7 @@ _openshift_cli_adm_create-provider-selection-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-error-template()
@@ -9529,6 +10139,7 @@ _openshift_cli_adm_create-error-template()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_overwrite-policy()
@@ -9577,6 +10188,7 @@ _openshift_cli_adm_overwrite-policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_create-node-config()
@@ -9651,6 +10263,7 @@ _openshift_cli_adm_create-node-config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_create-master-certs()
@@ -9699,6 +10312,7 @@ _openshift_cli_adm_ca_create-master-certs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_create-key-pair()
@@ -9746,6 +10360,7 @@ _openshift_cli_adm_ca_create-key-pair()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_create-server-cert()
@@ -9803,6 +10418,7 @@ _openshift_cli_adm_ca_create-server-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_create-signer-cert()
@@ -9854,6 +10470,7 @@ _openshift_cli_adm_ca_create-signer-cert()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_encrypt()
@@ -9906,6 +10523,7 @@ _openshift_cli_adm_ca_encrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca_decrypt()
@@ -9955,6 +10573,7 @@ _openshift_cli_adm_ca_decrypt()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_ca()
@@ -10001,6 +10620,7 @@ _openshift_cli_adm_ca()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm_options()
@@ -10041,6 +10661,7 @@ _openshift_cli_adm_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_adm()
@@ -10104,6 +10725,7 @@ _openshift_cli_adm()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_namespace()
@@ -10132,9 +10754,6 @@ _openshift_cli_create_namespace()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
@@ -10165,6 +10784,7 @@ _openshift_cli_create_namespace()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_secret_docker-registry()
@@ -10199,9 +10819,6 @@ _openshift_cli_create_secret_docker-registry()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -10234,6 +10851,7 @@ _openshift_cli_create_secret_docker-registry()
     must_have_one_flag+=("--docker-password=")
     must_have_one_flag+=("--docker-username=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_secret_generic()
@@ -10265,9 +10883,6 @@ _openshift_cli_create_secret_generic()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--validate")
     flags+=("--api-version=")
@@ -10298,6 +10913,7 @@ _openshift_cli_create_secret_generic()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_secret()
@@ -10340,6 +10956,7 @@ _openshift_cli_create_secret()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_configmap()
@@ -10371,9 +10988,6 @@ _openshift_cli_create_configmap()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -10403,6 +11017,7 @@ _openshift_cli_create_configmap()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_serviceaccount()
@@ -10433,9 +11048,6 @@ _openshift_cli_create_serviceaccount()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -10465,6 +11077,7 @@ _openshift_cli_create_serviceaccount()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_route_edge()
@@ -10525,6 +11138,7 @@ _openshift_cli_create_route_edge()
     must_have_one_flag=()
     must_have_one_flag+=("--service=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_route_passthrough()
@@ -10575,6 +11189,7 @@ _openshift_cli_create_route_passthrough()
     must_have_one_flag=()
     must_have_one_flag+=("--service=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_route_reencrypt()
@@ -10639,6 +11254,7 @@ _openshift_cli_create_route_reencrypt()
     must_have_one_flag+=("--dest-ca-cert=")
     must_have_one_flag+=("--service=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_route()
@@ -10682,6 +11298,7 @@ _openshift_cli_create_route()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_policybinding()
@@ -10724,6 +11341,7 @@ _openshift_cli_create_policybinding()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_deploymentconfig()
@@ -10768,6 +11386,7 @@ _openshift_cli_create_deploymentconfig()
     must_have_one_flag=()
     must_have_one_flag+=("--image=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_user()
@@ -10792,9 +11411,6 @@ _openshift_cli_create_user()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -10823,6 +11439,7 @@ _openshift_cli_create_user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_identity()
@@ -10846,9 +11463,6 @@ _openshift_cli_create_identity()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -10877,6 +11491,7 @@ _openshift_cli_create_identity()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_useridentitymapping()
@@ -10900,9 +11515,6 @@ _openshift_cli_create_useridentitymapping()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -10931,6 +11543,7 @@ _openshift_cli_create_useridentitymapping()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create_imagestream()
@@ -10973,6 +11586,7 @@ _openshift_cli_create_imagestream()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_create()
@@ -11043,6 +11657,7 @@ _openshift_cli_create()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_replace()
@@ -11106,6 +11721,7 @@ _openshift_cli_replace()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_apply()
@@ -11164,6 +11780,7 @@ _openshift_cli_apply()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_patch()
@@ -11221,6 +11838,138 @@ _openshift_cli_patch()
     must_have_one_flag+=("--patch=")
     must_have_one_flag+=("-p")
     must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("configmap")
+    must_have_one_noun+=("daemonset")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ingress")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("job")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podsecuritypolicy")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("thirdpartyresourcedata")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_cli_process()
@@ -11278,6 +12027,7 @@ _openshift_cli_process()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_export()
@@ -11314,9 +12064,6 @@ _openshift_cli_export()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -11345,6 +12092,7 @@ _openshift_cli_export()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_who-can()
@@ -11386,6 +12134,7 @@ _openshift_cli_policy_who-can()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_can-i()
@@ -11432,6 +12181,7 @@ _openshift_cli_policy_can-i()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_add-role-to-user()
@@ -11475,6 +12225,7 @@ _openshift_cli_policy_add-role-to-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_remove-role-from-user()
@@ -11518,6 +12269,7 @@ _openshift_cli_policy_remove-role-from-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_remove-user()
@@ -11558,6 +12310,7 @@ _openshift_cli_policy_remove-user()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_add-role-to-group()
@@ -11599,6 +12352,7 @@ _openshift_cli_policy_add-role-to-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_remove-role-from-group()
@@ -11640,6 +12394,7 @@ _openshift_cli_policy_remove-role-from-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy_remove-group()
@@ -11680,6 +12435,7 @@ _openshift_cli_policy_remove-group()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_policy()
@@ -11728,6 +12484,7 @@ _openshift_cli_policy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_convert()
@@ -11764,9 +12521,6 @@ _openshift_cli_convert()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -11798,6 +12552,7 @@ _openshift_cli_convert()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_import_docker-compose()
@@ -11852,6 +12607,7 @@ _openshift_cli_import_docker-compose()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_import_app.json()
@@ -11907,6 +12663,7 @@ _openshift_cli_import_app.json()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_import()
@@ -11949,6 +12706,7 @@ _openshift_cli_import()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_logout()
@@ -11989,6 +12747,7 @@ _openshift_cli_logout()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_view()
@@ -12016,9 +12775,6 @@ _openshift_cli_config_view()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -12045,6 +12801,7 @@ _openshift_cli_config_view()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_set-cluster()
@@ -12084,6 +12841,7 @@ _openshift_cli_config_set-cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_set-credentials()
@@ -12125,6 +12883,7 @@ _openshift_cli_config_set-credentials()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_set-context()
@@ -12162,6 +12921,7 @@ _openshift_cli_config_set-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_set()
@@ -12174,6 +12934,7 @@ _openshift_cli_config_set()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--set-raw-bytes=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -12200,6 +12961,7 @@ _openshift_cli_config_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_unset()
@@ -12238,6 +13000,7 @@ _openshift_cli_config_unset()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_current-context()
@@ -12276,6 +13039,7 @@ _openshift_cli_config_current-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config_use-context()
@@ -12314,6 +13078,7 @@ _openshift_cli_config_use-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_config()
@@ -12360,6 +13125,7 @@ _openshift_cli_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_whoami()
@@ -12402,6 +13168,7 @@ _openshift_cli_whoami()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_env()
@@ -12461,6 +13228,7 @@ _openshift_cli_env()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_volumes()
@@ -12532,6 +13300,7 @@ _openshift_cli_volumes()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_ex_dockerbuild()
@@ -12576,6 +13345,7 @@ _openshift_cli_ex_dockerbuild()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_ex()
@@ -12617,6 +13387,7 @@ _openshift_cli_ex()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli_options()
@@ -12657,6 +13428,7 @@ _openshift_cli_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_cli()
@@ -12751,6 +13523,7 @@ _openshift_cli()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_get()
@@ -12788,9 +13561,6 @@ _openshift_kube_get()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--watch")
     flags+=("-w")
@@ -12859,6 +13629,7 @@ _openshift_kube_get()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -12880,6 +13651,81 @@ _openshift_kube_get()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_kube_describe()
@@ -12903,6 +13749,7 @@ _openshift_kube_describe()
     flags+=("-R")
     flags+=("--selector=")
     two_word_flags+=("-l")
+    flags+=("--show-events")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -12946,6 +13793,7 @@ _openshift_kube_describe()
     must_have_one_noun+=("node")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("replicaset")
     must_have_one_noun+=("replicationcontroller")
@@ -12954,6 +13802,45 @@ _openshift_kube_describe()
     must_have_one_noun+=("securitycontextconstraints")
     must_have_one_noun+=("service")
     must_have_one_noun+=("serviceaccount")
+    noun_aliases=()
+    noun_aliases+=("configmaps")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hpa")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("jobs")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_kube_create_namespace()
@@ -12982,9 +13869,6 @@ _openshift_kube_create_namespace()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
@@ -13016,6 +13900,7 @@ _openshift_kube_create_namespace()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create_secret_docker-registry()
@@ -13050,9 +13935,6 @@ _openshift_kube_create_secret_docker-registry()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -13086,6 +13968,7 @@ _openshift_kube_create_secret_docker-registry()
     must_have_one_flag+=("--docker-password=")
     must_have_one_flag+=("--docker-username=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create_secret_generic()
@@ -13116,9 +13999,6 @@ _openshift_kube_create_secret_generic()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--validate")
@@ -13151,6 +14031,7 @@ _openshift_kube_create_secret_generic()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create_secret()
@@ -13194,6 +14075,7 @@ _openshift_kube_create_secret()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create_configmap()
@@ -13225,9 +14107,6 @@ _openshift_kube_create_configmap()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -13258,6 +14137,7 @@ _openshift_kube_create_configmap()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create_serviceaccount()
@@ -13288,9 +14168,6 @@ _openshift_kube_create_serviceaccount()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -13321,6 +14198,7 @@ _openshift_kube_create_serviceaccount()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_create()
@@ -13385,6 +14263,7 @@ _openshift_kube_create()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_replace()
@@ -13449,6 +14328,7 @@ _openshift_kube_replace()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_patch()
@@ -13507,6 +14387,138 @@ _openshift_kube_patch()
     must_have_one_flag+=("--patch=")
     must_have_one_flag+=("-p")
     must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("configmap")
+    must_have_one_noun+=("daemonset")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ingress")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("job")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podsecuritypolicy")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("thirdpartyresourcedata")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_kube_delete()
@@ -13530,6 +14542,7 @@ _openshift_kube_delete()
     flags+=("--grace-period=")
     flags+=("--ignore-not-found")
     flags+=("--include-extended-apis")
+    flags+=("--now")
     flags+=("--output=")
     two_word_flags+=("-o")
     flags+=("--recursive")
@@ -13601,6 +14614,7 @@ _openshift_kube_delete()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -13622,6 +14636,81 @@ _openshift_kube_delete()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_kube_edit()
@@ -13678,6 +14767,138 @@ _openshift_kube_edit()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("configmap")
+    must_have_one_noun+=("daemonset")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ingress")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("job")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podsecuritypolicy")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("thirdpartyresourcedata")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_kube_apply()
@@ -13737,6 +14958,7 @@ _openshift_kube_apply()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_namespace()
@@ -13778,6 +15000,7 @@ _openshift_kube_namespace()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_logs()
@@ -13832,6 +15055,7 @@ _openshift_kube_logs()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rolling-update()
@@ -13854,6 +15078,7 @@ _openshift_kube_rolling-update()
     flags_with_completion+=("-f")
     flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
     flags+=("--image=")
+    flags+=("--image-pull-policy=")
     flags+=("--include-extended-apis")
     flags+=("--no-headers")
     flags+=("--output=")
@@ -13870,9 +15095,6 @@ _openshift_kube_rolling-update()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--timeout=")
     flags+=("--update-period=")
@@ -13909,6 +15131,7 @@ _openshift_kube_rolling-update()
     must_have_one_flag+=("-f")
     must_have_one_flag+=("--image=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_scale()
@@ -13967,6 +15190,7 @@ _openshift_kube_scale()
     must_have_one_flag=()
     must_have_one_flag+=("--replicas=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_cordon()
@@ -14008,6 +15232,7 @@ _openshift_kube_cordon()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_drain()
@@ -14052,6 +15277,7 @@ _openshift_kube_drain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_uncordon()
@@ -14093,6 +15319,7 @@ _openshift_kube_uncordon()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_attach()
@@ -14140,6 +15367,7 @@ _openshift_kube_attach()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_exec()
@@ -14189,6 +15417,7 @@ _openshift_kube_exec()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_port-forward()
@@ -14232,6 +15461,7 @@ _openshift_kube_port-forward()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_proxy()
@@ -14288,6 +15518,7 @@ _openshift_kube_proxy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_run()
@@ -14337,10 +15568,8 @@ _openshift_kube_run()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--tty")
+    flags+=("-t")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -14371,6 +15600,7 @@ _openshift_kube_run()
     must_have_one_flag=()
     must_have_one_flag+=("--image=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_expose()
@@ -14419,9 +15649,6 @@ _openshift_kube_expose()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -14452,6 +15679,21 @@ _openshift_kube_expose()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("replicaset")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("service")
+    noun_aliases=()
+    noun_aliases+=("deployments")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("rs")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_kube_autoscale()
@@ -14492,9 +15734,6 @@ _openshift_kube_autoscale()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -14525,6 +15764,7 @@ _openshift_kube_autoscale()
     must_have_one_flag=()
     must_have_one_flag+=("--max=")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rollout_history()
@@ -14575,6 +15815,7 @@ _openshift_kube_rollout_history()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rollout_pause()
@@ -14624,6 +15865,7 @@ _openshift_kube_rollout_pause()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rollout_resume()
@@ -14673,6 +15915,7 @@ _openshift_kube_rollout_resume()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rollout_undo()
@@ -14723,6 +15966,7 @@ _openshift_kube_rollout_undo()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_rollout()
@@ -14768,6 +16012,7 @@ _openshift_kube_rollout()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_label()
@@ -14806,9 +16051,6 @@ _openshift_kube_label()
     flags+=("--sort-by=")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -14874,6 +16116,7 @@ _openshift_kube_label()
     must_have_one_noun+=("oauthclientauthorization")
     must_have_one_noun+=("persistentvolume")
     must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("petset")
     must_have_one_noun+=("pod")
     must_have_one_noun+=("podsecuritypolicy")
     must_have_one_noun+=("podtemplate")
@@ -14895,6 +16138,81 @@ _openshift_kube_label()
     must_have_one_noun+=("thirdpartyresourcedata")
     must_have_one_noun+=("user")
     must_have_one_noun+=("useridentitymapping")
+    noun_aliases=()
+    noun_aliases+=("buildconfigs")
+    noun_aliases+=("builds")
+    noun_aliases+=("clusternetworks")
+    noun_aliases+=("clusterpolicies")
+    noun_aliases+=("clusterpolicybindings")
+    noun_aliases+=("clusterrolebindings")
+    noun_aliases+=("clusterroles")
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("configmaps")
+    noun_aliases+=("cs")
+    noun_aliases+=("daemonsets")
+    noun_aliases+=("deploymentconfigs")
+    noun_aliases+=("deployments")
+    noun_aliases+=("ds")
+    noun_aliases+=("endpoints")
+    noun_aliases+=("ep")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("groups")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hostsubnets")
+    noun_aliases+=("hpa")
+    noun_aliases+=("identities")
+    noun_aliases+=("images")
+    noun_aliases+=("imagestreamimages")
+    noun_aliases+=("imagestreams")
+    noun_aliases+=("imagestreamtags")
+    noun_aliases+=("ing")
+    noun_aliases+=("ingresses")
+    noun_aliases+=("ispersonalsubjectaccessreviews")
+    noun_aliases+=("jobs")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("namespaces")
+    noun_aliases+=("netnamespaces")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("ns")
+    noun_aliases+=("oauthaccesstokens")
+    noun_aliases+=("oauthauthorizetokens")
+    noun_aliases+=("oauthclientauthorizations")
+    noun_aliases+=("oauthclients")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("petsets")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("podsecuritypolicies")
+    noun_aliases+=("podtemplates")
+    noun_aliases+=("policies")
+    noun_aliases+=("policybindings")
+    noun_aliases+=("projects")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicasets")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("rolebindings")
+    noun_aliases+=("roles")
+    noun_aliases+=("routes")
+    noun_aliases+=("rs")
+    noun_aliases+=("sa")
+    noun_aliases+=("secrets")
+    noun_aliases+=("securitycontextconstraintses")
+    noun_aliases+=("serviceaccounts")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
+    noun_aliases+=("templates")
+    noun_aliases+=("thirdpartyresourcedatas")
+    noun_aliases+=("thirdpartyresources")
+    noun_aliases+=("useridentitymappings")
+    noun_aliases+=("users")
 }
 
 _openshift_kube_annotate()
@@ -14933,9 +16251,6 @@ _openshift_kube_annotate()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -14965,6 +16280,42 @@ _openshift_kube_annotate()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    must_have_one_noun+=("componentstatuse")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("service")
+    noun_aliases=()
+    noun_aliases+=("componentstatuses")
+    noun_aliases+=("cs")
+    noun_aliases+=("ev")
+    noun_aliases+=("events")
+    noun_aliases+=("horizontalpodautoscalers")
+    noun_aliases+=("hpa")
+    noun_aliases+=("limitranges")
+    noun_aliases+=("limits")
+    noun_aliases+=("no")
+    noun_aliases+=("nodes")
+    noun_aliases+=("persistentvolumeclaims")
+    noun_aliases+=("persistentvolumes")
+    noun_aliases+=("po")
+    noun_aliases+=("pods")
+    noun_aliases+=("pv")
+    noun_aliases+=("pvc")
+    noun_aliases+=("quota")
+    noun_aliases+=("rc")
+    noun_aliases+=("replicationcontrollers")
+    noun_aliases+=("resourcequotas")
+    noun_aliases+=("secrets")
+    noun_aliases+=("services")
+    noun_aliases+=("svc")
 }
 
 _openshift_kube_config_view()
@@ -14992,9 +16343,6 @@ _openshift_kube_config_view()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -15024,6 +16372,7 @@ _openshift_kube_config_view()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_set-cluster()
@@ -15066,6 +16415,7 @@ _openshift_kube_config_set-cluster()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_set-credentials()
@@ -15110,6 +16460,7 @@ _openshift_kube_config_set-credentials()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_set-context()
@@ -15150,6 +16501,7 @@ _openshift_kube_config_set-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_set()
@@ -15162,6 +16514,7 @@ _openshift_kube_config_set()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--set-raw-bytes=")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
@@ -15191,6 +16544,7 @@ _openshift_kube_config_set()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_unset()
@@ -15232,6 +16586,7 @@ _openshift_kube_config_unset()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_current-context()
@@ -15273,6 +16628,7 @@ _openshift_kube_config_current-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config_use-context()
@@ -15314,6 +16670,7 @@ _openshift_kube_config_use-context()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_config()
@@ -15363,6 +16720,7 @@ _openshift_kube_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_cluster-info()
@@ -15405,6 +16763,7 @@ _openshift_kube_cluster-info()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_api-versions()
@@ -15446,6 +16805,7 @@ _openshift_kube_api-versions()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_version()
@@ -15489,6 +16849,7 @@ _openshift_kube_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_explain()
@@ -15532,6 +16893,7 @@ _openshift_kube_explain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_convert()
@@ -15568,9 +16930,6 @@ _openshift_kube_convert()
     flags+=("--template=")
     flags_with_completion+=("--template")
     flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
-    flags_completion+=("_filedir")
     flags+=("--validate")
     flags+=("--api-version=")
     flags+=("--as=")
@@ -15603,6 +16962,7 @@ _openshift_kube_convert()
     must_have_one_flag+=("--filename=")
     must_have_one_flag+=("-f")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube_options()
@@ -15644,6 +17004,7 @@ _openshift_kube_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_kube()
@@ -15717,6 +17078,7 @@ _openshift_kube()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_ipfailover()
@@ -15779,6 +17141,7 @@ _openshift_ex_ipfailover()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_build-chain()
@@ -15824,6 +17187,7 @@ _openshift_ex_build-chain()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_config_patch()
@@ -15869,6 +17233,7 @@ _openshift_ex_config_patch()
     must_have_one_flag+=("--patch=")
     must_have_one_flag+=("-p")
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_config()
@@ -15910,6 +17275,7 @@ _openshift_ex_config()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_options()
@@ -15950,6 +17316,7 @@ _openshift_ex_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_sync-groups()
@@ -15979,9 +17346,6 @@ _openshift_ex_sync-groups()
     flags_completion+=("__handle_filename_extension_flag yaml|yml")
     flags+=("--template=")
     flags_with_completion+=("--template")
-    flags_completion+=("_filedir")
-    two_word_flags+=("-t")
-    flags_with_completion+=("-t")
     flags_completion+=("_filedir")
     flags+=("--type=")
     flags+=("--whitelist=")
@@ -16015,6 +17379,7 @@ _openshift_ex_sync-groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex_prune-groups()
@@ -16065,6 +17430,7 @@ _openshift_ex_prune-groups()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_ex()
@@ -16111,6 +17477,7 @@ _openshift_ex()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_version()
@@ -16128,6 +17495,7 @@ _openshift_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_router_version()
@@ -16145,6 +17513,7 @@ _openshift_infra_router_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_router()
@@ -16206,6 +17575,7 @@ _openshift_infra_router()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_f5-router_version()
@@ -16223,6 +17593,7 @@ _openshift_infra_f5-router_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_f5-router()
@@ -16282,6 +17653,7 @@ _openshift_infra_f5-router()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_deploy_version()
@@ -16299,6 +17671,7 @@ _openshift_infra_deploy_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_deploy()
@@ -16320,6 +17693,7 @@ _openshift_infra_deploy()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_recycle()
@@ -16337,6 +17711,7 @@ _openshift_infra_recycle()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_sti-build_version()
@@ -16354,6 +17729,7 @@ _openshift_infra_sti-build_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_sti-build()
@@ -16372,6 +17748,7 @@ _openshift_infra_sti-build()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_docker-build_version()
@@ -16389,6 +17766,7 @@ _openshift_infra_docker-build_version()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_docker-build()
@@ -16407,6 +17785,7 @@ _openshift_infra_docker-build()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra_diagnostic-pod()
@@ -16426,6 +17805,7 @@ _openshift_infra_diagnostic-pod()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_infra()
@@ -16450,6 +17830,7 @@ _openshift_infra()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift_options()
@@ -16467,6 +17848,7 @@ _openshift_options()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 _openshift()
@@ -16492,15 +17874,17 @@ _openshift()
 
     must_have_one_flag=()
     must_have_one_noun=()
+    noun_aliases=()
 }
 
 __start_openshift()
 {
     local cur prev words cword
+    declare -A flaghash 2>/dev/null || :
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else
-        __my_init_completion || return
+        __my_init_completion -n "=" || return
     fi
 
     local c=0
@@ -16518,9 +17902,9 @@ __start_openshift()
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then
-    complete -F __start_openshift openshift
+    complete -o default -F __start_openshift openshift
 else
-    complete -o nospace -F __start_openshift openshift
+    complete -o default -o nospace -F __start_openshift openshift
 fi
 
 # ex: ts=4 sw=4 et filetype=sh

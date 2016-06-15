@@ -80,7 +80,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
 	)

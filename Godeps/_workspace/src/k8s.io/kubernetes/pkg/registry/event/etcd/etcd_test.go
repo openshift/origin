@@ -52,7 +52,7 @@ func validNewEvent(namespace string) *api.Event {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	event := validNewEvent(test.TestNamespace())
 	event.ObjectMeta = api.ObjectMeta{}
 	test.TestCreate(
@@ -66,7 +66,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).AllowCreateOnUpdate()
+	test := registrytest.New(t, storage.Store).AllowCreateOnUpdate()
 	test.TestUpdate(
 		// valid
 		validNewEvent(test.TestNamespace()),
@@ -88,6 +88,6 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(validNewEvent(test.TestNamespace()))
 }

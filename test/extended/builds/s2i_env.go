@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"

@@ -17,7 +17,7 @@ func TestContainerLogsError(t *testing.T) {
 	client := &Client{
 		transport: newMockClient(nil, errorMock(http.StatusInternalServerError, "Server error")),
 	}
-	_, err := client.ContainerLogs(context.Background(), types.ContainerLogsOptions{})
+	_, err := client.ContainerLogs(context.Background(), "container_id", types.ContainerLogsOptions{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
 	}
@@ -28,7 +28,7 @@ func ExampleClient_ContainerLogs_withTimeout() {
 	defer cancel()
 
 	client, _ := NewEnvClient()
-	reader, err := client.ContainerLogs(ctx, types.ContainerLogsOptions{})
+	reader, err := client.ContainerLogs(ctx, "container_id", types.ContainerLogsOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}

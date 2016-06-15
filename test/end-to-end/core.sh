@@ -340,7 +340,7 @@ os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}'
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
-os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+NodeSelectorMismatching' $((20*TIME_SEC))
+os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+MatchNodeSelector' $((20*TIME_SEC))
 
 
 # Image pruning

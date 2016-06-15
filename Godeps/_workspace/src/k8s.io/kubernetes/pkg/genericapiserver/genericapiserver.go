@@ -39,11 +39,11 @@ import (
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/handlers"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	genericetcd "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	ipallocator "k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/crypto"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
@@ -54,114 +54,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 )
 
 const (
-	DefaultEtcdPathPrefix = "/registry"
-	globalTimeout         = time.Minute
+	DefaultEtcdPathPrefix           = "/registry"
+	DefaultDeserializationCacheSize = 50000
+	globalTimeout                   = time.Minute
 )
-
-// StorageDestinations is a mapping from API group & resource to
-// the underlying storage interfaces.
-type StorageDestinations struct {
-	APIGroups map[string]*StorageDestinationsForAPIGroup
-}
-
-type StorageDestinationsForAPIGroup struct {
-	Default   storage.Interface
-	Overrides map[string]storage.Interface
-}
-
-func NewStorageDestinations() StorageDestinations {
-	return StorageDestinations{
-		APIGroups: map[string]*StorageDestinationsForAPIGroup{},
-	}
-}
-
-// AddAPIGroup replaces 'group' if it's already registered.
-func (s *StorageDestinations) AddAPIGroup(group string, defaultStorage storage.Interface) {
-	glog.Infof("Adding storage destination for group %v", group)
-	s.APIGroups[group] = &StorageDestinationsForAPIGroup{
-		Default:   defaultStorage,
-		Overrides: map[string]storage.Interface{},
-	}
-}
-
-func (s *StorageDestinations) AddStorageOverride(group, resource string, override storage.Interface) {
-	if _, ok := s.APIGroups[group]; !ok {
-		s.AddAPIGroup(group, nil)
-	}
-	if s.APIGroups[group].Overrides == nil {
-		s.APIGroups[group].Overrides = map[string]storage.Interface{}
-	}
-	s.APIGroups[group].Overrides[resource] = override
-}
-
-// Get finds the storage destination for the given group and resource. It will
-// Fatalf if the group has no storage destination configured.
-func (s *StorageDestinations) Get(group, resource string) storage.Interface {
-	apigroup, ok := s.APIGroups[group]
-	if !ok {
-		// TODO: return an error like a normal function. For now,
-		// Fatalf is better than just logging an error, because this
-		// condition guarantees future problems and this is a less
-		// mysterious failure point.
-		glog.Fatalf("No storage defined for API group: '%s'. Defined groups: %#v", group, s.APIGroups)
-		return nil
-	}
-	if apigroup.Overrides != nil {
-		if client, exists := apigroup.Overrides[resource]; exists {
-			return client
-		}
-	}
-	return apigroup.Default
-}
-
-// Search is like Get, but can be used to search a list of groups. It tries the
-// groups in order (and Fatalf's if none of them exist). The intention is for
-// this to be used for resources that move between groups.
-func (s *StorageDestinations) Search(groups []string, resource string) storage.Interface {
-	for _, group := range groups {
-		apigroup, ok := s.APIGroups[group]
-		if !ok {
-			continue
-		}
-		if apigroup.Overrides != nil {
-			if client, exists := apigroup.Overrides[resource]; exists {
-				return client
-			}
-		}
-		return apigroup.Default
-	}
-	// TODO: return an error like a normal function. For now,
-	// Fatalf is better than just logging an error, because this
-	// condition guarantees future problems and this is a less
-	// mysterious failure point.
-	glog.Fatalf("No storage defined for any of the groups: %v. Defined groups: %#v", groups, s.APIGroups)
-	return nil
-}
-
-// Get all backends for all registered storage destinations.
-// Used for getting all instances for health validations.
-func (s *StorageDestinations) Backends() []string {
-	backends := sets.String{}
-	for _, group := range s.APIGroups {
-		if group.Default != nil {
-			for _, backend := range group.Default.Backends(context.TODO()) {
-				backends.Insert(backend)
-			}
-		}
-		if group.Overrides != nil {
-			for _, storage := range group.Overrides {
-				for _, backend := range storage.Backends(context.TODO()) {
-					backends.Insert(backend)
-				}
-			}
-		}
-	}
-	return backends.List()
-}
 
 // Info about an API group.
 type APIGroupInfo struct {
@@ -195,9 +94,7 @@ type APIGroupInfo struct {
 
 // Config is a structure used to configure a GenericAPIServer.
 type Config struct {
-	StorageDestinations StorageDestinations
-	// StorageVersions is a map between groups and their storage versions
-	StorageVersions map[string]string
+	StorageFactory StorageFactory
 	// allow downstream consumers to disable the core controller loops
 	EnableLogsSupport bool
 	EnableUISupport   bool
@@ -349,7 +246,7 @@ type GenericAPIServer struct {
 
 func (s *GenericAPIServer) StorageDecorator() generic.StorageDecorator {
 	if s.enableWatchCache {
-		return genericetcd.StorageWithCacher
+		return registry.StorageWithCacher
 	}
 	return generic.UndecoratedStorage
 }
@@ -557,6 +454,8 @@ func (s *GenericAPIServer) init(c *Config) {
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
 
+	apiserver.InstallVersionHandler(s.MuxHelper, s.HandlerContainer)
+
 	handler := http.Handler(s.mux.(*http.ServeMux))
 
 	// TODO: handle CORS and auth using go-restful
@@ -575,7 +474,7 @@ func (s *GenericAPIServer) init(c *Config) {
 
 	attributeGetter := apiserver.NewRequestAttributeGetter(s.RequestContextMapper, s.NewRequestInfoResolver())
 	handler = apiserver.WithAuthorizationCheck(handler, attributeGetter, s.authorizer)
-	handler = apiserver.WithActingAs(handler, s.RequestContextMapper, s.authorizer)
+	handler = apiserver.WithImpersonation(handler, s.RequestContextMapper, s.authorizer)
 
 	// Install Authenticator
 	if c.Authenticator != nil {
@@ -635,6 +534,104 @@ func (s *GenericAPIServer) installGroupsDiscoveryHandler() {
 		}
 		return groups
 	})
+}
+
+// TODO: Longer term we should read this from some config store, rather than a flag.
+func verifyClusterIPFlags(options *ServerRunOptions) {
+	if options.ServiceClusterIPRange.IP == nil {
+		glog.Fatal("No --service-cluster-ip-range specified")
+	}
+	var ones, bits = options.ServiceClusterIPRange.Mask.Size()
+	if bits-ones > 20 {
+		glog.Fatal("Specified --service-cluster-ip-range is too large")
+	}
+}
+
+func NewConfig(options *ServerRunOptions) *Config {
+	return &Config{
+		APIGroupPrefix:            options.APIGroupPrefix,
+		APIPrefix:                 options.APIPrefix,
+		CorsAllowedOriginList:     options.CorsAllowedOriginList,
+		EnableIndex:               true,
+		EnableLogsSupport:         options.EnableLogsSupport,
+		EnableProfiling:           options.EnableProfiling,
+		EnableSwaggerSupport:      true,
+		EnableSwaggerUI:           options.EnableSwaggerUI,
+		EnableUISupport:           true,
+		EnableWatchCache:          options.EnableWatchCache,
+		ExternalHost:              options.ExternalHost,
+		KubernetesServiceNodePort: options.KubernetesServiceNodePort,
+		MasterCount:               options.MasterCount,
+		MinRequestTimeout:         options.MinRequestTimeout,
+		PublicAddress:             options.AdvertiseAddress,
+		ReadWritePort:             options.SecurePort,
+		ServiceClusterIPRange:     &options.ServiceClusterIPRange,
+		ServiceNodePortRange:      options.ServiceNodePortRange,
+	}
+}
+
+func verifyServiceNodePort(options *ServerRunOptions) {
+	if options.KubernetesServiceNodePort > 0 && !options.ServiceNodePortRange.Contains(options.KubernetesServiceNodePort) {
+		glog.Fatalf("Kubernetes service port range %v doesn't contain %v", options.ServiceNodePortRange, (options.KubernetesServiceNodePort))
+	}
+}
+
+func verifyEtcdServersList(options *ServerRunOptions) {
+	if len(options.StorageConfig.ServerList) == 0 {
+		glog.Fatalf("--etcd-servers must be specified")
+	}
+}
+
+func ValidateRunOptions(options *ServerRunOptions) {
+	verifyClusterIPFlags(options)
+	verifyServiceNodePort(options)
+	verifyEtcdServersList(options)
+}
+
+func DefaultAndValidateRunOptions(options *ServerRunOptions) {
+	ValidateRunOptions(options)
+
+	// If advertise-address is not specified, use bind-address. If bind-address
+	// is not usable (unset, 0.0.0.0, or loopback), we will use the host's default
+	// interface as valid public addr for master (see: util/net#ValidPublicAddrForMaster)
+	if options.AdvertiseAddress == nil || options.AdvertiseAddress.IsUnspecified() {
+		hostIP, err := utilnet.ChooseBindAddress(options.BindAddress)
+		if err != nil {
+			glog.Fatalf("Unable to find suitable network address.error='%v' . "+
+				"Try to set the AdvertiseAddress directly or provide a valid BindAddress to fix this.", err)
+		}
+		options.AdvertiseAddress = hostIP
+	}
+	glog.Infof("Will report %v as public IP address.", options.AdvertiseAddress)
+
+	// Set default value for ExternalHost if not specified.
+	if len(options.ExternalHost) == 0 {
+		// TODO: extend for other providers
+		if options.CloudProvider == "gce" {
+			cloud, err := cloudprovider.InitCloudProvider(options.CloudProvider, options.CloudConfigFile)
+			if err != nil {
+				glog.Fatalf("Cloud provider could not be initialized: %v", err)
+			}
+			instances, supported := cloud.Instances()
+			if !supported {
+				glog.Fatalf("GCE cloud provider has no instances.  this shouldn't happen. exiting.")
+			}
+			name, err := os.Hostname()
+			if err != nil {
+				glog.Fatalf("Failed to get hostname: %v", err)
+			}
+			addrs, err := instances.NodeAddresses(name)
+			if err != nil {
+				glog.Warningf("Unable to obtain external host address from cloud provider: %v", err)
+			} else {
+				for _, addr := range addrs {
+					if addr.Type == api.NodeExternalIP {
+						options.ExternalHost = addr.Address
+					}
+				}
+			}
+		}
+	}
 }
 
 func (s *GenericAPIServer) Run(options *ServerRunOptions) {
@@ -700,7 +697,7 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 				if err := crypto.GenerateSelfSignedCert(s.ClusterIP.String(), options.TLSCertFile, options.TLSPrivateKeyFile, alternateIPs, alternateDNS); err != nil {
 					glog.Errorf("Unable to generate self signed cert: %v", err)
 				} else {
-					glog.Infof("Using self-signed cert (%options, %options)", options.TLSCertFile, options.TLSPrivateKeyFile)
+					glog.Infof("Using self-signed cert (%s, %s)", options.TLSCertFile, options.TLSPrivateKeyFile)
 				}
 			}
 		}

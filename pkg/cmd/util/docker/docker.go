@@ -3,6 +3,8 @@ package docker
 import (
 	"os"
 
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -36,6 +38,19 @@ func (_ *Helper) GetClient() (client *docker.Client, endpoint string, err error)
 	return
 }
 
+// GetKubeClient returns the Kubernetes Docker client.
+func (_ *Helper) GetKubeClient() (*KubeDocker, string, error) {
+	var endpoint string
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
+	}
+	client := dockertools.ConnectToDockerOrDie(endpoint)
+	originClient := &KubeDocker{client}
+	return originClient, endpoint, nil
+}
+
 // GetClientOrExit returns a valid Docker client and the address of the client,
 // or prints an error and exits.
 func (h *Helper) GetClientOrExit() (*docker.Client, string) {
@@ -44,4 +59,19 @@ func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 		glog.Fatalf("ERROR: Couldn't connect to Docker at %s.\n%v\n.", addr, err)
 	}
 	return client, addr
+}
+
+// KubeDocker provides a wrapper to Kubernetes Docker interface
+// This wrapper is compatible with OpenShift Docker interface.
+type KubeDocker struct {
+	dockertools.DockerInterface
+}
+
+// Ping implements the DockerInterface Ping method.
+func (c *KubeDocker) Ping() error {
+	client, err := docker.NewClientFromEnv()
+	if err != nil {
+		return err
+	}
+	return client.Ping()
 }

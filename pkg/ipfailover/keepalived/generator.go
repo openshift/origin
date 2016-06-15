@@ -77,8 +77,8 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 	//  Container port to expose the service interconnects between keepaliveds.
 	ports := make([]kapi.ContainerPort, 1)
 	ports[0] = kapi.ContainerPort{
-		ContainerPort: options.ServicePort,
-		HostPort:      options.ServicePort,
+		ContainerPort: int32(options.ServicePort),
+		HostPort:      int32(options.ServicePort),
 	}
 
 	mounts := make([]kapi.VolumeMount, 1)

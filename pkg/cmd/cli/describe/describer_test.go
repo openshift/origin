@@ -29,6 +29,8 @@ import (
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
+	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
@@ -134,7 +136,7 @@ func TestDescribers(t *testing.T) {
 	}
 
 	for _, d := range testDescriberList {
-		out, err := d.Describe("foo", "bar")
+		out, err := d.Describe("foo", "bar", kubectl.DescriberSettings{})
 		if err != nil {
 			t.Errorf("unexpected error for %v: %v", d, err)
 		}
@@ -288,7 +290,7 @@ func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 			ContainerStatuses: []kapi.ContainerStatus{
 				{
 					State: kapi.ContainerState{
-						Terminated: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+						Terminated: &kapi.ContainerStateTerminated{ExitCode: int32(exitCode)},
 					},
 				},
 			},

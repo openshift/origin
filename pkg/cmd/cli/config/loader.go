@@ -10,7 +10,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/homedir"
 )
@@ -59,12 +58,12 @@ func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules 
 	}
 }
 
-func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
+func NewPathOptions(cmd *cobra.Command) *kclientcmd.PathOptions {
 	return NewPathOptionsWithConfig(kcmdutil.GetFlagString(cmd, OpenShiftConfigFlagName))
 }
 
-func NewPathOptionsWithConfig(configPath string) *kubecmdconfig.PathOptions {
-	return &kubecmdconfig.PathOptions{
+func NewPathOptionsWithConfig(configPath string) *kclientcmd.PathOptions {
+	return &kclientcmd.PathOptions{
 		GlobalFile: RecommendedHomeFile,
 
 		EnvVar:           OpenShiftConfigPathEnvVar,
