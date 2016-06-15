@@ -12,7 +12,6 @@ fi
 
 library_files=( $( find "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ) )
 # TODO(skuzmets): Move the contents of the following files into respective library files.
-library_files+=( "${OS_ROOT}/hack/cmd_util.sh" )
 library_files+=( "${OS_ROOT}/hack/common.sh" )
 library_files+=( "${OS_ROOT}/hack/text.sh" )
 library_files+=( "${OS_ROOT}/hack/util.sh" )
