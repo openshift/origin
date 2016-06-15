@@ -281,19 +281,19 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
 			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
 
 			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
 
 			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deployment config"))
 
 			dc, rcs, _, err := deploymentInfo(oc, name)
 			o.Expect(err).NotTo(o.HaveOccurred())
