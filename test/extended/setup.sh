@@ -16,7 +16,40 @@ function os::test::extended::focus {
   fi
 }
 
-# Launches an extended server for OpenShift
+# Run conformance test suite.
+function os::test::extended::conformance {
+  function join { local IFS="$1"; shift; echo "$*"; }
+
+  parallel_only=( "${CONFORMANCE_TESTS[@]}" )
+  parallel_exclude=( "${EXCLUDED_TESTS[@]}" "${SERIAL_TESTS[@]}" )
+  serial_only=( "${SERIAL_TESTS[@]}" )
+  serial_exclude=( "${EXCLUDED_TESTS[@]}" )
+
+  pf=$(join '|' "${parallel_only[@]}")
+  ps=$(join '|' "${parallel_exclude[@]}")
+  sf=$(join '|' "${serial_only[@]}")
+  ss=$(join '|' "${serial_exclude[@]}")
+
+  echo "[INFO] Running the following tests:"
+  TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${pf}" "--ginkgo.skip=${ps}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+  TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${sf}" "--ginkgo.skip=${ss}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+  echo
+
+  exitstatus=0
+
+  # run parallel tests
+  nodes="${PARALLEL_NODES:-5}"
+  echo "[INFO] Running parallel tests N=${nodes}"
+  TEST_REPORT_FILE_NAME=conformance_parallel ${GINKGO} -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 6h || exitstatus=$?
+
+  # run tests in serial
+  echo "[INFO] Running serial tests"
+  TEST_REPORT_FILE_NAME=conformance_serial ${GINKGO} -v "-focus=${sf}" "-skip=${ss}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 2h || exitstatus=$?
+
+  exit $exitstatus
+}
+
+# Sets up a server for OpenShift extended tests
 # TODO: this should be doing less, because clusters should be stood up outside
 #   and then tests are executed.  Tests that depend on fine grained setup should
 #   be done in other contexts.
@@ -101,16 +134,27 @@ function os::test::extended::setup {
     # Similar to above check, if the XFS volume dir mount point exists enable
     # local storage quota in node-config.yaml so these tests can pass:
     if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
-	# The ec2 images have have 1Gi of space defined; want to give /registry a good chunk of that
-	# to store the images created when the extended tests run
+    # The ec2 images have have 1Gi of space defined; want to give /registry a good chunk of that
+    # to store the images created when the extended tests run
       sed -i 's/perFSGroup: null/perFSGroup: 896Mi/' $NODE_CONFIG_DIR/node-config.yaml
     fi
     echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
-    # This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
-    os::util::sed 's/\(controllerArguments:\ \)null/\1\n    terminated-pod-gc-threshold: ["100"]/' \
-      ${MASTER_CONFIG_DIR}/master-config.yaml
+    # Update pod gc threshold appropriately for the garbage_collector test.
+    cp ${MASTER_CONFIG_DIR}/master-config.yaml ${MASTER_CONFIG_DIR}/master-config.orig.yaml
+    openshift ex config patch ${MASTER_CONFIG_DIR}/master-config.orig.yaml \
+      --patch="{\"kubernetesMasterConfig\": {\"controllerArguments\": {\"terminated-pod-gc-threshold\": [\"100\"]}}}" \
+      > ${MASTER_CONFIG_DIR}/master-config.yaml
+  else
+    # be sure to set VOLUME_DIR if you are running with TEST_ONLY
+    echo "[INFO] Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
+  fi
+}
 
+# Launches an extended server for OpenShift
+function os::test::extended::start_server {
+  # allow setup to be skipped
+  if [[ -z "${TEST_ONLY+x}" ]]; then
     start_os_server
 
     export KUBECONFIG="${ADMIN_KUBECONFIG}"
