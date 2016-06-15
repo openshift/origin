@@ -11,12 +11,19 @@ func ErrNoDockerClient(err error) error {
 	return NewError("cannot obtain a Docker client").WithCause(err).WithSolution(noDockerClientSolution())
 }
 
+// ErrNoDockerMachineClient is returned when a Docker client cannot be obtained from the given Docker machine
 func ErrNoDockerMachineClient(name string, err error) error {
 	return NewError("cannot obtain a client for Docker machine %q", name).WithCause(err).WithSolution(noDockerMachineClientSolution())
 }
 
+// ErrCannotPingDocker is returned when a ping to Docker with the Docker client fails
 func ErrCannotPingDocker(err error) error {
 	return NewError("cannot communicate with Docker").WithCause(err).WithSolution(noDockerClientSolution())
+}
+
+// ErrKubeConfigNotWriteable is returned when the file pointed to by KUBECONFIG cannot be created or written to
+func ErrKubeConfigNotWriteable(file string, err error) error {
+	return NewError("KUBECONFIG is set to a file that cannot be created or modified: %s", file).WithCause(err).WithSolution(kubeConfigSolution())
 }
 
 // ErrNoInsecureRegistryArgument is thrown when an --insecure-registry argument cannot be detected
@@ -91,6 +98,22 @@ Ensure that the Docker daemon is running with the following argument:
 You can run this command with --create-machine to create a machine with the
 right argument.
 `
+
+	KubeConfigSolutionUnix = `
+You can unset the KUBECONFIG variable to use the default location for it:
+   unset KUBECONFIG
+
+Or you can set its value to a file that can be written to:
+   export KUBECONFIG=/path/to/file
+`
+
+	KubeConfigSolutionWindows = `
+You can clear the KUBECONFIG variable to use the default location for it:
+   set KUBECONFIG=
+
+Or you can set its value to a file that can be written to:
+   set KUBECONFIG=c:\path\to\file
+`
 )
 
 func hasDockerMachine() bool {
@@ -122,6 +145,15 @@ func noDockerClientSolution() string {
 
 func noDockerMachineClientSolution() string {
 	return NoDockerMachineClientSolution
+}
+
+func kubeConfigSolution() string {
+	switch runtime.GOOS {
+	case "windows":
+		return KubeConfigSolutionWindows
+	default:
+		return KubeConfigSolutionUnix
+	}
 }
 
 func noInsecureRegistryArgSolution() string {
