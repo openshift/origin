@@ -61,7 +61,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, out io.Writer) error {
-	_, err := kubeClient.Services("default").Get("router")
+	_, err := kubeClient.Services("default").Get(svcRouter)
 	if err == nil {
 		// Router service already exists, nothing to do
 		return nil
