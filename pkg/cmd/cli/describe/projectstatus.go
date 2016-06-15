@@ -1045,11 +1045,11 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 func portOrNodePort(spec kapi.ServiceSpec, port kapi.ServicePort) string {
 	switch {
 	case spec.Type != kapi.ServiceTypeNodePort:
-		return strconv.Itoa(port.Port)
+		return strconv.Itoa(int(port.Port))
 	case port.NodePort == 0:
 		return "<initializing>"
 	default:
-		return strconv.Itoa(port.NodePort)
+		return strconv.Itoa(int(port.NodePort))
 	}
 }
 
@@ -1073,7 +1073,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 				pairs = append(pairs, externalPort)
 				continue
 			}
-			if port.Port == int(port.TargetPort.IntVal) {
+			if port.Port == port.TargetPort.IntVal {
 				pairs = append(pairs, port.TargetPort.String())
 			} else {
 				pairs = append(pairs, fmt.Sprintf("%s->%s", externalPort, port.TargetPort.String()))

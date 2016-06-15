@@ -35,7 +35,7 @@ func fakeDeploymentConfig(name string, containers ...containerDesc) *deployapi.D
 		for _, p := range c.ports {
 			container.Ports = append(container.Ports, kapi.ContainerPort{
 				Name:          fmt.Sprintf("port-%d-%s", p.port, p.protocol),
-				ContainerPort: p.port,
+				ContainerPort: int32(p.port),
 				Protocol:      kapi.Protocol(p.protocol),
 			})
 		}
@@ -64,7 +64,7 @@ func expectedService(name string, ports ...portDesc) *kapi.Service {
 		servicePorts = append(servicePorts, kapi.ServicePort{
 			// Name is derived purely from the port and protocol, ignoring the container port name
 			Name:       fmt.Sprintf("%d-%s", p.port, p.protocol),
-			Port:       p.port,
+			Port:       int32(p.port),
 			Protocol:   kapi.Protocol(p.protocol),
 			TargetPort: intstr.FromInt(p.port),
 		})

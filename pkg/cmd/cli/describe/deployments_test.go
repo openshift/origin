@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -50,7 +51,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	}
 
 	describe := func() string {
-		output, err := d.Describe("test", "deployment")
+		output, err := d.Describe("test", "deployment", kubectl.DescriberSettings{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 			return ""

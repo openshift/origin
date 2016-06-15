@@ -224,6 +224,7 @@ func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.Deploym
 }
 
 func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *extensions.HorizontalPodAutoscaler {
+	newMin := int32(min)
 	return &extensions.HorizontalPodAutoscaler{
 		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
 		Spec: extensions.HorizontalPodAutoscalerSpec{
@@ -231,8 +232,8 @@ func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) 
 				Name: config.Name,
 				Kind: "DeploymentConfig",
 			},
-			MinReplicas: &min,
-			MaxReplicas: max,
+			MinReplicas: &newMin,
+			MaxReplicas: int32(max),
 		},
 	}
 }

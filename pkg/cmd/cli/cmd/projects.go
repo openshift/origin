@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -22,7 +22,7 @@ type ProjectsOptions struct {
 	ClientConfig *restclient.Config
 	Client       *client.Client
 	Out          io.Writer
-	PathOptions  *kubecmdconfig.PathOptions
+	PathOptions  *kclientcmd.PathOptions
 
 	DisplayShort bool
 }

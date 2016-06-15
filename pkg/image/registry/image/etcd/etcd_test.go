@@ -45,7 +45,7 @@ func validImage() *api.Image {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	valid := validImage()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -59,7 +59,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(
 		validImage(),
 	)
@@ -68,7 +68,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(
 		validImage(),
 	)
@@ -77,7 +77,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
 	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
 	test.TestDelete(
@@ -88,7 +88,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validImage()
 	valid.Name = "foo"

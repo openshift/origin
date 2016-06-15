@@ -160,7 +160,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false)
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false, restoptions.DefaultCacheSize)
 
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},

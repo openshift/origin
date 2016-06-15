@@ -14,8 +14,6 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
-	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/term"
 
@@ -59,7 +57,7 @@ type LoginOptions struct {
 
 	Token string
 
-	PathOptions *kcmdconfig.PathOptions
+	PathOptions *kclientcmd.PathOptions
 }
 
 // Gather all required information in a comprehensive order.
@@ -394,7 +392,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
+	if err := kclientcmd.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
 		return false, err
 	}
 

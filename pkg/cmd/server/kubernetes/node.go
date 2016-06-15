@@ -451,7 +451,7 @@ func (c *NodeConfig) RunProxy() {
 // TODO: more generic location
 func includesServicePort(ports []kapi.ServicePort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}
@@ -461,7 +461,7 @@ func includesServicePort(ports []kapi.ServicePort, port int, portName string) bo
 // TODO: more generic location
 func includesEndpointPort(ports []kapi.EndpointPort, port int) bool {
 	for _, p := range ports {
-		if p.Port == port {
+		if p.Port == int32(port) {
 			return true
 		}
 	}
@@ -497,7 +497,7 @@ func firstEndpointIPWithNamedPort(endpoints *kapi.Endpoints, port int, portName 
 // TODO: more generic location
 func includesNamedEndpointPort(ports []kapi.EndpointPort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}

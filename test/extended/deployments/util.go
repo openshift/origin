@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -179,10 +179,10 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 	if dc.Spec.Test {
 		expectedReplicas = 0
 	}
-	if rc.Spec.Replicas != expectedReplicas {
+	if rc.Spec.Replicas != int32(expectedReplicas) {
 		return false, fmt.Errorf("deployment is complete but doesn't have expected spec replicas: %d %d", rc.Spec.Replicas, expectedReplicas)
 	}
-	if rc.Status.Replicas != expectedReplicas {
+	if rc.Status.Replicas != int32(expectedReplicas) {
 		e2e.Logf("POSSIBLE_ANOMALY: deployment is complete but doesn't have expected status replicas: %d %d", rc.Status.Replicas, expectedReplicas)
 		return false, nil
 	}

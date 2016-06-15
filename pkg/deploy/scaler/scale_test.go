@@ -61,7 +61,7 @@ func TestScale(t *testing.T) {
 			// scale replica count.
 			scale := action.(ktestclient.UpdateAction).GetObject().(*extensions.Scale)
 			scale.Status.Replicas = scale.Spec.Replicas
-			config.Spec.Replicas = scale.Spec.Replicas
+			config.Spec.Replicas = int(scale.Spec.Replicas)
 			deployment.Spec.Replicas = scale.Spec.Replicas
 			deployment.Status.Replicas = deployment.Spec.Replicas
 			return true, scale, nil
@@ -78,7 +78,7 @@ func TestScale(t *testing.T) {
 			}
 		}
 
-		if e, a := config.Spec.Replicas, deployment.Spec.Replicas; e != a {
+		if e, a := config.Spec.Replicas, deployment.Spec.Replicas; e != int(a) {
 			t.Errorf("expected rc/%s replicas %d, got %d", deployment.Name, e, a)
 		}
 	}

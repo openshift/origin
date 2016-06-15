@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"

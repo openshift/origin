@@ -30,7 +30,7 @@ func (BasicDeploymentConfigController) Generate(genericParams map[string]interfa
 			ObjectMeta: t.ObjectMeta,
 			Spec: deployapi.DeploymentConfigSpec{
 				Selector: t.Spec.Selector,
-				Replicas: t.Spec.Replicas,
+				Replicas: int(t.Spec.Replicas),
 				Template: t.Spec.Template,
 			},
 		}

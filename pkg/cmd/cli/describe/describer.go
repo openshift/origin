@@ -91,7 +91,7 @@ type BuildDescriber struct {
 }
 
 // Describe returns the description of a build
-func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
+func (d *BuildDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.osClient.Builds(namespace)
 	build, err := c.Get(name)
 	if err != nil {
@@ -396,7 +396,7 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 }
 
 // Describe returns the description of a buildConfig
-func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
+func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
 	if err != nil {
@@ -446,7 +446,7 @@ type OAuthAccessTokenDescriber struct {
 	client.Interface
 }
 
-func (d *OAuthAccessTokenDescriber) Describe(namespace, name string) (string, error) {
+func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.OAuthAccessTokens()
 	oAuthAccessToken, err := c.Get(name)
 	if err != nil {
@@ -474,7 +474,7 @@ type ImageDescriber struct {
 }
 
 // Describe returns the description of an image
-func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Images()
 	image, err := c.Get(name)
 	if err != nil {
@@ -574,7 +574,7 @@ type ImageStreamTagDescriber struct {
 }
 
 // Describe returns the description of an imageStreamTag
-func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
 	repo, tag := parsers.ParseRepositoryTag(name)
 	if tag == "" {
@@ -595,7 +595,7 @@ type ImageStreamImageDescriber struct {
 }
 
 // Describe returns the description of an imageStreamImage
-func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
 	repo, id := parsers.ParseRepositoryTag(name)
 	imageStreamImage, err := c.Get(repo, id)
@@ -612,7 +612,7 @@ type ImageStreamDescriber struct {
 }
 
 // Describe returns the description of an imageStream
-func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreams(namespace)
 	imageStream, err := c.Get(name)
 	if err != nil {
@@ -634,7 +634,7 @@ type RouteDescriber struct {
 }
 
 // Describe returns the description of a route
-func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
+func (d *RouteDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Routes(namespace)
 	route, err := c.Get(name)
 	if err != nil {
@@ -733,7 +733,7 @@ type ProjectDescriber struct {
 }
 
 // Describe returns the description of a project
-func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
+func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	projectsClient := d.osClient.Projects()
 	project, err := projectsClient.Get(name)
 	if err != nil {
@@ -912,7 +912,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 }
 
 // Describe returns the description of a template
-func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
+func (d *TemplateDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Templates(namespace)
 	template, err := c.Get(name)
 	if err != nil {
@@ -945,7 +945,7 @@ type IdentityDescriber struct {
 }
 
 // Describe returns the description of an identity
-func (d *IdentityDescriber) Describe(namespace, name string) (string, error) {
+func (d *IdentityDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -993,7 +993,7 @@ type UserIdentityMappingDescriber struct {
 }
 
 // Describe returns the description of a userIdentity
-func (d *UserIdentityMappingDescriber) Describe(namespace, name string) (string, error) {
+func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.UserIdentityMappings()
 
 	mapping, err := c.Get(name)
@@ -1016,7 +1016,7 @@ type UserDescriber struct {
 }
 
 // Describe returns the description of a user
-func (d *UserDescriber) Describe(namespace, name string) (string, error) {
+func (d *UserDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -1065,7 +1065,7 @@ type GroupDescriber struct {
 }
 
 // Describe returns the description of a group
-func (d *GroupDescriber) Describe(namespace, name string) (string, error) {
+func (d *GroupDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	group, err := d.c.Get(name)
 	if err != nil {
 		return "", err
@@ -1098,7 +1098,7 @@ type PolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
+func (d *PolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Policies(namespace)
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1156,7 +1156,7 @@ type RoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
+func (d *RoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Roles(namespace)
 	role, err := c.Get(name)
 	if err != nil {
@@ -1186,7 +1186,7 @@ type PolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.PolicyBindings(namespace)
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1226,7 +1226,7 @@ type RoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *RoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.RoleBindings(namespace)
 	roleBinding, err := c.Get(name)
 	if err != nil {
@@ -1283,7 +1283,7 @@ type ClusterPolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *ClusterPolicyDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterPolicies()
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1298,7 +1298,7 @@ type ClusterRoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *ClusterRoleDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterRoles()
 	role, err := c.Get(name)
 	if err != nil {
@@ -1314,7 +1314,7 @@ type ClusterPolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterPolicyBindings()
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1330,7 +1330,7 @@ type ClusterRoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterRoleBindings()
 	roleBinding, err := c.Get(name)
 	if err != nil {

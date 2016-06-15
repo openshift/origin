@@ -83,7 +83,7 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false)
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, restoptions.DefaultCacheSize)
 
 	return &MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},

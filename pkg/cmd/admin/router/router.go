@@ -487,11 +487,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if cfg.StatsPort > 0 {
 		port := kapi.ContainerPort{
 			Name:          "stats",
-			ContainerPort: cfg.StatsPort,
+			ContainerPort: int32(cfg.StatsPort),
 			Protocol:      kapi.ProtocolTCP,
 		}
 		if cfg.HostPorts {
-			port.HostPort = cfg.StatsPort
+			port.HostPort = int32(cfg.StatsPort)
 		}
 		ports = append(ports, port)
 	}

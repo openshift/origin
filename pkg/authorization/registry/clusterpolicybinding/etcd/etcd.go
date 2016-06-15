@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -17,13 +17,13 @@ import (
 const ClusterPolicyBindingPath = "/authorization/cluster/policybindings"
 
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
 func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicyBinding{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyBindingList{} },
 		QualifiedResource: authorizationapi.Resource("clusterpolicybindings"),

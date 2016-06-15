@@ -268,7 +268,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 				for _, s := range v.Ports {
 					container, _ := extractFirstPorts(s)
 					if port, err := strconv.Atoi(container); err == nil {
-						c.Ports = append(c.Ports, kapi.ContainerPort{ContainerPort: port})
+						c.Ports = append(c.Ports, kapi.ContainerPort{ContainerPort: int32(port)})
 					}
 				}
 				c.Args = v.Command.Slice()

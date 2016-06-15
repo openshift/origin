@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -592,7 +593,7 @@ Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/
 )
 
 func NewCmdConfig(parentName, name string) *cobra.Command {
-	pathOptions := &config.PathOptions{
+	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
 		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,

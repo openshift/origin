@@ -113,6 +113,11 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 	return api.NamespaceDefault, false, nil
 }
 
+// ConfigAccess implements ClientConfig
+func (c defaultingClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return c.nested.ConfigAccess()
+}
+
 // ClientConfig returns a complete client config
 func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 	cfg, err := c.nested.ClientConfig()
@@ -438,7 +443,7 @@ func getPorts(spec api.PodSpec) []string {
 	result := []string{}
 	for _, container := range spec.Containers {
 		for _, port := range container.Ports {
-			result = append(result, strconv.Itoa(port.ContainerPort))
+			result = append(result, strconv.Itoa(int(port.ContainerPort)))
 		}
 	}
 	return result

@@ -55,7 +55,7 @@ func TestHandleScenarios(t *testing.T) {
 		} else {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
-		deployment.Spec.Replicas = d.replicas
+		deployment.Spec.Replicas = int32(d.replicas)
 		return *deployment
 	}
 

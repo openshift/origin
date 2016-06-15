@@ -329,7 +329,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false)
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, restoptions.DefaultCacheSize)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
@@ -642,7 +642,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, restoptions.DefaultCacheSize), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
