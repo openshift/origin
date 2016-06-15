@@ -35,10 +35,25 @@ type ovsPlugin struct {
 	multitenant bool
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
-	plugin := &ovsPlugin{multitenant: multitenant}
+func IsOpenShiftNetworkPlugin(pluginName string) bool {
+	switch strings.ToLower(pluginName) {
+	case SingleTenantPluginName, MultiTenantPluginName:
+		return true
+	}
+	return false
+}
 
-	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP, iptablesSyncPeriod)
+func IsOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
+	if strings.ToLower(pluginName) == MultiTenantPluginName {
+		return true
+	}
+	return false
+}
+
+func CreatePlugin(registry *osdn.Registry, pluginName string, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
+	plugin := &ovsPlugin{multitenant: IsOpenShiftMultitenantNetworkPlugin(pluginName)}
+
+	err := plugin.BaseInit(registry, plugin, pluginName, hostname, selfIP, iptablesSyncPeriod)
 	if err != nil {
 		return nil, err
 	}
