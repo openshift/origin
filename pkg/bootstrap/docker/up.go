@@ -126,6 +126,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
+	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	return cmd
 }
 
@@ -145,8 +146,7 @@ type ClientStartConfig struct {
 	DockerMachine             string
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
-	InstallLogAggregation     bool
-	InstallMetrics            bool
+	ShouldInstallMetrics      bool
 
 	UseNsenterMount bool
 	Out             io.Writer
@@ -242,6 +242,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Install a router
 	c.addTask("Installing router", c.InstallRouter)
+
+	// Install metrics
+	if c.ShouldInstallMetrics {
+		c.addTask("Install Metrics", c.InstallMetrics)
+	}
 
 	// Import default image streams
 	c.addTask("Importing image streams", c.ImportImageStreams)
@@ -471,6 +476,9 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		LogLevel:          c.ServerLogLevel,
 		DNSPort:           c.DNSPort,
 	}
+	if c.ShouldInstallMetrics {
+		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
+	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
 	return err
 }
@@ -518,15 +526,19 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 }
 
 /*
-// TODO: implement these
+// TODO: implement this
 func (c *ClientStartConfig) InstallLogging() error {
 	return nil
 }
-
-func (c *ClientStartConfig) InstallMetrics() error {
-	return nil
-}
 */
+
+func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
+}
 
 // Login logs into the new server and sets up a default user and project
 func (c *ClientStartConfig) Login(out io.Writer) error {
@@ -542,15 +554,21 @@ func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 
 // ServerInfo displays server information after a successful start
 func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
+	metricsInfo := ""
+	if c.ShouldInstallMetrics {
+		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
+			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+	}
 	fmt.Fprintf(out, "OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n"+
+		"    %s\n\n%s"+
 		"You are logged in as:\n"+
 		"    User:     %s\n"+
 		"    Password: %s\n\n"+
 		"To login as administrator:\n"+
 		"    oc login -u system:admin\n\n",
 		c.OpenShiftHelper().Master(c.ServerIP),
+		metricsInfo,
 		initialUser,
 		initialPassword)
 	return nil
