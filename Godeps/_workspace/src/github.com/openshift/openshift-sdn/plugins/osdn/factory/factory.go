@@ -14,29 +14,27 @@ import (
 )
 
 // Call by higher layers to create the plugin SDN master instance
-func NewMasterPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client) (api.OsdnPlugin, error) {
-	return newPlugin(pluginType, osClient, kClient, "", "", 0)
+func NewMasterPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (api.OsdnPlugin, error) {
+	return newPlugin(pluginName, osClient, kClient, "", "", 0)
 }
 
 // Call by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
-	return newPlugin(pluginType, osClient, kClient, hostname, selfIP, iptablesSyncPeriod)
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
+	return newPlugin(pluginName, osClient, kClient, hostname, selfIP, iptablesSyncPeriod)
 }
 
-func newPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
-	switch strings.ToLower(pluginType) {
-	case ovs.SingleTenantPluginName:
-		return ovs.CreatePlugin(osdn.NewRegistry(osClient, kClient), false, hostname, selfIP, iptablesSyncPeriod)
-	case ovs.MultiTenantPluginName:
-		return ovs.CreatePlugin(osdn.NewRegistry(osClient, kClient), true, hostname, selfIP, iptablesSyncPeriod)
+func newPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
+	switch strings.ToLower(pluginName) {
+	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
+		return ovs.CreatePlugin(osdn.NewRegistry(osClient, kClient), pluginName, hostname, selfIP, iptablesSyncPeriod)
 	}
 
 	return nil, nil
 }
 
 // Call by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginType string, osClient *osclient.Client, kClient *kclient.Client) (api.FilteringEndpointsConfigHandler, error) {
-	switch strings.ToLower(pluginType) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (api.FilteringEndpointsConfigHandler, error) {
+	switch strings.ToLower(pluginName) {
 	case ovs.MultiTenantPluginName:
 		return ovs.CreateProxyPlugin(osdn.NewRegistry(osClient, kClient))
 	}
