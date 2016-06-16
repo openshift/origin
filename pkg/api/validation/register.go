@@ -9,6 +9,7 @@ import (
 	imagevalidation "github.com/openshift/origin/pkg/image/api/validation"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/api/validation"
 	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
+	quotavalidation "github.com/openshift/origin/pkg/quota/api/validation"
 	routevalidation "github.com/openshift/origin/pkg/route/api/validation"
 	sdnvalidation "github.com/openshift/origin/pkg/sdn/api/validation"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
@@ -22,6 +23,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
@@ -94,4 +96,7 @@ func registerAll() {
 	Validator.MustRegister(&securityapi.PodSecurityPolicySubjectReview{}, securityvalidation.ValidatePodSecurityPolicySubjectReview, nil)
 	Validator.MustRegister(&securityapi.PodSecurityPolicySelfSubjectReview{}, securityvalidation.ValidatePodSecurityPolicySelfSubjectReview, nil)
 	Validator.MustRegister(&securityapi.PodSecurityPolicyReview{}, securityvalidation.ValidatePodSecurityPolicyReview, nil)
+
+	Validator.MustRegister(&quotaapi.ClusterResourceQuota{}, quotavalidation.ValidateClusterResourceQuota, quotavalidation.ValidateClusterResourceQuotaUpdate)
+
 }

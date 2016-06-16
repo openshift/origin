@@ -489,19 +489,24 @@ func TestResourcesToCheck(t *testing.T) {
 
 var podSpecType = reflect.TypeOf(kapi.PodSpec{})
 
-func hasPodSpec(t reflect.Type) bool {
+func hasPodSpec(visited map[reflect.Type]bool, t reflect.Type) bool {
+	if visited[t] {
+		return false
+	}
+	visited[t] = true
+
 	switch t.Kind() {
 	case reflect.Struct:
 		if t == podSpecType {
 			return true
 		}
 		for i := 0; i < t.NumField(); i++ {
-			if hasPodSpec(t.Field(i).Type) {
+			if hasPodSpec(visited, t.Field(i).Type) {
 				return true
 			}
 		}
 	case reflect.Array, reflect.Slice, reflect.Chan, reflect.Map, reflect.Ptr:
-		return hasPodSpec(t.Elem())
+		return hasPodSpec(visited, t.Elem())
 	}
 	return false
 }
@@ -533,11 +538,12 @@ func kindsWithPodSpecs() []unversioned.GroupKind {
 	for _, gv := range internalGroupVersions() {
 		knownTypes := kapi.Scheme.KnownTypes(gv)
 		for kind, knownType := range knownTypes {
-			if !isList(knownType) && hasPodSpec(knownType) {
+			if !isList(knownType) && hasPodSpec(map[reflect.Type]bool{}, knownType) {
 				result = append(result, unversioned.GroupKind{Group: gv.Group, Kind: kind})
 			}
 		}
 	}
+
 	return result
 }
 

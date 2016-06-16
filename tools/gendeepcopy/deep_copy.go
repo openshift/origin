@@ -63,6 +63,8 @@ func main() {
 		"github.com/openshift/origin/pkg/oauth/api",
 		"github.com/openshift/origin/pkg/project/api/v1",
 		"github.com/openshift/origin/pkg/project/api",
+		"github.com/openshift/origin/pkg/quota/api/v1",
+		"github.com/openshift/origin/pkg/quota/api",
 		"github.com/openshift/origin/pkg/route/api/v1",
 		"github.com/openshift/origin/pkg/route/api",
 		"github.com/openshift/origin/pkg/sdn/api/v1",
