@@ -40,7 +40,7 @@ type Image struct {
 type ImageLayer struct {
 	// Name of the layer as defined by the underlying store.
 	Name string `json:"name"`
-	// LayerSize of the layer as defined by the underlying store.
+	// Size of the layer in bytes as defined by the underlying store.
 	LayerSize int64 `json:"size"`
 }
 
