@@ -218,7 +218,8 @@ func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManagerFromClient(
+	controllerManager := replicationcontroller.NewReplicationManager(
+		c.Informers.Pods().Informer(),
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicationcontroller.BurstReplicas,
@@ -229,7 +230,7 @@ func (c *MasterConfig) RunReplicationController(client *client.Client) {
 
 // RunJobController starts the Kubernetes job controller sync loop
 func (c *MasterConfig) RunJobController(client *client.Client) {
-	controller := jobcontroller.NewJobControllerFromClient(clientadapter.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager))
+	controller := jobcontroller.NewJobController(c.Informers.Pods().Informer(), clientadapter.FromUnversionedClient(client))
 	go controller.Run(int(c.ControllerManager.ConcurrentJobSyncs), utilwait.NeverStop)
 }
 
@@ -248,7 +249,8 @@ func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, 
 }
 
 func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
-	controller := daemon.NewDaemonSetsControllerFromClient(
+	controller := daemon.NewDaemonSetsController(
+		c.Informers.Pods().Informer(),
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		int(c.ControllerManager.LookupCacheSizeForDaemonSet),
@@ -258,7 +260,7 @@ func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointControllerFromClient(clientadapter.FromUnversionedClient(c.KubeClient), kctrlmgr.ResyncPeriod(c.ControllerManager))
+	endpoints := endpointcontroller.NewEndpointController(c.Informers.Pods().Informer(), clientadapter.FromUnversionedClient(c.KubeClient))
 	go endpoints.Run(int(c.ControllerManager.ConcurrentEndpointSyncs), utilwait.NeverStop)
 
 }
@@ -294,7 +296,7 @@ func (c *MasterConfig) RunResourceQuotaManager() {
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod.Duration),
 		Registry:                  resourceQuotaRegistry,
 		GroupKindsToReplenish:     groupKindsToReplenish,
-		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactoryFromClient(client),
+		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), client),
 		ReplenishmentResyncPeriod: kctrlmgr.ResyncPeriod(c.ControllerManager),
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(int(c.ControllerManager.ConcurrentResourceQuotaSyncs), utilwait.NeverStop)

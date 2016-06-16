@@ -23,6 +23,7 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -335,7 +336,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.PluginInitializer)
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.Informers, openshiftConfig.PluginInitializer)
 	return kubeConfig, err
 }
 
@@ -410,6 +411,8 @@ func (m *Master) Start() error {
 			if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
 				glog.Fatal(err)
 			}
+
+			openshiftConfig.Informers.Start(utilwait.NeverStop)
 		}()
 	}
 

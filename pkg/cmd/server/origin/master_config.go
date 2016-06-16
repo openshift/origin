@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	newetcdclient "github.com/coreos/etcd/client"
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -57,6 +58,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/controller"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -133,6 +135,10 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
+
+	// Informers is a shared factory for getting SharedInformers. It is important to get your informers, indexers, and listers
+	// from here so that we only end up with a single cache of objects
+	Informers controller.InformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -171,6 +177,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	informerFactory := controller.NewInformerFactory(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient, 10*time.Minute)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
@@ -291,6 +298,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
+		Informers:                          informerFactory,
 	}
 
 	return config, nil
