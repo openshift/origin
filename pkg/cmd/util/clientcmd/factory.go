@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -422,6 +423,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.EditorEnvs = func() []string {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
+	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
 
 	return w
 }
