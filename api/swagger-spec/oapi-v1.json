@@ -18748,7 +18748,7 @@
     "properties": {
      "lastVersion": {
       "type": "integer",
-      "format": "int32",
+      "format": "int64",
       "description": "lastVersion is used to inform about number of last triggered build."
      }
     }
@@ -18927,7 +18927,7 @@
      },
      "lastVersion": {
       "type": "integer",
-      "format": "int32",
+      "format": "int64",
       "description": "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated."
      },
      "env": {
