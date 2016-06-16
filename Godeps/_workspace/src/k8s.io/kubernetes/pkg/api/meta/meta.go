@@ -43,7 +43,7 @@ func Accessor(obj interface{}) (Object, error) {
 		return oi, nil
 	}
 
-	glog.V(4).Infof("Calling Accessor on non-internal object: %v", reflect.TypeOf(obj))
+	glog.V(6).Infof("Calling Accessor on non-internal object: %v", reflect.TypeOf(obj))
 	// legacy path for objects that do not implement Object and ObjectMetaAccessor via
 	// reflection - very slow code path.
 	v, err := conversion.EnforcePtr(obj)
