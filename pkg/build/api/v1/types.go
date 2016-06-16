@@ -793,30 +793,30 @@ type BuildRequest struct {
 type BinaryBuildRequestOptions struct {
 	unversioned.TypeMeta `json:",inline"`
 	// metadata for BinaryBuildRequestOptions.
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// asFile determines if the binary should be created as a file within the source rather than extracted as an archive
-	AsFile string `json:"asFile,omitempty"`
+	AsFile string `json:"asFile,omitempty" protobuf:"bytes,2,opt,name=asFile"`
 
 	// TODO: Improve map[string][]string conversion so we can handled nested objects
 
 	// revision.commit is the value identifying a specific commit
-	Commit string `json:"revision.commit,omitempty"`
+	Commit string `json:"revision.commit,omitempty" protobuf:"bytes,3,opt,name=revisionCommit"`
 
 	// revision.message is the description of a specific commit
-	Message string `json:"revision.message,omitempty"`
+	Message string `json:"revision.message,omitempty" protobuf:"bytes,4,opt,name=revisionMessage"`
 
 	// revision.authorName of the source control user
-	AuthorName string `json:"revision.authorName,omitempty"`
+	AuthorName string `json:"revision.authorName,omitempty" protobuf:"bytes,5,opt,name=revisionAuthorName"`
 
 	// revision.authorEmail of the source control user
-	AuthorEmail string `json:"revision.authorEmail,omitempty"`
+	AuthorEmail string `json:"revision.authorEmail,omitempty" protobuf:"bytes,6,opt,name=revisionAuthorEmail"`
 
 	// revision.committerName of the source control user
-	CommitterName string `json:"revision.committerName,omitempty"`
+	CommitterName string `json:"revision.committerName,omitempty" protobuf:"bytes,7,opt,name=revisionCommitterName"`
 
 	// revision.committerEmail of the source control user
-	CommitterEmail string `json:"revision.committerEmail,omitempty"`
+	CommitterEmail string `json:"revision.committerEmail,omitempty" protobuf:"bytes,8,opt,name=revisionCommitterEmail"`
 }
 
 // BuildLogOptions is the REST options for a build log
