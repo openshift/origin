@@ -432,14 +432,14 @@ func ImageWithMetadata(image *Image) error {
 			image.DockerImageLayers[i].Name = layer.DockerBlobSum
 		}
 		if len(manifest.History) == len(image.DockerImageLayers) {
-			image.DockerImageLayers[0].Size = v1Metadata.Size
+			image.DockerImageLayers[0].LayerSize = v1Metadata.Size
 			var size = DockerV1CompatibilityImageSize{}
 			for i, obj := range manifest.History[1:] {
 				size.Size = 0
 				if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
 					continue
 				}
-				image.DockerImageLayers[i+1].Size = size.Size
+				image.DockerImageLayers[i+1].LayerSize = size.Size
 			}
 		} else {
 			glog.V(4).Infof("Imported image has mismatched layer count and history count, not updating image metadata: %s", image.Name)
@@ -462,7 +462,7 @@ func ImageWithMetadata(image *Image) error {
 		if len(image.DockerImageLayers) > 0 {
 			size := int64(0)
 			for _, layer := range image.DockerImageLayers {
-				size += layer.Size
+				size += layer.LayerSize
 			}
 			image.DockerImageMetadata.Size = size
 		} else {

@@ -24,7 +24,7 @@ var (
 	configName = strings.Repeat("a", validation.DNS1123LabelMaxLength)
 )
 
-func makeBuildConfig(version int, deleting bool) *buildapi.BuildConfig {
+func makeBuildConfig(version int64, deleting bool) *buildapi.BuildConfig {
 	ret := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:        configName,

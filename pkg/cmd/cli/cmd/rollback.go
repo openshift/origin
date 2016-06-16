@@ -87,7 +87,7 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Flags().StringVarP(&opts.Format, "output", "o", "", "Instead of performing the rollback, print the updated deployment configuration in the specified format (json|yaml|name|template|templatefile)")
 	cmd.Flags().StringVarP(&opts.Template, "template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.")
 	cmd.MarkFlagFilename("template")
-	cmd.Flags().IntVar(&opts.DesiredVersion, "to-version", 0, "A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto-detected). This option is ignored when specifying a deployment.")
+	cmd.Flags().Int64Var(&opts.DesiredVersion, "to-version", 0, "A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto-detected). This option is ignored when specifying a deployment.")
 
 	return cmd
 }
@@ -96,7 +96,7 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 type RollbackOptions struct {
 	Namespace              string
 	TargetName             string
-	DesiredVersion         int
+	DesiredVersion         int64
 	Format                 string
 	Template               string
 	DryRun                 bool
@@ -319,7 +319,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // the deployment matching desiredVersion will be returned. If desiredVersion
 // is <=0, the last completed deployment which is older than the config's
 // version will be returned.
-func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int) (*kapi.ReplicationController, error) {
+func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
 	deployments, err := o.kc.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {

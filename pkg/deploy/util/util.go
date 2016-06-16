@@ -66,7 +66,7 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 
 // DeploymentNameForConfigVersion returns the name of the version-th deployment
 // for the config that has the provided name
-func DeploymentNameForConfigVersion(name string, version int) string {
+func DeploymentNameForConfigVersion(name string, version int64) string {
 	return fmt.Sprintf("%s-%d", name, version)
 }
 
@@ -176,7 +176,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	}
 	podAnnotations[deployapi.DeploymentAnnotation] = deploymentName
 	podAnnotations[deployapi.DeploymentConfigAnnotation] = config.Name
-	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.Itoa(config.Status.LatestVersion)
+	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
 
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
@@ -185,9 +185,9 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
 				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
-				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.Status.LatestVersion),
+				deployapi.DeploymentVersionAnnotation:       strconv.FormatInt(config.Status.LatestVersion, 10),
 				// This is the target replica count for the new deployment.
-				deployapi.DesiredReplicasAnnotation:    strconv.Itoa(config.Spec.Replicas),
+				deployapi.DesiredReplicasAnnotation:    strconv.Itoa(int(config.Spec.Replicas)),
 				deployapi.DeploymentReplicasAnnotation: strconv.Itoa(0),
 			},
 			Labels: controllerLabels,
@@ -232,20 +232,20 @@ func DeploymentStatusReasonFor(obj runtime.Object) string {
 	return annotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
 }
 
-func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
-	return intAnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
+func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
+	return int32AnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
 }
 
-func DeploymentReplicas(obj runtime.Object) (int, bool) {
-	return intAnnotationFor(obj, deployapi.DeploymentReplicasAnnotation)
+func DeploymentReplicas(obj runtime.Object) (int32, bool) {
+	return int32AnnotationFor(obj, deployapi.DeploymentReplicasAnnotation)
 }
 
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
 	return annotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
 }
 
-func DeploymentVersionFor(obj runtime.Object) int {
-	v, err := strconv.Atoi(annotationFor(obj, deployapi.DeploymentVersionAnnotation))
+func DeploymentVersionFor(obj runtime.Object) int64 {
+	v, err := strconv.ParseInt(annotationFor(obj, deployapi.DeploymentVersionAnnotation), 10, 64)
 	if err != nil {
 		return -1
 	}
@@ -316,16 +316,16 @@ func annotationFor(obj runtime.Object, key string) string {
 	return meta.Annotations[key]
 }
 
-func intAnnotationFor(obj runtime.Object, key string) (int, bool) {
+func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
 	s := annotationFor(obj, key)
 	if len(s) == 0 {
 		return 0, false
 	}
-	i, err := strconv.Atoi(s)
+	i, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {
 		return 0, false
 	}
-	return i, true
+	return int32(i), true
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.

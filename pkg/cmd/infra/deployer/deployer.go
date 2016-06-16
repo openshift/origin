@@ -240,7 +240,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Perform the deployment.
-	if err := s.Deploy(from, to, desiredReplicas); err != nil {
+	if err := s.Deploy(from, to, int(desiredReplicas)); err != nil {
 		return err
 	}
 	fmt.Fprintf(d.out, "--> Success\n")

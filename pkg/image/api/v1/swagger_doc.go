@@ -59,7 +59,7 @@ func (ImageImportStatus) SwaggerDoc() map[string]string {
 var map_ImageLayer = map[string]string{
 	"":     "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
 	"name": "Name of the layer as defined by the underlying store.",
-	"size": "Size of the layer as defined by the underlying store.",
+	"size": "Size of the layer in bytes as defined by the underlying store.",
 }
 
 func (ImageLayer) SwaggerDoc() map[string]string {

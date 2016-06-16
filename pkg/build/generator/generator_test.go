@@ -327,7 +327,7 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 	}
 
 	// Version specified and it matches
-	lastVersion := 1
+	lastVersion := int64(1)
 	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -1177,7 +1177,7 @@ func TestGetNextBuildName(t *testing.T) {
 	if expected, actual := bc.Name+"-1", getNextBuildName(bc); expected != actual {
 		t.Errorf("Wrong buildName, expected %s, got %s", expected, actual)
 	}
-	if expected, actual := 1, bc.Status.LastVersion; expected != actual {
+	if expected, actual := int64(1), bc.Status.LastVersion; expected != actual {
 		t.Errorf("Wrong version, expected %d, got %d", expected, actual)
 	}
 }

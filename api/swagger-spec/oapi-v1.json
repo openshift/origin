@@ -21098,7 +21098,7 @@
     "properties": {
      "latestVersion": {
       "type": "integer",
-      "format": "int32",
+      "format": "int64",
       "description": "LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig is out of sync."
      },
      "details": {
@@ -21515,7 +21515,7 @@
      "size": {
       "type": "integer",
       "format": "int64",
-      "description": "Size of the layer as defined by the underlying store."
+      "description": "Size of the layer in bytes as defined by the underlying store."
      }
     }
    },

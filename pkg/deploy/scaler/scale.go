@@ -84,7 +84,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 // unversioned.ControllerHasDesiredReplicas. This  is necessary because when
 // scaling an RC via a DC, the RC spec replica count is not immediately
 // updated to match the owning DC.
-func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.ReplicationController, specifiedReplicas int) wait.ConditionFunc {
+func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {
 	// If we're given a controller where the status lags the spec, it either means that the controller is stale,
 	// or that the rc manager hasn't noticed the update yet. Polling status.Replicas is not safe in the latter case.
 	desiredGeneration := controller.Generation
@@ -98,6 +98,6 @@ func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.Replic
 		// or, after this check has passed, a modification causes the rc manager to create more pods.
 		// This will not be an issue once we've implemented graceful delete for rcs, but till then
 		// concurrent stop operations on the same rc might have unintended side effects.
-		return ctrl.Status.ObservedGeneration >= desiredGeneration && ctrl.Status.Replicas == int32(specifiedReplicas), nil
+		return ctrl.Status.ObservedGeneration >= desiredGeneration && ctrl.Status.Replicas == specifiedReplicas, nil
 	}
 }

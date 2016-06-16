@@ -161,7 +161,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 				if config.Annotations == nil {
 					config.Annotations = make(map[string]string)
 				}
-				config.Annotations[deployapi.DeploymentCancelledAnnotation] = strconv.Itoa(config.Status.LatestVersion)
+				config.Annotations[deployapi.DeploymentCancelledAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
 				_, err = c.client.DeploymentConfigs(config.Namespace).Update(config)
 				return err
 			})

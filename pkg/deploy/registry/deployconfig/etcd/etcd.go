@@ -155,25 +155,25 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 	}
 
 	oldReplicas := deploymentConfig.Spec.Replicas
-	deploymentConfig.Spec.Replicas = int(scale.Spec.Replicas)
+	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
 	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}
-	scaleRet.Status.Replicas = int32(totalReplicas + (int(scale.Spec.Replicas) - int(oldReplicas)))
+	scaleRet.Status.Replicas = totalReplicas + (scale.Spec.Replicas - oldReplicas)
 
 	return scaleRet, false, nil
 }
 
-func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (int, error) {
+func (r *ScaleREST) replicasForDeploymentConfig(namespace, configName string) (int32, error) {
 	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(configName)}
 	rcList, err := r.rcNamespacer.ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return 0, err
 	}
 
-	replicas := 0
+	replicas := int32(0)
 	for _, rc := range rcList.Items {
-		replicas += int(rc.Spec.Replicas)
+		replicas += rc.Spec.Replicas
 	}
 
 	return replicas, nil

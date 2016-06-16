@@ -65,7 +65,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		if deploymentConfig.Status.LatestVersion == 0 {
 			formatString(out, "Latest Version", "Not deployed")
 		} else {
-			formatString(out, "Latest Version", strconv.Itoa(deploymentConfig.Status.LatestVersion))
+			formatString(out, "Latest Version", strconv.FormatInt(deploymentConfig.Status.LatestVersion, 10))
 		}
 
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
