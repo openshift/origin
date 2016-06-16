@@ -2253,6 +2253,33 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: system:endpoint-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: system:gc-controller
   rules:
   - apiGroups:

@@ -51,6 +51,9 @@ const (
 
 	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
 	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
+
+	InfraEndpointControllerServiceAccountName = "endpoint-controller"
+	EndpointControllerRoleName                = "system:endpoint-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -646,6 +649,32 @@ func init() {
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create"),
 					Resources: sets.NewString("secrets"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraEndpointControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: EndpointControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Watching services and pods
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("services", "pods"),
+				},
+				// Managing endpoints
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "list", "create", "update", "delete"),
+					Resources: sets.NewString("endpoints"),
 				},
 			},
 		},
