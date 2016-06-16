@@ -50,6 +50,9 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 		ComposeFiles: paths,
 	}
 	p := project.NewProject(context)
+	if err := project.AddEnvironmentLookUp(context); err != nil {
+		return nil, err
+	}
 	if err := p.Parse(); err != nil {
 		return nil, err
 	}
