@@ -507,7 +507,7 @@ start_push_image() {
     version_check=`echo ${version_version} | cut -c1-3`
     case ${version_check} in
       v3. )
-        version_trim_list=`echo ${package_version} | cut -d'.' -f-2`
+        version_trim_list=`echo ${version_version} | cut -d'.' -f-2`
       ;;
       3.1 | 3.2 ) version_trim_list="v${version_check}" ;;
       * ) version_trim_list="v3.1 v3.2" ;;
