@@ -20,7 +20,7 @@ import (
 )
 
 type PluginHooks interface {
-	PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error
+	PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error
 	PluginStartNode(mtu uint) error
 
 	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
@@ -28,7 +28,7 @@ type PluginHooks interface {
 	AddHostSubnetRules(subnet *osapi.HostSubnet) error
 	DeleteHostSubnetRules(subnet *osapi.HostSubnet) error
 
-	AddServiceRules(service *kapi.Service, netID uint) error
+	AddServiceRules(service *kapi.Service, netID uint32) error
 	DeleteServiceRules(service *kapi.Service) error
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
@@ -42,7 +42,7 @@ type OsdnController struct {
 	HostName           string
 	subnetAllocator    *netutils.SubnetAllocator
 	podNetworkReady    chan struct{}
-	vnidMap            map[string]uint
+	vnidMap            map[string]uint32
 	vnidLock           sync.Mutex
 	netIDManager       *netutils.NetIDAllocator
 	adminNamespaces    []string
@@ -84,7 +84,7 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 	oc.Registry = registry
 	oc.localIP = selfIP
 	oc.HostName = hostname
-	oc.vnidMap = make(map[string]uint)
+	oc.vnidMap = make(map[string]uint32)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
 	oc.iptablesSyncPeriod = iptablesSyncPeriod
@@ -148,7 +148,7 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
+func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int32, serviceNetworkCIDR string) (bool, error) {
 	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
@@ -161,9 +161,9 @@ func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hos
 	return false, nil
 }
 
-func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
+func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint32, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
-	hostBitsPerSubnet := int(clusterBitsPerSubnet)
+	hostBitsPerSubnet := int32(clusterBitsPerSubnet)
 	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		return err

@@ -46,7 +46,7 @@ func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, se
 	return plugin, err
 }
 
-func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	if err := plugin.SubnetStartMaster(clusterNetwork, hostSubnetLength); err != nil {
 		return err
 	}
