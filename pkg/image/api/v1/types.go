@@ -40,8 +40,8 @@ type Image struct {
 type ImageLayer struct {
 	// Name of the layer as defined by the underlying store.
 	Name string `json:"name"`
-	// Size of the layer as defined by the underlying store.
-	Size int64 `json:"size"`
+	// LayerSize of the layer as defined by the underlying store.
+	LayerSize int64 `json:"size"`
 }
 
 // ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
