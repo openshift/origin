@@ -3,9 +3,8 @@ package oauthaccesstoken
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -13,6 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
@@ -22,6 +23,9 @@ type strategy struct {
 
 	clientGetter oauthclient.Getter
 }
+
+var _ rest.RESTCreateStrategy = strategy{}
+var _ rest.RESTUpdateStrategy = strategy{}
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
@@ -55,6 +59,13 @@ func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 	}
 
 	return validationErrors
+}
+
+// ValidateUpdate validates an update
+func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	oldToken := old.(*api.OAuthAccessToken)
+	newToken := obj.(*api.OAuthAccessToken)
+	return validation.ValidateAccessTokenUpdate(newToken, oldToken)
 }
 
 // AllowCreateOnUpdate is false for OAuth objects

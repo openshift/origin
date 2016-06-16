@@ -67,6 +67,13 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
 	return allErrs
 }
 
+func ValidateAccessTokenUpdate(newToken, oldToken *api.OAuthAccessToken) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newToken.ObjectMeta, &oldToken.ObjectMeta, field.NewPath("metadata"))
+	copied := *oldToken
+	copied.ObjectMeta = newToken.ObjectMeta
+	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
+}
+
 func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
@@ -81,6 +88,13 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 	}
 
 	return allErrs
+}
+
+func ValidateAuthorizeTokenUpdate(newToken, oldToken *api.OAuthAuthorizeToken) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newToken.ObjectMeta, &oldToken.ObjectMeta, field.NewPath("metadata"))
+	copied := *oldToken
+	copied.ObjectMeta = newToken.ObjectMeta
+	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
 }
 
 func ValidateClient(client *api.OAuthClient) field.ErrorList {

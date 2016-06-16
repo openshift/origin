@@ -10334,7 +10334,7 @@
      {
       "type": "v1.OAuthAccessTokenList",
       "method": "GET",
-      "summary": "list objects of kind OAuthAccessToken",
+      "summary": "list or watch objects of kind OAuthAccessToken",
       "nickname": "listOAuthAccessToken",
       "parameters": [
        {
@@ -10440,6 +10440,155 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "unversioned.Status",
+      "method": "DELETE",
+      "summary": "delete collection of OAuthAccessToken",
+      "nickname": "deletecollectionOAuthAccessToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "unversioned.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/oauthaccesstokens",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch individual changes to a list of OAuthAccessToken",
+      "nickname": "watchOAuthAccessTokenList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -10458,6 +10607,22 @@
         "paramType": "query",
         "name": "pretty",
         "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
         "required": false,
         "allowMultiple": false
        },
@@ -10484,6 +10649,102 @@
       ],
       "consumes": [
        "*/*"
+      ]
+     },
+     {
+      "type": "v1.OAuthAccessToken",
+      "method": "PUT",
+      "summary": "replace the specified OAuthAccessToken",
+      "nickname": "replaceOAuthAccessToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.OAuthAccessToken",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAccessToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.OAuthAccessToken"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.OAuthAccessToken",
+      "method": "PATCH",
+      "summary": "partially update the specified OAuthAccessToken",
+      "nickname": "patchOAuthAccessToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "unversioned.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAccessToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.OAuthAccessToken"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
       ]
      },
      {
@@ -10536,13 +10797,99 @@
     ]
    },
    {
+    "path": "/oapi/v1/watch/oauthaccesstokens/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch changes to an object of kind OAuthAccessToken",
+      "nickname": "watchOAuthAccessToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAccessToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/oauthauthorizetokens",
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
       "type": "v1.OAuthAuthorizeTokenList",
       "method": "GET",
-      "summary": "list objects of kind OAuthAuthorizeToken",
+      "summary": "list or watch objects of kind OAuthAuthorizeToken",
       "nickname": "listOAuthAuthorizeToken",
       "parameters": [
        {
@@ -10648,6 +10995,155 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "unversioned.Status",
+      "method": "DELETE",
+      "summary": "delete collection of OAuthAuthorizeToken",
+      "nickname": "deletecollectionOAuthAuthorizeToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "unversioned.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/oauthauthorizetokens",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch individual changes to a list of OAuthAuthorizeToken",
+      "nickname": "watchOAuthAuthorizeTokenList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -10666,6 +11162,22 @@
         "paramType": "query",
         "name": "pretty",
         "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
         "required": false,
         "allowMultiple": false
        },
@@ -10692,6 +11204,102 @@
       ],
       "consumes": [
        "*/*"
+      ]
+     },
+     {
+      "type": "v1.OAuthAuthorizeToken",
+      "method": "PUT",
+      "summary": "replace the specified OAuthAuthorizeToken",
+      "nickname": "replaceOAuthAuthorizeToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.OAuthAuthorizeToken",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAuthorizeToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.OAuthAuthorizeToken"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.OAuthAuthorizeToken",
+      "method": "PATCH",
+      "summary": "partially update the specified OAuthAuthorizeToken",
+      "nickname": "patchOAuthAuthorizeToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "unversioned.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAuthorizeToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.OAuthAuthorizeToken"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
       ]
      },
      {
@@ -10736,6 +11344,92 @@
        "application/json",
        "application/yaml",
        "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/oauthauthorizetokens/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "*versioned.Event",
+      "method": "GET",
+      "summary": "watch changes to an object of kind OAuthAuthorizeToken",
+      "nickname": "watchOAuthAuthorizeToken",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the OAuthAuthorizeToken",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "*versioned.Event"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf",
+       "application/vnd.kubernetes.protobuf;stream=watch"
       ],
       "consumes": [
        "*/*"

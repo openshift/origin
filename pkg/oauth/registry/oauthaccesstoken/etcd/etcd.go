@@ -22,8 +22,7 @@ import (
 
 // rest implements a RESTStorage for access tokens against etcd
 type REST struct {
-	// Cannot inline because we don't want the Update function
-	store *registry.Store
+	*registry.Store
 }
 
 const EtcdPrefix = "/oauth/accesstokens"
@@ -31,6 +30,7 @@ const EtcdPrefix = "/oauth/accesstokens"
 // NewREST returns a RESTStorage object that will work against access tokens
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
 
+	strategy := oauthaccesstoken.NewStrategy(clientGetter)
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAccessToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAccessTokenList{} },
@@ -53,7 +53,8 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		},
 		QualifiedResource: api.Resource("oauthaccesstokens"),
 
-		CreateStrategy: oauthaccesstoken.NewStrategy(clientGetter),
+		CreateStrategy: strategy,
+		UpdateStrategy: strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
@@ -77,28 +78,4 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 	}
 
 	return &REST{store}, nil
-}
-
-func (r *REST) New() runtime.Object {
-	return r.store.NewFunc()
-}
-
-func (r *REST) NewList() runtime.Object {
-	return r.store.NewListFunc()
-}
-
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Get(ctx, name)
-}
-
-func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	return r.store.List(ctx, options)
-}
-
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	return r.store.Create(ctx, obj)
-}
-
-func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	return r.store.Delete(ctx, name, options)
 }
