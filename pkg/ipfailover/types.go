@@ -42,5 +42,5 @@ type IPFailoverConfigCmdOptions struct {
 	NetworkInterface string
 	WatchPort        int
 	VRRPIDOffset     int
-	Replicas         int
+	Replicas         int32
 }

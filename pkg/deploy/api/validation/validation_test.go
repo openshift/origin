@@ -690,8 +690,8 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 	}
 
 	scenarios := []struct {
-		oldLatestVersion int
-		newLatestVersion int
+		oldLatestVersion int64
+		newLatestVersion int64
 	}{
 		{5, 3},
 		{5, 7},

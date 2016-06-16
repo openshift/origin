@@ -84,7 +84,7 @@ func TestTriggers_manual(t *testing.T) {
 	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
-	if e, a := 1, deployutil.DeploymentVersionFor(deployment); e != a {
+	if e, a := int64(1), deployutil.DeploymentVersionFor(deployment); e != a {
 		t.Fatalf("Deployment annotation version does not match: %#v", deployment)
 	}
 }

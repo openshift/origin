@@ -370,7 +370,7 @@ func DeepCopy_api_ImageImportStatus(in ImageImportStatus, out *ImageImportStatus
 
 func DeepCopy_api_ImageLayer(in ImageLayer, out *ImageLayer, c *conversion.Cloner) error {
 	out.Name = in.Name
-	out.Size = in.Size
+	out.LayerSize = in.LayerSize
 	return nil
 }
 

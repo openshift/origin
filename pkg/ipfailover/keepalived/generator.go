@@ -45,7 +45,7 @@ func getClientConfig(path string) (*restclient.Config, error) {
 //  Generate the IP failover monitor (keepalived) container environment entries.
 func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *restclient.Config) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
-	replicas := strconv.Itoa(options.Replicas)
+	replicas := strconv.FormatInt(int64(options.Replicas), 10)
 	insecureStr := strconv.FormatBool(kconfig.Insecure)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
 

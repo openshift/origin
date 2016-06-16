@@ -45,7 +45,7 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 		out.DockerImageLayers = make([]ImageLayer, len(in.DockerImageLayers))
 		for i := range in.DockerImageLayers {
 			out.DockerImageLayers[i].Name = in.DockerImageLayers[i].Name
-			out.DockerImageLayers[i].Size = in.DockerImageLayers[i].Size
+			out.DockerImageLayers[i].LayerSize = in.DockerImageLayers[i].LayerSize
 		}
 	} else {
 		out.DockerImageLayers = nil
@@ -96,7 +96,7 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 		out.DockerImageLayers = make([]newer.ImageLayer, len(in.DockerImageLayers))
 		for i := range in.DockerImageLayers {
 			out.DockerImageLayers[i].Name = in.DockerImageLayers[i].Name
-			out.DockerImageLayers[i].Size = in.DockerImageLayers[i].Size
+			out.DockerImageLayers[i].LayerSize = in.DockerImageLayers[i].LayerSize
 		}
 	} else {
 		out.DockerImageLayers = nil

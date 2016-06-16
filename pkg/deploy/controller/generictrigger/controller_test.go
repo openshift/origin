@@ -62,7 +62,7 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 	if updated == nil {
 		t.Fatalf("expected config to be updated")
 	}
-	if e, a := 1, updated.Status.LatestVersion; e != a {
+	if e, a := int64(1), updated.Status.LatestVersion; e != a {
 		t.Fatalf("expected update to latestversion=%d, got %d", e, a)
 	}
 	if updated.Status.Details == nil {
@@ -143,7 +143,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 			t.Errorf("expected config to be updated")
 			continue
 		}
-		if e, a := 2, updated.Status.LatestVersion; e != a {
+		if e, a := int64(2), updated.Status.LatestVersion; e != a {
 			t.Errorf("expected update to latestversion=%d, got %d", e, a)
 			continue
 		}
@@ -187,7 +187,7 @@ func TestHandle_automaticImageUpdates(t *testing.T) {
 		name           string
 		auto           bool
 		canTrigger     bool
-		version        int
+		version        int64
 		expectedUpdate bool
 	}{
 		{

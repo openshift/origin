@@ -214,7 +214,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -281,7 +281,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 1 && image.DockerImageLayers[0].Size != 10 {
+				if len(image.DockerImageLayers) != 1 && image.DockerImageLayers[0].LayerSize != 10 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -290,7 +290,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 			existing: &api.Image{
 				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
-				DockerImageLayers:    []api.ImageLayer{{Name: "test", Size: 10}},
+				DockerImageLayers:    []api.ImageLayer{{Name: "test", LayerSize: 10}},
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
 			image: &api.Image{
@@ -318,7 +318,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -355,7 +355,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}

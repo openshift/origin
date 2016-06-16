@@ -74,8 +74,8 @@ type Image struct {
 type ImageLayer struct {
 	// Name of the layer as defined by the underlying store.
 	Name string
-	// Size of the layer as defined by the underlying store.
-	Size int64
+	// LayerSize of the layer as defined by the underlying store.
+	LayerSize int64
 }
 
 const (

@@ -16,7 +16,7 @@ const (
 	DockerImageReference = "registry:5000/openshift/test-image-stream@sha256:00000000000000000000000000000001"
 )
 
-func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
+func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "config",
@@ -39,7 +39,7 @@ func OkDeploymentConfigSpec() deployapi.DeploymentConfigSpec {
 	}
 }
 
-func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
+func OkDeploymentConfigStatus(version int64) deployapi.DeploymentConfigStatus {
 	return deployapi.DeploymentConfigStatus{
 		LatestVersion: version,
 	}

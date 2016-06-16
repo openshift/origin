@@ -17,12 +17,12 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func mkdeployment(version int) kapi.ReplicationController {
+func mkdeployment(version int64) kapi.ReplicationController {
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	return *deployment
 }
 
-func mkdeploymentlist(versions ...int) *kapi.ReplicationControllerList {
+func mkdeploymentlist(versions ...int64) *kapi.ReplicationControllerList {
 	list := &kapi.ReplicationControllerList{}
 	for _, v := range versions {
 		list.Items = append(list.Items, mkdeployment(v))

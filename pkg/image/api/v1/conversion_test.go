@@ -24,7 +24,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	i := &newer.Image{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 
-		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", Size: 10}},
+		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", LayerSize: 10}},
 		DockerImageMetadata:  *d,
 		DockerImageReference: "foo/bar/baz",
 	}

@@ -1006,7 +1006,7 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 		out.Binary = nil
 	}
 	if in.LastVersion != nil {
-		out.LastVersion = new(int)
+		out.LastVersion = new(int64)
 		*out.LastVersion = *in.LastVersion
 	} else {
 		out.LastVersion = nil
@@ -1896,7 +1896,7 @@ func deepCopy_v1beta3_RollingDeploymentStrategyParams(in deployapiv1beta3.Rollin
 		out.MaxSurge = nil
 	}
 	if in.UpdatePercent != nil {
-		out.UpdatePercent = new(int)
+		out.UpdatePercent = new(int32)
 		*out.UpdatePercent = *in.UpdatePercent
 	} else {
 		out.UpdatePercent = nil

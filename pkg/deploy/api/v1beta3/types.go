@@ -175,7 +175,7 @@ type RollingDeploymentStrategyParams struct {
 	// interval. If nil, one replica will be scaled up and down each interval.
 	// If negative, the scale order will be down/up instead of up/down.
 	// DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-	UpdatePercent *int `json:"updatePercent,omitempty"`
+	UpdatePercent *int32 `json:"updatePercent,omitempty"`
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook `json:"pre,omitempty"`
@@ -277,7 +277,7 @@ type DeploymentConfigSpec struct {
 	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty"`
 
 	// Replicas is the number of desired replicas.
-	Replicas int `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
 	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
@@ -299,7 +299,7 @@ type DeploymentConfigSpec struct {
 type DeploymentConfigStatus struct {
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
-	LatestVersion int `json:"latestVersion,omitempty"`
+	LatestVersion int64 `json:"latestVersion,omitempty"`
 	// The reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`

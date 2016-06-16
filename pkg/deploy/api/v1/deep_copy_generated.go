@@ -486,7 +486,7 @@ func DeepCopy_v1_RollingDeploymentStrategyParams(in RollingDeploymentStrategyPar
 	}
 	if in.UpdatePercent != nil {
 		in, out := in.UpdatePercent, &out.UpdatePercent
-		*out = new(int)
+		*out = new(int32)
 		**out = *in
 	} else {
 		out.UpdatePercent = nil

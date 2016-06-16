@@ -413,7 +413,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.De
 		if buildConfig.Status.LastVersion == 0 {
 			formatString(out, "Latest Version", "Never built")
 		} else {
-			formatString(out, "Latest Version", strconv.Itoa(buildConfig.Status.LastVersion))
+			formatString(out, "Latest Version", strconv.FormatInt(buildConfig.Status.LastVersion, 10))
 		}
 		describeCommonSpec(buildConfig.Spec.CommonSpec, out)
 		formatString(out, "\nBuild Run Policy", string(buildConfig.Spec.RunPolicy))
@@ -499,14 +499,14 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 			formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
 		default:
 			info := []string{}
-			if image.DockerImageLayers[0].Size > 0 {
-				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].Size))))
+			if image.DockerImageLayers[0].LayerSize > 0 {
+				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].LayerSize))))
 			}
 			for i := l - 1; i > 0; i-- {
-				if image.DockerImageLayers[i].Size == 0 {
+				if image.DockerImageLayers[i].LayerSize == 0 {
 					continue
 				}
-				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].Size))))
+				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].LayerSize))))
 				break
 			}
 			if len(info) > 0 {

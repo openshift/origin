@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/ipfailover"
 )
 
-func makeIPFailoverConfigOptions(selector string, replicas int, serviceAccount string) *ipfailover.IPFailoverConfigCmdOptions {
+func makeIPFailoverConfigOptions(selector string, replicas int32, serviceAccount string) *ipfailover.IPFailoverConfigCmdOptions {
 	return &ipfailover.IPFailoverConfigCmdOptions{
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		Selector:         selector,
@@ -35,7 +35,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 	tests := []struct {
 		Name              string
 		Selector          string
-		Replicas          int
+		Replicas          int32
 		PodSelectorLength int
 		ServiceAccount    string
 	}{

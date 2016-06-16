@@ -62,7 +62,7 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	// instantiate new build
-	lastVersion := 0
+	lastVersion := int64(0)
 	request := &buildapi.BuildRequest{
 		TriggeredBy: append(buildTriggerCauses,
 			buildapi.BuildTriggerCause{
