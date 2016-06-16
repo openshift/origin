@@ -10,7 +10,7 @@ type ClusterNetwork struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	Network          string `json:"network"`
-	HostSubnetLength int    `json:"hostsubnetlength"`
+	HostSubnetLength int32  `json:"hostsubnetlength"`
 	ServiceNetwork   string `json:"serviceNetwork"`
 }
 
@@ -44,7 +44,7 @@ type NetNamespace struct {
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	NetName string `json:"netname"`
-	NetID   uint   `json:"netid"`
+	NetID   uint32 `json:"netid"`
 }
 
 // NetNamespaceList is a collection of NetNamespaces
