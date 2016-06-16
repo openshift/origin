@@ -90,10 +90,8 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 func ValidateNetworkConfig(config api.NodeNetworkConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if len(config.NetworkPluginName) > 0 {
-		if config.MTU == 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
-		}
+	if config.MTU == 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
 	}
 	return allErrs
 }

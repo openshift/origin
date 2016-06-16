@@ -390,6 +390,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator)
 	checkStorageErr(err)
+
 	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	netNamespaceStorage, err := netnamespaceetcd.NewREST(c.RESTOptionsGetter)

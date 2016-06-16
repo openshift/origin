@@ -35,6 +35,7 @@ func DeepCopy_v1_ClusterNetwork(in ClusterNetwork, out *ClusterNetwork, c *conve
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
 	out.ServiceNetwork = in.ServiceNetwork
+	out.PluginName = in.PluginName
 	return nil
 }
 

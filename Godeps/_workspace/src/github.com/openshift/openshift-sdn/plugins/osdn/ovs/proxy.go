@@ -122,9 +122,9 @@ func (proxy *ovsProxyPlugin) unTrackPod(pod *kapi.Pod) {
 }
 
 func (proxy *ovsProxyPlugin) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
-	clusterNetwork, _, serviceNetwork, err := proxy.registry.GetNetworkInfo()
+	ni, err := proxy.registry.GetNetworkInfo()
 	if err != nil {
-		glog.Warningf("Error fetching cluster network: %v", err)
+		glog.Warningf("Error fetching network information: %v", err)
 		return
 	}
 
@@ -136,11 +136,11 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if serviceNetwork.Contains(IP) {
+				if ni.ServiceNetwork.Contains(IP) {
 					glog.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 					continue EndpointLoop
 				}
-				if clusterNetwork.Contains(IP) {
+				if ni.ClusterNetwork.Contains(IP) {
 					podInfo, ok := proxy.getTrackedPod(addr.IP)
 					if !ok {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)

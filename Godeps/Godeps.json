@@ -1750,47 +1750,47 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/cmd/admin/network",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/exec",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/ipcmd",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/netutils",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/ovs",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins/osdn",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins/osdn/api",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins/osdn/factory",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/plugins/osdn/ovs",
 			"Comment": "v0.1-550-g0fbae3c",
-			"Rev": "b74a40614df17a99b8f77ac0dbd9aaa3ffae3218"
+			"Rev": "c3721f675f5474b717e6eb6aff9b837e095b6840"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",

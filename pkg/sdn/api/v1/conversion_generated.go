@@ -41,6 +41,7 @@ func autoConvert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
 	out.ServiceNetwork = in.ServiceNetwork
+	out.PluginName = in.PluginName
 	return nil
 }
 
@@ -59,6 +60,7 @@ func autoConvert_api_ClusterNetwork_To_v1_ClusterNetwork(in *sdn_api.ClusterNetw
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
 	out.ServiceNetwork = in.ServiceNetwork
+	out.PluginName = in.PluginName
 	return nil
 }
 

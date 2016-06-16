@@ -19928,6 +19928,10 @@
      "serviceNetwork": {
       "type": "string",
       "description": "ServiceNetwork is the CIDR string to specify the service network"
+     },
+     "pluginName": {
+      "type": "string",
+      "description": "PluginName is the name of the network plugin"
      }
     }
    },

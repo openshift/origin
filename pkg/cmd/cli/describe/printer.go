@@ -59,7 +59,7 @@ var (
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns   = []string{"NAME", "NETID"}
-	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
+	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -893,7 +893,7 @@ func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, opts kctl
 }
 
 func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, opts kctl.PrintOptions) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 	return err
 }
 
