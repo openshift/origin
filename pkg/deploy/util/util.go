@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	kdeplutil "k8s.io/kubernetes/pkg/util/deployment"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -210,6 +211,38 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	}
 
 	return deployment, nil
+}
+
+// GetReplicaCountForDeployments returns the sum of all replicas for the
+// given deployments.
+func GetReplicaCountForDeployments(deployments []api.ReplicationController) int32 {
+	totalReplicaCount := int32(0)
+	for _, deployment := range deployments {
+		totalReplicaCount += deployment.Spec.Replicas
+	}
+	return totalReplicaCount
+}
+
+// GetStatusReplicaCountForDeployments returns the sum of the replicas reported in the
+// status of the given deployments.
+func GetStatusReplicaCountForDeployments(deployments []api.ReplicationController) int32 {
+	totalReplicaCount := int32(0)
+	for _, deployment := range deployments {
+		totalReplicaCount += deployment.Status.Replicas
+	}
+	return totalReplicaCount
+}
+
+// GetAvailablePods returns all the available pods from the provided pod list.
+func GetAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
+	available := int32(0)
+	for i := range pods {
+		pod := pods[i]
+		if kdeplutil.IsPodAvailable(&pod, minReadySeconds) {
+			available++
+		}
+	}
+	return available
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
