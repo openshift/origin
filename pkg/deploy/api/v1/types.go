@@ -282,14 +282,23 @@ type DeploymentConfigSpec struct {
 
 // DeploymentConfigStatus represents the current deployment state.
 type DeploymentConfigStatus struct {
-	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
-	// is out of sync.
+	// LatestVersion is used to determine whether the current deployment associated with a deployment
+	// config is out of sync.
 	LatestVersion int64 `json:"latestVersion,omitempty"`
+	// ObservedGeneration is the most recent generation observed by the deployment config controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Replicas is the total number of pods targeted by this deployment config.
+	Replicas int32 `json:"replicas,omitempty"`
+	// UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config
+	// that have the desired template spec.
+	UpdatedReplicas int32 `json:"updatedReplicas,omitempty"`
+	// AvailableReplicas is the total number of available pods targeted by this deployment config.
+	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
+	// UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.
+	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`
-	// ObservedGeneration is the most recent generation observed by the controller.
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
