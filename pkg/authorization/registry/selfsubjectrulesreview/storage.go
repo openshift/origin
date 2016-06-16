@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -38,13 +39,28 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	user, exists := kapi.UserFrom(ctx)
 	if !exists {
-		return nil, fmt.Errorf("user missing from context")
+		return nil, kapierrors.NewBadRequest(fmt.Sprintf("user missing from context"))
 	}
 
-	policyRules, err := r.ruleResolver.GetEffectivePolicyRules(ctx)
+	errors := []error{}
+
 	rules := []authorizationapi.PolicyRule{}
-	for _, rule := range policyRules {
+	namespaceRules, err := r.ruleResolver.GetEffectivePolicyRules(ctx)
+	if err != nil {
+		errors = append(errors, err)
+	}
+	for _, rule := range namespaceRules {
 		rules = append(rules, rulevalidation.BreakdownRule(rule)...)
+	}
+	if len(namespace) != 0 {
+		masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
+		clusterRules, err := r.ruleResolver.GetEffectivePolicyRules(masterContext)
+		if err != nil {
+			errors = append(errors, err)
+		}
+		for _, rule := range clusterRules {
+			rules = append(rules, rulevalidation.BreakdownRule(rule)...)
+		}
 	}
 
 	switch {
@@ -52,14 +68,14 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		if scopes, _ := user.GetExtra()[authorizationapi.ScopesKey]; len(scopes) > 0 {
 			rules, err = r.filterRulesByScopes(rules, scopes, namespace)
 			if err != nil {
-				return nil, err
+				return nil, kapierrors.NewInternalError(err)
 			}
 		}
 
 	case len(rulesReview.Spec.Scopes) > 0:
 		rules, err = r.filterRulesByScopes(rules, rulesReview.Spec.Scopes, namespace)
 		if err != nil {
-			return nil, err
+			return nil, kapierrors.NewInternalError(err)
 		}
 
 	}
@@ -75,8 +91,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		},
 	}
 
-	if err != nil {
-		ret.Status.EvaluationError = err.Error()
+	if len(errors) != 0 {
+		ret.Status.EvaluationError = kutilerrors.NewAggregate(errors).Error()
 	}
 
 	return ret, nil
