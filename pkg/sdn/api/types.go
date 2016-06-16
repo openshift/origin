@@ -16,7 +16,7 @@ type ClusterNetwork struct {
 	kapi.ObjectMeta
 
 	Network          string
-	HostSubnetLength int
+	HostSubnetLength uint32
 	ServiceNetwork   string
 	PluginName       string
 }
@@ -51,7 +51,7 @@ type NetNamespace struct {
 	kapi.ObjectMeta
 
 	NetName string
-	NetID   uint
+	NetID   uint32
 }
 
 // NetNamespaceList is a collection of NetNamespaces
