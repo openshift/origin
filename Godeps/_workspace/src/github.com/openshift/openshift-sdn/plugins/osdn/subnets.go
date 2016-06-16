@@ -18,7 +18,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+func (oc *OsdnController) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	subrange := make([]string, 0)
 	subnets, err := oc.Registry.GetSubnets()
 	if err != nil {

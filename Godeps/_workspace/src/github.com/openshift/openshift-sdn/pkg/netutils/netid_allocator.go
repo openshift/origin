@@ -5,17 +5,17 @@ import (
 )
 
 type NetIDAllocator struct {
-	min      uint
-	max      uint
-	allocMap map[uint]bool
+	min      uint32
+	max      uint32
+	allocMap map[uint32]bool
 }
 
-func NewNetIDAllocator(min uint, max uint, inUse []uint) (*NetIDAllocator, error) {
+func NewNetIDAllocator(min uint32, max uint32, inUse []uint32) (*NetIDAllocator, error) {
 	if max <= min {
 		return nil, fmt.Errorf("Min should be lesser than max value (Min: %d, Max: %d)", min, max)
 	}
 
-	amap := make(map[uint]bool)
+	amap := make(map[uint32]bool)
 	for _, netid := range inUse {
 		if netid < min || netid > max {
 			return nil, fmt.Errorf("Provided net id doesn't belong to range: [%d, %d]", min, max)
@@ -26,8 +26,8 @@ func NewNetIDAllocator(min uint, max uint, inUse []uint) (*NetIDAllocator, error
 	return &NetIDAllocator{min: min, max: max, allocMap: amap}, nil
 }
 
-func (nia *NetIDAllocator) GetNetID() (uint, error) {
-	var i uint
+func (nia *NetIDAllocator) GetNetID() (uint32, error) {
+	var i uint32
 	for i = nia.min; i <= nia.max; i++ {
 		taken, found := nia.allocMap[i]
 		if !found || !taken {
@@ -39,7 +39,7 @@ func (nia *NetIDAllocator) GetNetID() (uint, error) {
 	return 0, fmt.Errorf("No NetIDs available.")
 }
 
-func (nia *NetIDAllocator) ReleaseNetID(netid uint) error {
+func (nia *NetIDAllocator) ReleaseNetID(netid uint32) error {
 	if nia.min > netid || nia.max < netid {
 		return fmt.Errorf("Provided net id %d doesn't belong to the given range [%d, %d]", netid, nia.min, nia.max)
 	}

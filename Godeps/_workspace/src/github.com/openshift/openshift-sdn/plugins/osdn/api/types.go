@@ -8,7 +8,7 @@ import (
 type OsdnPlugin interface {
 	knetwork.NetworkPlugin
 
-	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+	StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint32, serviceNetworkCIDR string) error
 	StartNode(mtu uint) error
 }
 

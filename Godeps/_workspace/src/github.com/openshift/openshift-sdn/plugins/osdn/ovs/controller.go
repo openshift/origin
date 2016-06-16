@@ -354,7 +354,7 @@ func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	return nil
 }
 
-func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) error {
+func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint32) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -394,7 +394,7 @@ func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string
 	return fmt.Sprintf("table=4, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
 }
 
-func generateAddServiceRule(netID uint, IP string, protocol kapi.Protocol, port int) string {
+func generateAddServiceRule(netID uint32, IP string, protocol kapi.Protocol, port int) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
 	if netID == 0 {
 		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)
