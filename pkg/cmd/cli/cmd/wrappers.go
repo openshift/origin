@@ -180,11 +180,11 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 const (
 	execLong = `Execute a command in a container`
 
-	execExample = `  # Get output from running 'date' in ruby-container from pod 123456-7890
-  %[1]s exec -p 123456-7890 -c ruby-container date
+	execExample = `  # Get output from running 'date' in ruby-container from pod 'mypod'
+  %[1]s exec mypod -c ruby-container date
 
-  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-  %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il`
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
+  %[1]s exec mypod -c ruby-container -i -t -- bash -il`
 )
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
@@ -193,6 +193,7 @@ func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, 
 	cmd.Use = "exec [options] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
 	cmd.Example = fmt.Sprintf(execExample, fullName)
+	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
