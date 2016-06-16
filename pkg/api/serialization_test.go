@@ -1,6 +1,8 @@
 package api_test
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -11,10 +13,12 @@ import (
 	"github.com/google/gofuzz"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer/protobuf"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -41,6 +45,16 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
 )
+
+var codecsToTest = []func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error){
+	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+		return kapi.Codecs.LegacyCodec(version), nil
+	},
+	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+		s := protobuf.NewSerializer(kapi.Scheme, kapi.Scheme, "application/arbitrary.content.type")
+		return kapi.Codecs.CodecForVersions(s, s, testapi.ExternalGroupVersions(), nil), nil
+	},
+}
 
 func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
 	f := apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed))
@@ -439,6 +453,21 @@ func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) 
 	}
 }
 
+func roundTripWithAllCodecs(t *testing.T, version unversioned.GroupVersion, item runtime.Object) {
+	var codecs []runtime.Codec
+	for _, fn := range codecsToTest {
+		codec, err := fn(version, item)
+		if err != nil {
+			t.Errorf("unable to get codec: %v", err)
+			return
+		}
+		codecs = append(codecs, codec)
+	}
+	for _, codec := range codecs {
+		roundTrip(t, codec, item)
+	}
+}
+
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	// Make a copy of the originalItem to give to conversion functions
 	// This lets us know if conversion messed with the input object
@@ -453,7 +482,8 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	data, err := runtime.Encode(codec, item)
 	if err != nil {
 		if runtime.IsNotRegisteredError(err) {
-			t.Logf("%v is not registered", name)
+			t.Logf("%v skipped: not registered: %v", name, err)
+			return
 		}
 		t.Errorf("%v: %v (%#v)", name, err, item)
 		return
@@ -474,7 +504,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 
 	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s", name, diff.ObjectReflectDiff(originalItem, obj2), codec, string(data))
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s", name, diff.ObjectReflectDiff(originalItem, obj2), codec, dataToString(data))
 		return
 	}
 
@@ -487,6 +517,13 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectReflectDiff(originalItem, obj3), codec)
 		return
 	}
+}
+
+func dataToString(s []byte) string {
+	if bytes.HasPrefix(s, []byte("k8s")) {
+		return "\n" + hex.Dump(s)
+	}
+	return string(s)
 }
 
 // skipStandardVersions is a map of Kind to a list of API versions to test with.
@@ -503,17 +540,20 @@ func TestSpecificKind(t *testing.T) {
 	kapi.Scheme.Log(t)
 	defer kapi.Scheme.Log(nil)
 
-	kind := "DeploymentConfig"
+	kind := "ClusterRole"
 	item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
-		t.Errorf("Couldn't make a %v? %v", kind, err)
-		return
+		t.Fatalf("Couldn't make a %v? %v", kind, err)
 	}
-	seed := int64(2703387474910584091) //rand.Int63()
+	codec, err := codecsToTest[1](v1.SchemeGroupVersion, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed := int64(2703387474910584091)
 	for i := 0; i < fuzzIters; i++ {
 		//t.Logf(`About to test %v with "v1"`, kind)
 		fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
-		roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
+		roundTrip(t, codec, item)
 	}
 }
 
@@ -558,7 +598,7 @@ func TestTypes(t *testing.T) {
 						continue
 					}
 					fuzzInternalObject(t, externalVersion, item, seed)
-					roundTrip(t, kapi.Codecs.LegacyCodec(externalVersion), item)
+					roundTripWithAllCodecs(t, externalVersion, item)
 				}
 			}
 		}
