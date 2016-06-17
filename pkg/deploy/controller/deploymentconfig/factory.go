@@ -1,6 +1,7 @@
 package deploymentconfig
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -77,7 +78,23 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		),
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
-			return configController.Handle(config)
+			copied, err := dcCopy(config)
+			if err != nil {
+				return err
+			}
+			return configController.Handle(copied)
 		},
 	}
+}
+
+func dcCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	objCopy, err := kapi.Scheme.DeepCopy(dc)
+	if err != nil {
+		return nil, err
+	}
+	copied, ok := objCopy.(*deployapi.DeploymentConfig)
+	if !ok {
+		return nil, fmt.Errorf("expected DeploymentConfig, got %#v", objCopy)
+	}
+	return copied, nil
 }

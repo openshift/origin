@@ -250,20 +250,26 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
-			deployment.Spec.Replicas = newReplicaCount
-			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
-			_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
+			copied, err := deploymentCopy(&deployment)
 			if err != nil {
+				glog.V(2).Infof("Deep copy of deployment %q failed: %v", deployment.Name, err)
+				return err
+			}
+
+			copied.Spec.Replicas = newReplicaCount
+			copied.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
+
+			if _, err := c.kubeClient.ReplicationControllers(copied.Namespace).Update(copied); err != nil {
 				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
-					"Failed to scale deployment %q from %d to %d: %s", deployment.Name, oldReplicaCount, newReplicaCount, err)
+					"Failed to scale deployment %q from %d to %d: %v", copied.Name, oldReplicaCount, newReplicaCount, err)
 				return err
 			}
 			// Only report scaling events if we changed the replica count.
 			if oldReplicaCount != newReplicaCount {
 				c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentScaled",
-					"Scaled deployment %q from %d to %d", deployment.Name, oldReplicaCount, newReplicaCount)
+					"Scaled deployment %q from %d to %d", copied.Name, oldReplicaCount, newReplicaCount)
 			} else {
-				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(&deployment), newReplicaCount)
+				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(copied), newReplicaCount)
 			}
 		}
 	}
@@ -281,4 +287,16 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	}
 	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
 	return nil
+}
+
+func deploymentCopy(rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	objCopy, err := kapi.Scheme.DeepCopy(rc)
+	if err != nil {
+		return nil, err
+	}
+	copied, ok := objCopy.(*kapi.ReplicationController)
+	if !ok {
+		return nil, fmt.Errorf("expected ReplicationController, got %#v", objCopy)
+	}
+	return copied, nil
 }
