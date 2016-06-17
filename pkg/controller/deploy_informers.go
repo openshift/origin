@@ -45,7 +45,7 @@ func (f *deploymentConfigInformer) Informer() framework.SharedIndexInformer {
 		},
 		informerObj,
 		f.defaultResync,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc, oscache.ImageStreamReferenceIndex: oscache.ImageStreamReferenceIndexFunc},
 	)
 	f.informers[informerType] = informer
 

@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type ImageStreamInformer interface {
