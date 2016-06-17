@@ -328,6 +328,9 @@ func TestHandleEndpoints(t *testing.T) {
 		if !ok {
 			t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected service unit with name %s", tc.name, tc.expectedServiceUnit.Name)
 		} else {
+			if len(su.EndpointTable) != len(tc.expectedServiceUnit.EndpointTable) {
+				t.Errorf("TestHandleEndpoints test case %s failed. endpoints: %d expected %d", tc.name, len(su.EndpointTable), len(tc.expectedServiceUnit.EndpointTable))
+			}
 			for expectedKey, expectedEp := range tc.expectedServiceUnit.EndpointTable {
 				actualEp := su.EndpointTable[expectedKey]
 
