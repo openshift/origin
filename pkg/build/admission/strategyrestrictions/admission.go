@@ -100,7 +100,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 	strategy := build.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
 	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
 		&authorizationapi.LocalSubjectAccessReview{
@@ -119,7 +119,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 	strategy := buildConfig.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
 	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
 		&authorizationapi.LocalSubjectAccessReview{
@@ -139,13 +139,13 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 	case buildsResource:
 		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
-			return err
+			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(build, attr)
 	case buildConfigsResource:
 		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
-			return err
+			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildConfigAuthorization(build, attr)
 	default:
@@ -156,7 +156,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
 	resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
 	if !resp.Allowed {
 		return notAllowed(strategy, attr)

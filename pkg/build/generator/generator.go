@@ -224,16 +224,16 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	}
 
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
-		return nil, err
+		return nil, errors.NewBadRequest(err.Error())
 	}
 
 	if err := g.updateImageTriggers(ctx, bc, request.From, request.TriggeredByImage); err != nil {
-		return nil, err
+		return nil, errors.NewInternalError(err)
 	}
 
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInternalError(err)
 	}
 
 	// Add labels and annotations from the buildrequest.  Existing
