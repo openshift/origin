@@ -10,12 +10,9 @@
   "spec":{
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/openshift/origin",
-        "ref": "secrets"
+      "type":"Binary",
+      "binary": {
       },
-      "contextDir":"test/extended/testdata/build-secrets",
       "secrets": [
         {
           "secret": { "name": "testsecret" },
