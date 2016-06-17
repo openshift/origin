@@ -25,6 +25,12 @@ ps=$(join '|' "${parallel_exclude[@]}")
 sf=$(join '|' "${serial_only[@]}")
 ss=$(join '|' "${serial_exclude[@]}")
 
+
+echo "[INFO] Running the following tests:"
+TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${pf}" "--ginkgo.skip=${ps}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${sf}" "--ginkgo.skip=${ss}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+echo
+
 exitstatus=0
 
 # run parallel tests

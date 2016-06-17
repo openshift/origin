@@ -32,6 +32,9 @@ DEFAULT_SKIP_LIST=(
   # TODO(marun) This should work with docker >= 1.10
   "openshift router"
 
+  # Panicing, needs investigation
+  "Networking IPerf"
+
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"
 

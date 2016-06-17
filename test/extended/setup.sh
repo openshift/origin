@@ -155,6 +155,7 @@ readonly EXCLUDED_TESTS=(
   "RollingUpdateDeployment should delete old pods and create new ones"
   "RecreateDeployment should delete old pods and create new ones"
 
+  "\[Feature:PodAffinity\]" # feature is disabled
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
   "Cinder"                # requires an OpenStack cluster
