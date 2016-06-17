@@ -183,6 +183,11 @@ func DeepCopy_v1_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentCo
 
 func DeepCopy_v1_DeploymentConfigStatus(in DeploymentConfigStatus, out *DeploymentConfigStatus, c *conversion.Cloner) error {
 	out.LatestVersion = in.LatestVersion
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Replicas = in.Replicas
+	out.UpdatedReplicas = in.UpdatedReplicas
+	out.AvailableReplicas = in.AvailableReplicas
+	out.UnavailableReplicas = in.UnavailableReplicas
 	if in.Details != nil {
 		in, out := in.Details, &out.Details
 		*out = new(DeploymentDetails)
@@ -192,7 +197,6 @@ func DeepCopy_v1_DeploymentConfigStatus(in DeploymentConfigStatus, out *Deployme
 	} else {
 		out.Details = nil
 	}
-	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
