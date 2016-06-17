@@ -16,17 +16,20 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -37,10 +40,9 @@ import (
 	"github.com/openshift/origin/pkg/auth/group"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	policycache "github.com/openshift/origin/pkg/authorization/cache"
-	policyclient "github.com/openshift/origin/pkg/authorization/client"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -89,7 +91,6 @@ type MasterConfig struct {
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	PolicyCache               policycache.ReadOnlyCache
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 	ProjectCache              *projectcache.ProjectCache
@@ -177,16 +178,17 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	informerFactory := controller.NewInformerFactory(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient, 10*time.Minute)
+
+	customListerWatchers := controller.DefaultListerWatcherOverrides{}
+	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
+		return nil, err
+	}
+	informerFactory := controller.NewInformerFactory(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient, customListerWatchers, 10*time.Minute)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	policyCache, policyClient, err := newReadOnlyCacheAndClient(restOptsGetter)
-	if err != nil {
-		return nil, err
-	}
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	groupStorage, err := groupstorage.NewREST(restOptsGetter)
@@ -214,12 +216,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	quotaRegistry := quota.NewOriginQuotaRegistry(privilegedLoopbackOpenShiftClient)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		rulevalidation.PolicyGetter(policyClient),
-		rulevalidation.BindingLister(policyClient),
-		rulevalidation.ClusterPolicyGetter(policyClient),
-		rulevalidation.ClusterBindingLister(policyClient),
+		informerFactory.Policies().Lister(),
+		informerFactory.PolicyBindings().Lister(),
+		informerFactory.ClusterPolicies().Lister().ClusterPolicies(),
+		informerFactory.ClusterPolicyBindings().Lister().ClusterPolicyBindings(),
 	)
-	authorizer := newAuthorizer(ruleResolver, policyClient, options.ProjectConfig.ProjectRequestMessage)
+	authorizer := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
@@ -272,9 +274,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
-		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
 		ProjectCache:              projectCache,
 
 		RequestContextMapper: requestContextMapper,
@@ -401,49 +402,122 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return ret, nil
 }
 
-func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, policyClient policyclient.ReadOnlyPolicyClient) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, informerFactory controller.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewAuthorizerReviewer(authorizer),
 		kubeClient.Namespaces(),
-		policyClient,
+		informerFactory.ClusterPolicies().Lister(),
+		informerFactory.ClusterPolicyBindings().Lister(),
+		informerFactory.Policies().Lister(),
+		informerFactory.PolicyBindings().Lister(),
 	)
 }
 
-// newReadOnlyCacheAndClient returns a ReadOnlyCache for administrative interactions with the cache holding policies and bindings on a project
-// and cluster level as well as a ReadOnlyPolicyClient for use in the project authorization cache and authorizer to query for the same data
-func newReadOnlyCacheAndClient(optsGetter restoptions.Getter) (policycache.ReadOnlyCache, policyclient.ReadOnlyPolicyClient, error) {
-	policyStorage, err := policyetcd.NewStorage(optsGetter)
+func addAuthorizationListerWatchers(customListerWatchers controller.DefaultListerWatcherOverrides, optsGetter restoptions.Getter) error {
+	lw, err := newClusterPolicyLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	policyRegistry := policyregistry.NewRegistry(policyStorage)
-
-	policyBindingStorage, err := policybindingetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("clusterpolicies")] = lw
+	lw, err = newClusterPolicyBindingLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-
-	clusterPolicyStorage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("clusterpolicybindings")] = lw
+	lw, err = newPolicyLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-
-	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("policies")] = lw
+	lw, err = newPolicyBindingLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
+	customListerWatchers[authorizationapi.Resource("policybindings")] = lw
 
-	cache, client := policycache.NewReadOnlyCacheAndClient(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
-	return cache, client, nil
+	return nil
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
+func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := clusterpolicyregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListClusterPolicies(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchClusterPolicies(ctx, &options)
+		},
+	}, nil
+}
+
+func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := clusterpolicybindingregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListClusterPolicyBindings(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchClusterPolicyBindings(ctx, &options)
+		},
+	}, nil
+}
+
+func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := policyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := policyregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListPolicies(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchPolicies(ctx, &options)
+		},
+	}, nil
+}
+
+func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := policybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := policybindingregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListPolicyBindings(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchPolicyBindings(ctx, &options)
+		},
+	}, nil
+}
+
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory controller.InformerFactory, projectRequestDenyMessage string) authorizer.Authorizer {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, messageMaker)
-	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, policyClient, messageMaker)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, informerFactory.ClusterPolicies().Lister().ClusterPolicies(), messageMaker)
 	return scopeLimitedAuthorizer
 }
 

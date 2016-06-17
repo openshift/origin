@@ -3,16 +3,20 @@ package origin
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
+	otestclient "github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -71,5 +75,6 @@ func fakeMasterConfig() *MasterConfig {
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
 		EtcdHelper:          etcdHelper,
+		Informers:           controller.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), controller.DefaultListerWatcherOverrides{}, 1*time.Second),
 	}
 }
