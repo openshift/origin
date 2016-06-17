@@ -14,7 +14,7 @@ import (
 
 func TestRESTRootScope(t *testing.T) {
 	for _, v := range [][]string{{"v1beta3"}, {"v1"}} {
-		mapping, err := kapi.RESTMapper.RESTMapping(kapi.Kind("Node"), v...)
+		mapping, err := registered.RESTMapper().RESTMapping(kapi.Kind("Node"), v...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -27,7 +27,7 @@ func TestRESTRootScope(t *testing.T) {
 func TestResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := Version.WithKind("User")
-	gvk, err := kapi.RESTMapper.KindFor(userapi.SchemeGroupVersion.WithResource("User"))
+	gvk, err := registered.RESTMapper().KindFor(userapi.SchemeGroupVersion.WithResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestUpstreamResourceToKind(t *testing.T) {
 	// Ensure we resolve to klatest.ExternalVersions[0]
 	meta, _ := registered.Group("")
 	expectedGVK := meta.GroupVersion.WithKind("Pod")
-	gvk, err := registered.GroupOrDie(kapi.SchemeGroupVersion.Group).RESTMapper.KindFor(kapi.SchemeGroupVersion.WithResource("Pod"))
+	gvk, err := registered.RESTMapper().KindFor(kapi.SchemeGroupVersion.WithResource("Pod"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

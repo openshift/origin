@@ -77,6 +77,19 @@ func (c *TLSCertificateConfig) writeCertConfig(certFile, keyFile string) error {
 	}
 	return nil
 }
+func (c *TLSCertificateConfig) GetPEMBytes() ([]byte, []byte, error) {
+	certBytes, err := encodeCertificates(c.Certs...)
+	if err != nil {
+		return nil, nil, err
+	}
+	keyBytes, err := encodeKey(c.Key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return certBytes, keyBytes, nil
+}
+
 func (c *TLSCARoots) writeCARoots(rootFile string) error {
 	if err := writeCertificates(rootFile, c.Roots...); err != nil {
 		return err
@@ -295,7 +308,7 @@ func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
 	if err != nil {
-		certConfig, err = ca.MakeServerCert(certFile, keyFile, hostnames)
+		certConfig, err = ca.MakeAndWriteServerCert(certFile, keyFile, hostnames)
 		return certConfig, true, err
 	}
 
@@ -320,9 +333,20 @@ func GetServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertifi
 	return nil, fmt.Errorf("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v).", certFile, missingDns, missingIps)
 }
 
-func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
+func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
 	glog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
 
+	server, err := ca.MakeServerCert(hostnames)
+	if err != nil {
+		return nil, err
+	}
+	if err := server.writeCertConfig(certFile, keyFile); err != nil {
+		return server, err
+	}
+	return server, nil
+}
+
+func (ca *CA) MakeServerCert(hostnames sets.String) (*TLSCertificateConfig, error) {
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
 	serverCrt, err := ca.signCertificate(serverTemplate, serverPublicKey)
@@ -332,9 +356,6 @@ func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames sets.String) (*
 	server := &TLSCertificateConfig{
 		Certs: append([]*x509.Certificate{serverCrt}, ca.Config.Certs...),
 		Key:   serverPrivateKey,
-	}
-	if err := server.writeCertConfig(certFile, keyFile); err != nil {
-		return server, err
 	}
 	return server, nil
 }

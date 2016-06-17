@@ -50,6 +50,8 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 		validationResults.AddErrors(field.Invalid(fldPath.Child("iptablesSyncPeriod"), config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
 	}
 
+	validationResults.AddErrors(ValidateVolumeConfig(config.VolumeConfig, fldPath.Child("volumeConfig"))...)
+
 	return validationResults
 }
 
@@ -88,10 +90,8 @@ func ValidateNodeAuthConfig(config api.NodeAuthConfig, fldPath *field.Path) fiel
 func ValidateNetworkConfig(config api.NodeNetworkConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if len(config.NetworkPluginName) > 0 {
-		if config.MTU == 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
-		}
+	if config.MTU == 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
 	}
 	return allErrs
 }
@@ -112,4 +112,14 @@ func ValidateDockerConfig(config api.DockerConfig, fldPath *field.Path) field.Er
 
 func ValidateKubeletExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
 	return ValidateExtendedArguments(config, kubeletoptions.NewKubeletServer().AddFlags, fldPath)
+}
+
+func ValidateVolumeConfig(config api.NodeVolumeConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if config.LocalQuota.PerFSGroup != nil && config.LocalQuota.PerFSGroup.Value() < 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("localQuota", "perFSGroup"), config.LocalQuota.PerFSGroup,
+			"must be a positive integer"))
+	}
+	return allErrs
 }

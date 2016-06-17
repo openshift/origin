@@ -11,7 +11,7 @@ import (
 
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -21,7 +21,7 @@ const CSRFTokenHeader = "X-CSRF-Token"
 
 // RequestToken uses the cmd arguments to locate an openshift oauth server and attempts to authenticate
 // it returns the access token if it gets one.  An error if it does not
-func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) (string, error) {
+func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) (string, error) {
 	challengeHandler := &BasicChallengeHandler{
 		Host:     clientCfg.Host,
 		Reader:   reader,
@@ -29,7 +29,7 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 		Password: defaultPassword,
 	}
 
-	rt, err := kclient.TransportFor(clientCfg)
+	rt, err := restclient.TransportFor(clientCfg)
 	if err != nil {
 		return "", err
 	}

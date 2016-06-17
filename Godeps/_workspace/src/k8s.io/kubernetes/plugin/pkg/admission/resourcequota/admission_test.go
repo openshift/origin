@@ -27,10 +27,15 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	testcore "k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/quota"
+	"k8s.io/kubernetes/pkg/quota/evaluator/core"
+	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -67,15 +72,55 @@ func validPod(name string, numContainers int, resources api.ResourceRequirements
 	return pod
 }
 
+func TestPrettyPrint(t *testing.T) {
+	toResourceList := func(resources map[api.ResourceName]string) api.ResourceList {
+		resourceList := api.ResourceList{}
+		for key, value := range resources {
+			resourceList[key] = resource.MustParse(value)
+		}
+		return resourceList
+	}
+	testCases := []struct {
+		input    api.ResourceList
+		expected string
+	}{
+		{
+			input: toResourceList(map[api.ResourceName]string{
+				api.ResourceCPU: "100m",
+			}),
+			expected: "cpu=100m",
+		},
+		{
+			input: toResourceList(map[api.ResourceName]string{
+				api.ResourcePods:                   "10",
+				api.ResourceServices:               "10",
+				api.ResourceReplicationControllers: "10",
+				api.ResourceServicesNodePorts:      "10",
+				api.ResourceRequestsCPU:            "100m",
+				api.ResourceRequestsMemory:         "100Mi",
+				api.ResourceLimitsCPU:              "100m",
+				api.ResourceLimitsMemory:           "100Mi",
+			}),
+			expected: "limits.cpu=100m,limits.memory=100Mi,pods=10,replicationcontrollers=10,requests.cpu=100m,requests.memory=100Mi,services=10,services.nodeports=10",
+		},
+	}
+	for i, testCase := range testCases {
+		result := prettyPrint(testCase.input)
+		if result != testCase.expected {
+			t.Errorf("Pretty print did not give stable sorted output[%d], expected %v, but got %v", i, testCase.expected, result)
+		}
+	}
+}
+
 // TestAdmissionIgnoresDelete verifies that the admission controller ignores delete operations
 func TestAdmissionIgnoresDelete(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
-	handler, err := NewResourceQuota(kubeClient, install.NewRegistry(kubeClient))
+	handler, err := NewResourceQuota(kubeClient, install.NewRegistry(kubeClient), 5)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 	namespace := "default"
-	err = handler.Admit(admission.NewAttributesRecord(nil, api.Kind("Pod"), namespace, "name", api.Resource("pods"), "", admission.Delete, nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, api.Kind("Pod").WithVersion("version"), namespace, "name", api.Resource("pods").WithVersion("version"), "", admission.Delete, nil))
 	if err != nil {
 		t.Errorf("ResourceQuota should admit all deletes: %v", err)
 	}
@@ -96,19 +141,20 @@ func TestAdmissionIgnoresSubresources(t *testing.T) {
 	resourceQuota.Status.Used[api.ResourceMemory] = resource.MustParse("1Gi")
 	kubeClient := fake.NewSimpleClientset(resourceQuota)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
 	newPod := validPod("123", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Expected an error because the pod exceeded allowed quota")
 	}
-	err = handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "subresource", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "subresource", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Did not expect an error because the action went to a subresource: %v", err)
 	}
@@ -133,15 +179,16 @@ func TestAdmitBelowQuotaLimit(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuota)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
 	newPod := validPod("allowed-pod", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -154,14 +201,15 @@ func TestAdmitBelowQuotaLimit(t *testing.T) {
 	)
 	actionSet := sets.NewString()
 	for _, action := range kubeClient.Actions() {
-		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource(), action.GetSubresource()}, "-"))
+		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource().Resource, action.GetSubresource()}, "-"))
 	}
 	if !actionSet.HasAll(expectedActionSet.List()...) {
 		t.Errorf("Expected actions:\n%v\n but got:\n%v\nDifference:\n%v", expectedActionSet, actionSet, expectedActionSet.Difference(actionSet))
 	}
 
-	lastActionIndex := len(kubeClient.Actions()) - 1
-	usage := kubeClient.Actions()[lastActionIndex].(testclient.UpdateAction).GetObject().(*api.ResourceQuota)
+	decimatedActions := removeListWatch(kubeClient.Actions())
+	lastActionIndex := len(decimatedActions) - 1
+	usage := decimatedActions[lastActionIndex].(testcore.UpdateAction).GetObject().(*api.ResourceQuota)
 	expectedUsage := api.ResourceQuota{
 		Status: api.ResourceQuotaStatus{
 			Hard: api.ResourceList{
@@ -205,15 +253,16 @@ func TestAdmitExceedQuotaLimit(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuota)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
 	newPod := validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("3", "2Gi"), getResourceList("", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Expected an error exceeding quota")
 	}
@@ -242,15 +291,23 @@ func TestAdmitEnforceQuotaConstraints(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuota)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
+	// verify all values are specified as required on the quota
 	newPod := validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("200m", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
+	if err == nil {
+		t.Errorf("Expected an error because the pod does not specify a memory limit")
+	}
+	// verify the requests and limits are actually valid (in this case, we fail because the limits < requests)
+	newPod = validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("200m", "2Gi"), getResourceList("100m", "1Gi")))
+	err = handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Expected an error because the pod does not specify a memory limit")
 	}
@@ -281,19 +338,20 @@ func TestAdmitPodInNamespaceWithoutQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.liveLookupCache = liveLookupCache
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:         admission.NewHandler(admission.Create, admission.Update),
-		client:          kubeClient,
-		indexer:         indexer,
-		registry:        install.NewRegistry(kubeClient),
-		liveLookupCache: liveLookupCache,
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
 	// Add to the index
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
 	newPod := validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("200m", "")))
 	// Add to the lru cache so we do not do a live client lookup
 	liveLookupCache.Add(newPod.Namespace, liveLookupEntry{expiry: time.Now().Add(time.Duration(30 * time.Second)), items: []*api.ResourceQuota{}})
-	err = handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Did not expect an error because the pod is in a different namespace than the quota")
 	}
@@ -341,20 +399,21 @@ func TestAdmitBelowTerminatingQuotaLimit(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuotaTerminating, resourceQuotaNonTerminating)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuotaNonTerminating)
-	handler.indexer.Add(resourceQuotaTerminating)
+	indexer.Add(resourceQuotaNonTerminating)
+	indexer.Add(resourceQuotaTerminating)
 
 	// create a pod that has an active deadline
 	newPod := validPod("allowed-pod", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("", "")))
 	activeDeadlineSeconds := int64(30)
 	newPod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -367,14 +426,15 @@ func TestAdmitBelowTerminatingQuotaLimit(t *testing.T) {
 	)
 	actionSet := sets.NewString()
 	for _, action := range kubeClient.Actions() {
-		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource(), action.GetSubresource()}, "-"))
+		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource().Resource, action.GetSubresource()}, "-"))
 	}
 	if !actionSet.HasAll(expectedActionSet.List()...) {
 		t.Errorf("Expected actions:\n%v\n but got:\n%v\nDifference:\n%v", expectedActionSet, actionSet, expectedActionSet.Difference(actionSet))
 	}
 
-	lastActionIndex := len(kubeClient.Actions()) - 1
-	usage := kubeClient.Actions()[lastActionIndex].(testclient.UpdateAction).GetObject().(*api.ResourceQuota)
+	decimatedActions := removeListWatch(kubeClient.Actions())
+	lastActionIndex := len(decimatedActions) - 1
+	usage := decimatedActions[lastActionIndex].(testcore.UpdateAction).GetObject().(*api.ResourceQuota)
 
 	// ensure only the quota-terminating was updated
 	if usage.Name != resourceQuotaTerminating.Name {
@@ -438,18 +498,19 @@ func TestAdmitBelowBestEffortQuotaLimit(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuotaBestEffort, resourceQuotaNotBestEffort)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuotaBestEffort)
-	handler.indexer.Add(resourceQuotaNotBestEffort)
+	indexer.Add(resourceQuotaBestEffort)
+	indexer.Add(resourceQuotaNotBestEffort)
 
 	// create a pod that is best effort because it does not make a request for anything
 	newPod := validPod("allowed-pod", 1, getResourceRequirements(getResourceList("", ""), getResourceList("", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -458,13 +519,14 @@ func TestAdmitBelowBestEffortQuotaLimit(t *testing.T) {
 	)
 	actionSet := sets.NewString()
 	for _, action := range kubeClient.Actions() {
-		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource(), action.GetSubresource()}, "-"))
+		actionSet.Insert(strings.Join([]string{action.GetVerb(), action.GetResource().Resource, action.GetSubresource()}, "-"))
 	}
 	if !actionSet.HasAll(expectedActionSet.List()...) {
 		t.Errorf("Expected actions:\n%v\n but got:\n%v\nDifference:\n%v", expectedActionSet, actionSet, expectedActionSet.Difference(actionSet))
 	}
-	lastActionIndex := len(kubeClient.Actions()) - 1
-	usage := kubeClient.Actions()[lastActionIndex].(testclient.UpdateAction).GetObject().(*api.ResourceQuota)
+	decimatedActions := removeListWatch(kubeClient.Actions())
+	lastActionIndex := len(decimatedActions) - 1
+	usage := decimatedActions[lastActionIndex].(testcore.UpdateAction).GetObject().(*api.ResourceQuota)
 
 	if usage.Name != resourceQuotaBestEffort.Name {
 		t.Errorf("Incremented the wrong quota, expected %v, actual %v", resourceQuotaBestEffort.Name, usage.Name)
@@ -490,6 +552,19 @@ func TestAdmitBelowBestEffortQuotaLimit(t *testing.T) {
 	}
 }
 
+func removeListWatch(in []testcore.Action) []testcore.Action {
+	decimatedActions := []testcore.Action{}
+	// list and watch resource quota is done to maintain our cache, so that's expected.  Remove them from results
+	for i := range in {
+		if in[i].Matches("list", "resourcequotas") || in[i].Matches("watch", "resourcequotas") {
+			continue
+		}
+
+		decimatedActions = append(decimatedActions, in[i])
+	}
+	return decimatedActions
+}
+
 // TestAdmitBestEffortQuotaLimitIgnoresBurstable validates that a besteffort quota does not match a resource
 // guaranteed pod.
 func TestAdmitBestEffortQuotaLimitIgnoresBurstable(t *testing.T) {
@@ -509,20 +584,23 @@ func TestAdmitBestEffortQuotaLimitIgnoresBurstable(t *testing.T) {
 	}
 	kubeClient := fake.NewSimpleClientset(resourceQuota)
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.Run(5)
 	handler := &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create, admission.Update),
-		client:   kubeClient,
-		indexer:  indexer,
-		registry: install.NewRegistry(kubeClient),
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
 	}
-	handler.indexer.Add(resourceQuota)
+	indexer.Add(resourceQuota)
 	newPod := validPod("allowed-pod", 1, getResourceRequirements(getResourceList("100m", "1Gi"), getResourceList("", "")))
-	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod"), newPod.Namespace, newPod.Name, api.Resource("pods"), "", admission.Create, nil))
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	if len(kubeClient.Actions()) != 0 {
-		t.Errorf("Expected no client actions because the incoming pod did not match best effort quota")
+
+	decimatedActions := removeListWatch(kubeClient.Actions())
+	if len(decimatedActions) != 0 {
+		t.Errorf("Expected no client actions because the incoming pod did not match best effort quota: %v", kubeClient.Actions())
 	}
 }
 
@@ -564,5 +642,79 @@ func TestHasUsageStats(t *testing.T) {
 		if result := hasUsageStats(&testCase.a); result != testCase.expected {
 			t.Errorf("%s expected: %v, actual: %v", testName, testCase.expected, result)
 		}
+	}
+}
+
+// TestAdmissionSetsMissingNamespace verifies that if an object lacks a
+// namespace, it will be set.
+func TestAdmissionSetsMissingNamespace(t *testing.T) {
+	namespace := "test"
+	resourceQuota := &api.ResourceQuota{
+		ObjectMeta: api.ObjectMeta{Name: "quota", Namespace: namespace, ResourceVersion: "124"},
+		Status: api.ResourceQuotaStatus{
+			Hard: api.ResourceList{
+				api.ResourceCPU: resource.MustParse("3"),
+			},
+			Used: api.ResourceList{
+				api.ResourceCPU: resource.MustParse("1"),
+			},
+		},
+	}
+	kubeClient := fake.NewSimpleClientset(resourceQuota)
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
+
+	computeResources := []api.ResourceName{
+		api.ResourcePods,
+		api.ResourceCPU,
+	}
+
+	usageFunc := func(object runtime.Object) api.ResourceList {
+		pod, ok := object.(*api.Pod)
+		if !ok {
+			t.Fatalf("Expected pod, got %T", object)
+		}
+		if pod.Namespace != namespace {
+			t.Errorf("Expected pod with different namespace: %q != %q", pod.Namespace, namespace)
+		}
+		return core.PodUsageFunc(pod)
+	}
+
+	podEvaluator := &generic.GenericEvaluator{
+		Name:              "Test-Evaluator.Pod",
+		InternalGroupKind: api.Kind("Pod"),
+		InternalOperationResources: map[admission.Operation][]api.ResourceName{
+			admission.Create: computeResources,
+		},
+		ConstraintsFunc:      core.PodConstraintsFunc,
+		MatchedResourceNames: computeResources,
+		MatchesScopeFunc:     core.PodMatchesScopeFunc,
+		UsageFunc:            usageFunc,
+	}
+
+	registry := &generic.GenericRegistry{
+		InternalEvaluators: map[unversioned.GroupKind]quota.Evaluator{
+			podEvaluator.GroupKind(): podEvaluator,
+		},
+	}
+	evaluator, _ := newQuotaEvaluator(kubeClient, install.NewRegistry(kubeClient))
+	evaluator.indexer = indexer
+	evaluator.registry = registry
+	evaluator.Run(5)
+	handler := &quotaAdmission{
+		Handler:   admission.NewHandler(admission.Create, admission.Update),
+		evaluator: evaluator,
+	}
+	indexer.Add(resourceQuota)
+	newPod := validPod("pod-without-namespace", 1, getResourceRequirements(getResourceList("1", "2Gi"), getResourceList("", "")))
+
+	// unset the namespace
+	newPod.ObjectMeta.Namespace = ""
+
+	err := handler.Admit(admission.NewAttributesRecord(newPod, api.Kind("Pod").WithVersion("version"), namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
+	if err != nil {
+		t.Errorf("Got unexpected error: %v", err)
+	}
+	if newPod.Namespace != namespace {
+		t.Errorf("Got unexpected pod namespace: %q != %q", newPod.Namespace, namespace)
 	}
 }

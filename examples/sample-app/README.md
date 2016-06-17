@@ -99,7 +99,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
     * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
-* **VAGRANT USERS**: when you are inside of vagrant environment, you have pre-setted `$KUBECONFIG` environment variable. It may interferes with subsequent commands, so we are recommending to unset it: `unset KUBECONFIG`
+* **VAGRANT USERS**: when you are inside of a vagrant environment, the `$KUBECONFIG` environment variable is preset and may interfere with subsequent commands, so it is recommended to unset it: `unset KUBECONFIG`
 
 - - -
 
@@ -144,8 +144,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
           DeploymentConfig "docker-registry" created
           Service "docker-registry" created
 
@@ -404,8 +403,7 @@ the ip address shown below with the correct one for your environment.
     The router by default uses the host network. If you wish to use the container network stack and expose ports, add the --host-network=false option to the oadm router command.
 
 
-        $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-        $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --service-account=router
+        $ oadm router --service-account=router
         DeploymentConfig "router" created
         Service "router" created
 

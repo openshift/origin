@@ -70,11 +70,6 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 }
 
 func (a DefaultAuthorizationAttributes) apiGroupMatches(allowedGroups []string) bool {
-	// if no APIGroups are specified, then the default APIGroup of "" is assumed.
-	if len(allowedGroups) == 0 && len(a.GetAPIGroup()) == 0 {
-		return true
-	}
-
 	// allowedGroups is expected to be small, so I don't feel bad about this.
 	for _, allowedGroup := range allowedGroups {
 		if allowedGroup == authorizationapi.APIGroupAll {

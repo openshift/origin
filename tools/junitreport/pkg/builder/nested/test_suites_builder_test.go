@@ -41,7 +41,7 @@ func TestAddSuite(t *testing.T) {
 	var testCases = []struct {
 		name           string
 		rootSuiteNames []string
-		seedSuites     *api.TestSuites
+		seedSuites     map[string]*treeNode
 		suiteToAdd     *api.TestSuite
 		expectedSuites *api.TestSuites
 	}{
@@ -92,9 +92,9 @@ func TestAddSuite(t *testing.T) {
 		},
 		{
 			name: "populated adding child",
-			seedSuites: &api.TestSuites{
-				Suites: []*api.TestSuite{
-					{
+			seedSuites: map[string]*treeNode{
+				"root": {
+					suite: &api.TestSuite{
 						Name: "root",
 					},
 				},
@@ -141,9 +141,9 @@ func TestAddSuite(t *testing.T) {
 		},
 		{
 			name: "populated overwriting record",
-			seedSuites: &api.TestSuites{
-				Suites: []*api.TestSuite{
-					{
+			seedSuites: map[string]*treeNode{
+				"root": {
+					suite: &api.TestSuite{
 						Name:     "root",
 						NumTests: 3,
 					},
@@ -168,12 +168,10 @@ func TestAddSuite(t *testing.T) {
 		builder := NewTestSuitesBuilder(testCase.rootSuiteNames)
 
 		if testCase.seedSuites != nil {
-			builder.(*nestedTestSuitesBuilder).testSuites = testCase.seedSuites
+			builder.(*nestedTestSuitesBuilder).nodes = testCase.seedSuites
 		}
 
-		if err := builder.AddSuite(testCase.suiteToAdd); err != nil {
-			t.Errorf("%s: unexpected error adding suite to suites: %v", testCase.name, err)
-		}
+		builder.AddSuite(testCase.suiteToAdd)
 
 		if actual, expected := builder.Build(), testCase.expectedSuites; !reflect.DeepEqual(actual, expected) {
 			t.Errorf("%s: did not get correct test suites after addition of test suite:\n\texpected:\n\t%s,\n\tgot\n\t%s", testCase.name, expected, actual)

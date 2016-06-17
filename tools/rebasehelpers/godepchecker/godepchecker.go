@@ -26,8 +26,10 @@ func main() {
   - The desired level of kubernetes is checked out
 `)
 	var self, other string
+	var checkoutNewer bool
 	flag.StringVar(&self, "self", filepath.Join(gopath, "src/github.com/openshift/origin/Godeps/Godeps.json"), "The first file to compare")
 	flag.StringVar(&other, "other", filepath.Join(gopath, "src/k8s.io/kubernetes/Godeps/Godeps.json"), "The other file to compare")
+	flag.BoolVar(&checkoutNewer, "checkout", checkoutNewer, "Check out the newer commit when there is a mismatch between the Godeps")
 	flag.Parse()
 
 	// List packages imported by origin Godeps
@@ -83,16 +85,70 @@ func main() {
 	for _, k := range ours {
 		if oRev, kRev := originGodeps[k].Rev, k8sGodeps[k].Rev; oRev != kRev {
 			fmt.Printf("Mismatch on %s:\n", k)
-			if older, err := util.IsAncestor(oRev, kRev, filepath.Join(gopath, "src", k)); older && err == nil {
-				fmt.Printf("    Origin: %s (older)\n", oRev)
-				fmt.Printf("    K8s:    %s (newer)\n", kRev)
-			} else if newer, err := util.IsAncestor(kRev, oRev, filepath.Join(gopath, "src", k)); newer && err == nil {
-				fmt.Printf("    Origin: %s (newer)\n", oRev)
-				fmt.Printf("    K8s:    %s (older)\n", kRev)
+			newerCommit := ""
+			repoPath := filepath.Join(gopath, "src", k)
+
+			oDecorator := ""
+			kDecorator := ""
+			currentRev, err := util.CurrentRev(repoPath)
+			if err == nil {
+				if currentRev == oRev {
+					kDecorator = " "
+					oDecorator = "*"
+				}
+				if currentRev == kRev {
+					kDecorator = "*"
+					oDecorator = " "
+				}
+			}
+
+			oDate, oDateErr := util.CommitDate(oRev, repoPath)
+			if oDateErr != nil {
+				oDate = "unknown"
+			}
+			kDate, kDateErr := util.CommitDate(kRev, repoPath)
+			if kDateErr != nil {
+				kDate = "unknown"
+			}
+
+			if older, err := util.IsAncestor(oRev, kRev, repoPath); older && err == nil {
+				fmt.Printf("    Origin: %s%s (%s)\n", oDecorator, oRev, oDate)
+				fmt.Printf("    K8s:    %s%s (%s, fast-forward)\n", kDecorator, kRev, kDate)
+				newerCommit = kRev
+			} else if newer, err := util.IsAncestor(kRev, oRev, repoPath); newer && err == nil {
+				fmt.Printf("    Origin: %s%s (%s, fast-forward)\n", oDecorator, oRev, oDate)
+				fmt.Printf("    K8s:    %s%s (%s)\n", kDecorator, kRev, kDate)
+				newerCommit = oRev
+			} else if oDateErr == nil && kDateErr == nil {
+				fmt.Printf("    Origin: %s%s (%s, discontinuous)\n", oDecorator, oRev, oDate)
+				fmt.Printf("    K8s:    %s%s (%s, discontinuous)\n", kDecorator, kRev, kDate)
+				if oDate > kDate {
+					newerCommit = oRev
+				} else {
+					newerCommit = kRev
+				}
 			} else {
-				fmt.Printf("    Origin: %s (unknown)\n", oRev)
-				fmt.Printf("    K8s:    %s (unknown)\n", kRev)
-				fmt.Printf("    %s\n", err)
+				fmt.Printf("    Origin: %s%s (%s)\n", oDecorator, oRev, oDate)
+				fmt.Printf("    K8s:    %s%s (%s)\n", kDecorator, kRev, kDate)
+				if oDateErr != nil {
+					fmt.Printf("    %s\n", oDateErr)
+				}
+				if kDateErr != nil {
+					fmt.Printf("    %s\n", kDateErr)
+				}
+			}
+
+			if len(newerCommit) > 0 && newerCommit != currentRev {
+				if checkoutNewer {
+					fmt.Printf("    Checking out:\n")
+					fmt.Printf("    cd %s && git checkout %s\n", repoPath, newerCommit)
+					if err := util.Checkout(newerCommit, repoPath); err != nil {
+						fmt.Printf("    %s\n", err)
+					}
+				} else {
+					fmt.Printf("    To check out newest:\n")
+					fmt.Printf("    cd %s && git checkout %s\n", repoPath, newerCommit)
+				}
 			}
 		}
 	}

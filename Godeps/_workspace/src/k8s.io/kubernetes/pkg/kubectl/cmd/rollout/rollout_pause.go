@@ -39,6 +39,7 @@ type PauseConfig struct {
 
 	Out       io.Writer
 	Filenames []string
+	Recursive bool
 }
 
 const (
@@ -51,7 +52,7 @@ Currently only deployments support being paused.`
 	pause_example = `# Mark the nginx deployment as paused. Any current state of
 # the deployment will continue its function, new updates to the deployment will not
 # have an effect as long as the deployment is paused.
-$ kubectl rollout pause deployment/nginx`
+kubectl rollout pause deployment/nginx`
 )
 
 func NewCmdRolloutPause(f *cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -70,6 +71,7 @@ func NewCmdRolloutPause(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
 	kubectl.AddJsonFilenameFlag(cmd, &opts.Filenames, usage)
+	cmdutil.AddRecursiveFlag(cmd, &opts.Recursive)
 	return cmd
 }
 
@@ -78,7 +80,7 @@ func (o *PauseConfig) CompletePause(f *cmdutil.Factory, cmd *cobra.Command, out 
 		return cmdutil.UsageError(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Mapper, o.Typer = f.Object(false)
 	o.PauseObject = f.PauseObject
 	o.Out = out
 
@@ -89,7 +91,7 @@ func (o *PauseConfig) CompletePause(f *cmdutil.Factory, cmd *cobra.Command, out 
 
 	infos, err := resource.NewBuilder(o.Mapper, o.Typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, o.Filenames...).
+		FilenameParam(enforceNamespace, o.Recursive, o.Filenames...).
 		ResourceTypeOrNameArgs(true, args...).
 		SingleResourceType().
 		Latest().

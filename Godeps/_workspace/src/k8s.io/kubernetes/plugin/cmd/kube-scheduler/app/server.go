@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/configz"
 	"k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
@@ -68,14 +69,20 @@ through the API as necessary.`,
 
 // Run runs the specified SchedulerServer.  This should never exit.
 func Run(s *options.SchedulerServer) error {
+	if c, err := configz.New("componentconfig"); err == nil {
+		c.Set(s.KubeSchedulerConfiguration)
+	} else {
+		glog.Errorf("unable to register configz: %s", err)
+	}
 	kubeconfig, err := clientcmd.BuildConfigFromFlags(s.Master, s.Kubeconfig)
 	if err != nil {
 		return err
 	}
 
+	kubeconfig.ContentType = s.ContentType
 	// Override kubeconfig qps/burst settings from flags
 	kubeconfig.QPS = s.KubeAPIQPS
-	kubeconfig.Burst = s.KubeAPIBurst
+	kubeconfig.Burst = int(s.KubeAPIBurst)
 
 	kubeClient, err := client.New(kubeconfig)
 	if err != nil {
@@ -90,16 +97,17 @@ func Run(s *options.SchedulerServer) error {
 			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 		}
+		configz.InstallHandler(mux)
 		mux.Handle("/metrics", prometheus.Handler())
 
 		server := &http.Server{
-			Addr:    net.JoinHostPort(s.Address, strconv.Itoa(s.Port)),
+			Addr:    net.JoinHostPort(s.Address, strconv.Itoa(int(s.Port))),
 			Handler: mux,
 		}
 		glog.Fatal(server.ListenAndServe())
 	}()
 
-	configFactory := factory.NewConfigFactory(kubeClient, s.SchedulerName)
+	configFactory := factory.NewConfigFactory(kubeClient, s.SchedulerName, s.HardPodAffinitySymmetricWeight, s.FailureDomains)
 	config, err := createConfig(s, configFactory)
 
 	if err != nil {
@@ -169,11 +177,5 @@ func createConfig(s *options.SchedulerServer, configFactory *factory.ConfigFacto
 	}
 
 	// if the config file isn't provided, use the specified (or default) provider
-	// check of algorithm provider is registered and fail fast
-	_, err := factory.GetAlgorithmProvider(s.AlgorithmProvider)
-	if err != nil {
-		return nil, err
-	}
-
 	return configFactory.CreateFromProvider(s.AlgorithmProvider)
 }

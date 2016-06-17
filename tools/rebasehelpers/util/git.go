@@ -141,9 +141,9 @@ func (f File) GodepsRepoChanged() (string, error) {
 
 func CommitsBetween(a, b string) ([]Commit, error) {
 	commits := []Commit{}
-	stdout, _, err := run("git", "log", "--oneline", fmt.Sprintf("%s..%s", a, b))
+	stdout, stderr, err := run("git", "log", "--oneline", fmt.Sprintf("%s..%s", a, b))
 	if err != nil {
-		return nil, fmt.Errorf("error executing git log: %s", err)
+		return nil, fmt.Errorf("error executing git log: %s: %s", stderr, err)
 	}
 	for _, log := range strings.Split(stdout, "\n") {
 		if len(log) == 0 {
@@ -196,11 +196,68 @@ func IsAncestor(commit1, commit2, repoDir string) (bool, error) {
 	return true, nil
 }
 
+func CommitDate(commit, repoDir string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return "", err
+	}
+
+	if stdout, stderr, err := run("git", "fetch", "origin"); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+
+	if stdout, stderr, err := run("git", "show", "-s", "--format=%ci", commit); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	} else {
+		return strings.TrimSpace(stdout), nil
+	}
+}
+
+func Checkout(commit, repoDir string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return err
+	}
+
+	if stdout, stderr, err := run("git", "checkout", commit); err != nil {
+		return fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+	return nil
+}
+
+func CurrentRev(repoDir string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return "", err
+	}
+
+	if stdout, stderr, err := run("git", "rev-parse", "HEAD"); err != nil {
+		return "", fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	} else {
+		return strings.TrimSpace(stdout), nil
+	}
+}
+
 func filesInCommit(sha string) ([]File, error) {
 	files := []File{}
-	stdout, _, err := run("git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha)
+	stdout, stderr, err := run("git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %s", stderr, err)
 	}
 	for _, filename := range strings.Split(stdout, "\n") {
 		if len(filename) == 0 {

@@ -7,7 +7,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -27,6 +27,18 @@ if [[ "$(git name-rev --name-only --tags HEAD)" != "${tag}^0" ]]; then
   fi
 fi
 
+function removeimage() {
+  for i in $@; do
+    if docker inspect $i &>/dev/null; then
+      docker rmi $i
+    fi
+    if docker inspect docker.io/$i &>/dev/null; then
+      docker rmi docker.io/$i
+    fi
+  done
+}
+
+removeimage openshift/origin-base openshift/origin-release openshift/origin-haproxy-router-base
 docker pull openshift/origin-base
 docker pull openshift/origin-release
 docker pull openshift/origin-haproxy-router-base

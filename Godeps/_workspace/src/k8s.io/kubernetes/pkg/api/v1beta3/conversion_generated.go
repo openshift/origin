@@ -33,7 +33,7 @@ func convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStor
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -169,8 +169,8 @@ func convert_api_ContainerPort_To_v1beta3_ContainerPort(in *api.ContainerPort, o
 		defaulting.(func(*api.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int(in.HostPort)
+	out.ContainerPort = int(in.ContainerPort)
 	out.Protocol = Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -207,7 +207,7 @@ func convert_api_ContainerStatus_To_v1beta3_ContainerStatus(in *api.ContainerSta
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -218,7 +218,7 @@ func convert_api_DaemonEndpoint_To_v1beta3_DaemonEndpoint(in *api.DaemonEndpoint
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	return nil
 }
 
@@ -293,7 +293,7 @@ func convert_api_EndpointPort_To_v1beta3_EndpointPort(in *api.EndpointPort, out 
 		defaulting.(func(*api.EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	out.Protocol = Protocol(in.Protocol)
 	return nil
 }
@@ -431,7 +431,7 @@ func convert_api_Event_To_v1beta3_Event(in *api.Event, out *Event, s conversion.
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int(in.Count)
 	return nil
 }
 
@@ -494,7 +494,7 @@ func convert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *api.FCVolumeSource
 	}
 	if in.Lun != nil {
 		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		*out.Lun = int(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -517,7 +517,7 @@ func convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolum
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -599,7 +599,7 @@ func convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *api.ISCSIVol
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int(in.Lun)
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -1717,7 +1717,7 @@ func convert_api_ReplicationControllerStatus_To_v1beta3_ReplicationControllerSta
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -2030,81 +2030,6 @@ func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *api.SecurityCont
 	return nil
 }
 
-func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraints(in *api.SecurityContextConstraints, out *SecurityContextConstraints, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.SecurityContextConstraints))(in)
-	}
-
-	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Priority != nil {
-		out.Priority = new(int)
-		*out.Priority = *in.Priority
-	} else {
-		out.Priority = nil
-	}
-	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.AllowedCapabilities != nil {
-		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))
-		for i := range in.AllowedCapabilities {
-			out.AllowedCapabilities[i] = Capability(in.AllowedCapabilities[i])
-		}
-	} else {
-		out.AllowedCapabilities = nil
-	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowHostNetwork = in.AllowHostNetwork
-	out.AllowHostPorts = in.AllowHostPorts
-	out.AllowHostPID = in.AllowHostPID
-	out.AllowHostIPC = in.AllowHostIPC
-	if err := convert_api_SELinuxContextStrategyOptions_To_v1beta3_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
-		return err
-	}
-	if err := convert_api_RunAsUserStrategyOptions_To_v1beta3_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
-		return err
-	}
-	if err := convert_api_FSGroupStrategyOptions_To_v1beta3_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
-		return err
-	}
-	if err := convert_api_SupplementalGroupsStrategyOptions_To_v1beta3_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
-		return err
-	}
-	if in.DefaultAddCapabilities != nil {
-		out.DefaultAddCapabilities = make([]Capability, len(in.DefaultAddCapabilities))
-		for i := range in.DefaultAddCapabilities {
-			out.DefaultAddCapabilities[i] = Capability(in.DefaultAddCapabilities[i])
-		}
-	} else {
-		out.DefaultAddCapabilities = nil
-	}
-	if in.RequiredDropCapabilities != nil {
-		out.RequiredDropCapabilities = make([]Capability, len(in.RequiredDropCapabilities))
-		for i := range in.RequiredDropCapabilities {
-			out.RequiredDropCapabilities[i] = Capability(in.RequiredDropCapabilities[i])
-		}
-	} else {
-		out.RequiredDropCapabilities = nil
-	}
-	if in.Users != nil {
-		out.Users = make([]string, len(in.Users))
-		for i := range in.Users {
-			out.Users[i] = in.Users[i]
-		}
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make([]string, len(in.Groups))
-		for i := range in.Groups {
-			out.Groups[i] = in.Groups[i]
-		}
-	} else {
-		out.Groups = nil
-	}
-	return nil
-}
-
 func convert_api_SecurityContextConstraintsList_To_v1beta3_SecurityContextConstraintsList(in *api.SecurityContextConstraintsList, out *SecurityContextConstraintsList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.SecurityContextConstraintsList))(in)
@@ -2233,11 +2158,11 @@ func convert_api_ServicePort_To_v1beta3_ServicePort(in *api.ServicePort, out *Se
 	}
 	out.Name = in.Name
 	out.Protocol = Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int(in.NodePort)
 	return nil
 }
 
@@ -2297,7 +2222,7 @@ func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStor
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2433,8 +2358,8 @@ func convert_v1beta3_ContainerPort_To_api_ContainerPort(in *ContainerPort, out *
 		defaulting.(func(*ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int32(in.HostPort)
+	out.ContainerPort = int32(in.ContainerPort)
 	out.Protocol = api.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -2471,7 +2396,7 @@ func convert_v1beta3_ContainerStatus_To_api_ContainerStatus(in *ContainerStatus,
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int32(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -2482,7 +2407,7 @@ func convert_v1beta3_DaemonEndpoint_To_api_DaemonEndpoint(in *DaemonEndpoint, ou
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	return nil
 }
 
@@ -2557,7 +2482,7 @@ func convert_v1beta3_EndpointPort_To_api_EndpointPort(in *EndpointPort, out *api
 		defaulting.(func(*EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	out.Protocol = api.Protocol(in.Protocol)
 	return nil
 }
@@ -2695,7 +2620,7 @@ func convert_v1beta3_Event_To_api_Event(in *Event, out *api.Event, s conversion.
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int32(in.Count)
 	return nil
 }
 
@@ -2757,8 +2682,8 @@ func convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, ou
 		out.TargetWWNs = nil
 	}
 	if in.Lun != nil {
-		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		out.Lun = new(int32)
+		*out.Lun = int32(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -2781,7 +2706,7 @@ func convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolum
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2863,7 +2788,7 @@ func convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *ISCSIVolumeS
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int32(in.Lun)
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -3890,8 +3815,8 @@ func convert_v1beta3_Probe_To_api_Probe(in *Probe, out *api.Probe, s conversion.
 	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
-	out.TimeoutSeconds = int(in.TimeoutSeconds)
+	out.InitialDelaySeconds = int32(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int32(in.TimeoutSeconds)
 	return nil
 }
 
@@ -3981,7 +3906,7 @@ func convert_v1beta3_ReplicationControllerStatus_To_api_ReplicationControllerSta
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int32(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -4294,81 +4219,6 @@ func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *SecurityContext,
 	return nil
 }
 
-func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraints(in *SecurityContextConstraints, out *api.SecurityContextConstraints, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SecurityContextConstraints))(in)
-	}
-
-	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Priority != nil {
-		out.Priority = new(int)
-		*out.Priority = *in.Priority
-	} else {
-		out.Priority = nil
-	}
-	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.AllowedCapabilities != nil {
-		out.AllowedCapabilities = make([]api.Capability, len(in.AllowedCapabilities))
-		for i := range in.AllowedCapabilities {
-			out.AllowedCapabilities[i] = api.Capability(in.AllowedCapabilities[i])
-		}
-	} else {
-		out.AllowedCapabilities = nil
-	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowHostNetwork = in.AllowHostNetwork
-	out.AllowHostPorts = in.AllowHostPorts
-	out.AllowHostPID = in.AllowHostPID
-	out.AllowHostIPC = in.AllowHostIPC
-	if err := convert_v1beta3_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
-		return err
-	}
-	if in.DefaultAddCapabilities != nil {
-		out.DefaultAddCapabilities = make([]api.Capability, len(in.DefaultAddCapabilities))
-		for i := range in.DefaultAddCapabilities {
-			out.DefaultAddCapabilities[i] = api.Capability(in.DefaultAddCapabilities[i])
-		}
-	} else {
-		out.DefaultAddCapabilities = nil
-	}
-	if in.RequiredDropCapabilities != nil {
-		out.RequiredDropCapabilities = make([]api.Capability, len(in.RequiredDropCapabilities))
-		for i := range in.RequiredDropCapabilities {
-			out.RequiredDropCapabilities[i] = api.Capability(in.RequiredDropCapabilities[i])
-		}
-	} else {
-		out.RequiredDropCapabilities = nil
-	}
-	if in.Users != nil {
-		out.Users = make([]string, len(in.Users))
-		for i := range in.Users {
-			out.Users[i] = in.Users[i]
-		}
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make([]string, len(in.Groups))
-		for i := range in.Groups {
-			out.Groups[i] = in.Groups[i]
-		}
-	} else {
-		out.Groups = nil
-	}
-	return nil
-}
-
 func convert_v1beta3_SecurityContextConstraintsList_To_api_SecurityContextConstraintsList(in *SecurityContextConstraintsList, out *api.SecurityContextConstraintsList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*SecurityContextConstraintsList))(in)
@@ -4497,11 +4347,11 @@ func convert_v1beta3_ServicePort_To_api_ServicePort(in *ServicePort, out *api.Se
 	}
 	out.Name = in.Name
 	out.Protocol = api.Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int32(in.NodePort)
 	return nil
 }
 
@@ -4663,7 +4513,6 @@ func init() {
 		convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource,
 		convert_api_Secret_To_v1beta3_Secret,
 		convert_api_SecurityContextConstraintsList_To_v1beta3_SecurityContextConstraintsList,
-		convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraints,
 		convert_api_SecurityContext_To_v1beta3_SecurityContext,
 		convert_api_SerializedReference_To_v1beta3_SerializedReference,
 		convert_api_ServiceAccountList_To_v1beta3_ServiceAccountList,
@@ -4783,7 +4632,6 @@ func init() {
 		convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource,
 		convert_v1beta3_Secret_To_api_Secret,
 		convert_v1beta3_SecurityContextConstraintsList_To_api_SecurityContextConstraintsList,
-		convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraints,
 		convert_v1beta3_SecurityContext_To_api_SecurityContext,
 		convert_v1beta3_SerializedReference_To_api_SerializedReference,
 		convert_v1beta3_ServiceAccountList_To_api_ServiceAccountList,

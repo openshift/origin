@@ -147,6 +147,16 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "serviceNetworkCIDR"), config.NetworkConfig.ServiceNetworkCIDR, fmt.Sprintf("must match kubernetesMasterConfig.servicesSubnet value of %q", config.KubernetesMasterConfig.ServicesSubnet)))
 		}
 	}
+	if len(config.NetworkConfig.ExternalIPNetworkCIDRs) > 0 {
+		for i, s := range config.NetworkConfig.ExternalIPNetworkCIDRs {
+			if strings.HasPrefix(s, "!") {
+				s = s[1:]
+			}
+			if _, _, err := net.ParseCIDR(s); err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "externalIPNetworkCIDRs").Index(i), config.NetworkConfig.ExternalIPNetworkCIDRs[i], "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16) with an optional leading !"))
+			}
+		}
+	}
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 
@@ -171,6 +181,18 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	if config.AdmissionConfig.PluginConfig != nil {
 		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
+	}
+
+	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
+
+	return validationResults
+}
+
+func ValidateControllerConfig(config api.ControllerConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if config.ServiceServingCert.Signer != nil {
+		validationResults.AddErrors(ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
 	}
 
 	return validationResults
@@ -496,6 +518,19 @@ func ValidatePolicyConfig(config api.PolicyConfig, fldPath *field.Path) field.Er
 	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, fldPath.Child("bootstrapPolicyFile"))...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
+
+	for i, matchingRule := range config.UserAgentMatchingConfig.DeniedClients {
+		_, err := regexp.Compile(matchingRule.Regex)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("userAgentMatchingConfig", "deniedClients").Index(i), matchingRule.Regex, err.Error()))
+		}
+	}
+	for i, matchingRule := range config.UserAgentMatchingConfig.RequiredClients {
+		_, err := regexp.Compile(matchingRule.Regex)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("userAgentMatchingConfig", "requiredClients").Index(i), matchingRule.Regex, err.Error()))
+		}
+	}
 
 	return allErrs
 }

@@ -1908,12 +1908,23 @@ hr {
         </div><!--/.col-*-->
         <div class="col-sm-7 col-md-6 col-lg-5 login">
           {{ if eq (len .Providers) 1}}
-            <a class="btn btn-lg btn-primary" href='{{ (index .Providers 0).URL }}'>Log In</a>
+            <a class="btn btn-lg btn-primary" href="{{ (index .Providers 0).URL }}">Log In</a>
           {{ else }}
+            <style>
+              a.idp {
+                  border: 1px solid #444;
+                  padding: 10px;
+                  margin-top: 10px;
+                  background-color: #333;
+                  display: block;
+              }
+              a.idp:hover {
+                  background-color: #222;
+              }
+            </style>
+            Log in with&hellip;
             {{ range $provider := .Providers }}
-              <div style="border-radius: 5px; border: 1px solid #444; padding: 20px; background-color: #333; cursor: pointer;" onclick="window.location.href='{{ $provider.URL }}'">
-                Log in with <a href="{{$provider.URL}}">{{$provider.Name}}</a>
-              </div>
+              <a href="{{$provider.URL}}" class="idp" title="Log in with {{$provider.Name}}">{{$provider.Name}}</a>
             {{ end }}
           {{ end }}
         </div><!--/.col-*-->

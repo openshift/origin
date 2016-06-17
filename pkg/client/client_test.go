@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 func TestUserAgent(t *testing.T) {
@@ -17,7 +17,7 @@ func TestUserAgent(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c, _ := New(&kclient.Config{
+	c, _ := New(&restclient.Config{
 		Host: server.URL,
 	})
 	c.DeploymentConfigs("test").Get("other")

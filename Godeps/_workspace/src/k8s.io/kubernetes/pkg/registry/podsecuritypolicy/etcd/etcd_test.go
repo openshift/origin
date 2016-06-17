@@ -33,7 +33,8 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "extensions")
-	return NewREST(etcdStorage, generic.UndecoratedStorage), server
+	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
+	return NewREST(restOptions), server
 }
 
 func validNewPodSecurityPolicy() *extensions.PodSecurityPolicy {
@@ -42,11 +43,11 @@ func validNewPodSecurityPolicy() *extensions.PodSecurityPolicy {
 			Name: "foo",
 		},
 		Spec: extensions.PodSecurityPolicySpec{
-			SELinuxContext: extensions.SELinuxContextStrategyOptions{
-				Type: extensions.SELinuxStrategyRunAsAny,
+			SELinux: extensions.SELinuxStrategyOptions{
+				Rule: extensions.SELinuxStrategyRunAsAny,
 			},
 			RunAsUser: extensions.RunAsUserStrategyOptions{
-				Type: extensions.RunAsUserStrategyRunAsAny,
+				Rule: extensions.RunAsUserStrategyRunAsAny,
 			},
 		},
 	}
@@ -55,7 +56,7 @@ func validNewPodSecurityPolicy() *extensions.PodSecurityPolicy {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	scc := validNewPodSecurityPolicy()
 	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
@@ -71,7 +72,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestUpdate(
 		// valid
 		validNewPodSecurityPolicy(),
@@ -87,28 +88,28 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope().ReturnDeletedObject()
+	test := registrytest.New(t, storage.Store).ClusterScope().ReturnDeletedObject()
 	test.TestDelete(validNewPodSecurityPolicy())
 }
 
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(validNewPodSecurityPolicy())
 }
 
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(validNewPodSecurityPolicy())
 }
 
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestWatch(
 		validNewPodSecurityPolicy(),
 		// matching labels

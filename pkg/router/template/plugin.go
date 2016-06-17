@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"crypto/md5"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,6 +53,10 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
+	// HasServiceUnit indicates whether the router has a service unit
+	// for the given key.
+	HasServiceUnit(key string) bool
+
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.
@@ -73,6 +78,9 @@ type routerInterface interface {
 	// Commit applies the changes in the background. It kicks off a rate-limited
 	// commit (persist router state + refresh the backend) that coalesces multiple changes.
 	Commit()
+
+	// SetSkipCommit indicates to the router whether commits should be skipped
+	SetSkipCommit(skipCommit bool)
 }
 
 func env(name, defaultValue string) string {
@@ -190,6 +198,11 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	return nil
 }
 
+func (p *TemplatePlugin) SetLastSyncProcessed(processed bool) error {
+	p.Router.SetSkipCommit(!processed)
+	return nil
+}
+
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
@@ -221,7 +234,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 				ep := Endpoint{
 					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
 					IP:   a.IP,
-					Port: strconv.Itoa(p.Port),
+					Port: strconv.Itoa(int(p.Port)),
 
 					PortName: p.Name,
 				}
@@ -230,6 +243,14 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 				} else {
 					ep.TargetName = ep.IP
 				}
+
+				// IdHash contains an obfuscated internal IP address
+				// that is the value passed in the cookie. The IP address
+				// is made more difficult to extract by including other
+				// internal information in the hash.
+				s := ep.ID + ep.TargetName + ep.PortName
+				ep.IdHash = fmt.Sprintf("%x", md5.Sum([]byte(s)))
+
 				out = append(out, ep)
 			}
 		}

@@ -21,25 +21,24 @@ import (
 	"k8s.io/kubernetes/pkg/registry/configmap"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 )
 
 // REST implements a RESTStorage for ConfigMap against etcd
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewREST returns a RESTStorage object that will work with ConfigMap objects.
-func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *REST {
+func NewREST(opts generic.RESTOptions) *REST {
 	prefix := "/configmaps"
 
 	newListFunc := func() runtime.Object { return &api.ConfigMapList{} }
-	storageInterface := storageDecorator(
-		s, 100, &api.ConfigMap{}, prefix, configmap.Strategy, newListFunc)
+	storageInterface := opts.Decorator(
+		opts.Storage, 100, &api.ConfigMap{}, prefix, configmap.Strategy, newListFunc)
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc: func() runtime.Object {
 			return &api.ConfigMap{}
 		},
@@ -50,13 +49,13 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix.
 		KeyRootFunc: func(ctx api.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 
 		// Produces a path that etcd understands, to the resource by combining
 		// the namespace in the context with the given prefix
 		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, name)
+			return registry.NamespaceKeyFunc(ctx, prefix, name)
 		},
 
 		// Retrieves the name field of a ConfigMap object.
@@ -69,8 +68,11 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator) *RE
 
 		QualifiedResource: api.Resource("configmaps"),
 
+		DeleteCollectionWorkers: opts.DeleteCollectionWorkers,
+
 		CreateStrategy: configmap.Strategy,
 		UpdateStrategy: configmap.Strategy,
+		DeleteStrategy: configmap.Strategy,
 
 		Storage: storageInterface,
 	}

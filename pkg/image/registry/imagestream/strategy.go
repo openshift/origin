@@ -18,6 +18,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
@@ -30,18 +31,20 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
-	defaultRegistry   DefaultRegistry
+	defaultRegistry   api.DefaultRegistry
 	tagVerifier       *TagVerifier
+	limitVerifier     imageadmission.LimitVerifier
 	ImageStreamGetter ResourceGetter
 }
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry) Strategy {
+func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) Strategy {
 	return Strategy{
 		ObjectTyper:     kapi.Scheme,
 		NameGenerator:   kapi.SimpleNameGenerator,
 		defaultRegistry: defaultRegistry,
+		limitVerifier:   limitVerifier,
 		tagVerifier:     &TagVerifier{subjectAccessReviewClient},
 	}
 }
@@ -76,6 +79,15 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 	}
 	errs := s.tagVerifier.Verify(nil, stream, user)
 	errs = append(errs, s.tagsChanged(nil, stream)...)
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = stream.Namespace
+	}
+	if err := s.limitVerifier.VerifyLimits(ns, stream); err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	errs = append(errs, validation.ValidateImageStream(stream)...)
 	return errs
 }
@@ -141,6 +153,8 @@ func parseFromReference(stream *api.ImageStream, from *kapi.ObjectReference) (st
 // tagsChanged updates stream.Status.Tags based on the old and new image stream.
 // if the old stream is nil, all tags are considered additions.
 func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
+	internalRegistry, hasInternalRegistry := s.defaultRegistry.DefaultRegistry()
+
 	var errs field.ErrorList
 
 	oldTags := map[string]api.TagReference{}
@@ -206,10 +220,21 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
 			errs = append(errs, field.Invalid(fromPath.Child("name"), tagRef.From.Name, fmt.Sprintf("error generating tag event: %v", err)))
 			continue
 		}
-
 		if event == nil {
 			// referenced tag or ID doesn't exist, which is ok
 			continue
+		}
+
+		// if this is not a reference tag, and the tag points to the internal registry for the other namespace, alter it to
+		// point to this stream so that pulls happen from this stream in the future.
+		if !tagRef.Reference {
+			if ref, err := api.ParseDockerImageReference(event.DockerImageReference); err == nil {
+				if hasInternalRegistry && ref.Registry == internalRegistry && ref.Namespace == streamRef.Namespace && ref.Name == streamRef.Name {
+					ref.Namespace = stream.Namespace
+					ref.Name = stream.Name
+					event.DockerImageReference = ref.Exact()
+				}
+			}
 		}
 
 		stream.Spec.Tags[tag] = tagRef
@@ -470,11 +495,19 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 	if !ok {
 		return field.ErrorList{field.Forbidden(field.NewPath("imageStream"), stream.Name)}
 	}
-
 	oldStream := old.(*api.ImageStream)
 
 	errs := s.tagVerifier.Verify(oldStream, stream, user)
 	errs = append(errs, s.tagsChanged(oldStream, stream)...)
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = stream.Namespace
+	}
+	if err := s.limitVerifier.VerifyLimits(ns, stream); err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	errs = append(errs, validation.ValidateImageStreamUpdate(stream, oldStream)...)
 	return errs
 }
@@ -511,9 +544,22 @@ func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	updateObservedGenerationForStatusUpdate(stream, oldStream)
 }
 
-func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	newIS := obj.(*api.ImageStream)
+	errs := field.ErrorList{}
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = newIS.Namespace
+	}
+	err := s.limitVerifier.VerifyLimits(ns, newIS)
+	if err != nil {
+		errs = append(errs, field.Forbidden(field.NewPath("imageStream"), err.Error()))
+	}
+
 	// TODO: merge valid fields after update
-	return validation.ValidateImageStreamStatusUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+	errs = append(errs, validation.ValidateImageStreamStatusUpdate(newIS, old.(*api.ImageStream))...)
+	return errs
 }
 
 // MatchImageStream returns a generic matcher for a given label and field selector.
@@ -526,19 +572,6 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 		fields := api.ImageStreamToSelectableFields(ir)
 		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
 	})
-}
-
-// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
-type DefaultRegistry interface {
-	DefaultRegistry() (string, bool)
-}
-
-// DefaultRegistryFunc implements DefaultRegistry for a simple function.
-type DefaultRegistryFunc func() (string, bool)
-
-// DefaultRegistry implements the DefaultRegistry interface for a function.
-func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
-	return fn()
 }
 
 // InternalStrategy implements behavior for updating both the spec and status

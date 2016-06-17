@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	"k8s.io/kubernetes/third_party/golang/expansion"
 
@@ -39,34 +40,40 @@ type HandlerRunner interface {
 // RuntimeHelper wraps kubelet to make container runtime
 // able to get necessary informations like the RunContainerOptions, DNS settings.
 type RuntimeHelper interface {
-	GenerateRunContainerOptions(pod *api.Pod, container *api.Container) (*RunContainerOptions, error)
+	GenerateRunContainerOptions(pod *api.Pod, container *api.Container, podIP string) (*RunContainerOptions, error)
 	GetClusterDNS(pod *api.Pod) (dnsServers []string, dnsSearches []string, err error)
+	GetPodDir(podUID types.UID) string
+	GeneratePodHostNameAndDomain(pod *api.Pod) (hostname string, hostDomain string, err error)
 }
 
 // ShouldContainerBeRestarted checks whether a container needs to be restarted.
 // TODO(yifan): Think about how to refactor this.
 func ShouldContainerBeRestarted(container *api.Container, pod *api.Pod, podStatus *PodStatus) bool {
-	// Get all dead container status.
-	var resultStatus []*ContainerStatus
-	for _, containerStatus := range podStatus.ContainerStatuses {
-		if containerStatus.Name == container.Name && containerStatus.State == ContainerStateExited {
-			resultStatus = append(resultStatus, containerStatus)
-		}
+	// Get latest container status.
+	status := podStatus.FindContainerStatusByName(container.Name)
+	// If the container was never started before, we should start it.
+	// NOTE(random-liu): If all historical containers were GC'd, we'll also return true here.
+	if status == nil {
+		return true
 	}
-
-	// Check RestartPolicy for dead container.
-	if len(resultStatus) > 0 {
-		if pod.Spec.RestartPolicy == api.RestartPolicyNever {
-			glog.V(4).Infof("Already ran container %q of pod %q, do nothing", container.Name, format.Pod(pod))
+	// Check whether container is running
+	if status.State == ContainerStateRunning {
+		return false
+	}
+	// Always restart container in unknown state now
+	if status.State == ContainerStateUnknown {
+		return true
+	}
+	// Check RestartPolicy for dead container
+	if pod.Spec.RestartPolicy == api.RestartPolicyNever {
+		glog.V(4).Infof("Already ran container %q of pod %q, do nothing", container.Name, format.Pod(pod))
+		return false
+	}
+	if pod.Spec.RestartPolicy == api.RestartPolicyOnFailure {
+		// Check the exit code.
+		if status.ExitCode == 0 {
+			glog.V(4).Infof("Already successfully ran container %q of pod %q, do nothing", container.Name, format.Pod(pod))
 			return false
-		}
-		if pod.Spec.RestartPolicy == api.RestartPolicyOnFailure {
-			// Check the exit code of last run. Note: This assumes the result is sorted
-			// by the created time in reverse order.
-			if resultStatus[0].ExitCode == 0 {
-				glog.V(4).Infof("Already successfully ran container %q of pod %q, do nothing", container.Name, format.Pod(pod))
-				return false
-			}
 		}
 	}
 	return true
@@ -84,12 +91,11 @@ func ConvertPodStatusToRunningPod(podStatus *PodStatus) Pod {
 			continue
 		}
 		container := &Container{
-			ID:      containerStatus.ID,
-			Name:    containerStatus.Name,
-			Image:   containerStatus.Image,
-			Hash:    containerStatus.Hash,
-			Created: containerStatus.CreatedAt.Unix(),
-			State:   containerStatus.State,
+			ID:    containerStatus.ID,
+			Name:  containerStatus.Name,
+			Image: containerStatus.Image,
+			Hash:  containerStatus.Hash,
+			State: containerStatus.State,
 		}
 		runningPod.Containers = append(runningPod.Containers, container)
 	}
@@ -173,4 +179,9 @@ func (irecorder *innerEventRecorder) PastEventf(object runtime.Object, timestamp
 	if ref, ok := irecorder.shouldRecordEvent(object); ok {
 		irecorder.recorder.PastEventf(ref, timestamp, eventtype, reason, messageFmt, args...)
 	}
+}
+
+// Pod must not be nil.
+func IsHostNetworkPod(pod *api.Pod) bool {
+	return pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork
 }

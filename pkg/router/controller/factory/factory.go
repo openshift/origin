@@ -81,6 +81,12 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 			}
 			return eventType, obj.(*routeapi.Route), nil
 		},
+		EndpointsListConsumed: func() bool {
+			return endpointsEventQueue.ListConsumed()
+		},
+		RoutesListConsumed: func() bool {
+			return routeEventQueue.ListConsumed()
+		},
 		Namespaces: factory.Namespaces,
 		// check namespaces a bit more often than we resync events, so that we aren't always waiting
 		// the maximum interval for new items to come into the list
@@ -173,13 +179,7 @@ type routeAge []routeapi.Route
 func (r routeAge) Len() int      { return len(r) }
 func (r routeAge) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 func (r routeAge) Less(i, j int) bool {
-	if r[i].CreationTimestamp.Before(r[j].CreationTimestamp) {
-		return true
-	}
-	if r[i].Namespace < r[j].Namespace {
-		return true
-	}
-	return r[i].Name < r[j].Name
+	return routeapi.RouteLessThan(&r[i], &r[j])
 }
 
 func oldestRoute(routes []interface{}) *routeapi.Route {

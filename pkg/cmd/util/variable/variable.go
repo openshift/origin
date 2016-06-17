@@ -64,9 +64,8 @@ func Versions(key string) (string, bool) {
 		}
 		return s, true
 	case "version":
-		s := OverrideVersion.GitVersion
-		seg := strings.SplitN(s, "-", 2)
-		return seg[0], true
+		s := OverrideVersion.LastSemanticVersion()
+		return s, true
 	default:
 		return "", false
 	}

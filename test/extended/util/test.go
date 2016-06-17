@@ -20,7 +20,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -40,6 +40,9 @@ var (
 // TEST_REPORT_DIR - If set, JUnit output will be written to this directory for each test
 // TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
 func InitTest() {
+	// Add hooks to skip all kubernetes or origin tests
+	ginkgo.BeforeEach(checkSuiteSkips)
+
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
 
@@ -75,7 +78,7 @@ func InitTest() {
 	rflag.StringVar(&config.GinkgoConfig.FocusString, "focus", "", "DEPRECATED: use --ginkgo.focus")
 
 	// Ensure that Kube tests run privileged (like they do upstream)
-	ginkgo.JustBeforeEach(verifyTestSuitePreconditions)
+	TestContext.CreateTestingNS = createTestingNS
 
 	// Override the default Kubernetes E2E configuration
 	e2e.SetTestContext(TestContext)
@@ -109,51 +112,93 @@ func ExecuteTest(t *testing.T, suite string) {
 	}
 }
 
-// verifyTestSuitePreconditions ensures that all namespaces prefixed with 'e2e-' have their
-// service accounts in the privileged and anyuid SCCs, and that Origin/Kubernetes synthetic
-// skip labels are applied
-func verifyTestSuitePreconditions() {
-	desc := ginkgo.CurrentGinkgoTestDescription()
+// TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.
+// isPackage determines wether the test is in a package.  Ideally would be implemented in ginkgo.
+func isPackage(pkg string) bool {
+	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FileName, pkg)
+}
 
-	switch {
-	case strings.Contains(desc.FileName, "/origin/test/"):
-		if strings.Contains(config.GinkgoConfig.SkipString, "[Origin]") {
-			ginkgo.Skip("skipping [Origin] tests")
-		}
+// TODO: For both is*Test functions, use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228
+func isOriginTest() bool {
+	return isPackage("/origin/test/")
+}
 
-	case strings.Contains(desc.FileName, "/kubernetes/test/e2e/"):
-		if strings.Contains(config.GinkgoConfig.SkipString, "[Kubernetes]") {
-			ginkgo.Skip("skipping [Kubernetes] tests")
-		}
+func isKubernetesE2ETest() bool {
+	return isPackage("/kubernetes/test/e2e/")
+}
 
+func testNameContains(name string) bool {
+	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FullTestText, name)
+}
+
+func skipTestNamespaceCustomization() bool {
+	return (isPackage("/kubernetes/test/e2e/namespace.go") && (testNameContains("should always delete fast") || testNameContains("should delete fast enough")))
+}
+
+// Holds custom namespace creation functions so we can customize per-test
+var customCreateTestingNSFuncs = map[string]e2e.CreateTestingNSFn{}
+
+// Registers a namespace creation function for the given basename
+// Fails if a create function is already registered
+func setCreateTestingNSFunc(baseName string, fn e2e.CreateTestingNSFn) {
+	if _, exists := customCreateTestingNSFuncs[baseName]; exists {
+		FatalErr("Double registered custom namespace creation function for " + baseName)
+	}
+	customCreateTestingNSFuncs[baseName] = fn
+}
+
+// createTestingNS delegates to custom namespace creation functions if registered.
+// otherwise, it ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
+func createTestingNS(baseName string, c *kclient.Client, labels map[string]string) (*kapi.Namespace, error) {
+	// If a custom function exists, call it
+	if fn, exists := customCreateTestingNSFuncs[baseName]; exists {
+		return fn(baseName, c, labels)
+	}
+
+	// Otherwise use the upstream default
+	ns, err := e2e.CreateTestingNS(baseName, c, labels)
+	if err != nil {
+		return ns, err
+	}
+
+	// Add anyuid and privileged permissions for upstream tests
+	if isKubernetesE2ETest() && !skipTestNamespaceCustomization() {
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
-		c, _, err := configapi.GetKubeClient(KubeConfigPath())
-		if err != nil {
-			FatalErr(err)
-		}
-		namespaces, err := c.Namespaces().List(kapi.ListOptions{})
-		if err != nil {
-			FatalErr(err)
-		}
 		// add to the "privileged" scc to ensure pods that explicitly
 		// request extra capabilities are not rejected
-		addE2EServiceAccountsToSCC(c, namespaces, "privileged")
+		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "privileged")
 		// add to the "anyuid" scc to ensure pods that don't specify a
 		// uid don't get forced into a range (mimics upstream
 		// behavior)
-		addE2EServiceAccountsToSCC(c, namespaces, "anyuid")
+		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "anyuid")
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
 		osClient, _, err := configapi.GetOpenShiftClient(KubeConfigPath())
 		if err != nil {
-			FatalErr(err)
+			return ns, err
 		}
-		addRoleToE2EServiceAccounts(osClient, namespaces, bootstrappolicy.ViewRoleName)
+		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+	}
+
+	return ns, err
+}
+
+// checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
+func checkSuiteSkips() {
+	switch {
+	case isOriginTest():
+		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Origin") {
+			ginkgo.Skip("skipping all openshift/origin tests")
+		}
+	case isKubernetesE2ETest():
+		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Kubernetes") {
+			ginkgo.Skip("skipping all k8s.io/kubernetes tests")
+		}
 	}
 }
 
-func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceList, sccName string) {
+func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, sccName string) {
 	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
 		scc, err := c.SecurityContextConstraints().Get(sccName)
 		if err != nil {
@@ -163,18 +208,11 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceLis
 			return err
 		}
 
-		groups := []string{}
-		for _, name := range scc.Groups {
-			if !strings.Contains(name, "e2e-") {
-				groups = append(groups, name)
-			}
-		}
-		for _, ns := range namespaces.Items {
+		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") {
-				groups = append(groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		scc.Groups = groups
 		if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}
@@ -185,9 +223,9 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces *kapi.NamespaceLis
 	}
 }
 
-func addRoleToE2EServiceAccounts(c *client.Client, namespaces *kapi.NamespaceList, roleName string) {
+func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapi.Namespace, roleName string) {
 	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
-		for _, ns := range namespaces.Items {
+		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
 				addRole := &policy.RoleModificationOptions{

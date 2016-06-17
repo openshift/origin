@@ -21,9 +21,7 @@ import (
 	"net/http"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 func TestExtraArgsFail(t *testing.T) {
@@ -60,7 +58,7 @@ func TestCreateObject(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := NewCmdCreate(f, buf)
-	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.yaml")
+	cmd.Flags().Set("filename", "../../../examples/guestbook/legacy/redis-master-controller.yaml")
 	cmd.Flags().Set("output", "name")
 	cmd.Run(cmd, []string{})
 
@@ -94,7 +92,7 @@ func TestCreateMultipleObject(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := NewCmdCreate(f, buf)
-	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.yaml")
+	cmd.Flags().Set("filename", "../../../examples/guestbook/legacy/redis-master-controller.yaml")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/frontend-service.yaml")
 	cmd.Flags().Set("output", "name")
 	cmd.Run(cmd, []string{})
@@ -107,7 +105,7 @@ func TestCreateMultipleObject(t *testing.T) {
 
 func TestCreateDirectory(t *testing.T) {
 	initTestErrorHandler(t)
-	_, svc, rc := testData()
+	_, _, rc := testData()
 	rc.Items[0].Name = "name"
 
 	f, tf, codec := NewAPIFactory()
@@ -116,8 +114,6 @@ func TestCreateDirectory(t *testing.T) {
 		Codec: codec,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
-			case p == "/namespaces/test/services" && m == "POST":
-				return &http.Response{StatusCode: 201, Body: objBody(codec, &svc.Items[0])}, nil
 			case p == "/namespaces/test/replicationcontrollers" && m == "POST":
 				return &http.Response{StatusCode: 201, Body: objBody(codec, &rc.Items[0])}, nil
 			default:
@@ -130,103 +126,11 @@ func TestCreateDirectory(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := NewCmdCreate(f, buf)
-	cmd.Flags().Set("filename", "../../../examples/guestbook")
+	cmd.Flags().Set("filename", "../../../examples/guestbook/legacy")
 	cmd.Flags().Set("output", "name")
 	cmd.Run(cmd, []string{})
 
-	if buf.String() != "replicationcontroller/name\nservice/baz\nreplicationcontroller/name\nservice/baz\nreplicationcontroller/name\nservice/baz\n" {
+	if buf.String() != "replicationcontroller/name\nreplicationcontroller/name\nreplicationcontroller/name\n" {
 		t.Errorf("unexpected output: %s", buf.String())
-	}
-}
-
-func TestPrintObjectSpecificMessage(t *testing.T) {
-	initTestErrorHandler(t)
-	tests := []struct {
-		obj          runtime.Object
-		expectOutput bool
-	}{
-		{
-			obj:          &api.Service{},
-			expectOutput: false,
-		},
-		{
-			obj:          &api.Pod{},
-			expectOutput: false,
-		},
-		{
-			obj:          &api.Service{Spec: api.ServiceSpec{Type: api.ServiceTypeLoadBalancer}},
-			expectOutput: false,
-		},
-		{
-			obj:          &api.Service{Spec: api.ServiceSpec{Type: api.ServiceTypeNodePort}},
-			expectOutput: true,
-		},
-	}
-	for _, test := range tests {
-		buff := &bytes.Buffer{}
-		printObjectSpecificMessage(test.obj, buff)
-		if test.expectOutput && buff.Len() == 0 {
-			t.Errorf("Expected output, saw none for %v", test.obj)
-		}
-		if !test.expectOutput && buff.Len() > 0 {
-			t.Errorf("Expected no output, saw %s for %v", buff.String(), test.obj)
-		}
-	}
-}
-
-func TestMakePortsString(t *testing.T) {
-	initTestErrorHandler(t)
-	tests := []struct {
-		ports          []api.ServicePort
-		useNodePort    bool
-		expectedOutput string
-	}{
-		{ports: nil, expectedOutput: ""},
-		{ports: []api.ServicePort{}, expectedOutput: ""},
-		{ports: []api.ServicePort{
-			{
-				Port:     80,
-				Protocol: "TCP",
-			},
-		},
-			expectedOutput: "tcp:80",
-		},
-		{ports: []api.ServicePort{
-			{
-				Port:     80,
-				Protocol: "TCP",
-			},
-			{
-				Port:     8080,
-				Protocol: "UDP",
-			},
-			{
-				Port:     9000,
-				Protocol: "TCP",
-			},
-		},
-			expectedOutput: "tcp:80,udp:8080,tcp:9000",
-		},
-		{ports: []api.ServicePort{
-			{
-				Port:     80,
-				NodePort: 9090,
-				Protocol: "TCP",
-			},
-			{
-				Port:     8080,
-				NodePort: 80,
-				Protocol: "UDP",
-			},
-		},
-			useNodePort:    true,
-			expectedOutput: "tcp:9090,udp:80",
-		},
-	}
-	for _, test := range tests {
-		output := makePortsString(test.ports, test.useNodePort)
-		if output != test.expectedOutput {
-			t.Errorf("expected: %s, saw: %s.", test.expectedOutput, output)
-		}
 	}
 }

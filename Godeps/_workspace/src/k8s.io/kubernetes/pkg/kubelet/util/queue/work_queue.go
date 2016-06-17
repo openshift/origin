@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 )
 
-// WorkQueue allows queueing items with a timestamp. An item is
+// WorkQueue allows queuing items with a timestamp. An item is
 // considered ready to process if the timestamp has expired.
 type WorkQueue interface {
 	// GetWork dequeues and returns all ready items.
@@ -41,9 +41,9 @@ type basicWorkQueue struct {
 
 var _ WorkQueue = &basicWorkQueue{}
 
-func NewBasicWorkQueue() WorkQueue {
+func NewBasicWorkQueue(clock util.Clock) WorkQueue {
 	queue := make(map[types.UID]time.Time)
-	return &basicWorkQueue{queue: queue, clock: util.RealClock{}}
+	return &basicWorkQueue{queue: queue, clock: clock}
 }
 
 func (q *basicWorkQueue) GetWork() []types.UID {

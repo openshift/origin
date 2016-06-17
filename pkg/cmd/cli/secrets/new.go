@@ -30,19 +30,19 @@ using with all valid keys in that directory.
 `
 
 	newExample = `  # Create a new secret named my-secret with a key named ssh-privatekey
-  $ %[1]s my-secret ~/.ssh/ssh-privatekey
+  %[1]s my-secret ~/.ssh/ssh-privatekey
 
   # Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
-  $ %[1]s my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
+  %[1]s my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
 
   # Create a new secret named my-secret with keys for each file in the folder "bar"
-  $ %[1]s my-secret path/to/bar
+  %[1]s my-secret path/to/bar
 
   # Create a new .dockercfg secret named my-secret
-  $ %[1]s my-secret path/to/.dockercfg
+  %[1]s my-secret path/to/.dockercfg
 
   # Create a new .docker/config.json secret named my-secret
-  $ %[1]s my-secret .dockerconfigjson=path/to/.docker/config.json`
+  %[1]s my-secret .dockerconfigjson=path/to/.docker/config.json`
 )
 
 type CreateSecretOptions struct {
@@ -91,7 +91,8 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 				secret, err := options.BundleSecret()
 				kcmdutil.CheckErr(err)
 
-				kcmdutil.CheckErr(f.Factory.PrintObject(c, secret, out))
+				mapper, _ := f.Object(false)
+				kcmdutil.CheckErr(f.Factory.PrintObject(c, mapper, secret, out))
 				return
 			}
 

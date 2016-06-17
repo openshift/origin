@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery"
@@ -33,6 +34,10 @@ import (
 var (
 	// registeredGroupVersions stores all API group versions for which RegisterGroup is called.
 	registeredVersions = map[unversioned.GroupVersion]struct{}{}
+
+	// thirdPartyGroupVersions are API versions which are dynamically
+	// registered (and unregistered) via API calls to the apiserver
+	thirdPartyGroupVersions []unversioned.GroupVersion
 
 	// enabledVersions represents all enabled API versions. It should be a
 	// subset of registeredVersions. Please call EnableVersions() to add
@@ -45,8 +50,8 @@ var (
 	// envRequestedVersions represents the versions requested via the
 	// KUBE_API_VERSIONS environment variable. The install package of each group
 	// checks this list before add their versions to the latest package and
-	// Scheme.
-	envRequestedVersions = map[unversioned.GroupVersion]struct{}{}
+	// Scheme.  This list is small and order matters, so represent as a slice
+	envRequestedVersions = []unversioned.GroupVersion{}
 )
 
 func init() {
@@ -60,7 +65,7 @@ func init() {
 				glog.Fatalf("invalid api version: %s in KUBE_API_VERSIONS: %s.",
 					version, os.Getenv("KUBE_API_VERSIONS"))
 			}
-			envRequestedVersions[gv] = struct{}{}
+			envRequestedVersions = append(envRequestedVersions, gv)
 		}
 	}
 }
@@ -142,8 +147,12 @@ func IsAllowedVersion(v unversioned.GroupVersion) bool {
 	if len(envRequestedVersions) == 0 {
 		return true
 	}
-	_, found := envRequestedVersions[v]
-	return found
+	for _, envGV := range envRequestedVersions {
+		if v == envGV {
+			return true
+		}
+	}
+	return false
 }
 
 // IsEnabledVersion returns if a version is enabled.
@@ -189,6 +198,60 @@ func IsRegistered(group string) bool {
 	return found
 }
 
+// IsRegisteredVersion returns if a version is registered.
+func IsRegisteredVersion(v unversioned.GroupVersion) bool {
+	_, found := registeredVersions[v]
+	return found
+}
+
+// RegisteredGroupVersions returns all registered group versions.
+func RegisteredGroupVersions() []unversioned.GroupVersion {
+	ret := []unversioned.GroupVersion{}
+	for groupVersion := range registeredVersions {
+		ret = append(ret, groupVersion)
+	}
+	return ret
+}
+
+// IsThirdPartyAPIGroupVersion returns true if the api version is a user-registered group/version.
+func IsThirdPartyAPIGroupVersion(gv unversioned.GroupVersion) bool {
+	for ix := range thirdPartyGroupVersions {
+		if thirdPartyGroupVersions[ix] == gv {
+			return true
+		}
+	}
+	return false
+}
+
+// AddThirdPartyAPIGroupVersions sets the list of third party versions,
+// registers them in the API machinery and enables them.
+// Skips GroupVersions that are already registered.
+// Returns the list of GroupVersions that were skipped.
+func AddThirdPartyAPIGroupVersions(gvs ...unversioned.GroupVersion) []unversioned.GroupVersion {
+	filteredGVs := []unversioned.GroupVersion{}
+	skippedGVs := []unversioned.GroupVersion{}
+	for ix := range gvs {
+		if !IsRegisteredVersion(gvs[ix]) {
+			filteredGVs = append(filteredGVs, gvs[ix])
+		} else {
+			glog.V(3).Infof("Skipping %s, because its already registered", gvs[ix].String())
+			skippedGVs = append(skippedGVs, gvs[ix])
+		}
+	}
+	if len(filteredGVs) == 0 {
+		return skippedGVs
+	}
+	RegisterVersions(filteredGVs)
+	EnableVersions(filteredGVs...)
+	next := make([]unversioned.GroupVersion, len(gvs))
+	for ix := range filteredGVs {
+		next[ix] = filteredGVs[ix]
+	}
+	thirdPartyGroupVersions = next
+
+	return skippedGVs
+}
+
 // TODO: This is an expedient function, because we don't check if a Group is
 // supported throughout the code base. We will abandon this function and
 // checking the error returned by the Group() function.
@@ -203,6 +266,84 @@ func GroupOrDie(group string) *apimachinery.GroupMeta {
 	}
 	groupMetaCopy := *groupMeta
 	return &groupMetaCopy
+}
+
+// RESTMapper returns a union RESTMapper of all known types with priorities chosen in the following order:
+//  1. if KUBE_API_VERSIONS is specified, then KUBE_API_VERSIONS in order, OR
+//  1. legacy kube group preferred version, extensions preferred version, metrics perferred version, legacy
+//     kube any version, extensions any version, metrics any version, all other groups alphabetical preferred version,
+//     all other groups alphabetical.
+func RESTMapper(versionPatterns ...unversioned.GroupVersion) meta.RESTMapper {
+	unionMapper := meta.MultiRESTMapper{}
+	unionedGroups := sets.NewString()
+	for enabledVersion := range enabledVersions {
+		if !unionedGroups.Has(enabledVersion.Group) {
+			unionedGroups.Insert(enabledVersion.Group)
+			groupMeta := groupMetaMap[enabledVersion.Group]
+			unionMapper = append(unionMapper, groupMeta.RESTMapper)
+		}
+	}
+
+	if len(versionPatterns) != 0 {
+		resourcePriority := []unversioned.GroupVersionResource{}
+		kindPriority := []unversioned.GroupVersionKind{}
+		for _, versionPriority := range versionPatterns {
+			resourcePriority = append(resourcePriority, versionPriority.WithResource(meta.AnyResource))
+			kindPriority = append(kindPriority, versionPriority.WithKind(meta.AnyKind))
+		}
+
+		return meta.PriorityRESTMapper{Delegate: unionMapper, ResourcePriority: resourcePriority, KindPriority: kindPriority}
+	}
+
+	if len(envRequestedVersions) != 0 {
+		resourcePriority := []unversioned.GroupVersionResource{}
+		kindPriority := []unversioned.GroupVersionKind{}
+
+		for _, versionPriority := range envRequestedVersions {
+			resourcePriority = append(resourcePriority, versionPriority.WithResource(meta.AnyResource))
+			kindPriority = append(kindPriority, versionPriority.WithKind(meta.AnyKind))
+		}
+
+		return meta.PriorityRESTMapper{Delegate: unionMapper, ResourcePriority: resourcePriority, KindPriority: kindPriority}
+	}
+
+	prioritizedGroups := []string{"", "extensions", "metrics"}
+	resourcePriority, kindPriority := prioritiesForGroups(prioritizedGroups...)
+
+	prioritizedGroupsSet := sets.NewString(prioritizedGroups...)
+	remainingGroups := sets.String{}
+	for enabledVersion := range enabledVersions {
+		if !prioritizedGroupsSet.Has(enabledVersion.Group) {
+			remainingGroups.Insert(enabledVersion.Group)
+		}
+	}
+
+	remainingResourcePriority, remainingKindPriority := prioritiesForGroups(remainingGroups.List()...)
+	resourcePriority = append(resourcePriority, remainingResourcePriority...)
+	kindPriority = append(kindPriority, remainingKindPriority...)
+
+	return meta.PriorityRESTMapper{Delegate: unionMapper, ResourcePriority: resourcePriority, KindPriority: kindPriority}
+}
+
+// prioritiesForGroups returns the resource and kind priorities for a PriorityRESTMapper, preferring the preferred version of each group first,
+// then any non-preferred version of the group second.
+func prioritiesForGroups(groups ...string) ([]unversioned.GroupVersionResource, []unversioned.GroupVersionKind) {
+	resourcePriority := []unversioned.GroupVersionResource{}
+	kindPriority := []unversioned.GroupVersionKind{}
+
+	for _, group := range groups {
+		availableVersions := EnabledVersionsForGroup(group)
+		if len(availableVersions) > 0 {
+			resourcePriority = append(resourcePriority, availableVersions[0].WithResource(meta.AnyResource))
+			kindPriority = append(kindPriority, availableVersions[0].WithKind(meta.AnyKind))
+		}
+	}
+	for _, group := range groups {
+		resourcePriority = append(resourcePriority, unversioned.GroupVersionResource{Group: group, Version: meta.AnyVersion, Resource: meta.AnyResource})
+		kindPriority = append(kindPriority, unversioned.GroupVersionKind{Group: group, Version: meta.AnyVersion, Kind: meta.AnyKind})
+	}
+
+	return resourcePriority, kindPriority
 }
 
 // AllPreferredGroupVersions returns the preferred versions of all registered
@@ -223,7 +364,7 @@ func AllPreferredGroupVersions() string {
 // the KUBE_API_VERSIONS environment variable, but not enabled.
 func ValidateEnvRequestedVersions() []unversioned.GroupVersion {
 	var missingVersions []unversioned.GroupVersion
-	for v := range envRequestedVersions {
+	for _, v := range envRequestedVersions {
 		if _, found := enabledVersions[v]; !found {
 			missingVersions = append(missingVersions, v)
 		}

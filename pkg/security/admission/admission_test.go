@@ -10,9 +10,9 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
+	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"sort"
 
@@ -133,7 +133,7 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 
 	plugin := NewTestAdmission(store, tc)
 
-	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 
 	if shouldPass && err != nil {
@@ -374,7 +374,7 @@ func TestAdmit(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 		err := p.Admit(attrs)
 
 		if v.shouldAdmit && err != nil {
@@ -448,7 +448,7 @@ func TestAdmit(t *testing.T) {
 
 	for k, v := range testCases {
 		if !v.shouldAdmit {
-			attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+			attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 			err := p.Admit(attrs)
 			if err != nil {
 				t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
@@ -823,11 +823,11 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		scc := v.scc()
 
 		// create the providers, this method only needs the namespace
-		attributes := kadmission.NewAttributesRecord(nil, kapi.Kind("Pod"), v.namespace.Name, "", kapi.Resource("pods"), "", kadmission.Create, nil)
+		attributes := kadmission.NewAttributesRecord(nil, kapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, nil)
 		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*kapi.SecurityContextConstraints{scc})
 
 		if !reflect.DeepEqual(scc, v.scc()) {
-			diff := util.ObjectDiff(scc, v.scc())
+			diff := diff.ObjectDiff(scc, v.scc())
 			t.Errorf("%s createProvidersFromConstraints mutated constraints. diff:\n%s", k, diff)
 		}
 		if len(v.expectedErr) > 0 && len(errs) != 1 {
@@ -1376,7 +1376,7 @@ func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
 func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// scc with high priority but very restrictive.
 	restricted := restrictiveSCC()
-	restrictedPriority := 100
+	restrictedPriority := int32(100)
 	restricted.Priority = &restrictedPriority
 
 	// sccs with matching priorities but one will have a higher point score (by the run as user strategy)
@@ -1387,7 +1387,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 		Type: kapi.RunAsUserStrategyMustRunAs,
 		UID:  &uidFive,
 	}
-	matchingPriority := 5
+	matchingPriority := int32(5)
 	matchingPrioritySCCOne.Priority = &matchingPriority
 
 	matchingPrioritySCCTwo := laxSCC()
@@ -1407,7 +1407,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 		Type: kapi.RunAsUserStrategyMustRunAs,
 		UID:  &uidSix,
 	}
-	matchingPriorityAndScorePriority := 1
+	matchingPriorityAndScorePriority := int32(1)
 	matchingPriorityAndScoreSCCOne.Priority = &matchingPriorityAndScorePriority
 
 	matchingPriorityAndScoreSCCTwo := laxSCC()
@@ -1465,7 +1465,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
-	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", "", kapi.Resource("pods"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 	if err != nil {
 		t.Errorf("error admitting pod: %v", err)

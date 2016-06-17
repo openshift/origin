@@ -664,6 +664,18 @@ func deepCopy_v1beta3_RoleList(in v1beta3.RoleList, out *v1beta3.RoleList, c *co
 	return nil
 }
 
+func deepCopy_v1beta3_SelfSubjectRulesReview(in v1beta3.SelfSubjectRulesReview, out *v1beta3.SelfSubjectRulesReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if err := deepCopy_v1beta3_SubjectRulesReviewStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_SubjectAccessReview(in v1beta3.SubjectAccessReview, out *v1beta3.SubjectAccessReview, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -694,6 +706,21 @@ func deepCopy_v1beta3_SubjectAccessReviewResponse(in v1beta3.SubjectAccessReview
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
 	out.Reason = in.Reason
+	return nil
+}
+
+func deepCopy_v1beta3_SubjectRulesReviewStatus(in v1beta3.SubjectRulesReviewStatus, out *v1beta3.SubjectRulesReviewStatus, c *conversion.Cloner) error {
+	if in.Rules != nil {
+		out.Rules = make([]v1beta3.PolicyRule, len(in.Rules))
+		for i := range in.Rules {
+			if err := deepCopy_v1beta3_PolicyRule(in.Rules[i], &out.Rules[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Rules = nil
+	}
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 
@@ -734,7 +761,7 @@ func deepCopy_v1beta3_Build(in apiv1beta3.Build, out *apiv1beta3.Build, c *conve
 	} else {
 		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
 	}
-	if err := deepCopy_v1beta3_BuildSpec(in.Spec, &out.Spec, c); err != nil {
+	if err := deepCopy_v1beta3_CommonSpec(in.Spec.CommonSpec, &out.Spec.CommonSpec, c); err != nil {
 		return err
 	}
 	if err := deepCopy_v1beta3_BuildStatus(in.Status, &out.Status, c); err != nil {
@@ -798,7 +825,8 @@ func deepCopy_v1beta3_BuildConfigSpec(in apiv1beta3.BuildConfigSpec, out *apiv1b
 	} else {
 		out.Triggers = nil
 	}
-	if err := deepCopy_v1beta3_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
+	out.RunPolicy = in.RunPolicy
+	if err := deepCopy_v1beta3_CommonSpec(in.CommonSpec, &out.CommonSpec, c); err != nil {
 		return err
 	}
 	return nil
@@ -978,7 +1006,7 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 		out.Binary = nil
 	}
 	if in.LastVersion != nil {
-		out.LastVersion = new(int)
+		out.LastVersion = new(int64)
 		*out.LastVersion = *in.LastVersion
 	} else {
 		out.LastVersion = nil
@@ -1055,7 +1083,7 @@ func deepCopy_v1beta3_BuildSource(in apiv1beta3.BuildSource, out *apiv1beta3.Bui
 	return nil
 }
 
-func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSpec, c *conversion.Cloner) error {
+func deepCopy_v1beta3_CommonSpec(in apiv1beta3.CommonSpec, out *apiv1beta3.CommonSpec, c *conversion.Cloner) error {
 	out.ServiceAccount = in.ServiceAccount
 	if err := deepCopy_v1beta3_BuildSource(in.Source, &out.Source, c); err != nil {
 		return err
@@ -1583,20 +1611,17 @@ func deepCopy_v1beta3_DeploymentConfigStatus(in deployapiv1beta3.DeploymentConfi
 	} else {
 		out.Details = nil
 	}
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
 func deepCopy_v1beta3_DeploymentDetails(in deployapiv1beta3.DeploymentDetails, out *deployapiv1beta3.DeploymentDetails, c *conversion.Cloner) error {
 	out.Message = in.Message
 	if in.Causes != nil {
-		out.Causes = make([]*deployapiv1beta3.DeploymentCause, len(in.Causes))
+		out.Causes = make([]deployapiv1beta3.DeploymentCause, len(in.Causes))
 		for i := range in.Causes {
-			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
+			if err := deepCopy_v1beta3_DeploymentCause(in.Causes[i], &out.Causes[i], c); err != nil {
 				return err
-			} else if newVal == nil {
-				out.Causes[i] = nil
-			} else {
-				out.Causes[i] = newVal.(*deployapiv1beta3.DeploymentCause)
 			}
 		}
 	} else {
@@ -1871,7 +1896,7 @@ func deepCopy_v1beta3_RollingDeploymentStrategyParams(in deployapiv1beta3.Rollin
 		out.MaxSurge = nil
 	}
 	if in.UpdatePercent != nil {
-		out.UpdatePercent = new(int)
+		out.UpdatePercent = new(int32)
 		*out.UpdatePercent = *in.UpdatePercent
 	} else {
 		out.UpdatePercent = nil
@@ -3012,8 +3037,10 @@ func init() {
 		deepCopy_v1beta3_RoleBinding,
 		deepCopy_v1beta3_RoleBindingList,
 		deepCopy_v1beta3_RoleList,
+		deepCopy_v1beta3_SelfSubjectRulesReview,
 		deepCopy_v1beta3_SubjectAccessReview,
 		deepCopy_v1beta3_SubjectAccessReviewResponse,
+		deepCopy_v1beta3_SubjectRulesReviewStatus,
 		deepCopy_v1beta3_BinaryBuildRequestOptions,
 		deepCopy_v1beta3_BinaryBuildSource,
 		deepCopy_v1beta3_Build,
@@ -3028,10 +3055,10 @@ func init() {
 		deepCopy_v1beta3_BuildPostCommitSpec,
 		deepCopy_v1beta3_BuildRequest,
 		deepCopy_v1beta3_BuildSource,
-		deepCopy_v1beta3_BuildSpec,
 		deepCopy_v1beta3_BuildStatus,
 		deepCopy_v1beta3_BuildStrategy,
 		deepCopy_v1beta3_BuildTriggerPolicy,
+		deepCopy_v1beta3_CommonSpec,
 		deepCopy_v1beta3_CustomBuildStrategy,
 		deepCopy_v1beta3_DockerBuildStrategy,
 		deepCopy_v1beta3_GitBuildSource,

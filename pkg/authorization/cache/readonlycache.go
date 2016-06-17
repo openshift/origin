@@ -15,6 +15,11 @@ import (
 
 // ReadOnlyCache exposes administrative methods for the readOnlyAuthorizationCache
 type ReadOnlyCache interface {
+	client.PoliciesReadOnlyNamespacer
+	client.PolicyBindingsReadOnlyNamespacer
+	client.ClusterPoliciesReadOnlyInterface
+	client.ClusterPolicyBindingsReadOnlyInterface
+
 	Run()
 	RunUntil(bindingStopChannel, policyStopChannel <-chan struct{})
 }

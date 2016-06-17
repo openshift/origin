@@ -151,6 +151,30 @@ func (r ComponentReferences) Group() (refs []ComponentReferences) {
 	return
 }
 
+// Resolve the references to ensure they are all valid, and identify any images that don't match user input.
+func (components ComponentReferences) Resolve() error {
+	errs := []error{}
+	for _, ref := range components {
+		if err := ref.Resolve(); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	return errors.NewAggregate(errs)
+}
+
+// Search searches on all references
+func (components ComponentReferences) Search() error {
+	errs := []error{}
+	for _, ref := range components {
+		if err := ref.Search(); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	return errors.NewAggregate(errs)
+}
+
 // GeneratorJobReference is a reference that should be treated as a job execution,
 // not a direct app creation.
 type GeneratorJobReference struct {

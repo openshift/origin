@@ -5,32 +5,32 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"
 	rest "github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewREST returns a RESTStorage object that will work against routes.
-func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *StatusREST) {
+func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*REST, *StatusREST, error) {
 	strategy := rest.NewStrategy(allocator)
 	prefix := "/routes"
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Route{} },
 		NewListFunc: func() runtime.Object { return &api.RouteList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
+			return registry.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Route).Name, nil
@@ -42,19 +42,21 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *Statu
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+	}
 
-		Storage: s,
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, nil, err
 	}
 
 	statusStore := *store
 	statusStore.UpdateStrategy = rest.StatusStrategy
 
-	return &REST{store}, &StatusREST{&statusStore}
+	return &REST{store}, &StatusREST{&statusStore}, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of a route.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // New creates a new route resource

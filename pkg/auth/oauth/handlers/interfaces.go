@@ -25,6 +25,49 @@ type AuthenticationRedirector interface {
 	AuthenticationRedirect(w http.ResponseWriter, req *http.Request) (err error)
 }
 
+// AuthenticationRedirectors is a collection that provides a list of
+// acceptable authentication mechanisms
+type AuthenticationRedirectors struct {
+	names         []string
+	redirectorMap map[string]AuthenticationRedirector
+}
+
+// Add a name and a matching redirection routine to the list
+// The entries added here will be retained in FIFO ordering.
+func (ar *AuthenticationRedirectors) Add(name string, redirector AuthenticationRedirector) {
+	// Initialize the map the first time
+	if ar.redirectorMap == nil {
+		ar.redirectorMap = make(map[string]AuthenticationRedirector, 1)
+	}
+
+	// If this name already exists in the map, ignore it.
+	// This should be impossible, as uniqueness is tested by the config
+	// validator, but it's always best to catch mistakes.
+	if _, exists := ar.redirectorMap[name]; exists {
+		return
+	}
+
+	ar.names = append(ar.names, name)
+	ar.redirectorMap[name] = redirector
+}
+
+// Get the AuthenticationRedirector associated with a name.
+// Also returns a boolean indicating whether the name matched
+func (ar *AuthenticationRedirectors) Get(name string) (AuthenticationRedirector, bool) {
+	val, exists := ar.redirectorMap[name]
+	return val, exists
+}
+
+// Get a count of the AuthenticationRedirectors
+func (ar *AuthenticationRedirectors) Count() int {
+	return len(ar.names)
+}
+
+// Get the ordered list of names
+func (ar *AuthenticationRedirectors) GetNames() []string {
+	return ar.names
+}
+
 // AuthenticationErrorHandler reacts to authentication errors
 type AuthenticationErrorHandler interface {
 	// AuthenticationError reacts to authentication errors, returns true if the response was written,

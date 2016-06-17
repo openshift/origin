@@ -14,7 +14,7 @@ import (
 )
 
 // The docker metadata must be cast to a version
-func convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversion.Scope) error {
+func Convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -38,13 +38,13 @@ func convert_api_Image_To_v1beta3_Image(in *newer.Image, out *Image, s conversio
 	if err != nil {
 		return err
 	}
-	out.DockerImageMetadata.RawJSON = data
+	out.DockerImageMetadata.Raw = data
 	out.DockerImageMetadataVersion = version.Version
 
 	return nil
 }
 
-func convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Scope) error {
+func Convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -56,13 +56,13 @@ func convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversio
 	if len(version) == 0 {
 		version = "1.0"
 	}
-	if len(in.DockerImageMetadata.RawJSON) > 0 {
+	if len(in.DockerImageMetadata.Raw) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
 		obj, err := api.Scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}
-		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.RawJSON, obj); err != nil {
+		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.Raw, obj); err != nil {
 			return err
 		}
 		if err := s.Convert(obj, &out.DockerImageMetadata, 0); err != nil {
@@ -74,7 +74,7 @@ func convert_v1beta3_Image_To_api_Image(in *Image, out *newer.Image, s conversio
 	return nil
 }
 
-func convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
+func Convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
@@ -89,13 +89,13 @@ func convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec,
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
+func Convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.Tags = make([]TagReference, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
+func Convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
@@ -110,21 +110,21 @@ func convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamS
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func convert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus(in *newer.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
+func Convert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus(in *newer.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.Tags = make([]NamedTagEventList, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func convert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping(in *newer.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
+func Convert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping(in *newer.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
 	return s.DefaultConvert(in, out, conversion.DestFromSource)
 }
 
-func convert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
+func Convert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
 	return s.DefaultConvert(in, out, conversion.SourceToDest)
 }
 
-func convert_api_ImageStream_To_v1beta3_ImageStream(in *newer.ImageStream, out *ImageStream, s conversion.Scope) error {
+func Convert_api_ImageStream_To_v1beta3_ImageStream(in *newer.ImageStream, out *ImageStream, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func convert_api_ImageStream_To_v1beta3_ImageStream(in *newer.ImageStream, out *
 	return s.Convert(&in.Status, &out.Status, 0)
 }
 
-func convert_v1beta3_ImageStream_To_api_ImageStream(in *ImageStream, out *newer.ImageStream, s conversion.Scope) error {
+func Convert_v1beta3_ImageStream_To_api_ImageStream(in *ImageStream, out *newer.ImageStream, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func convert_v1beta3_ImageStream_To_api_ImageStream(in *ImageStream, out *newer.
 	return s.Convert(&in.Status, &out.Status, 0)
 }
 
-func convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage(in *newer.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
+func Convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage(in *newer.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage(in *newer.ImageStr
 	return nil
 }
 
-func convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *newer.ImageStreamImage, s conversion.Scope) error {
+func Convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *newer.ImageStreamImage, s conversion.Scope) error {
 	imageName := in.ImageName
 	isiName := in.Name
 
@@ -177,7 +177,7 @@ func convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamIma
 	return nil
 }
 
-func convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *newer.ImageStreamTag, out *ImageStreamTag, s conversion.Scope) error {
+func Convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *newer.ImageStreamTag, out *ImageStreamTag, s conversion.Scope) error {
 	if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *newer.ImageStreamT
 	return nil
 }
 
-func convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *newer.ImageStreamTag, s conversion.Scope) error {
+func Convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *newer.ImageStreamTag, s conversion.Scope) error {
 	imageName := in.ImageName
 	istName := in.Name
 
@@ -276,20 +276,20 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			return nil
 		},
 
-		convert_api_Image_To_v1beta3_Image,
-		convert_v1beta3_Image_To_api_Image,
-		convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec,
-		convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec,
-		convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus,
-		convert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus,
-		convert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping,
-		convert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping,
-		convert_api_ImageStream_To_v1beta3_ImageStream,
-		convert_v1beta3_ImageStream_To_api_ImageStream,
-		convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage,
-		convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage,
-		convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag,
-		convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag,
+		Convert_api_Image_To_v1beta3_Image,
+		Convert_v1beta3_Image_To_api_Image,
+		Convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec,
+		Convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec,
+		Convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus,
+		Convert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus,
+		Convert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping,
+		Convert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping,
+		Convert_api_ImageStream_To_v1beta3_ImageStream,
+		Convert_v1beta3_ImageStream_To_api_ImageStream,
+		Convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage,
+		Convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage,
+		Convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag,
+		Convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

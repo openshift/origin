@@ -28,9 +28,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
-	unversioned_core "k8s.io/kubernetes/pkg/client/typed/generated/core/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	unversionedcore "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	fakecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
+	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -59,19 +62,20 @@ type FakeNodeHandler struct {
 	RequestCount        int
 
 	// Synchronization
-	createLock sync.Mutex
+	createLock     sync.Mutex
+	deleteWaitChan chan struct{}
 }
 
 type FakeLegacyHandler struct {
-	unversioned_core.CoreInterface
+	unversionedcore.CoreInterface
 	n *FakeNodeHandler
 }
 
-func (c *FakeNodeHandler) Core() unversioned_core.CoreInterface {
+func (c *FakeNodeHandler) Core() unversionedcore.CoreInterface {
 	return &FakeLegacyHandler{c.Clientset.Core(), c}
 }
 
-func (m *FakeLegacyHandler) Nodes() unversioned_core.NodeInterface {
+func (m *FakeLegacyHandler) Nodes() unversionedcore.NodeInterface {
 	return m.n
 }
 
@@ -125,6 +129,11 @@ func (m *FakeNodeHandler) List(opts api.ListOptions) (*api.NodeList, error) {
 }
 
 func (m *FakeNodeHandler) Delete(id string, opt *api.DeleteOptions) error {
+	defer func() {
+		if m.deleteWaitChan != nil {
+			m.deleteWaitChan <- struct{}{}
+		}
+	}()
 	m.DeletedNodes = append(m.DeletedNodes, newNode(id))
 	m.RequestCount++
 	return nil
@@ -409,7 +418,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 
 	for _, item := range table {
 		nodeController := NewNodeController(nil, item.fakeNodeHandler,
-			evictionTimeout, util.NewFakeAlwaysRateLimiter(), util.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod,
+			evictionTimeout, flowcontrol.NewFakeAlwaysRateLimiter(), flowcontrol.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod,
 			testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		for _, ds := range item.daemonSets {
@@ -439,7 +448,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		})
 		podEvicted := false
 		for _, action := range item.fakeNodeHandler.Actions() {
-			if action.GetVerb() == "delete" && action.GetResource() == "pods" {
+			if action.GetVerb() == "delete" && action.GetResource().Resource == "pods" {
 				podEvicted = true
 			}
 		}
@@ -448,6 +457,58 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 			t.Errorf("expected pod eviction: %+v, got %+v for %+v", item.expectedEvictPods,
 				podEvicted, item.description)
 		}
+	}
+}
+
+// TestCloudProviderNoRateLimit tests that monitorNodes() immediately deletes
+// pods and the node when kubelet has not reported, and the cloudprovider says
+// the node is gone.
+func TestCloudProviderNoRateLimit(t *testing.T) {
+	fnh := &FakeNodeHandler{
+		Existing: []*api.Node{
+			{
+				ObjectMeta: api.ObjectMeta{
+					Name:              "node0",
+					CreationTimestamp: unversioned.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+				},
+				Status: api.NodeStatus{
+					Conditions: []api.NodeCondition{
+						{
+							Type:               api.NodeReady,
+							Status:             api.ConditionUnknown,
+							LastHeartbeatTime:  unversioned.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+							LastTransitionTime: unversioned.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+			},
+		},
+		Clientset:      fake.NewSimpleClientset(&api.PodList{Items: []api.Pod{*newPod("pod0", "node0"), *newPod("pod1", "node0")}}),
+		deleteWaitChan: make(chan struct{}),
+	}
+	nodeController := NewNodeController(nil, fnh, 10*time.Minute,
+		flowcontrol.NewFakeAlwaysRateLimiter(), flowcontrol.NewFakeAlwaysRateLimiter(),
+		testNodeMonitorGracePeriod, testNodeStartupGracePeriod,
+		testNodeMonitorPeriod, nil, false)
+	nodeController.cloud = &fakecloud.FakeCloud{}
+	nodeController.now = func() unversioned.Time { return unversioned.Date(2016, 1, 1, 12, 0, 0, 0, time.UTC) }
+	nodeController.nodeExistsInCloudProvider = func(nodeName string) (bool, error) {
+		return false, nil
+	}
+	// monitorNodeStatus should allow this node to be immediately deleted
+	if err := nodeController.monitorNodeStatus(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	select {
+	case <-fnh.deleteWaitChan:
+	case <-time.After(wait.ForeverTestTimeout):
+		t.Errorf("Timed out waiting %v for node to be deleted", wait.ForeverTestTimeout)
+	}
+	if len(fnh.DeletedNodes) != 1 || fnh.DeletedNodes[0].Name != "node0" {
+		t.Errorf("Node was not deleted")
+	}
+	if nodeOnQueue := nodeController.podEvictor.Remove("node0"); nodeOnQueue {
+		t.Errorf("Node was queued for eviction. Should have been immediately deleted.")
 	}
 }
 
@@ -659,8 +720,8 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 	}
 
 	for i, item := range table {
-		nodeController := NewNodeController(nil, item.fakeNodeHandler, 5*time.Minute, util.NewFakeAlwaysRateLimiter(),
-			util.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
+		nodeController := NewNodeController(nil, item.fakeNodeHandler, 5*time.Minute, flowcontrol.NewFakeAlwaysRateLimiter(),
+			flowcontrol.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		if err := nodeController.monitorNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -676,10 +737,10 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
 		}
 		if len(item.fakeNodeHandler.UpdatedNodes) > 0 && !api.Semantic.DeepEqual(item.expectedNodes, item.fakeNodeHandler.UpdatedNodes) {
-			t.Errorf("Case[%d] unexpected nodes: %s", i, util.ObjectDiff(item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodes[0]))
+			t.Errorf("Case[%d] unexpected nodes: %s", i, diff.ObjectDiff(item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodes[0]))
 		}
 		if len(item.fakeNodeHandler.UpdatedNodeStatuses) > 0 && !api.Semantic.DeepEqual(item.expectedNodes, item.fakeNodeHandler.UpdatedNodeStatuses) {
-			t.Errorf("Case[%d] unexpected nodes: %s", i, util.ObjectDiff(item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodeStatuses[0]))
+			t.Errorf("Case[%d] unexpected nodes: %s", i, diff.ObjectDiff(item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodeStatuses[0]))
 		}
 	}
 }
@@ -809,8 +870,8 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 	}
 
 	for i, item := range table {
-		nodeController := NewNodeController(nil, item.fakeNodeHandler, 5*time.Minute, util.NewFakeAlwaysRateLimiter(),
-			util.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
+		nodeController := NewNodeController(nil, item.fakeNodeHandler, 5*time.Minute, flowcontrol.NewFakeAlwaysRateLimiter(),
+			flowcontrol.NewFakeAlwaysRateLimiter(), testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		if err := nodeController.monitorNodeStatus(); err != nil {
 			t.Errorf("Case[%d] unexpected error: %v", i, err)
@@ -825,7 +886,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 
 		podStatusUpdated := false
 		for _, action := range item.fakeNodeHandler.Actions() {
-			if action.GetVerb() == "update" && action.GetResource() == "pods" && action.GetSubresource() == "status" {
+			if action.GetVerb() == "update" && action.GetResource().Resource == "pods" && action.GetSubresource() == "status" {
 				podStatusUpdated = true
 			}
 		}
@@ -891,7 +952,7 @@ func TestNodeDeletion(t *testing.T) {
 		Clientset: fake.NewSimpleClientset(&api.PodList{Items: []api.Pod{*newPod("pod0", "node0"), *newPod("pod1", "node1")}}),
 	}
 
-	nodeController := NewNodeController(nil, fakeNodeHandler, 5*time.Minute, util.NewFakeAlwaysRateLimiter(), util.NewFakeAlwaysRateLimiter(),
+	nodeController := NewNodeController(nil, fakeNodeHandler, 5*time.Minute, flowcontrol.NewFakeAlwaysRateLimiter(), flowcontrol.NewFakeAlwaysRateLimiter(),
 		testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, false)
 	nodeController.now = func() unversioned.Time { return fakeNow }
 	if err := nodeController.monitorNodeStatus(); err != nil {
@@ -907,7 +968,7 @@ func TestNodeDeletion(t *testing.T) {
 	})
 	podEvicted := false
 	for _, action := range fakeNodeHandler.Actions() {
-		if action.GetVerb() == "delete" && action.GetResource() == "pods" {
+		if action.GetVerb() == "delete" && action.GetResource().Resource == "pods" {
 			podEvicted = true
 		}
 	}
@@ -1040,8 +1101,9 @@ func TestCheckPod(t *testing.T) {
 
 	for i, tc := range tcs {
 		var deleteCalls int
-		nc.forcefullyDeletePod = func(_ *api.Pod) {
+		nc.forcefullyDeletePod = func(_ *api.Pod) error {
 			deleteCalls++
+			return nil
 		}
 
 		nc.maybeDeleteTerminatingPod(&tc.pod)
@@ -1052,6 +1114,48 @@ func TestCheckPod(t *testing.T) {
 		if !tc.prune && deleteCalls != 0 {
 			t.Errorf("[%v] expected number of delete calls to be 0 but got %v", i, deleteCalls)
 		}
+	}
+}
+
+func TestCleanupOrphanedPods(t *testing.T) {
+	newPod := func(name, node string) api.Pod {
+		return api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				Name: name,
+			},
+			Spec: api.PodSpec{
+				NodeName: node,
+			},
+		}
+	}
+	pods := []api.Pod{
+		newPod("a", "foo"),
+		newPod("b", "bar"),
+		newPod("c", "gone"),
+	}
+	nc := NewNodeController(nil, nil, 0, nil, nil, 0, 0, 0, nil, false)
+
+	nc.nodeStore.Store.Add(newNode("foo"))
+	nc.nodeStore.Store.Add(newNode("bar"))
+	for _, pod := range pods {
+		p := pod
+		nc.podStore.Indexer.Add(&p)
+	}
+
+	var deleteCalls int
+	var deletedPodName string
+	nc.forcefullyDeletePod = func(p *api.Pod) error {
+		deleteCalls++
+		deletedPodName = p.ObjectMeta.Name
+		return nil
+	}
+	nc.cleanupOrphanedPods()
+
+	if deleteCalls != 1 {
+		t.Fatalf("expected one delete, got: %v", deleteCalls)
+	}
+	if deletedPodName != "c" {
+		t.Fatalf("expected deleted pod name to be 'c', but got: %q", deletedPodName)
 	}
 }
 

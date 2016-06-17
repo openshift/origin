@@ -76,11 +76,18 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		exutil.CheckOpenShiftNamespaceImageStreams(oc)
 		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("POSTGRESQL_IMAGE=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), postgreSQLHelperName, oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		err = oc.KubeFramework().WaitForAnEndpoint(postgreSQLHelperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -90,12 +97,20 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
 			master, slaves, helper := CreatePostgreSQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", postgreSQLHelperName), slaveCount)
-			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())
-			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, slaves)).NotTo(o.HaveOccurred())
+			err := exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})
+			if err != nil {
+				exutil.DumpDeploymentLogs("postgresql-helper", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitUntilAllHelpersAreUp(oc, slaves)
+			if err != nil {
+				exutil.DumpDeploymentLogs("postgresql-slave", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Test if we can query as admin
 			oc.KubeFramework().WaitForAnEndpoint("postgresql-master")
-			err := helper.TestRemoteLogin(oc, "postgresql-master")
+			err = helper.TestRemoteLogin(oc, "postgresql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Create a new table with random name
@@ -107,14 +122,14 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Make sure data is present on master
-			err = exutil.WaitForQueryOutput(oc, master, 10*time.Second, false,
+			err = exutil.WaitForQueryOutputContains(oc, master, 10*time.Second, false,
 				fmt.Sprintf("SELECT * FROM %s;", table),
 				"col1 | val1\ncol2 | val2")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Make sure data was replicated to all slaves
 			for _, slave := range slaves {
-				err = exutil.WaitForQueryOutput(oc, slave, 90*time.Second, false,
+				err = exutil.WaitForQueryOutputContains(oc, slave, 90*time.Second, false,
 					fmt.Sprintf("SELECT * FROM %s;", table),
 					"col1 | val1\ncol2 | val2")
 				o.Expect(err).NotTo(o.HaveOccurred())

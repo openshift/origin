@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
 	"k8s.io/kubernetes/pkg/api"
@@ -61,5 +62,8 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 		Name:   u.Name,
 		UID:    string(u.UID),
 		Groups: groupNames,
+		Extra: map[string][]string{
+			authorizationapi.ScopesKey: token.Scopes,
+		},
 	}, true, nil
 }

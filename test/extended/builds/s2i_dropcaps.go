@@ -15,8 +15,8 @@ import (
 var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builders", func() {
 	defer g.GinkgoRecover()
 	var (
-		s2ibuilderFixture      = exutil.FixturePath("..", "extended", "fixtures", "s2i-dropcaps", "rootable-ruby")
-		rootAccessBuildFixture = exutil.FixturePath("..", "extended", "fixtures", "s2i-dropcaps", "root-access-build.yaml")
+		s2ibuilderFixture      = exutil.FixturePath("..", "extended", "testdata", "s2i-dropcaps", "rootable-ruby")
+		rootAccessBuildFixture = exutil.FixturePath("..", "extended", "testdata", "s2i-dropcaps", "root-access-build.yaml")
 		oc                     = exutil.NewCLI("build-s2i-dropcaps", exutil.KubeConfigPath())
 	)
 
@@ -36,6 +36,10 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			g.By("starting the rootable-ruby build with --wait flag")
 			err = oc.Run("start-build").Args("rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture),
 				"--wait").Execute()
+			// debug for failures on jenkins
+			if err != nil {
+				exutil.DumpBuildLogs("rootable-ruby", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a build that tries to gain root access via su")
@@ -44,6 +48,10 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 
 			g.By("start the root-access-build with the --wait flag")
 			err = oc.Run("start-build").Args("root-access-build", "--wait").Execute()
+			// debug for failures on jenkins
+			if err == nil {
+				exutil.DumpBuildLogs("root-access-build", oc)
+			}
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")

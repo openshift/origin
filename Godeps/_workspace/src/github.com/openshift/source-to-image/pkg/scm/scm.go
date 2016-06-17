@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/build"
+	"github.com/openshift/source-to-image/pkg/scm/empty"
 	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -13,8 +14,12 @@ import (
 
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.
-func DownloaderForSource(s string) (build.Downloader, string, error) {
+func DownloaderForSource(s string, forceCopy bool) (build.Downloader, string, error) {
 	glog.V(4).Infof("DownloadForSource %s", s)
+
+	if len(s) == 0 {
+		return &empty.Noop{}, s, nil
+	}
 
 	details, mods := git.ParseFile(s)
 	glog.V(4).Infof("return from ParseFile file exists %v proto specified %v use copy %v", details.FileExists, details.ProtoSpecified, details.UseCopy)
@@ -35,15 +40,15 @@ func DownloaderForSource(s string) (build.Downloader, string, error) {
 		}
 	}
 
-	if details.FileExists && details.UseCopy {
-		return &file.File{util.NewFileSystem()}, s, nil
+	if details.FileExists && (details.UseCopy || forceCopy) {
+		return &file.File{FileSystem: util.NewFileSystem()}, s, nil
 	}
 
-	// If the source is valid  GIT protocol (file://, ssh://, git://, git@, etc..) use GIT
+	// If the source is valid  Git protocol (file://, ssh://, git://, git@, etc..) use Git
 	// binary to download the sources
 	g := git.New()
 	if g.ValidCloneSpec(s) {
-		return &git.Clone{g, util.NewFileSystem()}, s, nil
+		return &git.Clone{Git: g, FileSystem: util.NewFileSystem()}, s, nil
 	}
 
 	return nil, s, fmt.Errorf("no downloader defined for location: %q", s)

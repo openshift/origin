@@ -11,7 +11,6 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
@@ -22,10 +21,15 @@ import (
 )
 
 const (
-	// urlCheckTimeout is the timeout used to check the source URL
-	// If fetching the URL exceeds the timeout, then the build will
-	// not proceed further and stop
-	urlCheckTimeout = 16 * time.Second
+	// initialURLCheckTimeout is the initial timeout used to check the
+	// source URL.  If fetching the URL exceeds the timeout, then a longer
+	// timeout will be tried until the fetch either succeeds or the build
+	// itself times out.
+	initialURLCheckTimeout = 16 * time.Second
+
+	// timeoutIncrementFactor is the factor to use when increasing
+	// the timeout after each unsuccessful try
+	timeoutIncrementFactor = 4
 )
 
 type gitAuthError string
@@ -61,7 +65,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		sourceInfo, errs = gitClient.GetInfo(dir)
 		if len(errs) > 0 {
 			for _, e := range errs {
-				glog.Warningf("Error getting git info: %v", e)
+				glog.V(0).Infof("error: Unable to retrieve Git info: %v", e)
 			}
 		}
 	}
@@ -105,8 +109,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 // remote repository failed to authenticate.
 // Since this is calling the 'git' binary, the proxy settings should be
 // available for this command.
-func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) error {
-	glog.V(4).Infof("git ls-remote %s --heads", url)
+func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duration) error {
 
 	var (
 		out    string
@@ -114,32 +117,34 @@ func checkRemoteGit(gitClient GitClient, url string, timeout time.Duration) erro
 		err    error
 	)
 
-	finish := make(chan struct{}, 1)
-	go func() {
-		out, errOut, err = gitClient.ListRemote(url, "--heads")
-		close(finish)
-	}()
-	select {
-	case <-finish:
-	case <-time.After(timeout):
-		return fmt.Errorf("timeout while waiting for remote repository %q", url)
+	timeout := initialTimeout
+	for {
+		glog.V(4).Infof("git ls-remote --heads %s", url)
+		out, errOut, err = gitClient.TimedListRemote(timeout, url, "--heads")
+		if len(out) != 0 {
+			glog.V(4).Infof(out)
+		}
+		if len(errOut) != 0 {
+			glog.V(4).Infof(errOut)
+		}
+		if err != nil {
+			if _, ok := err.(*git.TimeoutError); ok {
+				timeout = timeout * timeoutIncrementFactor
+				glog.Infof("WARNING: timed out waiting for git server, will wait %s", timeout)
+				continue
+			}
+		}
+		break
 	}
-
-	if len(out) != 0 {
-		glog.V(4).Infof(out)
+	if err != nil {
+		combinedOut := out + errOut
+		switch {
+		case strings.Contains(combinedOut, "Authentication failed"):
+			return gitAuthError(url)
+		case strings.Contains(combinedOut, "not found"):
+			return gitNotFoundError(url)
+		}
 	}
-	if len(errOut) != 0 {
-		glog.V(4).Infof(errOut)
-	}
-
-	combinedOut := out + errOut
-	switch {
-	case strings.Contains(combinedOut, "Authentication failed"):
-		return gitAuthError(url)
-	case strings.Contains(combinedOut, "not found"):
-		return gitNotFoundError(url)
-	}
-
 	return err
 }
 
@@ -161,7 +166,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	var path string
 	if len(source.AsFile) > 0 {
-		glog.V(2).Infof("Receiving source from STDIN as file %s", source.AsFile)
+		glog.V(0).Infof("Receiving source from STDIN as file %s", source.AsFile)
 		path = filepath.Join(dir, source.AsFile)
 
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0664)
@@ -177,13 +182,13 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 		return nil
 	}
 
-	glog.Infof("Receiving source from STDIN as archive ...")
+	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
 	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		glog.V(2).Infof("Extracting...\n%s", string(out))
+		glog.V(0).Infof("Extracting...\n%s", string(out))
 		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
 	return nil
@@ -194,7 +199,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return false, nil
 	}
 
-	glog.Infof("Downloading %q ...", gitSource.URI)
+	glog.V(0).Infof("Downloading %q ...", gitSource.URI)
 
 	// Check source URI, trying to connect to the server only if not using a proxy.
 	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
@@ -205,11 +210,11 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
 
 	// Recursive clone if we're not going to checkout a ref and submodule update later
-	glog.V(2).Infof("Cloning source from %s", gitSource.URI)
+	glog.V(0).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
-	quiet := !bool(glog.V(5))
-	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: !usingRef, Quiet: quiet}); err != nil {
+	quiet := !glog.Is(5)
+	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: !usingRef, Quiet: quiet, Shallow: !usingRef}); err != nil {
 		return true, err
 	}
 
@@ -230,6 +235,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 			return true, err
 		}
 	}
+
 	return true, nil
 }
 
@@ -276,7 +282,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 
 	glog.V(4).Infof("Extracting temporary tar %s to directory %s", tempFile.Name(), destDir)
 	var tarOutput io.Writer
-	if glog.V(4) {
+	if glog.Is(4) {
 		tarOutput = os.Stdout
 	}
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
@@ -315,19 +321,24 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	}
 
 	if !exists || forcePull {
-		glog.Infof("Pulling image %q ...", image)
+		glog.V(0).Infof("Pulling image %q ...", image)
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
+	}
 
+	containerConfig := &docker.Config{Image: image}
+	if inspect, err := dockerClient.InspectImage(image); err != nil {
+		return err
+	} else {
+		// In case the Docker image does not specify the entrypoint
+		if len(inspect.Config.Entrypoint) == 0 && len(inspect.Config.Cmd) == 0 {
+			containerConfig.Entrypoint = []string{"/fake-entrypoint"}
+		}
 	}
 
 	// Create container to copy from
-	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{
-		Config: &docker.Config{
-			Image: image,
-		},
-	})
+	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Config: containerConfig})
 	if err != nil {
 		return fmt.Errorf("error creating source image container: %v", err)
 	}

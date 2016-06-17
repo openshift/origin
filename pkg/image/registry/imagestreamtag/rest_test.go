@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/go-etcd/etcd"
+	"golang.org/x/net/context"
+
+	etcd "github.com/coreos/etcd/client"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -18,16 +20,18 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/admission/testutil"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/util/restoptions"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
 type fakeSubjectAccessReviewRegistry struct {
 }
@@ -55,13 +59,23 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
-func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+func (u *fakeUser) GetExtra() map[string][]string {
+	return map[string][]string{}
+}
+
+func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := etcd.NewClient(server.ClientURLs.StringSlice())
+	etcdClient := etcd.NewKeysAPI(server.Client)
 
-	imageStorage := imageetcd.NewREST(etcdStorage)
-	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), testDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
@@ -73,59 +87,6 @@ func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
 
 type statusError interface {
 	Status() unversioned.Status
-}
-
-func TestNameAndTag(t *testing.T) {
-	tests := map[string]struct {
-		id           string
-		expectedName string
-		expectedTag  string
-		expectError  bool
-	}{
-		"empty id": {
-			id:          "",
-			expectError: true,
-		},
-		"missing semicolon": {
-			id:          "hello",
-			expectError: true,
-		},
-		"too many semicolons": {
-			id:          "a:b:c",
-			expectError: true,
-		},
-		"empty name": {
-			id:          ":tag",
-			expectError: true,
-		},
-		"empty tag": {
-			id:          "name",
-			expectError: true,
-		},
-		"happy path": {
-			id:           "name:tag",
-			expectError:  false,
-			expectedName: "name",
-			expectedTag:  "tag",
-		},
-	}
-
-	for description, testCase := range tests {
-		name, tag, err := nameAndTag(testCase.id)
-		gotError := err != nil
-		if e, a := testCase.expectError, gotError; e != a {
-			t.Fatalf("%s: expected err: %t, got: %t: %s", description, e, a, err)
-		}
-		if err != nil {
-			continue
-		}
-		if e, a := testCase.expectedName, name; e != a {
-			t.Errorf("%s: name: expected %q, got %q", description, e, a)
-		}
-		if e, a := testCase.expectedTag, tag; e != a {
-			t.Errorf("%s: tag: expected %q, got %q", description, e, a)
-		}
-	}
 }
 
 func TestGetImageStreamTag(t *testing.T) {
@@ -215,10 +176,18 @@ func TestGetImageStreamTag(t *testing.T) {
 		defer server.Terminate(t)
 
 		if testCase.image != nil {
-			client.Create(etcdtest.AddPrefix("/images/"+testCase.image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/images/"+testCase.image.Name),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image),
+			)
 		}
 		if testCase.repo != nil {
-			client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/default/test"),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+			)
 		}
 
 		obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
@@ -280,8 +249,16 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
-	client.Create(etcdtest.AddPrefix("/images/"+image.Name), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image), 0)
-	client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo), 0)
+	client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/images/"+image.Name),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image),
+	)
+	client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/test"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
+	)
 	obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -401,7 +378,11 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		defer server.Terminate(t)
 
 		if testCase.repo != nil {
-			client.Create(etcdtest.AddPrefix("/imagestreams/default/test"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo), 0)
+			client.Create(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/default/test"),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+			)
 		}
 
 		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})

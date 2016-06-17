@@ -14,7 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/crypto"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/util/parallel"
@@ -50,8 +50,8 @@ would recreate ALL certs including the CA cert, invalidating any existing
 infrastructure or client configuration. Instead, delete/rename the existing
 server cert and run the command to fill it in:
 
-    $ mv openshift.local.config/master/master.server.crt{,.old}
-    $ %[1]s --cert-dir=... \
+    mv openshift.local.config/master/master.server.crt{,.old}
+    %[1]s --cert-dir=... \
             --master=https://internal.master.fqdn:8443 \
             --public-master=https://external.master.fqdn:8443 \
             --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
@@ -149,7 +149,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 	}
 
 	for _, caFile := range o.APIServerCAFiles {
-		if _, err := util.CertPoolFromFile(caFile); err != nil {
+		if _, err := crypto.CertPoolFromFile(caFile); err != nil {
 			return fmt.Errorf("certificate authority must be a valid certificate file: %v", err)
 		}
 	}
@@ -189,6 +189,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
 		func() error { return o.createProxyClientCerts(&getSignerCertOptions) },
 		func() error { return o.createServiceAccountKeys() },
+		func() error { return o.createServiceSigningCA(&getSignerCertOptions) },
 	)
 	return utilerrors.NewAggregate(errs)
 }
@@ -316,6 +317,27 @@ func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
 		return err
 	}
 	if err := keypairOptions.CreateKeyPair(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *SignerCertOptions) error {
+	caInfo := DefaultServiceSignerCAInfo(o.CertDir)
+
+	caOptions := CreateSignerCertOptions{
+		CertFile:   caInfo.CertFile,
+		KeyFile:    caInfo.KeyFile,
+		SerialFile: "", // we want the random cert serial for this one
+		Name:       DefaultServiceServingCertSignerName(),
+		Output:     o.Output,
+
+		Overwrite: o.Overwrite,
+	}
+	if err := caOptions.Validate(nil); err != nil {
+		return err
+	}
+	if _, err := caOptions.CreateSignerCert(); err != nil {
 		return err
 	}
 	return nil

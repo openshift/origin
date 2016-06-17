@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -181,6 +182,13 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 	}
 	sc.Capabilities = caps
 
+	// if the SCC requires a read only root filesystem and the container has not made a specific
+	// request then default ReadOnlyRootFilesystem to true.
+	if s.scc.ReadOnlyRootFilesystem && sc.ReadOnlyRootFilesystem == nil {
+		readOnlyRootFS := true
+		sc.ReadOnlyRootFilesystem = &readOnlyRootFS
+	}
+
 	return sc, nil
 }
 
@@ -243,10 +251,19 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
 
-	if !s.scc.AllowHostDirVolumePlugin {
-		for _, v := range pod.Spec.Volumes {
-			if v.HostPath != nil {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumeMounts"), v.Name, "Host Volumes are not allowed to be used"))
+	if len(pod.Spec.Volumes) > 0 && !sccutil.SCCAllowsAllVolumes(s.scc) {
+		allowedVolumes := sccutil.FSTypeToStringSet(s.scc.Volumes)
+		for i, v := range pod.Spec.Volumes {
+			fsType, err := sccutil.GetVolumeFSType(v)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumes").Index(i), string(fsType), err.Error()))
+				continue
+			}
+
+			if !allowedVolumes.Has(string(fsType)) {
+				allErrs = append(allErrs, field.Invalid(
+					fldPath.Child("volumes").Index(i), string(fsType),
+					fmt.Sprintf("%s volumes are not allowed to be used", string(fsType))))
 			}
 		}
 	}
@@ -269,6 +286,14 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	if !s.scc.AllowHostIPC && pod.Spec.SecurityContext.HostIPC {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), pod.Spec.SecurityContext.HostIPC, "Host IPC is not allowed to be used"))
+	}
+
+	if s.scc.ReadOnlyRootFilesystem {
+		if sc.ReadOnlyRootFilesystem == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), sc.ReadOnlyRootFilesystem, "ReadOnlyRootFilesystem may not be nil and must be set to true"))
+		} else if !*sc.ReadOnlyRootFilesystem {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), *sc.ReadOnlyRootFilesystem, "ReadOnlyRootFilesystem must be set to true"))
+		}
 	}
 
 	return allErrs

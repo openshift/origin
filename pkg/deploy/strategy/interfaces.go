@@ -1,6 +1,9 @@
 package strategy
 
 import (
+	"strconv"
+	"strings"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -22,4 +25,45 @@ type DeploymentStrategy interface {
 type UpdateAcceptor interface {
 	// Accept returns nil if the controller is okay, otherwise returns an error.
 	Accept(*kapi.ReplicationController) error
+}
+
+type errConditionReached struct {
+	msg string
+}
+
+func NewConditionReachedErr(msg string) error {
+	return &errConditionReached{msg: msg}
+}
+
+func (e *errConditionReached) Error() string {
+	return e.msg
+}
+
+func IsConditionReached(err error) bool {
+	value, ok := err.(*errConditionReached)
+	return ok && value != nil
+}
+
+func PercentageBetween(until string, min, max int) bool {
+	if !strings.HasSuffix(until, "%") {
+		return false
+	}
+	until = until[:len(until)-1]
+	i, err := strconv.Atoi(until)
+	if err != nil {
+		return false
+	}
+	return i >= min && i <= max
+}
+
+func Percentage(until string) (int, bool) {
+	if !strings.HasSuffix(until, "%") {
+		return 0, false
+	}
+	until = until[:len(until)-1]
+	i, err := strconv.Atoi(until)
+	if err != nil {
+		return 0, false
+	}
+	return i, true
 }

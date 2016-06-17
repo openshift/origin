@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -14,9 +15,11 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/test/e2e"
+	"k8s.io/kubernetes/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"
@@ -50,8 +53,12 @@ type CLI struct {
 // with the project name. Note that this function does not initialize the project
 // role bindings for the namespace.
 func NewCLI(project, adminConfigPath string) *CLI {
+	// Avoid every caller needing to provide a unique project name
+	// SetupProject already treats this as a baseName
+	uniqueProject := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", project))
+
 	client := &CLI{}
-	client.kubeFramework = e2e.InitializeFramework(project, client.SetupProject)
+	client.kubeFramework = e2e.NewDefaultFramework(uniqueProject)
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	client.execPath = "oc"
@@ -59,6 +66,10 @@ func NewCLI(project, adminConfigPath string) *CLI {
 		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
+
+	// Register custom ns setup func
+	setCreateTestingNSFunc(uniqueProject, client.SetupProject)
+
 	return client
 }
 
@@ -140,6 +151,17 @@ func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string
 		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
 		return nil, err
 	}
+	if err := wait.ExponentialBackoff(kclient.DefaultBackoff, func() (bool, error) {
+		if _, err := c.KubeREST().Pods(c.Namespace()).List(kapi.ListOptions{}); err != nil {
+			if apierrs.IsForbidden(err) {
+				e2e.Logf("Waiting for user to have access to the namespace")
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
 	return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()}}, err
 }
 
@@ -206,21 +228,20 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 // Run executes given OpenShift CLI command verb (iow. "oc <verb>").
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
-func (c *CLI) Run(verb string) *CLI {
+func (c *CLI) Run(commands ...string) *CLI {
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		execPath:        c.execPath,
-		verb:            verb,
+		verb:            commands[0],
 		kubeFramework:   c.KubeFramework(),
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
 		outputDir:       c.outputDir,
-		globalArgs: []string{
-			verb,
+		globalArgs: append(commands, []string{
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.configPath),
-		},
+		}...),
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
@@ -277,6 +298,26 @@ func (c *CLI) Output() (string, error) {
 		// unreachable code
 		return "", nil
 	}
+}
+
+// Background executes the command in the background and returns the Cmd object
+// returns the Cmd which should be killed later via cmd.Process.Kill(), as well
+// as the stdout and stderr byte buffers assigned to the cmd.Stdout and cmd.Stderr
+// writers.
+func (c *CLI) Background() (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, error) {
+	if c.verbose {
+		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
+	}
+	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Stdin = c.stdin
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = bufio.NewWriter(&stdout)
+	cmd.Stderr = bufio.NewWriter(&stderr)
+
+	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+
+	err := cmd.Start()
+	return cmd, &stdout, &stderr, err
 }
 
 // Stdout returns the current stdout writer

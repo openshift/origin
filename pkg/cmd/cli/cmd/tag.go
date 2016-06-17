@@ -26,11 +26,12 @@ type TagOptions struct {
 	out      io.Writer
 	osClient client.Interface
 
-	deleteTag   bool
-	aliasTag    bool
-	scheduleTag bool
-	insecureTag bool
-	namespace   string
+	deleteTag    bool
+	aliasTag     bool
+	scheduleTag  bool
+	insecureTag  bool
+	referenceTag bool
+	namespace    string
 
 	ref            imageapi.DockerImageReference
 	sourceKind     string
@@ -55,16 +56,16 @@ Docker images.
 `
 
 	tagExample = `  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
-  $ %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
+  %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
 
   # Tag a specific image.
-  $ %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
+  %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
   # Tag an external Docker image.
-  $ %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
+  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
 
   # Remove the specified spec tag from an image stream.
-  $ %[1]s tag openshift/origin:latest -d`
+  %[1]s tag openshift/origin:latest -d`
 )
 
 // NewCmdTag implements the OpenShift cli tag command.
@@ -86,6 +87,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
 	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags")
 	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
+	cmd.Flags().BoolVar(&opts.referenceTag, "reference", false, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate.")
 
@@ -116,7 +118,7 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 }
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
-	mapper, _ := f.Object()
+	mapper, _ := f.Object(false)
 	gvks, err := mapper.KindsFor(unversioned.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
 		return gvks[0].Kind
@@ -267,7 +269,7 @@ func (o TagOptions) Validate() error {
 	}
 
 	if o.deleteTag && o.aliasTag {
-		return errors.New("--alias and --delete may not both be specified")
+		return errors.New("--alias and --delete may not be both specified")
 	}
 
 	// Validate source tag based on --delete usage.
@@ -312,7 +314,7 @@ func (o TagOptions) RunTag() error {
 	for i, destNameAndTag := range o.destNameAndTag {
 		destName, destTag, ok := imageapi.SplitImageStreamTag(destNameAndTag)
 		if !ok {
-			return fmt.Errorf("%q must be of the form <namespace>/<stream_name>:<tag>", destNameAndTag)
+			return fmt.Errorf("%q must be of the form <stream_name>:<tag>", destNameAndTag)
 		}
 
 		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
@@ -326,6 +328,7 @@ func (o TagOptions) RunTag() error {
 				if o.deleteTag {
 					// Nothing to do here, continue to the next dest tag
 					// if there is any.
+					fmt.Fprintf(o.out, "Image stream %q does not exist.\n", destName)
 					return nil
 				}
 
@@ -356,6 +359,7 @@ func (o TagOptions) RunTag() error {
 					targetRef = imageapi.TagReference{}
 				}
 
+				targetRef.Reference = o.referenceTag
 				targetRef.ImportPolicy.Insecure = o.insecureTag
 				targetRef.ImportPolicy.Scheduled = o.scheduleTag
 				targetRef.From = &kapi.ObjectReference{

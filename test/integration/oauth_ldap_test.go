@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -164,7 +164,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Use the server and CA info
-	anonConfig := kclient.Config{}
+	anonConfig := restclient.Config{}
 	anonConfig.Host = clusterAdminClientConfig.Host
 	anonConfig.CAFile = clusterAdminClientConfig.CAFile
 	anonConfig.CAData = clusterAdminClientConfig.CAData

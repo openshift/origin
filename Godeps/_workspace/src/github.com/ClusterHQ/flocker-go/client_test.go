@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/volume"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -163,15 +161,6 @@ func getHostAndPortFromTestServer(ts *httptest.Server) (string, int, error) {
 		return "", 0, nil
 	}
 	return hostSplits[0], port, nil
-}
-
-func getVolumeConfig(host string, port int) volume.VolumeConfig {
-	return volume.VolumeConfig{
-		OtherAttributes: map[string]string{
-			"CONTROL_SERVICE_HOST": host,
-			"CONTROL_SERVICE_PORT": strconv.Itoa(port),
-		},
-	}
 }
 
 func TestHappyPathCreateDatasetFromNonExistent(t *testing.T) {

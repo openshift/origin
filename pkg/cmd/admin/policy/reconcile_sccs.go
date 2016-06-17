@@ -12,10 +12,11 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -53,14 +54,14 @@ definition).
 You can see which cluster SCCs have recommended changes by choosing an output type.`
 
 	reconcileSCCExample = `  # Display the cluster SCCs that would be modified
-  $ %[1]s
+  %[1]s
 
   # Update cluster SCCs that don't match the current defaults preserving additional grants
   # for users and group and keeping any priorities that are already set
-  $ %[1]s --confirm
+  %[1]s --confirm
 
   # Replace existing users, groups, and priorities that do not match defaults
-  $ %[1]s --additive-only=false --confirm`
+  %[1]s --additive-only=false --confirm`
 )
 
 // NewDefaultReconcileSCCOptions provides a ReconcileSCCOptions with default settings.
@@ -123,9 +124,6 @@ func (o *ReconcileSCCOptions) Validate() error {
 	if o.SCCClient == nil {
 		return errors.New("a SCC client is required")
 	}
-	if o.Output != "yaml" && o.Output != "json" && o.Output != "" {
-		return fmt.Errorf("unknown output specified: %s", o.Output)
-	}
 	if _, err := o.NSClient.Get(o.InfraNamespace); err != nil {
 		return fmt.Errorf("%s is not a valid namespace", o.InfraNamespace)
 	}
@@ -150,12 +148,9 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.
 		for _, item := range changedSCCs {
 			list.Items = append(list.Items, item)
 		}
-		list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-		if err != nil {
-			return err
-		}
-
-		if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
+		mapper, _ := f.Object(false)
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
+		if err := fn(list); err != nil {
 			return err
 		}
 	}
@@ -243,9 +238,13 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 		}
 
 		// preserve labels and annotations
-		expected.Labels = mergeMaps(expected.Labels, actual.Labels)
-		expected.Annotations = mergeMaps(expected.Annotations, actual.Annotations)
+		expected.Labels = MergeMaps(expected.Labels, actual.Labels)
+		expected.Annotations = MergeMaps(expected.Annotations, actual.Annotations)
 	}
+
+	// sort volumes to remove variants in order
+	sortVolumes(&expected)
+	sortVolumes(&actual)
 
 	// sort users and groups to remove any variants in order when diffing
 	sort.StringSlice(actual.Groups).Sort()
@@ -269,7 +268,29 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 	return &updated, needsUpdate
 }
 
-func mergeMaps(a, b map[string]string) map[string]string {
+// sortVolumes sorts the volume slice of the SCC in place.
+func sortVolumes(scc *kapi.SecurityContextConstraints) {
+	if scc.Volumes == nil || len(scc.Volumes) == 0 {
+		return
+	}
+	volumes := sccutil.FSTypeToStringSet(scc.Volumes).List()
+	sort.StringSlice(volumes).Sort()
+	scc.Volumes = sliceToFSType(volumes)
+}
+
+// sliceToFSType converts a string slice into FStypes.
+func sliceToFSType(s []string) []kapi.FSType {
+	fsTypes := []kapi.FSType{}
+	for _, v := range s {
+		fsTypes = append(fsTypes, kapi.FSType(v))
+	}
+	return fsTypes
+}
+
+// MergeMaps will merge to map[string]string instances, with
+// keys from the second argument overwriting keys from the
+// first argument, in case of duplicates.
+func MergeMaps(a, b map[string]string) map[string]string {
 	if a == nil && b == nil {
 		return nil
 	}

@@ -19,6 +19,10 @@ type ServiceUnit struct {
 
 // ServiceAliasConfig is a route for a service.  Uniquely identified by host + path.
 type ServiceAliasConfig struct {
+	// Name is the user-specified name of the route.
+	Name string
+	// Namespace is the namespace of the route.
+	Namespace string
 	// Host is a required host name ie. www.example.com
 	Host string
 	// Path is an optional path ie. www.example.com/myservice where "myservice" is the path
@@ -37,6 +41,8 @@ type ServiceAliasConfig struct {
 	// insecure connections to an edge-terminated route:
 	//   none (or disable), allow or redirect
 	InsecureEdgeTerminationPolicy routeapi.InsecureEdgeTerminationPolicyType
+	// Hash of the route name - used to obscure cookieId
+	RoutingKeyName string
 }
 
 type ServiceAliasConfigStatus string
@@ -62,6 +68,7 @@ type Endpoint struct {
 	Port       string
 	TargetName string
 	PortName   string
+	IdHash     string
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig

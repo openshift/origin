@@ -17,7 +17,7 @@ func stubHandler(response string) http.Handler {
 }
 
 func TestWebConsoleConfigTemplate(t *testing.T) {
-	handler, err := GeneratedConfigHandler(WebConsoleConfig{}, WebConsoleVersion{})
+	handler, err := GeneratedConfigHandler(WebConsoleConfig{}, WebConsoleVersion{}, WebConsoleExtensionProperties{})
 	if err != nil {
 		t.Fatalf("expected a handler, got error %v", err)
 	}

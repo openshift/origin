@@ -38,7 +38,7 @@ func TestCloneWithContext(t *testing.T) {
 		t.Errorf("Expected to remove the upload/tmp directory")
 	}
 	if !reflect.DeepEqual(cr.Args, []string{"checkout", "ref1"}) {
-		t.Errorf("Unexpected command arguments: %#v\n", cr.Args)
+		t.Errorf("Unexpected command arguments: %#v", cr.Args)
 	}
 }
 

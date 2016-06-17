@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -36,19 +36,19 @@ import (
 
 const (
 	logs_example = `# Return snapshot logs from pod nginx with only one container
-$ kubectl logs nginx
+kubectl logs nginx
 
 # Return snapshot of previous terminated ruby container logs from pod web-1
-$ kubectl logs -p -c ruby web-1
+kubectl logs -p -c ruby web-1
 
 # Begin streaming the logs of the ruby container in pod web-1
-$ kubectl logs -f -c ruby web-1
+kubectl logs -f -c ruby web-1
 
 # Display only the most recent 20 lines of output in pod nginx
-$ kubectl logs --tail=20 nginx
+kubectl logs --tail=20 nginx
 
 # Show all logs from pod nginx written in the last hour
-$ kubectl logs --since=1h nginx`
+kubectl logs --since=1h nginx`
 )
 
 type LogsOptions struct {
@@ -62,7 +62,7 @@ type LogsOptions struct {
 	Decoder      runtime.Decoder
 
 	Object        runtime.Object
-	LogsForObject func(object, options runtime.Object) (*client.Request, error)
+	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
 
 	Out io.Writer
 }
@@ -101,6 +101,7 @@ func NewCmdLogs(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	cmd.Flags().Bool("interactive", false, "If true, prompt the user for input when required.")
 	cmd.Flags().MarkDeprecated("interactive", "This flag is no longer respected and there is no replacement.")
+	cmdutil.AddInclude3rdPartyFlags(cmd)
 	return cmd
 }
 
@@ -155,7 +156,7 @@ func (o *LogsOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.Com
 	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 	o.Out = out
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 	decoder := f.Decoder(true)
 	if o.Object == nil {
 		infos, err := resource.NewBuilder(mapper, typer, o.ClientMapper, decoder).

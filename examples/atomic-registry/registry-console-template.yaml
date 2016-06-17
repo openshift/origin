@@ -1,0 +1,147 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "registry-console-template"
+labels:
+  createdBy: "registry-console-template"
+parameters:
+  -
+    description: "The public url for the Openshift OAuth Provider"
+    name: OPENSHIFT_OAUTH_PROVIDER_URL
+    required: true
+  -
+    description: "The public url for the Openshift OAuth Provider"
+    name: COCKPIT_KUBE_URL
+    required: true
+  -
+    description: "The public url for the Openshift OAuth Provider"
+    name: COCKPIT_KUBE_INSECURE
+    required: false
+  -
+    description: "Oauth client secret"
+    name: OPENSHIFT_OAUTH_CLIENT_SECRET
+    from: "user[a-zA-Z0-9]{64}"
+    generate: expression
+  -
+    description: "Oauth client id"
+    name: OPENSHIFT_OAUTH_CLIENT_ID
+    value: "cockpit-oauth-client"
+  -
+    description: "Skip kubernetes CA verification"
+    name: KUBERNETES_INSECURE
+    value: ""
+  -
+    description: "PEM Encoded certificate to use for CA verification"
+    name: KUBERNETES_CA_DATA
+    value: ""
+  -
+    description: "The hostname or IP address of the registry. Do not include http:// or port."
+    name: REGISTRY_HOST
+    required: true
+objects:
+  -
+    kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: "registry-console"
+    labels:
+      name: "registry-console"
+    spec:
+      replicas: 1
+      selector:
+        name: "registry-console"
+      template:
+        metadata:
+          labels:
+            name: "registry-console"
+        spec:
+          containers:
+            -
+              name: "registry-console"
+              image: "cockpit/kubernetes"
+              ports:
+                -
+                  containerPort: 9090
+                  protocol: TCP
+              env:
+                -
+                  name: OPENSHIFT_OAUTH_PROVIDER_URL
+                  value: "${OPENSHIFT_OAUTH_PROVIDER_URL}"
+                -
+                  name: OPENSHIFT_OAUTH_CLIENT_ID
+                  value: "${OPENSHIFT_OAUTH_CLIENT_ID}"
+                -
+                  name: KUBERNETES_INSECURE
+                  value: "${KUBERNETES_INSECURE}"
+                -
+                  name: KUBERNETES_CA_DATA
+                  value: "${KUBERNETES_CA_DATA}"
+                -
+                  name: COCKPIT_KUBE_INSECURE
+                  value: "${COCKPIT_KUBE_INSECURE}"
+                -
+                  name: REGISTRY_ONLY
+                  value: "true"
+                -
+                  name: REGISTRY_HOST
+                  value: "${REGISTRY_HOST}"
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /ping
+                  port: 9090
+                  scheme: HTTP
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /ping
+                  port: 9090
+                  scheme: HTTP
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+  -
+    kind: Service
+    apiVersion: v1
+    metadata:
+     name: "registry-console"
+     labels:
+       name: "registry-console"
+    spec:
+      type: ClusterIP
+      ports:
+        -
+          protocol: TCP
+          port: 9000
+          targetPort: 9090
+          selector:
+            name: "registry-console"
+  -
+    kind: ImageStream
+    apiVersion: v1
+    metadata:
+      name: registry-console
+      annotations:
+        description: Atomic Registry console
+    spec:
+      tags:
+        - annotations: null
+          from:
+            kind: DockerImage
+            name: cockpit/kubernetes
+          name: latest
+  -
+    kind: OAuthClient
+    apiVersion: v1
+    metadata:
+      name: "${OPENSHIFT_OAUTH_CLIENT_ID}"
+      respondWithChallenges: false
+    secret: "${OPENSHIFT_OAUTH_CLIENT_SECRET}"
+    allowAnyScope: true
+    redirectURIs:
+      -
+        "${COCKPIT_KUBE_URL}"

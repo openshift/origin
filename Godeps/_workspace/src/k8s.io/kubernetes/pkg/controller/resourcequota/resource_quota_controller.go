@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/metrics"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -45,6 +46,8 @@ type ResourceQuotaControllerOptions struct {
 	Registry quota.Registry
 	// Knows how to build controllers that notify replenishment events
 	ControllerFactory ReplenishmentControllerFactory
+	// Controls full resync of objects monitored for replenihsment.
+	ReplenishmentResyncPeriod controller.ResyncPeriodFunc
 	// List of GroupKind objects that should be monitored for replenishment at
 	// a faster frequency than the quota controller recalculation interval
 	GroupKindsToReplenish []unversioned.GroupKind
@@ -67,7 +70,7 @@ type ResourceQuotaController struct {
 	// knows how to calculate usage
 	registry quota.Registry
 	// controllers monitoring to notify for replenishment
-	replenishmentControllers []*framework.Controller
+	replenishmentControllers []framework.ControllerInterface
 }
 
 func NewResourceQuotaController(options *ResourceQuotaControllerOptions) *ResourceQuotaController {
@@ -77,9 +80,11 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) *Resour
 		queue:                    workqueue.New(),
 		resyncPeriod:             options.ResyncPeriod,
 		registry:                 options.Registry,
-		replenishmentControllers: []*framework.Controller{},
+		replenishmentControllers: []framework.ControllerInterface{},
 	}
-
+	if options.KubeClient != nil && options.KubeClient.Core().GetRESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("resource_quota_controller", options.KubeClient.Core().GetRESTClient().GetRateLimiter())
+	}
 	// set the synchronization handler
 	rq.syncHandler = rq.syncResourceQuotaFromKey
 
@@ -124,7 +129,7 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) *Resour
 	for _, groupKindToReplenish := range options.GroupKindsToReplenish {
 		controllerOptions := &ReplenishmentControllerOptions{
 			GroupKind:         groupKindToReplenish,
-			ResyncPeriod:      options.ResyncPeriod,
+			ResyncPeriod:      options.ReplenishmentResyncPeriod,
 			ReplenishmentFunc: rq.replenishQuota,
 		}
 		replenishmentController, err := options.ControllerFactory.NewController(controllerOptions)
@@ -285,7 +290,14 @@ func (rq *ResourceQuotaController) syncResourceQuota(resourceQuota api.ResourceQ
 
 // replenishQuota is a replenishment function invoked by a controller to notify that a quota should be recalculated
 func (rq *ResourceQuotaController) replenishQuota(groupKind unversioned.GroupKind, namespace string, object runtime.Object) {
-	// TODO: make this support targeted replenishment to a specific kind, right now it does a full replenish
+	// check if the quota controller can evaluate this kind, if not, ignore it altogether...
+	evaluators := rq.registry.Evaluators()
+	evaluator, found := evaluators[groupKind]
+	if !found {
+		return
+	}
+
+	// check if this namespace even has a quota...
 	indexKey := &api.ResourceQuota{}
 	indexKey.Namespace = namespace
 	resourceQuotas, err := rq.rqIndexer.Index("namespace", indexKey)
@@ -295,8 +307,15 @@ func (rq *ResourceQuotaController) replenishQuota(groupKind unversioned.GroupKin
 	if len(resourceQuotas) == 0 {
 		return
 	}
+
+	// only queue those quotas that are tracking a resource associated with this kind.
+	matchedResources := evaluator.MatchesResources()
 	for i := range resourceQuotas {
 		resourceQuota := resourceQuotas[i].(*api.ResourceQuota)
-		rq.enqueueResourceQuota(resourceQuota)
+		resourceQuotaResources := quota.ResourceNames(resourceQuota.Status.Hard)
+		if len(quota.Intersection(matchedResources, resourceQuotaResources)) > 0 {
+			// TODO: make this support targeted replenishment to a specific kind, right now it does a full recalc on that quota.
+			rq.enqueueResourceQuota(resourceQuota)
+		}
 	}
 }

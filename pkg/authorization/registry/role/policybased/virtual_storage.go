@@ -116,7 +116,7 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 
 	role := obj.(*authorizationapi.Role)
 	if !allowEscalation {
-		if err := rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+		if err := rulevalidation.ConfirmNoEscalation(ctx, authorizationapi.Resource("role"), role.Name, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
 			return nil, err
 		}
 	}
@@ -163,7 +163,7 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, obj runtime.Object, allowE
 	}
 
 	if !allowEscalation {
-		if err := rulevalidation.ConfirmNoEscalation(ctx, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+		if err := rulevalidation.ConfirmNoEscalation(ctx, authorizationapi.Resource("role"), role.Name, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
 			return nil, false, err
 		}
 	}

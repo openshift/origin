@@ -61,7 +61,7 @@ func TestBuildOK(t *testing.T) {
 		t.Errorf("Expected LayeredBuild to be true!")
 	}
 	if m, _ := regexp.MatchString(`test/image-\d+`, l.config.BuilderImage); !m {
-		t.Errorf("Expected BuilderImage test/image-withnumbers, but got %s ", l.config.BuilderImage)
+		t.Errorf("Expected BuilderImage test/image-withnumbers, but got %s", l.config.BuilderImage)
 	}
 	// without config.Destination explicitly set, we should get /tmp/scripts for the scripts url
 	// assuming the assemble script we created above is off the working dir
@@ -152,7 +152,7 @@ func TestBuildErrorCreateTarFile(t *testing.T) {
 	l.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
 	_, err := l.Build(l.config)
 	if err == nil || err.Error() != "CreateTarError" {
-		t.Error("An error was expected for CreateTar, but got different: %v", err)
+		t.Errorf("An error was expected for CreateTar, but got different: %v", err)
 	}
 }
 
@@ -180,5 +180,15 @@ func TestBuildErrorBadImageName(t *testing.T) {
 	_, err := l.Build(l.config)
 	if err == nil || !strings.Contains(err.Error(), "must be two or three segments separated by slashes") {
 		t.Errorf("An docker spec parse error was expected, but got different: %v", err)
+	}
+}
+
+func TestBuildErrorOnBuildBlocked(t *testing.T) {
+	l := newFakeLayered()
+	l.config.BlockOnBuild = true
+	l.config.HasOnBuild = true
+	_, err := l.Build(l.config)
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed") {
+		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
 	}
 }

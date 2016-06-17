@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1beta1
 
-// This file contains a collection of methods that can be used from go-resful to
+// This file contains a collection of methods that can be used from go-restful to
 // generate Swagger API documentation for its models. Please read this PR for more
 // information on the implementation: https://github.com/emicklei/go-restful/pull/215
 //
@@ -28,9 +28,8 @@ package v1beta1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_APIVersion = map[string]string{
-	"":         "An APIVersion represents a single concrete version of an object model.",
-	"name":     "Name of this version (e.g. 'v1').",
-	"apiGroup": "The API group to add this object into, default 'experimental'.",
+	"":     "An APIVersion represents a single concrete version of an object model.",
+	"name": "Name of this version (e.g. 'v1').",
 }
 
 func (APIVersion) SwaggerDoc() map[string]string {
@@ -43,35 +42,6 @@ var map_CPUTargetUtilization = map[string]string{
 
 func (CPUTargetUtilization) SwaggerDoc() map[string]string {
 	return map_CPUTargetUtilization
-}
-
-var map_ClusterAutoscaler = map[string]string{
-	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata For now (experimental api) it is required that the name is set to \"ClusterAutoscaler\" and namespace is \"default\".",
-	"spec":     "Spec defines the desired behavior of this daemon set. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
-}
-
-func (ClusterAutoscaler) SwaggerDoc() map[string]string {
-	return map_ClusterAutoscaler
-}
-
-var map_ClusterAutoscalerList = map[string]string{
-	"":         "There will be just one (or none) ClusterAutoscaler.",
-	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
-}
-
-func (ClusterAutoscalerList) SwaggerDoc() map[string]string {
-	return map_ClusterAutoscalerList
-}
-
-var map_ClusterAutoscalerSpec = map[string]string{
-	"":         "Configuration of the Cluster Autoscaler",
-	"minNodes": "Minimum number of nodes that the cluster should have.",
-	"maxNodes": "Maximum number of nodes that the cluster should have.",
-	"target":   "Target average utilization of the cluster nodes. New nodes will be added if one of the targets is exceeded. Cluster size will be decreased if the current utilization is too low for all targets.",
-}
-
-func (ClusterAutoscalerSpec) SwaggerDoc() map[string]string {
-	return map_ClusterAutoscalerSpec
 }
 
 var map_CustomMetricCurrentStatus = map[string]string{
@@ -115,11 +85,9 @@ func (DaemonSetList) SwaggerDoc() map[string]string {
 }
 
 var map_DaemonSetSpec = map[string]string{
-	"":               "DaemonSetSpec is the specification of a daemon set.",
-	"selector":       "Selector is a label query over pods that are managed by the daemon set. Must match in order to be controlled. If empty, defaulted to labels on Pod template. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
-	"template":       "Template is the object that describes the pod that will be created. The DaemonSet will create exactly one copy of this pod on every node that matches the template's node selector (or on every node if no node selector is specified). More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#pod-template",
-	"updateStrategy": "Update strategy to replace existing DaemonSet pods with new pods.",
-	"uniqueLabelKey": "Label key that is added to DaemonSet pods to distinguish between old and new pod templates during DaemonSet update. Users can set this to an empty string to indicate that the system should not add any label. If unspecified, system uses DefaultDaemonSetUniqueLabelKey(\"daemonset.kubernetes.io/podTemplateHash\"). Value of this key is hash of DaemonSetSpec.PodTemplateSpec. No label is added if this is set to empty string.",
+	"":         "DaemonSetSpec is the specification of a daemon set.",
+	"selector": "Selector is a label query over pods that are managed by the daemon set. Must match in order to be controlled. If empty, defaulted to labels on Pod template. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
+	"template": "Template is the object that describes the pod that will be created. The DaemonSet will create exactly one copy of this pod on every node that matches the template's node selector (or on every node if no node selector is specified). More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#pod-template",
 }
 
 func (DaemonSetSpec) SwaggerDoc() map[string]string {
@@ -128,22 +96,13 @@ func (DaemonSetSpec) SwaggerDoc() map[string]string {
 
 var map_DaemonSetStatus = map[string]string{
 	"": "DaemonSetStatus represents the current status of a daemon set.",
-	"currentNumberScheduled": "CurrentNumberScheduled is the number of nodes that are running at least 1 daemon pod and are supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemon.md",
-	"numberMisscheduled":     "NumberMisscheduled is the number of nodes that are running the daemon pod, but are not supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemon.md",
-	"desiredNumberScheduled": "DesiredNumberScheduled is the total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod). More info: http://releases.k8s.io/HEAD/docs/admin/daemon.md",
+	"currentNumberScheduled": "CurrentNumberScheduled is the number of nodes that are running at least 1 daemon pod and are supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
+	"numberMisscheduled":     "NumberMisscheduled is the number of nodes that are running the daemon pod, but are not supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
+	"desiredNumberScheduled": "DesiredNumberScheduled is the total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod). More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
 }
 
 func (DaemonSetStatus) SwaggerDoc() map[string]string {
 	return map_DaemonSetStatus
-}
-
-var map_DaemonSetUpdateStrategy = map[string]string{
-	"type":          "Type of daemon set update. Only \"RollingUpdate\" is supported at this time. Default is RollingUpdate.",
-	"rollingUpdate": "Rolling update config params. Present only if DaemonSetUpdateStrategy = RollingUpdate.",
-}
-
-func (DaemonSetUpdateStrategy) SwaggerDoc() map[string]string {
-	return map_DaemonSetUpdateStrategy
 }
 
 var map_Deployment = map[string]string{
@@ -196,6 +155,7 @@ func (DeploymentSpec) SwaggerDoc() map[string]string {
 
 var map_DeploymentStatus = map[string]string{
 	"":                    "DeploymentStatus is the most recently observed status of the Deployment.",
+	"observedGeneration":  "The generation observed by the deployment controller.",
 	"replicas":            "Total number of non-terminated pods targeted by this deployment (their labels match the selector).",
 	"updatedReplicas":     "Total number of non-terminated pods targeted by this deployment that have the desired template spec.",
 	"availableReplicas":   "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment.",
@@ -362,7 +322,7 @@ func (IngressRuleValue) SwaggerDoc() map[string]string {
 var map_IngressSpec = map[string]string{
 	"":        "IngressSpec describes the Ingress the user wishes to exist.",
 	"backend": "A default backend capable of servicing requests that don't match any rule. At least one of 'backend' or 'rules' must be specified. This field is optional to allow the loadbalancer controller or defaulting logic to specify a global default.",
-	"tls":     "TLS configuration. Currently the Ingress only supports a single TLS port, 443, and assumes TLS termination. If multiple members of this list specify different hosts, they will be multiplexed on the same port according to the hostname specified through the SNI TLS extension.",
+	"tls":     "TLS configuration. Currently the Ingress only supports a single TLS port, 443. If multiple members of this list specify different hosts, they will be multiplexed on the same port according to the hostname specified through the SNI TLS extension, if the ingress controller fulfilling the ingress supports SNI.",
 	"rules":   "A list of host rules used to configure the Ingress. If unspecified, or no rule matches, all traffic is sent to the default backend.",
 }
 
@@ -427,9 +387,10 @@ func (JobList) SwaggerDoc() map[string]string {
 var map_JobSpec = map[string]string{
 	"":                      "JobSpec describes how the job execution will look like.",
 	"parallelism":           "Parallelism specifies the maximum desired number of pods the job should run at any given time. The actual number of pods running in steady state will be less than this number when ((.spec.completions - .status.successful) < .spec.parallelism), i.e. when the work left to do is less than max parallelism. More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md",
-	"completions":           "Completions specifies the desired number of successfully finished pods the job should be run with.  Setting to nil means that the success of any pod signals the success of all pods, and allows parallelism to have any positive value.  Setting to 1 means that parallelism is limited to 1 and the success of that pod signals the success of the job.",
+	"completions":           "Completions specifies the desired number of successfully finished pods the job should be run with.  Setting to nil means that the success of any pod signals the success of all pods, and allows parallelism to have any positive value.  Setting to 1 means that parallelism is limited to 1 and the success of that pod signals the success of the job. More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md",
 	"activeDeadlineSeconds": "Optional duration in seconds relative to the startTime that the job may be active before the system tries to terminate it; value must be positive integer",
-	"selector":              "Selector is a label query over pods that should match the pod count. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
+	"selector":              "Selector is a label query over pods that should match the pod count. Normally, the system sets this field for you. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
+	"autoSelector":          "AutoSelector controls generation of pod labels and pod selectors. It was not present in the original extensions/v1beta1 Job definition, but exists to allow conversion from batch/v1 Jobs, where it corresponds to, but has the opposite meaning as, ManualSelector. More info: http://releases.k8s.io/HEAD/docs/design/selector-generation.md",
 	"template":              "Template is the object that describes the pod that will be created when executing a job. More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md",
 }
 
@@ -485,15 +446,6 @@ func (ListOptions) SwaggerDoc() map[string]string {
 	return map_ListOptions
 }
 
-var map_NodeUtilization = map[string]string{
-	"":      "NodeUtilization describes what percentage of a particular resource is used on a node.",
-	"value": "The accepted values are from 0 to 1.",
-}
-
-func (NodeUtilization) SwaggerDoc() map[string]string {
-	return map_NodeUtilization
-}
-
 var map_PodSecurityPolicy = map[string]string{
 	"":         "Pod Security Policy governs the ability to make requests that affect the Security Context that will be applied to a pod and container.",
 	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
@@ -506,7 +458,7 @@ func (PodSecurityPolicy) SwaggerDoc() map[string]string {
 
 var map_PodSecurityPolicyList = map[string]string{
 	"":         "Pod Security Policy List is a list of PodSecurityPolicy objects.",
-	"metadata": "Standard list metadata. More info: http://docs.k8s.io/api-conventions.md#metadata",
+	"metadata": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
 	"items":    "Items is a list of schema objects.",
 }
 
@@ -515,16 +467,16 @@ func (PodSecurityPolicyList) SwaggerDoc() map[string]string {
 }
 
 var map_PodSecurityPolicySpec = map[string]string{
-	"":               "Pod Security Policy Spec defines the policy enforced.",
-	"privileged":     "privileged determines if a pod can request to be run as privileged.",
-	"capabilities":   "capabilities is a list of capabilities that can be added.",
-	"volumes":        "volumes is a white list of allowed volume plugins.  Empty indicates that all plugins may be used.",
-	"hostNetwork":    "hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
-	"hostPorts":      "hostPorts determines which host port ranges are allowed to be exposed.",
-	"hostPID":        "hostPID determines if the policy allows the use of HostPID in the pod spec.",
-	"hostIPC":        "hostIPC determines if the policy allows the use of HostIPC in the pod spec.",
-	"seLinuxContext": "seLinuxContext is the strategy that will dictate the allowable labels that may be set.",
-	"runAsUser":      "runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.",
+	"":             "Pod Security Policy Spec defines the policy enforced.",
+	"privileged":   "privileged determines if a pod can request to be run as privileged.",
+	"capabilities": "capabilities is a list of capabilities that can be added.",
+	"volumes":      "volumes is a white list of allowed volume plugins.  Empty indicates that all plugins may be used.",
+	"hostNetwork":  "hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
+	"hostPorts":    "hostPorts determines which host port ranges are allowed to be exposed.",
+	"hostPID":      "hostPID determines if the policy allows the use of HostPID in the pod spec.",
+	"hostIPC":      "hostIPC determines if the policy allows the use of HostIPC in the pod spec.",
+	"seLinux":      "seLinux is the strategy that will dictate the allowable labels that may be set.",
+	"runAsUser":    "runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.",
 }
 
 func (PodSecurityPolicySpec) SwaggerDoc() map[string]string {
@@ -564,9 +516,10 @@ func (ReplicaSetSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ReplicaSetStatus = map[string]string{
-	"":                   "ReplicaSetStatus represents the current status of a ReplicaSet.",
-	"replicas":           "Replicas is the most recently oberved number of replicas. More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller",
-	"observedGeneration": "ObservedGeneration reflects the generation of the most recently observed ReplicaSet.",
+	"":                     "ReplicaSetStatus represents the current status of a ReplicaSet.",
+	"replicas":             "Replicas is the most recently oberved number of replicas. More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller",
+	"fullyLabeledReplicas": "The number of pods that have labels matching the labels of the pod template of the replicaset.",
+	"observedGeneration":   "ObservedGeneration reflects the generation of the most recently observed ReplicaSet.",
 }
 
 func (ReplicaSetStatus) SwaggerDoc() map[string]string {
@@ -589,16 +542,6 @@ func (RollbackConfig) SwaggerDoc() map[string]string {
 	return map_RollbackConfig
 }
 
-var map_RollingUpdateDaemonSet = map[string]string{
-	"":                "Spec to control the desired behavior of daemon set rolling update.",
-	"maxUnavailable":  "The maximum number of DaemonSet pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total number of DaemonSet pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up. This cannot be 0. Default value is 1. Example: when this is set to 30%, 30% of the currently running DaemonSet pods can be stopped for an update at any given time. The update starts by stopping at most 30% of the currently running DaemonSet pods and then brings up new DaemonSet pods in their place. Once the new pods are ready, it then proceeds onto other DaemonSet pods, thus ensuring that at least 70% of original number of DaemonSet pods are available at all times during the update.",
-	"minReadySeconds": "Minimum number of seconds for which a newly created DaemonSet pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready).",
-}
-
-func (RollingUpdateDaemonSet) SwaggerDoc() map[string]string {
-	return map_RollingUpdateDaemonSet
-}
-
 var map_RollingUpdateDeployment = map[string]string{
 	"":               "Spec to control the desired behavior of rolling update.",
 	"maxUnavailable": "The maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). Absolute number is calculated from percentage by rounding up. This can not be 0 if MaxSurge is 0. By default, a fixed value of 1 is used. Example: when this is set to 30%, the old RC can be scaled down to 70% of desired pods immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that the total number of pods available at all times during the update is at least 70% of desired pods.",
@@ -611,7 +554,7 @@ func (RollingUpdateDeployment) SwaggerDoc() map[string]string {
 
 var map_RunAsUserStrategyOptions = map[string]string{
 	"":       "Run A sUser Strategy Options defines the strategy type and any options used to create the strategy.",
-	"type":   "type is the strategy that will dictate the allowable RunAsUser values that may be set.",
+	"rule":   "Rule is the strategy that will dictate the allowable RunAsUser values that may be set.",
 	"ranges": "Ranges are the allowed ranges of uids that may be used.",
 }
 
@@ -619,14 +562,14 @@ func (RunAsUserStrategyOptions) SwaggerDoc() map[string]string {
 	return map_RunAsUserStrategyOptions
 }
 
-var map_SELinuxContextStrategyOptions = map[string]string{
-	"":               "SELinux Context Strategy Options defines the strategy type and any options used to create the strategy.",
-	"type":           "type is the strategy that will dictate the allowable labels that may be set.",
+var map_SELinuxStrategyOptions = map[string]string{
+	"":               "SELinux  Strategy Options defines the strategy type and any options used to create the strategy.",
+	"rule":           "type is the strategy that will dictate the allowable labels that may be set.",
 	"seLinuxOptions": "seLinuxOptions required to run as; required for MustRunAs More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
 }
 
-func (SELinuxContextStrategyOptions) SwaggerDoc() map[string]string {
-	return map_SELinuxContextStrategyOptions
+func (SELinuxStrategyOptions) SwaggerDoc() map[string]string {
+	return map_SELinuxStrategyOptions
 }
 
 var map_Scale = map[string]string{
@@ -650,9 +593,10 @@ func (ScaleSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ScaleStatus = map[string]string{
-	"":         "represents the current status of a scale subresource.",
-	"replicas": "actual number of observed instances of the scaled object.",
-	"selector": "label query over pods that should match the replicas count. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
+	"":               "represents the current status of a scale subresource.",
+	"replicas":       "actual number of observed instances of the scaled object.",
+	"selector":       "label query over pods that should match the replicas count. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
+	"targetSelector": "label selector for pods that should match the replicas count. This is a serializated version of both map-based and more expressive set-based selectors. This is done to avoid introspection in the clients. The string will be in the same format as the query-param syntax. If the target type only supports map-based selectors, both this field and map-based selector field are populated. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors",
 }
 
 func (ScaleStatus) SwaggerDoc() map[string]string {

@@ -166,7 +166,7 @@ working against the API. Run it with:
     $ hack/test-cmd.sh
 
 This suite comprises many smaller suites, which are found under `test/cmd` and can be run individually by
-specifying them using a regex filter, passed through `grep -E` like with integration tests above:
+specifying a regex filter, passed through `grep -E` like with integration tests above:
 
     $ hack/test-cmd.sh <regex>
 
@@ -180,6 +180,9 @@ For example, start the OpenShift server, create a "test" project, and then run
     $ oc new-project test
     $ test/cmd/newapp.sh
 
+In order to run the suite, generate a jUnit XML report, and see a summary of the test suite, use:
+
+    $ JUNIT_REPORT='true' hack/test-cmd.sh
 
 ### End-to-End (e2e) and Extended Tests
 
@@ -200,9 +203,14 @@ Run the extended tests with:
 
     $ test/extended/core.sh
 
+This suite comprises many smaller suites, which are found under `test/extended` and can be run individually by
+specifying `--ginkgo.focus` and a regex filter:
+
+    $ test/extended/core.sh --ginkgo.focus=<regex>
+
 Extended tests should be Go tests in the `test/extended` directory that use the Ginkgo library. They
 must be able to be run remotely, and cannot depend on any local interaction with the filesystem or
-Docker.
+Docker. More information about running extended tests can be found in [test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
 
 
 ## Installing Godep

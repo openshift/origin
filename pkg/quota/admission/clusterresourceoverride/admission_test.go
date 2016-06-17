@@ -12,9 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -86,10 +85,12 @@ func TestConfigReader(t *testing.T) {
 			name:          "choke on out-of-bounds ratio",
 			config:        bytes.NewReader([]byte(invalidConfig)),
 			expectInvalid: true,
+			expectErr:     true,
 		}, {
 			name:          "complain about no settings",
 			config:        bytes.NewReader([]byte(invalidConfig2)),
 			expectInvalid: true,
+			expectErr:     true,
 		},
 	}
 	for _, test := range tests {
@@ -123,25 +124,34 @@ func TestLimitRequestAdmission(t *testing.T) {
 	tests := []struct {
 		name               string
 		config             *api.ClusterResourceOverrideConfig
-		object             runtime.Object
+		pod                *kapi.Pod
 		expectedMemRequest resource.Quantity
 		expectedCpuLimit   resource.Quantity
 		expectedCpuRequest resource.Quantity
 		namespace          *kapi.Namespace
 	}{
 		{
-			name:               "this thing even runs",
+			name:               "ignore pods that have no memory limit specified",
 			config:             testConfig(100, 50, 50),
-			object:             testPod("0", "0", "0", "0"),
+			pod:                testBestEffortPod(),
 			expectedMemRequest: resource.MustParse("0"),
 			expectedCpuLimit:   resource.MustParse("0"),
 			expectedCpuRequest: resource.MustParse("0"),
 			namespace:          fakeNamespace(true),
 		},
 		{
+			name:               "test floor for memory and cpu",
+			config:             testConfig(100, 50, 50),
+			pod:                testPod("1Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("1Mi"),
+			expectedCpuLimit:   resource.MustParse("1m"),
+			expectedCpuRequest: resource.MustParse("1m"),
+			namespace:          fakeNamespace(true),
+		},
+		{
 			name:               "nil config",
 			config:             nil,
-			object:             testPod("1", "1", "1", "1"),
+			pod:                testPod("1", "1", "1", "1"),
 			expectedMemRequest: resource.MustParse("1"),
 			expectedCpuLimit:   resource.MustParse("1"),
 			expectedCpuRequest: resource.MustParse("1"),
@@ -150,7 +160,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		{
 			name:               "all values are adjusted",
 			config:             testConfig(100, 50, 50),
-			object:             testPod("1Gi", "0", "2000m", "0"),
+			pod:                testPod("1Gi", "0", "2000m", "0"),
 			expectedMemRequest: resource.MustParse("512Mi"),
 			expectedCpuLimit:   resource.MustParse("1"),
 			expectedCpuRequest: resource.MustParse("500m"),
@@ -159,7 +169,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		{
 			name:               "just requests are adjusted",
 			config:             testConfig(0, 50, 50),
-			object:             testPod("10Mi", "0", "50m", "0"),
+			pod:                testPod("10Mi", "0", "50m", "0"),
 			expectedMemRequest: resource.MustParse("5Mi"),
 			expectedCpuLimit:   resource.MustParse("50m"),
 			expectedCpuRequest: resource.MustParse("25m"),
@@ -168,7 +178,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		{
 			name:               "project annotation disables overrides",
 			config:             testConfig(0, 50, 50),
-			object:             testPod("10Mi", "0", "50m", "0"),
+			pod:                testPod("10Mi", "0", "50m", "0"),
 			expectedMemRequest: resource.MustParse("0"),
 			expectedCpuLimit:   resource.MustParse("50m"),
 			expectedCpuRequest: resource.MustParse("0"),
@@ -177,48 +187,45 @@ func TestLimitRequestAdmission(t *testing.T) {
 		{
 			name:               "large values don't overflow",
 			config:             testConfig(100, 50, 50),
-			object:             testPod("1Ti", "0", "0", "0"),
+			pod:                testPod("1Ti", "0", "0", "0"),
 			expectedMemRequest: resource.MustParse("512Gi"),
 			expectedCpuLimit:   resource.MustParse("1024"),
 			expectedCpuRequest: resource.MustParse("512"),
 			namespace:          fakeNamespace(true),
 		},
 		{
-			name:               "little values don't get lost",
+			name:               "little values mess things up",
 			config:             testConfig(500, 10, 10),
-			object:             testPod("1.024Mi", "0", "0", "0"),
-			expectedMemRequest: resource.MustParse(".0001Gi"),
+			pod:                testPod("1.024Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("1Mi"),
 			expectedCpuLimit:   resource.MustParse("5m"),
-			expectedCpuRequest: resource.MustParse(".5m"),
+			expectedCpuRequest: resource.MustParse("1m"),
+			namespace:          fakeNamespace(true),
+		},
+		{
+			name:               "test fractional memory requests round up",
+			config:             testConfig(500, 10, 60),
+			pod:                testPod("512Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("307Mi"),
+			expectedCpuLimit:   resource.MustParse("2.5"),
+			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          fakeNamespace(true),
 		},
 	}
 
 	for _, test := range tests {
-		var reader io.Reader
-		if test.config != nil { // we would get nil with the plugin un-configured
-			config, err := configapilatest.WriteYAML(test.config)
-			if err != nil {
-				t.Fatalf("unexpected: %v", err)
-			}
-			reader = bytes.NewReader(config)
-		}
-		c, err := newClusterResourceOverride(fake.NewSimpleClientset(), reader)
+		c, err := newClusterResourceOverride(fake.NewSimpleClientset(), test.config)
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
 			continue
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
-		attrs := admission.NewAttributesRecord(test.object, unversioned.GroupKind{}, test.namespace.Name, "name", kapi.Resource("pods"), "", admission.Create, fakeUser())
-		if err := c.Admit(attrs); err != nil {
-			t.Errorf("%s: admission controller should not return error", test.name)
-		}
-		// if it's a pod, test that the resources are as expected
-		pod, ok := test.object.(*kapi.Pod)
-		if !ok {
+		attrs := admission.NewAttributesRecord(test.pod, unversioned.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
+		if err = c.Admit(attrs); err != nil {
+			t.Errorf("%s: admission controller returned error: %v", test.name, err)
 			continue
 		}
-		resources := pod.Spec.Containers[0].Resources // only test one container
+		resources := test.pod.Spec.Containers[0].Resources // only test one container
 		if actual := resources.Requests[kapi.ResourceMemory]; test.expectedMemRequest.Cmp(actual) != 0 {
 			t.Errorf("%s: memory requests do not match; %s should be %s", test.name, actual, test.expectedMemRequest)
 		}
@@ -228,6 +235,18 @@ func TestLimitRequestAdmission(t *testing.T) {
 		if actual := resources.Limits[kapi.ResourceCPU]; test.expectedCpuLimit.Cmp(actual) != 0 {
 			t.Errorf("%s: cpu limits do not match; %s should be %s", test.name, actual, test.expectedCpuLimit)
 		}
+	}
+}
+
+func testBestEffortPod() *kapi.Pod {
+	return &kapi.Pod{
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Resources: kapi.ResourceRequirements{},
+				},
+			},
+		},
 	}
 }
 

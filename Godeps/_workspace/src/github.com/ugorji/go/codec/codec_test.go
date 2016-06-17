@@ -18,8 +18,6 @@ package codec
 //
 // The following manual tests must be done:
 //   - TestCodecUnderlyingType
-//   - Set fastpathEnabled to false and run tests (to ensure that regular reflection works).
-//     We don't want to use a variable there so that code is ellided.
 
 import (
 	"bytes"
@@ -48,6 +46,11 @@ func init() {
 	testPreInitFns = append(testPreInitFns, testInit)
 }
 
+// make this a mapbyslice
+type testMbsT []interface{}
+
+func (_ testMbsT) MapBySlice() {}
+
 type testVerifyArg int
 
 const (
@@ -59,6 +62,12 @@ const (
 )
 
 const testSkipRPCTests = false
+
+var (
+	testTableNumPrimitives int
+	testTableIdxTime       int
+	testTableNumMaps       int
+)
 
 var (
 	testVerbose        bool
@@ -261,6 +270,12 @@ func testVerifyVal(v interface{}, arg testVerifyArg) (v2 interface{}) {
 			m2[j] = testVerifyVal(vj, arg)
 		}
 		v2 = m2
+	case testMbsT:
+		m2 := make([]interface{}, len(iv))
+		for j, vj := range iv {
+			m2[j] = testVerifyVal(vj, arg)
+		}
+		v2 = testMbsT(m2)
 	case map[string]bool:
 		switch arg {
 		case testVerifyMapTypeSame:
@@ -362,6 +377,7 @@ func testInit() {
 	testCborH.SetInterfaceExt(timeTyp, 1, &testUnixNanoTimeExt{})
 	// testJsonH.SetInterfaceExt(timeTyp, 1, &testUnixNanoTimeExt{})
 
+	// primitives MUST be an even number, so it can be used as a mapBySlice also.
 	primitives := []interface{}{
 		int8(-8),
 		int16(-1616),
@@ -375,19 +391,23 @@ func testInit() {
 		float32(-3232.0),
 		float64(-6464646464.0),
 		float32(3232.0),
+		float64(6464.0),
 		float64(6464646464.0),
 		false,
 		true,
+		"null",
 		nil,
 		"someday",
-		"",
-		"bytestring",
 		timeToCompare1,
+		"",
 		timeToCompare2,
+		"bytestring",
 		timeToCompare3,
+		"none",
 		timeToCompare4,
 	}
-	mapsAndStrucs := []interface{}{
+
+	maps := []interface{}{
 		map[string]bool{
 			"true":  true,
 			"false": false,
@@ -421,28 +441,35 @@ func testInit() {
 			uint8(138): false,
 			"false":    uint8(200),
 		},
-		newTestStruc(0, false, !testSkipIntf, false),
 	}
 
+	testTableNumPrimitives = len(primitives)
+	testTableIdxTime = testTableNumPrimitives - 8
+	testTableNumMaps = len(maps)
+
 	table = []interface{}{}
-	table = append(table, primitives...)    //0-19 are primitives
-	table = append(table, primitives)       //20 is a list of primitives
-	table = append(table, mapsAndStrucs...) //21-24 are maps. 25 is a *struct
+	table = append(table, primitives...)
+	table = append(table, primitives)
+	table = append(table, testMbsT(primitives))
+	table = append(table, maps...)
+	table = append(table, newTestStruc(0, false, !testSkipIntf, false))
 
 	tableVerify = make([]interface{}, len(table))
 	tableTestNilVerify = make([]interface{}, len(table))
 	tablePythonVerify = make([]interface{}, len(table))
 
-	lp := len(primitives)
+	lp := testTableNumPrimitives + 4
 	av := tableVerify
 	for i, v := range table {
-		if i == lp+3 {
+		if i == lp {
 			av[i] = skipVerifyVal
 			continue
 		}
 		//av[i] = testVerifyVal(v, testVerifyMapTypeSame)
 		switch v.(type) {
 		case []interface{}:
+			av[i] = testVerifyVal(v, testVerifyMapTypeSame)
+		case testMbsT:
 			av[i] = testVerifyVal(v, testVerifyMapTypeSame)
 		case map[string]interface{}:
 			av[i] = testVerifyVal(v, testVerifyMapTypeSame)
@@ -455,7 +482,7 @@ func testInit() {
 
 	av = tableTestNilVerify
 	for i, v := range table {
-		if i > lp+3 {
+		if i > lp {
 			av[i] = skipVerifyVal
 			continue
 		}
@@ -464,14 +491,15 @@ func testInit() {
 
 	av = tablePythonVerify
 	for i, v := range table {
-		if i > lp+3 {
+		if i == testTableNumPrimitives+1 || i > lp { // testTableNumPrimitives+1 is the mapBySlice
 			av[i] = skipVerifyVal
 			continue
 		}
 		av[i] = testVerifyVal(v, testVerifyForPython)
 	}
 
-	tablePythonVerify = tablePythonVerify[:24]
+	// only do the python verify up to the maps, skipping the last 2 maps.
+	tablePythonVerify = tablePythonVerify[:testTableNumPrimitives+2+testTableNumMaps-2]
 }
 
 func testUnmarshal(v interface{}, data []byte, h Handle) (err error) {
@@ -566,7 +594,8 @@ func testCodecTableOne(t *testing.T, h Handle) {
 	// func TestMsgpackAllExperimental(t *testing.T) {
 	// dopts := testDecOpts(nil, nil, false, true, true),
 
-	idxTime, numPrim, numMap := 19, 23, 4
+	numPrim, numMap, idxTime, idxMap := testTableNumPrimitives, testTableNumMaps, testTableIdxTime, testTableNumPrimitives+2
+
 	//println("#################")
 	switch v := h.(type) {
 	case *MsgpackHandle:
@@ -579,7 +608,7 @@ func testCodecTableOne(t *testing.T, h Handle) {
 		//skip []interface{} containing time.Time, as it encodes as a number, but cannot decode back to time.Time.
 		//As there is no real support for extension tags in json, this must be skipped.
 		doTestCodecTableOne(t, false, h, table[:numPrim], tableVerify[:numPrim])
-		doTestCodecTableOne(t, false, h, table[numPrim+1:], tableVerify[numPrim+1:])
+		doTestCodecTableOne(t, false, h, table[idxMap:], tableVerify[idxMap:])
 	default:
 		doTestCodecTableOne(t, false, h, table, tableVerify)
 	}
@@ -596,14 +625,15 @@ func testCodecTableOne(t *testing.T, h Handle) {
 
 	//skip time.Time, []interface{} containing time.Time, last map, and newStruc
 	doTestCodecTableOne(t, true, h, table[:idxTime], tableTestNilVerify[:idxTime])
-	doTestCodecTableOne(t, true, h, table[numPrim+1:numPrim+numMap], tableTestNilVerify[numPrim+1:numPrim+numMap])
+	doTestCodecTableOne(t, true, h, table[idxMap:idxMap+numMap-1], tableTestNilVerify[idxMap:idxMap+numMap-1])
 
 	v.MapType = oldMapType
 
 	// func TestMsgpackNilIntf(t *testing.T) {
 
-	//do newTestStruc and last element of map
-	doTestCodecTableOne(t, true, h, table[numPrim+numMap:], tableTestNilVerify[numPrim+numMap:])
+	//do last map and newStruc
+	idx2 := idxMap + numMap - 1
+	doTestCodecTableOne(t, true, h, table[idx2:], tableTestNilVerify[idx2:])
 	//TODO? What is this one?
 	//doTestCodecTableOne(t, true, h, table[17:18], tableTestNilVerify[17:18])
 }
@@ -1045,6 +1075,74 @@ func doTestAnonCycle(t *testing.T, name string, h Handle) {
 	logT(t, "pti: %v", pti)
 }
 
+func doTestJsonLargeInteger(t *testing.T, v interface{}, ias uint8) {
+	logT(t, "Running doTestJsonLargeInteger: v: %#v, ias: %c", v, ias)
+	oldIAS := testJsonH.IntegerAsString
+	defer func() { testJsonH.IntegerAsString = oldIAS }()
+	testJsonH.IntegerAsString = ias
+
+	var vu uint
+	var vi int
+	var vb bool
+	var b []byte
+	e := NewEncoderBytes(&b, testJsonH)
+	e.MustEncode(v)
+	e.MustEncode(true)
+	d := NewDecoderBytes(b, testJsonH)
+	// below, we validate that the json string or number was encoded,
+	// then decode, and validate that the correct value was decoded.
+	fnStrChk := func() {
+		// check that output started with ", and ended with "true
+		if !(b[0] == '"' && string(b[len(b)-5:]) == `"true`) {
+			logT(t, "Expecting a JSON string, got: %s", b)
+			failT(t)
+		}
+	}
+
+	switch ias {
+	case 'L':
+		switch v2 := v.(type) {
+		case int:
+			if v2 > 1<<53 || (v2 < 0 && -v2 > 1<<53) {
+				fnStrChk()
+			}
+		case uint:
+			if v2 > 1<<53 {
+				fnStrChk()
+			}
+		}
+	case 'A':
+		fnStrChk()
+	default:
+		// check that output doesn't contain " at all
+		for _, i := range b {
+			if i == '"' {
+				logT(t, "Expecting a JSON Number without quotation: got: %s", b)
+				failT(t)
+			}
+		}
+	}
+	switch v2 := v.(type) {
+	case int:
+		d.MustDecode(&vi)
+		d.MustDecode(&vb)
+		// check that vb = true, and vi == v2
+		if !(vb && vi == v2) {
+			logT(t, "Expecting equal values from %s: got golden: %v, decoded: %v", b, v2, vi)
+			failT(t)
+		}
+	case uint:
+		d.MustDecode(&vu)
+		d.MustDecode(&vb)
+		// check that vb = true, and vi == v2
+		if !(vb && vu == v2) {
+			logT(t, "Expecting equal values from %s: got golden: %v, decoded: %v", b, v2, vu)
+			failT(t)
+		}
+		// fmt.Printf("%v: %s, decode: %d, bool: %v, equal_on_decode: %v\n", v, b, vu, vb, vu == v.(uint))
+	}
+}
+
 // Comprehensive testing that generates data encoded from python handle (cbor, msgpack),
 // and validates that our code can read and write it out accordingly.
 // We keep this unexported here, and put actual test in ext_dep_test.go.
@@ -1322,6 +1420,23 @@ func TestMsgpackRpcSpec(t *testing.T) {
 
 func TestBincUnderlyingType(t *testing.T) {
 	testCodecUnderlyingType(t, testBincH)
+}
+
+func TestJsonLargeInteger(t *testing.T) {
+	for _, i := range []uint8{'L', 'A', 0} {
+		for _, j := range []interface{}{
+			1 << 60,
+			-(1 << 60),
+			0,
+			1 << 20,
+			-(1 << 20),
+			uint(1 << 60),
+			uint(0),
+			uint(1 << 20),
+		} {
+			doTestJsonLargeInteger(t, j, i)
+		}
+	}
 }
 
 // TODO:

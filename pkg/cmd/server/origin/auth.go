@@ -65,11 +65,12 @@ import (
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 )
 
 const (
 	OpenShiftOAuthAPIPrefix      = "/oauth"
-	OpenShiftLoginPrefix         = "/login"
+	openShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
 	OpenShiftWebConsoleClientID  = "openshift-web-console"
@@ -81,16 +82,31 @@ const (
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) {
-	// TODO: register into container
-	mux := container.ServeMux
+	mux := c.getMux(container)
 
-	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper, c.EtcdBackends...)
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper, c.EtcdBackends...)
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, clientRegistry)
+
+	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	if err != nil {
+		return nil, err
+	}
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	if err != nil {
+		return nil, err
+	}
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+
+	clientAuthStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	if err != nil {
+		return nil, err
+	}
 	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	errorPageHandler, err := c.getErrorHandler()
@@ -103,7 +119,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, registry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, combinedOAuthClientGetter, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
 		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
@@ -113,7 +129,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, clientRegistry, clientAuthRegistry)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, clientAuthRegistry)
 
 	server := osinserver.New(
 		config,
@@ -171,8 +187,21 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
-		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}, nil
+}
+
+func (c *AuthConfig) getMux(container *restful.Container) cmdutil.Mux {
+	// Register directly into the container's mux
+	if c.HandlerWrapper == nil {
+		return container.ServeMux
+	}
+
+	// Wrap all handlers before registering into the container's mux
+	// This lets us do things like defer session clearing to the end of a request
+	return &handlerWrapperMux{
+		mux:     container.ServeMux,
+		wrapper: c.HandlerWrapper,
+	}
 }
 
 func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
@@ -312,24 +341,39 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHa
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+	startGrantServer := false
+
+	var saGrantHandler handlers.GrantHandler
+	switch c.Options.GrantConfig.ServiceAccountMethod {
+	case configapi.GrantHandlerDeny:
+		saGrantHandler = handlers.NewEmptyGrant()
+	case configapi.GrantHandlerPrompt:
+		startGrantServer = true
+		saGrantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
+	default:
+		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", c.Options.GrantConfig.ServiceAccountMethod)
+	}
+
+	var standardGrantHandler handlers.GrantHandler
 	switch c.Options.GrantConfig.Method {
 	case configapi.GrantHandlerDeny:
-		return handlers.NewEmptyGrant()
-
+		standardGrantHandler = handlers.NewEmptyGrant()
 	case configapi.GrantHandlerAuto:
-		return handlers.NewAutoGrant()
-
+		standardGrantHandler = handlers.NewAutoGrant()
 	case configapi.GrantHandlerPrompt:
-		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
-		grantServer.Install(mux, OpenShiftApprovePrefix)
-		return handlers.NewRedirectGrant(OpenShiftApprovePrefix)
-
+		startGrantServer = true
+		standardGrantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 	default:
 		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", c.Options.GrantConfig.Method)
 	}
 
-	return nil
+	if startGrantServer {
+		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+		grantServer.Install(mux, OpenShiftApprovePrefix)
+	}
+
+	return handlers.NewServiceAccountAwareGrant(standardGrantHandler, saGrantHandler)
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
@@ -349,9 +393,23 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 }
 
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
-	// TODO: make these ordered once we can have more than one
+	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
-	redirectors := map[string]handlers.AuthenticationRedirector{}
+
+	redirectors := new(handlers.AuthenticationRedirectors)
+
+	// Determine if we have more than one password-based Identity Provider
+	multiplePasswordProviders := false
+	passwordProviderCount := 0
+	for _, identityProvider := range c.Options.IdentityProviders {
+		if configapi.IsPasswordAuthenticator(identityProvider) && identityProvider.UseAsLogin {
+			passwordProviderCount++
+			if passwordProviderCount > 1 {
+				multiplePasswordProviders = true
+				break
+			}
+		}
+	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
 		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
@@ -375,8 +433,24 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
+				var (
+					// loginPath is unescaped, the way the mux will see it once URL-decoding is done
+					loginPath = openShiftLoginPrefix
+					// redirectLoginPath is escaped, the way we would need to send a Location redirect to a client
+					redirectLoginPath = openShiftLoginPrefix
+				)
+
+				if multiplePasswordProviders {
+					// If there is more than one Identity Provider acting as a login
+					// provider, we need to give each of them their own login path,
+					// to avoid ambiguity.
+					loginPath = path.Join(openShiftLoginPrefix, identityProvider.Name)
+					// url-encode the provider name for redirecting
+					redirectLoginPath = path.Join(openShiftLoginPrefix, (&url.URL{Path: identityProvider.Name}).String())
+				}
+
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
-				redirectors[identityProvider.Name] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, redirectLoginPath+"?then=${url}"))
 
 				var loginTemplateFile string
 				if c.Options.Templates != nil {
@@ -388,7 +462,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 
 				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
-				login.Install(mux, OpenShiftLoginPrefix)
+				login.Install(mux, loginPath)
 			}
 			if identityProvider.UseAsChallenger {
 				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
@@ -415,17 +489,18 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
 
 			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
-			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
+			oauthRedirector, oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected error: %v", err)
 			}
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = oauthHandler
+				redirectors.Add(identityProvider.Name, oauthRedirector)
 			}
 			if identityProvider.UseAsChallenger {
-				return nil, errors.New("oauth identity providers cannot issue challenges")
+				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
+				challengers["basic-challenge"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
 		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
@@ -437,12 +512,12 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
 			}
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL))
 			}
 		}
 	}
 
-	if len(redirectors) > 0 && len(challengers) == 0 {
+	if redirectors.Count() > 0 && len(challengers) == 0 {
 		// Add a default challenger that will warn and give a link to the web browser token-granting location
 		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
 	}
@@ -629,6 +704,18 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 			}
 			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(identityProvider.Name, passwordAuthenticator, true))
 
+		} else if identityProvider.UseAsChallenger && configapi.IsOAuthIdentityProvider(identityProvider) {
+			oauthProvider, err := c.getOAuthProvider(identityProvider)
+			if err != nil {
+				return nil, err
+			}
+			oauthPasswordAuthenticator, err := external.NewOAuthPasswordAuthenticator(oauthProvider, identityMapper)
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error: %v", err)
+			}
+
+			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(identityProvider.Name, oauthPasswordAuthenticator, true))
+
 		} else {
 			switch provider := identityProvider.Provider.(type) {
 			case (*configapi.RequestHeaderIdentityProvider):
@@ -654,7 +741,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 						return nil, fmt.Errorf("Error loading certs from %s: %v", provider.ClientCA, err)
 					}
 
-					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler)
+					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler, sets.NewString(provider.ClientCommonNames...))
 				}
 				authRequestHandlers = append(authRequestHandlers, authRequestHandler)
 

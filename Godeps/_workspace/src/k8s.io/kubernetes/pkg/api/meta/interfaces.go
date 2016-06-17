@@ -49,6 +49,10 @@ type Object interface {
 	SetResourceVersion(version string)
 	GetSelfLink() string
 	SetSelfLink(selfLink string)
+	GetCreationTimestamp() unversioned.Time
+	SetCreationTimestamp(timestamp unversioned.Time)
+	GetDeletionTimestamp() *unversioned.Time
+	SetDeletionTimestamp(timestamp *unversioned.Time)
 	GetLabels() map[string]string
 	SetLabels(labels map[string]string)
 	GetAnnotations() map[string]string
@@ -172,7 +176,6 @@ type RESTMapper interface {
 
 	AliasesForResource(resource string) ([]string, bool)
 	ResourceSingularizer(resource string) (singular string, err error)
-
-	// ResourceIsValid takes a partial resource and returns back whether or not the resource matches at least one kind
-	ResourceIsValid(resource unversioned.GroupVersionResource) bool
 }
+
+var _ Object = &runtime.Unstructured{}

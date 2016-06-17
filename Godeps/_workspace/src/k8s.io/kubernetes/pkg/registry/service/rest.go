@@ -39,6 +39,12 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 )
 
+// ServiceRest includes storage for services and all sub resources
+type ServiceRest struct {
+	Service *REST
+	Proxy   *ProxyREST
+}
+
 // REST adapts a service registry into apiserver's RESTStorage model.
 type REST struct {
 	registry         Registry
@@ -50,13 +56,17 @@ type REST struct {
 
 // NewStorage returns a new REST.
 func NewStorage(registry Registry, endpoints endpoint.Registry, serviceIPs ipallocator.Interface,
-	serviceNodePorts portallocator.Interface, proxyTransport http.RoundTripper) *REST {
-	return &REST{
+	serviceNodePorts portallocator.Interface, proxyTransport http.RoundTripper) *ServiceRest {
+	rest := &REST{
 		registry:         registry,
 		endpoints:        endpoints,
 		serviceIPs:       serviceIPs,
 		serviceNodePorts: serviceNodePorts,
 		proxyTransport:   proxyTransport,
+	}
+	return &ServiceRest{
+		Service: rest,
+		Proxy:   &ProxyREST{ServiceRest: rest, ProxyTransport: proxyTransport},
 	}
 }
 
@@ -105,7 +115,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 	for i := range service.Spec.Ports {
 		servicePort := &service.Spec.Ports[i]
 		if servicePort.NodePort != 0 {
-			err := nodePortOp.Allocate(servicePort.NodePort)
+			err := nodePortOp.Allocate(int(servicePort.NodePort))
 			if err != nil {
 				// TODO: when validation becomes versioned, this gets more complicated.
 				el := field.ErrorList{field.Invalid(field.NewPath("spec", "ports").Index(i).Child("nodePort"), servicePort.NodePort, err.Error())}
@@ -119,7 +129,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 				// not really an internal error.
 				return nil, errors.NewInternalError(fmt.Errorf("failed to allocate a nodePort: %v", err))
 			}
-			servicePort.NodePort = nodePort
+			servicePort.NodePort = int32(nodePort)
 		}
 	}
 
@@ -188,6 +198,12 @@ func (rs *REST) Watch(ctx api.Context, options *api.ListOptions) (watch.Interfac
 	return rs.registry.WatchServices(ctx, options)
 }
 
+// Export returns Service stripped of cluster-specific information.
+// It implements rest.Exporter.
+func (rs *REST) Export(ctx api.Context, name string, opts unversioned.ExportOptions) (runtime.Object, error) {
+	return rs.registry.ExportService(ctx, name, opts)
+}
+
 func (*REST) New() runtime.Object {
 	return &api.Service{}
 }
@@ -224,7 +240,7 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 	if assignNodePorts {
 		for i := range service.Spec.Ports {
 			servicePort := &service.Spec.Ports[i]
-			nodePort := servicePort.NodePort
+			nodePort := int(servicePort.NodePort)
 			if nodePort != 0 {
 				if !contains(oldNodePorts, nodePort) {
 					err := nodePortOp.Allocate(nodePort)
@@ -241,7 +257,7 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 					// not really an internal error.
 					return nil, false, errors.NewInternalError(fmt.Errorf("failed to allocate a nodePort: %v", err))
 				}
-				servicePort.NodePort = nodePort
+				servicePort.NodePort = int32(nodePort)
 			}
 			// Detect duplicate node ports; this should have been caught by validation, so we panic
 			if contains(newNodePorts, nodePort) {
@@ -300,7 +316,7 @@ func (rs *REST) ResourceLocation(ctx api.Context, id string) (*url.URL, http.Rou
 		}
 		found := false
 		for _, svcPort := range svc.Spec.Ports {
-			if svcPort.Port == int(portNum) {
+			if int64(svcPort.Port) == portNum {
 				// use the declared port's name
 				portStr = svcPort.Name
 				found = true
@@ -331,7 +347,7 @@ func (rs *REST) ResourceLocation(ctx api.Context, id string) (*url.URL, http.Rou
 			if ss.Ports[i].Name == portStr {
 				// Pick a random address.
 				ip := ss.Addresses[rand.Intn(len(ss.Addresses))].IP
-				port := ss.Ports[i].Port
+				port := int(ss.Ports[i].Port)
 				return &url.URL{
 					Scheme: svcScheme,
 					Host:   net.JoinHostPort(ip, strconv.Itoa(port)),
@@ -358,7 +374,7 @@ func CollectServiceNodePorts(service *api.Service) []int {
 	for i := range service.Spec.Ports {
 		servicePort := &service.Spec.Ports[i]
 		if servicePort.NodePort != 0 {
-			servicePorts = append(servicePorts, servicePort.NodePort)
+			servicePorts = append(servicePorts, int(servicePort.NodePort))
 		}
 	}
 	return servicePorts

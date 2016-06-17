@@ -52,7 +52,7 @@ func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.
 }
 
 func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	data := tokenData{RequestURL: "request", PublicMasterURL: endpoints.publicMasterURL}
 
 	authorizeReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)

@@ -34,7 +34,7 @@ USER 1001
 	g.Describe("being created from new-build", func() {
 		g.It("should create a image via new-build", func() {
 			g.By(fmt.Sprintf("calling oc new-build with Dockerfile"))
-			err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile).Execute()
+			err := oc.Run("new-build").Args("-D", "-", "--to", "origin-base:custom").InputString(testDockerfile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
@@ -47,10 +47,15 @@ USER 1001
 			buildName := "origin-base-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			//debug for failures on jenkins
+			if err != nil {
+				exutil.DumpBuildLogs("origin-base", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
-			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("origin-base", "latest")
+			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("origin-base", "custom")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 		})
@@ -72,6 +77,10 @@ USER 1001
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			//debug for failures on jenkins
+			if err != nil {
+				exutil.DumpBuildLogs("centos", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the built Docker image reference from ImageStream")

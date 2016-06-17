@@ -25,10 +25,38 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/queue"
 	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
 )
+
+// fakePodWorkers runs sync pod function in serial, so we can have
+// deterministic behaviour in testing.
+type fakePodWorkers struct {
+	syncPodFn syncPodFnType
+	cache     kubecontainer.Cache
+	t         TestingInterface
+}
+
+func (f *fakePodWorkers) UpdatePod(pod *api.Pod, mirrorPod *api.Pod, updateType kubetypes.SyncPodType, updateComplete func()) {
+	status, err := f.cache.Get(pod.UID)
+	if err != nil {
+		f.t.Errorf("Unexpected error: %v", err)
+	}
+	if err := f.syncPodFn(pod, mirrorPod, status, kubetypes.SyncPodUpdate); err != nil {
+		f.t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func (f *fakePodWorkers) ForgetNonExistingPodWorkers(desiredPods map[types.UID]empty) {}
+
+func (f *fakePodWorkers) ForgetWorker(uid types.UID) {}
+
+type TestingInterface interface {
+	Errorf(format string, args ...interface{})
+}
 
 func newPod(uid, name string) *api.Pod {
 	return &api.Pod{
@@ -43,8 +71,8 @@ func createPodWorkers() (*podWorkers, map[types.UID][]string) {
 	lock := sync.Mutex{}
 	processed := make(map[types.UID][]string)
 	fakeRecorder := &record.FakeRecorder{}
-	fakeRuntime := &kubecontainer.FakeRuntime{}
-	fakeCache := kubecontainer.NewFakeCache(fakeRuntime)
+	fakeRuntime := &containertest.FakeRuntime{}
+	fakeCache := containertest.NewFakeCache(fakeRuntime)
 	podWorkers := newPodWorkers(
 		func(pod *api.Pod, mirrorPod *api.Pod, status *kubecontainer.PodStatus, updateType kubetypes.SyncPodType) error {
 			func() {
@@ -55,7 +83,7 @@ func createPodWorkers() (*podWorkers, map[types.UID][]string) {
 			return nil
 		},
 		fakeRecorder,
-		queue.NewBasicWorkQueue(),
+		queue.NewBasicWorkQueue(&util.RealClock{}),
 		time.Second,
 		time.Second,
 		fakeCache,
@@ -183,13 +211,13 @@ func (b byContainerName) Less(i, j int) bool {
 // for their invocation of the syncPodFn.
 func TestFakePodWorkers(t *testing.T) {
 	fakeRecorder := &record.FakeRecorder{}
-	fakeRuntime := &kubecontainer.FakeRuntime{}
-	fakeCache := kubecontainer.NewFakeCache(fakeRuntime)
+	fakeRuntime := &containertest.FakeRuntime{}
+	fakeCache := containertest.NewFakeCache(fakeRuntime)
 
 	kubeletForRealWorkers := &simpleFakeKubelet{}
 	kubeletForFakeWorkers := &simpleFakeKubelet{}
 
-	realPodWorkers := newPodWorkers(kubeletForRealWorkers.syncPodWithWaitGroup, fakeRecorder, queue.NewBasicWorkQueue(), time.Second, time.Second, fakeCache)
+	realPodWorkers := newPodWorkers(kubeletForRealWorkers.syncPodWithWaitGroup, fakeRecorder, queue.NewBasicWorkQueue(&util.RealClock{}), time.Second, time.Second, fakeCache)
 	fakePodWorkers := &fakePodWorkers{kubeletForFakeWorkers.syncPod, fakeCache, t}
 
 	tests := []struct {

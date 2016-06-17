@@ -125,6 +125,10 @@ func (s *SpdyRoundTripper) dial(req *http.Request) (net.Conn, error) {
 		return nil, err
 	}
 
+	if s.tlsConfig == nil {
+		s.tlsConfig = &tls.Config{}
+	}
+
 	if len(s.tlsConfig.ServerName) == 0 {
 		s.tlsConfig.ServerName = host
 	}
@@ -189,6 +193,7 @@ func (s *SpdyRoundTripper) dialWithoutProxy(url *url.URL) (net.Conn, error) {
 	return conn, nil
 }
 
+// proxyAuth returns, for a given proxy URL, the value to be used for the Proxy-Authorization header
 func (s *SpdyRoundTripper) proxyAuth(proxyURL *url.URL) string {
 	if proxyURL == nil || proxyURL.User == nil {
 		return ""

@@ -1,39 +1,28 @@
 package ignore
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/util"
-	"os"
 )
 
-func getLogLevel() (level int) {
-	for level = 5; level >= 0; level-- {
-		if glog.V(glog.Level(level)) == true {
-			break
-		}
-	}
-	return
-}
-
 func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep []string) {
-
 	// create working dir
 	workingDir, werr := util.NewFileSystem().CreateWorkingDirectory()
 	if werr != nil {
-		t.Errorf("problem allocating working dir %v \n", werr)
+		t.Errorf("problem allocating working dir: %v", werr)
 	} else {
-		t.Logf("working directory is %s \n", workingDir)
+		t.Logf("working directory is %q", workingDir)
 	}
 	defer func() {
 		// clean up test
 		cleanerr := os.RemoveAll(workingDir)
 		if cleanerr != nil {
-			t.Errorf("problem cleaning up %v \n", cleanerr)
+			t.Errorf("problem cleaning up: %v", cleanerr)
 		}
 	}()
 
@@ -43,32 +32,32 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 	dpath := filepath.Join(c.WorkingDir, "upload", "src")
 	derr := os.MkdirAll(dpath, 0777)
 	if derr != nil {
-		t.Errorf("Problem creating source repo dir %s with  %v \n", dpath, derr)
+		t.Errorf("Problem creating source repo dir %q: %v", dpath, derr)
 	}
 
 	c.WorkingSourceDir = dpath
-	t.Logf("working source dir %s \n", dpath)
+	t.Logf("working source dir %q", dpath)
 
 	// create s2iignore file
 	ipath := filepath.Join(dpath, api.IgnoreFile)
 	ifile, ierr := os.Create(ipath)
 	defer ifile.Close()
 	if ierr != nil {
-		t.Errorf("Problem creating .s2iignore at %s with  %v \n", ipath, ierr)
+		t.Errorf("Problem creating .s2iignore in %q: %v", ipath, ierr)
 	}
 
 	// write patterns to remove into s2ignore, but save ! exclusions
 	filesToIgnore := make(map[string]string)
 	for _, pattern := range patterns {
-		t.Logf("storing pattern %s \n", pattern)
+		t.Logf("storing pattern %q", pattern)
 		_, serr := ifile.WriteString(pattern)
 
 		if serr != nil {
-			t.Errorf("Problem setting .s2iignore %v \n", serr)
+			t.Errorf("Problem setting .s2iignore: %v", serr)
 		}
 		if strings.HasPrefix(pattern, "!") {
 			pattern = strings.Replace(pattern, "!", "", 1)
-			t.Logf("Noting ignore pattern  %s \n", pattern)
+			t.Logf("Noting ignore pattern %q", pattern)
 			filesToIgnore[pattern] = pattern
 		}
 	}
@@ -94,13 +83,13 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 		dirpath := filepath.Dir(fbpath)
 		derr := os.MkdirAll(dirpath, 0777)
 		if derr != nil && !os.IsExist(derr) {
-			t.Errorf("Problem creating subdirs %s with %v \n", dirpath, derr)
+			t.Errorf("Problem creating subdirs %q: %v", dirpath, derr)
 		}
-		t.Logf("Going to create file %s given supplied suffix %s \n", fbpath, fileToCreate)
+		t.Logf("Going to create file %q", fbpath)
 		fbfile, fberr := os.Create(fbpath)
 		defer fbfile.Close()
 		if fberr != nil {
-			t.Errorf("Problem creating test file %v \n", fberr)
+			t.Errorf("Problem creating test file: %v", fberr)
 		}
 	}
 
@@ -111,7 +100,7 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 	// check if filesToDel, minus ignores, are gone, and filesToKeep are still there
 	for _, fileToCheck := range filesToCreate {
 		fbpath := filepath.Join(dpath, fileToCheck)
-		t.Logf("Evaluating file %s from dir %s and file to check %s \n", fbpath, dpath, fileToCheck)
+		t.Logf("Evaluating file %q from dir %q and file to check %q", fbpath, dpath, fileToCheck)
 
 		// see if file still exists or not
 		ofile, oerr := os.Open(fbpath)
@@ -119,13 +108,13 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 		var fileExists bool
 		if oerr == nil {
 			fileExists = true
-			t.Logf("The file %s exists after Ignore was run \n", fbpath)
+			t.Logf("The file %q exists after Ignore was run", fbpath)
 		} else {
 			if os.IsNotExist(oerr) {
-				t.Logf("The file %s does not exist after Ignore was run \n", fbpath)
+				t.Logf("The file %q does not exist after Ignore was run", fbpath)
 				fileExists = false
 			} else {
-				t.Errorf("Could not verify existence of %s because of %v \n", fbpath, oerr)
+				t.Errorf("Could not verify existence of %q: %v", fbpath, oerr)
 			}
 		}
 
@@ -136,46 +125,36 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 		// if file present, verify it is in ignore or keep list, and not in del list
 		if fileExists {
 			if iok {
-				t.Logf("validated ignored file is still present %s \n ", fileToCheck)
+				t.Logf("validated ignored file is still present: %q", fileToCheck)
 				continue
 			}
-
 			if kok {
-				t.Logf("validated file to keep is still present %s \n", fileToCheck)
+				t.Logf("validated file to keep is still present: %q", fileToCheck)
 				continue
 			}
-
 			if dok {
-				t.Errorf("file which was cited to be deleted by caller to runTest exists %s \n", fileToCheck)
+				t.Errorf("file which was cited to be deleted by caller to runTest exists: %q", fileToCheck)
 				continue
 			}
-
 			// if here, something unexpected
-			t.Errorf("file not in ignore / keep / del list  !?!?!?!?  %s \n", fileToCheck)
-
+			t.Errorf("file %q not in ignore / keep / del list !?!?!?!?", fileToCheck)
 		} else {
 			if dok {
-				t.Logf("file which should have been deleted is in fact gone %s \n", fileToCheck)
+				t.Logf("file which should have been deleted is in fact gone: %q", fileToCheck)
 				continue
 			}
-
 			if iok {
-				t.Errorf("file put into ignore list does not exist %s \n ", fileToCheck)
+				t.Errorf("file put into ignore list does not exist: %q", fileToCheck)
 				continue
 			}
-
 			if kok {
-				t.Errorf("file passed in with keep list does not exist %s \n", fileToCheck)
+				t.Errorf("file passed in with keep list does not exist: %q", fileToCheck)
 				continue
 			}
-
 			// if here, then something unexpected happened
-			t.Errorf("file not in ignore / keep / del list  !?!?!?!?  %s \n", fileToCheck)
-
+			t.Errorf("file %q not in ignore / keep / del list !?!?!?!?", fileToCheck)
 		}
-
 	}
-
 }
 
 func TestSingleIgnore(t *testing.T) {

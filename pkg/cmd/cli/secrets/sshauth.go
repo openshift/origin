@@ -23,17 +23,17 @@ Create a new SSH authentication secret
 SSH authentication secrets are used to authenticate against SCM servers.
 
 When creating applications, you may have a SCM server that requires SSH authentication - private SSH key.
-In order for the nodes to clone source code on your behalf, they have to have the credentials. You can 
+In order for the nodes to clone source code on your behalf, they have to have the credentials. You can
 provide this information by creating a 'sshauth' secret and attaching it to your service account.`
 
 	createSSHAuthSecretExample = `  // If your SSH authentication method requires only private SSH key, add it by using:
-  $ %[1]s SECRET --ssh-privatekey=FILENAME
+  %[1]s SECRET --ssh-privatekey=FILENAME
 
   // If your SSH authentication method requires also CA certificate, add it by using:
-  $ %[1]s SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
+  %[1]s SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
 
   // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
-  $ %[2]s SECRET path/to/.gitconfig`
+  %[2]s SECRET path/to/.gitconfig`
 )
 
 // CreateSSHAuthSecretOptions holds the credential needed to authenticate against SCM servers.
@@ -74,7 +74,8 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 				secret, err := o.NewSSHAuthSecret()
 				kcmdutil.CheckErr(err)
 
-				kcmdutil.CheckErr(f.PrintObject(c, secret, out))
+				mapper, _ := f.Object(false)
+				kcmdutil.CheckErr(f.PrintObject(c, mapper, secret, out))
 				return
 			}
 
@@ -84,13 +85,11 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 		},
 	}
 
-	cmd.Flags().StringVar(&o.PrivateKeyPath, "ssh-privatekey", "", "Path to a SSH private key")
-	cmd.Flags().StringVar(&o.CertificatePath, "ca-cert", "", "Path to a certificate file")
-	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
-
-	// autocompletion hints
+	cmd.Flags().StringVar(&o.PrivateKeyPath, "ssh-privatekey", "", "Path to a SSH private key file")
 	cmd.MarkFlagFilename("ssh-privatekey")
+	cmd.Flags().StringVar(&o.CertificatePath, "ca-cert", "", "Path to a certificate file")
 	cmd.MarkFlagFilename("ca-cert")
+	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
 	cmd.MarkFlagFilename("gitconfig")
 
 	kcmdutil.AddPrinterFlags(cmd)

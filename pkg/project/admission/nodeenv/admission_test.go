@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
+	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -113,7 +113,7 @@ func TestPodAdmission(t *testing.T) {
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		err := handler.Admit(admission.NewAttributesRecord(pod, kapi.Kind("Pod"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods"), "", admission.Create, nil))
+		err := handler.Admit(admission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion("version"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {

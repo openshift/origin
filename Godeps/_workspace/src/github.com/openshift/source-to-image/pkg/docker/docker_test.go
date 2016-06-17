@@ -5,7 +5,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker/test"
@@ -46,7 +45,7 @@ func TestIsImageInLocalRegistry(t *testing.T) {
 			t.Errorf("Test - %s: Expected error: %v. Got: %v", test, def.expectedError, err)
 		}
 		if def.docker.InspectImageName[0] != def.expectedImageName {
-			t.Errorf("Docker inspect called with unexpected image name: %s\n",
+			t.Errorf("Docker inspect called with unexpected image name: %s",
 				def.docker.InspectImageName)
 		}
 	}
@@ -423,7 +422,6 @@ func TestRunContainer(t *testing.T) {
 			Container: &docker.Container{
 				ID: "12345-test",
 			},
-			AttachToContainerSleep: 200 * time.Millisecond,
 		}
 		dh := getDocker(fakeDocker)
 		err := dh.RunContainer(RunContainerOptions{
@@ -460,20 +458,6 @@ func TestRunContainer(t *testing.T) {
 		// Verify that remove container was called
 		if fakeDocker.RemoveContainerOpts.ID != "12345-test" {
 			t.Errorf("%s: RemoveContainer was not called with the expected container ID", desc)
-		}
-
-		// Verify that AttachToContainer was called twice (Stdin/Stdout)
-		if len(fakeDocker.AttachToContainerOpts) != 1 {
-			t.Errorf("%s: AttachToContainer was not called the expected number of times.", desc)
-		}
-		// Make sure AttachToContainer was not called with both Stdin & Stdout
-		for _, opt := range fakeDocker.AttachToContainerOpts {
-			if opt.InputStream == nil || opt.OutputStream == nil {
-				t.Errorf("%s: AttachToContainer was not called with both Stdin and Stdout: %#v", desc, opt)
-			}
-			if !opt.Stdin || !opt.Stdout {
-				t.Errorf("%s: AttachToContainer was not called with both Stdin and Stdout flags: %#v", desc, opt)
-			}
 		}
 	}
 }

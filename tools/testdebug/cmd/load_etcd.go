@@ -138,6 +138,10 @@ func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConn
 	nodeList = append(nodeList, etcdDump.Node)
 	for i := 0; i < len(nodeList); i++ {
 		node := nodeList[i]
+		if node == nil {
+			continue
+		}
+
 		for j := range node.Nodes {
 			nodeList = append(nodeList, node.Nodes[j])
 		}

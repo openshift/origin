@@ -29,12 +29,15 @@ type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
 	Type DeploymentStrategyType
 
-	// CustomParams are the input to the Custom deployment strategy.
-	CustomParams *CustomDeploymentStrategyParams
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams
+
+	// CustomParams are the input to the Custom deployment strategy, and may also
+	// be specified for the Recreate and Rolling strategies to customize the execution
+	// process that runs the deployment.
+	CustomParams *CustomDeploymentStrategyParams
 
 	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements
@@ -50,7 +53,7 @@ type DeploymentStrategyType string
 const (
 	// DeploymentStrategyTypeRecreate is a simple strategy suitable as a default.
 	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
-	// DeploymentStrategyTypeCustom is a user defined strategy.
+	// DeploymentStrategyTypeCustom is a user defined strategy. It is optional to set.
 	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
 	// DeploymentStrategyTypeRolling uses the Kubernetes RollingUpdater.
 	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"
@@ -169,7 +172,7 @@ type RollingDeploymentStrategyParams struct {
 	// interval. If nil, one replica will be scaled up and down each interval.
 	// If negative, the scale order will be down/up instead of up/down.
 	// DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-	UpdatePercent *int
+	UpdatePercent *int32
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook
@@ -199,6 +202,12 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
+	// DeploymentIgnorePodAnnotation is an annotation on a deployment config that will bypass creating
+	// a deployment pod with the deployment. The caller is responsible for setting the deployment
+	// status and running the deployment process.
+	DeploymentIgnorePodAnnotation = "deploy.openshift.io/deployer-pod.ignore"
+	// DeploymentPodTypeLabel is a label with which contains a type of deployment pod.
+	DeploymentPodTypeLabel = "openshift.io/deployer-pod.type"
 	// DeployerPodForDeploymentLabel is a label which groups pods related to a
 	// deployment. The value is a deployment name. The deployer pod and hook pods
 	// created by the internal strategies will have this label. Custom
@@ -236,6 +245,9 @@ const (
 	// DeploymentReplicasAnnotation is for internal use only and is for
 	// detecting external modifications to deployment replica counts.
 	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
+	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
+	// The annotation value does not matter and its mere presence indicates instantiation.
+	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 	// PostHookPodSuffix is the suffix added to all pre hook pods
 	PreHookPodSuffix = "hook-pre"
 	// PostHookPodSuffix is the suffix added to all mid hook pods
@@ -261,6 +273,10 @@ const MaxDeploymentDurationSeconds int64 = 21600
 // DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
 // annotation that signifies that the deployment should be cancelled
 const DeploymentCancelledAnnotationValue = "true"
+
+// DeploymentInstantiatedAnnotationValue represents the value for the DeploymentInstantiatedAnnotation
+// annotation that signifies that the deployment should be instantiated.
+const DeploymentInstantiatedAnnotationValue = "true"
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
@@ -288,12 +304,16 @@ type DeploymentConfigSpec struct {
 	Triggers []DeploymentTriggerPolicy
 
 	// Replicas is the number of desired replicas.
-	Replicas int
+	Replicas int32
 
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
 	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
 	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
 	Test bool
+
+	// Paused indicates that the deployment config is paused resulting in no new deployments on template
+	// changes or changes in the template caused by other triggers.
+	Paused bool
 
 	// Selector is a label query over pods that should match the Replicas count.
 	Selector map[string]string
@@ -307,10 +327,12 @@ type DeploymentConfigSpec struct {
 type DeploymentConfigStatus struct {
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
-	LatestVersion int
+	LatestVersion int64
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails
+	// ObservedGeneration is the most recent generation observed by the controller.
+	ObservedGeneration int64
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
@@ -337,7 +359,10 @@ const (
 
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
-	// Automatic means that the detection of a new tag value should result in a new deployment.
+	// Automatic means that the detection of a new tag value should result in an image update
+	// inside the pod template. Deployment configs that haven't been deployed yet will always
+	// have their images updated. Deployment configs that have been deployed at least once, will
+	// have their images updated only if this is set to true.
 	Automatic bool
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string
@@ -354,7 +379,7 @@ type DeploymentDetails struct {
 	// Message is the user specified change message, if this deployment was triggered manually by the user
 	Message string
 	// Causes are extended data associated with all the causes for creating a new deployment
-	Causes []*DeploymentCause
+	Causes []DeploymentCause
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
@@ -424,7 +449,7 @@ type DeploymentLogOptions struct {
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceSeconds *int64
 	// An RFC3339 timestamp from which to show logs. If this value
-	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceTime *unversioned.Time

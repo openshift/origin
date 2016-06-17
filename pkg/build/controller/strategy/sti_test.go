@@ -10,10 +10,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type FakeAdmissionControl struct {
@@ -52,10 +52,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: expected.Name}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	container := actual.Spec.Containers[0]
@@ -148,6 +148,23 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	}
 }
 
+func TestS2IBuildLongName(t *testing.T) {
+	strategy := &SourceBuildStrategy{
+		Image:            "sti-test-image",
+		Codec:            kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+		AdmissionControl: &FakeAdmissionControl{admit: true},
+	}
+	build := mockSTIBuild()
+	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
+	pod, err := strategy.CreateBuildPod(build)
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
+	}
+}
+
 func mockSTIBuild() *buildapi.Build {
 	timeout := int64(60)
 	return &buildapi.Build{
@@ -158,45 +175,47 @@ func mockSTIBuild() *buildapi.Build {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{},
-			},
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.build.com/the/stibuild/Dockerfile",
-					Ref: "master",
+			CommonSpec: buildapi.CommonSpec{
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{},
 				},
-				ContextDir:   "foo",
-				SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
-			},
-			Strategy: buildapi.BuildStrategy{
-				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: kapi.ObjectReference{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.build.com/the/stibuild/Dockerfile",
+						Ref: "master",
+					},
+					ContextDir:   "foo",
+					SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
+				},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/sti-builder",
+						},
+						PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+						Scripts:    "http://my.build.com/the/sti/scripts",
+						Env: []kapi.EnvVar{
+							{Name: "BUILD_LOGLEVEL", Value: "bar"},
+							{Name: "ILLEGAL", Value: "foo"},
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "repository/sti-builder",
+						Name: "docker-registry/repository/stiBuild",
 					},
-					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
-					Scripts:    "http://my.build.com/the/sti/scripts",
-					Env: []kapi.EnvVar{
-						{Name: "BUILD_LOGLEVEL", Value: "bar"},
-						{Name: "ILLEGAL", Value: "foo"},
+					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
+				},
+				Resources: kapi.ResourceRequirements{
+					Limits: kapi.ResourceList{
+						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 					},
 				},
+				CompletionDeadlineSeconds: &timeout,
 			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "docker-registry/repository/stiBuild",
-				},
-				PushSecret: &kapi.LocalObjectReference{Name: "foo"},
-			},
-			Resources: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
-				},
-			},
-			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,

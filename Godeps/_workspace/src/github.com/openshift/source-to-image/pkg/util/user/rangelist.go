@@ -1,7 +1,6 @@
 package user
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -81,22 +80,4 @@ func IsUserAllowed(user string, allowed *RangeList) bool {
 		return false
 	}
 	return allowed.Contains(uid)
-}
-
-var dockerLineDelim = regexp.MustCompile(`[\t\v\f\r ]+`)
-
-// IsOnbuildAllowed checks a list of Docker ONBUILD instructions for
-// user directives. It ensures that any users specified by the directives
-// falls within the specified range list of users.
-func IsOnbuildAllowed(directives []string, allowed *RangeList) bool {
-	for _, line := range directives {
-		parts := dockerLineDelim.Split(line, 2)
-		if strings.ToLower(parts[0]) != "user" {
-			continue
-		}
-		if !IsUserAllowed(parts[1], allowed) {
-			return false
-		}
-	}
-	return true
 }

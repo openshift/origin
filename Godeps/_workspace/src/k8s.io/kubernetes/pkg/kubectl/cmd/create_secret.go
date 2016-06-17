@@ -38,12 +38,13 @@ func NewCmdCreateSecret(f *cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	}
 	cmd.AddCommand(NewCmdCreateSecretDockerRegistry(f, cmdOut))
 	cmd.AddCommand(NewCmdCreateSecretGeneric(f, cmdOut))
+
 	return cmd
 }
 
 const (
 	secretLong = `
-Create a secret based on a file, directory, or specified literal value
+Create a secret based on a file, directory, or specified literal value.
 
 A single secret may package one or more key/value pairs.
 
@@ -56,13 +57,13 @@ symlinks, devices, pipes, etc).
 `
 
 	secretExample = `  # Create a new secret named my-secret with keys for each file in folder bar
-  $ kubectl create secret generic my-secret --from-file=path/to/bar
+  kubectl create secret generic my-secret --from-file=path/to/bar
 
   # Create a new secret named my-secret with specified keys instead of names on disk
-  $ kubectl create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
+  kubectl create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
 
   # Create a new secret named my-secret with key1=supersecret and key2=topsecret
-  $ kubectl create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret`
+  kubectl create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret`
 )
 
 // NewCmdCreateSecretGeneric is a command to create generic secrets from files, directories, or literal values
@@ -79,6 +80,7 @@ func NewCmdCreateSecretGeneric(f *cmdutil.Factory, cmdOut io.Writer) *cobra.Comm
 	}
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddValidateFlags(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddGeneratorFlags(cmd, cmdutil.SecretV1GeneratorName)
 	cmd.Flags().StringSlice("from-file", []string{}, "Key files can be specified using their file path, in which case a default name will be given to them, or optionally with a name and file path, in which case the given name will be used.  Specifying a directory will iterate each named file in the directory that is a valid secret key.")
 	cmd.Flags().StringSlice("from-literal", []string{}, "Specify a key and literal value to insert in secret (i.e. mykey=somevalue)")
@@ -86,7 +88,7 @@ func NewCmdCreateSecretGeneric(f *cmdutil.Factory, cmdOut io.Writer) *cobra.Comm
 	return cmd
 }
 
-// CreateSecretGeneric is the implementation the create secret generic command
+// CreateSecretGeneric is the implementation of the create secret generic command
 func CreateSecretGeneric(f *cmdutil.Factory, cmdOut io.Writer, cmd *cobra.Command, args []string) error {
 	name, err := NameFromCommandArgs(cmd, args)
 	if err != nil {
@@ -145,6 +147,7 @@ func NewCmdCreateSecretDockerRegistry(f *cmdutil.Factory, cmdOut io.Writer) *cob
 	}
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddValidateFlags(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddGeneratorFlags(cmd, cmdutil.SecretForDockerRegistryV1GeneratorName)
 	cmd.Flags().String("docker-username", "", "Username for Docker registry authentication")
 	cmd.MarkFlagRequired("docker-username")
@@ -153,6 +156,7 @@ func NewCmdCreateSecretDockerRegistry(f *cmdutil.Factory, cmdOut io.Writer) *cob
 	cmd.Flags().String("docker-email", "", "Email for Docker registry")
 	cmd.MarkFlagRequired("docker-email")
 	cmd.Flags().String("docker-server", "https://index.docker.io/v1/", "Server location for Docker registry")
+	cmdutil.AddInclude3rdPartyFlags(cmd)
 	return cmd
 }
 

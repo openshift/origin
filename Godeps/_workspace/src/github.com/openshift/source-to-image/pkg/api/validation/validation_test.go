@@ -41,6 +41,16 @@ func TestValidation(t *testing.T) {
 			},
 			[]ValidationError{},
 		},
+		{
+			&api.Config{
+				Source:            "",
+				BuilderImage:      "openshift/builder",
+				DockerConfig:      &api.DockerConfig{Endpoint: "/var/run/docker.socket"},
+				DockerNetworkMode: api.NewDockerNetworkModeContainer("8d873e496bc3e80a1cb22e67f7de7be5b0633e27916b1144978d1419c0abfcdb"),
+				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
+			},
+			[]ValidationError{},
+		},
 	}
 	for _, test := range testCases {
 		result := ValidateConfig(test.value)

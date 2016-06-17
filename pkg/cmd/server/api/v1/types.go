@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -68,6 +69,29 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig NodeVolumeConfig `json:"volumeConfig"`
+}
+
+// NodeVolumeConfig contains options for configuring volumes on the node.
+type NodeVolumeConfig struct {
+	// LocalQuota contains options for controlling local volume quota on the node.
+	LocalQuota LocalQuota `json:"localQuota"`
+}
+
+// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+type MasterVolumeConfig struct {
+	// DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true
+	DynamicProvisioningEnabled *bool `json:"dynamicProvisioningEnabled"`
+}
+
+// LocalQuota contains options for controlling local volume quota on the node.
+type LocalQuota struct {
+	// FSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
+	// At present this is only implemented for emptyDir volumes, and if the underlying
+	// volumeDirectory is on an XFS filesystem.
+	PerFSGroup *resource.Quantity `json:"perFSGroup"`
 }
 
 // NodeAuthConfig holds authn/authz configuration options
@@ -90,7 +114,8 @@ type NodeAuthConfig struct {
 // NodeNetworkConfig provides network options for the node
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string `json:"networkPluginName"`
+	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
+	NetworkPluginName string `json:"networkPluginName,omitempty"`
 	// Maximum transmission unit for the network packets
 	MTU uint `json:"mtu"`
 }
@@ -152,6 +177,9 @@ type MasterConfig struct {
 	// AdmissionConfig contains admission control plugin configuration.
 	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
 
+	// ControllerConfig holds configuration values for controllers
+	ControllerConfig ControllerConfig `json:"controllerConfig"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
@@ -201,6 +229,41 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
+
+	// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+	VolumeConfig MasterVolumeConfig `json:"volumeConfig"`
+
+	// JenkinsPipelineConfig holds information about the default Jenkins template
+	// used for JenkinsPipeline build strategy.
+	JenkinsPipelineConfig JenkinsPipelineConfig `json:"jenkinsPipelineConfig"`
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig `json:"auditConfig"`
+}
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, basic audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool `json:"enabled"`
+}
+
+// JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
+type JenkinsPipelineConfig struct {
+	// If the enabled flag is set, a Jenkins server will be spawned from the provided
+	// template when the first build config in the project with type JenkinsPipeline
+	// is created. When not specified this option defaults to true.
+	Enabled *bool `json:"enabled"`
+	// TemplateNamespace contains the namespace name where the Jenkins template is stored
+	TemplateNamespace string `json:"templateNamespace"`
+	// TemplateName is the name of the default Jenkins template
+	TemplateName string `json:"templateName"`
+	// ServiceName is the name of the Jenkins service OpenShift uses to detect
+	// whether a Jenkins pipeline handler has already been installed in a project.
+	// This value *must* match a service name in the provided template.
+	ServiceName string `json:"serviceName"`
+	// Parameters specifies a set of optional parameters to the Jenkins template.
+	Parameters map[string]string `json:"parameters"`
 }
 
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
@@ -270,29 +333,47 @@ type PolicyConfig struct {
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
 
-	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	LegacyClientPolicyConfig LegacyClientPolicyConfig `json:"legacyClientPolicyConfig"`
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	UserAgentMatchingConfig UserAgentMatchingConfig `json:"userAgentMatchingConfig"`
 }
 
-// LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API
-type LegacyClientPolicyConfig struct {
-	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	// The default is AllowAll
-	LegacyClientPolicy LegacyClientPolicy `json:"legacyClientPolicy"`
-	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
-	RestrictedHTTPVerbs []string `json:"restrictedHTTPVerbs"`
+// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+type UserAgentMatchingConfig struct {
+	// If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed
+	RequiredClients []UserAgentMatchRule `json:"requiredClients"`
+
+	// If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes
+	DeniedClients []UserAgentDenyRule `json:"deniedClients"`
+
+	// DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.
+	DefaultRejectionMessage string `json:"defaultRejectionMessage"`
 }
 
-type LegacyClientPolicy string
+// UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb
+type UserAgentMatchRule struct {
+	// UserAgentRegex is a regex that is checked against the User-Agent.
+	// Known variants of oc clients
+	// 1. oc accessing kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 4. openshit kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+	// 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+	// 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+	Regex string `json:"regex"`
 
-var (
-	// AllowAll does not prevent any kinds of client version skew
-	AllowAll LegacyClientPolicy = "allow-all"
-	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
-	DenyOldClients LegacyClientPolicy = "deny-old-clients"
-	// DenySkewedClients prevents any non-matching client from issuing stomping requests
-	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
-)
+	// HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means "match all verbs".
+	HTTPVerbs []string `json:"httpVerbs"`
+}
+
+// UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client
+type UserAgentDenyRule struct {
+	UserAgentMatchRule `json:", inline"`
+
+	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
+	RejectionMessage string `json:"rejectionMessage"`
+}
 
 // RoutingConfig holds the necessary configuration options for routing to subdomains
 type RoutingConfig struct {
@@ -312,6 +393,11 @@ type MasterNetworkConfig struct {
 	HostSubnetLength uint `json:"hostSubnetLength"`
 	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string `json:"externalIPNetworkCIDRs"`
 }
 
 // ImageConfig holds the necessary configuration options for building image names for system components
@@ -456,6 +542,10 @@ type AssetConfig struct {
 	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
 	// Console loads
 	ExtensionScripts []string `json:"extensionScripts"`
+
+	// ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under
+	// the global variable OPENSHIFT_EXTENSION_PROPERTIES
+	ExtensionProperties map[string]string `json:"extensionProperties"`
 
 	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
 	// the Web Console loads
@@ -691,6 +781,9 @@ type RequestHeaderIdentityProvider struct {
 
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string `json:"clientCA"`
+	// ClientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.
+	ClientCommonNames []string `json:"clientCommonNames"`
+
 	// Headers is the set of headers to check for identity information
 	Headers []string `json:"headers"`
 	// PreferredUsernameHeaders is the set of headers to check for the preferred username
@@ -799,6 +892,10 @@ type OpenIDClaims struct {
 type GrantConfig struct {
 	// Method: allow, deny, prompt
 	Method GrantHandlerType `json:"method"`
+
+	// ServiceAccountMethod is used for determining client authorization for service account oauth client.
+	// It must be either: deny, prompt
+	ServiceAccountMethod GrantHandlerType `json:"serviceAccountMethod"`
 }
 
 type GrantHandlerType string
@@ -1095,4 +1192,29 @@ type AdmissionConfig struct {
 	// PluginOrderOverride is a list of admission control plugin names that will be installed
 	// on the master. Order is significant. If empty, a default list of plugins is used.
 	PluginOrderOverride []string `json:"pluginOrderOverride,omitempty"`
+}
+
+// ControllerConfig holds configuration values for controllers
+type ControllerConfig struct {
+	// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+	// pods fulfilling a service to serve with.
+	ServiceServingCert ServiceServingCert `json:"serviceServingCert"`
+}
+
+// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+// pods fulfilling a service to serve with.
+type ServiceServingCert struct {
+	// Signer holds the signing information used to automatically sign serving certificates.
+	// If this value is nil, then certs are not signed automatically.
+	Signer *CertInfo `json:"signer"`
+}
+
+// DefaultAdmissionConfig can be used to enable or disable various admission plugins.
+// When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,
+// this will cause an "off by default" admission plugin to be enabled
+type DefaultAdmissionConfig struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Disable turns off an admission plugin that is enabled by default.
+	Disable bool
 }

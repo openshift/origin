@@ -1072,6 +1072,73 @@ func TestClientConnectionStopsServingAfterGoAway(t *testing.T) {
 	<-readChan
 }
 
+func TestStreamReadUnblocksAfterCloseThenReset(t *testing.T) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("Error listening: %v", err)
+	}
+	listen := listener.Addr().String()
+
+	serverConns := make(chan *Connection, 1)
+	go func() {
+		conn, connErr := listener.Accept()
+		if connErr != nil {
+			t.Fatal(connErr)
+		}
+		serverSpdyConn, err := NewConnection(conn, true)
+		if err != nil {
+			t.Fatalf("Error creating server connection: %v", err)
+		}
+		go serverSpdyConn.Serve(NoOpStreamHandler)
+		serverConns <- serverSpdyConn
+	}()
+
+	conn, dialErr := net.Dial("tcp", listen)
+	if dialErr != nil {
+		t.Fatalf("Error dialing server: %s", dialErr)
+	}
+
+	spdyConn, spdyErr := NewConnection(conn, false)
+	if spdyErr != nil {
+		t.Fatalf("Error creating spdy connection: %s", spdyErr)
+	}
+	go spdyConn.Serve(NoOpStreamHandler)
+
+	stream, err := spdyConn.CreateStream(http.Header{}, nil, false)
+	if err != nil {
+		t.Fatalf("Error creating stream: %v", err)
+	}
+	if err := stream.WaitTimeout(30 * time.Second); err != nil {
+		t.Fatalf("Timed out waiting for stream: %v", err)
+	}
+
+	readChan := make(chan struct{})
+	go func() {
+		_, err := ioutil.ReadAll(stream)
+		if err != nil {
+			t.Fatalf("Error reading stream: %v", err)
+		}
+		close(readChan)
+	}()
+
+	serverConn := <-serverConns
+	defer serverConn.Close()
+
+	if err := stream.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := stream.Reset(); err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure close followed by reset unblocks stream.Read()
+	select {
+	case <-readChan:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Timed out waiting for stream read to unblock")
+	}
+}
+
 var authenticated bool
 
 func authStreamHandler(stream *Stream) {

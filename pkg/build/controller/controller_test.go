@@ -12,6 +12,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	"github.com/openshift/origin/pkg/build/controller/policy"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -20,6 +21,12 @@ type okBuildUpdater struct{}
 
 func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error {
 	return nil
+}
+
+type okBuildLister struct{}
+
+func (okc *okBuildLister) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
 }
 
 type errBuildUpdater struct{}
@@ -113,21 +120,29 @@ func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
+			Annotations: map[string]string{
+				buildapi.BuildConfigAnnotation: "test-bc",
+			},
 			Labels: map[string]string{
 				"name": "dataBuild",
+				// TODO: Switch this test to use Serial policy
+				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+				buildapi.BuildConfigLabel:    "test-bc",
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.build.com/the/build/Dockerfile",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.build.com/the/build/Dockerfile",
+					},
+					ContextDir: "contextimage",
 				},
-				ContextDir: "contextimage",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: output,
 			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: output,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: phase,
@@ -138,10 +153,12 @@ func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi
 func mockBuildController() *BuildController {
 	return &BuildController{
 		BuildUpdater:      &okBuildUpdater{},
+		BuildLister:       &okBuildLister{},
 		PodManager:        &okPodManager{},
 		BuildStrategy:     &okStrategy{},
 		ImageStreamClient: &okImageStreamClient{},
 		Recorder:          &record.FakeRecorder{},
+		RunPolicies:       policy.GetAllRunPolicies(&okBuildLister{}, &okBuildUpdater{}),
 	}
 }
 
@@ -166,7 +183,7 @@ func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 			ContainerStatuses: []kapi.ContainerStatus{
 				{
 					State: kapi.ContainerState{
-						Terminated: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+						Terminated: &kapi.ContainerStateTerminated{ExitCode: int32(exitCode)},
 					},
 				},
 			},
@@ -405,6 +422,9 @@ func TestHandleBuild(t *testing.T) {
 
 		if len(tc.outputSpec) != 0 {
 			build := ctrl.BuildStrategy.(*okStrategy).build
+			if build == nil {
+				t.Errorf("(%d) unable to cast build", i)
+			}
 
 			if build.Spec.Output.To.Name != tc.outputSpec {
 				t.Errorf("(%d) expected build sent to strategy to have docker spec %s, got %s", i, tc.outputSpec, build.Spec.Output.To.Name)
@@ -701,7 +721,10 @@ func TestHandleHandleBuildDeletionOK(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			deleteWasCalled = true
@@ -723,7 +746,10 @@ func TestHandleHandleBuildDeletionOKDeprecatedLabel(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			deleteWasCalled = true
@@ -802,7 +828,10 @@ func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
+				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
+			}}, nil
 		},
 		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
 			return errors.New("random")

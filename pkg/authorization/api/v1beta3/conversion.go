@@ -12,7 +12,7 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
+func Convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *Resour
 	return nil
 }
 
-func convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
+func Convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *newer.
 	return nil
 }
 
-func convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
+func Convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(
 	return nil
 }
 
-func convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
+func Convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -56,33 +56,7 @@ func convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(
 	return nil
 }
 
-func convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	out.Groups = sets.NewString(in.GroupsSlice...)
-
-	return nil
-}
-
-func convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	out.GroupsSlice = in.Groups.List()
-
-	return nil
-}
-
-func convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
+func Convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -95,7 +69,7 @@ func convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in
 	return nil
 }
 
-func convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
+func Convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -108,7 +82,33 @@ func convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in
 	return nil
 }
 
-func convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
+func Convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.Groups = sets.NewString(in.GroupsSlice...)
+
+	return nil
+}
+
+func Convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.GroupsSlice = in.Groups.List()
+
+	return nil
+}
+
+func Convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewRes
 	return nil
 }
 
-func convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
+func Convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewRes
 	return nil
 }
 
-func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
+func Convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
 	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, out.AttributeRestrictions, s); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.Pol
 	return nil
 }
 
-func convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
+func Convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
 	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
@@ -174,19 +174,19 @@ func convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *Pol
 	return nil
 }
 
-func convert_v1beta3_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
+func Convert_v1beta3_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.Roles = make(map[string]*newer.Role)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_api_Policy_To_v1beta3_Policy(in *newer.Policy, out *Policy, s conversion.Scope) error {
+func Convert_api_Policy_To_v1beta3_Policy(in *newer.Policy, out *Policy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.Roles = make([]NamedRole, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_v1beta3_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleBinding, s conversion.Scope) error {
+func Convert_v1beta3_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleBinding, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func convert_v1beta3_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.
 	return nil
 }
 
-func convert_api_RoleBinding_To_v1beta3_RoleBinding(in *newer.RoleBinding, out *RoleBinding, s conversion.Scope) error {
+func Convert_api_RoleBinding_To_v1beta3_RoleBinding(in *newer.RoleBinding, out *RoleBinding, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -211,32 +211,32 @@ func convert_api_RoleBinding_To_v1beta3_RoleBinding(in *newer.RoleBinding, out *
 	return nil
 }
 
-func convert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
+func Convert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.RoleBindings = make(map[string]*newer.RoleBinding)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
+func Convert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.RoleBindings = make([]NamedRoleBinding, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
 // and now the globals
-func convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
+func Convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.Roles = make(map[string]*newer.ClusterRole)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
+func Convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.Roles = make([]NamedClusterRole, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
+func Convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRol
 	return nil
 }
 
-func convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
+func Convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -261,13 +261,13 @@ func convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *newer.Clus
 	return nil
 }
 
-func convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
+func Convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.RoleBindings = make(map[string]*newer.ClusterRoleBinding)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
-func convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
+func Convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
 	out.RoleBindings = make([]NamedClusterRoleBinding, 0, 0)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
@@ -275,29 +275,29 @@ func convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding(in *newer.
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
-		convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
-		convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
-		convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,
-		convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview,
-		convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview,
-		convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview,
-		convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
-		convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview,
-		convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
-		convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse,
-		convert_v1beta3_PolicyRule_To_api_PolicyRule,
-		convert_api_PolicyRule_To_v1beta3_PolicyRule,
-		convert_v1beta3_Policy_To_api_Policy,
-		convert_api_Policy_To_v1beta3_Policy,
-		convert_v1beta3_RoleBinding_To_api_RoleBinding,
-		convert_api_RoleBinding_To_v1beta3_RoleBinding,
-		convert_v1beta3_PolicyBinding_To_api_PolicyBinding,
-		convert_api_PolicyBinding_To_v1beta3_PolicyBinding,
-		convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy,
-		convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding,
-		convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding,
-		convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding,
-		convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding,
+		Convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
+		Convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
+		Convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,
+		Convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview,
+		Convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview,
+		Convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview,
+		Convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
+		Convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview,
+		Convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
+		Convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse,
+		Convert_v1beta3_PolicyRule_To_api_PolicyRule,
+		Convert_api_PolicyRule_To_v1beta3_PolicyRule,
+		Convert_v1beta3_Policy_To_api_Policy,
+		Convert_api_Policy_To_v1beta3_Policy,
+		Convert_v1beta3_RoleBinding_To_api_RoleBinding,
+		Convert_api_RoleBinding_To_v1beta3_RoleBinding,
+		Convert_v1beta3_PolicyBinding_To_api_PolicyBinding,
+		Convert_api_PolicyBinding_To_v1beta3_PolicyBinding,
+		Convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy,
+		Convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding,
+		Convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding,
+		Convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding,
+		Convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding,
 
 		func(in *[]NamedRoleBinding, out *map[string]*newer.RoleBinding, s conversion.Scope) error {
 			for _, curr := range *in {

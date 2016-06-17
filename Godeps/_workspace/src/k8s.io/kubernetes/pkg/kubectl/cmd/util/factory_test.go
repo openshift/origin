@@ -19,25 +19,33 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/user"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 func TestNewFactoryDefaultFlagBindings(t *testing.T) {
@@ -54,28 +62,6 @@ func TestNewFactoryNoFlagBindings(t *testing.T) {
 
 	if factory.flags.HasFlags() {
 		t.Errorf("Expected zero flags, but got %v", factory.flags)
-	}
-}
-
-func TestPodSelectorForObject(t *testing.T) {
-	f := NewFactory(nil)
-
-	svc := &api.Service{
-		ObjectMeta: api.ObjectMeta{Name: "baz", Namespace: "test"},
-		Spec: api.ServiceSpec{
-			Selector: map[string]string{
-				"foo": "bar",
-			},
-		},
-	}
-
-	expected := "foo=bar"
-	got, err := f.PodSelectorForObject(svc)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if expected != got {
-		t.Fatalf("Selector mismatch! Expected %s, got %s", expected, got)
 	}
 }
 
@@ -197,7 +183,7 @@ func TestCanBeExposed(t *testing.T) {
 func TestFlagUnderscoreRenaming(t *testing.T) {
 	factory := NewFactory(nil)
 
-	factory.flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
+	factory.flags.SetNormalizeFunc(flag.WordSepNormalizeFunc)
 	factory.flags.Bool("valid_flag", false, "bool value")
 
 	// In case of failure of this test check this PR: spf13/pflag#23
@@ -213,6 +199,63 @@ func loadSchemaForTest() (validation.Schema, error) {
 		return nil, err
 	}
 	return validation.NewSwaggerSchemaFromBytes(data)
+}
+
+func TestRefetchSchemaWhenValidationFails(t *testing.T) {
+	schema, err := loadSchemaForTest()
+	if err != nil {
+		t.Errorf("Error loading schema: %v", err)
+		t.FailNow()
+	}
+	output, err := json.Marshal(schema)
+	if err != nil {
+		t.Errorf("Error serializing schema: %v", err)
+		t.FailNow()
+	}
+	requests := map[string]int{}
+
+	c := &fake.RESTClient{
+		Codec: testapi.Default.Codec(),
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case strings.HasPrefix(p, "/swaggerapi") && m == "GET":
+				requests[p] = requests[p] + 1
+				return &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewBuffer(output))}, nil
+			default:
+				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+	dir := os.TempDir() + "/schemaCache"
+	os.RemoveAll(dir)
+
+	fullDir, err := substituteUserHome(dir)
+	if err != nil {
+		t.Errorf("Error getting fullDir: %v", err)
+		t.FailNow()
+	}
+	cacheFile := path.Join(fullDir, "foo", "bar", schemaFileName)
+	err = writeSchemaFile(output, fullDir, cacheFile, "foo", "bar")
+	if err != nil {
+		t.Errorf("Error building old cache schema: %v", err)
+		t.FailNow()
+	}
+
+	obj := &extensions.Deployment{}
+	data, err := runtime.Encode(testapi.Extensions.Codec(), obj)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	// Re-get request, should use HTTP and write
+	if getSchemaAndValidate(c, data, "foo", "bar", dir); err != nil {
+		t.Errorf("unexpected error validating: %v", err)
+	}
+	if requests["/swaggerapi/foo/bar"] != 1 {
+		t.Errorf("expected 1 schema request, saw: %d", requests["/swaggerapi/foo/bar"])
+	}
 }
 
 func TestValidateCachesSchema(t *testing.T) {
@@ -266,7 +309,7 @@ func TestValidateCachesSchema(t *testing.T) {
 	if getSchemaAndValidate(c, data, "foo", "bar", dir); err != nil {
 		t.Errorf("unexpected error validating: %v", err)
 	}
-	if requests["/swaggerapi/foo/bar"] != 1 {
+	if requests["/swaggerapi/foo/bar"] != 2 {
 		t.Errorf("expected 1 schema request, saw: %d", requests["/swaggerapi/foo/bar"])
 	}
 
@@ -333,6 +376,293 @@ func TestSubstitueUser(t *testing.T) {
 		}
 		if output != test.expected {
 			t.Errorf("expected: %s, saw: %s", test.expected, output)
+		}
+	}
+}
+
+func newPodList(count, isUnready, isUnhealthy int, labels map[string]string) *api.PodList {
+	pods := []api.Pod{}
+	for i := 0; i < count; i++ {
+		newPod := api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				Name:              fmt.Sprintf("pod-%d", i+1),
+				Namespace:         api.NamespaceDefault,
+				CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, i, 0, time.UTC),
+				Labels:            labels,
+			},
+			Status: api.PodStatus{
+				Conditions: []api.PodCondition{
+					{
+						Status: api.ConditionTrue,
+						Type:   api.PodReady,
+					},
+				},
+			},
+		}
+		pods = append(pods, newPod)
+	}
+	if isUnready > -1 && isUnready < count {
+		pods[isUnready].Status.Conditions[0].Status = api.ConditionFalse
+	}
+	if isUnhealthy > -1 && isUnhealthy < count {
+		pods[isUnhealthy].Status.ContainerStatuses = []api.ContainerStatus{{RestartCount: 5}}
+	}
+	return &api.PodList{
+		Items: pods,
+	}
+}
+
+func TestGetFirstPod(t *testing.T) {
+	labelSet := map[string]string{"test": "selector"}
+	tests := []struct {
+		name string
+
+		podList  *api.PodList
+		watching []watch.Event
+		sortBy   func([]*api.Pod) sort.Interface
+
+		expected    *api.Pod
+		expectedNum int
+		expectedErr bool
+	}{
+		{
+			name:    "kubectl logs - two ready pods",
+			podList: newPodList(2, -1, -1, labelSet),
+			sortBy:  func(pods []*api.Pod) sort.Interface { return controller.ActivePods(pods) },
+			expected: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:              "pod-2",
+					Namespace:         api.NamespaceDefault,
+					CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, 1, 0, time.UTC),
+					Labels:            map[string]string{"test": "selector"},
+				},
+				Status: api.PodStatus{
+					Conditions: []api.PodCondition{
+						{
+							Status: api.ConditionTrue,
+							Type:   api.PodReady,
+						},
+					},
+				},
+			},
+			expectedNum: 2,
+		},
+		{
+			name:    "kubectl logs - one unhealthy, one healthy",
+			podList: newPodList(2, -1, 1, labelSet),
+			sortBy:  func(pods []*api.Pod) sort.Interface { return controller.ActivePods(pods) },
+			expected: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:              "pod-2",
+					Namespace:         api.NamespaceDefault,
+					CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, 1, 0, time.UTC),
+					Labels:            map[string]string{"test": "selector"},
+				},
+				Status: api.PodStatus{
+					Conditions: []api.PodCondition{
+						{
+							Status: api.ConditionTrue,
+							Type:   api.PodReady,
+						},
+					},
+					ContainerStatuses: []api.ContainerStatus{{RestartCount: 5}},
+				},
+			},
+			expectedNum: 2,
+		},
+		{
+			name:    "kubectl attach - two ready pods",
+			podList: newPodList(2, -1, -1, labelSet),
+			sortBy:  func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) },
+			expected: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:              "pod-1",
+					Namespace:         api.NamespaceDefault,
+					CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, 0, 0, time.UTC),
+					Labels:            map[string]string{"test": "selector"},
+				},
+				Status: api.PodStatus{
+					Conditions: []api.PodCondition{
+						{
+							Status: api.ConditionTrue,
+							Type:   api.PodReady,
+						},
+					},
+				},
+			},
+			expectedNum: 2,
+		},
+		{
+			name:    "kubectl attach - wait for ready pod",
+			podList: newPodList(1, 1, -1, labelSet),
+			watching: []watch.Event{
+				{
+					Type: watch.Modified,
+					Object: &api.Pod{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "pod-1",
+							Namespace:         api.NamespaceDefault,
+							CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, 0, 0, time.UTC),
+							Labels:            map[string]string{"test": "selector"},
+						},
+						Status: api.PodStatus{
+							Conditions: []api.PodCondition{
+								{
+									Status: api.ConditionTrue,
+									Type:   api.PodReady,
+								},
+							},
+						},
+					},
+				},
+			},
+			sortBy: func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) },
+			expected: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:              "pod-1",
+					Namespace:         api.NamespaceDefault,
+					CreationTimestamp: unversioned.Date(2016, time.April, 1, 1, 0, 0, 0, time.UTC),
+					Labels:            map[string]string{"test": "selector"},
+				},
+				Status: api.PodStatus{
+					Conditions: []api.PodCondition{
+						{
+							Status: api.ConditionTrue,
+							Type:   api.PodReady,
+						},
+					},
+				},
+			},
+			expectedNum: 1,
+		},
+	}
+
+	for i := range tests {
+		test := tests[i]
+		client := &testclient.Fake{}
+		client.PrependReactor("list", "pods", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, test.podList, nil
+		})
+		if len(test.watching) > 0 {
+			watcher := watch.NewFake()
+			for _, event := range test.watching {
+				switch event.Type {
+				case watch.Added:
+					go watcher.Add(event.Object)
+				case watch.Modified:
+					go watcher.Modify(event.Object)
+				}
+			}
+			client.PrependWatchReactor("pods", testclient.DefaultWatchReactor(watcher, nil))
+		}
+		selector := labels.Set(labelSet).AsSelector()
+
+		pod, numPods, err := GetFirstPod(client, api.NamespaceDefault, selector, 1*time.Minute, test.sortBy)
+		if !test.expectedErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if test.expectedErr && err == nil {
+			t.Errorf("%s: expected an error", test.name)
+			continue
+		}
+		if test.expectedNum != numPods {
+			t.Errorf("%s: expected %d pods, got %d", test.name, test.expectedNum, numPods)
+			continue
+		}
+		if !reflect.DeepEqual(test.expected, pod) {
+			t.Errorf("%s:\nexpected pod:\n%#v\ngot:\n%#v\n\n", test.name, test.expected, pod)
+		}
+	}
+}
+
+func TestPrintObjectSpecificMessage(t *testing.T) {
+	f := NewFactory(nil)
+	tests := []struct {
+		obj          runtime.Object
+		expectOutput bool
+	}{
+		{
+			obj:          &api.Service{},
+			expectOutput: false,
+		},
+		{
+			obj:          &api.Pod{},
+			expectOutput: false,
+		},
+		{
+			obj:          &api.Service{Spec: api.ServiceSpec{Type: api.ServiceTypeLoadBalancer}},
+			expectOutput: false,
+		},
+		{
+			obj:          &api.Service{Spec: api.ServiceSpec{Type: api.ServiceTypeNodePort}},
+			expectOutput: true,
+		},
+	}
+	for _, test := range tests {
+		buff := &bytes.Buffer{}
+		f.PrintObjectSpecificMessage(test.obj, buff)
+		if test.expectOutput && buff.Len() == 0 {
+			t.Errorf("Expected output, saw none for %v", test.obj)
+		}
+		if !test.expectOutput && buff.Len() > 0 {
+			t.Errorf("Expected no output, saw %s for %v", buff.String(), test.obj)
+		}
+	}
+}
+
+func TestMakePortsString(t *testing.T) {
+	tests := []struct {
+		ports          []api.ServicePort
+		useNodePort    bool
+		expectedOutput string
+	}{
+		{ports: nil, expectedOutput: ""},
+		{ports: []api.ServicePort{}, expectedOutput: ""},
+		{ports: []api.ServicePort{
+			{
+				Port:     80,
+				Protocol: "TCP",
+			},
+		},
+			expectedOutput: "tcp:80",
+		},
+		{ports: []api.ServicePort{
+			{
+				Port:     80,
+				Protocol: "TCP",
+			},
+			{
+				Port:     8080,
+				Protocol: "UDP",
+			},
+			{
+				Port:     9000,
+				Protocol: "TCP",
+			},
+		},
+			expectedOutput: "tcp:80,udp:8080,tcp:9000",
+		},
+		{ports: []api.ServicePort{
+			{
+				Port:     80,
+				NodePort: 9090,
+				Protocol: "TCP",
+			},
+			{
+				Port:     8080,
+				NodePort: 80,
+				Protocol: "UDP",
+			},
+		},
+			useNodePort:    true,
+			expectedOutput: "tcp:9090,udp:80",
+		},
+	}
+	for _, test := range tests {
+		output := makePortsString(test.ports, test.useNodePort)
+		if output != test.expectedOutput {
+			t.Errorf("expected: %s, saw: %s.", test.expectedOutput, output)
 		}
 	}
 }

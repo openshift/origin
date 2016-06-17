@@ -7,8 +7,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -26,6 +25,10 @@ fi
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
+rm -rf "${patch}"
+mkdir -p "${patch}"
+patch="${patch}/cherry-pick"
+
 if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
   echo "Expected ${UPSTREAM_REPO_LOCATION} to exist" 1>&2
   exit 1

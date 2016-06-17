@@ -17,8 +17,8 @@ limitations under the License.
 package fake
 
 import (
+	unversioned "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	unversioned "k8s.io/kubernetes/pkg/client/typed/generated/core/unversioned"
 )
 
 type FakeCore struct {
@@ -81,14 +81,14 @@ func (c *FakeCore) Secrets(namespace string) unversioned.SecretInterface {
 	return &FakeSecrets{c, namespace}
 }
 
+func (c *FakeCore) SecurityContextConstraints() unversioned.SecurityContextConstraintsInterface {
+	return &FakeSecurityContextConstraints{c}
+}
+
 func (c *FakeCore) Services(namespace string) unversioned.ServiceInterface {
 	return &FakeServices{c, namespace}
 }
 
 func (c *FakeCore) ServiceAccounts(namespace string) unversioned.ServiceAccountInterface {
 	return &FakeServiceAccounts{c, namespace}
-}
-
-func (c *FakeCore) SecurityContextConstraints() unversioned.SecurityContextConstraintInterface {
-	return &FakeSecurityContextConstraints{Fake: c}
 }

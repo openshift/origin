@@ -25,7 +25,7 @@ func Unregister(prefix string) {
 
 func TestDetectorFactoryRegister(t *testing.T) {
 	prefix := "bbm:"
-	Register(prefix, func(spec string) (Master, error) {
+	Register(prefix, func(spec string, _ ...Option) (Master, error) {
 		return testDetector("Hello!"), nil
 	})
 	defer Unregister(prefix)

@@ -8,14 +8,13 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # only works on Linux for now, all other platforms must build binaries themselves
 if [[ -z "$@" ]]; then
   if [[ "${OS_RELEASE:-}" != "n" ]] && \
-     os::build::detect_local_release_tars $(os::build::host_platform_friendly) >/dev/null; then
+    os::build::detect_local_release_tars $(os::build::host_platform_friendly) >/dev/null; then
     platform=$(os::build::host_platform)
     echo "++ Using release artifacts from ${OS_RELEASE_COMMIT} for ${platform} instead of building"
     mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"

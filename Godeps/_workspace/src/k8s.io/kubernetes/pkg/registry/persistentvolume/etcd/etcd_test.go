@@ -28,12 +28,13 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	persistentVolumeStorage, statusStorage := NewREST(etcdStorage, generic.UndecoratedStorage)
+	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
+	persistentVolumeStorage, statusStorage := NewREST(restOptions)
 	return persistentVolumeStorage, statusStorage, server
 }
 
@@ -69,7 +70,7 @@ func validChangedPersistentVolume() *api.PersistentVolume {
 func TestCreate(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	pv := validNewPersistentVolume("foo")
 	pv.ObjectMeta = api.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
@@ -85,7 +86,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestUpdate(
 		// valid
 		validNewPersistentVolume("foo"),
@@ -103,28 +104,28 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope().ReturnDeletedObject()
+	test := registrytest.New(t, storage.Store).ClusterScope().ReturnDeletedObject()
 	test.TestDelete(validNewPersistentVolume("foo"))
 }
 
 func TestGet(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(validNewPersistentVolume("foo"))
 }
 
 func TestList(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(validNewPersistentVolume("foo"))
 }
 
 func TestWatch(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestWatch(
 		validNewPersistentVolume("foo"),
 		// matching labels
@@ -152,7 +153,7 @@ func TestUpdateStatus(t *testing.T) {
 	key, _ := storage.KeyFunc(ctx, "foo")
 	key = etcdtest.AddPrefix(key)
 	pvStart := validNewPersistentVolume("foo")
-	err := storage.Storage.Set(ctx, key, pvStart, nil, 0)
+	err := storage.Storage.Create(ctx, key, pvStart, nil, 0)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -177,6 +178,6 @@ func TestUpdateStatus(t *testing.T) {
 	pvOut := obj.(*api.PersistentVolume)
 	// only compare the relevant change b/c metadata will differ
 	if !api.Semantic.DeepEqual(pvIn.Status, pvOut.Status) {
-		t.Errorf("unexpected object: %s", util.ObjectDiff(pvIn.Status, pvOut.Status))
+		t.Errorf("unexpected object: %s", diff.ObjectDiff(pvIn.Status, pvOut.Status))
 	}
 }

@@ -15,7 +15,7 @@ func TestComputeDefinitions(t *testing.T) {
 	diffCaps.AllowedCapabilities = []kapi.Capability{"foo"}
 
 	diffHostDir := goodSCC()
-	diffHostDir.AllowHostDirVolumePlugin = true
+	diffHostDir.Volumes = []kapi.FSType{kapi.FSTypeHostPath}
 
 	diffHostNetwork := goodSCC()
 	diffHostNetwork.AllowHostNetwork = true
@@ -40,6 +40,14 @@ func TestComputeDefinitions(t *testing.T) {
 
 	diffFSGroup := goodSCC()
 	diffFSGroup.FSGroup.Type = kapi.FSGroupStrategyMustRunAs
+
+	diffVolumes := goodSCC()
+	diffVolumes.Volumes = []kapi.FSType{kapi.FSTypeAWSElasticBlockStore}
+
+	noDiffVolumesA := goodSCC()
+	noDiffVolumesA.Volumes = []kapi.FSType{kapi.FSTypeAWSElasticBlockStore, kapi.FSTypeHostPath}
+	noDiffVolumesB := goodSCC()
+	noDiffVolumesB.Volumes = []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeAWSElasticBlockStore}
 
 	tests := map[string]struct {
 		expected    kapi.SecurityContextConstraints
@@ -100,6 +108,16 @@ func TestComputeDefinitions(t *testing.T) {
 			expected:    goodSCC(),
 			actual:      diffFSGroup,
 			needsUpdate: true,
+		},
+		"different volumes": {
+			expected:    goodSCC(),
+			actual:      diffVolumes,
+			needsUpdate: true,
+		},
+		"unsorted volumes": {
+			expected:    noDiffVolumesA,
+			actual:      noDiffVolumesB,
+			needsUpdate: false,
 		},
 		"no diff": {
 			expected:    goodSCC(),
@@ -432,13 +450,13 @@ func TestComputeUnioningUsersAndGroups(t *testing.T) {
 }
 
 func TestComputeUnioningPriorities(t *testing.T) {
-	priorityOne := 1
-	priorityTwo := 2
+	priorityOne := int32(1)
+	priorityTwo := int32(2)
 
 	tests := map[string]struct {
 		expected         kapi.SecurityContextConstraints
 		actual           kapi.SecurityContextConstraints
-		expectedPriority *int
+		expectedPriority *int32
 		needsUpdate      bool
 		union            bool
 	}{
@@ -544,7 +562,7 @@ func TestComputeUnioningPriorities(t *testing.T) {
 	}
 }
 
-func goodSCCWithPriority(priority int) kapi.SecurityContextConstraints {
+func goodSCCWithPriority(priority int32) kapi.SecurityContextConstraints {
 	scc := goodSCC()
 	scc.Priority = &priority
 	return scc

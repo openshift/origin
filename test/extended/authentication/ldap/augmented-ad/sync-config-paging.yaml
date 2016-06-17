@@ -15,7 +15,6 @@ augmentedActiveDirectory:
         baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
         scope: sub
         derefAliases: never
-        filter: (objectclass=groupOfNames)
         pageSize: 1
     groupUIDAttribute: dn
     groupNameAttributes: [ cn ]

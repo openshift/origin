@@ -70,9 +70,6 @@ func (rsStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// status its own object, and even if we don't, writes may be the result of a
 	// read-update-write loop, so the contents of spec may not actually be the spec that
 	// the ReplicaSet has *seen*.
-	//
-	// TODO: Any changes to a part of the object that represents desired state (labels,
-	// annotations etc) should also increment the generation.
 	if !reflect.DeepEqual(oldRS.Spec, newRS.Spec) {
 		newRS.Generation = oldRS.Generation + 1
 	}
@@ -109,7 +106,7 @@ func (rsStrategy) AllowUnconditionalUpdate() bool {
 func ReplicaSetToSelectableFields(rs *extensions.ReplicaSet) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(rs.ObjectMeta, true)
 	rsSpecificFieldsSet := fields.Set{
-		"status.replicas": strconv.Itoa(rs.Status.Replicas),
+		"status.replicas": strconv.Itoa(int(rs.Status.Replicas)),
 	}
 	return generic.MergeFieldsSets(objectMetaFieldsSet, rsSpecificFieldsSet)
 }

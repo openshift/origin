@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 func TestAccept(t *testing.T) {
@@ -205,8 +205,7 @@ func TestFileServing(t *testing.T) {
 	const prefix = "/foo/"
 	handler := newFileHandler(prefix, dir)
 	server := httptest.NewServer(handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 
 	url := server.URL + prefix + fname
 	res, err := http.Get(url)
@@ -236,8 +235,7 @@ func TestAPIRequests(t *testing.T) {
 		}
 		fmt.Fprintf(w, "%s %s %s", r.Method, r.RequestURI, string(b))
 	}))
-	// TODO: Uncomment when fix #19254
-	// defer ts.Close()
+	defer ts.Close()
 
 	// httptest.NewServer should always generate a valid URL.
 	target, _ := url.Parse(ts.URL)
@@ -273,8 +271,7 @@ func TestPathHandling(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, r.URL.Path)
 	}))
-	// TODO: Uncomment when fix #19254
-	// defer ts.Close()
+	defer ts.Close()
 
 	table := []struct {
 		prefix     string
@@ -293,7 +290,7 @@ func TestPathHandling(t *testing.T) {
 		{"/custom/", "/custom/api/v1/pods/", "/api/v1/pods/"},
 	}
 
-	cc := &client.Config{
+	cc := &restclient.Config{
 		Host: ts.URL,
 	}
 
@@ -304,8 +301,7 @@ func TestPathHandling(t *testing.T) {
 				t.Fatalf("%#v: %v", item, err)
 			}
 			pts := httptest.NewServer(p.handler)
-			// TODO: Uncomment when fix #19254
-			// defer pts.Close()
+			defer pts.Close()
 
 			r, err := http.Get(pts.URL + item.reqPath)
 			if err != nil {

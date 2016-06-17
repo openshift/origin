@@ -67,8 +67,8 @@ func NewDeploymentConfigController(kubeClient kclient.Interface, osClient osclie
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	// There's nothing to reconcile until the version is nonzero.
 	if config.Status.LatestVersion == 0 {
-		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
-		return nil
+		glog.V(5).Infof("Waiting for first version of %q", deployutil.LabelForDeploymentConfig(config))
+		return c.updateStatus(config)
 	}
 
 	// Find all deployments owned by the deploymentConfig.
@@ -115,9 +115,14 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
 		if !deployutil.IsTerminatedDeployment(latestDeployment) {
-			return nil
+			return c.updateStatus(config)
 		}
 		return c.reconcileDeployments(existingDeployments, config)
+	}
+	// If the config is paused we shouldn't create new deployments for it.
+	// TODO: Make sure cleanup policy will work for paused configs.
+	if config.Spec.Paused {
+		return c.updateStatus(config)
 	}
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
@@ -130,13 +135,14 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the deployment was already created, just move on. The cache could be
 		// stale, or another process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			return nil
+			return c.updateStatus(config)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
-	return nil
+
+	return c.updateStatus(config)
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -219,7 +225,8 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 	default:
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
-		_, err := c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		var err error
+		config, err = c.osClient.DeploymentConfigs(config.Namespace).Update(config)
 		if err != nil {
 			return err
 		}
@@ -232,7 +239,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
 
 		oldReplicaCount := deployment.Spec.Replicas
-		newReplicaCount := 0
+		newReplicaCount := int32(0)
 		if isActiveDeployment {
 			newReplicaCount = activeReplicas
 		}
@@ -244,7 +251,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		// Only update if necessary.
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
 			deployment.Spec.Replicas = newReplicaCount
-			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(newReplicaCount)
+			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
 			_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err != nil {
 				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
@@ -260,5 +267,18 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			}
 		}
 	}
+
+	return c.updateStatus(config)
+}
+
+func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig) error {
+	if config.Generation > config.Status.ObservedGeneration {
+		config.Status.ObservedGeneration = config.Generation
+	}
+	if _, err := c.osClient.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
+		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return transientError(fmt.Sprintf("cannot update the status for %q - requeuing", deployutil.LabelForDeploymentConfig(config)))
+	}
+	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
 	return nil
 }

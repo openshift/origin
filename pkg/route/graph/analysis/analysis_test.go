@@ -85,3 +85,19 @@ func TestPathBasedPassthroughRoutes(t *testing.T) {
 		t.Fatalf("expected %s marker key, got %s", expected, got)
 	}
 }
+
+func TestMissingRouter(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/lonely-route.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	routeedges.AddAllRouteEdges(g)
+
+	markers := FindMissingRouter(g, osgraph.DefaultNamer)
+	if expected, got := 1, len(markers); expected != got {
+		t.Fatalf("expected %d markers, got %d", expected, got)
+	}
+	if expected, got := MissingRequiredRouterErr, markers[0].Key; expected != got {
+		t.Fatalf("expected %s marker key, got %s", expected, got)
+	}
+}

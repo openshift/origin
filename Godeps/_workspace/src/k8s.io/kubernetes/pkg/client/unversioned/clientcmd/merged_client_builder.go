@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
@@ -64,9 +64,9 @@ func (config *DeferredLoadingClientConfig) createClientConfig() (ClientConfig, e
 
 			var mergedClientConfig ClientConfig
 			if config.fallbackReader != nil {
-				mergedClientConfig = NewInteractiveClientConfig(*mergedConfig, config.overrides.CurrentContext, config.overrides, config.fallbackReader)
+				mergedClientConfig = NewInteractiveClientConfig(*mergedConfig, config.overrides.CurrentContext, config.overrides, config.fallbackReader, config.loadingRules)
 			} else {
-				mergedClientConfig = NewNonInteractiveClientConfig(*mergedConfig, config.overrides.CurrentContext, config.overrides)
+				mergedClientConfig = NewNonInteractiveClientConfig(*mergedConfig, config.overrides.CurrentContext, config.overrides, config.loadingRules)
 			}
 
 			config.clientConfig = mergedClientConfig
@@ -86,11 +86,12 @@ func (config *DeferredLoadingClientConfig) RawConfig() (clientcmdapi.Config, err
 }
 
 // ClientConfig implements ClientConfig
-func (config *DeferredLoadingClientConfig) ClientConfig() (*client.Config, error) {
+func (config *DeferredLoadingClientConfig) ClientConfig() (*restclient.Config, error) {
 	mergedClientConfig, err := config.createClientConfig()
 	if err != nil {
 		return nil, err
 	}
+
 	mergedConfig, err := mergedClientConfig.ClientConfig()
 	if err != nil {
 		return nil, err
@@ -102,7 +103,6 @@ func (config *DeferredLoadingClientConfig) ClientConfig() (*client.Config, error
 		glog.V(2).Info("No kubeconfig could be created, falling back to service account.")
 		return icc.ClientConfig()
 	}
-
 	return mergedConfig, nil
 }
 
@@ -114,4 +114,9 @@ func (config *DeferredLoadingClientConfig) Namespace() (string, bool, error) {
 	}
 
 	return mergedKubeConfig.Namespace()
+}
+
+// ConfigAccess implements ClientConfig
+func (config *DeferredLoadingClientConfig) ConfigAccess() ConfigAccess {
+	return config.loadingRules
 }

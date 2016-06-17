@@ -21,25 +21,29 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-var dnsServiceLableSelector = labels.Set{
+const dnsTestPodHostName = "dns-querier-1"
+const dnsTestServiceName = "dns-test-service"
+
+var dnsServiceLabelSelector = labels.Set{
 	"k8s-app":                       "kube-dns",
 	"kubernetes.io/cluster-service": "true",
 }.AsSelector()
 
-func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
-	pod := &api.Pod{
+func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string, useAnnotation bool) *api.Pod {
+	dnsPod := &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
@@ -61,7 +65,7 @@ func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
 				// TODO: Consider scraping logs instead of running a webserver.
 				{
 					Name:  "webserver",
-					Image: "gcr.io/google_containers/test-webserver",
+					Image: "gcr.io/google_containers/test-webserver:e2e",
 					Ports: []api.ContainerPort{
 						{
 							Name:          "http",
@@ -77,7 +81,7 @@ func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
 				},
 				{
 					Name:    "querier",
-					Image:   "gcr.io/google_containers/dnsutils",
+					Image:   "gcr.io/google_containers/dnsutils:e2e",
 					Command: []string{"sh", "-c", wheezyProbeCmd},
 					VolumeMounts: []api.VolumeMount{
 						{
@@ -88,7 +92,7 @@ func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
 				},
 				{
 					Name:    "jessie-querier",
-					Image:   "gcr.io/google_containers/jessie-dnsutils",
+					Image:   "gcr.io/google_containers/jessie-dnsutils:e2e",
 					Command: []string{"sh", "-c", jessieProbeCmd},
 					VolumeMounts: []api.VolumeMount{
 						{
@@ -100,10 +104,20 @@ func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string) *api.Pod {
 			},
 		},
 	}
-	return pod
+
+	if useAnnotation {
+		dnsPod.ObjectMeta.Annotations = map[string]string{
+			pod.PodHostnameAnnotation:  dnsTestPodHostName,
+			pod.PodSubdomainAnnotation: dnsTestServiceName,
+		}
+	} else {
+		dnsPod.Spec.Hostname = dnsTestPodHostName
+		dnsPod.Spec.Subdomain = dnsTestServiceName
+	}
+	return dnsPod
 }
 
-func createProbeCommand(namesToResolve []string, fileNamePrefix string) (string, []string) {
+func createProbeCommand(namesToResolve []string, hostEntries []string, fileNamePrefix, namespace string) (string, []string) {
 	fileNames := make([]string, 0, len(namesToResolve)*2)
 	probeCmd := "for i in `seq 1 600`; do "
 	for _, name := range namesToResolve {
@@ -121,6 +135,21 @@ func createProbeCommand(namesToResolve []string, fileNamePrefix string) (string,
 		fileNames = append(fileNames, fileName)
 		probeCmd += fmt.Sprintf(`test -n "$$(dig +tcp +noall +answer +search %s %s)" && echo OK > /results/%s;`, name, lookup, fileName)
 	}
+
+	for _, name := range hostEntries {
+		fileName := fmt.Sprintf("%s_hosts@%s", fileNamePrefix, name)
+		fileNames = append(fileNames, fileName)
+		probeCmd += fmt.Sprintf(`test -n "$$(getent hosts %s)" && echo OK > /results/%s;`, name, fileName)
+	}
+
+	podARecByUDPFileName := fmt.Sprintf("%s_udp@PodARecord", fileNamePrefix)
+	podARecByTCPFileName := fmt.Sprintf("%s_tcp@PodARecord", fileNamePrefix)
+	probeCmd += fmt.Sprintf(`podARec=$$(hostname -i| awk -F. '{print $$1"-"$$2"-"$$3"-"$$4".%s.pod.cluster.local"}');`, namespace)
+	probeCmd += fmt.Sprintf(`test -n "$$(dig +notcp +noall +answer +search $${podARec} A)" && echo OK > /results/%s;`, podARecByUDPFileName)
+	probeCmd += fmt.Sprintf(`test -n "$$(dig +tcp +noall +answer +search $${podARec} A)" && echo OK > /results/%s;`, podARecByTCPFileName)
+	fileNames = append(fileNames, podARecByUDPFileName)
+	fileNames = append(fileNames, podARecByTCPFileName)
+
 	probeCmd += "sleep 1; done"
 	return probeCmd, fileNames
 }
@@ -128,9 +157,9 @@ func createProbeCommand(namesToResolve []string, fileNamePrefix string) (string,
 func assertFilesExist(fileNames []string, fileDir string, pod *api.Pod, client *client.Client) {
 	var failed []string
 
-	expectNoError(wait.Poll(time.Second*2, time.Second*60, func() (bool, error) {
+	framework.ExpectNoError(wait.Poll(time.Second*2, time.Second*60, func() (bool, error) {
 		failed = []string{}
-		subResourceProxyAvailable, err := serverVersionGTE(subResourceProxyVersion, client)
+		subResourceProxyAvailable, err := framework.ServerVersionGTE(framework.SubResourcePodProxyVersion, client)
 		if err != nil {
 			return false, err
 		}
@@ -153,20 +182,20 @@ func assertFilesExist(fileNames []string, fileDir string, pod *api.Pod, client *
 					Do().Raw()
 			}
 			if err != nil {
-				Logf("Unable to read %s from pod %s: %v", fileName, pod.Name, err)
+				framework.Logf("Unable to read %s from pod %s: %v", fileName, pod.Name, err)
 				failed = append(failed, fileName)
 			}
 		}
 		if len(failed) == 0 {
 			return true, nil
 		}
-		Logf("Lookups using %s failed for: %v\n", pod.Name, failed)
+		framework.Logf("Lookups using %s failed for: %v\n", pod.Name, failed)
 		return false, nil
 	}))
 	Expect(len(failed)).To(Equal(0))
 }
 
-func validateDNSResults(f *Framework, pod *api.Pod, fileNames []string) {
+func validateDNSResults(f *framework.Framework, pod *api.Pod, fileNames []string) {
 
 	By("submitting the pod to kubernetes")
 	podClient := f.Client.Pods(f.Namespace.Name)
@@ -176,45 +205,61 @@ func validateDNSResults(f *Framework, pod *api.Pod, fileNames []string) {
 		podClient.Delete(pod.Name, api.NewDeleteOptions(0))
 	}()
 	if _, err := podClient.Create(pod); err != nil {
-		Failf("Failed to create %s pod: %v", pod.Name, err)
+		framework.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	expectNoError(f.WaitForPodRunning(pod.Name))
+	framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
 
 	By("retrieving the pod")
 	pod, err := podClient.Get(pod.Name)
 	if err != nil {
-		Failf("Failed to get pod %s: %v", pod.Name, err)
+		framework.Failf("Failed to get pod %s: %v", pod.Name, err)
 	}
-
 	// Try to find results for each expected name.
 	By("looking for the results for each expected name from probiers")
 	assertFilesExist(fileNames, "results", pod, f.Client)
 
 	// TODO: probe from the host, too.
 
-	Logf("DNS probes using %s succeeded\n", pod.Name)
+	framework.Logf("DNS probes using %s succeeded\n", pod.Name)
 }
 
-var _ = Describe("DNS", func() {
-	f := NewFramework("dns")
+func verifyDNSPodIsRunning(f *framework.Framework) {
+	systemClient := f.Client.Pods(api.NamespaceSystem)
+	By("Waiting for DNS Service to be Running")
+	options := api.ListOptions{LabelSelector: dnsServiceLabelSelector}
+	dnsPods, err := systemClient.List(options)
+	if err != nil {
+		framework.Failf("Failed to list all dns service pods")
+	}
+	if len(dnsPods.Items) < 1 {
+		framework.Failf("No pods match the label selector %v", dnsServiceLabelSelector.String())
+	}
+	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(f.Client, dnsPods.Items[0].Name, api.NamespaceSystem))
+}
 
-	It("should provide DNS for the cluster", func() {
-		// TODO: support DNS on vagrant #3580
-		SkipIfProviderIs("vagrant")
+func createServiceSpec(serviceName string, isHeadless bool, selector map[string]string) *api.Service {
+	headlessService := &api.Service{
+		ObjectMeta: api.ObjectMeta{
+			Name: serviceName,
+		},
+		Spec: api.ServiceSpec{
+			Ports: []api.ServicePort{
+				{Port: 80, Name: "http", Protocol: "TCP"},
+			},
+			Selector: selector,
+		},
+	}
+	if isHeadless {
+		headlessService.Spec.ClusterIP = "None"
+	}
+	return headlessService
+}
 
-		systemClient := f.Client.Pods(api.NamespaceSystem)
-		By("Waiting for DNS Service to be Running")
-		options := api.ListOptions{LabelSelector: dnsServiceLableSelector}
-		dnsPods, err := systemClient.List(options)
-		if err != nil {
-			Failf("Failed to list all dns service pods")
-		}
-		if len(dnsPods.Items) != 1 {
-			Failf("Unexpected number of pods (%d) matches the label selector %v", len(dnsPods.Items), dnsServiceLableSelector.String())
-		}
-		expectNoError(waitForPodRunningInNamespace(f.Client, dnsPods.Items[0].Name, api.NamespaceSystem))
+var _ = framework.KubeDescribe("DNS", func() {
+	f := framework.NewDefaultFramework("dns")
 
+	It("should provide DNS for the cluster [Conformance]", func() {
 		// All the names we need to be able to resolve.
 		// TODO: Spin up a separate test service and test that dns works for that service.
 		namesToResolve := []string{
@@ -224,55 +269,30 @@ var _ = Describe("DNS", func() {
 			"google.com",
 		}
 		// Added due to #8512. This is critical for GCE and GKE deployments.
-		if providerIs("gce", "gke") {
+		if framework.ProviderIs("gce", "gke") {
 			namesToResolve = append(namesToResolve, "metadata")
 		}
-
-		wheezyProbeCmd, wheezyFileNames := createProbeCommand(namesToResolve, "wheezy")
-		jessieProbeCmd, jessieFileNames := createProbeCommand(namesToResolve, "jessie")
+		hostFQDN := fmt.Sprintf("%s.%s.%s.svc.cluster.local", dnsTestPodHostName, dnsTestServiceName, f.Namespace.Name)
+		hostEntries := []string{hostFQDN, dnsTestPodHostName}
+		wheezyProbeCmd, wheezyFileNames := createProbeCommand(namesToResolve, hostEntries, "wheezy", f.Namespace.Name)
+		jessieProbeCmd, jessieFileNames := createProbeCommand(namesToResolve, hostEntries, "jessie", f.Namespace.Name)
+		By("Running these commands on wheezy:" + wheezyProbeCmd + "\n")
+		By("Running these commands on jessie:" + jessieProbeCmd + "\n")
 
 		// Run a pod which probes DNS and exposes the results by HTTP.
 		By("creating a pod to probe DNS")
-		pod := createDNSPod(f.Namespace.Name, wheezyProbeCmd, jessieProbeCmd)
+		pod := createDNSPod(f.Namespace.Name, wheezyProbeCmd, jessieProbeCmd, true)
 		validateDNSResults(f, pod, append(wheezyFileNames, jessieFileNames...))
 	})
 
-	It("should provide DNS for services", func() {
-		// TODO: support DNS on vagrant #3580
-		SkipIfProviderIs("vagrant")
-
-		systemClient := f.Client.Pods(api.NamespaceSystem)
-
-		By("Waiting for DNS Service to be Running")
-		options := api.ListOptions{LabelSelector: dnsServiceLableSelector}
-		dnsPods, err := systemClient.List(options)
-		if err != nil {
-			Failf("Failed to list all dns service pods")
-		}
-		if len(dnsPods.Items) != 1 {
-			Failf("Unexpected number of pods (%d) matches the label selector %v", len(dnsPods.Items), dnsServiceLableSelector.String())
-		}
-		expectNoError(waitForPodRunningInNamespace(f.Client, dnsPods.Items[0].Name, api.NamespaceSystem))
-
+	It("should provide DNS for services [Conformance]", func() {
 		// Create a test headless service.
 		By("Creating a test headless service")
 		testServiceSelector := map[string]string{
 			"dns-test": "true",
 		}
-		headlessService := &api.Service{
-			ObjectMeta: api.ObjectMeta{
-				Name: "test-service",
-			},
-			Spec: api.ServiceSpec{
-				ClusterIP: "None",
-				Ports: []api.ServicePort{
-					{Port: 80, Name: "http", Protocol: "TCP"},
-				},
-				Selector: testServiceSelector,
-			},
-		}
-
-		_, err = f.Client.Services(f.Namespace.Name).Create(headlessService)
+		headlessService := createServiceSpec(dnsTestServiceName, true, testServiceSelector)
+		_, err := f.Client.Services(f.Namespace.Name).Create(headlessService)
 		Expect(err).NotTo(HaveOccurred())
 		defer func() {
 			By("deleting the test headless service")
@@ -280,18 +300,7 @@ var _ = Describe("DNS", func() {
 			f.Client.Services(f.Namespace.Name).Delete(headlessService.Name)
 		}()
 
-		regularService := &api.Service{
-			ObjectMeta: api.ObjectMeta{
-				Name: "test-service-2",
-			},
-			Spec: api.ServiceSpec{
-				Ports: []api.ServicePort{
-					{Port: 80, Name: "http", Protocol: "TCP"},
-				},
-				Selector: testServiceSelector,
-			},
-		}
-
+		regularService := createServiceSpec("test-service-2", false, testServiceSelector)
 		_, err = f.Client.Services(f.Namespace.Name).Create(regularService)
 		Expect(err).NotTo(HaveOccurred())
 		defer func() {
@@ -311,15 +320,54 @@ var _ = Describe("DNS", func() {
 			fmt.Sprintf("_http._tcp.%s.%s.svc", regularService.Name, f.Namespace.Name),
 		}
 
-		wheezyProbeCmd, wheezyFileNames := createProbeCommand(namesToResolve, "wheezy")
-		jessieProbeCmd, jessieFileNames := createProbeCommand(namesToResolve, "jessie")
+		wheezyProbeCmd, wheezyFileNames := createProbeCommand(namesToResolve, nil, "wheezy", f.Namespace.Name)
+		jessieProbeCmd, jessieFileNames := createProbeCommand(namesToResolve, nil, "jessie", f.Namespace.Name)
+		By("Running these commands on wheezy:" + wheezyProbeCmd + "\n")
+		By("Running these commands on jessie:" + jessieProbeCmd + "\n")
 
 		// Run a pod which probes DNS and exposes the results by HTTP.
 		By("creating a pod to probe DNS")
-		pod := createDNSPod(f.Namespace.Name, wheezyProbeCmd, jessieProbeCmd)
+		pod := createDNSPod(f.Namespace.Name, wheezyProbeCmd, jessieProbeCmd, false)
 		pod.ObjectMeta.Labels = testServiceSelector
 
 		validateDNSResults(f, pod, append(wheezyFileNames, jessieFileNames...))
 	})
 
+	It("should provide DNS for pods for Hostname and Subdomain Annotation", func() {
+
+		// Create a test headless service.
+		By("Creating a test headless service")
+		testServiceSelector := map[string]string{
+			"dns-test-hostname-attribute": "true",
+		}
+		serviceName := "dns-test-service-2"
+		podHostname := "dns-querier-2"
+		headlessService := createServiceSpec(serviceName, true, testServiceSelector)
+		_, err := f.Client.Services(f.Namespace.Name).Create(headlessService)
+		Expect(err).NotTo(HaveOccurred())
+		defer func() {
+			By("deleting the test headless service")
+			defer GinkgoRecover()
+			f.Client.Services(f.Namespace.Name).Delete(headlessService.Name)
+		}()
+
+		hostFQDN := fmt.Sprintf("%s.%s.%s.svc.cluster.local", podHostname, serviceName, f.Namespace.Name)
+		hostNames := []string{hostFQDN, podHostname}
+		namesToResolve := []string{hostFQDN}
+		wheezyProbeCmd, wheezyFileNames := createProbeCommand(namesToResolve, hostNames, "wheezy", f.Namespace.Name)
+		jessieProbeCmd, jessieFileNames := createProbeCommand(namesToResolve, hostNames, "jessie", f.Namespace.Name)
+		By("Running these commands on wheezy:" + wheezyProbeCmd + "\n")
+		By("Running these commands on jessie:" + jessieProbeCmd + "\n")
+
+		// Run a pod which probes DNS and exposes the results by HTTP.
+		By("creating a pod to probe DNS")
+		pod1 := createDNSPod(f.Namespace.Name, wheezyProbeCmd, jessieProbeCmd, true)
+		pod1.ObjectMeta.Labels = testServiceSelector
+		pod1.ObjectMeta.Annotations = map[string]string{
+			pod.PodHostnameAnnotation:  podHostname,
+			pod.PodSubdomainAnnotation: serviceName,
+		}
+
+		validateDNSResults(f, pod1, append(wheezyFileNames, jessieFileNames...))
+	})
 })

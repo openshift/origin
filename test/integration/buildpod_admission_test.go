@@ -16,7 +16,6 @@ import (
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -92,7 +91,12 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 }
 
 func buildPodAdmissionTestCustomBuild() *buildapi.Build {
-	build := &buildapi.Build{}
+	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+		Labels: map[string]string{
+			buildapi.BuildConfigLabel:    "mock-build-config",
+			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		},
+	}}
 	build.Name = "test-custom-build"
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
 	build.Spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
@@ -102,7 +106,12 @@ func buildPodAdmissionTestCustomBuild() *buildapi.Build {
 }
 
 func buildPodAdmissionTestDockerBuild() *buildapi.Build {
-	build := &buildapi.Build{}
+	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+		Labels: map[string]string{
+			buildapi.BuildConfigLabel:    "mock-build-config",
+			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		},
+	}}
 	build.Name = "test-build"
 	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
 	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
@@ -120,7 +129,7 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclient *kcli
 	watchOpt := kapi.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
-			buildutil.GetBuildPodName(build),
+			buildapi.GetBuildPodName(build),
 		),
 	}
 	podWatch, err := kclient.Pods(ns).Watch(watchOpt)

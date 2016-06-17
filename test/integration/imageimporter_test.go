@@ -13,12 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution/registry/api/errcode"
 	gocontext "golang.org/x/net/context"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -102,8 +103,17 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
 	}
 
-	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+	if isi.Status.Images[0].Image == nil || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
 		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
+	}
+	if isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 {
+		image, err := c.Images().Get(isi.Status.Images[0].Image.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(image.DockerImageManifest, `"schemaVersion": 1,`) {
+			t.Fatalf("image has zero size, but schema version was not 1: %#v\n%s", isi.Status.Images[0].Image, image.DockerImageManifest)
+		}
 	}
 
 	stream := isi.Status.Import
@@ -135,16 +145,26 @@ func TestImageStreamImport(t *testing.T) {
 	}
 }
 
-func mockRegistryHandler(t *testing.T, count *int) http.Handler {
+// mockRegistryHandler returns a registry mock handler with several repositories. requireAuth causes handler
+// to return unauthorized and request basic authentication header if not given. count is increased each
+// time the handler is invoked. There are three repositories:
+//  - test/image with phpManifest
+//  - test/image2 with etcdManifest
+//  - test/image3 with tags: v1, v2 and latest
+//    - the first points to etcdManifest
+//    - the others cause handler to return unknown error
+func mockRegistryHandler(t *testing.T, requireAuth bool, count *int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		(*count)++
 		t.Logf("%d got %s %s", *count, r.Method, r.URL.Path)
 
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
-		if len(r.Header.Get("Authorization")) == 0 {
-			w.Header().Set("WWW-Authenticate", "BASIC")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+		if requireAuth {
+			if len(r.Header.Get("Authorization")) == 0 {
+				w.Header().Set("WWW-Authenticate", "BASIC")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 		}
 
 		switch r.URL.Path {
@@ -153,6 +173,12 @@ func mockRegistryHandler(t *testing.T, count *int) http.Handler {
 		case "/v2/test/image/manifests/" + phpDigest:
 			w.Write([]byte(phpManifest))
 		case "/v2/test/image2/manifests/" + etcdDigest:
+			w.Write([]byte(etcdManifest))
+		case "/v2/test/image3/tags/list":
+			w.Write([]byte("{\"name\": \"test/image3\", \"tags\": [\"latest\", \"v1\", \"v2\"]}"))
+		case "/v2/test/image3/manifests/latest", "/v2/test/image3/manifests/v2", "/v2/test/image3/manifests/" + danglingDigest:
+			errcode.ServeJSON(w, errcode.ErrorCodeUnknown)
+		case "/v2/test/image3/manifests/v1", "/v2/test/image3/manifests/" + etcdDigest:
 			w.Write([]byte(etcdManifest))
 		default:
 			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
@@ -164,7 +190,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 	testutil.RequireEtcd(t)
 	// start regular HTTP servers
 	count := 0
-	server := httptest.NewServer(mockRegistryHandler(t, &count))
+	server := httptest.NewServer(mockRegistryHandler(t, true, &count))
 	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 		if len(r.Header.Get("Authorization")) == 0 {
@@ -177,7 +203,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 
 	// start a TLS server
 	count2 := 0
-	server3 := httptest.NewTLSServer(mockRegistryHandler(t, &count2))
+	server3 := httptest.NewTLSServer(mockRegistryHandler(t, true, &count2))
 
 	url1, _ := url.Parse(server.URL)
 	url2, _ := url.Parse(server2.URL)
@@ -253,7 +279,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
 			Type:       kapi.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/v2/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
+				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
 			},
 		})
 		if err != nil {
@@ -321,6 +347,105 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
 			t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
 		}
+	}
+}
+
+// Verifies that individual errors for particular tags are handled properly when pulling all tags from a
+// repository.
+func TestImageStreamImportTagsFromRepository(t *testing.T) {
+	testutil.RequireEtcd(t)
+	// start regular HTTP servers
+	count := 0
+	server := httptest.NewServer(mockRegistryHandler(t, false, &count))
+
+	url, _ := url.Parse(server.URL)
+
+	// start a master
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	/*
+		_, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	*/
+	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	importSpec := &api.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		Spec: api.ImageStreamImportSpec{
+			Import: true,
+			Repository: &api.RepositoryImportSpec{
+				From:            kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image3"},
+				ImportPolicy:    api.TagImportPolicy{Insecure: true},
+				IncludeManifest: true,
+			},
+		},
+	}
+
+	// import expecting regular image to pass
+	isi, err := c.ImageStreams(testutil.Namespace()).Import(importSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(isi.Status.Images) != 0 {
+		t.Errorf("imported unexpected number of images (%d != 0)", len(isi.Status.Images))
+	}
+	if isi.Status.Repository == nil {
+		t.Fatalf("exported non-nil repository status")
+	}
+	if len(isi.Status.Repository.Images) != 3 {
+		t.Fatalf("imported unexpected number of tags (%d != 3)", len(isi.Status.Repository.Images))
+	}
+	for i, image := range isi.Status.Repository.Images {
+		switch i {
+		case 2:
+			if image.Status.Status != unversioned.StatusSuccess {
+				t.Errorf("import of image %d did not succeed: %#v", i, image.Status)
+			}
+			if image.Tag != "v1" {
+				t.Errorf("unexpected tag at position %d (%s != v1)", i, image.Tag)
+			}
+			if image.Image == nil {
+				t.Fatalf("expected image to be set")
+			}
+			if image.Image.DockerImageReference != url.Host+"/test/image3@"+etcdDigest {
+				t.Errorf("unexpected DockerImageReference (%s != %s)", image.Image.DockerImageReference, url.Host+"/test/image3@"+etcdDigest)
+			}
+			if image.Image.Name != etcdDigest {
+				t.Errorf("expected etcd digest as a name of the image (%s != %s)", image.Image.Name, etcdDigest)
+			}
+		default:
+			if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonInternalError {
+				t.Fatalf("import of image %d did not report internal server error: %#v", i, image.Status)
+			}
+			expectedTags := []string{"latest", "v2"}[i]
+			if image.Tag != expectedTags {
+				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags[i])
+			}
+		}
+	}
+
+	is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagEvent := api.LatestTaggedImage(is, "v1")
+	if tagEvent == nil {
+		t.Fatalf("no image tagged for v1: %#v", is)
+	}
+
+	if tagEvent == nil || tagEvent.Image != etcdDigest || tagEvent.DockerImageReference != url.Host+"/test/image3@"+etcdDigest {
+		t.Fatalf("expected the etcd image to be tagged: %#v", tagEvent)
 	}
 }
 
@@ -498,7 +623,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 }
 
 func TestImageStreamImportDockerHub(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	imports := &api.ImageStreamImport{
@@ -559,7 +684,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 }
 
 func TestImageStreamImportQuayIO(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	repositoryName := quayRegistryName + "/coreos/etcd"
@@ -612,7 +737,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 }
 
 func TestImageStreamImportRedHatRegistry(t *testing.T) {
-	rt, _ := kclient.TransportFor(&kclient.Config{})
+	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	repositoryName := pulpRegistryName + "/rhel7"
@@ -861,3 +986,5 @@ const phpManifest = `{
       }
    ]
 }`
+
+const danglingDigest = `sha256:f374c0d9b59e6fdf9f8922d59e946b05fbeabaed70b0639d7b6b524f3299e87b`

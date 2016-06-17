@@ -68,9 +68,16 @@ func DescribeConfig(config *api.Config) string {
 		if len(config.Injections) > 0 {
 			result := []string{}
 			for _, i := range config.Injections {
-				result = append(result, fmt.Sprintf("%s->%s", i.SourcePath, i.DestinationDir))
+				result = append(result, fmt.Sprintf("%s->%s", i.Source, i.Destination))
 			}
 			fmt.Fprintf(out, "Injections:\t%s\n", strings.Join(result, ","))
+		}
+		if len(config.BuildVolumes) > 0 {
+			result := []string{}
+			for _, i := range config.BuildVolumes {
+				result = append(result, fmt.Sprintf("%s->%s", i.Source, i.Destination))
+			}
+			fmt.Fprintf(out, "Bind mounts:\t%s\n", strings.Join(result, ","))
 		}
 		return nil
 	})
@@ -89,7 +96,7 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
-	build.GenerateConfigFromLabels(image, c)
+	build.GenerateConfigFromLabels(c)
 	if len(c.DisplayName) > 0 {
 		fmt.Fprintf(out, "Builder Name:\t%s\n", c.DisplayName)
 	}
@@ -102,13 +109,10 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 	}
 }
 
-func printEnv(out io.Writer, env map[string]string) {
-	if len(env) == 0 {
-		return
-	}
+func printEnv(out io.Writer, env api.EnvironmentList) {
 	result := []string{}
-	for k, v := range env {
-		result = append(result, fmt.Sprintf("%s=%s", k, v))
+	for _, e := range env {
+		result = append(result, strings.Join([]string{e.Name, e.Value}, "="))
 	}
 	fmt.Fprintf(out, "Environment:\t%s\n", strings.Join(result, ","))
 }

@@ -69,9 +69,6 @@ func (rcStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// status its own object, and even if we don't, writes may be the result of a
 	// read-update-write loop, so the contents of spec may not actually be the spec that
 	// the controller has *seen*.
-	//
-	// TODO: Any changes to a part of the object that represents desired state (labels,
-	// annotations etc) should also increment the generation.
 	if !reflect.DeepEqual(oldController.Spec, newController.Spec) {
 		newController.Generation = oldController.Generation + 1
 	}
@@ -108,7 +105,7 @@ func (rcStrategy) AllowUnconditionalUpdate() bool {
 func ControllerToSelectableFields(controller *api.ReplicationController) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(controller.ObjectMeta, true)
 	controllerSpecificFieldsSet := fields.Set{
-		"status.replicas": strconv.Itoa(controller.Status.Replicas),
+		"status.replicas": strconv.Itoa(int(controller.Status.Replicas)),
 	}
 	return generic.MergeFieldsSets(objectMetaFieldsSet, controllerSpecificFieldsSet)
 }

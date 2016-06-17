@@ -28,12 +28,12 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/latest"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 )
 
 type ViewOptions struct {
-	ConfigAccess ConfigAccess
-	Merge        util.BoolFlag
+	ConfigAccess clientcmd.ConfigAccess
+	Merge        flag.Tristate
 	Flatten      bool
 	Minify       bool
 	RawByteData  bool
@@ -44,13 +44,13 @@ const (
 
 You can use --output jsonpath={...} to extract specific values using a jsonpath expression.`
 	view_example = `# Show Merged kubeconfig settings.
-$ kubectl config view
+kubectl config view
 
 # Get the password for the e2e user
-$ kubectl config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'`
+kubectl config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'`
 )
 
-func NewCmdConfigView(out io.Writer, ConfigAccess ConfigAccess) *cobra.Command {
+func NewCmdConfigView(out io.Writer, ConfigAccess clientcmd.ConfigAccess) *cobra.Command {
 	options := &ViewOptions{ConfigAccess: ConfigAccess}
 	// Default to yaml
 	defaultOutputFormat := "yaml"
@@ -65,6 +65,10 @@ func NewCmdConfigView(out io.Writer, ConfigAccess ConfigAccess) *cobra.Command {
 			outputFormat := cmdutil.GetFlagString(cmd, "output")
 			if outputFormat == "wide" {
 				fmt.Printf("--output wide is not available in kubectl config view; reset to default output format (%s)\n\n", defaultOutputFormat)
+				cmd.Flags().Set("output", defaultOutputFormat)
+			}
+			if outputFormat == "" {
+				fmt.Printf("reset to default output format (%s) as --output is empty", defaultOutputFormat)
 				cmd.Flags().Set("output", defaultOutputFormat)
 			}
 

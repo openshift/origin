@@ -20,21 +20,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	_ "k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	unversionedcore "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
-	heapster "k8s.io/heapster/api/v1/types"
+	heapster "k8s.io/heapster/metrics/api/v1/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,32 +59,85 @@ type fakeResponseWrapper struct {
 	raw []byte
 }
 
+type fakeResource struct {
+	name       string
+	apiVersion string
+	kind       string
+}
+
 type testCase struct {
-	minReplicas     int
-	maxReplicas     int
-	initialReplicas int
-	desiredReplicas int
+	sync.Mutex
+	minReplicas     int32
+	maxReplicas     int32
+	initialReplicas int32
+	desiredReplicas int32
+
 	// CPU target utilization as a percentage of the requested resources.
-	CPUTarget           int
+	CPUTarget           int32
+	CPUCurrent          int32
+	verifyCPUCurrent    bool
 	reportedLevels      []uint64
 	reportedCPURequests []resource.Quantity
 	cmTarget            *extensions.CustomMetricTargetList
 	scaleUpdated        bool
+	statusUpdated       bool
 	eventCreated        bool
 	verifyEvents        bool
+	// Channel with names of HPA objects which we have reconciled.
+	processed chan string
+
+	// Target resource information.
+	resource *fakeResource
+}
+
+// Needs to be called under a lock.
+func (tc *testCase) computeCPUCurrent() {
+	if len(tc.reportedLevels) != len(tc.reportedCPURequests) || len(tc.reportedLevels) == 0 {
+		return
+	}
+	reported := 0
+	for _, r := range tc.reportedLevels {
+		reported += int(r)
+	}
+	requested := 0
+	for _, req := range tc.reportedCPURequests {
+		requested += int(req.MilliValue())
+	}
+	tc.CPUCurrent = int32(100 * reported / requested)
 }
 
 func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 	namespace := "test-namespace"
 	hpaName := "test-hpa"
-	rcName := "test-rc"
 	podNamePrefix := "test-pod"
+	selector := &unversioned.LabelSelector{
+		MatchLabels: map[string]string{"name": podNamePrefix},
+	}
+
+	tc.Lock()
 
 	tc.scaleUpdated = false
+	tc.statusUpdated = false
 	tc.eventCreated = false
+	tc.processed = make(chan string, 100)
+	tc.computeCPUCurrent()
+
+	// TODO(madhusudancs): HPA only supports resources in extensions/v1beta1 right now. Add
+	// tests for "v1" replicationcontrollers when HPA adds support for cross-group scale.
+	if tc.resource == nil {
+		tc.resource = &fakeResource{
+			name:       "test-rc",
+			apiVersion: "extensions/v1beta1",
+			kind:       "replicationcontrollers",
+		}
+	}
+	tc.Unlock()
 
 	fakeClient := &fake.Clientset{}
 	fakeClient.AddReactor("list", "horizontalpodautoscalers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
 		obj := &extensions.HorizontalPodAutoscalerList{
 			Items: []extensions.HorizontalPodAutoscaler{
 				{
@@ -91,16 +148,22 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 					},
 					Spec: extensions.HorizontalPodAutoscalerSpec{
 						ScaleRef: extensions.SubresourceReference{
-							Kind:        "replicationController",
-							Name:        rcName,
+							Kind:        tc.resource.kind,
+							Name:        tc.resource.name,
+							APIVersion:  tc.resource.apiVersion,
 							Subresource: "scale",
 						},
 						MinReplicas: &tc.minReplicas,
 						MaxReplicas: tc.maxReplicas,
 					},
+					Status: extensions.HorizontalPodAutoscalerStatus{
+						CurrentReplicas: tc.initialReplicas,
+						DesiredReplicas: tc.initialReplicas,
+					},
 				},
 			},
 		}
+
 		if tc.CPUTarget > 0.0 {
 			obj.Items[0].Spec.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: tc.CPUTarget}
 		}
@@ -115,10 +178,13 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 		return true, obj, nil
 	})
 
-	fakeClient.AddReactor("get", "replicationController", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fakeClient.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
 		obj := &extensions.Scale{
 			ObjectMeta: api.ObjectMeta{
-				Name:      rcName,
+				Name:      tc.resource.name,
 				Namespace: namespace,
 			},
 			Spec: extensions.ScaleSpec{
@@ -126,13 +192,56 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 			},
 			Status: extensions.ScaleStatus{
 				Replicas: tc.initialReplicas,
-				Selector: map[string]string{"name": podNamePrefix},
+				Selector: selector,
+			},
+		}
+		return true, obj, nil
+	})
+
+	fakeClient.AddReactor("get", "deployments", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := &extensions.Scale{
+			ObjectMeta: api.ObjectMeta{
+				Name:      tc.resource.name,
+				Namespace: namespace,
+			},
+			Spec: extensions.ScaleSpec{
+				Replicas: tc.initialReplicas,
+			},
+			Status: extensions.ScaleStatus{
+				Replicas: tc.initialReplicas,
+				Selector: selector,
+			},
+		}
+		return true, obj, nil
+	})
+
+	fakeClient.AddReactor("get", "replicasets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := &extensions.Scale{
+			ObjectMeta: api.ObjectMeta{
+				Name:      tc.resource.name,
+				Namespace: namespace,
+			},
+			Spec: extensions.ScaleSpec{
+				Replicas: tc.initialReplicas,
+			},
+			Status: extensions.ScaleStatus{
+				Replicas: tc.initialReplicas,
+				Selector: selector,
 			},
 		}
 		return true, obj, nil
 	})
 
 	fakeClient.AddReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
 		obj := &api.PodList{}
 		for i := 0; i < len(tc.reportedCPURequests); i++ {
 			podName := fmt.Sprintf("%s-%d", podNamePrefix, i)
@@ -164,7 +273,10 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 		return true, obj, nil
 	})
 
-	fakeClient.AddProxyReactor("services", func(action core.Action) (handled bool, ret client.ResponseWrapper, err error) {
+	fakeClient.AddProxyReactor("services", func(action core.Action) (handled bool, ret restclient.ResponseWrapper, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
 		timestamp := time.Now()
 		metrics := heapster.MetricResultList{}
 		for _, level := range tc.reportedLevels {
@@ -178,37 +290,82 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 		return true, newFakeResponseWrapper(heapsterRawMemResponse), nil
 	})
 
-	fakeClient.AddReactor("update", "replicationController", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(testclient.UpdateAction).GetObject().(*extensions.Scale)
-		replicas := action.(testclient.UpdateAction).GetObject().(*extensions.Scale).Spec.Replicas
+	fakeClient.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := action.(core.UpdateAction).GetObject().(*extensions.Scale)
+		replicas := action.(core.UpdateAction).GetObject().(*extensions.Scale).Spec.Replicas
+		assert.Equal(t, tc.desiredReplicas, replicas)
+		tc.scaleUpdated = true
+		return true, obj, nil
+	})
+
+	fakeClient.AddReactor("update", "deployments", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := action.(core.UpdateAction).GetObject().(*extensions.Scale)
+		replicas := action.(core.UpdateAction).GetObject().(*extensions.Scale).Spec.Replicas
+		assert.Equal(t, tc.desiredReplicas, replicas)
+		tc.scaleUpdated = true
+		return true, obj, nil
+	})
+
+	fakeClient.AddReactor("update", "replicasets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := action.(core.UpdateAction).GetObject().(*extensions.Scale)
+		replicas := action.(core.UpdateAction).GetObject().(*extensions.Scale).Spec.Replicas
 		assert.Equal(t, tc.desiredReplicas, replicas)
 		tc.scaleUpdated = true
 		return true, obj, nil
 	})
 
 	fakeClient.AddReactor("update", "horizontalpodautoscalers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(testclient.UpdateAction).GetObject().(*extensions.HorizontalPodAutoscaler)
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := action.(core.UpdateAction).GetObject().(*extensions.HorizontalPodAutoscaler)
 		assert.Equal(t, namespace, obj.Namespace)
 		assert.Equal(t, hpaName, obj.Name)
 		assert.Equal(t, tc.desiredReplicas, obj.Status.DesiredReplicas)
+		if tc.verifyCPUCurrent {
+			assert.NotNil(t, obj.Status.CurrentCPUUtilizationPercentage)
+			assert.Equal(t, tc.CPUCurrent, *obj.Status.CurrentCPUUtilizationPercentage)
+		}
+		tc.statusUpdated = true
+		// Every time we reconcile HPA object we are updating status.
+		tc.processed <- obj.Name
 		return true, obj, nil
 	})
 
 	fakeClient.AddReactor("*", "events", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(testclient.CreateAction).GetObject().(*api.Event)
+		tc.Lock()
+		defer tc.Unlock()
+
+		obj := action.(core.CreateAction).GetObject().(*api.Event)
 		if tc.verifyEvents {
 			assert.Equal(t, "SuccessfulRescale", obj.Reason)
-			assert.Equal(t, fmt.Sprintf("New size: %d", tc.desiredReplicas), obj.Message)
+			assert.Equal(t, fmt.Sprintf("New size: %d; reason: CPU utilization above target", tc.desiredReplicas), obj.Message)
 		}
 		tc.eventCreated = true
 		return true, obj, nil
 	})
 
+	fakeWatch := watch.NewFake()
+	fakeClient.AddWatchReactor("*", core.DefaultWatchReactor(fakeWatch, nil))
+
 	return fakeClient
 }
 
 func (tc *testCase) verifyResults(t *testing.T) {
+	tc.Lock()
+	defer tc.Unlock()
+
 	assert.Equal(t, tc.initialReplicas != tc.desiredReplicas, tc.scaleUpdated)
+	assert.True(t, tc.statusUpdated)
 	if tc.verifyEvents {
 		assert.Equal(t, tc.initialReplicas != tc.desiredReplicas, tc.eventCreated)
 	}
@@ -217,14 +374,86 @@ func (tc *testCase) verifyResults(t *testing.T) {
 func (tc *testCase) runTest(t *testing.T) {
 	testClient := tc.prepareTestClient(t)
 	metricsClient := metrics.NewHeapsterMetricsClient(testClient, metrics.DefaultHeapsterNamespace, metrics.DefaultHeapsterScheme, metrics.DefaultHeapsterService, metrics.DefaultHeapsterPort)
-	hpaController := NewHorizontalController(testClient.Core(), testClient.Extensions(), testClient.Extensions(), metricsClient)
-	err := hpaController.reconcileAutoscalers()
-	assert.Equal(t, nil, err)
-	if tc.verifyEvents {
-		// We need to wait for events to be broadcasted (sleep for longer than record.sleepDuration).
-		time.Sleep(12 * time.Second)
+
+	broadcaster := record.NewBroadcasterForTests(0)
+	broadcaster.StartRecordingToSink(&unversionedcore.EventSinkImpl{Interface: testClient.Core().Events("")})
+	recorder := broadcaster.NewRecorder(api.EventSource{Component: "horizontal-pod-autoscaler"})
+
+	hpaController := &HorizontalController{
+		metricsClient:   metricsClient,
+		eventRecorder:   recorder,
+		scaleNamespacer: testClient.Extensions(),
+		hpaNamespacer:   testClient.Extensions(),
 	}
+
+	store, frameworkController := newInformer(hpaController, time.Minute)
+	hpaController.store = store
+	hpaController.controller = frameworkController
+
+	stop := make(chan struct{})
+	defer close(stop)
+	go hpaController.Run(stop)
+
+	tc.Lock()
+	if tc.verifyEvents {
+		tc.Unlock()
+		// We need to wait for events to be broadcasted (sleep for longer than record.sleepDuration).
+		time.Sleep(2 * time.Second)
+	} else {
+		tc.Unlock()
+	}
+	// Wait for HPA to be processed.
+	<-tc.processed
 	tc.verifyResults(t)
+}
+
+func TestDefaultScaleUpRC(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     4,
+		desiredReplicas:     5,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{900, 950, 950, 1000},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+	}
+	tc.runTest(t)
+}
+
+func TestDefaultScaleUpDeployment(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     4,
+		desiredReplicas:     5,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{900, 950, 950, 1000},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+		resource: &fakeResource{
+			name:       "test-dep",
+			apiVersion: "extensions/v1beta1",
+			kind:       "deployments",
+		},
+	}
+	tc.runTest(t)
+}
+
+func TestDefaultScaleUpReplicaSet(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     4,
+		desiredReplicas:     5,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{900, 950, 950, 1000},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+		resource: &fakeResource{
+			name:       "test-replicaset",
+			apiVersion: "extensions/v1beta1",
+			kind:       "replicasets",
+		},
+	}
+	tc.runTest(t)
 }
 
 func TestScaleUp(t *testing.T) {
@@ -234,8 +463,47 @@ func TestScaleUp(t *testing.T) {
 		initialReplicas:     3,
 		desiredReplicas:     5,
 		CPUTarget:           30,
+		verifyCPUCurrent:    true,
 		reportedLevels:      []uint64{300, 500, 700},
 		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+	}
+	tc.runTest(t)
+}
+
+func TestScaleUpDeployment(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     3,
+		desiredReplicas:     5,
+		CPUTarget:           30,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{300, 500, 700},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+		resource: &fakeResource{
+			name:       "test-dep",
+			apiVersion: "extensions/v1beta1",
+			kind:       "deployments",
+		},
+	}
+	tc.runTest(t)
+}
+
+func TestScaleUpReplicaSet(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     3,
+		desiredReplicas:     5,
+		CPUTarget:           30,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{300, 500, 700},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+		resource: &fakeResource{
+			name:       "test-replicaset",
+			apiVersion: "extensions/v1beta1",
+			kind:       "replicasets",
+		},
 	}
 	tc.runTest(t)
 }
@@ -259,6 +527,19 @@ func TestScaleUpCM(t *testing.T) {
 	tc.runTest(t)
 }
 
+func TestDefaultScaleDown(t *testing.T) {
+	tc := testCase{
+		minReplicas:         2,
+		maxReplicas:         6,
+		initialReplicas:     5,
+		desiredReplicas:     4,
+		verifyCPUCurrent:    true,
+		reportedLevels:      []uint64{400, 500, 600, 700, 800},
+		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+	}
+	tc.runTest(t)
+}
+
 func TestScaleDown(t *testing.T) {
 	tc := testCase{
 		minReplicas:         2,
@@ -266,6 +547,7 @@ func TestScaleDown(t *testing.T) {
 		initialReplicas:     5,
 		desiredReplicas:     3,
 		CPUTarget:           50,
+		verifyCPUCurrent:    true,
 		reportedLevels:      []uint64{100, 300, 500, 250, 250},
 		reportedCPURequests: []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
 	}
@@ -329,6 +611,45 @@ func TestMinReplicas(t *testing.T) {
 		CPUTarget:           90,
 		reportedLevels:      []uint64{10, 95, 10},
 		reportedCPURequests: []resource.Quantity{resource.MustParse("0.9"), resource.MustParse("1.0"), resource.MustParse("1.1")},
+	}
+	tc.runTest(t)
+}
+
+func TestZeroReplicas(t *testing.T) {
+	tc := testCase{
+		minReplicas:         3,
+		maxReplicas:         5,
+		initialReplicas:     0,
+		desiredReplicas:     3,
+		CPUTarget:           90,
+		reportedLevels:      []uint64{},
+		reportedCPURequests: []resource.Quantity{},
+	}
+	tc.runTest(t)
+}
+
+func TestTooFewReplicas(t *testing.T) {
+	tc := testCase{
+		minReplicas:         3,
+		maxReplicas:         5,
+		initialReplicas:     2,
+		desiredReplicas:     3,
+		CPUTarget:           90,
+		reportedLevels:      []uint64{},
+		reportedCPURequests: []resource.Quantity{},
+	}
+	tc.runTest(t)
+}
+
+func TestTooManyReplicas(t *testing.T) {
+	tc := testCase{
+		minReplicas:         3,
+		maxReplicas:         5,
+		initialReplicas:     10,
+		desiredReplicas:     5,
+		CPUTarget:           90,
+		reportedLevels:      []uint64{},
+		reportedCPURequests: []resource.Quantity{},
 	}
 	tc.runTest(t)
 }

@@ -32,10 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
-const (
-	defaultGCAge = time.Minute * 1
-)
-
 // Manages lifecycle of all images.
 //
 // Implementation is thread-safe.
@@ -62,6 +58,9 @@ type ImageGCPolicy struct {
 	// Any usage below this threshold will never trigger garbage collection.
 	// This is the lowest threshold we will try to garbage collect to.
 	LowThresholdPercent int
+
+	// Minimum age at which a image can be garbage collected.
+	MinAge time.Duration
 }
 
 type realImageManager struct {
@@ -74,10 +73,6 @@ type realImageManager struct {
 
 	// The image garbage collection policy in use.
 	policy ImageGCPolicy
-
-	// Minimum age at which a image can be garbage collected, zero for no limit.
-	// TODO(mqliang): move it to ImageGCPolicy and make it configurable
-	minAge time.Duration
 
 	// cAdvisor instance.
 	cadvisor cadvisor.Interface
@@ -118,7 +113,6 @@ func newImageManager(runtime container.Runtime, cadvisorInterface cadvisor.Inter
 	im := &realImageManager{
 		runtime:      runtime,
 		policy:       policy,
-		minAge:       defaultGCAge,
 		imageRecords: make(map[string]*imageRecord),
 		cadvisor:     cadvisorInterface,
 		recorder:     recorder,
@@ -170,6 +164,7 @@ func (im *realImageManager) detectImages(detectTime time.Time) error {
 	imagesInUse := sets.NewString()
 	for _, pod := range pods {
 		for _, container := range pod.Containers {
+			glog.V(5).Infof("Pod %s/%s, container %s uses image %s", pod.Namespace, pod.Name, container.Name, container.Image)
 			imagesInUse.Insert(container.Image)
 		}
 	}
@@ -180,10 +175,12 @@ func (im *realImageManager) detectImages(detectTime time.Time) error {
 	im.imageRecordsLock.Lock()
 	defer im.imageRecordsLock.Unlock()
 	for _, image := range images {
+		glog.V(5).Infof("Adding image ID %s to currentImages", image.ID)
 		currentImages.Insert(image.ID)
 
 		// New image, set it as detected now.
 		if _, ok := im.imageRecords[image.ID]; !ok {
+			glog.V(5).Infof("Image ID %s is new", image.ID)
 			im.imageRecords[image.ID] = &imageRecord{
 				firstDetected: detectTime,
 			}
@@ -191,15 +188,18 @@ func (im *realImageManager) detectImages(detectTime time.Time) error {
 
 		// Set last used time to now if the image is being used.
 		if isImageUsed(image, imagesInUse) {
+			glog.V(5).Infof("Setting Image ID %s lastUsed to %v", image.ID, now)
 			im.imageRecords[image.ID].lastUsed = now
 		}
 
+		glog.V(5).Infof("Image ID %s has size %d", image.ID, image.Size)
 		im.imageRecords[image.ID].size = image.Size
 	}
 
 	// Remove old images from our records.
 	for image := range im.imageRecords {
 		if !currentImages.Has(image) {
+			glog.V(5).Infof("Image ID %s is no longer present; removing from imageRecords", image)
 			delete(im.imageRecords, image)
 		}
 	}
@@ -272,14 +272,18 @@ func (im *realImageManager) freeSpace(bytesToFree int64, freeTime time.Time) (in
 	var lastErr error
 	spaceFreed := int64(0)
 	for _, image := range images {
+		glog.V(5).Infof("Evaluating image ID %s for possible garbage collection", image.id)
 		// Images that are currently in used were given a newer lastUsed.
-		if image.lastUsed.After(freeTime) {
+		if image.lastUsed.Equal(freeTime) || image.lastUsed.After(freeTime) {
+			glog.V(5).Infof("Image ID %s has lastUsed=%v which is >= freeTime=%v, not eligible for garbage collection", image.id, image.lastUsed, freeTime)
 			break
 		}
 
 		// Avoid garbage collect the image if the image is not old enough.
 		// In such a case, the image may have just been pulled down, and will be used by a container right away.
-		if freeTime.Sub(image.firstDetected) < im.minAge {
+
+		if freeTime.Sub(image.firstDetected) < im.policy.MinAge {
+			glog.V(5).Infof("Image ID %s has age %v which is less than the policy's minAge of %v, not eligible for garbage collection", image.id, freeTime.Sub(image.firstDetected), im.policy.MinAge)
 			continue
 		}
 
@@ -320,11 +324,11 @@ func (ev byLastUsedAndDetected) Less(i, j int) bool {
 }
 
 func isImageUsed(image container.Image, imagesInUse sets.String) bool {
-	// Check the image ID and all the RepoTags.
+	// Check the image ID and all the RepoTags and RepoDigests.
 	if _, ok := imagesInUse[image.ID]; ok {
 		return true
 	}
-	for _, tag := range image.RepoTags {
+	for _, tag := range append(image.RepoTags, image.RepoDigests...) {
 		if _, ok := imagesInUse[tag]; ok {
 			return true
 		}

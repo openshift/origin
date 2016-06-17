@@ -30,16 +30,17 @@ import (
 
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	docker "github.com/fsouza/go-dockerclient"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 
+	"k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/network"
+	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
@@ -130,10 +131,10 @@ func (fnh *fakeNetworkHost) GetKubeClient() clientset.Interface {
 
 func (nh *fakeNetworkHost) GetRuntime() kubecontainer.Runtime {
 	dm, fakeDockerClient := newTestDockerManager()
-	fakeDockerClient.SetFakeRunningContainers([]*docker.Container{
+	fakeDockerClient.SetFakeRunningContainers([]*dockertools.FakeContainer{
 		{
-			ID:    "test_infra_container",
-			State: docker.State{Pid: 12345},
+			ID:  "test_infra_container",
+			Pid: 12345,
 		},
 	})
 	return dm
@@ -143,16 +144,16 @@ func newTestDockerManager() (*dockertools.DockerManager, *dockertools.FakeDocker
 	fakeDocker := dockertools.NewFakeDockerClient()
 	fakeRecorder := &record.FakeRecorder{}
 	containerRefManager := kubecontainer.NewRefManager()
-	networkPlugin, _ := network.InitNetworkPlugin([]network.NetworkPlugin{}, "", network.NewFakeHost(nil))
+	networkPlugin, _ := network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil))
 	dockerManager := dockertools.NewFakeDockerManager(
 		fakeDocker,
 		fakeRecorder,
 		proberesults.NewManager(),
 		containerRefManager,
 		&cadvisorapi.MachineInfo{},
-		kubetypes.PodInfraContainerImage,
+		options.GetDefaultPodInfraContainerImage(),
 		0, 0, "",
-		kubecontainer.FakeOS{},
+		containertest.FakeOS{},
 		networkPlugin,
 		nil,
 		nil,
@@ -178,7 +179,7 @@ func TestCNIPlugin(t *testing.T) {
 		t.Fatalf("Failed to select the desired plugin: %v", err)
 	}
 
-	err = plug.SetUpPod("podNamespace", "podName", "test_infra_container")
+	err = plug.SetUpPod("podNamespace", "podName", kubecontainer.ContainerID{Type: "docker", ID: "test_infra_container"})
 	if err != nil {
 		t.Errorf("Expected nil: %v", err)
 	}
@@ -193,7 +194,7 @@ func TestCNIPlugin(t *testing.T) {
 	if string(output) != expectedOutput {
 		t.Errorf("Mismatch in expected output for setup hook. Expected '%s', got '%s'", expectedOutput, string(output))
 	}
-	err = plug.TearDownPod("podNamespace", "podName", "test_infra_container")
+	err = plug.TearDownPod("podNamespace", "podName", kubecontainer.ContainerID{Type: "docker", ID: "test_infra_container"})
 	if err != nil {
 		t.Errorf("Expected nil: %v", err)
 	}

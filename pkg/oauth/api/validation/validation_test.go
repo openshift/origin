@@ -131,6 +131,28 @@ func TestValidateClientAuthorization(t *testing.T) {
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
+		"no scope handler": {
+			A: oapi.OAuthClientAuthorization{
+				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ClientName: "myclientname",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			A: oapi.OAuthClientAuthorization{
+				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ClientName: "myclientname",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidateClientAuthorization(&v.A)
@@ -171,6 +193,38 @@ func TestValidateClient(t *testing.T) {
 			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
 			T:      field.ErrorTypeForbidden,
 			F:      "metadata.namespace",
+		},
+		"literal must have value": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:        api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{{ExactValues: []string{""}}},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopeRestrictions[0].literals[0]",
+		},
+		"must have role names": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{
+					{
+						ClusterRole: &oapi.ClusterRoleScopeRestriction{Namespaces: []string{"b"}},
+					},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "scopeRestrictions[0].clusterRole.roleNames",
+		},
+		"must have namespaces": {
+			Client: oapi.OAuthClient{
+				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ScopeRestrictions: []oapi.ScopeRestriction{
+					{
+						ClusterRole: &oapi.ClusterRoleScopeRestriction{RoleNames: []string{"a"}},
+					},
+				},
+			},
+			T: field.ErrorTypeRequired,
+			F: "scopeRestrictions[0].clusterRole.namespaces",
 		},
 	}
 	for k, v := range errorCases {
@@ -225,6 +279,28 @@ func TestValidateAccessTokens(t *testing.T) {
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
+		"no scope handler": {
+			Token: oapi.OAuthAccessToken{
+				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			Token: oapi.OAuthAccessToken{
+				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidateAccessToken(&v.Token)
@@ -249,6 +325,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
+		Scopes:     []string{`user:info`},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -305,9 +382,153 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			T: field.ErrorTypeForbidden,
 			F: "metadata.namespace",
 		},
+		"no scope handler": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"invalid"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"bad scope": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{"user:dne"},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
+		"illegal character": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+				Scopes:     []string{`role:asdf":foo`},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "scopes[0]",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidateAuthorizeToken(&v.Token)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.Token)
+			continue
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateAccessTokensUpdate(t *testing.T) {
+	valid := &oapi.OAuthAccessToken{
+		ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ClientName: "myclient",
+		UserName:   "myusername",
+		UserUID:    "myuseruid",
+	}
+	errs := ValidateAccessTokenUpdate(valid, valid)
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		Token  oapi.OAuthAccessToken
+		Change func(*oapi.OAuthAccessToken)
+		T      field.ErrorType
+		F      string
+	}{
+		"change name": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAccessToken) {
+				obj.Name = ""
+			},
+			T: field.ErrorTypeInvalid,
+			F: "metadata.name",
+		},
+		"change userName": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAccessToken) {
+				obj.UserName = ""
+			},
+			T: field.ErrorTypeInvalid,
+			F: "[]",
+		},
+	}
+	for k, v := range errorCases {
+		copied, _ := api.Scheme.Copy(&v.Token)
+		newToken := copied.(*oapi.OAuthAccessToken)
+		v.Change(newToken)
+		errs := ValidateAccessTokenUpdate(newToken, &v.Token)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.Token)
+			continue
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateAuthorizeTokensUpdate(t *testing.T) {
+	valid := &oapi.OAuthAuthorizeToken{
+		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ClientName: "myclient",
+		UserName:   "myusername",
+		UserUID:    "myuseruid",
+		Scopes:     []string{`user:info`},
+	}
+	errs := ValidateAuthorizeTokenUpdate(valid, valid)
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		Token  oapi.OAuthAuthorizeToken
+		Change func(*oapi.OAuthAuthorizeToken)
+		T      field.ErrorType
+		F      string
+	}{
+		"change name": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAuthorizeToken) {
+				obj.Name = ""
+			},
+			T: field.ErrorTypeInvalid,
+			F: "metadata.name",
+		},
+		"change userUID": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAuthorizeToken) {
+				obj.UserUID = ""
+			},
+			T: field.ErrorTypeInvalid,
+			F: "[]",
+		},
+	}
+	for k, v := range errorCases {
+		copied, _ := api.Scheme.Copy(&v.Token)
+		newToken := copied.(*oapi.OAuthAuthorizeToken)
+		v.Change(newToken)
+		errs := ValidateAuthorizeTokenUpdate(newToken, &v.Token)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.Token)
 			continue

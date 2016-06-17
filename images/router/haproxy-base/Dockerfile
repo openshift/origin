@@ -11,14 +11,16 @@ FROM openshift/origin-base
 #       this is temporary and should be removed when the container is switch to an empty-dir
 #       with gid support.
 #
-RUN yum -y install haproxy iptables && \
+RUN INSTALL_PKGS="haproxy iptables lsof" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     mkdir -p /var/lib/containers/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
     touch /var/lib/haproxy/conf/{{os_http_be,os_edge_http_be,os_tcp_be,os_sni_passthrough,os_reencrypt,os_edge_http_expose,os_edge_http_redirect}.map,haproxy.config} && \
     chmod -R 777 /var && \
     yum clean all
 
-ADD conf/ /var/lib/haproxy/conf/
+COPY conf/ /var/lib/haproxy/conf/
 # add the dummy cert to the app cert directory as well to avoid errors with default config
-ADD conf/ /var/lib/containers/router/certs/
+COPY conf/ /var/lib/containers/router/certs/
 EXPOSE 80

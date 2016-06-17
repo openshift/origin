@@ -9,11 +9,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds] build without output image", func() {
+var _ = g.Describe("[builds][Conformance] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
-		dockerImageFixture = exutil.FixturePath("fixtures", "test-docker-no-outputname.json")
-		s2iImageFixture    = exutil.FixturePath("fixtures", "test-s2i-no-outputname.json")
+		dockerImageFixture = exutil.FixturePath("testdata", "test-docker-no-outputname.json")
+		s2iImageFixture    = exutil.FixturePath("testdata", "test-s2i-no-outputname.json")
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 
@@ -30,7 +30,7 @@ var _ = g.Describe("[builds] build without output image", func() {
 				fmt.Fprintln(g.GinkgoWriter, out)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).Should(o.ContainSubstring(`Build does not have an Output defined, no output image was pushed to a registry.`))
+			o.Expect(out).Should(o.ContainSubstring(`Build complete, no image push requested`))
 		})
 
 		g.It(fmt.Sprintf("should create an image from %q S2i template without an output image reference defined", s2iImageFixture), func() {
@@ -43,7 +43,7 @@ var _ = g.Describe("[builds] build without output image", func() {
 				fmt.Fprintln(g.GinkgoWriter, out)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).Should(o.ContainSubstring(`Build does not have an Output defined, no output image was pushed to a registry.`))
+			o.Expect(out).Should(o.ContainSubstring(`Build complete, no image push requested`))
 		})
 	})
 })

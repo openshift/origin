@@ -15,7 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 const (
@@ -63,8 +64,8 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 	clientConfig := &clientcmd.Config{
 		MasterAddr:     flagtypes.Addr{Value: d.MasterUrl}.Default(),
 		KubernetesAddr: flagtypes.Addr{Value: d.MasterUrl}.Default(),
-		CommonConfig: kclient.Config{
-			TLSClientConfig: kclient.TLSClientConfig{CAFile: d.MasterCaPath},
+		CommonConfig: restclient.Config{
+			TLSClientConfig: restclient.TLSClientConfig{CAFile: d.MasterCaPath},
 			BearerToken:     token,
 		},
 	}
@@ -135,15 +136,19 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 		Timeout: time.Second * 2,
 	}
 	secClient := noSecClient
-	secClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}
-	if secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r); secError == nil {
+	secClient.Transport = knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}})
+	secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r)
+	if secError == nil {
 		return // made the request successfully enough to diagnose
-	} else if strings.Contains(secError.Error(), "tls: oversized record received") {
+	}
+	switch {
+	case strings.Contains(secError.Error(), "tls: oversized record received"),
+		strings.Contains(secError.Error(), "server gave HTTP response to HTTPS"):
 		r.Debug("DP1015", "docker-registry not secured; falling back to cleartext connection")
 		if nosecError := processRegistryRequest(&noSecClient, fmt.Sprintf("http://%s:%s/v2/", registryHostname, registryPort), token, r); nosecError != nil {
 			r.Error("DP1013", nosecError, fmt.Sprintf("Unexpected error authenticating to the integrated registry:\n(%T) %[1]v", nosecError))
 		}
-	} else {
+	default:
 		r.Error("DP1013", secError, fmt.Sprintf("Unexpected error authenticating to the integrated registry:\n(%T) %[1]v", secError))
 	}
 }

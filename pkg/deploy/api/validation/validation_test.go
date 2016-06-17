@@ -79,12 +79,50 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 	}
 }
 
+func TestValidateDeploymentConfigICTMissingImage(t *testing.T) {
+	dc := &api.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+		Spec: api.DeploymentConfigSpec{
+			Replicas: 1,
+			Triggers: []api.DeploymentTriggerPolicy{test.OkImageChangeTrigger()},
+			Selector: test.OkSelector(),
+			Strategy: test.OkStrategy(),
+			Template: test.OkPodTemplateMissingImage("container1"),
+		},
+	}
+	errs := ValidateDeploymentConfig(dc)
+
+	if len(errs) > 0 {
+		t.Errorf("Unexpected non-empty error list: %+v", errs)
+	}
+
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if c.Image == "unset" {
+			t.Errorf("%s image field still has validation fake out value of %s", c.Name, c.Image)
+		}
+	}
+}
+
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		DeploymentConfig api.DeploymentConfig
 		ErrorType        field.ErrorType
 		Field            string
 	}{
+		"empty container field": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Spec: api.DeploymentConfigSpec{
+					Replicas: 1,
+					Triggers: []api.DeploymentTriggerPolicy{test.OkConfigChangeTrigger()},
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplateMissingImage("container1"),
+				},
+			},
+			field.ErrorTypeRequired,
+			"spec.template.spec.containers[0].image",
+		},
 		"missing name": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
@@ -240,7 +278,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			field.ErrorTypeRequired,
 			"spec.strategy.customParams",
 		},
-		"missing spec.strategy.customParams.image": {
+		"invalid spec.strategy.customParams.environment": {
 			api.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Spec: api.DeploymentConfigSpec{
@@ -248,14 +286,18 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Triggers: manualTrigger(),
 					Selector: test.OkSelector(),
 					Strategy: api.DeploymentStrategy{
-						Type:         api.DeploymentStrategyTypeCustom,
-						CustomParams: &api.CustomDeploymentStrategyParams{},
+						Type: api.DeploymentStrategyTypeCustom,
+						CustomParams: &api.CustomDeploymentStrategyParams{
+							Environment: []kapi.EnvVar{
+								{Name: "A=B"},
+							},
+						},
 					},
 					Template: test.OkPodTemplate(),
 				},
 			},
-			field.ErrorTypeRequired,
-			"spec.strategy.customParams.image",
+			field.ErrorTypeInvalid,
+			"spec.strategy.customParams.environment[0].name",
 		},
 		"missing spec.strategy.recreateParams.pre.failurePolicy": {
 			api.DeploymentConfig{
@@ -648,8 +690,8 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 	}
 
 	scenarios := []struct {
-		oldLatestVersion int
-		newLatestVersion int
+		oldLatestVersion int64
+		newLatestVersion int64
 	}{
 		{5, 3},
 		{5, 7},

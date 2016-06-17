@@ -51,7 +51,7 @@ func readNetClsCGroup(reader io.Reader) string {
 }
 
 // getDockerNetworkMode determines whether the builder is running as a container
-// by examining /proc/self/cgroup. This contenxt is then passed to source-to-image.
+// by examining /proc/self/cgroup. This context is then passed to source-to-image.
 func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {
@@ -71,7 +71,17 @@ func getDockerNetworkMode() s2iapi.DockerNetworkMode {
 func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 	byteLimit, err := readInt64("/sys/fs/cgroup/memory/memory.limit_in_bytes")
 	if err != nil {
+		// for systems without cgroups builds should succeed
+		if _, err := os.Stat("/sys/fs/cgroup"); os.IsNotExist(err) {
+			return &s2iapi.CGroupLimits{}, nil
+		}
 		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
+	}
+	// math.MaxInt64 seems to give cgroups trouble, this value is
+	// still 92 terabytes, so it ought to be sufficiently large for
+	// our purposes.
+	if byteLimit > 92233720368547 {
+		byteLimit = 92233720368547
 	}
 
 	// different docker versions seem to use different cgroup directories,

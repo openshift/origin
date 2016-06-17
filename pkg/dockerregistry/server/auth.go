@@ -12,6 +12,7 @@ import (
 	registryauth "github.com/docker/distribution/registry/auth"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -39,7 +40,7 @@ func (r *RegistryClient) Clients() (client.Interface, kclient.Interface, error) 
 }
 
 // SafeClientConfig returns a client config without authentication info.
-func (r *RegistryClient) SafeClientConfig() kclient.Config {
+func (r *RegistryClient) SafeClientConfig() restclient.Config {
 	return clientcmd.AnonymousClientConfig(r.config.OpenShiftConfig())
 }
 
@@ -62,7 +63,7 @@ func UserClientFrom(ctx context.Context) (client.Interface, bool) {
 
 type AccessController struct {
 	realm  string
-	config kclient.Config
+	config restclient.Config
 }
 
 var _ registryauth.AccessController = &AccessController{}

@@ -5,31 +5,31 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 // NewStorage returns a RESTStorage object that will work against Build objects.
-func NewREST(s storage.Interface) (*REST, *DetailsREST) {
+func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	prefix := "/builds"
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.Build{} },
 		NewListFunc:       func() runtime.Object { return &api.BuildList{} },
 		QualifiedResource: api.Resource("builds"),
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
+			return registry.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Build).Name, nil
@@ -42,17 +42,20 @@ func NewREST(s storage.Interface) (*REST, *DetailsREST) {
 		DeleteStrategy:      build.Strategy,
 		Decorator:           build.Decorator,
 		ReturnDeletedObject: false,
-		Storage:             s,
+	}
+
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+		return nil, nil, err
 	}
 
 	detailsStore := *store
 	detailsStore.UpdateStrategy = build.DetailsStrategy
 
-	return &REST{store}, &DetailsREST{&detailsStore}
+	return &REST{store}, &DetailsREST{&detailsStore}, nil
 }
 
 type DetailsREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // New returns an empty object that can be used with Update after request data has been put into it.

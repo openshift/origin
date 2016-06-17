@@ -53,6 +53,7 @@ var map_AssetConfig = map[string]string{
 	"loggingPublicURL":     "LoggingPublicURL is the public endpoint for logging (optional)",
 	"metricsPublicURL":     "MetricsPublicURL is the public endpoint for metrics (optional)",
 	"extensionScripts":     "ExtensionScripts are file paths on the asset server files to load as scripts when the Web Console loads",
+	"extensionProperties":  "ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under the global variable OPENSHIFT_EXTENSION_PROPERTIES",
 	"extensionStylesheets": "ExtensionStylesheets are file paths on the asset server files to load as stylesheets when the Web Console loads",
 	"extensions":           "Extensions are files to serve from the asset server filesystem under a subcontext",
 	"extensionDevelopment": "ExtensionDevelopment when true tells the asset server to reload extension scripts and stylesheets for every request rather than only at startup. It lets you develop extensions without having to restart the server for every change.",
@@ -71,6 +72,15 @@ var map_AssetExtensionsConfig = map[string]string{
 
 func (AssetExtensionsConfig) SwaggerDoc() map[string]string {
 	return map_AssetExtensionsConfig
+}
+
+var map_AuditConfig = map[string]string{
+	"":        "AuditConfig holds configuration for the audit capabilities",
+	"enabled": "If this flag is set, basic audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+}
+
+func (AuditConfig) SwaggerDoc() map[string]string {
+	return map_AuditConfig
 }
 
 var map_AugmentedActiveDirectoryConfig = map[string]string{
@@ -105,6 +115,15 @@ func (CertInfo) SwaggerDoc() map[string]string {
 	return map_CertInfo
 }
 
+var map_ControllerConfig = map[string]string{
+	"":                   "ControllerConfig holds configuration values for controllers",
+	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+}
+
+func (ControllerConfig) SwaggerDoc() map[string]string {
+	return map_ControllerConfig
+}
+
 var map_DNSConfig = map[string]string{
 	"":                      "DNSConfig holds the necessary configuration options for DNS",
 	"bindAddress":           "BindAddress is the ip:port to serve DNS on",
@@ -114,6 +133,15 @@ var map_DNSConfig = map[string]string{
 
 func (DNSConfig) SwaggerDoc() map[string]string {
 	return map_DNSConfig
+}
+
+var map_DefaultAdmissionConfig = map[string]string{
+	"":        "DefaultAdmissionConfig can be used to enable or disable various admission plugins. When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it, this will cause an \"off by default\" admission plugin to be enabled",
+	"Disable": "Disable turns off an admission plugin that is enabled by default.",
+}
+
+func (DefaultAdmissionConfig) SwaggerDoc() map[string]string {
+	return map_DefaultAdmissionConfig
 }
 
 var map_DenyAllPasswordIdentityProvider = map[string]string{
@@ -203,8 +231,9 @@ func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_GrantConfig = map[string]string{
-	"":       "GrantConfig holds the necessary configuration options for grant handlers",
-	"method": "Method: allow, deny, prompt",
+	"":                     "GrantConfig holds the necessary configuration options for grant handlers",
+	"method":               "Method: allow, deny, prompt",
+	"serviceAccountMethod": "ServiceAccountMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt",
 }
 
 func (GrantConfig) SwaggerDoc() map[string]string {
@@ -263,6 +292,19 @@ var map_ImagePolicyConfig = map[string]string{
 
 func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 	return map_ImagePolicyConfig
+}
+
+var map_JenkinsPipelineConfig = map[string]string{
+	"":                  "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"enabled":           "If the enabled flag is set, a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+	"templateNamespace": "TemplateNamespace contains the namespace name where the Jenkins template is stored",
+	"templateName":      "TemplateName is the name of the default Jenkins template",
+	"serviceName":       "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+	"parameters":        "Parameters specifies a set of optional parameters to the Jenkins template.",
+}
+
+func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineConfig
 }
 
 var map_KeystonePasswordIdentityProvider = map[string]string{
@@ -362,14 +404,13 @@ func (LDAPSyncConfig) SwaggerDoc() map[string]string {
 	return map_LDAPSyncConfig
 }
 
-var map_LegacyClientPolicyConfig = map[string]string{
-	"":                    "LegacyClientPolicyConfig holds configuration options for preventing *opt-in* clients using some HTTP verbs when talking to the API",
-	"legacyClientPolicy":  "LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS! The default is AllowAll",
-	"restrictedHTTPVerbs": "RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST",
+var map_LocalQuota = map[string]string{
+	"":           "LocalQuota contains options for controlling local volume quota on the node.",
+	"perFSGroup": "FSGroup can be specified to enable a quota on local storage use per unique FSGroup ID. At present this is only implemented for emptyDir volumes, and if the underlying volumeDirectory is on an XFS filesystem.",
 }
 
-func (LegacyClientPolicyConfig) SwaggerDoc() map[string]string {
-	return map_LegacyClientPolicyConfig
+func (LocalQuota) SwaggerDoc() map[string]string {
+	return map_LocalQuota
 }
 
 var map_MasterClients = map[string]string{
@@ -392,6 +433,7 @@ var map_MasterConfig = map[string]string{
 	"pauseControllers":       "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them.",
 	"controllerLeaseTTL":     "ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1.",
 	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
+	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
 	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
 	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
 	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
@@ -409,6 +451,9 @@ var map_MasterConfig = map[string]string{
 	"projectConfig":          "ProjectConfig holds information about project creation and defaults",
 	"routingConfig":          "RoutingConfig holds information about routing and route generation",
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
+	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+	"auditConfig":            "AuditConfig holds information related to auditing capabilities.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {
@@ -416,15 +461,25 @@ func (MasterConfig) SwaggerDoc() map[string]string {
 }
 
 var map_MasterNetworkConfig = map[string]string{
-	"":                   "MasterNetworkConfig to be passed to the compiled in network plugin",
-	"networkPluginName":  "NetworkPluginName is the name of the network plugin to use",
-	"clusterNetworkCIDR": "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
-	"hostSubnetLength":   "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
-	"serviceNetworkCIDR": "ServiceNetwork is the CIDR string to specify the service networks",
+	"":                       "MasterNetworkConfig to be passed to the compiled in network plugin",
+	"networkPluginName":      "NetworkPluginName is the name of the network plugin to use",
+	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
+	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
+	"serviceNetworkCIDR":     "ServiceNetwork is the CIDR string to specify the service networks",
+	"externalIPNetworkCIDRs": "ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
 }
 
 func (MasterNetworkConfig) SwaggerDoc() map[string]string {
 	return map_MasterNetworkConfig
+}
+
+var map_MasterVolumeConfig = map[string]string{
+	"": "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"dynamicProvisioningEnabled": "DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true",
+}
+
+func (MasterVolumeConfig) SwaggerDoc() map[string]string {
+	return map_MasterVolumeConfig
 }
 
 var map_NamedCertificate = map[string]string{
@@ -467,6 +522,7 @@ var map_NodeConfig = map[string]string{
 	"kubeletArguments":    "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"proxyArguments":      "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"iptablesSyncPeriod":  "IPTablesSyncPeriod is how often iptable rules are refreshed",
+	"volumeConfig":        "VolumeConfig contains options for configuring volumes on the node.",
 }
 
 func (NodeConfig) SwaggerDoc() map[string]string {
@@ -475,12 +531,21 @@ func (NodeConfig) SwaggerDoc() map[string]string {
 
 var map_NodeNetworkConfig = map[string]string{
 	"":                  "NodeNetworkConfig provides network options for the node",
-	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin",
+	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.",
 	"mtu":               "Maximum transmission unit for the network packets",
 }
 
 func (NodeNetworkConfig) SwaggerDoc() map[string]string {
 	return map_NodeNetworkConfig
+}
+
+var map_NodeVolumeConfig = map[string]string{
+	"":           "NodeVolumeConfig contains options for configuring volumes on the node.",
+	"localQuota": "LocalQuota contains options for controlling local volume quota on the node.",
+}
+
+func (NodeVolumeConfig) SwaggerDoc() map[string]string {
+	return map_NodeVolumeConfig
 }
 
 var map_OAuthConfig = map[string]string{
@@ -565,7 +630,7 @@ var map_PolicyConfig = map[string]string{
 	"bootstrapPolicyFile":               "BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace",
 	"openshiftSharedResourcesNamespace": "OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)",
 	"openshiftInfrastructureNamespace":  "OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)",
-	"legacyClientPolicyConfig":          "LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"userAgentMatchingConfig":           "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
 func (PolicyConfig) SwaggerDoc() map[string]string {
@@ -616,6 +681,7 @@ var map_RequestHeaderIdentityProvider = map[string]string{
 	"loginURL":                 "LoginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
 	"challengeURL":             "ChallengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
 	"clientCA":                 "ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.",
+	"clientCommonNames":        "ClientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.",
 	"headers":                  "Headers is the set of headers to check for identity information",
 	"preferredUsernameHeaders": "PreferredUsernameHeaders is the set of headers to check for the preferred username",
 	"nameHeaders":              "NameHeaders is the set of headers to check for the display name",
@@ -657,6 +723,15 @@ var map_ServiceAccountConfig = map[string]string{
 
 func (ServiceAccountConfig) SwaggerDoc() map[string]string {
 	return map_ServiceAccountConfig
+}
+
+var map_ServiceServingCert = map[string]string{
+	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+}
+
+func (ServiceServingCert) SwaggerDoc() map[string]string {
+	return map_ServiceServingCert
 }
 
 var map_ServingInfo = map[string]string{
@@ -729,4 +804,34 @@ var map_TokenConfig = map[string]string{
 
 func (TokenConfig) SwaggerDoc() map[string]string {
 	return map_TokenConfig
+}
+
+var map_UserAgentDenyRule = map[string]string{
+	"":                 "UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client",
+	"rejectionMessage": "RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
+}
+
+func (UserAgentDenyRule) SwaggerDoc() map[string]string {
+	return map_UserAgentDenyRule
+}
+
+var map_UserAgentMatchRule = map[string]string{
+	"":          "UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb",
+	"regex":     "UserAgentRegex is a regex that is checked against the User-Agent. Known variants of oc clients 1. oc accessing kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 4. openshit kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f",
+	"httpVerbs": "HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means \"match all verbs\".",
+}
+
+func (UserAgentMatchRule) SwaggerDoc() map[string]string {
+	return map_UserAgentMatchRule
+}
+
+var map_UserAgentMatchingConfig = map[string]string{
+	"":                        "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"requiredClients":         "If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed",
+	"deniedClients":           "If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes",
+	"defaultRejectionMessage": "DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.",
+}
+
+func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
+	return map_UserAgentMatchingConfig
 }

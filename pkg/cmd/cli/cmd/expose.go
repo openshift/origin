@@ -23,19 +23,19 @@ as a new service on a specified port. If no labels are specified, the new object
 labels from the object it exposes.`
 
 	exposeExample = `  # Create a route based on service nginx. The new route will re-use nginx's labels
-  $ %[1]s expose service nginx
+  %[1]s expose service nginx
 
   # Create a route and specify your own label and route name
-  $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
+  %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
   # Create a route and specify a hostname
-  $ %[1]s expose service nginx --hostname=www.example.com
+  %[1]s expose service nginx --hostname=www.example.com
 
   # Expose a deployment configuration as a service and use the specified port
-  $ %[1]s expose dc ruby-hello-world --port=8080
+  %[1]s expose dc ruby-hello-world --port=8080
 
   # Expose a service as a route in the specified path
-  $ %[1]s expose service nginx --path=/nginx`
+  %[1]s expose service nginx --path=/nginx`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
@@ -78,11 +78,11 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return err
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, kcmdutil.GetFlagStringSlice(cmd, "filename")...).
+		FilenameParam(enforceNamespace, false, kcmdutil.GetFlagStringSlice(cmd, "filename")...).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()

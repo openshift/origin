@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -151,7 +153,47 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 	}
 }
 
+func (c *MasterConfig) securityContextConstraintsSupported() (bool, error) {
+	// TODO to make this a library upstream, ResourceExists(GroupVersionResource) or some such.
+	// look for supported groups
+	serverGroupList, err := c.KubeClient().ServerGroups()
+	if err != nil {
+		return false, err
+	}
+	// find the preferred version of the legacy group
+	var legacyGroup *unversioned.APIGroup
+	for i := range serverGroupList.Groups {
+		if len(serverGroupList.Groups[i].Name) == 0 {
+			legacyGroup = &serverGroupList.Groups[i]
+		}
+	}
+	if legacyGroup == nil {
+		return false, fmt.Errorf("unable to discovery preferred version for legacy api group")
+	}
+	// check if securitycontextconstraints is a resource in the group
+	apiResourceList, err := c.KubeClient().ServerResourcesForGroupVersion(legacyGroup.PreferredVersion.GroupVersion)
+	if err != nil {
+		return false, err
+	}
+	for _, apiResource := range apiResourceList.APIResources {
+		if apiResource.Name == "securitycontextconstraints" && !apiResource.Namespaced {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
+	sccSupported, err := c.securityContextConstraintsSupported()
+	if err != nil {
+		glog.Errorf("Unable to determine if security context constraints are supported. Got error: %v", err)
+		return
+	}
+	if !sccSupported {
+		glog.Infof("Ignoring default security context constraints when running on external Kubernetes.")
+		return
+	}
+
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
@@ -170,13 +212,18 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 
 // ensureComponentAuthorizationRules initializes the cluster policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	if err != nil {
+		glog.Errorf("Error creating policy storage: %v", err)
+		return
+	}
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
 	ctx := kapi.WithNamespace(kapi.NewContext(), "")
 
 	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(c.RESTOptionsGetter, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 
@@ -186,7 +233,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	// Wait until the policy cache has caught up before continuing
 	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: authorizationapi.GroupName, Resource: "clusterpolicies"}}
-	err := wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	err = wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		result, err := c.PolicyClient().SubjectAccessReviews().Create(review)
 		if err == nil && result.Allowed {
 			return true, nil
@@ -199,6 +246,32 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	})
 	if err != nil {
 		glog.Errorf("error waiting for policy cache to initialize: %v", err)
+	}
+
+	// Reconcile roles that must exist for the cluster to function
+	// Be very judicious about what is placed in this list, since it will be enforced on every server start
+	reconcileRoles := &policy.ReconcileClusterRolesOptions{
+		RolesToReconcile: []string{bootstrappolicy.DiscoveryRoleName},
+		Confirmed:        true,
+		Union:            true,
+		Out:              ioutil.Discard,
+		RoleClient:       c.PrivilegedLoopbackOpenShiftClient.ClusterRoles(),
+	}
+	if err := reconcileRoles.RunReconcileClusterRoles(nil, nil); err != nil {
+		glog.Errorf("Could not auto reconcile roles: %v\n", err)
+	}
+
+	// Reconcile rolebindings that must exist for the cluster to function
+	// Be very judicious about what is placed in this list, since it will be enforced on every server start
+	reconcileRoleBindings := &policy.ReconcileClusterRoleBindingsOptions{
+		RolesToReconcile:  []string{bootstrappolicy.DiscoveryRoleName},
+		Confirmed:         true,
+		Union:             true,
+		Out:               ioutil.Discard,
+		RoleBindingClient: c.PrivilegedLoopbackOpenShiftClient.ClusterRoleBindings(),
+	}
+	if err := reconcileRoleBindings.RunReconcileClusterRoleBindings(nil, nil); err != nil {
+		glog.Errorf("Could not auto reconcile role bindings: %v\n", err)
 	}
 }
 

@@ -15,11 +15,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
+	configcmd "github.com/openshift/origin/pkg/cmd/experimental/config"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -35,7 +37,7 @@ const (
 The %[3]s helps you build, deploy, and manage your applications on top of
 Docker containers. To start an all-in-one server with the default configuration, run:
 
-  $ %[1]s start &`
+  %[1]s start &`
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -58,6 +60,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
+	case "openshift-recycle":
+		cmd = recycle.NewCommandRecycle(basename, out)
 	case "openshift-sti-build":
 		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
@@ -123,6 +127,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		irouter.NewCommandTemplateRouter("router"),
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
+		recycle.NewCommandRecycle("recycle", out),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
@@ -139,6 +144,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 func newExperimentalCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
+	errout := os.Stderr
 
 	experimental := &cobra.Command{
 		Use:   name,
@@ -154,8 +160,9 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	f := clientcmd.New(experimental.PersistentFlags())
 
 	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
+	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)

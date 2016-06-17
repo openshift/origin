@@ -5,42 +5,17 @@
     "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "Jenkins service, without persistent storage.\nThe username is 'admin' and the tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
   },
   "objects": [
     {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "web",
-            "protocol": "TCP",
-            "port": 8080,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "${JENKINS_SERVICE_NAME}"
-        },
-        "portalIP": "",
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      }
-    },
-    {
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
+        "name": "${JENKINS_SERVICE_NAME}",
         "creationTimestamp": null
       },
       "spec": {
@@ -71,14 +46,14 @@
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "jenkins"
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "jenkins:latest",
-                "namespace": "openshift"
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
             }
@@ -102,7 +77,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "${JENKINS_IMAGE}",
+                "image": " ",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,
@@ -113,7 +88,7 @@
                 },
                 "livenessProbe": {
                     "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
+                    "initialDelaySeconds": 60,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
@@ -126,10 +101,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${JENKINS_SERVICE_NAME}-data",
@@ -158,27 +133,64 @@
           }
         }
       }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
     }
   ],
   "parameters": [
     {
-      "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
-      "value": "512Mi"
-    },
-    {
       "name": "JENKINS_SERVICE_NAME",
-      "displayName": "Jenkins service name",
-      "description": "The name of the OpenShift Service exposed for the Jenkins container",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
       "value": "jenkins"
     },
     {
       "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins password",
-      "description": "Password for the Jenkins user",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins 'admin' user.",
       "generate": "expression",
       "value": "password"
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:latest"
     }
   ],
   "labels": {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
 
 // StatusRecommendedName is the recommended command name.
@@ -31,13 +32,13 @@ You can specify an output format of "-o dot" to have this command output the gen
 graph in DOT format that is suitable for use by the "dot" command.`
 
 	statusExample = `  # See an overview of the current project.
-  $ %[1]s
+  %[1]s
 
   # Export the overview of the current project in an svg file.
-  $ %[1]s -o dot | dot -T svg -o project.svg
+  %[1]s -o dot | dot -T svg -o project.svg
 
   # See an overview of the current project including details for any identified issues.
-  $ %[1]s -v`
+  %[1]s -v`
 )
 
 // StatusOptions contains all the necessary options for the Openshift cli status command.
@@ -52,6 +53,7 @@ type StatusOptions struct {
 	logsCommandName             string
 	securityPolicyCommandFormat string
 	setProbeCommandName         string
+	patchCommandName            string
 }
 
 // NewCmdStatus implements the OpenShift cli status command.
@@ -159,7 +161,7 @@ func (o StatusOptions) RunStatus() error {
 		if err != nil {
 			return err
 		}
-		data, err := dot.Marshal(g, o.namespace, "", "  ", false)
+		data, err := dot.Marshal(g, dotutil.Quote(o.namespace), "", "  ", false)
 		if err != nil {
 			return err
 		}

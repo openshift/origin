@@ -26,12 +26,23 @@ const (
 )
 
 var (
-	zeroDec = inf.NewDec(0, 0)
+	zeroDec  = inf.NewDec(0, 0)
+	miDec    = inf.NewDec(1024*1024, 0)
+	cpuFloor = resource.MustParse("1m")
+	memFloor = resource.MustParse("1Mi")
 )
 
 func init() {
 	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return newClusterResourceOverride(client, config)
+		pluginConfig, err := ReadConfig(config)
+		if err != nil {
+			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+			return nil, nil
+		}
+		return newClusterResourceOverride(client, pluginConfig)
 	})
 }
 
@@ -46,32 +57,26 @@ type clusterResourceOverridePlugin struct {
 	ProjectCache *cache.ProjectCache
 	LimitRanger  admission.Interface
 }
+type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
 var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
+var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
-func newClusterResourceOverride(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-	parsed, err := ReadConfig(config)
-	if err != nil {
-		glog.V(5).Infof("%s admission controller loaded with error: (%T) %[2]v", api.PluginName, err)
-		return nil, err
-	}
-	if errs := validation.Validate(parsed); len(errs) > 0 {
-		return nil, errs.ToAggregate()
-	}
-	glog.V(5).Infof("%s admission controller loaded with config: %v", api.PluginName, parsed)
+func newClusterResourceOverride(client clientset.Interface, config *api.ClusterResourceOverrideConfig) (admission.Interface, error) {
+	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
 	var internal *internalConfig
-	if parsed != nil {
+	if config != nil {
 		internal = &internalConfig{
-			limitCPUToMemoryRatio:     inf.NewDec(parsed.LimitCPUToMemoryPercent, 2),
-			cpuRequestToLimitRatio:    inf.NewDec(parsed.CPURequestToLimitPercent, 2),
-			memoryRequestToLimitRatio: inf.NewDec(parsed.MemoryRequestToLimitPercent, 2),
+			limitCPUToMemoryRatio:     inf.NewDec(config.LimitCPUToMemoryPercent, 2),
+			cpuRequestToLimitRatio:    inf.NewDec(config.CPURequestToLimitPercent, 2),
+			memoryRequestToLimitRatio: inf.NewDec(config.MemoryRequestToLimitPercent, 2),
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, wrapLimit)
+	limitRanger, err := limitranger.NewLimitRanger(client, &limitRangerActions{})
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +88,14 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 	}, nil
 }
 
-func wrapLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	limitranger.Limit(limitRange, resourceName, obj)
-	// always return success so that all defaults will be applied.
-	// validation will occur after the overrides.
+// these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
+func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
+	return true
+}
+func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
+	return true
+}
+func (d *limitRangerActions) Limit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
 	return nil
 }
 
@@ -108,6 +117,10 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
 	glog.V(5).Infof("%s config is: %v", api.PluginName, config)
+	if errs := validation.Validate(config); len(errs) > 0 {
+		return nil, errs.ToAggregate()
+	}
+
 	return config, nil
 }
 
@@ -121,7 +134,7 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
-	if a.config == nil || attr.GetResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
+	if a.config == nil || attr.GetResource().GroupResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
 	}
 	pod, ok := attr.GetObject().(*kapi.Pod)
@@ -153,24 +166,37 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 		resources := container.Resources
 		memLimit, memFound := resources.Limits[kapi.ResourceMemory]
 		if memFound && a.config.memoryRequestToLimitRatio.Cmp(zeroDec) != 0 {
-			resources.Requests[kapi.ResourceMemory] = resource.Quantity{
-				Amount: multiply(memLimit.Amount, a.config.memoryRequestToLimitRatio),
-				Format: resource.BinarySI,
+			// memory is measured in whole bytes.
+			// the plugin rounds down to the nearest MiB rather than bytes to improve ease of use for end-users.
+			amount := multiply(memLimit.Amount, a.config.memoryRequestToLimitRatio)
+			roundDownToNearestMi := multiply(divide(amount, miDec, 0, inf.RoundDown), miDec)
+			value := resource.Quantity{Amount: roundDownToNearestMi, Format: resource.BinarySI}
+			if memFloor.Cmp(value) > 0 {
+				value = *(memFloor.Copy())
 			}
+			resources.Requests[kapi.ResourceMemory] = value
 		}
 		if memFound && a.config.limitCPUToMemoryRatio.Cmp(zeroDec) != 0 {
-			resources.Limits[kapi.ResourceCPU] = resource.Quantity{
-				// float math is necessary here as there is no way to create an inf.Dec to represent cpuBaseScaleFactor < 0.001
-				Amount: multiply(inf.NewDec(int64(float64(memLimit.Value())*cpuBaseScaleFactor), 3), a.config.limitCPUToMemoryRatio),
-				Format: resource.DecimalSI,
+			// float math is necessary here as there is no way to create an inf.Dec to represent cpuBaseScaleFactor < 0.001
+			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
+			amount := multiply(inf.NewDec(int64(float64(memLimit.Value())*cpuBaseScaleFactor), 3), a.config.limitCPUToMemoryRatio)
+			amount.Round(amount, 3, inf.RoundDown)
+			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
+			if cpuFloor.Cmp(value) > 0 {
+				value = *(cpuFloor.Copy())
 			}
+			resources.Limits[kapi.ResourceCPU] = value
 		}
 		cpuLimit, cpuFound := resources.Limits[kapi.ResourceCPU]
 		if cpuFound && a.config.cpuRequestToLimitRatio.Cmp(zeroDec) != 0 {
-			resources.Requests[kapi.ResourceCPU] = resource.Quantity{
-				Amount: multiply(cpuLimit.Amount, a.config.cpuRequestToLimitRatio),
-				Format: resource.DecimalSI,
+			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
+			amount := multiply(cpuLimit.Amount, a.config.cpuRequestToLimitRatio)
+			amount.Round(amount, 3, inf.RoundDown)
+			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
+			if cpuFloor.Cmp(value) > 0 {
+				value = *(cpuFloor.Copy())
 			}
+			resources.Requests[kapi.ResourceCPU] = value
 		}
 	}
 	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
@@ -179,4 +205,8 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 func multiply(x *inf.Dec, y *inf.Dec) *inf.Dec {
 	return inf.NewDec(0, 0).Mul(x, y)
+}
+
+func divide(x *inf.Dec, y *inf.Dec, s inf.Scale, r inf.Rounder) *inf.Dec {
+	return inf.NewDec(0, 0).QuoRound(x, y, s, r)
 }

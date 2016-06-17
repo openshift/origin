@@ -25,13 +25,14 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/probe"
+	utilnet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/golang/glog"
 )
 
 func New() HTTPProber {
 	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	transport := &http.Transport{TLSClientConfig: tlsConfig, DisableKeepAlives: true}
+	transport := utilnet.SetTransportDefaults(&http.Transport{TLSClientConfig: tlsConfig, DisableKeepAlives: true})
 	return httpProber{transport}
 }
 
@@ -63,6 +64,9 @@ func DoHTTPProbe(url *url.URL, headers http.Header, client HTTPGetInterface) (pr
 		return probe.Failure, err.Error(), nil
 	}
 	req.Header = headers
+	if headers.Get("Host") != "" {
+		req.Host = headers.Get("Host")
+	}
 	res, err := client.Do(req)
 	if err != nil {
 		// Convert errors into failures to catch timeouts.
@@ -78,6 +82,6 @@ func DoHTTPProbe(url *url.URL, headers http.Header, client HTTPGetInterface) (pr
 		glog.V(4).Infof("Probe succeeded for %s, Response: %v", url.String(), *res)
 		return probe.Success, body, nil
 	}
-	glog.V(4).Infof("Probe failed for %s, Response: %v", url.String(), *res)
+	glog.V(4).Infof("Probe failed for %s with request headers %v, response body: %v", url.String(), headers, body)
 	return probe.Failure, fmt.Sprintf("HTTP probe failed with statuscode: %d", res.StatusCode), nil
 }

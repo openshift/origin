@@ -21,6 +21,12 @@ type Registry interface {
 	DeleteClient(ctx kapi.Context, name string) error
 }
 
+// Getter exposes a way to get a specific client.  This is useful for other registries to get scope limitations
+// on particular clients.   This interface will make its easier to write a future cache on it
+type Getter interface {
+	GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error)
+}
+
 // storage puts strong typing around storage calls
 type storage struct {
 	rest.StandardStorage

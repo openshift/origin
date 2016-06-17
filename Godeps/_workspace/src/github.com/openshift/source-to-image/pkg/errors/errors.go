@@ -69,7 +69,7 @@ func NewPullImageError(name string, err error) error {
 		Message:    fmt.Sprintf("unable to get %s", name),
 		Details:    err,
 		ErrorCode:  PullImageError,
-		Suggestion: "check image name, or if using local image add --force-pull=false flag",
+		Suggestion: "check image name, or if using local image add --pull-policy=never flag",
 	}
 }
 
@@ -111,6 +111,17 @@ func NewWorkDirError(dir string, err error) error {
 func NewBuildError(name string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("building %s failed", name),
+		Details:    err,
+		ErrorCode:  BuildError,
+		Suggestion: "check the build output for errors",
+	}
+}
+
+// NewCommitError returns a new error which indicates there was a problem
+// committing the image
+func NewCommitError(name string, err error) error {
+	return Error{
+		Message:    fmt.Sprintf("building %s failed when committing the image due to error: %v", name, err),
 		Details:    err,
 		ErrorCode:  BuildError,
 		Suggestion: "check the build output for errors",

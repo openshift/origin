@@ -16,7 +16,7 @@ func Covers(ownerRules, servantRules []authorizationapi.PolicyRule) (bool, []aut
 
 	subrules := []authorizationapi.PolicyRule{}
 	for _, servantRule := range servantRules {
-		subrules = append(subrules, breakdownRule(servantRule)...)
+		subrules = append(subrules, BreakdownRule(servantRule)...)
 	}
 
 	// fmt.Printf("subrules: %v\n", subrules)
@@ -40,9 +40,9 @@ func Covers(ownerRules, servantRules []authorizationapi.PolicyRule) (bool, []aut
 	return (len(uncoveredRules) == 0), uncoveredRules
 }
 
-// breadownRule takes a rule and builds an equivalent list of rules that each have at most one verb, one
+// BreakdownRule takes a rule and builds an equivalent list of rules that each have at most one verb, one
 // resource, and one resource name
-func breakdownRule(rule authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
+func BreakdownRule(rule authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
 	subrules := []authorizationapi.PolicyRule{}
 
 	for _, group := range rule.APIGroups {

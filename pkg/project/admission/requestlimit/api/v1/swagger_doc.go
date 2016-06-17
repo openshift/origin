@@ -16,8 +16,10 @@ func (ProjectLimitBySelector) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectRequestLimitConfig = map[string]string{
-	"":       "ProjectRequestLimitConfig is the configuration for the project request limit plug-in It contains an ordered list of limits based on user label selectors. Selectors will be checked in order and the first one that applies will be used as the limit.",
-	"limits": "Limits are the project request limits",
+	"":                              "ProjectRequestLimitConfig is the configuration for the project request limit plug-in It contains an ordered list of limits based on user label selectors. Selectors will be checked in order and the first one that applies will be used as the limit.",
+	"limits":                        "Limits are the project request limits",
+	"maxProjectsForSystemUsers":     "MaxProjectsForSystemUsers controls how many projects a certificate user may have.  Certificate users do not have any labels associated with them for more fine grained control",
+	"maxProjectsForServiceAccounts": "MaxProjectsForServiceAccounts controls how many projects a service account may have.  Service accounts can't create projects by default, but if they are allowed to create projects, you cannot trust any labels placed on them since project editors can manipulate those labels",
 }
 
 func (ProjectRequestLimitConfig) SwaggerDoc() map[string]string {

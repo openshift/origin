@@ -19,6 +19,7 @@ package extensions
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -47,15 +48,13 @@ func AddToScheme(scheme *runtime.Scheme) {
 func addKnownTypes(scheme *runtime.Scheme) {
 	// TODO this gets cleaned up when the types are fixed
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ClusterAutoscaler{},
-		&ClusterAutoscalerList{},
 		&Deployment{},
 		&DeploymentList{},
 		&DeploymentRollback{},
 		&HorizontalPodAutoscaler{},
 		&HorizontalPodAutoscalerList{},
-		&Job{},
-		&JobList{},
+		&batch.Job{},
+		&batch.JobList{},
 		&ReplicationControllerDummy{},
 		&Scale{},
 		&ThirdPartyResource{},
@@ -75,15 +74,11 @@ func addKnownTypes(scheme *runtime.Scheme) {
 	)
 }
 
-func (obj *ClusterAutoscaler) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
-func (obj *ClusterAutoscalerList) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
 func (obj *Deployment) GetObjectKind() unversioned.ObjectKind                  { return &obj.TypeMeta }
 func (obj *DeploymentList) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
 func (obj *DeploymentRollback) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *HorizontalPodAutoscaler) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
 func (obj *HorizontalPodAutoscalerList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
-func (obj *Job) GetObjectKind() unversioned.ObjectKind                         { return &obj.TypeMeta }
-func (obj *JobList) GetObjectKind() unversioned.ObjectKind                     { return &obj.TypeMeta }
 func (obj *ReplicationControllerDummy) GetObjectKind() unversioned.ObjectKind  { return &obj.TypeMeta }
 func (obj *Scale) GetObjectKind() unversioned.ObjectKind                       { return &obj.TypeMeta }
 func (obj *ThirdPartyResource) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }

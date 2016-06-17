@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/configz"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	"k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
@@ -122,6 +123,11 @@ with the apiserver API to configure the proxy.`,
 
 // NewProxyServerDefault creates a new ProxyServer object with default parameters.
 func NewProxyServerDefault(config *options.ProxyServerConfig) (*ProxyServer, error) {
+	if c, err := configz.New("componentconfig"); err == nil {
+		c.Set(config.KubeProxyConfiguration)
+	} else {
+		glog.Errorf("unable to register configz: %s", err)
+	}
 	protocol := utiliptables.ProtocolIpv4
 	if net.ParseIP(config.BindAddress).To4() == nil {
 		protocol = utiliptables.ProtocolIpv6
@@ -144,7 +150,7 @@ func NewProxyServerDefault(config *options.ProxyServerConfig) (*ProxyServer, err
 	var oomAdjuster *oom.OOMAdjuster
 	if config.OOMScoreAdj != nil {
 		oomAdjuster = oom.NewOOMAdjuster()
-		if err := oomAdjuster.ApplyOOMScoreAdj(0, *config.OOMScoreAdj); err != nil {
+		if err := oomAdjuster.ApplyOOMScoreAdj(0, int(*config.OOMScoreAdj)); err != nil {
 			glog.V(2).Info(err)
 		}
 	}
@@ -172,9 +178,10 @@ func NewProxyServerDefault(config *options.ProxyServerConfig) (*ProxyServer, err
 		return nil, err
 	}
 
+	kubeconfig.ContentType = config.ContentType
 	// Override kubeconfig qps/burst settings from flags
 	kubeconfig.QPS = config.KubeAPIQPS
-	kubeconfig.Burst = config.KubeAPIBurst
+	kubeconfig.Burst = int(config.KubeAPIBurst)
 
 	client, err := kubeclient.New(kubeconfig)
 	if err != nil {
@@ -197,7 +204,7 @@ func NewProxyServerDefault(config *options.ProxyServerConfig) (*ProxyServer, err
 			return nil, fmt.Errorf("Unable to read IPTablesMasqueradeBit from config")
 		}
 
-		proxierIptables, err := iptables.NewProxier(iptInterface, execer, config.IPTablesSyncPeriod.Duration, config.MasqueradeAll, *config.IPTablesMasqueradeBit)
+		proxierIptables, err := iptables.NewProxier(iptInterface, execer, config.IPTablesSyncPeriod.Duration, config.MasqueradeAll, int(*config.IPTablesMasqueradeBit), config.ClusterCIDR)
 		if err != nil {
 			glog.Fatalf("Unable to create proxier: %v", err)
 		}
@@ -280,8 +287,9 @@ func (s *ProxyServer) Run() error {
 		http.HandleFunc("/proxyMode", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "%s", s.ProxyMode)
 		})
+		configz.InstallHandler(http.DefaultServeMux)
 		go wait.Until(func() {
-			err := http.ListenAndServe(s.Config.HealthzBindAddress+":"+strconv.Itoa(s.Config.HealthzPort), nil)
+			err := http.ListenAndServe(s.Config.HealthzBindAddress+":"+strconv.Itoa(int(s.Config.HealthzPort)), nil)
 			if err != nil {
 				glog.Errorf("Starting health server failed: %v", err)
 			}
@@ -291,7 +299,7 @@ func (s *ProxyServer) Run() error {
 	// Tune conntrack, if requested
 	if s.Conntracker != nil {
 		if s.Config.ConntrackMax > 0 {
-			if err := s.Conntracker.SetMax(s.Config.ConntrackMax); err != nil {
+			if err := s.Conntracker.SetMax(int(s.Config.ConntrackMax)); err != nil {
 				return err
 			}
 		}
@@ -330,11 +338,11 @@ func getProxyMode(proxyMode string, client nodeGetter, hostname string, iptver i
 	}
 	node, err := client.Get(hostname)
 	if err != nil {
-		glog.Errorf("Can't get Node %q, assuming iptables proxy: %v", hostname, err)
+		glog.Errorf("Can't get Node %q, assuming iptables proxy, err: %v", hostname, err)
 		return tryIptablesProxy(iptver, kcompat)
 	}
 	if node == nil {
-		glog.Errorf("Got nil Node %q, assuming iptables proxy: %v", hostname)
+		glog.Errorf("Got nil Node %q, assuming iptables proxy", hostname)
 		return tryIptablesProxy(iptver, kcompat)
 	}
 	proxyMode, found := node.Annotations[betaProxyModeAnnotation]

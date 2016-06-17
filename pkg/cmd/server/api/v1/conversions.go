@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer"
@@ -30,6 +31,19 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
+			}
+			if len(obj.JenkinsPipelineConfig.TemplateNamespace) == 0 {
+				obj.JenkinsPipelineConfig.TemplateNamespace = "openshift"
+			}
+			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
+				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
+			}
+			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
+				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
+			}
+			if obj.JenkinsPipelineConfig.Enabled == nil {
+				v := true
+				obj.JenkinsPipelineConfig.Enabled = &v
 			}
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
@@ -65,14 +79,6 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
-		func(obj *LegacyClientPolicyConfig) {
-			if len(obj.LegacyClientPolicy) == 0 {
-				obj.LegacyClientPolicy = AllowAll
-			}
-			if obj.LegacyClientPolicy != AllowAll && len(obj.RestrictedHTTPVerbs) == 0 {
-				obj.RestrictedHTTPVerbs = []string{"PUT", "POST"}
-			}
-		},
 		func(obj *NodeConfig) {
 			// Defaults/migrations for NetworkConfig
 			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
@@ -82,7 +88,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.NetworkConfig.MTU = 1450
 			}
 			if len(obj.IPTablesSyncPeriod) == 0 {
-				obj.IPTablesSyncPeriod = "5s"
+				obj.IPTablesSyncPeriod = "30s"
 			}
 
 			// Auth cache defaults
@@ -156,6 +162,11 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				// If multiple identity providers collide, the second one in will fail to auth
 				// The admin can set this to "add" if they want to allow new identities to join existing users
 				obj.MappingMethod = "claim"
+			}
+		},
+		func(obj *GrantConfig) {
+			if len(obj.ServiceAccountMethod) == 0 {
+				obj.ServiceAccountMethod = "prompt"
 			}
 		},
 	)
@@ -314,6 +325,16 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.Location = in.Location
 			return nil
 		},
+		func(in *MasterVolumeConfig, out *internal.MasterVolumeConfig, s conversion.Scope) error {
+			out.DynamicProvisioningEnabled = (in.DynamicProvisioningEnabled == nil) || (*in.DynamicProvisioningEnabled)
+			return nil
+		},
+		func(in *internal.MasterVolumeConfig, out *MasterVolumeConfig, s conversion.Scope) error {
+			enabled := in.DynamicProvisioningEnabled
+			out.DynamicProvisioningEnabled = &enabled
+			return nil
+		},
+		api.Convert_resource_Quantity_To_resource_Quantity,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -324,7 +345,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 var codec = serializer.NewCodecFactory(internal.Scheme).LegacyCodec(SchemeGroupVersion)
 
 // Convert_runtime_Object_To_runtime_RawExtension is conversion function that assumes that the runtime.Object you've embedded is in
-// the same GroupVersion that your containing type is in.  This is signficantly better than simply breaking.
+// the same GroupVersion that your containing type is in.  This is significantly better than simply breaking.
 // Given an ordered list of preferred external versions for a given encode or conversion call, the behavior of this function could be
 // made generic, predictable, and controllable.
 func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
@@ -336,14 +357,14 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 	if runtime.IsNotRegisteredError(err) {
 		switch cast := in.(type) {
 		case *runtime.Unknown:
-			out.RawJSON = cast.RawJSON
+			out.Raw = cast.Raw
 			return nil
 		case *runtime.Unstructured:
 			bytes, err := runtime.Encode(runtime.UnstructuredJSONScheme, externalObject)
 			if err != nil {
 				return err
 			}
-			out.RawJSON = bytes
+			out.Raw = bytes
 			return nil
 		}
 	}
@@ -356,7 +377,7 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 		return err
 	}
 
-	out.RawJSON = bytes
+	out.Raw = bytes
 	out.Object = externalObject
 
 	return nil
@@ -366,13 +387,13 @@ func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runt
 // The caller doesn't know the type ahead of time and that means this method can't communicate the return value.  This sucks really badly.
 // I'm going to set the `in.Object` field can have callers to this function do magic to pull it back out.  I'm also going to bitch about it.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out runtime.Object, s conversion.Scope) error {
-	if in == nil || len(in.RawJSON) == 0 || in.Object != nil {
+	if in == nil || len(in.Raw) == 0 || in.Object != nil {
 		return nil
 	}
 
-	decodedObject, err := runtime.Decode(codec, in.RawJSON)
+	decodedObject, err := runtime.Decode(codec, in.Raw)
 	if err != nil {
-		in.Object = &runtime.Unknown{RawJSON: in.RawJSON}
+		in.Object = &runtime.Unknown{Raw: in.Raw}
 		return nil
 	}
 

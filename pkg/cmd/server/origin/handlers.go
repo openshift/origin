@@ -8,23 +8,28 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strings"
 
-	"github.com/coreos/go-semver/semver"
 	restful "github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
-	kversion "k8s.io/kubernetes/pkg/version"
 
+	authenticationapi "github.com/openshift/origin/pkg/auth/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/util/httprequest"
-	"github.com/openshift/origin/pkg/version"
 )
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
@@ -32,14 +37,17 @@ import (
 func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler) http.Handler {
 	// TODO once we have a MuxHelper we will not need to hardcode this list of paths
 	rootPaths := []string{"/api",
+		"/apis",
 		"/controllers",
 		"/healthz",
 		"/healthz/ping",
 		"/healthz/ready",
-		"/logs/",
 		"/metrics",
 		"/oapi",
 		"/swaggerapi/"}
+
+	// This is for legacy clients
+	// Discovery of new API groups is done with a request to /apis
 	for _, path := range kubeAPIVersions {
 		rootPaths = append(rootPaths, "/api/"+path)
 	}
@@ -178,85 +186,100 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 	})
 }
 
-// variants I know I have to worry about
-// 1. oc kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
-// 2. oc openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
-// 3. openshift kubectl kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-// 4. openshit kubectl openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
-// 5. oadm kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
-// 6. oadm openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
-// 7. openshift cli kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-// 8. openshift cli openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
-var (
-	kubeStyleUserAgent      = regexp.MustCompile(`\w+/v([\w\.]+) \(.+/.+\) kubernetes/\w{7}`)
-	openshiftStyleUserAgent = regexp.MustCompile(`\w+/v([\w\.]+) \(.+/.+\) openshift/\w{7}`)
-)
+type userAgentFilter struct {
+	regex   *regexp.Regexp
+	message string
+	verbs   sets.String
+}
+
+func newUserAgentFilter(config configapi.UserAgentMatchRule) (userAgentFilter, error) {
+	regex, err := regexp.Compile(config.Regex)
+	if err != nil {
+		return userAgentFilter{}, err
+	}
+	userAgentFilter := userAgentFilter{regex: regex, verbs: sets.NewString(config.HTTPVerbs...)}
+
+	return userAgentFilter, nil
+}
+
+func (f *userAgentFilter) matches(verb, userAgent string) bool {
+	if len(f.verbs) > 0 && !f.verbs.Has(verb) {
+		return false
+	}
+
+	return f.regex.MatchString(userAgent)
+}
 
 // versionSkewFilter adds a filter that may deny requests from skewed
 // oc clients, since we know that those clients will strip unknown fields which can lead to unexpected outcomes
-func (c *MasterConfig) versionSkewFilter(openshiftBinaryInfo version.Info, kubeBinaryInfo kversion.Info, handler http.Handler) http.Handler {
-	skewedClientPolicy := c.Options.PolicyConfig.LegacyClientPolicyConfig.LegacyClientPolicy
-	if skewedClientPolicy == configapi.AllowAll {
+func (c *MasterConfig) versionSkewFilter(handler http.Handler) http.Handler {
+	infoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+
+	filterConfig := c.Options.PolicyConfig.UserAgentMatchingConfig
+	if len(filterConfig.RequiredClients) == 0 && len(filterConfig.DeniedClients) == 0 {
 		return handler
 	}
-	seg := strings.SplitN(openshiftBinaryInfo.GitVersion, "-", 2)
-	openshiftServerVersion := seg[0][1:]
-	seg = strings.SplitN(kubeBinaryInfo.GitVersion, "-", 2)
-	kubeServerVersion := seg[0][1:]
 
-	restrictedVerbs := sets.NewString(c.Options.PolicyConfig.LegacyClientPolicyConfig.RestrictedHTTPVerbs...)
+	defaultMessage := filterConfig.DefaultRejectionMessage
+	if len(defaultMessage) == 0 {
+		defaultMessage = "the cluster administrator has disabled access for this client, please upgrade or consult your administrator"
+	}
+
+	// the structure of the legacyClientPolicyConfig is pretty easy to write, but its inefficient to use at runtime
+	// pre-process the config elements to make a more efficicent structure.
+	allowedFilters := []userAgentFilter{}
+	deniedFilters := []userAgentFilter{}
+	for _, config := range filterConfig.RequiredClients {
+		userAgentFilter, err := newUserAgentFilter(config)
+		if err != nil {
+			glog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
+			continue
+		}
+
+		allowedFilters = append(allowedFilters, userAgentFilter)
+	}
+	for _, config := range filterConfig.DeniedClients {
+		userAgentFilter, err := newUserAgentFilter(config.UserAgentMatchRule)
+		if err != nil {
+			glog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
+			continue
+		}
+		userAgentFilter.message = config.RejectionMessage
+		if len(userAgentFilter.message) == 0 {
+			userAgentFilter.message = defaultMessage
+		}
+
+		deniedFilters = append(deniedFilters, userAgentFilter)
+	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !restrictedVerbs.Has(req.Method) {
+		if requestInfo, err := infoResolver.GetRequestInfo(req); err == nil && !requestInfo.IsResourceRequest {
 			handler.ServeHTTP(w, req)
 			return
 		}
 
 		userAgent := req.Header.Get("User-Agent")
-		if len(userAgent) == 0 {
-			handler.ServeHTTP(w, req)
-			return
-		}
 
-		clientVersion := ""
-		serverVersion := ""
-		if submatches := kubeStyleUserAgent.FindStringSubmatch(userAgent); len(submatches) == 2 {
-			clientVersion = submatches[1]
-			serverVersion = kubeServerVersion
-		}
-		if submatches := openshiftStyleUserAgent.FindStringSubmatch(userAgent); len(submatches) == 2 {
-			clientVersion = submatches[1]
-			serverVersion = openshiftServerVersion
-		}
-		if len(clientVersion) == 0 {
-			handler.ServeHTTP(w, req)
-			return
-		}
-
-		switch skewedClientPolicy {
-		case configapi.DenyOldClients:
-			serverSemVer, err := semver.NewVersion(serverVersion)
-			if err != nil {
-				handler.ServeHTTP(w, req)
-				return
-			}
-			clientSemVer, err := semver.NewVersion(clientVersion)
-			if err != nil {
-				handler.ServeHTTP(w, req)
-				return
+		if len(allowedFilters) > 0 {
+			foundMatch := false
+			for _, filter := range allowedFilters {
+				if filter.matches(req.Method, userAgent) {
+					foundMatch = true
+					break
+				}
 			}
 
-			if clientSemVer.LessThan(*serverSemVer) {
-				forbidden(fmt.Sprintf("userVersion %v is older than the server version %v; mutation is denied", clientVersion, serverVersion), nil, w, req)
+			if !foundMatch {
+				forbidden(defaultMessage, nil, w, req)
 				return
 			}
+		}
 
-		case configapi.DenySkewedClients:
-			if clientVersion != serverVersion {
-				forbidden(fmt.Sprintf("userVersion %v is different than the server version %v; mutation is denied", clientVersion, serverVersion), nil, w, req)
+		for _, filter := range deniedFilters {
+			if filter.matches(req.Method, userAgent) {
+				forbidden(filter.message, nil, w, req)
 				return
 			}
-
 		}
 
 		handler.ServeHTTP(w, req)
@@ -273,6 +296,125 @@ func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handl
 			}
 		}
 		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
+	})
+}
+
+func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		requestedUser := req.Header.Get(authenticationapi.ImpersonateUserHeader)
+		if len(requestedUser) == 0 {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		subjects := authorizationapi.BuildSubjects([]string{requestedUser}, req.Header[authenticationapi.ImpersonateGroupHeader],
+			// validates whether the usernames are regular users or system users
+			uservalidation.ValidateUserName,
+			// validates group names are regular groups or system groups
+			uservalidation.ValidateGroupName)
+
+		ctx, exists := c.RequestContextMapper.Get(req)
+		if !exists {
+			forbidden("context not found", nil, w, req)
+			return
+		}
+
+		// if groups are not specified, then we need to look them up differently depending on the type of user
+		// if they are specified, then they are the authority
+		groupsSpecified := len(req.Header[authenticationapi.ImpersonateGroupHeader]) > 0
+
+		// make sure we're allowed to impersonate each subject.  While we're iterating through, start building username
+		// and group information
+		username := ""
+		groups := []string{}
+		for _, subject := range subjects {
+			actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
+				Verb: "impersonate",
+			}
+
+			switch subject.GetObjectKind().GroupVersionKind().GroupKind() {
+			case userapi.Kind(authorizationapi.GroupKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.GroupResource
+				actingAsAttributes.ResourceName = subject.Name
+				groups = append(groups, subject.Name)
+
+			case userapi.Kind(authorizationapi.SystemGroupKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.SystemGroupResource
+				actingAsAttributes.ResourceName = subject.Name
+				groups = append(groups, subject.Name)
+
+			case userapi.Kind(authorizationapi.UserKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.UserResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = subject.Name
+				if !groupsSpecified {
+					if actualGroups, err := c.GroupCache.GroupsFor(subject.Name); err == nil {
+						for _, group := range actualGroups {
+							groups = append(groups, group.Name)
+						}
+					}
+					groups = append(groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
+				}
+
+			case userapi.Kind(authorizationapi.SystemUserKind):
+				actingAsAttributes.APIGroup = userapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.SystemUserResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = subject.Name
+				if !groupsSpecified {
+					if subject.Name == bootstrappolicy.UnauthenticatedUsername {
+						groups = append(groups, bootstrappolicy.UnauthenticatedGroup)
+					} else {
+						groups = append(groups, bootstrappolicy.AuthenticatedGroup)
+					}
+				}
+
+			case kapi.Kind(authorizationapi.ServiceAccountKind):
+				actingAsAttributes.APIGroup = kapi.GroupName
+				actingAsAttributes.Resource = authorizationapi.ServiceAccountResource
+				actingAsAttributes.ResourceName = subject.Name
+				username = serviceaccount.MakeUsername(subject.Namespace, subject.Name)
+				if !groupsSpecified {
+					groups = append(serviceaccount.MakeGroupNames(subject.Namespace, subject.Name), bootstrappolicy.AuthenticatedGroup)
+				}
+
+			default:
+				forbidden(fmt.Sprintf("unknown subject type: %v", subject), actingAsAttributes, w, req)
+				return
+			}
+
+			authCheckCtx := kapi.WithNamespace(ctx, subject.Namespace)
+
+			allowed, reason, err := c.Authorizer.Authorize(authCheckCtx, actingAsAttributes)
+			if err != nil {
+				forbidden(err.Error(), actingAsAttributes, w, req)
+				return
+			}
+			if !allowed {
+				forbidden(reason, actingAsAttributes, w, req)
+				return
+			}
+		}
+
+		var extra map[string][]string
+		if requestScopes, ok := req.Header[authenticationapi.ImpersonateUserScopeHeader]; ok {
+			extra = map[string][]string{authorizationapi.ScopesKey: requestScopes}
+		}
+
+		newUser := &user.DefaultInfo{
+			Name:   username,
+			Groups: groups,
+			Extra:  extra,
+		}
+		c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
+
+		oldUser, _ := kapi.UserFrom(ctx)
+		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
+
 		handler.ServeHTTP(w, req)
 	})
 }

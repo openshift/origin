@@ -15,6 +15,8 @@ import (
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type authorizeTest struct {
@@ -646,6 +648,7 @@ func newAdzePolicies() []authorizationapi.Policy {
 					},
 					Rules: append(make([]authorizationapi.PolicyRule, 0),
 						authorizationapi.PolicyRule{
+							APIGroups: []string{""},
 							Verbs:     sets.NewString("watch", "list", "get"),
 							Resources: sets.NewString("buildConfigs"),
 						}),

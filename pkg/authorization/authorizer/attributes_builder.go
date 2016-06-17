@@ -5,15 +5,14 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiserver "k8s.io/kubernetes/pkg/apiserver"
 )
 
 type openshiftAuthorizationAttributeBuilder struct {
 	contextMapper kapi.RequestContextMapper
-	infoResolver  *kapiserver.RequestInfoResolver
+	infoResolver  RequestInfoResolver
 }
 
-func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver *kapiserver.RequestInfoResolver) AuthorizationAttributeBuilder {
+func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver RequestInfoResolver) AuthorizationAttributeBuilder {
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
 }
 

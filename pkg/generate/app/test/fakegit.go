@@ -2,6 +2,7 @@ package test
 
 import (
 	"io"
+	"time"
 
 	"github.com/openshift/origin/pkg/generate/git"
 )
@@ -81,6 +82,10 @@ func (f *FakeGit) ShowFormat(source, ref, format string) (string, error) {
 }
 
 func (f *FakeGit) ListRemote(url string, args ...string) (string, string, error) {
+	return "", "", nil
+}
+
+func (f *FakeGit) TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error) {
 	return "", "", nil
 }
 

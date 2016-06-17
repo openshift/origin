@@ -1,6 +1,9 @@
 package validation
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"strings"
 
@@ -61,6 +64,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }
@@ -74,6 +78,67 @@ func ValidateRouteStatusUpdate(route *routeapi.Route, older *routeapi.Route) fie
 
 	// TODO: validate route status
 	return allErrs
+}
+
+// ExtendedValidateRoute performs an extended validation on the route
+// including checking that the TLS config is valid.
+func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
+	tlsConfig := route.Spec.TLS
+	result := field.ErrorList{}
+
+	if tlsConfig == nil {
+		return result
+	}
+
+	tlsFieldPath := field.NewPath("spec").Child("tls")
+	if errs := validateTLS(route, tlsFieldPath); len(errs) != 0 {
+		result = append(result, errs...)
+	}
+
+	// TODO: Check if we can be stricter with validating the certificate
+	//       is for the route hostname. Don't want existing routes to
+	//       break, so disable the hostname validation for now.
+	// hostname := route.Spec.Host
+	hostname := ""
+	var certPool *x509.CertPool
+
+	if len(tlsConfig.CACertificate) > 0 {
+		certPool = x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(tlsConfig.CACertificate)); !ok {
+			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), tlsConfig.CACertificate, "failed to parse CA certificate"))
+		}
+	}
+
+	verifyOptions := &x509.VerifyOptions{
+		DNSName: hostname,
+		Roots:   certPool,
+	}
+
+	if len(tlsConfig.Certificate) > 0 {
+		if _, err := validateCertificatePEM(tlsConfig.Certificate, verifyOptions); err != nil {
+			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), tlsConfig.Certificate, err.Error()))
+		}
+
+		certKeyBytes := []byte{}
+		certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Certificate)...)
+		if len(tlsConfig.Key) > 0 {
+			certKeyBytes = append(certKeyBytes, byte('\n'))
+			certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Key)...)
+		}
+
+		if _, err := tls.X509KeyPair(certKeyBytes, certKeyBytes); err != nil {
+			result = append(result, field.Invalid(tlsFieldPath.Child("key"), tlsConfig.Key, err.Error()))
+		}
+	}
+
+	if len(tlsConfig.DestinationCACertificate) > 0 {
+		roots := x509.NewCertPool()
+		if ok := roots.AppendCertsFromPEM([]byte(tlsConfig.DestinationCACertificate)); !ok {
+			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), tlsConfig.DestinationCACertificate, "failed to parse destination CA certificate"))
+		}
+	}
+
+	return result
 }
 
 // validateTLS tests fields for different types of TLS combinations are set.  Called
@@ -126,28 +191,7 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 		result = append(result, err)
 	}
 
-	result = append(result, validateNoDoubleEscapes(tls)...)
 	return result
-}
-
-// validateNoDoubleEscapes ensures double escaped newlines are not in the certificates.  Double
-// escaped newlines may be a remnant of old code which used to replace them for the user unnecessarily.
-// TODO this is a temporary validation to reject any of our examples with double slashes.  Remove this quickly.
-func validateNoDoubleEscapes(tls *routeapi.TLSConfig) field.ErrorList {
-	allErrs := field.ErrorList{}
-	if strings.Contains(tls.CACertificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("caCertificate"), tls.CACertificate, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.Certificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("certificate"), tls.Certificate, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.Key, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("key"), tls.Key, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.DestinationCACertificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("destinationCACertificate"), tls.DestinationCACertificate, `double escaped new lines (\\n) are invalid`))
-	}
-	return allErrs
 }
 
 // validateInsecureEdgeTerminationPolicy tests fields for different types of
@@ -178,4 +222,39 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *fie
 	}
 
 	return nil
+}
+
+// validateCertificatePEM checks if a certificate PEM is valid and
+// optionally verifies the certificate using the options.
+func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) (*x509.Certificate, error) {
+	var data *pem.Block
+	for remaining := []byte(certPEM); len(remaining) > 0; {
+		block, rest := pem.Decode(remaining)
+		if block == nil {
+			return nil, fmt.Errorf("error decoding certificate data")
+		}
+		if block.Type == "CERTIFICATE" {
+			data = block
+			break
+		}
+		remaining = rest
+	}
+
+	if data == nil || len(data.Bytes) < 1 {
+		return nil, fmt.Errorf("invalid/empty certificate data")
+	}
+
+	cert, err := x509.ParseCertificate(data.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing certificate: %s", err.Error())
+	}
+
+	if options != nil {
+		_, err = cert.Verify(*options)
+		if err != nil {
+			return cert, fmt.Errorf("error verifying certificate: %s", err.Error())
+		}
+	}
+
+	return cert, nil
 }

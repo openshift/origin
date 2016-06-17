@@ -1,23 +1,28 @@
 package docker
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"bufio"
-
 	client "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
+
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
-// DockerImageReference points to a Docker image.
-type DockerImageReference struct {
+// glog is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using glog
+var glog = utilglog.ToFile(os.Stderr, 2)
+
+// ImageReference points to a Docker image.
+type ImageReference struct {
 	Registry  string
 	Namespace string
 	Name      string
@@ -35,9 +40,9 @@ const (
 // image name and a given set of client authentication objects.
 func GetImageRegistryAuth(auths *client.AuthConfigurations, imageName string) client.AuthConfiguration {
 	glog.V(5).Infof("Getting docker credentials for %s", imageName)
-	spec, err := ParseDockerImageReference(imageName)
+	spec, err := ParseImageReference(imageName)
 	if err != nil {
-		glog.Errorf("Failed to parse docker reference %s", imageName)
+		glog.V(0).Infof("error: Failed to parse docker reference %s", imageName)
 		return client.AuthConfiguration{}
 	}
 
@@ -57,7 +62,7 @@ func GetImageRegistryAuth(auths *client.AuthConfigurations, imageName string) cl
 func LoadImageRegistryAuth(dockerCfg io.Reader) *client.AuthConfigurations {
 	auths, err := client.NewAuthConfigurations(dockerCfg)
 	if err != nil {
-		glog.Errorf("Unable to load docker config")
+		glog.V(0).Infof("error: Unable to load docker config")
 		return nil
 	}
 	return auths
@@ -68,7 +73,7 @@ func LoadImageRegistryAuth(dockerCfg io.Reader) *client.AuthConfigurations {
 func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.AuthConfiguration {
 	auths, err := client.NewAuthConfigurations(dockerCfg)
 	if err != nil {
-		glog.Errorf("Unable to load docker config")
+		glog.V(0).Infof("error: Unable to load docker config")
 		return client.AuthConfiguration{}
 	}
 	return GetImageRegistryAuth(auths, imageName)
@@ -83,8 +88,8 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 		if err != nil {
 			// we're ignoring ErrClosedPipe, as this is information
 			// the docker container ended streaming logs
-			if err != io.ErrClosedPipe && err != io.EOF {
-				glog.Errorf("Error reading docker stderr, %v", err)
+			if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
+				glog.V(0).Infof("error: Error reading docker stderr, %v", err)
 			}
 			break
 		}
@@ -95,13 +100,11 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 	}
 }
 
-// ParseDockerImageReference parses a Docker pull spec string into a
-// DockerImageReference.
-// FIXME: This code was copied from OpenShift repository
-func ParseDockerImageReference(spec string) (DockerImageReference, error) {
-	var (
-		ref DockerImageReference
-	)
+// ParseImageReference parses a Docker pull spec string into a ImageReference.
+// FIXME: This code was copied from OpenShift repository.
+func ParseImageReference(spec string) (ImageReference, error) {
+	var ref ImageReference
+
 	// TODO replace with docker version once docker/docker PR11109 is merged upstream
 	stream, tag, id := parseRepositoryTag(spec)
 
@@ -202,10 +205,11 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 	if uids == nil || uids.Empty() {
 		return nil
 	}
-	imageUser, err := d.GetImageUser(imageName)
+	imageUserSpec, err := d.GetImageUser(imageName)
 	if err != nil {
 		return err
 	}
+	imageUser := extractUser(imageUserSpec)
 	if !user.IsUserAllowed(imageUser, &uids) {
 		return errors.NewBuilderUserNotAllowedError(imageName, false)
 	}
@@ -214,11 +218,39 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 		if err != nil {
 			return err
 		}
-		if !user.IsOnbuildAllowed(cmds, &uids) {
+		if !isOnbuildAllowed(cmds, &uids) {
 			return errors.NewBuilderUserNotAllowedError(imageName, true)
 		}
 	}
 	return nil
+}
+
+var dockerLineDelim = regexp.MustCompile(`[\t\v\f\r ]+`)
+
+// isOnbuildAllowed checks a list of Docker ONBUILD instructions for
+// user directives. It ensures that any users specified by the directives
+// falls within the specified range list of users.
+func isOnbuildAllowed(directives []string, allowed *user.RangeList) bool {
+	for _, line := range directives {
+		parts := dockerLineDelim.Split(line, 2)
+		if strings.ToLower(parts[0]) != "user" {
+			continue
+		}
+		uname := extractUser(parts[1])
+		if !user.IsUserAllowed(uname, allowed) {
+			return false
+		}
+	}
+	return true
+}
+
+func extractUser(userSpec string) string {
+	user := userSpec
+	if strings.Contains(user, ":") {
+		parts := strings.SplitN(userSpec, ":", 2)
+		user = parts[0]
+	}
+	return strings.TrimSpace(user)
 }
 
 // IsReachable returns true if the Docker daemon is reachable from s2i

@@ -5,31 +5,32 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for sdn against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	registry.Store
 }
 
 const etcdPrefix = "/registry/sdnnetworks"
 
 // NewREST returns a RESTStorage object that will work against subnets
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.ClusterNetwork{} },
 		NewListFunc: func() runtime.Object { return &api.ClusterNetworkList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, etcdPrefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, etcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.ClusterNetwork).Name, nil
@@ -37,13 +38,15 @@ func NewREST(s storage.Interface) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return clusternetwork.Matcher(label, field)
 		},
-		QualifiedResource: api.Resource("clusternetwork"),
+		QualifiedResource: api.Resource("clusternetworks"),
 
-		Storage: s,
+		CreateStrategy: clusternetwork.Strategy,
+		UpdateStrategy: clusternetwork.Strategy,
 	}
 
-	store.CreateStrategy = clusternetwork.Strategy
-	store.UpdateStrategy = clusternetwork.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{*store}, nil
 }

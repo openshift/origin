@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] source-to-image build with environment file in sources", func() {
+var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
@@ -20,9 +20,9 @@ var _ = g.Describe("[builds][Slow] source-to-image build with environment file i
 	)
 
 	var (
-		imageStreamFixture   = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")
-		stiEnvBuildFixture   = exutil.FixturePath("fixtures", "test-env-build.json")
-		podAndServiceFixture = exutil.FixturePath("fixtures", "test-build-podsvc.json")
+		imageStreamFixture   = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
+		stiEnvBuildFixture   = exutil.FixturePath("testdata", "test-env-build.json")
+		podAndServiceFixture = exutil.FixturePath("testdata", "test-build-podsvc.json")
 		oc                   = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
 
@@ -50,6 +50,9 @@ var _ = g.Describe("[builds][Slow] source-to-image build with environment file i
 
 			g.By("expecting the build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("test", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")

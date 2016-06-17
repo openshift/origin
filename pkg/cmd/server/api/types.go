@@ -1,6 +1,7 @@
 package api
 
 import (
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -38,11 +39,29 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube                   = ""
-	APIGroupExtensions             = "extensions"
+	APIGroupKube        = ""
+	APIGroupExtensions  = "extensions"
+	APIGroupAutoscaling = "autoscaling"
+	APIGroupBatch       = "batch"
+	APIGroupPolicy      = "policy"
+	APIGroupApps        = "apps"
+
+	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:       {"v1"},
-		APIGroupExtensions: {"v1beta1"},
+		APIGroupKube:        {"v1"},
+		APIGroupExtensions:  {"v1beta1"},
+		APIGroupAutoscaling: {"v1"},
+		APIGroupBatch:       {"v1"},
+		APIGroupApps:        {"v1alpha1"},
+	}
+	// Map of group names to known, but disallowed REST API versions
+	KubeAPIGroupsToDeadVersions = map[string][]string{
+		APIGroupKube:        {"v1beta3"},
+		APIGroupExtensions:  {},
+		APIGroupAutoscaling: {},
+		APIGroupBatch:       {},
+		APIGroupPolicy:      {},
+		APIGroupApps:        {},
 	}
 	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 
@@ -116,11 +135,35 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig NodeVolumeConfig
+}
+
+// NodeVolumeConfig contains options for configuring volumes on the node.
+type NodeVolumeConfig struct {
+	// LocalQuota contains options for controlling local volume quota on the node.
+	LocalQuota LocalQuota
+}
+
+// MasterVolumeConfig contains options for configuring volume plugins in the master node.
+type MasterVolumeConfig struct {
+	// DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true
+	DynamicProvisioningEnabled bool
+}
+
+// LocalQuota contains options for controlling local volume quota on the node.
+type LocalQuota struct {
+	// PerFSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
+	// At present this is only implemented for emptyDir volumes, and if the underlying
+	// volumeDirectory is on an XFS filesystem.
+	PerFSGroup *resource.Quantity
 }
 
 // NodeNetworkConfig provides network options for the node
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
+	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
 	NetworkPluginName string
 	// Maximum transmission unit for the network packets
 	MTU uint
@@ -200,6 +243,8 @@ type MasterConfig struct {
 	// AdmissionConfig contains admission control plugin configuration.
 	AdmissionConfig AdmissionConfig
 
+	ControllerConfig ControllerConfig
+
 	// Allow to disable OpenShift components
 	DisabledFeatures FeatureList
 
@@ -248,6 +293,41 @@ type MasterConfig struct {
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig MasterNetworkConfig
+
+	// VolumeConfig contains options for configuring volumes on the node.
+	VolumeConfig MasterVolumeConfig
+
+	// JenkinsPipelineConfig holds information about the default Jenkins template
+	// used for JenkinsPipeline build strategy.
+	JenkinsPipelineConfig JenkinsPipelineConfig
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig
+}
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool
+}
+
+// JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
+type JenkinsPipelineConfig struct {
+	// If the enabled flag is set, a Jenkins server will be spawned from the provided
+	// template when the first build config in the project with type JenkinsPipeline
+	// is created. When not specified this option defaults to true.
+	Enabled *bool
+	// TemplateNamespace contains the namespace name where the Jenkins template is stored
+	TemplateNamespace string
+	// TemplateName is the name of the default Jenkins template
+	TemplateName string
+	// ServiceName is the name of the Jenkins service OpenShift uses to detect
+	// whether a Jenkins pipeline handler has already been installed in a project.
+	// This value *must* match a service name in the provided template.
+	ServiceName string
+	// Parameters specifies a set of optional parameters to the Jenkins template.
+	Parameters map[string]string
 }
 
 type ImagePolicyConfig struct {
@@ -256,13 +336,13 @@ type ImagePolicyConfig struct {
 	// importing large numbers of images accidentally. Set -1 for no limit.
 	MaxImagesBulkImportedPerRepository int
 	// DisableScheduledImport allows scheduled background import of images to be disabled.
-	DisableScheduledImport bool `json:"disableScheduledImport"`
+	DisableScheduledImport bool
 	// ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams
 	// scheduled for background import are checked against the upstream repository. The default value is 15 minutes.
-	ScheduledImageImportMinimumIntervalSeconds int `json:"scheduledImageImportMinimumIntervalSeconds"`
+	ScheduledImageImportMinimumIntervalSeconds int
 	// MaxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute.
 	// The default value is 60. Set to -1 for unlimited.
-	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
+	MaxScheduledImageImportsPerMinute int
 }
 
 type ProjectConfig struct {
@@ -318,28 +398,38 @@ type PolicyConfig struct {
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string
 
-	// LegacyClientPolicyConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	LegacyClientPolicyConfig LegacyClientPolicyConfig
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	UserAgentMatchingConfig UserAgentMatchingConfig
 }
 
-type LegacyClientPolicyConfig struct {
-	// LegacyClientPolicy controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
-	// The default is AllowAll
-	LegacyClientPolicy LegacyClientPolicy
-	// RestrictedHTTPVerbs specifies which HTTP verbs are restricted.  By default this is PUT and POST
-	RestrictedHTTPVerbs []string
+// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+type UserAgentMatchingConfig struct {
+	// If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed
+	RequiredClients []UserAgentMatchRule
+
+	// If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes
+	DeniedClients []UserAgentDenyRule
+
+	// DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.
+	DefaultRejectionMessage string
 }
 
-type LegacyClientPolicy string
+// UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb
+type UserAgentMatchRule struct {
+	// UserAgentRegex is a regex that is checked against the User-Agent.
+	Regex string
 
-var (
-	// AllowAll does not prevent any kinds of client version skew
-	AllowAll LegacyClientPolicy = "allow-all"
-	// DenyOldClients prevents older clients (but not newer ones) from issuing stomping requests
-	DenyOldClients LegacyClientPolicy = "deny-old-clients"
-	// DenySkewedClients prevents any non-matching client from issuing stomping requests
-	DenySkewedClients LegacyClientPolicy = "deny-skewed-clients"
-)
+	// HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means "match all verbs".
+	HTTPVerbs []string
+}
+
+// UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client
+type UserAgentDenyRule struct {
+	UserAgentMatchRule
+
+	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
+	RejectionMessage string
+}
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {
@@ -347,6 +437,11 @@ type MasterNetworkConfig struct {
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
 	ServiceNetworkCIDR string
+	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
+	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
+	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
+	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
+	ExternalIPNetworkCIDRs []string
 }
 
 type ImageConfig struct {
@@ -475,6 +570,10 @@ type AssetConfig struct {
 	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
 	// Console loads
 	ExtensionScripts []string
+
+	// ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under
+	// the global variable OPENSHIFT_EXTENSION_PROPERTIES
+	ExtensionProperties map[string]string
 
 	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
 	// the Web Console loads
@@ -696,6 +795,9 @@ type RequestHeaderIdentityProvider struct {
 
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string
+	// ClientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.
+	ClientCommonNames []string
+
 	// Headers is the set of headers to check for identity information
 	Headers []string
 	// PreferredUsernameHeaders is the set of headers to check for the preferred username
@@ -797,6 +899,10 @@ type OpenIDClaims struct {
 type GrantConfig struct {
 	// Method: allow, deny, prompt
 	Method GrantHandlerType
+
+	// ServiceAccountMethod is used for determining client authorization for service account oauth client.
+	// It must be either: deny, prompt
+	ServiceAccountMethod GrantHandlerType
 }
 
 type GrantHandlerType string
@@ -811,6 +917,7 @@ const (
 )
 
 var ValidGrantHandlerTypes = sets.NewString(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
+var ValidServiceAccountGrantHandlerTypes = sets.NewString(string(GrantHandlerPrompt), string(GrantHandlerDeny))
 
 type EtcdConfig struct {
 	// ServingInfo describes how to start serving the etcd master
@@ -1085,4 +1192,29 @@ type AdmissionConfig struct {
 	// PluginOrderOverride is a list of admission control plugin names that will be installed
 	// on the master. Order is significant. If empty, a default list of plugins is used.
 	PluginOrderOverride []string
+}
+
+// ControllerConfig holds configuration values for controllers
+type ControllerConfig struct {
+	// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+	// pods fulfilling a service to serve with.
+	ServiceServingCert ServiceServingCert
+}
+
+// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+// pods fulfilling a service to serve with.
+type ServiceServingCert struct {
+	// Signer holds the signing information used to automatically sign serving certificates.
+	// If this value is nil, then certs are not signed automatically.
+	Signer *CertInfo
+}
+
+// DefaultAdmissionConfig can be used to enable or disable various admission plugins.
+// When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,
+// this will cause an "off by default" admission plugin to be enabled
+type DefaultAdmissionConfig struct {
+	unversioned.TypeMeta
+
+	// Disable turns off an admission plugin that is enabled by default.
+	Disable bool
 }

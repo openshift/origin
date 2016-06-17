@@ -1,5 +1,5 @@
 #!/bin/bash
-source "${ORIGIN_ROOT}/contrib/node/install-sdn.sh"
+source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
 os::provision::join() {
   local IFS="$1"
@@ -14,8 +14,8 @@ os::provision::build-origin() {
 
   # This optimization is intended for devcluster use so hard-coding the
   # arch in the path should be ok.
-  if [ -f "${origin_root}/_output/local/bin/linux/amd64/oc" ] &&
-     [ "${skip_build}" = "true" ]; then
+  if [[ -f "$(os::build::find-binary oc "${origin_root}")" &&
+          "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
     echo "Building openshift"
@@ -32,8 +32,8 @@ os::provision::build-etcd() {
   local origin_root=$1
   local skip_build=$2
 
-  if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
-     [ "${skip_build}" = "true" ]; then
+  if [[ -f "${origin_root}/_tools/etcd/bin/etcd" &&
+          "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
   # Etcd is required for integration testing which isn't a use case
   # for dind.
@@ -56,7 +56,8 @@ os::provision::base-install() {
 os::provision::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
+  local output_path="$(os::build::get-bin-output-path "${deployed_root}")"
+  cp ${output_path}/{openshift,oc,osadm} /usr/bin
 }
 
 os::provision::add-to-hosts-file() {
@@ -64,7 +65,7 @@ os::provision::add-to-hosts-file() {
   local name=$2
   local force=${3:-0}
 
-  if ! grep -q "${ip}" /etc/hosts || [ "${force}" = "1" ]; then
+  if ! grep -q "${ip}" /etc/hosts || [[ "${force}" = "1" ]]; then
     local entry="${ip}\t${name}"
     echo -e "Adding '${entry}' to hosts file"
     echo -e "${entry}" >> /etc/hosts
@@ -143,7 +144,7 @@ os::provision::set-os-env() {
   local file_target=".bashrc"
 
   local vagrant_target="/home/vagrant/${file_target}"
-  if [ -d $(dirname "${vagrant_target}") ]; then
+  if [[ -d "$(dirname "${vagrant_target}")" ]]; then
     os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "${vagrant_target}"
   fi
@@ -172,7 +173,7 @@ os::provision::set-bash-env() {
   local config_root=$2
   local target=$3
 
-  local path=$(os::provision::get-admin-config "${config_root}")
+  local path="$(os::provision::get-admin-config "${config_root}")"
   local config_line="export KUBECONFIG=${path}"
   if ! grep -q "${config_line}" "${target}" &> /dev/null; then
     echo "${config_line}" >> "${target}"
@@ -188,12 +189,12 @@ os::provision::get-network-plugin() {
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
   local default_plugin="${subnet_plugin}"
 
-  if [ "${plugin}" != "${subnet_plugin}" ] && \
-     [ "${plugin}" != "${multitenant_plugin}" ]; then
+  if [[ "${plugin}" != "${subnet_plugin}" &&
+          "${plugin}" != "${multitenant_plugin}" ]]; then
     # Disable output when being called from the dind management script
     # since it may be doing something other than launching a cluster.
-    if [ "${dind_management_script}" = "false" ]; then
-      if [ "${plugin}" != "" ]; then
+    if [[ "${dind_management_script}" = "false" ]]; then
+      if [[ -n "${plugin}" ]]; then
         >&2 echo "Invalid network plugin: ${plugin}"
       fi
       >&2 echo "Using default network plugin: ${default_plugin}"
@@ -206,6 +207,11 @@ os::provision::get-network-plugin() {
 os::provision::base-provision() {
   local origin_root=$1
   local is_master=${2:-false}
+
+  # Ensure that secrets can be correctly mounted for pods.
+  if os::provision::in-container; then
+    mount --make-shared /
+  fi
 
   # Add a convenience symlink to the gopath repo
   ln -sf "${origin_root}" /
@@ -238,7 +244,7 @@ os::provision::base-provision() {
 }
 
 os::provision::fixup-net-udev() {
-  if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+  if [[ "${FIXUP_NET_UDEV}" == "true" ]]; then
     NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
     rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
     if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
@@ -276,12 +282,7 @@ os::provision::start-os-service() {
   local unit_name=$1
   local description=$2
   local exec_start=$3
-  local work_dir=${4:-${CONFIG_ROOT}/}
-
-  local dind_env_var=
-  if os::provision::in-container; then
-    dind_env_var="OPENSHIFT_DIND=true"
-  fi
+  local work_dir=$4
 
   cat <<EOF > "/etc/systemd/system/${unit_name}.service"
 [Unit]
@@ -290,7 +291,6 @@ Requires=network.target
 After=docker.target network.target
 
 [Service]
-Environment=${dind_env_var}
 ExecStart=${exec_start}
 WorkingDirectory=${work_dir}
 Restart=on-failure
@@ -305,19 +305,24 @@ EOF
   systemctl start "${unit_name}.service"
 }
 
+os::provision::copy-config() {
+  local config_root=$1
+
+  # Copy over the certificates directory so that each node has a copy.
+  cp -r "${config_root}/openshift.local.config" /
+  if [[ -d /home/vagrant ]]; then
+    chown -R vagrant.vagrant /openshift.local.config
+  fi
+}
+
 os::provision::start-node-service() {
   local config_root=$1
   local node_name=$2
 
-  # Copy over the certificates directory so that each node has a copy.
-  cp -r "${config_root}/openshift.local.config" /
-  if [ -d /home/vagrant ]; then
-    chown -R vagrant.vagrant /openshift.local.config
-  fi
-
   cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
 --config=$(os::provision::get-node-config ${config_root} ${node_name})"
-  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
+  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" \
+      "${config_root}"
 }
 
 OS_WAIT_FOREVER=-1
@@ -333,12 +338,12 @@ os::provision::wait-for-condition() {
 
   local counter=0
   while ! $(${condition}); do
-    if [ "${counter}" = "0" ]; then
+    if [[ "${counter}" = "0" ]]; then
       echo "${start_msg}"
     fi
 
-    if [[ "${counter}" -lt "${timeout}" ]] || \
-       [[ "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
+    if [[ "${counter}" -lt "${timeout}" ||
+            "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
       counter=$((counter + 1))
       if [[ "${timeout}" != "${OS_WAIT_FOREVER}" ]]; then
         echo -n '.'
@@ -350,31 +355,35 @@ os::provision::wait-for-condition() {
     fi
   done
 
-  if [ "${counter}" != "0" ]; then
-    if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
-      echo -e '\nDone'
-    fi
+  if [[ "${counter}" != "0" && "${timeout}" != "${OS_WAIT_FOREVER}" ]]; then
+    echo -e '\nDone'
   fi
 }
 
-os::provision::is-sdn-node-registered() {
-  local node_name=$1
+os::provision::is-node-registered() {
+  local oc=$1
+  local config=$2
+  local node_name=$3
 
-  oc get nodes "${node_name}" &> /dev/null
+  "${oc}" --config="${config}" get nodes "${node_name}" &> /dev/null
 }
 
-os::provision::disable-sdn-node() {
-  local config_root=$1
-  local node_name=$2
+os::provision::disable-node() {
+  local origin_root=$1
+  local config_root=$2
+  local node_name=$3
 
-  export KUBECONFIG=$(os::provision::get-admin-config "${config_root}")
+  local config="$(os::provision::get-admin-config "${config_root}")"
 
-  local msg="sdn node to register with the master"
-  local condition="os::provision::is-sdn-node-registered ${node_name}"
+  local msg="${node_name} to register with the master"
+  local oc="$(os::build::find-binary oc "${origin_root}")"
+  local condition="os::provision::is-node-registered ${oc} ${config} \
+      ${node_name}"
   os::provision::wait-for-condition "${msg}" "${condition}"
 
-  echo "Disabling scheduling for the sdn node"
-  osadm manage-node "${node_name}" --schedulable=false > /dev/null
+  echo "Disabling scheduling for node ${node_name}"
+  "$(os::build::find-binary osadm "${origin_root}")" --config="${config}" \
+      manage-node "${node_name}" --schedulable=false > /dev/null
 }
 
 os::provision::wait-for-node-config() {
@@ -382,8 +391,8 @@ os::provision::wait-for-node-config() {
   local node_name=$2
 
   local msg="node configuration file"
-  local config_file=$(os::provision::get-node-config "${config_root}" \
-    "${node_name}")
+  local config_file="$(os::provision::get-node-config "${config_root}" \
+    "${node_name}")"
   local condition="test ! -f ${config_root}/openshift.local.config/.stale -a \
 -f ${config_file}"
   os::provision::wait-for-condition "${msg}" "${condition}" \

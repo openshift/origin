@@ -2,8 +2,6 @@ package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
-
-	"github.com/docker/distribution"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
@@ -55,6 +53,23 @@ type DockerConfig struct {
 	Labels          map[string]string   `json:"Labels,omitempty"`
 }
 
+// Descriptor describes targeted content. Used in conjunction with a blob
+// store, a descriptor can be used to fetch, store and target any kind of
+// blob. The struct also describes the wire protocol format. Fields should
+// only be added but never changed.
+type Descriptor struct {
+	// MediaType describe the type of the content. All text based formats are
+	// encoded as utf-8.
+	MediaType string `json:"mediaType,omitempty"`
+
+	// Size in bytes of content.
+	Size int64 `json:"size,omitempty"`
+
+	// Digest uniquely identifies the content. A byte stream can be verified
+	// against against this digest.
+	Digest string `json:"digest,omitempty"`
+}
+
 // DockerImageManifest represents the Docker v2 image format.
 type DockerImageManifest struct {
 	SchemaVersion int    `json:"schemaVersion"`
@@ -68,8 +83,8 @@ type DockerImageManifest struct {
 	History      []DockerHistory `json:"history"`
 
 	// schema2
-	Layers []distribution.Descriptor `json:"layers"`
-	Config distribution.Descriptor   `json:"config"`
+	Layers []Descriptor `json:"layers"`
+	Config Descriptor   `json:"config"`
 }
 
 // DockerFSLayer is a container struct for BlobSums defined in an image manifest

@@ -9,12 +9,13 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
+// Clone knows how to clone a Git repository.
 type Clone struct {
 	Git
 	util.FileSystem
 }
 
-// Download downloads the application source code from the GIT repository
+// Download downloads the application source code from the Git repository
 // and checkout the Ref specified in the config.
 func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
@@ -37,7 +38,7 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 		if hasRef && hasSubmodules {
 			glog.V(2).Infof("Cloning sources (deferring submodule init) into %q", targetSourceDir)
 		} else if cloneConfig.Recursive {
-			glog.V(2).Infof("Cloning sources and all GIT submodules into %q", targetSourceDir)
+			glog.V(2).Infof("Cloning sources and all Git submodules into %q", targetSourceDir)
 		} else {
 			glog.V(2).Infof("Cloning sources into %q", targetSourceDir)
 		}
@@ -90,11 +91,11 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 		return nil, err
 	}
 
-	// When building from a local directory (not using GIT clone spec scheme) we
+	// When building from a local directory (not using Git clone spec scheme) we
 	// skip gathering informations about the source as there is no guarantee that
-	// the folder is a GIT repository or it requires context-dir to be set.
+	// the folder is a Git repository or it requires context-dir to be set.
 	if !config.Quiet {
-		glog.Warning("You are using <source> location that is not valid GIT repository. The source code information will not be stored into the output image. Use this image only for local testing and development.")
+		glog.Warning("You are using <source> location that is not valid Git repository. The source code information will not be stored into the output image. Use this image only for local testing and development.")
 	}
 	return nil, nil
 }

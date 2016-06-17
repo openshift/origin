@@ -19,7 +19,14 @@ package json
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 )
+
+// NewEncoder delegates to json.NewEncoder
+// It is only here so this package can be a drop-in for common encoding/json uses
+func NewEncoder(w io.Writer) *json.Encoder {
+	return json.NewEncoder(w)
+}
 
 // Marshal delegates to json.Marshal
 // It is only here so this package can be a drop-in for common encoding/json uses

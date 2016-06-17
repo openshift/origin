@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture     = exutil.FixturePath("fixtures", "test-imagesource-build.yaml")
+		buildFixture     = exutil.FixturePath("testdata", "test-imagesource-build.yaml")
 		oc               = exutil.NewCLI("build-image-source", exutil.KubeConfigPath())
 		imageSourceLabel = exutil.ParseLabelsOrDie("app=imagesourceapp")
 		imageDockerLabel = exutil.ParseLabelsOrDie("app=imagedockerapp")
@@ -38,6 +38,9 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("expecting the builds to complete successfully")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "imagesourcebuild-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("imagesourcebuild", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to deploy successfully")
@@ -63,6 +66,9 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("expect the builds to complete successfully")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "imagedockerbuild-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("imagedockerbuild", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expect the pod to deploy successfully")

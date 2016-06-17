@@ -17,6 +17,7 @@ limitations under the License.
 package runtime
 
 import (
+	gojson "encoding/json"
 	"io"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -30,58 +31,111 @@ var UnstructuredJSONScheme Codec = unstructuredJSONScheme{}
 
 type unstructuredJSONScheme struct{}
 
-func (s unstructuredJSONScheme) Decode(data []byte, _ *unversioned.GroupVersionKind, _ Object) (Object, *unversioned.GroupVersionKind, error) {
-	unstruct := &Unstructured{}
-
-	m := make(map[string]interface{})
-	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, nil, err
-	}
-	if v, ok := m["kind"]; ok {
-		if s, ok := v.(string); ok {
-			unstruct.Kind = s
-		}
-	}
-	if v, ok := m["apiVersion"]; ok {
-		if s, ok := v.(string); ok {
-			unstruct.APIVersion = s
-		}
+func (s unstructuredJSONScheme) Decode(data []byte, _ *unversioned.GroupVersionKind, obj Object) (Object, *unversioned.GroupVersionKind, error) {
+	var err error
+	if obj != nil {
+		err = s.decodeInto(data, obj)
+	} else {
+		obj, err = s.decode(data)
 	}
 
-	if len(unstruct.APIVersion) == 0 {
-		return nil, nil, NewMissingVersionErr(string(data))
-	}
-	gv, err := unversioned.ParseGroupVersion(unstruct.APIVersion)
 	if err != nil {
 		return nil, nil, err
 	}
-	gvk := gv.WithKind(unstruct.Kind)
-	if len(unstruct.Kind) == 0 {
-		return nil, &gvk, NewMissingKindErr(string(data))
+
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	if len(gvk.Kind) == 0 {
+		return nil, gvk, NewMissingKindErr(string(data))
 	}
-	unstruct.Object = m
-	return unstruct, &gvk, nil
+
+	return obj, gvk, nil
 }
 
-func (s unstructuredJSONScheme) EncodeToStream(obj Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
+func (unstructuredJSONScheme) EncodeToStream(obj Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
 	switch t := obj.(type) {
 	case *Unstructured:
-		bytes, err := json.Marshal(t.Object)
-		if err != nil {
-			return err
+		return json.NewEncoder(w).Encode(t.Object)
+	case *UnstructuredList:
+		var items []map[string]interface{}
+		for _, i := range t.Items {
+			items = append(items, i.Object)
 		}
-		_, err = w.Write(bytes)
-		return err
-
+		t.Object["items"] = items
+		defer func() { delete(t.Object, "items") }()
+		return json.NewEncoder(w).Encode(t.Object)
 	case *Unknown:
-		_, err := w.Write(t.RawJSON)
+		// TODO: Unstructured needs to deal with ContentType.
+		_, err := w.Write(t.Raw)
 		return err
 	default:
-		bytes, err := json.Marshal(t)
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(bytes)
+		return json.NewEncoder(w).Encode(t)
+	}
+}
+
+func (s unstructuredJSONScheme) decode(data []byte) (Object, error) {
+	type detector struct {
+		Items gojson.RawMessage
+	}
+	var det detector
+	if err := json.Unmarshal(data, &det); err != nil {
+		return nil, err
+	}
+
+	if det.Items != nil {
+		list := &UnstructuredList{}
+		err := s.decodeToList(data, list)
+		return list, err
+	}
+
+	// No Items field, so it wasn't a list.
+	unstruct := &Unstructured{}
+	err := s.decodeToUnstructured(data, unstruct)
+	return unstruct, err
+}
+func (s unstructuredJSONScheme) decodeInto(data []byte, obj Object) error {
+	switch x := obj.(type) {
+	case *Unstructured:
+		return s.decodeToUnstructured(data, x)
+	case *UnstructuredList:
+		return s.decodeToList(data, x)
+	default:
+		return json.Unmarshal(data, x)
+	}
+}
+
+func (unstructuredJSONScheme) decodeToUnstructured(data []byte, unstruct *Unstructured) error {
+	m := make(map[string]interface{})
+	if err := json.Unmarshal(data, &m); err != nil {
 		return err
 	}
+
+	unstruct.Object = m
+
+	return nil
+}
+
+func (s unstructuredJSONScheme) decodeToList(data []byte, list *UnstructuredList) error {
+	type decodeList struct {
+		Items []gojson.RawMessage
+	}
+
+	var dList decodeList
+	if err := json.Unmarshal(data, &dList); err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &list.Object); err != nil {
+		return err
+	}
+
+	delete(list.Object, "items")
+	list.Items = nil
+	for _, i := range dList.Items {
+		unstruct := &Unstructured{}
+		if err := s.decodeToUnstructured([]byte(i), unstruct); err != nil {
+			return err
+		}
+		list.Items = append(list.Items, unstruct)
+	}
+	return nil
 }

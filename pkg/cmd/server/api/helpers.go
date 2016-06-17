@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -250,6 +251,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 
+	if config.ControllerConfig.ServiceServingCert.Signer != nil {
+		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.CertFile)
+		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.KeyFile)
+	}
+
 	return refs
 }
 
@@ -285,7 +291,7 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, error) {
+func GetKubeClient(kubeConfigFile string) (*kclient.Client, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -311,7 +317,7 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config, error) {
+func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})

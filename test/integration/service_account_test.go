@@ -12,6 +12,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -57,10 +58,10 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	if len(saToken) == 0 {
 		t.Fatalf("token was not created")
 	}
-	cluster1SAClientConfig := kclient.Config{
+	cluster1SAClientConfig := restclient.Config{
 		Host:        cluster1AdminConfig.Host,
 		BearerToken: saToken,
-		TLSClientConfig: kclient.TLSClientConfig{
+		TLSClientConfig: restclient.TLSClientConfig{
 			CAFile: cluster1AdminConfig.CAFile,
 			CAData: cluster1AdminConfig.CAData,
 		},
@@ -188,7 +189,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	}
 }
 
-func writeClientConfigToKubeConfig(config kclient.Config, path string) error {
+func writeClientConfigToKubeConfig(config restclient.Config, path string) error {
 	kubeConfig := &clientcmdapi.Config{
 		Clusters:       map[string]*clientcmdapi.Cluster{"myserver": {Server: config.Host, CertificateAuthority: config.CAFile, CertificateAuthorityData: config.CAData}},
 		AuthInfos:      map[string]*clientcmdapi.AuthInfo{"myuser": {Token: config.BearerToken}},
@@ -375,7 +376,10 @@ func TestEnforcingServiceAccount(t *testing.T) {
 
 	time.Sleep(5)
 
-	_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		_, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+		return err
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

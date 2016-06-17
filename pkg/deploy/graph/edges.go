@@ -12,9 +12,12 @@ import (
 )
 
 const (
+	// TriggersDeploymentEdgeKind points from DeploymentConfigs to ImageStreamTags that trigger the deployment
 	TriggersDeploymentEdgeKind = "TriggersDeployment"
-	UsedInDeploymentEdgeKind   = "UsedInDeployment"
-	DeploymentEdgeKind         = "Deployment"
+	// UsedInDeploymentEdgeKind points from DeploymentConfigs to DockerImageReferences that are used in the deployment
+	UsedInDeploymentEdgeKind = "UsedInDeployment"
+	// DeploymentEdgeKind points from DeploymentConfigs to the ReplicationControllers that are fulfilling the deployment
+	DeploymentEdgeKind = "Deployment"
 )
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.

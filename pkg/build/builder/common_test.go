@@ -18,22 +18,24 @@ func TestBuildInfo(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: api.BuildSpec{
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
-					URI: "github.com/openshift/sample-app",
-					Ref: "master",
-				},
-			},
-			Strategy: api.BuildStrategy{
-				SourceStrategy: &api.SourceBuildStrategy{
-					Env: []kapi.EnvVar{
-						{Name: "RAILS_ENV", Value: "production"},
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "github.com/openshift/sample-app",
+						Ref: "master",
 					},
 				},
-			},
-			Revision: &api.SourceRevision{
-				Git: &api.GitSourceRevision{
-					Commit: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+				Strategy: api.BuildStrategy{
+					SourceStrategy: &api.SourceBuildStrategy{
+						Env: []kapi.EnvVar{
+							{Name: "RAILS_ENV", Value: "production"},
+						},
+					},
+				},
+				Revision: &api.SourceRevision{
+					Git: &api.GitSourceRevision{
+						Commit: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+					},
 				},
 			},
 		},
@@ -94,8 +96,9 @@ func TestRandomBuildTagNoDupes(t *testing.T) {
 }
 
 func TestContainerName(t *testing.T) {
+	rand.Seed(0)
 	got := containerName("test-strategy", "my-build", "ns", "hook")
-	want := "openshift_test-strategy-build_my-build_ns_hook"
+	want := "openshift_test-strategy-build_my-build_ns_hook_f1f85ff5"
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}

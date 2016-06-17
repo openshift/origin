@@ -106,7 +106,7 @@ type selectProviderTemplateRenderer struct {
 }
 
 func (r selectProviderTemplateRenderer) Render(providers []handlers.ProviderInfo, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
+	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := r.selectProviderTemplate.Execute(w, ProviderData{Providers: providers}); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render select provider template: %v", err))

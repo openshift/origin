@@ -24,7 +24,7 @@ type PolicyRule struct {
 	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
 	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
 	// will be allowed
-	APIGroups []string `json:"apiGroups" description:"list of API groups this rule applies to.  * represents all API groups."`
+	APIGroups []string `json:"apiGroups"`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
 	ResourceKinds []string `json:"resourceKinds,omitempty"`
@@ -109,6 +109,33 @@ type NamedRoleBinding struct {
 	RoleBinding RoleBinding `json:"roleBinding"`
 }
 
+// SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
+type SelfSubjectRulesReview struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Spec adds information about how to conduct the check
+	Spec SelfSubjectRulesReviewSpec `json:"spec"`
+
+	// Status is completed by the server to tell which permissions you have
+	Status SubjectRulesReviewStatus `json:"status,omitempty"`
+}
+
+// SelfSubjectRulesReviewSpec adds information about how to conduct the check
+type SelfSubjectRulesReviewSpec struct {
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil means "use the scopes on this request".
+	Scopes []string `json:"scopes"`
+}
+
+// SubjectRulesReviewStatus is contains the result of a rules check
+type SubjectRulesReviewStatus struct {
+	// Rules is the list of rules (no particular sort) that are allowed for the subject
+	Rules []PolicyRule `json:"rules"`
+	// EvaluationError can appear in combination with Rules.  It means some error happened during evaluation
+	// that may have prevented additional rules from being populated.
+	EvaluationError string `json:"evaluationError,omitempty"`
+}
+
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -152,6 +179,10 @@ type SubjectAccessReview struct {
 	User string `json:"user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups"`
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil for a self-SAR, means "use the scopes on this request".
+	// Nil for a regular SAR, means the same as empty.
+	Scopes []string `json:"scopes"`
 }
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
@@ -172,6 +203,10 @@ type LocalSubjectAccessReview struct {
 	User string `json:"user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups"`
+	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+	// Nil for a self-SAR, means "use the scopes on this request".
+	// Nil for a regular SAR, means the same as empty.
+	Scopes []string `json:"scopes"`
 }
 
 type AuthorizationAttributes struct {
@@ -181,10 +216,10 @@ type AuthorizationAttributes struct {
 	Verb string `json:"verb"`
 	// Group is the API group of the resource
 	// Serialized as resourceAPIGroup to avoid confusion with the 'groups' field when inlined
-	Group string `json:"resourceAPIGroup" description:"API group of the resource being requested"`
+	Group string `json:"resourceAPIGroup"`
 	// Version is the API version of the resource
 	// Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined
-	Version string `json:"resourceAPIVersion" description:"API version of the resource being requested"`
+	Version string `json:"resourceAPIVersion"`
 	// Resource is one of the existing resource types
 	Resource string `json:"resource"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"

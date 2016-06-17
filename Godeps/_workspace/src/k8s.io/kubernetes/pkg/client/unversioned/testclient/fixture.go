@@ -22,11 +22,10 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/watch"
@@ -80,26 +79,24 @@ func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 			return true, resource, err
 
 		case CreateAction:
-			meta, err := api.ObjectMetaFor(castAction.GetObject())
+			accessor, err := meta.Accessor(castAction.GetObject())
 			if err != nil {
 				return true, nil, err
 			}
-			resource, err := o.Kind(kind, meta.Name)
+			resource, err := o.Kind(kind, accessor.GetName())
 			return true, resource, err
 
 		case UpdateAction:
-			meta, err := api.ObjectMetaFor(castAction.GetObject())
+			accessor, err := meta.Accessor(castAction.GetObject())
 			if err != nil {
 				return true, nil, err
 			}
-			resource, err := o.Kind(kind, meta.Name)
+			resource, err := o.Kind(kind, accessor.GetName())
 			return true, resource, err
 
 		default:
 			return false, nil, fmt.Errorf("no reaction implemented for %s", action)
 		}
-
-		return true, nil, nil
 	}
 }
 
@@ -311,6 +308,6 @@ func (r *SimpleProxyReactor) Handles(action Action) bool {
 	return true
 }
 
-func (r *SimpleProxyReactor) React(action Action) (bool, client.ResponseWrapper, error) {
+func (r *SimpleProxyReactor) React(action Action) (bool, restclient.ResponseWrapper, error) {
 	return r.Reaction(action)
 }

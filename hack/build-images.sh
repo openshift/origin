@@ -13,8 +13,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
 os::log::install_errexit
 
@@ -35,7 +34,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 	os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
   echo
 else
-# Get the latest Linux release
+  # Get the latest Linux release
   if [[ ! -d _output/local/releases ]]; then
     echo "No release has been built. Run hack/build-release.sh"
     exit 1
@@ -55,6 +54,16 @@ else
   os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
 fi
 
+oc="$(os::build::find-binary oc ${OS_ROOT})"
+if [[ -z "${oc}" ]]; then
+  "${OS_ROOT}/hack/build-go.sh" cmd/oc
+  oc="$(os::build::find-binary oc ${OS_ROOT})"
+fi
+
+function build() {
+  "${oc}" ex dockerbuild $2 $1
+}
+
 # Create link to file if the FS supports hardlinks, otherwise copy the file
 function ln_or_cp {
   local src_file=$1
@@ -68,16 +77,14 @@ function ln_or_cp {
 
 # Link or copy primary binaries to the appropriate locations.
 ln_or_cp "${imagedir}/openshift" images/origin/bin
-ln_or_cp "${imagedir}/openshift" images/router/haproxy/bin
-ln_or_cp "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Link or copy image binaries to the appropriate locations.
 ln_or_cp "${imagedir}/pod"             images/pod/bin
 ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
 ln_or_cp "${imagedir}/deployment"      examples/deployment/bin
 ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
+ln_or_cp "${imagedir}/oc"              examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
-ln_or_cp "${imagedir}/recycle"         images/recycler/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
@@ -88,7 +95,8 @@ cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 function image {
   local STARTTIME=$(date +%s)
   echo "--- $1 ---"
-  docker build -t $1:latest $2
+  build $1:latest $2
+  #docker build -t $1:latest $2
   docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
   git clean -fdx $2
   local ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
@@ -104,16 +112,15 @@ image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
 image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 image openshift/origin-docker-registry       images/dockerregistry
+image openshift/origin-egress-router         images/router/egress
+image openshift/origin-gitserver             examples/gitserver
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-recycler              images/recycler
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
-image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 image openshift/origin-f5-router             images/router/f5
 image openshift/node                         images/node
-# unpublished images
-image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift              examples/hello-openshift

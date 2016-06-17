@@ -9,7 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"regexp"
 	"time"
 
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -48,7 +48,7 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 		req.SetBasicAuth("admin", "password")
 		client := &http.Client{}
 		resp, _ := client.Do(req)
-		// the http req failing here (which we see occassionally in the ci.jenkins runs) could stem
+		// the http req failing here (which we see occasionally in the ci.jenkins runs) could stem
 		// from simply hitting our test jenkins server too soon ... so rather than returning false,err
 		// and aborting the poll, we return false, nil to try again
 		if resp == nil {
@@ -62,7 +62,8 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 					return false, err
 				}
 				consoleLogs = string(contents)
-				if strings.Contains(consoleLogs, verificationString) {
+				re := regexp.MustCompile(verificationString)
+				if re.MatchString(consoleLogs) {
 					return true, nil
 				} else {
 					return false, nil
@@ -82,7 +83,7 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 }
 
 func jenkinsJobBytes(filename, namespace string) []byte {
-	pre := exutil.FixturePath("fixtures", filename)
+	pre := exutil.FixturePath("testdata", filename)
 	post := exutil.ArtifactPath(filename)
 	err := exutil.VarSubOnFile(pre, post, "PROJECT_NAME", namespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -91,7 +92,7 @@ func jenkinsJobBytes(filename, namespace string) []byte {
 	return data
 }
 
-var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
+var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
 	var hostPort string
@@ -103,7 +104,18 @@ var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("kick off the build for the jenkins ephermeral and application templates")
-		jenkinsEphemeralPath := exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		tag := []string{"openshift/jenkins-plugin-snapshot-test:latest"}
+		hexIDs, err := exutil.DumpAndReturnTagging(tag)
+		var jenkinsEphemeralPath string
+		var testingSnapshot bool
+		if len(hexIDs) > 0 && err == nil {
+			// found an openshift pipeline plugin test image, must be testing a proposed change to the plugin
+			jenkinsEphemeralPath = exutil.FixturePath("testdata", "jenkins-ephemeral-template-test-new-plugin.json")
+			testingSnapshot = true
+		} else {
+			// no test image, testing the base jenkins image with the current, supported version of the plugin
+			jenkinsEphemeralPath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		}
 		err = oc.Run("new-app").Args(jenkinsEphemeralPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		jenkinsApplicationPath := exutil.FixturePath("..", "..", "examples", "jenkins", "application-template.json")
@@ -111,7 +123,7 @@ var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
-		err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins", exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("get ip and port for jenkins service")
@@ -124,6 +136,12 @@ var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 		g.By("wait for jenkins to come up")
 		err = waitForJenkinsActivity(fmt.Sprintf("http://%s", hostPort), "", 200)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if testingSnapshot {
+			g.By("verifying the test image is being used")
+			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
+			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses", hostPort), `About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200)
+		}
 
 	})
 
@@ -142,15 +160,15 @@ var _ = g.Describe("[jenkins] openshift pipeline plugin", func() {
 
 			// the build and deployment is by far the most time consuming portion of the test jenkins job;
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
-			// jenkins for the sucessful job completion
+			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", exutil.CheckDeploymentCompletedFn, exutil.CheckDeploymentFailedFn)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/job/test-plugin-job/1/console", hostPort), "SUCCESS", 200)
+			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/job/test-plugin-job/1/console", hostPort), "Finished: SUCCESS", 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 		})

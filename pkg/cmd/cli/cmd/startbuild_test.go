@@ -12,19 +12,23 @@ import (
 	"strings"
 	"testing"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type FakeClientConfig struct {
 	Raw      clientcmdapi.Config
-	Client   *client.Config
+	Client   *restclient.Config
 	NS       string
 	Explicit bool
 	Err      error
+}
+
+func (c *FakeClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return nil
 }
 
 // RawConfig returns the merged result of all overrides
@@ -33,7 +37,7 @@ func (c *FakeClientConfig) RawConfig() (clientcmdapi.Config, error) {
 }
 
 // ClientConfig returns a complete client config
-func (c *FakeClientConfig) ClientConfig() (*client.Config, error) {
+func (c *FakeClientConfig) ClientConfig() (*restclient.Config, error) {
 	return c.Client, c.Err
 }
 
@@ -51,14 +55,23 @@ func TestStartBuildWebHook(t *testing.T) {
 	defer server.Close()
 
 	cfg := &FakeClientConfig{}
-	f := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "", nil); err != nil {
+	o := &StartBuildOptions{
+		Out:          buf,
+		ClientConfig: cfg,
+		FromWebhook:  server.URL + "/webhook",
+	}
+	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
 	}
 	<-invoked
 
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "unknownpath", nil); err == nil {
+	o = &StartBuildOptions{
+		Out:            buf,
+		FromWebhook:    server.URL + "/webhook",
+		GitPostReceive: "unknownpath",
+	}
+	if err := o.Run(); err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
@@ -75,9 +88,13 @@ func TestStartBuildWebHookHTTPS(t *testing.T) {
 	cfg := &FakeClientConfig{
 		Err: testErr,
 	}
-	f := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(f, buf, server.URL+"/webhook", "", "", nil); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+	o := &StartBuildOptions{
+		Out:          buf,
+		ClientConfig: cfg,
+		FromWebhook:  server.URL + "/webhook",
+	}
+	if err := o.Run(); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
@@ -105,9 +122,14 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	cfg := &FakeClientConfig{
 		Err: testErr,
 	}
-	factory := clientcmd.NewFactory(cfg)
 	buf := &bytes.Buffer{}
-	if err := RunStartBuildWebHook(factory, buf, server.URL+"/webhook", "", f.Name(), nil); err != nil {
+	o := &StartBuildOptions{
+		Out:            buf,
+		ClientConfig:   cfg,
+		FromWebhook:    server.URL + "/webhook",
+		GitPostReceive: f.Name(),
+	}
+	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

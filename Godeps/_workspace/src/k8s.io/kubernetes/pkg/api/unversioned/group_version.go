@@ -22,13 +22,28 @@ import (
 	"strings"
 )
 
+// ParseResourceArg takes the common style of string which may be either `resource.group.com` or `resource.version.group.com`
+// and parses it out into both possibilities.  This code takes no responsibility for knowing which representation was intended
+// but with a knowledge of all GroupVersions, calling code can take a very good guess.  If there are only two segments, then
+// `*GroupVersionResource` is nil.
+// `resource.group.com` -> `group=com, version=group, resource=resource` and `group=group.com, resource=resource`
+func ParseResourceArg(arg string) (*GroupVersionResource, GroupResource) {
+	var gvr *GroupVersionResource
+	s := strings.SplitN(arg, ".", 3)
+	if len(s) == 3 {
+		gvr = &GroupVersionResource{Group: s[2], Version: s[1], Resource: s[0]}
+	}
+
+	return gvr, ParseGroupResource(arg)
+}
+
 // GroupResource specifies a Group and a Resource, but does not force a version.  This is useful for identifying
 // concepts during lookup stages without having partially valid types
 //
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 type GroupResource struct {
-	Group    string
-	Resource string
+	Group    string `protobuf:"bytes,1,opt,name=group"`
+	Resource string `protobuf:"bytes,2,opt,name=resource"`
 }
 
 func (gr GroupResource) WithVersion(version string) GroupVersionResource {
@@ -46,14 +61,25 @@ func (gr *GroupResource) String() string {
 	return gr.Resource + "." + gr.Group
 }
 
+// ParseGroupResource turns "resource.group" string into a GroupResource struct.  Empty strings are allowed
+// for each field.
+func ParseGroupResource(gr string) GroupResource {
+	s := strings.SplitN(gr, ".", 2)
+	if len(s) == 1 {
+		return GroupResource{Resource: s[0]}
+	}
+
+	return GroupResource{Group: s[1], Resource: s[0]}
+}
+
 // GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
 // to avoid automatic coersion.  It doesn't use a GroupVersion to avoid custom marshalling
 //
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 type GroupVersionResource struct {
-	Group    string
-	Version  string
-	Resource string
+	Group    string `protobuf:"bytes,1,opt,name=group"`
+	Version  string `protobuf:"bytes,2,opt,name=version"`
+	Resource string `protobuf:"bytes,3,opt,name=resource"`
 }
 
 func (gvr GroupVersionResource) IsEmpty() bool {
@@ -77,8 +103,8 @@ func (gvr *GroupVersionResource) String() string {
 //
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 type GroupKind struct {
-	Group string
-	Kind  string
+	Group string `protobuf:"bytes,1,opt,name=group"`
+	Kind  string `protobuf:"bytes,2,opt,name=kind"`
 }
 
 func (gk GroupKind) IsEmpty() bool {
@@ -101,9 +127,9 @@ func (gk *GroupKind) String() string {
 //
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 type GroupVersionKind struct {
-	Group   string
-	Version string
-	Kind    string
+	Group   string `protobuf:"bytes,1,opt,name=group"`
+	Version string `protobuf:"bytes,2,opt,name=version"`
+	Kind    string `protobuf:"bytes,3,opt,name=kind"`
 }
 
 // IsEmpty returns true if group, version, and kind are empty
@@ -127,8 +153,8 @@ func (gvk GroupVersionKind) String() string {
 //
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 type GroupVersion struct {
-	Group   string
-	Version string
+	Group   string `protobuf:"bytes,1,opt,name=group"`
+	Version string `protobuf:"bytes,2,opt,name=version"`
 }
 
 // IsEmpty returns true if group and version are empty

@@ -126,6 +126,7 @@ var map_LocalSubjectAccessReview = map[string]string{
 	"":       "LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace",
 	"user":   "User is optional.  If both User and Groups are empty, the current authenticated user is used.",
 	"groups": "Groups is optional.  Groups is the list of groups to which the User belongs.",
+	"scopes": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil for a self-SAR, means \"use the scopes on this request\". Nil for a regular SAR, means the same as empty.",
 }
 
 func (LocalSubjectAccessReview) SwaggerDoc() map[string]string {
@@ -291,10 +292,30 @@ func (RoleList) SwaggerDoc() map[string]string {
 	return map_RoleList
 }
 
+var map_SelfSubjectRulesReview = map[string]string{
+	"":       "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
+	"spec":   "Spec adds information about how to conduct the check",
+	"status": "Status is completed by the server to tell which permissions you have",
+}
+
+func (SelfSubjectRulesReview) SwaggerDoc() map[string]string {
+	return map_SelfSubjectRulesReview
+}
+
+var map_SelfSubjectRulesReviewSpec = map[string]string{
+	"":       "SelfSubjectRulesReviewSpec adds information about how to conduct the check",
+	"scopes": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil means \"use the scopes on this request\".",
+}
+
+func (SelfSubjectRulesReviewSpec) SwaggerDoc() map[string]string {
+	return map_SelfSubjectRulesReviewSpec
+}
+
 var map_SubjectAccessReview = map[string]string{
 	"":       "SubjectAccessReview is an object for requesting information about whether a user or group can perform an action",
 	"user":   "User is optional. If both User and Groups are empty, the current authenticated user is used.",
 	"groups": "GroupsSlice is optional. Groups is the list of groups to which the User belongs.",
+	"scopes": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil for a self-SAR, means \"use the scopes on this request\". Nil for a regular SAR, means the same as empty.",
 }
 
 func (SubjectAccessReview) SwaggerDoc() map[string]string {
@@ -310,4 +331,14 @@ var map_SubjectAccessReviewResponse = map[string]string{
 
 func (SubjectAccessReviewResponse) SwaggerDoc() map[string]string {
 	return map_SubjectAccessReviewResponse
+}
+
+var map_SubjectRulesReviewStatus = map[string]string{
+	"":                "SubjectRulesReviewStatus is contains the result of a rules check",
+	"rules":           "Rules is the list of rules (no particular sort) that are allowed for the subject",
+	"evaluationError": "EvaluationError can appear in combination with Rules.  It means some error happened during evaluation that may have prevented additional rules from being populated.",
+}
+
+func (SubjectRulesReviewStatus) SwaggerDoc() map[string]string {
+	return map_SubjectRulesReviewStatus
 }

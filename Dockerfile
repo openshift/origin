@@ -8,14 +8,13 @@
 #
 FROM openshift/origin-base
 
-RUN yum install -y golang && yum clean all
-
 WORKDIR /go/src/github.com/openshift/origin
-ADD .   /go/src/github.com/openshift/origin
-ENV GOPATH /go
-ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
+COPY . /go/src/github.com/openshift/origin
+ENV GOPATH=/go \
+    PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
-RUN go get github.com/openshift/origin && \
+RUN yum install -y golang && yum clean all && \
+    go get github.com/openshift/origin && \
     hack/build-go.sh && \
     cp _output/local/bin/linux/amd64/* /usr/bin/ && \
     mkdir -p /var/lib/origin

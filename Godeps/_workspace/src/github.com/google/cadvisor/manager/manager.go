@@ -16,7 +16,6 @@
 package manager
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -31,6 +30,8 @@ import (
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/docker"
 	"github.com/google/cadvisor/container/raw"
+	"github.com/google/cadvisor/container/rkt"
+	"github.com/google/cadvisor/container/systemd"
 	"github.com/google/cadvisor/events"
 	"github.com/google/cadvisor/fs"
 	info "github.com/google/cadvisor/info/v1"
@@ -48,6 +49,7 @@ var logCadvisorUsage = flag.Bool("log_cadvisor_usage", false, "Whether to log th
 var enableLoadReader = flag.Bool("enable_load_reader", false, "Whether to enable cpu load reader")
 var eventStorageAgeLimit = flag.String("event_storage_age_limit", "default=24h", "Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or \"default\" and the value is a duration. Default is applied to all non-specified event types")
 var eventStorageEventLimit = flag.String("event_storage_event_limit", "default=100000", "Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or \"default\" and the value is an integer. Default is applied to all non-specified event types")
+var applicationMetricsCountLimit = flag.Int("application_metrics_count_limit", 100, "Max number of application metrics to store (per container)")
 
 // The Manager interface defines operations for starting a manager and getting
 // container and machine information.
@@ -59,7 +61,7 @@ type Manager interface {
 	// Stops the manager.
 	Stop() error
 
-	// Get information about a container.
+	//  information about a container.
 	GetContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 
 	// Get V2 information about a container.
@@ -118,7 +120,7 @@ type Manager interface {
 }
 
 // New takes a memory storage and returns a new manager.
-func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingInterval time.Duration, allowDynamicHousekeeping bool) (Manager, error) {
+func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingInterval time.Duration, allowDynamicHousekeeping bool, ignoreMetricsSet container.MetricSet) (Manager, error) {
 	if memoryCache == nil {
 		return nil, fmt.Errorf("manager requires memory storage")
 	}
@@ -130,11 +132,23 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 	}
 	glog.Infof("cAdvisor running in container: %q", selfContainer)
 
-	dockerInfo, err := docker.DockerInfo()
+	dockerInfo, err := dockerInfo()
 	if err != nil {
 		glog.Warningf("Unable to connect to Docker: %v", err)
 	}
-	context := fs.Context{DockerRoot: docker.RootDir(), DockerInfo: dockerInfo}
+	rktPath, err := rkt.RktPath()
+	if err != nil {
+		glog.Warningf("unable to connect to Rkt api service: %v", err)
+	}
+
+	context := fs.Context{
+		Docker: fs.DockerContext{
+			Root:         docker.RootDir(),
+			Driver:       dockerInfo.Driver,
+			DriverStatus: dockerInfo.DriverStatus,
+		},
+		RktPath: rktPath,
+	}
 	fsInfo, err := fs.NewFsInfo(context)
 	if err != nil {
 		return nil, err
@@ -146,6 +160,7 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 	if _, err := os.Stat("/rootfs/proc"); os.IsNotExist(err) {
 		inHostNamespace = true
 	}
+
 	newManager := &manager{
 		containers:               make(map[namespacedContainerName]*containerData),
 		quitChannels:             make([]chan error, 0, 2),
@@ -156,6 +171,7 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 		startupTime:              time.Now(),
 		maxHousekeepingInterval:  maxHousekeepingInterval,
 		allowDynamicHousekeeping: allowDynamicHousekeeping,
+		ignoreMetrics:            ignoreMetricsSet,
 	}
 
 	machineInfo, err := getMachineInfo(sysfs, fsInfo, inHostNamespace)
@@ -198,18 +214,27 @@ type manager struct {
 	startupTime              time.Time
 	maxHousekeepingInterval  time.Duration
 	allowDynamicHousekeeping bool
+	ignoreMetrics            container.MetricSet
 }
 
 // Start the container manager.
 func (self *manager) Start() error {
-	// Register Docker container factory.
-	err := docker.Register(self, self.fsInfo)
+	err := docker.Register(self, self.fsInfo, self.ignoreMetrics)
 	if err != nil {
 		glog.Errorf("Docker container factory registration failed: %v.", err)
 	}
 
-	// Register the raw driver.
-	err = raw.Register(self, self.fsInfo)
+	err = rkt.Register(self, self.fsInfo, self.ignoreMetrics)
+	if err != nil {
+		glog.Errorf("Registration of the rkt container factory failed: %v", err)
+	}
+
+	err = systemd.Register(self, self.fsInfo, self.ignoreMetrics)
+	if err != nil {
+		glog.Errorf("Registration of the systemd container factory failed: %v", err)
+	}
+
+	err = raw.Register(self, self.fsInfo, self.ignoreMetrics)
 	if err != nil {
 		glog.Errorf("Registration of the raw container factory failed: %v", err)
 	}
@@ -718,7 +743,7 @@ func (m *manager) registerCollectors(collectorConfigs map[string]string, cont *c
 		glog.V(3).Infof("Got config from %q: %q", v, configFile)
 
 		if strings.HasPrefix(k, "prometheus") || strings.HasPrefix(k, "Prometheus") {
-			newCollector, err := collector.NewPrometheusCollector(k, configFile)
+			newCollector, err := collector.NewPrometheusCollector(k, configFile, *applicationMetricsCountLimit)
 			if err != nil {
 				glog.Infof("failed to create collector for container %q, config %q: %v", cont.info.Name, k, err)
 				return err
@@ -729,7 +754,7 @@ func (m *manager) registerCollectors(collectorConfigs map[string]string, cont *c
 				return err
 			}
 		} else {
-			newCollector, err := collector.NewCollector(k, configFile)
+			newCollector, err := collector.NewCollector(k, configFile, *applicationMetricsCountLimit)
 			if err != nil {
 				glog.Infof("failed to create collector for container %q, config %q: %v", cont.info.Name, k, err)
 				return err
@@ -784,7 +809,6 @@ func (m *manager) createContainer(containerName string) error {
 	err = m.registerCollectors(collectorConfigs, cont)
 	if err != nil {
 		glog.Infof("failed to register collectors for %q: %v", containerName, err)
-		return err
 	}
 
 	// Add the container name and all its aliases. The aliases must be within the namespace of the factory.
@@ -1147,58 +1171,31 @@ func (m *manager) DockerImages() ([]DockerImage, error) {
 }
 
 func (m *manager) DockerInfo() (DockerStatus, error) {
-	info, err := docker.DockerInfo()
+	return dockerInfo()
+}
+
+func dockerInfo() (DockerStatus, error) {
+	dockerInfo, err := docker.DockerInfo()
 	if err != nil {
 		return DockerStatus{}, err
 	}
-	versionInfo, err := m.GetVersionInfo()
+	versionInfo, err := getVersionInfo()
 	if err != nil {
 		return DockerStatus{}, err
 	}
 	out := DockerStatus{}
 	out.Version = versionInfo.DockerVersion
-	if val, ok := info["KernelVersion"]; ok {
-		out.KernelVersion = val
-	}
-	if val, ok := info["OperatingSystem"]; ok {
-		out.OS = val
-	}
-	if val, ok := info["Name"]; ok {
-		out.Hostname = val
-	}
-	if val, ok := info["DockerRootDir"]; ok {
-		out.RootDir = val
-	}
-	if val, ok := info["Driver"]; ok {
-		out.Driver = val
-	}
-	if val, ok := info["ExecutionDriver"]; ok {
-		out.ExecDriver = val
-	}
-	if val, ok := info["Images"]; ok {
-		n, err := strconv.Atoi(val)
-		if err == nil {
-			out.NumImages = n
-		}
-	}
-	if val, ok := info["Containers"]; ok {
-		n, err := strconv.Atoi(val)
-		if err == nil {
-			out.NumContainers = n
-		}
-	}
-	if val, ok := info["DriverStatus"]; ok {
-		var driverStatus [][]string
-		err := json.Unmarshal([]byte(val), &driverStatus)
-		if err != nil {
-			return DockerStatus{}, err
-		}
-		out.DriverStatus = make(map[string]string)
-		for _, v := range driverStatus {
-			if len(v) == 2 {
-				out.DriverStatus[v[0]] = v[1]
-			}
-		}
+	out.KernelVersion = dockerInfo.KernelVersion
+	out.OS = dockerInfo.OperatingSystem
+	out.Hostname = dockerInfo.Name
+	out.RootDir = dockerInfo.DockerRootDir
+	out.Driver = dockerInfo.Driver
+	out.ExecDriver = dockerInfo.ExecutionDriver
+	out.NumImages = dockerInfo.Images
+	out.NumContainers = dockerInfo.Containers
+	out.DriverStatus = make(map[string]string, len(dockerInfo.DriverStatus))
+	for _, v := range dockerInfo.DriverStatus {
+		out.DriverStatus[v[0]] = v[1]
 	}
 	return out, nil
 }

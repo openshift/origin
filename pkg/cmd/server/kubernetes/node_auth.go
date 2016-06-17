@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	oauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func newAuthenticator(clientCAs *x509.CertPool, anonymousConfig client.Config, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
+func newAuthenticator(clientCAs *x509.CertPool, anonymousConfig restclient.Config, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
 	authenticators := []oauthenticator.Request{}
 
 	// API token auth

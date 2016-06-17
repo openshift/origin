@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -65,10 +65,9 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error creating the HPA object: %v", err)
 	}
 
-	job := expapi.Job{
+	job := batch.Job{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-job"},
-		Spec: expapi.JobSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+		Spec: batch.JobSpec{
 			Template: kapi.PodTemplateSpec{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 				Spec: kapi.PodSpec{

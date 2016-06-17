@@ -29,7 +29,11 @@ type Config struct {
 	// Legacy field from pkg/api/types.go TypeMeta.
 	// TODO(jlowdermilk): remove this after eliminating downstream dependencies.
 	Kind string `json:"kind,omitempty"`
-	// Version of the schema for this config object.
+	// DEPRECATED: APIVersion is the preferred api version for communicating with the kubernetes cluster (v1, v2, etc).
+	// Because a cluster can run multiple API groups and potentially multiple versions of each, it no longer makes sense to specify
+	// a single value for the cluster version.
+	// This field isn't really needed anyway, so we are deprecating it without replacement.
+	// It will be ignored if it is present.
 	APIVersion string `json:"apiVersion,omitempty"`
 	// Preferences holds general information to be use for cli interactions
 	Preferences Preferences `json:"preferences"`
@@ -84,10 +88,14 @@ type AuthInfo struct {
 	ClientKeyData []byte `json:"client-key-data,omitempty"`
 	// Token is the bearer token for authentication to the kubernetes cluster.
 	Token string `json:"token,omitempty"`
+	// Impersonate is the username to act-as.
+	Impersonate string `json:"act-as,omitempty"`
 	// Username is the username for basic authentication to the kubernetes cluster.
 	Username string `json:"username,omitempty"`
 	// Password is the password for basic authentication to the kubernetes cluster.
 	Password string `json:"password,omitempty"`
+	// AuthProvider specifies a custom authentication plugin for the kubernetes cluster.
+	AuthProvider *AuthProviderConfig `json:"auth-provider,omitempty"`
 	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
 	Extensions map[string]runtime.Object `json:"extensions,omitempty"`
 }
@@ -104,6 +112,12 @@ type Context struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
 	Extensions map[string]runtime.Object `json:"extensions,omitempty"`
+}
+
+// AuthProviderConfig holds the configuration for a specified auth provider.
+type AuthProviderConfig struct {
+	Name   string            `json:"name"`
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // NewConfig is a convenience function that returns a new Config object with non-nil maps

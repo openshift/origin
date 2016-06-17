@@ -17,7 +17,7 @@ func TestGetTemplate(t *testing.T) {
 	th.AssertNoErr(t, err)
 
 	expected := os.GetExpected
-	th.AssertDeepEquals(t, expected, actual)
+	th.AssertDeepEquals(t, expected, string(actual))
 }
 
 func TestValidateTemplate(t *testing.T) {
@@ -26,29 +26,18 @@ func TestValidateTemplate(t *testing.T) {
 	os.HandleValidateSuccessfully(t, os.ValidateOutput)
 
 	opts := os.ValidateOpts{
-		Template: map[string]interface{}{
-			"heat_template_version": "2013-05-23",
-			"description":           "Simple template to test heat commands",
-			"parameters": map[string]interface{}{
-				"flavor": map[string]interface{}{
-					"default": "m1.tiny",
-					"type":    "string",
-				},
-			},
-			"resources": map[string]interface{}{
-				"hello_world": map[string]interface{}{
-					"type": "OS::Nova::Server",
-					"properties": map[string]interface{}{
-						"key_name": "heat_key",
-						"flavor": map[string]interface{}{
-							"get_param": "flavor",
-						},
-						"image":     "ad091b52-742f-469e-8f3c-fd81cadf0743",
-						"user_data": "#!/bin/bash -xv\necho \"hello world\" &gt; /root/hello-world.txt\n",
-					},
-				},
-			},
-		},
+		Template: `{
+			"Description": "Simple template to test heat commands",
+			"Parameters": {
+				"flavor": {
+					"Default": "m1.tiny",
+					"Type": "String",
+					"NoEcho": "false",
+					"Description": "",
+					"Label": "flavor"
+				}
+			}
+		}`,
 	}
 	actual, err := Validate(fake.ServiceClient(), opts).Extract()
 	th.AssertNoErr(t, err)

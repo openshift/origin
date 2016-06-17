@@ -210,6 +210,20 @@
         }
       },
       "spec": {
+        "volumes": [
+          {
+            "name": "conf",
+            "emptyDir": {}
+          },
+          {
+            "name": "data",
+            "emptyDir": {}
+          },
+          {
+            "name": "log",
+            "emptyDir": {}
+          }
+        ],
         "containers": [
           {
             "name": "server",
@@ -232,6 +246,20 @@
               {
                 "name": "SERVER_ID",
                 "value": "1"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "conf",
+                "mountPath": "/opt/zookeeper/conf"
+              },
+              {
+                "name": "data",
+                "mountPath": "/opt/zookeeper/data"
+              },
+              {
+                "name": "log",
+                "mountPath": "/opt/zookeeper/log"
               }
             ],
             "resources": {},
@@ -260,6 +288,20 @@
         }
       },
       "spec": {
+        "volumes": [
+          {
+            "name": "conf",
+            "emptyDir": {}
+          },
+          {
+            "name": "data",
+            "emptyDir": {}
+          },
+          {
+            "name": "log",
+            "emptyDir": {}
+          }
+        ],
         "containers": [
           {
             "name": "server",
@@ -282,6 +324,20 @@
               {
                 "name": "SERVER_ID",
                 "value": "2"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "conf",
+                "mountPath": "/opt/zookeeper/conf"
+              },
+              {
+                "name": "data",
+                "mountPath": "/opt/zookeeper/data"
+              },
+              {
+                "name": "log",
+                "mountPath": "/opt/zookeeper/log"
               }
             ],
             "resources": {},
@@ -310,6 +366,20 @@
         }
       },
       "spec": {
+        "volumes": [
+          {
+            "name": "conf",
+            "emptyDir": {}
+          },
+          {
+            "name": "data",
+            "emptyDir": {}
+          },
+          {
+            "name": "log",
+            "emptyDir": {}
+          }
+        ],
         "containers": [
           {
             "name": "server",
@@ -332,6 +402,20 @@
               {
                 "name": "SERVER_ID",
                 "value": "3"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "conf",
+                "mountPath": "/opt/zookeeper/conf"
+              },
+              {
+                "name": "data",
+                "mountPath": "/opt/zookeeper/data"
+              },
+              {
+                "name": "log",
+                "mountPath": "/opt/zookeeper/log"
               }
             ],
             "resources": {},

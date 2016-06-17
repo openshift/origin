@@ -13,6 +13,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -21,10 +22,12 @@ import (
 // BuildController watches build resources and manages their state
 type BuildController struct {
 	BuildUpdater      buildclient.BuildUpdater
+	BuildLister       buildclient.BuildLister
 	PodManager        podManager
 	BuildStrategy     BuildStrategy
 	ImageStreamClient imageStreamClient
 	Recorder          record.EventRecorder
+	RunPolicies       []policy.RunPolicy
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -51,7 +54,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 
 	glog.V(4).Infof("Cancelling build %s/%s.", build.Namespace, build.Name)
 
-	pod, err := bc.PodManager.GetPod(build.Namespace, buildutil.GetBuildPodName(build))
+	pod, err := bc.PodManager.GetPod(build.Namespace, buildapi.GetBuildPodName(build))
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("Failed to get pod for build %s/%s: %v", build.Namespace, build.Name, err)
@@ -79,19 +82,42 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 // HandleBuild deletes pods for cancelled builds and takes new builds and puts
 // them in the pending state after creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
-	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
+	// these builds are processed/updated/etc by the jenkins sync plugin
+	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
+		return nil
+	}
+	glog.V(4).Infof("Handling build %s/%s (%s)", build.Namespace, build.Name, build.Status.Phase)
+
+	runPolicy := policy.ForBuild(build, bc.RunPolicies)
+	if runPolicy == nil {
+		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
+	}
+
+	if buildutil.IsBuildComplete(build) {
+		if err := runPolicy.OnComplete(build); err != nil {
+			return err
+		}
+		return nil
+	}
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
 	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
+		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
 			return fmt.Errorf("Failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
 		}
 	}
 
-	// Handle new builds
+	// Handle only new builds from this point
 	if build.Status.Phase != buildapi.BuildPhaseNew {
 		return nil
+	}
+
+	// The runPolicy decides whether to execute this build or not.
+	if run, err := runPolicy.IsRunnable(build); err != nil || !run {
+		return err
 	}
 
 	if err := bc.nextBuildPhase(build); err != nil {
@@ -118,6 +144,12 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		build.Status.Phase = buildapi.BuildPhaseCancelled
 		build.Status.Reason = ""
 		build.Status.Message = ""
+		return nil
+	}
+
+	// these builds are processed/updated/etc by the jenkins sync plugin
+	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
 		return nil
 	}
 
@@ -356,7 +388,7 @@ type BuildDeleteController struct {
 // HandleBuildDeletion deletes a build pod if the corresponding build has been deleted
 func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling deletion of build %s", build.Name)
-	podName := buildutil.GetBuildPodName(build)
+	podName := buildapi.GetBuildPodName(build)
 	pod, err := bc.PodManager.GetPod(build.Namespace, podName)
 	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Failed to find pod with name %s for build %s in namespace %s due to error: %v", podName, build.Name, build.Namespace, err)
@@ -366,7 +398,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 		glog.V(2).Infof("Did not find pod with name %s for build %s in namespace %s", podName, build.Name, build.Namespace)
 		return nil
 	}
-	if buildName := pod.Labels[buildapi.BuildLabel]; buildName != build.Name {
+	if buildName := buildapi.GetBuildName(pod); buildName != build.Name {
 		glog.V(2).Infof("Not deleting pod %s/%s because the build label %s does not match the build name %s", pod.Namespace, podName, buildName, build.Name)
 		return nil
 	}

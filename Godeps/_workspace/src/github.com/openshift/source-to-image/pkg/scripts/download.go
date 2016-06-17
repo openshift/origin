@@ -28,8 +28,8 @@ type downloader struct {
 }
 
 // NewDownloader creates an instance of the default Downloader implementation
-func NewDownloader() Downloader {
-	httpReader := NewHTTPReader()
+func NewDownloader(proxyConfig *api.ProxyConfig) Downloader {
+	httpReader := NewHTTPURLReader(proxyConfig)
 	return &downloader{
 		schemeReaders: map[string]schemeReader{
 			"http":  httpReader,
@@ -44,14 +44,14 @@ func NewDownloader() Downloader {
 // Returns information a boolean flag informing whether any download/copy operation
 // happened and an error if there was a problem during that operation
 func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo, error) {
-	schemeReader := d.schemeReaders[url.Scheme]
+	r := d.schemeReaders[url.Scheme]
 	info := &api.SourceInfo{}
-	if schemeReader == nil {
+	if r == nil {
 		glog.Errorf("No URL handler found for %s", url.String())
 		return nil, errors.NewURLHandlerError(url.String())
 	}
 
-	reader, err := schemeReader.Read(url)
+	reader, err := r.Read(url)
 	if err != nil {
 		return nil, err
 	}
@@ -76,18 +76,33 @@ func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo,
 	return info, nil
 }
 
-// HttpURLReader retrieves a response from a given http(s) URL
-type HttpURLReader struct {
+// HTTPURLReader retrieves a response from a given HTTP(S) URL.
+type HTTPURLReader struct {
 	Get func(url string) (*http.Response, error)
 }
 
-// NewHTTPReader creates an instance of the HttpURLReader
-func NewHTTPReader() schemeReader {
-	return &HttpURLReader{Get: http.Get}
+// NewHTTPURLReader returns a new HTTPURLReader.
+func NewHTTPURLReader(proxyConfig *api.ProxyConfig) *HTTPURLReader {
+	getFunc := http.Get
+	if proxyConfig != nil {
+		transport := &http.Transport{
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				if proxyConfig.HTTPSProxy != nil && req.URL.Scheme == "https" {
+					return proxyConfig.HTTPSProxy, nil
+				}
+				return proxyConfig.HTTPProxy, nil
+			},
+		}
+		client := &http.Client{
+			Transport: transport,
+		}
+		getFunc = client.Get
+	}
+	return &HTTPURLReader{Get: getFunc}
 }
 
 // Read produces an io.Reader from an http(s) URL.
-func (h *HttpURLReader) Read(url *url.URL) (io.ReadCloser, error) {
+func (h *HTTPURLReader) Read(url *url.URL) (io.ReadCloser, error) {
 	resp, err := h.Get(url.String())
 	if err != nil {
 		if resp != nil {

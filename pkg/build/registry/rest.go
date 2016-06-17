@@ -7,12 +7,16 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-// ErrUnknownBuildPhase is returned for WaitForRunningBuild if an unknown phase is returned.
-var ErrUnknownBuildPhase = fmt.Errorf("unknown build phase")
+var (
+	// ErrUnknownBuildPhase is returned for WaitForRunningBuild if an unknown phase is returned.
+	ErrUnknownBuildPhase = fmt.Errorf("unknown build phase")
+	ErrBuildDeleted      = fmt.Errorf("build was deleted")
+)
 
 // WaitForRunningBuild waits until the specified build is no longer New or Pending. Returns true if
 // the build ran within timeout, false if it did not, and an error if any other error state occurred.
@@ -22,12 +26,12 @@ func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Buil
 	options := &kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: build.ResourceVersion}
 	w, err := watcher.Watch(ctx, options)
 	if err != nil {
-		return nil, false, err
+		return build, false, err
 	}
 	defer w.Stop()
 
-	ch := w.ResultChan()
 	observed := build
+	ch := w.ResultChan()
 	expire := time.After(timeout)
 	for {
 		select {
@@ -38,12 +42,15 @@ func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Buil
 			}
 			observed = obj
 
+			if event.Type == watch.Deleted {
+				return obj, false, ErrBuildDeleted
+			}
 			switch obj.Status.Phase {
 			case api.BuildPhaseRunning, api.BuildPhaseComplete, api.BuildPhaseFailed, api.BuildPhaseError, api.BuildPhaseCancelled:
-				return observed, true, nil
+				return obj, true, nil
 			case api.BuildPhaseNew, api.BuildPhasePending:
 			default:
-				return observed, false, ErrUnknownBuildPhase
+				return obj, false, ErrUnknownBuildPhase
 			}
 		case <-expire:
 			return observed, false, nil

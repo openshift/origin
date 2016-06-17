@@ -17,12 +17,14 @@ limitations under the License.
 package securitycontextconstraints
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -71,11 +73,11 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 
 	provider, err := NewSimpleProvider(scc)
 	if err != nil {
-		t.Fatal("unable to create provider %v", err)
+		t.Fatalf("unable to create provider %v", err)
 	}
 	sc, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
-		t.Fatal("unable to create psc %v", err)
+		t.Fatalf("unable to create psc %v", err)
 	}
 
 	// The generated security context should have filled in missing options, so they should differ
@@ -85,7 +87,7 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreatePodSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {
@@ -129,6 +131,8 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 			SupplementalGroups: api.SupplementalGroupsStrategyOptions{
 				Type: api.SupplementalGroupsStrategyRunAsAny,
 			},
+			// mutates the container SC by defaulting to true if container sets nil
+			ReadOnlyRootFilesystem: true,
 		}
 	}
 
@@ -137,11 +141,11 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	provider, err := NewSimpleProvider(scc)
 	if err != nil {
-		t.Fatal("unable to create provider %v", err)
+		t.Fatalf("unable to create provider %v", err)
 	}
 	sc, err := provider.CreateContainerSecurityContext(pod, &pod.Spec.Containers[0])
 	if err != nil {
-		t.Fatal("unable to create provider %v", err)
+		t.Fatalf("unable to create container security context %v", err)
 	}
 
 	// The generated security context should have filled in missing options, so they should differ
@@ -151,7 +155,7 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreateContainerSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {
@@ -256,7 +260,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) == 0 {
@@ -316,6 +320,13 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
+	readOnlyRootFSSCC := defaultSCC()
+	readOnlyRootFSSCC.ReadOnlyRootFilesystem = true
+
+	readOnlyRootFSPodFalse := defaultPod()
+	readOnlyRootFS := false
+	readOnlyRootFSPodFalse.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = &readOnlyRootFS
+
 	errorCases := map[string]struct {
 		pod           *api.Pod
 		scc           *api.SecurityContextConstraints
@@ -344,19 +355,29 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failHostDirSCC": {
 			pod:           failHostDirPod,
 			scc:           defaultSCC(),
-			expectedError: "Host Volumes are not allowed to be used",
+			expectedError: "hostPath volumes are not allowed to be used",
 		},
 		"failHostPortSCC": {
 			pod:           failHostPortPod,
 			scc:           defaultSCC(),
 			expectedError: "Host ports are not allowed to be used",
 		},
+		"failReadOnlyRootFS - nil": {
+			pod:           defaultPod(),
+			scc:           readOnlyRootFSSCC,
+			expectedError: "ReadOnlyRootFilesystem may not be nil and must be set to true",
+		},
+		"failReadOnlyRootFS - false": {
+			pod:           readOnlyRootFSPodFalse,
+			scc:           readOnlyRootFSSCC,
+			expectedError: "ReadOnlyRootFilesystem must be set to true",
+		},
 	}
 
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) == 0 {
@@ -455,7 +476,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) != 0 {
@@ -529,7 +550,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	}
 
 	hostDirSCC := defaultSCC()
-	hostDirSCC.AllowHostDirVolumePlugin = true
+	hostDirSCC.Volumes = []api.FSType{api.FSTypeHostPath}
 	hostDirPod := defaultPod()
 	hostDirPod.Spec.Volumes = []api.Volume{
 		{
@@ -544,6 +565,14 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	hostPortSCC.AllowHostPorts = true
 	hostPortPod := defaultPod()
 	hostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
+
+	readOnlyRootFSPodFalse := defaultPod()
+	readOnlyRootFSFalse := false
+	readOnlyRootFSPodFalse.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = &readOnlyRootFSFalse
+
+	readOnlyRootFSPodTrue := defaultPod()
+	readOnlyRootFSTrue := true
+	readOnlyRootFSPodTrue.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = &readOnlyRootFSTrue
 
 	errorCases := map[string]struct {
 		pod *api.Pod
@@ -577,18 +606,109 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 			pod: hostPortPod,
 			scc: hostPortSCC,
 		},
+		"pass read only root fs - nil": {
+			pod: defaultPod(),
+			scc: defaultSCC(),
+		},
+		"pass read only root fs - false": {
+			pod: readOnlyRootFSPodFalse,
+			scc: defaultSCC(),
+		},
+		"pass read only root fs - true": {
+			pod: readOnlyRootFSPodTrue,
+			scc: defaultSCC(),
+		},
 	}
 
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("%s expected validation pass but received errors %v", k, errs)
 			continue
 		}
+	}
+}
+
+func TestGenerateContainerSecurityContextReadOnlyRootFS(t *testing.T) {
+	trueSCC := defaultSCC()
+	trueSCC.ReadOnlyRootFilesystem = true
+
+	trueVal := true
+	expectTrue := &trueVal
+	falseVal := false
+	expectFalse := &falseVal
+
+	falsePod := defaultPod()
+	falsePod.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = expectFalse
+
+	truePod := defaultPod()
+	truePod.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = expectTrue
+
+	tests := map[string]struct {
+		pod      *api.Pod
+		scc      *api.SecurityContextConstraints
+		expected *bool
+	}{
+		"false scc, nil sc": {
+			scc:      defaultSCC(),
+			pod:      defaultPod(),
+			expected: nil,
+		},
+		"false scc, false sc": {
+			scc:      defaultSCC(),
+			pod:      falsePod,
+			expected: expectFalse,
+		},
+		"false scc, true sc": {
+			scc:      defaultSCC(),
+			pod:      truePod,
+			expected: expectTrue,
+		},
+		"true scc, nil sc": {
+			scc:      trueSCC,
+			pod:      defaultPod(),
+			expected: expectTrue,
+		},
+		"true scc, false sc": {
+			scc: trueSCC,
+			pod: falsePod,
+			// expect false even though it defaults to true to ensure it doesn't change set values
+			// validation catches the mismatch, not generation
+			expected: expectFalse,
+		},
+		"true scc, true sc": {
+			scc:      trueSCC,
+			pod:      truePod,
+			expected: expectTrue,
+		},
+	}
+
+	for k, v := range tests {
+		provider, err := NewSimpleProvider(v.scc)
+		if err != nil {
+			t.Errorf("%s unable to create provider %v", k, err)
+			continue
+		}
+		sc, err := provider.CreateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0])
+		if err != nil {
+			t.Errorf("%s unable to create container security context %v", k, err)
+			continue
+		}
+
+		if v.expected == nil && sc.ReadOnlyRootFilesystem != nil {
+			t.Errorf("%s expected a nil ReadOnlyRootFilesystem but got %t", k, *sc.ReadOnlyRootFilesystem)
+		}
+		if v.expected != nil && sc.ReadOnlyRootFilesystem == nil {
+			t.Errorf("%s expected a non nil ReadOnlyRootFilesystem but recieved nil", k)
+		}
+		if v.expected != nil && sc.ReadOnlyRootFilesystem != nil && (*v.expected != *sc.ReadOnlyRootFilesystem) {
+			t.Errorf("%s expected a non nil ReadOnlyRootFilesystem set to %t but got %t", k, *v.expected, *sc.ReadOnlyRootFilesystem)
+		}
+
 	}
 }
 
@@ -629,5 +749,67 @@ func defaultPod() *api.Pod {
 				},
 			},
 		},
+	}
+}
+
+// TestValidateAllowedVolumes will test that for every field of VolumeSource we can create
+// a pod with that type of volume and deny it, accept it explicitly, or accept it with
+// the FSTypeAll wildcard.
+func TestValidateAllowedVolumes(t *testing.T) {
+	val := reflect.ValueOf(api.VolumeSource{})
+
+	for i := 0; i < val.NumField(); i++ {
+		// reflectively create the volume source
+		fieldVal := val.Type().Field(i)
+
+		volumeSource := api.VolumeSource{}
+		volumeSourceVolume := reflect.New(fieldVal.Type.Elem())
+
+		reflect.ValueOf(&volumeSource).Elem().FieldByName(fieldVal.Name).Set(volumeSourceVolume)
+		volume := api.Volume{VolumeSource: volumeSource}
+
+		// sanity check before moving on
+		fsType, err := sccutil.GetVolumeFSType(volume)
+		if err != nil {
+			t.Errorf("error getting FSType for %s: %s", fieldVal.Name, err.Error())
+			continue
+		}
+
+		// add the volume to the pod
+		pod := defaultPod()
+		pod.Spec.Volumes = []api.Volume{volume}
+
+		// create an SCC that allows no volumes
+		scc := defaultSCC()
+
+		provider, err := NewSimpleProvider(scc)
+		if err != nil {
+			t.Errorf("error creating provider for %s: %s", fieldVal.Name, err.Error())
+			continue
+		}
+
+		// expect a denial for this SCC and test the error message to ensure it's related to the volumesource
+		errs := provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 1 {
+			t.Errorf("expected exactly 1 error for %s but got %v", fieldVal.Name, errs)
+		} else {
+			if !strings.Contains(errs.ToAggregate().Error(), fmt.Sprintf("%s volumes are not allowed to be used", fsType)) {
+				t.Errorf("did not find the expected error, received: %v", errs)
+			}
+		}
+
+		// now add the fstype directly to the scc and it should validate
+		scc.Volumes = []api.FSType{fsType}
+		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 0 {
+			t.Errorf("directly allowing volume expected no errors for %s but got %v", fieldVal.Name, errs)
+		}
+
+		// now change the scc to allow any volumes and the pod should still validate
+		scc.Volumes = []api.FSType{api.FSTypeAll}
+		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		if len(errs) != 0 {
+			t.Errorf("wildcard volume expected no errors for %s but got %v", fieldVal.Name, errs)
+		}
 	}
 }

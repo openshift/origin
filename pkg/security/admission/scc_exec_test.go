@@ -6,8 +6,8 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
-	clientsetfake "k8s.io/kubernetes/pkg/client/testing/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -90,7 +90,7 @@ func TestExecAdmit(t *testing.T) {
 		// create the admission plugin
 		p := NewSCCExecRestrictions(tc)
 
-		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod"), "namespace", "pod-name", kapi.Resource(v.resource), v.subresource, v.operation, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)
 
 		if v.shouldAdmit && err != nil {
@@ -110,10 +110,5 @@ func TestExecAdmit(t *testing.T) {
 			t.Errorf("%s: no actions found", k)
 		}
 
-		if v.shouldHaveClientAction {
-			if len(v.pod.Spec.ServiceAccountName) != 0 {
-				t.Errorf("%s: sa name should have been cleared: %v", k, v.pod.Spec.ServiceAccountName)
-			}
-		}
 	}
 }

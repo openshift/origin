@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/docker"
 	stierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/ignore"
+	"github.com/openshift/source-to-image/pkg/scm/empty"
 	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/test"
@@ -71,7 +72,7 @@ func newFakeSTI(f *FakeSTI) *STI {
 		garbage:   f,
 		layered:   &FakeDockerBuild{f},
 	}
-	s.source = &git.Clone{s.git, s.fs}
+	s.source = &git.Clone{Git: s.git, FileSystem: s.fs}
 	return s
 }
 
@@ -150,6 +151,23 @@ func TestDefaultSource(t *testing.T) {
 		t.Errorf("Config.Source not set: %v", config.Source)
 	}
 	if _, ok := sti.source.(*file.File); !ok || sti.source == nil {
+		t.Errorf("Source interface not set: %#v", sti.source)
+	}
+}
+
+func TestEmptySource(t *testing.T) {
+	config := &api.Config{
+		Source:       "",
+		DockerConfig: &api.DockerConfig{Endpoint: "unix:///var/run/docker.sock"},
+	}
+	sti, err := New(config, build.Overrides{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Source != "" {
+		t.Errorf("Config.Source unexpectantly changed: %v", config.Source)
+	}
+	if _, ok := sti.source.(*empty.Noop); !ok || sti.source == nil {
 		t.Errorf("Source interface not set: %#v", sti.source)
 	}
 }
@@ -286,7 +304,7 @@ func testBuildHandler() *STI {
 		result:            &api.Result{},
 		callbackInvoker:   &test.FakeCallbackInvoker{},
 	}
-	s.source = &git.Clone{s.git, s.fs}
+	s.source = &git.Clone{Git: s.git, FileSystem: s.fs}
 	return s
 }
 
@@ -533,7 +551,7 @@ func TestFetchSource(t *testing.T) {
 		cloneExpected    bool
 		checkoutExpected bool
 		copyExpected     bool
-		source_path      string
+		sourcePath       string
 		expectedError    *error
 	}
 
@@ -546,7 +564,7 @@ func TestFetchSource(t *testing.T) {
 			cloneExpected:    false,
 			checkoutExpected: false,
 			copyExpected:     false,
-			source_path:      "invalid/path",
+			sourcePath:       "invalid/path",
 			expectedError:    &err,
 		},
 		// 1
@@ -585,10 +603,10 @@ func TestFetchSource(t *testing.T) {
 		if ft.refSpecified {
 			bh.config.Ref = "a-branch"
 		}
-		if len(ft.source_path) == 0 {
+		if len(ft.sourcePath) == 0 {
 			bh.config.Source = "a-repo-source"
 		} else {
-			bh.config.Source = ft.source_path
+			bh.config.Source = ft.sourcePath
 		}
 
 		expectedTargetDir := "/working-dir/upload/src"
@@ -602,7 +620,7 @@ func TestFetchSource(t *testing.T) {
 				continue
 			}
 			if (*ft.expectedError).(stierr.Error).ErrorCode != e.(stierr.Error).ErrorCode {
-				t.Errorf("Expected error code %s, got %s [%d]", (*ft.expectedError).(stierr.Error).ErrorCode, e.(stierr.Error).ErrorCode, testNum)
+				t.Errorf("Expected error code %d, got %d [%d]", (*ft.expectedError).(stierr.Error).ErrorCode, e.(stierr.Error).ErrorCode, testNum)
 			}
 		}
 		if ft.cloneExpected {
@@ -717,14 +735,16 @@ func equalArrayContents(a []string, b []string) bool {
 
 func TestGenerateConfigEnv(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
-	testEnv := map[string]string{
-		"Key1": "Value1",
-		"Key2": "Value2",
-		"Key3": "Value3",
+	testEnv := api.EnvironmentList{
+		{Name: "Key1", Value: "Value1"},
+		{Name: "Key2", Value: "Value2"},
+		{Name: "Key3", Value: "Value3"},
+		{Name: "Key4", Value: "Value=4"},
+		{Name: "Key5", Value: "Value,5"},
 	}
 	rh.config.Environment = testEnv
 	result := rh.generateConfigEnv()
-	expected := []string{"Key1=Value1", "Key2=Value2", "Key3=Value3"}
+	expected := []string{"Key1=Value1", "Key2=Value2", "Key3=Value3", "Key4=Value=4", "Key5=Value,5"}
 	if !equalArrayContents(result, expected) {
 		t.Errorf("Unexpected result. Expected: %#v. Actual: %#v",
 			expected, result)
@@ -738,6 +758,11 @@ func TestExecuteOK(t *testing.T) {
 	rh.config.WorkingDir = "/working-dir"
 	rh.config.BuilderImage = "test/image"
 	rh.config.BuilderPullPolicy = api.PullAlways
+	rh.config.Environment = api.EnvironmentList{
+		api.EnvironmentSpec{"Key1", "Value1"},
+		api.EnvironmentSpec{"Key2", "Value2"},
+	}
+	expectedEnv := []string{"Key1=Value1", "Key2=Value2"}
 	th := rh.tar.(*test.FakeTar)
 	th.CreateTarResult = "/working-dir/test.tar"
 	fd := rh.docker.(*docker.FakeDocker)
@@ -788,6 +813,9 @@ func TestExecuteOK(t *testing.T) {
 		t.Errorf("PostExecutor not called with expected ID: %s",
 			pe.PostExecuteContainerID)
 	}
+	if !reflect.DeepEqual(ro.Env, expectedEnv) {
+		t.Errorf("Unexpected container environment passed to RunContainer: %v, should be %v", ro.Env, expectedEnv)
+	}
 	if !reflect.DeepEqual(pe.PostExecuteDestination, "test-command") {
 		t.Errorf("PostExecutor not called with expected command: %s", pe.PostExecuteDestination)
 	}
@@ -817,7 +845,7 @@ func TestCleanup(t *testing.T) {
 	for _, p := range preserve {
 		rh.config.PreserveWorkingDir = p
 		rh.fs = &test.FakeFileSystem{}
-		rh.garbage = &build.DefaultCleaner{rh.fs, rh.docker}
+		rh.garbage = build.NewDefaultCleaner(rh.fs, rh.docker)
 		rh.garbage.Cleanup(rh.config)
 		removedDir := rh.fs.(*test.FakeFileSystem).RemoveDirName
 		if p && removedDir != "" {

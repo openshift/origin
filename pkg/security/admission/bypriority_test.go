@@ -27,7 +27,7 @@ func TestByPrioritiesScore(t *testing.T) {
 	nonPriviledSCC := testSCC("nonprivileged", 1)
 
 	hostDirSCC := testSCC("hostdir", 1)
-	hostDirSCC.AllowHostDirVolumePlugin = true
+	hostDirSCC.Volumes = []kapi.FSType{kapi.FSTypeHostPath}
 
 	sccs := []*kapi.SecurityContextConstraints{nonPriviledSCC, privilegedSCC, hostDirSCC}
 	// with equal priorities expect that the SCCs will be sorted with hold behavior based on their score,
@@ -77,10 +77,11 @@ func TestByPrioritiesMixedSCCs(t *testing.T) {
 }
 
 func testSCC(name string, priority int) *kapi.SecurityContextConstraints {
+	newPriority := int32(priority)
 	return &kapi.SecurityContextConstraints{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		Priority: &priority,
+		Priority: &newPriority,
 	}
 }

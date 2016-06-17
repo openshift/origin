@@ -199,7 +199,7 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 }
 
 func (e *DockerRegistryServiceController) listDockercfgSecrets() ([]*api.Secret, error) {
-	options := api.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{client.SecretType: string(api.SecretTypeDockercfg)})}
+	options := api.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{api.SecretTypeField: string(api.SecretTypeDockercfg)})}
 	potentialSecrets, err := e.client.Secrets(api.NamespaceAll).List(options)
 	if err != nil {
 		return nil, err

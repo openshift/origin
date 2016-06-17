@@ -44,6 +44,14 @@ func NewInvalidTypeError(expected reflect.Kind, observed reflect.Kind, fieldName
 	return &InvalidTypeError{expected, observed, fieldName}
 }
 
+// TypeNotFoundError is returned when specified type
+// can not found in schema
+type TypeNotFoundError string
+
+func (tnfe TypeNotFoundError) Error() string {
+	return fmt.Sprintf("couldn't find type: %s", string(tnfe))
+}
+
 // Schema is an interface that knows how to validate an API object serialized to a byte array.
 type Schema interface {
 	ValidateBytes(data []byte) error
@@ -164,7 +172,7 @@ func (s *SwaggerSchema) ValidateObject(obj interface{}, fieldName, typeName stri
 	models := s.api.Models
 	model, ok := models.At(typeName)
 	if !ok {
-		return append(allErrs, fmt.Errorf("couldn't find type: %s", typeName))
+		return append(allErrs, TypeNotFoundError(typeName))
 	}
 	properties := model.Properties
 	if len(properties.List) == 0 {
@@ -274,6 +282,9 @@ func (s *SwaggerSchema) validateField(value interface{}, fieldName, fieldType st
 		if _, ok := value.(bool); !ok {
 			return append(allErrs, NewInvalidTypeError(reflect.Bool, reflect.TypeOf(value).Kind(), fieldName))
 		}
+	// API servers before release 1.3 produce swagger spec with `type: "any"` as the fallback type, while newer servers produce spec with `type: "object"`.
+	// We have both here so that kubectl can work with both old and new api servers.
+	case "object":
 	case "any":
 	default:
 		return append(allErrs, fmt.Errorf("unexpected type: %v", fieldType))

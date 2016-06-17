@@ -12,6 +12,15 @@ type ProjectRequestLimitConfig struct {
 
 	// Limits are the project request limits
 	Limits []ProjectLimitBySelector `json:"limits",description:"project request limits"`
+
+	// MaxProjectsForSystemUsers controls how many projects a certificate user may have.  Certificate
+	// users do not have any labels associated with them for more fine grained control
+	MaxProjectsForSystemUsers *int `json:"maxProjectsForSystemUsers"`
+
+	// MaxProjectsForServiceAccounts controls how many projects a service account may have.  Service
+	// accounts can't create projects by default, but if they are allowed to create projects, you cannot
+	// trust any labels placed on them since project editors can manipulate those labels
+	MaxProjectsForServiceAccounts *int `json:"maxProjectsForServiceAccounts"`
 }
 
 // ProjectLimitBySelector specifies the maximum number of projects allowed for a given user label selector

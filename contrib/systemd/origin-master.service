@@ -1,10 +1,10 @@
 [Unit]
 Description=Origin Master Service
 Documentation=https://github.com/openshift/origin
-After=network.target
+After=network-online.target
 After=etcd.service
 Before=origin-node.service
-Requires=network.target
+Requires=network-online.target
 
 [Service]
 Type=notify
@@ -16,6 +16,7 @@ LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
 SyslogIdentifier=origin-master
 Restart=always
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

@@ -48,8 +48,7 @@ View, start, cancel, or retry a deployment
 
 This command allows you to control a deployment config. Each individual deployment is exposed
 as a new replication controller, and the deployment process manages scaling down old deployments
-and scaling up new ones. You can rollback to any previous deployment, or even scale multiple
-deployments up at the same time.
+and scaling up new ones. Use '%[1]s rollback' to rollback to any previous deployment.
 
 There are several deployment strategies defined:
 
@@ -63,23 +62,29 @@ There are several deployment strategies defined:
 
 If a deployment fails, you may opt to retry it (if the error was transient). Some deployments may
 never successfully complete - in which case you can use the '--latest' flag to force a redeployment.
-When rolling back to a previous deployment, a new deployment will be created with an identical copy
-of your config at the latest position.
+If a deployment config has completed deploying successfully at least once in the past, it would be
+automatically rolled back in the event of a new failed deployment. Note that you would still need
+to update the erroneous deployment config in order to have its template persisted across your
+application.
+
+If you want to cancel a running deployment, use '--cancel' but keep in mind that this is a best-effort
+operation and may take some time to complete. It’s possible the deployment will partially or totally
+complete before the cancellation is effective. In such a case an appropriate event will be emitted.
 
 If no options are given, shows information about the latest deployment.`
 
 	deployExample = `  # Display the latest deployment for the 'database' deployment config
-  $ %[1]s deploy database
+  %[1]s deploy database
 
   # Start a new deployment based on the 'database'
-  $ %[1]s deploy database --latest
+  %[1]s deploy database --latest
 
   # Retry the latest failed deployment based on 'frontend'
   # The deployer pod and any hook pods are deleted for the latest failed deployment
-  $ %[1]s deploy frontend --retry
+  %[1]s deploy frontend --retry
 
   # Cancel the in-progress deployment based on 'frontend'
-  $ %[1]s deploy frontend --cancel`
+  %[1]s deploy frontend --cancel`
 )
 
 // NewCmdDeploy creates a new `deploy` command.
@@ -91,7 +96,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:        "deploy DEPLOYMENTCONFIG [--latest|--retry|--cancel|--enable-triggers]",
 		Short:      "View, start, cancel, or retry a deployment",
-		Long:       deployLong,
+		Long:       fmt.Sprintf(deployLong, fullName),
 		Example:    fmt.Sprintf(deployExample, fullName),
 		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -132,7 +137,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 
 	o.out = out
@@ -206,6 +211,14 @@ func (o DeployOptions) RunDeploy() error {
 // deploy launches a new deployment unless there's already a deployment
 // process in progress for config.
 func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot deploy a paused deployment config")
+	}
+	// TODO: This implies that deploymentconfig.status.latestVersion is always synced. Currently,
+	// that's the case because clients (oc, trigger controllers) are updating the status directly.
+	// Clients should be acting either on spec or on annotations and status updates should be a
+	// responsibility of the main controller. We need to start by unplugging this assumption from
+	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err == nil {
@@ -220,21 +233,31 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		}
 	}
 
-	config.Status.LatestVersion++
-	_, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
-	if err == nil {
-		fmt.Fprintf(out, "Started deployment #%d\n", config.Status.LatestVersion)
+	deployutil.Instantiate(config)
+	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	if err != nil {
+		return err
 	}
-	return err
+	fmt.Fprintf(out, "Started deployment #%d\n", dc.Status.LatestVersion)
+	fmt.Fprintf(out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, dc.Name)
+	return nil
 }
 
 // retry resets the status of the latest deployment to New, which will cause
 // the deployment to be retried. An error is returned if the deployment is not
 // currently in a failed state.
 func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot retry a paused deployment config")
+	}
 	if config.Status.LatestVersion == 0 {
 		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
+	// TODO: This implies that deploymentconfig.status.latestVersion is always synced. Currently,
+	// that's the case because clients (oc, trigger controllers) are updating the status directly.
+	// Clients should be acting either on spec or on annotations and status updates should be a
+	// responsibility of the main controller. We need to start by unplugging this assumption from
+	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {
@@ -280,6 +303,9 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 
 // cancel cancels any deployment process in progress for config.
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
+	if config.Spec.Paused {
+		return fmt.Errorf("cannot cancel a paused deployment config")
+	}
 	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return err
@@ -310,7 +336,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 				anyCancelled = true
 			} else {
 				fmt.Fprintf(out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
-				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
+				failedCancellations = append(failedCancellations, strconv.FormatInt(deployutil.DeploymentVersionFor(&deployment), 10))
 			}
 		}
 	}
@@ -319,10 +345,15 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 	}
 	if !anyCancelled {
 		latest := &deployments.Items[0]
+		maybeCancelling := ""
+		if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
+			maybeCancelling = " (cancelling)"
+		}
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
-		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
+		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
 			deployutil.DeploymentVersionFor(latest),
 			strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
+			maybeCancelling,
 			timeAt)
 	}
 	return nil

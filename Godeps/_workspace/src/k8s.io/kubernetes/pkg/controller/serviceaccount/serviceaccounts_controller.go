@@ -26,10 +26,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/metrics"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -72,11 +72,13 @@ func NewServiceAccountsController(cl clientset.Interface, options ServiceAccount
 		client:                  cl,
 		serviceAccountsToEnsure: options.ServiceAccounts,
 	}
-
+	if cl != nil && cl.Core().GetRESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_controller", cl.Core().GetRESTClient().GetRateLimiter())
+	}
 	accountSelector := fields.Everything()
 	if len(options.ServiceAccounts) == 1 {
 		// If we're maintaining a single account, we can scope the accounts we watch to just that name
-		accountSelector = fields.SelectorFromSet(map[string]string{client.ObjectNameField: options.ServiceAccounts[0].Name})
+		accountSelector = fields.SelectorFromSet(map[string]string{api.ObjectNameField: options.ServiceAccounts[0].Name})
 	}
 	e.serviceAccounts, e.serviceAccountController = framework.NewIndexerInformer(
 		&cache.ListWatch{

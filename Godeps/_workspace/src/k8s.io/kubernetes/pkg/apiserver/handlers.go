@@ -32,7 +32,9 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/httplog"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -44,6 +46,13 @@ var specialVerbs = sets.NewString("proxy", "redirect", "watch")
 
 // specialVerbsNoSubresources contains root verbs which do not allow subresources
 var specialVerbsNoSubresources = sets.NewString("proxy", "redirect")
+
+// namespaceSubresources contains subresources of namespace
+// this list allows the parser to distinguish between a namespace subresource, and a namespaced resource
+var namespaceSubresources = sets.NewString("status", "finalize")
+
+// NamespaceSubResourcesForTest exports namespaceSubresources for testing in pkg/master/master_test.go, so we never drift
+var NamespaceSubResourcesForTest = sets.NewString(namespaceSubresources.List()...)
 
 // Constant for the retry-after interval on rate limiting.
 // TODO: maybe make this dynamic? or user-adjustable?
@@ -72,13 +81,35 @@ func ReadOnly(handler http.Handler) http.Handler {
 	})
 }
 
+type LongRunningRequestCheck func(r *http.Request) bool
+
+// BasicLongRunningRequestCheck pathRegex operates against the url path, the queryParams match is case insensitive.
+// Any one match flags the request.
+// TODO tighten this check to eliminate the abuse potential by malicious clients that start setting queryParameters
+// to bypass the rate limitter.  This could be done using a full parse and special casing the bits we need.
+func BasicLongRunningRequestCheck(pathRegex *regexp.Regexp, queryParams map[string]string) LongRunningRequestCheck {
+	return func(r *http.Request) bool {
+		if pathRegex.MatchString(r.URL.Path) {
+			return true
+		}
+
+		for key, expectedValue := range queryParams {
+			if strings.ToLower(expectedValue) == strings.ToLower(r.URL.Query().Get(key)) {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
 // MaxInFlight limits the number of in-flight requests to buffer size of the passed in channel.
-func MaxInFlightLimit(c chan bool, longRunningRequestRE *regexp.Regexp, handler http.Handler) http.Handler {
+func MaxInFlightLimit(c chan bool, longRunningRequestCheck LongRunningRequestCheck, handler http.Handler) http.Handler {
 	if c == nil {
 		return handler
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if longRunningRequestRE.MatchString(r.URL.Path) {
+		if longRunningRequestCheck(r) {
 			// Skip tracking long running events.
 			handler.ServeHTTP(w, r)
 			return
@@ -369,19 +400,78 @@ func (r *requestAttributeGetter) GetAttribs(req *http.Request) authorizer.Attrib
 	attribs.Path = requestInfo.Path
 	attribs.Verb = requestInfo.Verb
 
-	// If the request was for a resource in an API group, include that info
 	attribs.APIGroup = requestInfo.APIGroup
-
-	// If a path follows the conventions of the REST object store, then
-	// we can extract the resource.  Otherwise, not.
+	attribs.APIVersion = requestInfo.APIVersion
 	attribs.Resource = requestInfo.Resource
-
-	// If the request specifies a namespace, then the namespace is filled in.
-	// Assumes there is no empty string namespace.  Unspecified results
-	// in empty (does not understand defaulting rules.)
+	attribs.Subresource = requestInfo.Subresource
 	attribs.Namespace = requestInfo.Namespace
+	attribs.Name = requestInfo.Name
 
 	return &attribs
+}
+
+func WithImpersonation(handler http.Handler, requestContextMapper api.RequestContextMapper, a authorizer.Authorizer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		requestedSubject := req.Header.Get("Impersonate-User")
+		if len(requestedSubject) == 0 {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		ctx, exists := requestContextMapper.Get(req)
+		if !exists {
+			forbidden(w, req)
+			return
+		}
+		requestor, exists := api.UserFrom(ctx)
+		if !exists {
+			forbidden(w, req)
+			return
+		}
+
+		actingAsAttributes := &authorizer.AttributesRecord{
+			User:            requestor,
+			Verb:            "impersonate",
+			APIGroup:        api.GroupName,
+			Resource:        "users",
+			Name:            requestedSubject,
+			ResourceRequest: true,
+		}
+		if namespace, name, err := serviceaccount.SplitUsername(requestedSubject); err == nil {
+			actingAsAttributes.Resource = "serviceaccounts"
+			actingAsAttributes.Namespace = namespace
+			actingAsAttributes.Name = name
+		}
+
+		err := a.Authorize(actingAsAttributes)
+		if err != nil {
+			forbidden(w, req)
+			return
+		}
+
+		switch {
+		case strings.HasPrefix(requestedSubject, serviceaccount.ServiceAccountUsernamePrefix):
+			namespace, name, err := serviceaccount.SplitUsername(requestedSubject)
+			if err != nil {
+				forbidden(w, req)
+				return
+			}
+			requestContextMapper.Update(req, api.WithUser(ctx, serviceaccount.UserInfo(namespace, name, "")))
+
+		default:
+			newUser := &user.DefaultInfo{
+				Name: requestedSubject,
+			}
+			requestContextMapper.Update(req, api.WithUser(ctx, newUser))
+		}
+
+		newCtx, _ := requestContextMapper.Get(req)
+		oldUser, _ := api.UserFrom(ctx)
+		newUser, _ := api.UserFrom(newCtx)
+		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
+
+		handler.ServeHTTP(w, req)
+	})
 }
 
 // WithAuthorizationCheck passes all authorized requests on to handler, and returns a forbidden error otherwise.
@@ -527,7 +617,7 @@ func (r *RequestInfoResolver) GetRequestInfo(req *http.Request) (RequestInfo, er
 
 			// if there is another step after the namespace name and it is not a known namespace subresource
 			// move currentParts to include it as a resource in its own right
-			if len(currentParts) > 2 {
+			if len(currentParts) > 2 && !namespaceSubresources.Has(currentParts[2]) {
 				currentParts = currentParts[2:]
 			}
 		}

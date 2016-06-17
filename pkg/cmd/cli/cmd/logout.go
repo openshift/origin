@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -19,10 +19,10 @@ import (
 
 type LogoutOptions struct {
 	StartingKubeConfig *kclientcmdapi.Config
-	Config             *kclient.Config
+	Config             *restclient.Config
 	Out                io.Writer
 
-	PathOptions *kcmdconfig.PathOptions
+	PathOptions *kclientcmd.PathOptions
 }
 
 const (
@@ -41,7 +41,7 @@ After logging out, if you want to log back into the server use '%[1]s'.`
 
 	logoutExample = `
   # Logout
-  $ %[1]s`
+  %[1]s`
 )
 
 // NewCmdLogout implements the OpenShift cli logout command
@@ -136,7 +136,7 @@ func (o LogoutOptions) RunLogout() error {
 		}
 	}
 
-	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
+	if err := kclientcmd.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
 		return err
 	}
 

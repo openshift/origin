@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -18,15 +19,6 @@ import (
 )
 
 func TestRootAPIPaths(t *testing.T) {
-	// ExceptionalExpectedCodes are codes that we expect, but are not http.StatusOK.
-	// These codes are expected because the response from a GET on our root should
-	// expose endpoints for discovery, but will not necessarily expose endpoints that
-	// are supported as written - i.e. versioned endpoints or endpoints that need
-	// context will 404 with the correct credentials and that is OK.
-	ExceptionalExpectedCodes := map[string]int{
-		"/logs/": http.StatusNotFound,
-	}
-
 	testutil.RequireEtcd(t)
 	masterConfig, adminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
@@ -38,7 +30,7 @@ func TestRootAPIPaths(t *testing.T) {
 		t.Fatalf("unexpected error getting cluster admin client config: %v", err)
 	}
 
-	transport, err := kclient.TransportFor(clientConfig)
+	transport, err := restclient.TransportFor(clientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error getting transport for client config: %v", err)
 	}
@@ -59,7 +51,7 @@ func TestRootAPIPaths(t *testing.T) {
 	// We need to make sure that any APILevels specified in the config are present in the RootPaths, and that
 	// any not specified are not
 	expectedOpenShiftAPILevels := sets.NewString(masterConfig.APILevels...)
-	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, configapi.APIGroupKube)...)
+	expectedKubeAPILevels := sets.NewString(configapi.GetEnabledAPIVersionsForGroup(*masterConfig.KubernetesMasterConfig, kapi.GroupName)...)
 	actualOpenShiftAPILevels := sets.String{}
 	actualKubeAPILevels := sets.String{}
 	for _, route := range broadcastRootPaths.Paths {
@@ -87,11 +79,7 @@ func TestRootAPIPaths(t *testing.T) {
 			t.Errorf("unexpected error issuing GET for path %q: %v", route, err)
 			continue
 		}
-		// Look up expected code if exceptional or default to 200
-		expectedCode, exists := ExceptionalExpectedCodes[route]
-		if !exists {
-			expectedCode = http.StatusOK
-		}
+		expectedCode := http.StatusOK
 		if resp.StatusCode != expectedCode {
 			t.Errorf("incorrect status code for %s endpoint: expected %d, got %d", route, expectedCode, resp.StatusCode)
 		}

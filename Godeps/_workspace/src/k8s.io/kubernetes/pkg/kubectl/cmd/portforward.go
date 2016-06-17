@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"io"
 	"net/url"
 	"os"
 	"os/signal"
@@ -25,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -34,26 +35,30 @@ import (
 const (
 	portforward_example = `
 # Listen on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-$ kubectl port-forward mypod 5000 6000
+kubectl port-forward mypod 5000 6000
 
 # Listen on port 8888 locally, forwarding to 5000 in the pod
-$ kubectl port-forward mypod 8888:5000
+kubectl port-forward mypod 8888:5000
 
 # Listen on a random port locally, forwarding to 5000 in the pod
-$ kubectl port-forward mypod :5000
+kubectl port-forward mypod :5000
 
 # Listen on a random port locally, forwarding to 5000 in the pod
-$ kubectl port-forward  mypod 0:5000`
+kubectl port-forward  mypod 0:5000`
 )
 
-func NewCmdPortForward(f *cmdutil.Factory) *cobra.Command {
+func NewCmdPortForward(f *cmdutil.Factory, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "port-forward POD [LOCAL_PORT:]REMOTE_PORT [...[LOCAL_PORT_N:]REMOTE_PORT_N]",
 		Short:   "Forward one or more local ports to a pod.",
 		Long:    "Forward one or more local ports to a pod.",
 		Example: portforward_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunPortForward(f, cmd, args, &defaultPortForwarder{})
+			pf := &defaultPortForwarder{
+				cmdOut: cmdOut,
+				cmdErr: cmdErr,
+			}
+			err := RunPortForward(f, cmd, args, pf)
 			cmdutil.CheckErr(err)
 		},
 	}
@@ -63,17 +68,19 @@ func NewCmdPortForward(f *cmdutil.Factory) *cobra.Command {
 }
 
 type portForwarder interface {
-	ForwardPorts(method string, url *url.URL, config *client.Config, ports []string, stopChan <-chan struct{}) error
+	ForwardPorts(method string, url *url.URL, config *restclient.Config, ports []string, stopChan <-chan struct{}) error
 }
 
-type defaultPortForwarder struct{}
+type defaultPortForwarder struct {
+	cmdOut, cmdErr io.Writer
+}
 
-func (*defaultPortForwarder) ForwardPorts(method string, url *url.URL, config *client.Config, ports []string, stopChan <-chan struct{}) error {
+func (f *defaultPortForwarder) ForwardPorts(method string, url *url.URL, config *restclient.Config, ports []string, stopChan <-chan struct{}) error {
 	dialer, err := remotecommand.NewExecutor(config, method, url)
 	if err != nil {
 		return err
 	}
-	fw, err := portforward.New(dialer, ports, stopChan)
+	fw, err := portforward.New(dialer, ports, stopChan, f.cmdOut, f.cmdErr)
 	if err != nil {
 		return err
 	}

@@ -16,8 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
-
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -28,6 +26,7 @@ import (
 const (
 	ComponentGroupNetwork = "network"
 	ComponentProxy        = "proxy"
+	ComponentDNS          = "dns"
 	ComponentPlugins      = "plugins"
 	ComponentKubelet      = "kubelet"
 )
@@ -36,13 +35,13 @@ const (
 func NewNodeComponentFlag() *utilflags.ComponentFlag {
 	return utilflags.NewComponentFlag(
 		map[string][]string{ComponentGroupNetwork: {ComponentProxy, ComponentPlugins}},
-		ComponentKubelet, ComponentProxy, ComponentPlugins,
-	)
+		ComponentKubelet, ComponentProxy, ComponentPlugins, ComponentDNS,
+	).DefaultDisable(ComponentDNS)
 }
 
 // NewNodeComponentFlag returns a flag capable of handling enabled components for the network
 func NewNetworkComponentFlag() *utilflags.ComponentFlag {
-	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins)
+	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins, ComponentDNS).DefaultDisable(ComponentDNS)
 }
 
 // NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting a node.
@@ -81,7 +80,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 		args.Components.Bind(flags, prefix+"%s", "The set of node components to")
 	}
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
 
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
@@ -95,7 +94,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	args.Components.Bind(flags, "%s", "The set of network components to")
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
@@ -148,20 +147,6 @@ func ValidateRuntime(config *configapi.NodeConfig, components *utilflags.Compone
 	}
 	if actual.Len() == 0 {
 		return fmt.Errorf("at least one node component must be enabled (%s)", strings.Join(components.Allowed().List(), ", "))
-	}
-
-	switch strings.ToLower(config.NetworkConfig.NetworkPluginName) {
-	case ovs.MultiTenantPluginName():
-		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the multi-tenant SDN plugin must be run in the same process as the kubelet")
-		}
-		if actual.Has(ComponentProxy) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the multi-tenant SDN plugin requires the proxy and plugins components be enabled in the same process")
-		}
-	case ovs.SingleTenantPluginName():
-		if actual.Has(ComponentKubelet) && !actual.Has(ComponentPlugins) {
-			return fmt.Errorf("the SDN plugin must be run in the same process as the kubelet")
-		}
 	}
 	return nil
 }
@@ -241,6 +226,34 @@ func (args NodeArgs) GetServerCertHostnames() (sets.String, error) {
 	}
 
 	return certHostnames, nil
+}
+
+// FindLocalIPForDNS attempts to find an IP that will be reachable from
+// inside containers as an IP address. It will try to use the Host values of
+// the DNSBindAddr, the MasterAddr, and the MasterPublicAddr, before falling
+// back to the local IP. This method will fail if the Master*Addrs point to
+// an IP loadbalancer, so this method is at best a heuristic.
+func findLocalIPForDNS(m *MasterArgs) (net.IP, error) {
+	if ip := specifiedIP(m.DNSBindAddr.Host); ip != nil {
+		return ip, nil
+	}
+	if ip := specifiedIP(m.MasterAddr.Host); ip != nil {
+		return ip, nil
+	}
+	if ip := specifiedIP(m.MasterPublicAddr.Host); ip != nil {
+		return ip, nil
+	}
+	return cmdutil.DefaultLocalIP4()
+}
+
+// specifiedIP parses the provided string as an IP, returning nil if the IP
+// is considered unspecified (0.0.0.0)
+func specifiedIP(s string) net.IP {
+	ip := net.ParseIP(s)
+	if ip.IsUnspecified() {
+		return nil
+	}
+	return ip
 }
 
 // defaultHostname returns the default hostname for this system.

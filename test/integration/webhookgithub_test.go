@@ -10,7 +10,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -96,6 +96,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 	for _, s := range []string{
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 
 		// trigger build event sending push notification
@@ -104,7 +106,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		// FIXME: I think the build creation is fast and in some situlation we miss
+		// FIXME: I think the build creation is fast and in some situation we miss
 		// the BuildPhaseNew here. Note that this is not a bug, in future we should
 		// move this to use go routine to capture all events.
 		if actual.Status.Phase != buildapi.BuildPhaseNew && actual.Status.Phase != buildapi.BuildPhasePending {
@@ -249,6 +251,8 @@ func TestWebhookGitHubPing(t *testing.T) {
 
 	for _, s := range []string{
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 		// trigger build event sending push notification
 		clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
@@ -270,8 +274,8 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client kclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
-	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/fixtures/" + filename)
+func postFile(client restclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
+	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/testdata/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}
@@ -298,6 +302,7 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicyParallel,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type: buildapi.GitHubWebHookBuildTriggerType,
@@ -305,8 +310,20 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 						Secret: "secret101",
 					},
 				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret102",
+					},
+				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",
@@ -338,6 +355,7 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicyParallel,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type: buildapi.GitHubWebHookBuildTriggerType,
@@ -345,8 +363,20 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 						Secret: "secret101",
 					},
 				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret102",
+					},
+				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://my.docker/build",

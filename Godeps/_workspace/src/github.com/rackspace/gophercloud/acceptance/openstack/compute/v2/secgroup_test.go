@@ -107,6 +107,24 @@ func addRemoveRules(t *testing.T, client *gophercloud.ServiceClient, id string) 
 	th.AssertNoErr(t, err)
 
 	t.Logf("Deleted rule %s from group %s", rule.ID, id)
+
+	icmpOpts := secgroups.CreateRuleOpts{
+		ParentGroupID: id,
+		FromPort:      0,
+		ToPort:        0,
+		IPProtocol:    "ICMP",
+		CIDR:          "0.0.0.0/0",
+	}
+
+	icmpRule, err := secgroups.CreateRule(client, icmpOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	t.Logf("Adding ICMP rule %s to group %s", icmpRule.ID, id)
+
+	err = secgroups.DeleteRule(client, icmpRule.ID).ExtractErr()
+	th.AssertNoErr(t, err)
+
+	t.Logf("Deleted ICMP rule %s from group %s", icmpRule.ID, id)
 }
 
 func findServer(t *testing.T, client *gophercloud.ServiceClient) (string, bool) {

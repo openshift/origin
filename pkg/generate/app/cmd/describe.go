@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 func localOrRemoteName(meta kapi.ObjectMeta, namespace string) string {
@@ -144,14 +143,19 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		} else {
 			strategy = "source"
 		}
+		noSource := false
 		var source string
 		switch s := pipeline.Build.Source; {
 		case s.Binary:
+			noSource = true
 			source = "binary input"
 		case len(s.DockerfileContents) > 0:
 			source = "a predefined Dockerfile"
-		case s.URL != nil:
+		case s.URL != nil && len(s.URL.Host) > 0:
 			source = fmt.Sprintf("source code from %s", s.URL)
+		case s.URL != nil:
+			noSource = true
+			source = "uploaded code"
 		default:
 			source = "<unknown>"
 		}
@@ -167,8 +171,12 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      * The resulting image will be pushed to %s %q\n", to.Kind, to.Name)
 			}
 		}
-		if len(trackedImage) > 0 && !pipeline.Build.Source.Binary {
-			fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
+		if len(trackedImage) > 0 {
+			if noSource {
+				fmt.Fprintf(out, "      * Use 'start-build --from-dir=DIR' to trigger a new build\n")
+			} else {
+				fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
+			}
 		}
 	}
 	if pipeline.Deployment != nil {
@@ -213,7 +221,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
 			}
 			if hasRootUser(match.Image) {
-				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
+				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", match.Name)
 			}
 		}
 	}
@@ -232,24 +240,6 @@ func hasEmptyDir(image *imageapi.DockerImage) bool {
 		return false
 	}
 	return len(image.Config.Volumes) > 0
-}
-
-func describeGeneratedTemplate(out io.Writer, ref app.ComponentReference, result *templateapi.Template, baseNamespace string) {
-	fmt.Fprintf(out, "--> Deploying template %s for %q\n", localOrRemoteName(ref.Input().ResolvedMatch.Template.ObjectMeta, baseNamespace), ref.Input())
-	if len(result.Parameters) > 0 {
-		fmt.Fprintf(out, "     With parameters:\n")
-		for _, p := range result.Parameters {
-			name := p.DisplayName
-			if len(name) == 0 {
-				name = p.Name
-			}
-			var generated string
-			if len(p.Generate) > 0 {
-				generated = " # generated"
-			}
-			fmt.Fprintf(out, "      %s=%s%s\n", name, p.Value, generated)
-		}
-	}
 }
 
 func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.Pod, secret *kapi.Secret, baseNamespace string) {

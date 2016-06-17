@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -9,12 +10,16 @@ import (
 	"path/filepath"
 	"time"
 
+	dockertypes "github.com/docker/engine-api/types"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	proxy "k8s.io/kubernetes/pkg/proxy"
@@ -25,10 +30,14 @@ import (
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
-	"k8s.io/kubernetes/pkg/util/sysctl"
+	"k8s.io/kubernetes/pkg/volume"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/volume/emptydir"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/fields"
 )
 
 type commandExecutor interface {
@@ -98,7 +107,7 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
-	dockerClient, dockerAddr, err := docker.GetClient()
+	dockerClient, dockerAddr, err := docker.GetKubeClient()
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to create a Docker client for %s - Docker must be installed and running to start containers.\n%v", dockerAddr, err))
 		return
@@ -124,16 +133,15 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 
 	glog.Infof("Connecting to Docker at %s", dockerAddr)
 
-	env, err := dockerClient.Version()
+	version, err := dockerClient.Version()
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
 		return
 	}
 
-	serverVersionString := env.Get("ApiVersion")
-	serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
+	serverVersion, err := dockerclient.NewAPIVersion(version.APIVersion)
 	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", serverVersionString, err))
+		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", version.APIVersion, err))
 		return
 	}
 
@@ -157,7 +165,7 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("error: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env([]string{"ApiVersion=1.18"})}
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockertypes.Version{APIVersion: "1.18"}}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -191,6 +199,79 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 		}
 	}
 	return rootDirectory, nil
+}
+
+// EnsureLocalQuota checks if the node config specifies a local storage
+// perFSGroup quota, and if so will test that the volumeDirectory is on a
+// filesystem suitable for quota enforcement. If checks pass the k8s emptyDir
+// volume plugin will be replaced with a wrapper version which adds quota
+// functionality.
+func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
+	if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
+		return
+	}
+	glog.V(4).Info("Replacing empty-dir volume plugin with quota wrapper")
+	wrappedEmptyDirPlugin := false
+
+	quotaApplicator, err := emptydir.NewQuotaApplicator(nodeConfig.VolumeDirectory)
+	if err != nil {
+		glog.Fatalf("Could not set up local quota, %s", err)
+	}
+
+	// Create a volume spec with emptyDir we can use to search for the
+	// emptyDir plugin with CanSupport:
+	emptyDirSpec := &volume.Spec{
+		Volume: &kapi.Volume{
+			VolumeSource: kapi.VolumeSource{
+				EmptyDir: &kapi.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
+	for idx, plugin := range c.KubeletConfig.VolumePlugins {
+		// Can't really do type checking or use a constant here as they are not exported:
+		if plugin.CanSupport(emptyDirSpec) {
+			wrapper := emptydir.EmptyDirQuotaPlugin{
+				Wrapped:         plugin,
+				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
+				QuotaApplicator: quotaApplicator,
+			}
+			c.KubeletConfig.VolumePlugins[idx] = &wrapper
+			wrappedEmptyDirPlugin = true
+		}
+	}
+	// Because we can't look for the k8s emptyDir plugin by any means that would
+	// survive a refactor, error out if we couldn't find it:
+	if !wrappedEmptyDirPlugin {
+		glog.Fatal(errors.New("No plugin handling EmptyDir was found, unable to apply local quotas"))
+	}
+}
+
+// RunServiceStores retrieves service info from the master, and closes the
+// ServicesReady channel when done.
+func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
+	if !enableProxy && !enableDNS {
+		close(c.ServicesReady)
+		return
+	}
+
+	serviceList := cache.NewListWatchFromClient(c.Client, "services", kapi.NamespaceAll, fields.Everything())
+	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
+	serviceReflector.Run()
+
+	if enableProxy {
+		endpointList := cache.NewListWatchFromClient(c.Client, "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
+		endpointReflector.Run()
+
+		for len(endpointReflector.LastSyncResourceVersion()) == 0 {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	for len(serviceReflector.LastSyncResourceVersion()) == 0 {
+		time.Sleep(100 * time.Millisecond)
+	}
+	close(c.ServicesReady)
 }
 
 // RunKubelet starts the Kubelet.
@@ -237,7 +318,7 @@ var defaultCadvisorInterface cadvisor.Interface = nil
 
 // SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
 func SetFakeCadvisorInterfaceForIntegrationTest() {
-	defaultCadvisorInterface = &cadvisor.Fake{}
+	defaultCadvisorInterface = &cadvisortesting.Fake{}
 }
 
 // defaultContainerManagerInterface holds the overridden default interface
@@ -259,16 +340,14 @@ func (c *NodeConfig) RunPlugin() {
 	}
 }
 
-// ResetSysctlFromProxy resets the bridge-nf-call-iptables systctl that the Kube proxy sets, which
-// is required for normal Docker containers to talk to the SDN plugin on the local system.
-// Resolution is https://github.com/kubernetes/kubernetes/pull/20647
-func (c *NodeConfig) ResetSysctlFromProxy() {
-	if c.SDNPlugin == nil {
-		return
-	}
-	if err := sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0); err != nil {
-		glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
-	}
+// RunDNS starts the DNS server as soon as services are loaded.
+func (c *NodeConfig) RunDNS() {
+	go func() {
+		<-c.ServicesReady
+		glog.Infof("Starting DNS on %s", c.DNSServer.Config.DnsAddr)
+		err := c.DNSServer.ListenAndServe()
+		glog.Fatalf("DNS server failed to start: %v", err)
+	}()
 }
 
 // RunProxy starts the proxy
@@ -285,17 +364,21 @@ func (c *NodeConfig) RunProxy() {
 	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
 
-	exec := kexec.New()
+	execer := kexec.New()
 	dbus := utildbus.New()
-	iptInterface := utiliptables.New(exec, dbus, protocol)
+	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
 	var endpointsHandler pconfig.EndpointsConfigHandler
 
 	switch c.ProxyConfig.Mode {
-	case "iptables":
+	case componentconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
-		proxierIptables, err := iptables.NewProxier(iptInterface, exec, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, *c.ProxyConfig.IPTablesMasqueradeBit)
+		if c.ProxyConfig.IPTablesMasqueradeBit == nil {
+			// IPTablesMasqueradeBit must be specified or defaulted.
+			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
+		}
+		proxierIptables, err := iptables.NewProxier(iptInterface, execer, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, int(*c.ProxyConfig.IPTablesMasqueradeBit), c.ProxyConfig.ClusterCIDR)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -306,13 +389,24 @@ func (c *NodeConfig) RunProxy() {
 		proxier = proxierIptables
 		endpointsHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
-		glog.V(0).Info("Tearing down userspace rules. Errors here are acceptable.")
+		glog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
-	case "userspace":
+	case componentconfig.ProxyModeUserspace:
 		glog.V(0).Info("Using userspace Proxier.")
+		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
+		// our config.EndpointsConfigHandler.
 		loadBalancer := userspace.NewLoadBalancerRR()
+		// set EndpointsConfigHandler to our loadBalancer
 		endpointsHandler = loadBalancer
-		proxierUserspace, err := userspace.NewProxier(loadBalancer, bindAddr, iptInterface, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration)
+
+		proxierUserspace, err := userspace.NewProxier(
+			loadBalancer,
+			bindAddr,
+			iptInterface,
+			*portRange,
+			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.UDPIdleTimeout.Duration,
+		)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -322,7 +416,7 @@ func (c *NodeConfig) RunProxy() {
 		}
 		proxier = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
-		glog.V(0).Info("Tearing down pure-iptables proxy rules. Errors here are acceptable.")
+		glog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
 	default:
 		glog.Fatalf("Unknown proxy mode %q", c.ProxyConfig.Mode)
@@ -335,19 +429,20 @@ func (c *NodeConfig) RunProxy() {
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig()
 	serviceConfig.RegisterHandler(proxier)
-	endpointsConfig := pconfig.NewEndpointsConfig()
-	if c.FilteringEndpointsHandler == nil {
-		endpointsConfig.RegisterHandler(endpointsHandler)
-	} else {
-		c.FilteringEndpointsHandler.SetBaseEndpointsHandler(endpointsHandler)
-		endpointsConfig.RegisterHandler(c.FilteringEndpointsHandler)
-	}
 
-	pconfig.NewSourceAPI(
-		c.Client,
-		c.ProxyConfig.ConfigSyncPeriod,
-		serviceConfig.Channel("api"),
-		endpointsConfig.Channel("api"))
+	endpointsConfig := pconfig.NewEndpointsConfig()
+	// customized handling registration that inserts a filter if needed
+	if c.FilteringEndpointsHandler != nil {
+		if err := c.FilteringEndpointsHandler.Start(endpointsHandler); err != nil {
+			glog.Fatalf("error: node proxy plugin startup failed: %v", err)
+		}
+		endpointsHandler = c.FilteringEndpointsHandler
+	}
+	endpointsConfig.RegisterHandler(endpointsHandler)
+
+	c.ServiceStore = pconfig.NewServiceStore(c.ServiceStore, serviceConfig.Channel("api"))
+	c.EndpointsStore = pconfig.NewEndpointsStore(c.EndpointsStore, endpointsConfig.Channel("api"))
+	// will be started by RunServiceStores
 
 	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
 	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress)
@@ -356,7 +451,7 @@ func (c *NodeConfig) RunProxy() {
 // TODO: more generic location
 func includesServicePort(ports []kapi.ServicePort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}
@@ -366,7 +461,7 @@ func includesServicePort(ports []kapi.ServicePort, port int, portName string) bo
 // TODO: more generic location
 func includesEndpointPort(ports []kapi.EndpointPort, port int) bool {
 	for _, p := range ports {
-		if p.Port == port {
+		if p.Port == int32(port) {
 			return true
 		}
 	}
@@ -402,7 +497,7 @@ func firstEndpointIPWithNamedPort(endpoints *kapi.Endpoints, port int, portName 
 // TODO: more generic location
 func includesNamedEndpointPort(ports []kapi.EndpointPort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}

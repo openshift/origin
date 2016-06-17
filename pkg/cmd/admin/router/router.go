@@ -14,6 +14,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -49,19 +51,19 @@ running your router in production, you should pass --replicas=2 or higher to ens
 you have failover protection.`
 
 	routerExample = `  # Check the default router ("router")
-  $ %[1]s %[2]s --dry-run
+  %[1]s %[2]s --dry-run
 
   # See what the router would look like if created
-  $ %[1]s %[2]s -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
+  %[1]s %[2]s -o yaml
 
-  # Create a router if it does not exist
-  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
+  # Create a router with two replicas if it does not exist
+  %[1]s %[2]s router-west --replicas=2
 
-  # Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+  # Use a different router image
+  %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  %[1]s %[2]s router-west --stats-port=0
   `
 
 	secretsVolumeName = "secret-volume"
@@ -85,6 +87,8 @@ var defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
 // launch a router, including general parameters, type of router, and
 // type-specific parameters.
 type RouterConfig struct {
+	Action configcmd.BulkAction
+
 	// Name is the router name, set as an argument
 	Name string
 
@@ -106,7 +110,7 @@ type RouterConfig struct {
 	Ports string
 
 	// Replicas specifies the initial replica count for the router.
-	Replicas int
+	Replicas int32
 
 	// Labels specifies the label or labels that will be assigned to the router
 	// pod.
@@ -146,6 +150,10 @@ type RouterConfig struct {
 	// HostNetwork specifies whether to configure the router pod to use the host's
 	// network namespace or the container's.
 	HostNetwork bool
+
+	// HostPorts will expose host ports for each router port if host networking is
+	// not set.
+	HostPorts bool
 
 	// ServiceAccount specifies the service account under which the router will
 	// run.
@@ -190,8 +198,6 @@ type RouterConfig struct {
 	MetricsImage string
 }
 
-var errExit = fmt.Errorf("exit")
-
 const (
 	defaultLabel = "router=<name>"
 
@@ -218,6 +224,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		StatsUsername: "admin",
 		StatsPort:     defaultStatsPort,
 		HostNetwork:   true,
+		HostPorts:     true,
 	}
 
 	cmd := &cobra.Command{
@@ -227,7 +234,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRouter(f, cmd, out, cfg, args)
-			if err != errExit {
+			if err != cmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {
 				os.Exit(1)
@@ -240,10 +247,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ForceSubdomain, "force-subdomain", "", "A router path format to force on all routes used by this router (will ignore the route host value)")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service.")
-	cmd.Flags().IntVar(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
+	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
+	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Exit with code 1 if the specified router does not exist.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "Use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
@@ -256,6 +262,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().BoolVar(&cfg.ExposeMetrics, "expose-metrics", cfg.ExposeMetrics, "This is a hint to run an extra container in the pod to expose metrics - the image will either be set depending on the router implementation or provided with --metrics-image.")
 	cmd.Flags().StringVar(&cfg.MetricsImage, "metrics-image", cfg.MetricsImage, "If --expose-metrics is specified this is the image to use to run a sidecar container in the pod exposing metrics. If not set and --expose-metrics is true the image will depend on router implementation.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
+	cmd.Flags().BoolVar(&cfg.HostPorts, "host-ports", cfg.HostPorts, "If true (the default), when not using host networking host ports will be exposed.")
 	cmd.Flags().StringVar(&cfg.ExternalHost, "external-host", cfg.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
 	cmd.Flags().StringVar(&cfg.ExternalHostUsername, "external-host-username", cfg.ExternalHostUsername, "If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPassword, "external-host-password", cfg.ExternalHostPassword, "If the underlying router implementation connects with an external host, this is the password for authenticating with the external host.")
@@ -266,8 +273,13 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
+	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	// Deprecate credentials
+	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
+
+	cfg.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
@@ -441,6 +453,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	}
 	name := cfg.Name
 
+	var defaultOutputErr error
+
 	if len(cfg.StatsUsername) > 0 {
 		if strings.Contains(cfg.StatsUsername, ":") {
 			return kcmdutil.UsageError(cmd, "username %s must not contain ':'", cfg.StatsUsername)
@@ -456,18 +470,28 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return fmt.Errorf("unable to parse --ports: %v", err)
 	}
 
-	// For the host networking case, ensure the ports match. Otherwise, remove host ports
-	for i := 0; i < len(ports); i++ {
-		if cfg.HostNetwork && ports[i].HostPort != 0 && ports[i].ContainerPort != ports[i].HostPort {
-			return fmt.Errorf("when using host networking mode, container port %d and host port %d must be equal", ports[i].ContainerPort, ports[i].HostPort)
+	// HostNetwork overrides HostPorts
+	if cfg.HostNetwork {
+		cfg.HostPorts = false
+	}
+
+	// For the host networking case, ensure the ports match.
+	if cfg.HostNetwork {
+		for i := 0; i < len(ports); i++ {
+			if ports[i].HostPort != 0 && ports[i].ContainerPort != ports[i].HostPort {
+				return fmt.Errorf("when using host networking mode, container port %d and host port %d must be equal", ports[i].ContainerPort, ports[i].HostPort)
+			}
 		}
 	}
 
 	if cfg.StatsPort > 0 {
 		port := kapi.ContainerPort{
 			Name:          "stats",
-			ContainerPort: cfg.StatsPort,
+			ContainerPort: int32(cfg.StatsPort),
 			Protocol:      kapi.ProtocolTCP,
+		}
+		if cfg.HostPorts {
+			port.HostPort = int32(cfg.StatsPort)
 		}
 		ports = append(ports, port)
 	}
@@ -507,19 +531,26 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	_, output, err := kcmdutil.PrinterForCommand(cmd)
-	if err != nil {
-		return fmt.Errorf("unable to configure printer: %v", err)
-	}
+	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.Out()
+	cfg.Action.Bulk.Op = configcmd.Create
 
+	var clusterIP string
+
+	output := cfg.Action.ShouldPrint()
 	generate := output
 	if !generate {
-		_, err = kClient.Services(namespace).Get(name)
+		service, err := kClient.Services(namespace).Get(name)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing router %q: %v", name, err)
 			}
+			if !output && cfg.Action.DryRun {
+				return fmt.Errorf("Router %q service does not exist", name)
+			}
 			generate = true
+		} else {
+			clusterIP = service.Spec.ClusterIP
 		}
 	}
 	if !generate {
@@ -527,23 +558,24 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return nil
 	}
 
-	if cfg.DryRun && !output {
-		return fmt.Errorf("router %q does not exist (no service)", name)
-	}
-
 	if len(cfg.ServiceAccount) == 0 {
 		return fmt.Errorf("you must specify a service account for the router with --service-account")
 	}
 
-	if err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount, cfg.HostNetwork); err != nil {
-		return fmt.Errorf("router could not be created; %v", err)
+	if err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
+		err = fmt.Errorf("router could not be created; %v", err)
+		if !cfg.Action.ShouldPrint() {
+			return err
+		}
+		fmt.Fprintf(cmd.Out(), "error: %v\n", err)
+		defaultOutputErr = cmdutil.ErrExit
 	}
 
 	// create new router
 	secretEnv := app.Environment{}
 	switch {
 	case len(cfg.Credentials) == 0 && len(cfg.ServiceAccount) == 0:
-		return fmt.Errorf("router could not be created; you must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
+		return fmt.Errorf("router could not be created; you must specify a service account with --service-account, or a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
 	case len(cfg.Credentials) > 0:
 		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials, Precedence: []string{}}
 		credentials, err := clientConfigLoadingRules.Load()
@@ -554,7 +586,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if err != nil {
 			return fmt.Errorf("router could not be created; the provided credentials %q could not be used: %v", cfg.Credentials, err)
 		}
-		if err := kclient.LoadTLSFiles(config); err != nil {
+		if err := restclient.LoadTLSFiles(config); err != nil {
 			return fmt.Errorf("router could not be created; the provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
 		}
 		insecure := "false"
@@ -578,7 +610,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
-		if !output {
+		if !cfg.Action.ShouldPrint() {
 			fmt.Fprintf(cmd.Out(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
@@ -625,8 +657,10 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	exposedPorts := make([]kapi.ContainerPort, len(ports))
 	copy(exposedPorts, ports)
-	for i := range exposedPorts {
-		exposedPorts[i].HostPort = 0
+	if !cfg.HostPorts {
+		for i := range exposedPorts {
+			exposedPorts[i].HostPort = 0
+		}
 	}
 	containers := []kapi.Container{
 		{
@@ -638,6 +672,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			ReadinessProbe:  readinessProbe,
 			ImagePullPolicy: kapi.PullIfNotPresent,
 			VolumeMounts:    mounts,
+			Resources: kapi.ResourceRequirements{
+				Requests: kapi.ResourceList{
+					kapi.ResourceCPU:    resource.MustParse("100m"),
+					kapi.ResourceMemory: resource.MustParse("256Mi"),
+				},
+			},
 		},
 	}
 
@@ -671,7 +711,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			},
 		)
 	}
-	updatePercent := int(-25)
+	updatePercent := int32(-25)
 	objects = append(objects, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -703,10 +743,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	})
 
 	objects = app.AddServices(objects, false)
-	// set the service port to the provided hostport value
+	// set the service port to the provided output port value
 	for i := range objects {
 		switch t := objects[i].(type) {
 		case *kapi.Service:
+			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {
 					if targetPort.ContainerPort == servicePort.Port && targetPort.HostPort != 0 {
@@ -719,28 +760,17 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	// TODO: label all created objects with the same label - router=<name>
 	list := &kapi.List{Items: objects}
 
-	if output {
-		list.Items, err = cmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-		if err != nil {
-			return err
-		}
-
-		if err := f.PrintObject(cmd, list, out); err != nil {
+	if cfg.Action.ShouldPrint() {
+		mapper, _ := f.Object(false)
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
+		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}
-		return nil
+		return defaultOutputErr
 	}
 
-	mapper, typer := f.Factory.Object()
-	bulk := configcmd.Bulk{
-		Mapper:            mapper,
-		Typer:             typer,
-		RESTClientFactory: f.Factory.ClientForMapping,
-
-		After: configcmd.NewPrintNameOrErrorAfter(mapper, kcmdutil.GetFlagString(cmd, "output") == "name", "created", out, cmd.Out()),
-	}
-	if errs := bulk.Create(list, namespace); len(errs) != 0 {
-		return errExit
+	if errs := cfg.Action.WithMessage(fmt.Sprintf("Creating router %s", cfg.Name), "created").Run(list, namespace); len(errs) > 0 {
+		return cmdutil.ErrExit
 	}
 	return nil
 }
@@ -757,11 +787,10 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string, hostNetwork bool) error {
-	if !hostNetwork {
+func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+	if !hostNetwork && !hostPorts {
 		return nil
 	}
-
 	// get cluster sccs
 	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
@@ -776,12 +805,21 @@ func validateServiceAccount(client *kclient.Client, ns string, serviceAccount st
 	for _, scc := range sccList.Items {
 		if admission.ConstraintAppliesTo(&scc, userInfo) {
 			switch {
+			case hostPorts && scc.AllowHostPorts:
+				return nil
 			case hostNetwork && scc.AllowHostNetwork:
 				return nil
 			}
 		}
 	}
 
-	errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
-	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
+	if hostNetwork {
+		errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
+	}
+	if hostPorts {
+		errMsg := "service account %q is not allowed to access host ports on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
+	}
+	return nil
 }

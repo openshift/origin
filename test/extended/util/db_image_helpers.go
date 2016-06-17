@@ -23,15 +23,19 @@ type Database interface {
 	// QueryPrivileged queries the database as a privileged user.
 	QueryPrivileged(oc *CLI, query string) (string, error)
 
-	// TestRemoteLogin tests wheather it is possible to remote login to hostAddress.
+	// TestRemoteLogin tests whether it is possible to remote login to hostAddress.
 	TestRemoteLogin(oc *CLI, hostAddress string) error
 }
 
-// WaitForQueryOutput will execute the query multiple times, until the
-// specified substring is found in the results. This function should be used for
-// testing replication, since it might take some time untill the data is propagated
-// to slaves.
-func WaitForQueryOutput(oc *CLI, d Database, timeout time.Duration, admin bool, query, resultSubstr string) error {
+// ReplicaSet interface allows to interact with database on multiple nodes.
+type ReplicaSet interface {
+	// QueryPrimary queries the database on primary node as a regular user.
+	QueryPrimary(oc *CLI, query string) (string, error)
+}
+
+// WaitForQueryOutputSatisfies will execute the query multiple times, until the
+// specified predicate function is return true.
+func WaitForQueryOutputSatisfies(oc *CLI, d Database, timeout time.Duration, admin bool, query string, predicate func(string) bool) error {
 	err := wait.Poll(5*time.Second, timeout, func() (bool, error) {
 		var (
 			out string
@@ -50,7 +54,7 @@ func WaitForQueryOutput(oc *CLI, d Database, timeout time.Duration, admin bool, 
 		if err != nil {
 			return false, err
 		}
-		if strings.Contains(out, resultSubstr) {
+		if predicate(out) {
 			return true, nil
 		}
 		return false, nil
@@ -59,6 +63,16 @@ func WaitForQueryOutput(oc *CLI, d Database, timeout time.Duration, admin bool, 
 		return fmt.Errorf("timed out waiting for query: %q", query)
 	}
 	return err
+}
+
+// WaitForQueryOutputContains will execute the query multiple times, until the
+// specified substring is found in the results. This function should be used for
+// testing replication, since it might take some time until the data is propagated
+// to slaves.
+func WaitForQueryOutputContains(oc *CLI, d Database, timeout time.Duration, admin bool, query, resultSubstr string) error {
+	return WaitForQueryOutputSatisfies(oc, d, timeout, admin, query, func(resultOutput string) bool {
+		return strings.Contains(resultOutput, resultSubstr)
+	})
 }
 
 // WaitUntilUp continuously waits for the server to become ready, up until timeout.

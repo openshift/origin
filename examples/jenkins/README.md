@@ -15,7 +15,7 @@ Steps
 
 2. Add the `edit` role to the `default` service account in the `test` project:
 
-        $ oc policy add-role-to-user edit system:serviceaccount:test:default
+        $ oc policy add-role-to-user edit -z default
 
     This will allow the service account Jenkins uses to run builds and tag images.
 

@@ -3,14 +3,13 @@ package deploymentconfig
 import (
 	"sort"
 	"strconv"
-	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -22,14 +21,14 @@ import (
 func TestHandleScenarios(t *testing.T) {
 	type deployment struct {
 		// version is the deployment version
-		version int
+		version int64
 		// replicas is the spec replicas of the deployment
-		replicas int
+		replicas int32
 		// test is whether this is a test deployment config
 		test bool
 		// replicasA is the annotated replica value for backwards compat checks
-		replicasA *int
-		desiredA  *int
+		replicasA *int32
+		desiredA  *int32
 		status    deployapi.DeploymentStatus
 		cancelled bool
 	}
@@ -46,12 +45,12 @@ func TestHandleScenarios(t *testing.T) {
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 		}
 		if d.replicasA != nil {
-			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(*d.replicasA)
+			deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(*d.replicasA))
 		} else {
 			delete(deployment.Annotations, deployapi.DeploymentReplicasAnnotation)
 		}
 		if d.desiredA != nil {
-			deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(*d.desiredA)
+			deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(int(*d.desiredA))
 		} else {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
@@ -62,13 +61,13 @@ func TestHandleScenarios(t *testing.T) {
 	tests := []struct {
 		name string
 		// replicas is the config replicas prior to the update
-		replicas int
+		replicas int32
 		// test is whether this is a test deployment config
 		test bool
 		// newVersion is the version of the config at the time of the update
-		newVersion int
+		newVersion int64
 		// expectedReplicas is the expected config replica count after the update
-		expectedReplicas int
+		expectedReplicas int32
 		// before is the state of all deployments prior to the update
 		before []deployment
 		// after is the expected state of all deployments after the update
@@ -92,7 +91,7 @@ func TestHandleScenarios(t *testing.T) {
 			expectedReplicas: 1,
 			before:           []deployment{},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -102,10 +101,10 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       1,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -115,11 +114,11 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -129,12 +128,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -144,10 +143,10 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       1,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -157,12 +156,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       3,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), desiredA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), desiredA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), desiredA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), desiredA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			errExpected: true,
 		},
@@ -172,10 +171,10 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			errExpected: true,
 		},
@@ -185,18 +184,18 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       5,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 5, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 5, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 5, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 5, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -206,18 +205,18 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       5,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 5, replicas: 1, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 5, replicas: 1, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 5, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 5, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -227,12 +226,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -242,12 +241,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 5,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -257,12 +256,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 5,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -272,12 +271,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -287,12 +286,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -302,12 +301,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 0, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -317,12 +316,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 5,
 			before: []deployment{
-				{version: 1, replicas: 2, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 2, replicasA: newint(0), desiredA: newint(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 2, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 2, replicasA: newInt32(0), desiredA: newInt32(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(5), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -334,10 +333,10 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       1,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -351,7 +350,7 @@ func TestHandleScenarios(t *testing.T) {
 			},
 			after: []deployment{
 				{version: 1, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -362,11 +361,11 @@ func TestHandleScenarios(t *testing.T) {
 			expectedReplicas: 1,
 			before: []deployment{
 				{version: 1, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 2, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			after: []deployment{
 				{version: 1, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusNew, cancelled: false},
+				{version: 2, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusNew, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -379,7 +378,7 @@ func TestHandleScenarios(t *testing.T) {
 				{version: 1, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -389,12 +388,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       3,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: false},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			errExpected: true,
 		},
@@ -404,10 +403,10 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
+				{version: 1, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusRunning, cancelled: true},
 			},
 			errExpected: true,
 		},
@@ -419,16 +418,16 @@ func TestHandleScenarios(t *testing.T) {
 			before: []deployment{
 				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false},
 				{version: 2, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 3, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 				{version: 5, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 5, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 5, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -441,16 +440,16 @@ func TestHandleScenarios(t *testing.T) {
 			before: []deployment{
 				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
 				{version: 2, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
-				{version: 3, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
-				{version: 4, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
+				{version: 3, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
+				{version: 4, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
 				{version: 5, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
-				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
-				{version: 4, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
-				{version: 5, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 3, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true, test: true},
+				{version: 4, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false, test: true},
+				{version: 5, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
 			},
 			errExpected: false,
 		},
@@ -462,16 +461,16 @@ func TestHandleScenarios(t *testing.T) {
 			before: []deployment{
 				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false},
 				{version: 2, replicas: 1, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 1, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 3, replicas: 1, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 				{version: 4, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 5, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 5, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 3, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
-				{version: 4, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 5, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 3, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 4, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 5, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -481,12 +480,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 2, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -500,8 +499,8 @@ func TestHandleScenarios(t *testing.T) {
 				{version: 2, replicas: 5, status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 5, replicasA: newint(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 5, replicasA: newInt32(5), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -516,8 +515,8 @@ func TestHandleScenarios(t *testing.T) {
 				{version: 2, replicas: 5, status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
-				{version: 2, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
+				{version: 2, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false, test: true},
 			},
 			errExpected: false,
 		},
@@ -545,11 +544,11 @@ func TestHandleScenarios(t *testing.T) {
 			expectedReplicas: 1,
 			before: []deployment{
 				{version: 1, replicas: 5, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 2, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -560,11 +559,11 @@ func TestHandleScenarios(t *testing.T) {
 			expectedReplicas: 2,
 			before: []deployment{
 				{version: 1, replicas: 2, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 5, desiredA: newint(2), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 2, replicas: 5, desiredA: newInt32(2), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 2, replicasA: newint(2), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(2), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 2, replicasA: newInt32(2), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(2), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -575,11 +574,11 @@ func TestHandleScenarios(t *testing.T) {
 			expectedReplicas: 1,
 			before: []deployment{
 				{version: 1, replicas: 0, status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 2, replicas: 0, desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -591,12 +590,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 2,
 			before: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 2, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 2, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			after: []deployment{
-				{version: 1, replicas: 0, replicasA: newint(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 2, replicasA: newint(2), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 1, replicas: 0, replicasA: newInt32(0), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 2, replicasA: newInt32(2), status: deployapi.DeploymentStatusComplete, cancelled: false},
 			},
 			errExpected: false,
 		},
@@ -606,12 +605,12 @@ func TestHandleScenarios(t *testing.T) {
 			newVersion:       2,
 			expectedReplicas: 1,
 			before: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 2, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 2, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			after: []deployment{
-				{version: 1, replicas: 1, replicasA: newint(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
-				{version: 2, replicas: 0, replicasA: newint(0), desiredA: newint(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
+				{version: 1, replicas: 1, replicasA: newInt32(1), status: deployapi.DeploymentStatusComplete, cancelled: false},
+				{version: 2, replicas: 0, replicasA: newInt32(0), desiredA: newInt32(1), status: deployapi.DeploymentStatusFailed, cancelled: true},
 			},
 			errExpected: false,
 		},
@@ -678,22 +677,25 @@ func TestHandleScenarios(t *testing.T) {
 
 		if e, a := test.expectedReplicas, config.Spec.Replicas; e != a {
 			t.Errorf("expected config replicas to be %d, got %d", e, a)
-			t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			// TODO: Disable as the recorder.Events is now `chan string`
+			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
 		}
 		anyDeploymentMismatches := false
 		for i := 0; i < len(expectedDeployments); i++ {
 			expected, actual := expectedDeployments[i], actualDeployments[i]
 			if !kapi.Semantic.DeepEqual(expected, actual) {
 				anyDeploymentMismatches = true
-				t.Errorf("actual deployment don't match expected: %v", kutil.ObjectDiff(expected, actual))
+				t.Errorf("actual deployment don't match expected: %v", diff.ObjectDiff(expected, actual))
 			}
 		}
 		if anyDeploymentMismatches {
-			t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			// TODO: Disable as the recorder.Events is now `chan string`
+			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			t.Fatalf("deployment mismatches detected")
 		}
 	}
 }
 
-func newint(i int) *int {
+func newInt32(i int32) *int32 {
 	return &i
 }

@@ -3,9 +3,8 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "mysql-persistent",
-    "creationTimestamp": null,
     "annotations": {
-      "description": "MySQL database service, with persistent storage. Scaling to more than one replica is not supported",
+      "description": "MySQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql"
     }
@@ -15,28 +14,18 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "name": "${DATABASE_SERVICE_NAME}"
       },
       "spec": {
         "ports": [
           {
             "name": "mysql",
-            "protocol": "TCP",
-            "port": 3306,
-            "targetPort": 3306,
-            "nodePort": 0
+            "port": 3306
           }
         ],
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
-        },
-        "portalIP": "",
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
+        }
       }
     },
     {
@@ -60,8 +49,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "name": "${DATABASE_SERVICE_NAME}"
       },
       "spec": {
         "strategy": {
@@ -78,9 +66,8 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "mysql:latest",
-                "namespace": "openshift"
-              },
-              "lastTriggeredImage": ""
+                "namespace": "${NAMESPACE}"
+              }
             }
           },
           {
@@ -93,7 +80,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -102,11 +88,10 @@
             "containers": [
               {
                 "name": "mysql",
-                "image": "mysql",
+                "image": " ",
                 "ports": [
                   {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
+                    "containerPort": 3306
                   }
                 ],
                 "readinessProbe": {
@@ -114,7 +99,7 @@
                   "initialDelaySeconds": 5,
                   "exec": {
                     "command": [ "/bin/sh", "-i", "-c",
-                      "MYSQL_PWD='$MYSQL_PASSWORD' mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
+                      "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
                   }
                 },
                 "livenessProbe": {
@@ -149,13 +134,7 @@
                     "mountPath": "/var/lib/mysql/data"
                   }
                 ],
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
+                "imagePullPolicy": "IfNotPresent"
               }
             ],
             "volumes": [
@@ -165,57 +144,61 @@
                   "claimName": "${DATABASE_SERVICE_NAME}"
                 }
               }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
+            ]
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
     {
       "name": "MEMORY_LIMIT",
-      "displayName": "Memory limit",
-      "description": "Maximum amount of memory the container can use",
-      "value": "512Mi"
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database service name",
-      "description": "The name of the OpenShift Service exposed for the database",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
       "value": "mysql",
       "required": true
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL user",
-      "description": "Username for MySQL user that will be used for accessing the database",
+      "displayName": "MySQL User",
+      "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
       "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL password",
-      "description": "Password for the MySQL user",
+      "displayName": "MySQL Password",
+      "description": "Password for the MySQL user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "MYSQL_DATABASE",
-      "displayName": "MySQL database name",
-      "description": "Name of the MySQL database accessed",
+      "displayName": "MySQL Database Name",
+      "description": "Name of the MySQL database accessed.",
       "value": "sampledb",
       "required": true
     },
     {
       "name": "VOLUME_CAPACITY",
-      "displayName": "Volume capacity",
-      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
-      "value": "512Mi",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
       "required": true
     }
   ],

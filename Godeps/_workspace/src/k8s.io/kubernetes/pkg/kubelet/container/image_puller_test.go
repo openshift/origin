@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package container
+package container_test
 
 import (
 	"errors"
@@ -24,7 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
+	. "k8s.io/kubernetes/pkg/kubelet/container"
+	ctest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 func TestPuller(t *testing.T) {
@@ -97,15 +100,15 @@ func TestPuller(t *testing.T) {
 			ImagePullPolicy: c.policy,
 		}
 
-		backOff := util.NewBackOff(time.Second, time.Minute)
+		backOff := flowcontrol.NewBackOff(time.Second, time.Minute)
 		fakeClock := util.NewFakeClock(time.Now())
 		backOff.Clock = fakeClock
 
-		fakeRuntime := &FakeRuntime{}
+		fakeRuntime := &ctest.FakeRuntime{}
 		fakeRecorder := &record.FakeRecorder{}
 		puller := NewImagePuller(fakeRecorder, fakeRuntime, backOff)
 
-		fakeRuntime.ImageList = []Image{{"present_image", nil, 0}}
+		fakeRuntime.ImageList = []Image{{"present_image", nil, nil, 1}}
 		fakeRuntime.Err = c.pullerErr
 		fakeRuntime.InspectErr = c.inspectErr
 

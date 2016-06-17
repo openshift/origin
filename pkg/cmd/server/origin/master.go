@@ -22,14 +22,14 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -51,6 +51,8 @@ import (
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -64,6 +66,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
@@ -74,6 +77,7 @@ import (
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	"github.com/openshift/origin/pkg/service"
+	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
@@ -101,11 +105,11 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -161,8 +165,11 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		}
 		extra = append(extra, msgs...)
 	}
-	handler := c.versionSkewFilter(version.Get(), kversion.Get(), safe)
+	handler := c.versionSkewFilter(safe)
 	handler = c.authorizationFilter(handler)
+	handler = c.impersonationFilter(handler)
+	// audit handler must comes before the impersonationFilter to read the original user
+	handler = c.auditHandler(handler)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
 	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
@@ -179,7 +186,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	var kubeAPILevels []string
 	if c.Options.KubernetesMasterConfig != nil {
-		kubeAPILevels = configapi.GetEnabledAPIVersionsForGroup(*c.Options.KubernetesMasterConfig, configapi.APIGroupKube)
+		kubeAPILevels = configapi.GetEnabledAPIVersionsForGroup(*c.Options.KubernetesMasterConfig, kapi.GroupName)
 	}
 
 	handler = indexAPIPaths(c.Options.APILevels, kubeAPILevels, handler)
@@ -216,11 +223,12 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	longRunningRequestCheck := apiserver.BasicLongRunningRequestCheck(longRunningRE, map[string]string{"watch": "true"})
 	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
 		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
-		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+		handler = apiserver.MaxInFlightLimit(sem, longRunningRequestCheck, handler)
 	}
 
 	c.serve(handler, extra)
@@ -357,47 +365,65 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 
 	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := kclient.TransportFor(&kclient.Config{})
+	importTransport, err := restclient.TransportFor(&restclient.Config{})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
-	insecureImportTransport, err := kclient.TransportFor(&kclient.Config{Insecure: true})
+	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{Insecure: true})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage := buildetcd.NewREST(c.EtcdHelper)
+	buildStorage, buildDetailsStorage, err := buildetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage := buildconfigetcd.NewREST(c.EtcdHelper)
+	buildConfigStorage, err := buildconfigetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigScaleStorage := deployconfigetcd.NewREST(c.EtcdHelper, c.DeploymentConfigScaleClient())
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter, c.DeploymentConfigScaleClient())
+	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	routeAllocator := c.RouteAllocator()
 
-	routeStorage, routeStatusStorage := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
-	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
-	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
-	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
+	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator)
+	checkStorageErr(err)
 
-	userStorage := useretcd.NewREST(c.EtcdHelper)
+	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	netNamespaceStorage, err := netnamespaceetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	clusterNetworkStorage, err := clusternetworketcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+
+	userStorage, err := useretcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(c.EtcdHelper)
+	identityStorage, err := identityetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
+	groupStorage, err := groupetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 
-	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
+	policyStorage, err := policyetcd.NewStorage(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
+	policyBindingStorage, err := policybindingetcd.NewStorage(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
-	clusterPolicyStorage := clusterpolicystorage.NewStorage(c.EtcdHelper)
+	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(c.EtcdHelper)
+	clusterPolicyBindingStorage, err := clusterpolicybindingstorage.NewStorage(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
+	// TODO collapse onto common cache once we've gotten shared informers from kube
+	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, clusterPolicyRegistry)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyRegistry,
 		policyBindingRegistry,
@@ -417,16 +443,19 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	imageStorage := imageetcd.NewREST(c.EtcdHelper)
+	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
+	imageStreamLimitVerifier := imageadmission.NewLimitVerifier(c.KubeClient())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, imageapi.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry, imageStreamLimitVerifier)
+	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
-	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, imageapi.DefaultRegistryFunc(defaultRegistryFunc))
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	importerFn := func(r importer.RepositoryRetriever) imageimporter.Interface {
-		return imageimporter.NewImageStreamImporter(r, c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository, util.NewTokenBucketRateLimiter(2.0, 3))
+		return imageimporter.NewImageStreamImporter(r, c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository, flowcontrol.NewTokenBucketRateLimiter(2.0, 3))
 	}
 	importerDockerClientFn := func() dockerregistry.Client {
 		return dockerregistry.NewClient(20*time.Second, false)
@@ -465,14 +494,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		GRFn: deployRollback.GenerateRollback,
 	}
 
-	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
+	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient)
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient, c.PolicyCache)
 
 	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -483,6 +512,20 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 			"github":  github.New(),
 		},
 	)
+
+	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry)
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	checkStorageErr(err)
+	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	checkStorageErr(err)
+	clientAuthorizationStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	checkStorageErr(err)
+
+	templateStorage, err := templateetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
@@ -496,12 +539,13 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 		"deploymentConfigs":         deployConfigStorage,
 		"deploymentConfigs/scale":   deployConfigScaleStorage,
+		"deploymentConfigs/status":  deployConfigStatusStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
 
 		"processedTemplates": templateregistry.NewREST(),
-		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		"templates":          templateStorage,
 
 		"routes":        routeStorage,
 		"routes/status": routeStatusStorage,
@@ -514,19 +558,20 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
-		"groups":               groupetcd.NewREST(c.EtcdHelper),
+		"groups":               groupStorage,
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper),
-		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper),
-		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
-		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
+		"oAuthAuthorizeTokens":      authorizeTokenStorage,
+		"oAuthAccessTokens":         accessTokenStorage,
+		"oAuthClients":              clientStorage,
+		"oAuthClientAuthorizations": clientAuthorizationStorage,
 
 		"resourceAccessReviews":      resourceAccessReviewStorage,
 		"subjectAccessReviews":       subjectAccessReviewStorage,
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
+		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,
@@ -553,20 +598,32 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	return storage
 }
 
+func checkStorageErr(err error) {
+	if err != nil {
+		glog.Fatalf("Error building REST storage: %v", err)
+	}
+}
+
 func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) ([]string, error) {
 	return []string{}, nil
 }
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, versions...)
+	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *unversioned.APIVersions {
+		apiVersionsForDiscovery := unversioned.APIVersions{
+			// TODO: ServerAddressByClientCIDRs: s.getServerAddressByClientCIDRs(req.Request),
+			Versions: versions,
+		}
+		return &apiVersionsForDiscovery
+	})
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// initHealthCheckRoute initializes an HTTP endpoint for health checking.
 // OpenShift is deemed healthy if the API server can respond with an OK messages
 func initHealthCheckRoute(root *restful.WebService, path string) {
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
@@ -593,7 +650,7 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Produces(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// initHealthCheckRoute initializes an HTTP endpoint for health checking.
 // OpenShift is deemed healthy if the API server can respond with an OK messages
 func initMetricsRoute(root *restful.WebService, path string) {
 	h := prometheus.Handler()
@@ -636,7 +693,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
-		NonDefaultGroupVersionKinds: map[string]unversioned.GroupVersionKind{},
+		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
 	}
 }
 
@@ -655,7 +712,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version.GroupVersion = v1beta3.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 
@@ -673,7 +730,7 @@ func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVe
 	version.GroupVersion = v1.SchemeGroupVersion
 	version.Serializer = kapi.Codecs
 	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.NonDefaultGroupVersionKinds["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return version
 }
 

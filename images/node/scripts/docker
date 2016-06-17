@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# We need to ensure that the version of docker we're running inside the
+# container matches that of the host. A newer version of docker client against
+# and older daemon is known not to work and older versions of the client
+# against newer versions of the daemon aren't widely tested. So therefore we
+# rely on running docker from the host's filesystem which we expect to be
+# mounted at /rootfs. Docker on the host can be upgraded without a corresponding
+# update to the node image and that update may add dependencies like libseccomp
+# that aren't available inside our node image. By chroot'ing to /rootfs we can
+# ensure that as long as the host has a valid install things will work.
+
+# NOTE: This means that anything inside the node container needs to call
+# `docker` or `/usr/local/bin/docker`. We're not replacing /usr/bin/docker
+# because most installs currently mount /usr/bin/docker from the host into that
+# path.
+
+chroot /rootfs docker "${@}"

@@ -12,7 +12,7 @@ import (
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
@@ -36,8 +36,8 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 
 // EtcdClient creates an etcd client based on the provided config.
 func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
-	tlsConfig, err := client.TLSConfigFor(&client.Config{
-		TLSClientConfig: client.TLSClientConfig{
+	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
+		TLSClientConfig: restclient.TLSClientConfig{
 			CertFile: etcdClientInfo.ClientCert.CertFile,
 			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
 			CAFile:   etcdClientInfo.CA,
@@ -67,8 +67,8 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 
 // MakeNewEtcdClient creates an etcd client based on the provided config.
 func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclient.Client, error) {
-	tlsConfig, err := client.TLSConfigFor(&client.Config{
-		TLSClientConfig: client.TLSClientConfig{
+	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
+		TLSClientConfig: restclient.TLSClientConfig{
 			CertFile: etcdClientInfo.ClientCert.CertFile,
 			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
 			CAFile:   etcdClientInfo.CA,

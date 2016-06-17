@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/v1beta3"
@@ -44,6 +44,6 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	}
 	image.DockerImageMetadataVersion = ""
 	if !reflect.DeepEqual(i, image) {
-		t.Errorf("unable to round trip object: %s", util.ObjectDiff(i, image))
+		t.Errorf("unable to round trip object: %s", diff.ObjectDiff(i, image))
 	}
 }

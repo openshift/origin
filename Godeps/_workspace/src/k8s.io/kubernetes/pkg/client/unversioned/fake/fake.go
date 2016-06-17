@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -49,28 +49,38 @@ type RESTClient struct {
 	Err    error
 }
 
-func (c *RESTClient) Get() *unversioned.Request {
+func (c *RESTClient) Get() *restclient.Request {
 	return c.request("GET")
 }
 
-func (c *RESTClient) Put() *unversioned.Request {
+func (c *RESTClient) Put() *restclient.Request {
 	return c.request("PUT")
 }
 
-func (c *RESTClient) Patch(_ api.PatchType) *unversioned.Request {
+func (c *RESTClient) Patch(_ api.PatchType) *restclient.Request {
 	return c.request("PATCH")
 }
 
-func (c *RESTClient) Post() *unversioned.Request {
+func (c *RESTClient) Post() *restclient.Request {
 	return c.request("POST")
 }
 
-func (c *RESTClient) Delete() *unversioned.Request {
+func (c *RESTClient) Delete() *restclient.Request {
 	return c.request("DELETE")
 }
 
-func (c *RESTClient) request(verb string) *unversioned.Request {
-	return unversioned.NewRequest(c, verb, &url.URL{Host: "localhost"}, "", unversioned.ContentConfig{GroupVersion: testapi.Default.GroupVersion(), Codec: c.Codec}, nil)
+func (c *RESTClient) request(verb string) *restclient.Request {
+	config := restclient.ContentConfig{
+		GroupVersion: testapi.Default.GroupVersion(),
+		Codec:        c.Codec,
+	}
+	serializers := restclient.Serializers{
+		Encoder:             c.Codec,
+		Decoder:             c.Codec,
+		StreamingSerializer: c.Codec,
+		Framer:              runtime.DefaultFramer,
+	}
+	return restclient.NewRequest(c, verb, &url.URL{Host: "localhost"}, "", config, serializers, nil, nil)
 }
 
 func (c *RESTClient) Do(req *http.Request) (*http.Response, error) {

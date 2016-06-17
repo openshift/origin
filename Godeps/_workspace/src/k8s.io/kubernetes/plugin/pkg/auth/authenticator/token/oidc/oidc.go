@@ -23,47 +23,63 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/jose"
 	"github.com/coreos/go-oidc/oidc"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/crypto"
 	"k8s.io/kubernetes/pkg/util/net"
 )
 
-var (
-	maxRetries   = 5
-	retryBackoff = time.Second * 3
+const (
+	DefaultRetries = 5
+	DefaultBackoff = time.Second * 3
 )
+
+type OIDCOptions struct {
+	IssuerURL     string
+	ClientID      string
+	CAFile        string
+	UsernameClaim string
+	GroupsClaim   string
+
+	// 0 disables retry
+	MaxRetries   int
+	RetryBackoff time.Duration
+}
 
 type OIDCAuthenticator struct {
 	clientConfig     oidc.ClientConfig
 	client           *oidc.Client
 	usernameClaim    string
+	groupsClaim      string
 	stopSyncProvider chan struct{}
+	maxRetries       int
+	retryBackoff     time.Duration
 }
 
 // New creates a new OpenID Connect client with the given issuerURL and clientID.
 // NOTE(yifan): For now we assume the server provides the "jwks_uri" so we don't
 // need to manager the key sets by ourselves.
-func New(issuerURL, clientID, caFile, usernameClaim string) (*OIDCAuthenticator, error) {
+func New(opts OIDCOptions) (*OIDCAuthenticator, error) {
 	var cfg oidc.ProviderConfig
 	var err error
 	var roots *x509.CertPool
 
-	url, err := url.Parse(issuerURL)
+	url, err := url.Parse(opts.IssuerURL)
 	if err != nil {
 		return nil, err
 	}
 
 	if url.Scheme != "https" {
-		return nil, fmt.Errorf("'oidc-issuer-url' (%q) has invalid scheme (%q), require 'https'", issuerURL, url.Scheme)
+		return nil, fmt.Errorf("'oidc-issuer-url' (%q) has invalid scheme (%q), require 'https'", opts.IssuerURL, url.Scheme)
 	}
 
-	if caFile != "" {
-		roots, err = util.CertPoolFromFile(caFile)
+	if opts.CAFile != "" {
+		roots, err = crypto.CertPoolFromFile(opts.CAFile)
 		if err != nil {
 			glog.Errorf("Failed to read the CA file: %v", err)
 		}
@@ -82,12 +98,21 @@ func New(issuerURL, clientID, caFile, usernameClaim string) (*OIDCAuthenticator,
 	hc := &http.Client{}
 	hc.Transport = tr
 
+	maxRetries := opts.MaxRetries
+	if maxRetries < 0 {
+		maxRetries = DefaultRetries
+	}
+	retryBackoff := opts.RetryBackoff
+	if retryBackoff < 0 {
+		retryBackoff = DefaultBackoff
+	}
+
 	for i := 0; i <= maxRetries; i++ {
 		if i == maxRetries {
 			return nil, fmt.Errorf("failed to fetch provider config after %v retries", maxRetries)
 		}
 
-		cfg, err = oidc.FetchProviderConfig(hc, issuerURL)
+		cfg, err = oidc.FetchProviderConfig(hc, strings.TrimSuffix(opts.IssuerURL, "/"))
 		if err == nil {
 			break
 		}
@@ -95,15 +120,11 @@ func New(issuerURL, clientID, caFile, usernameClaim string) (*OIDCAuthenticator,
 		time.Sleep(retryBackoff)
 	}
 
-	glog.Infof("Fetched provider config from %s: %#v", issuerURL, cfg)
-
-	if cfg.KeysEndpoint == "" {
-		return nil, fmt.Errorf("OIDC provider must provide 'jwks_uri' for public key discovery")
-	}
+	glog.Infof("Fetched provider config from %s: %#v", opts.IssuerURL, cfg)
 
 	ccfg := oidc.ClientConfig{
 		HTTPClient:     hc,
-		Credentials:    oidc.ClientCredentials{ID: clientID},
+		Credentials:    oidc.ClientCredentials{ID: opts.ClientID},
 		ProviderConfig: cfg,
 	}
 
@@ -115,9 +136,17 @@ func New(issuerURL, clientID, caFile, usernameClaim string) (*OIDCAuthenticator,
 	// SyncProviderConfig will start a goroutine to periodically synchronize the provider config.
 	// The synchronization interval is set by the expiration length of the config, and has a mininum
 	// and maximum threshold.
-	stop := client.SyncProviderConfig(issuerURL)
+	stop := client.SyncProviderConfig(opts.IssuerURL)
 
-	return &OIDCAuthenticator{ccfg, client, usernameClaim, stop}, nil
+	return &OIDCAuthenticator{
+		ccfg,
+		client,
+		opts.UsernameClaim,
+		opts.GroupsClaim,
+		stop,
+		maxRetries,
+		retryBackoff,
+	}, nil
 }
 
 // AuthenticateToken decodes and verifies a JWT using the OIDC client, if the verification succeeds,
@@ -155,8 +184,20 @@ func (a *OIDCAuthenticator) AuthenticateToken(value string) (user.Info, bool, er
 		username = fmt.Sprintf("%s#%s", a.clientConfig.ProviderConfig.Issuer, claim)
 	}
 
-	// TODO(yifan): Add UID and Group, also populate the issuer to upper layer.
-	return &user.DefaultInfo{Name: username}, true, nil
+	// TODO(yifan): Add UID, also populate the issuer to upper layer.
+	info := &user.DefaultInfo{Name: username}
+
+	if a.groupsClaim != "" {
+		groups, found, err := claims.StringsClaim(a.groupsClaim)
+		if err != nil {
+			// Custom claim is present, but isn't an array of strings.
+			return nil, false, fmt.Errorf("custom group claim contains invalid object: %v", err)
+		}
+		if found {
+			info.Groups = groups
+		}
+	}
+	return info, true, nil
 }
 
 // Close closes the OIDC authenticator, this will close the provider sync goroutine.

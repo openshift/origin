@@ -18,6 +18,7 @@
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refector_version 3.0.2.900
+%global golang_version 1.6.2
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -54,7 +55,7 @@ URL:            https://%{import_path}
 ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
-BuildRequires:  golang >= 1.4
+BuildRequires:  golang = %{golang_version}
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
 Obsoletes:      openshift < %{package_refector_version}
@@ -87,10 +88,17 @@ Obsoletes:      openshift-master < %{package_refector_version}
 %description master
 %{summary}
 
+%package tests
+Summary: %{product_name} Test Suite
+Requires:       %{name} = %{version}-%{release}
+
+%description tests
+%{summary}
+
 %package node
 Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
-Requires:       docker-io >= %{docker_version}
+Requires:       docker >= %{docker_version}
 Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat
@@ -123,8 +131,6 @@ Requires:       git
 %if 0%{?make_redistributable}
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
-BuildRequires:  golang-pkg-darwin-amd64
-BuildRequires:  golang-pkg-windows-386
 Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
 
 %description clients-redistributable
@@ -142,13 +148,6 @@ Requires:       %{name} = %{version}-%{release}
 Summary:        %{product_name} Pod
 
 %description pod
-%{summary}
-
-%package recycle
-Summary:        %{product_name} Recycler
-Requires:       %{name} = %{version}-%{release}
-
-%description recycle
 %{summary}
 
 %package sdn-ovs
@@ -189,10 +188,11 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry recycle
+for cmd in oc openshift dockerregistry
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
+go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
 
 %if 0%{?make_redistributable}
 # Build clients for other platforms
@@ -210,11 +210,13 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry recycle
+for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
+install -d %{buildroot}%{_libexecdir}/%{name}
+install -p -m 755 _build/bin/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -243,6 +245,7 @@ for cmd in \
     openshift-deploy \
     openshift-docker-build \
     openshift-f5-router \
+    openshift-recycle \
     openshift-router \
     openshift-sti-build \
     origin
@@ -308,6 +311,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-docker-build
 %{_bindir}/openshift-f5-router
+%{_bindir}/openshift-recycle
 %{_bindir}/openshift-router
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
@@ -315,6 +319,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
+%defattr(-,root,root,0700)
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
@@ -332,10 +337,15 @@ if [ -d "%{_sharedstatedir}/openshift" ]; then
   fi
 fi
 
+%files tests
+%{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/extended.test
+
 
 %files master
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
@@ -390,7 +400,9 @@ fi
 %files node
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
+%defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
+%ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post node
@@ -461,10 +473,6 @@ fi
 
 %files pod
 %{_bindir}/pod
-
-%files recycle
-%{_bindir}/recycle
-
 
 %changelog
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9

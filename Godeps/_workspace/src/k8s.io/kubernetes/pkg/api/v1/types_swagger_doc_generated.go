@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1
 
-// This file contains a collection of methods that can be used from go-resful to
+// This file contains a collection of methods that can be used from go-restful to
 // generate Swagger API documentation for its models. Please read this PR for more
 // information on the implementation: https://github.com/emicklei/go-restful/pull/215
 //
@@ -28,7 +28,7 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_AWSElasticBlockStoreVolumeSource = map[string]string{
-	"":          "Represents a Persistent Disk resource in AWS.\n\nAn AWS EBS disk must exist and be formatted before mounting to a container. The disk must also be in the same AWS zone as the kubelet. An AWS EBS disk can only be mounted as read/write once. AWS EBS volumes support ownership management and SELinux relabeling.",
+	"":          "Represents a Persistent Disk resource in AWS.\n\nAn AWS EBS disk must exist before mounting to a container. The disk must also be in the same AWS zone as the kubelet. An AWS EBS disk can only be mounted as read/write once. AWS EBS volumes support ownership management and SELinux relabeling.",
 	"volumeID":  "Unique ID of the persistent disk resource in AWS (Amazon EBS volume). More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore",
 	"fsType":    "Filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore",
 	"partition": "The partition in the volume that you want to mount. If omitted, the default is to mount by volume name. Examples: For volume /dev/sda1, you specify the partition as \"1\". Similarly, the volume partition for /dev/sda is \"0\" (or you can leave the property empty).",
@@ -40,8 +40,10 @@ func (AWSElasticBlockStoreVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_Affinity = map[string]string{
-	"":             "Affinity is a group of affinity scheduling requirements, including node affinity and inter pod affinity.",
-	"nodeAffinity": "Describes node affinity scheduling requirements for the pod.",
+	"":                "Affinity is a group of affinity scheduling rules.",
+	"nodeAffinity":    "Describes node affinity scheduling rules for the pod.",
+	"podAffinity":     "Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).",
+	"podAntiAffinity": "Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).",
 }
 
 func (Affinity) SwaggerDoc() map[string]string {
@@ -165,14 +167,23 @@ func (ConfigMapList) SwaggerDoc() map[string]string {
 	return map_ConfigMapList
 }
 
+var map_ConfigMapVolumeSource = map[string]string{
+	"":      "Adapts a ConfigMap into a volume.\n\nThe contents of the target ConfigMap's Data field will be presented in a volume as files using the keys in the Data field as the file names, unless the items element is populated with specific mappings of keys to paths. ConfigMap volumes support ownership management and SELinux relabeling.",
+	"items": "If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error. Paths must be relative and may not contain the '..' path or start with '..'.",
+}
+
+func (ConfigMapVolumeSource) SwaggerDoc() map[string]string {
+	return map_ConfigMapVolumeSource
+}
+
 var map_Container = map[string]string{
 	"":                       "A single application container that you want to run within a pod.",
 	"name":                   "Name of the container specified as a DNS_LABEL. Each container in a pod must have a unique name (DNS_LABEL). Cannot be updated.",
 	"image":                  "Docker image name. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md",
-	"command":                "Entrypoint array. Not executed within a shell. The docker image's entrypoint is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands",
-	"args":                   "Arguments to the entrypoint. The docker image's cmd is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands",
-	"workingDir":             "Container's working directory. Defaults to Docker's default. D efaults to image's default. Cannot be updated.",
-	"ports":                  "List of ports to expose from the container. Cannot be updated.",
+	"command":                "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands",
+	"args":                   "Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands",
+	"workingDir":             "Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.",
+	"ports":                  "List of ports to expose from the container. Exposing a port here gives the system additional information about the network connections a container uses, but is primarily informational. Not specifying a port here DOES NOT prevent that port from being exposed. Any port which is listening on the default \"0.0.0.0\" address inside a container will be accessible from the network. Cannot be updated.",
 	"env":                    "List of environment variables to set in the container. Cannot be updated.",
 	"resources":              "Compute Resources required by this container. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#resources",
 	"volumeMounts":           "Pod volumes to mount into the container's filesyste. Cannot be updated.",
@@ -192,9 +203,9 @@ func (Container) SwaggerDoc() map[string]string {
 }
 
 var map_ContainerImage = map[string]string{
-	"":         "Describe a container image",
-	"repoTags": "Names by which this image is known. e.g. [\"gcr.io/google_containers/hyperkube:v1.0.7\", \"dockerhub.io/google_containers/hyperkube:v1.0.7\"]",
-	"size":     "The size of the image in bytes.",
+	"":          "Describe a container image",
+	"names":     "Names by which this image is known. e.g. [\"gcr.io/google_containers/hyperkube:v1.0.7\", \"dockerhub.io/google_containers/hyperkube:v1.0.7\"]",
+	"sizeBytes": "The size of the image in bytes.",
 }
 
 func (ContainerImage) SwaggerDoc() map[string]string {
@@ -287,6 +298,8 @@ func (DaemonEndpoint) SwaggerDoc() map[string]string {
 var map_DeleteOptions = map[string]string{
 	"":                   "DeleteOptions may be provided when deleting an API object",
 	"gracePeriodSeconds": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
+	"preconditions":      "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned.",
+	"orphanDependents":   "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
 }
 
 func (DeleteOptions) SwaggerDoc() map[string]string {
@@ -323,7 +336,8 @@ func (EmptyDirVolumeSource) SwaggerDoc() map[string]string {
 
 var map_EndpointAddress = map[string]string{
 	"":          "EndpointAddress is a tuple that describes single IP address.",
-	"ip":        "The IP of this endpoint. May not be loopback (127.0.0.0/8), link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24).",
+	"ip":        "The IP of this endpoint. May not be loopback (127.0.0.0/8), link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24). IPv6 is also accepted but not fully supported on all platforms. Also, certain kubernetes components, like kube-proxy, are not IPv6 ready.",
+	"hostname":  "The Hostname of this endpoint",
 	"targetRef": "Reference to object providing the endpoint.",
 }
 
@@ -477,7 +491,7 @@ var map_FlexVolumeSource = map[string]string{
 	"":          "FlexVolume represents a generic volume resource that is provisioned/attached using a exec based plugin. This is an alpha feature and may change in future.",
 	"driver":    "Driver is the name of the driver to use for this volume.",
 	"fsType":    "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\". The default filesystem depends on FlexVolume script.",
-	"secretRef": "Optional: SecretRef is reference to the authentication secret for User, default is empty.",
+	"secretRef": "Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.",
 	"readOnly":  "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.",
 	"options":   "Optional: Extra command options if any.",
 }
@@ -496,7 +510,7 @@ func (FlockerVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_GCEPersistentDiskVolumeSource = map[string]string{
-	"":          "Represents a Persistent Disk resource in Google Compute Engine.\n\nA GCE PD must exist and be formatted before mounting to a container. The disk must also be in the same GCE project and zone as the kubelet. A GCE PD can only be mounted as read/write once. GCE PDs support ownership management and SELinux relabeling.",
+	"":          "Represents a Persistent Disk resource in Google Compute Engine.\n\nA GCE PD must exist before mounting to a container. The disk must also be in the same GCE project and zone as the kubelet. A GCE PD can only be mounted as read/write once or read-only many times. GCE PDs support ownership management and SELinux relabeling.",
 	"pdName":    "Unique name of the PD resource in GCE. Used to identify the disk in GCE. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk",
 	"fsType":    "Filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk",
 	"partition": "The partition in the volume that you want to mount. If omitted, the default is to mount by volume name. Examples: For volume /dev/sda1, you specify the partition as \"1\". Similarly, the volume partition for /dev/sda is \"0\" (or you can leave the property empty). More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk",
@@ -594,6 +608,16 @@ var map_ISCSIVolumeSource = map[string]string{
 
 func (ISCSIVolumeSource) SwaggerDoc() map[string]string {
 	return map_ISCSIVolumeSource
+}
+
+var map_KeyToPath = map[string]string{
+	"":     "Maps a string key to a path within a volume.",
+	"key":  "The key to project.",
+	"path": "The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.",
+}
+
+func (KeyToPath) SwaggerDoc() map[string]string {
+	return map_KeyToPath
 }
 
 var map_Lifecycle = map[string]string{
@@ -702,8 +726,8 @@ func (LocalObjectReference) SwaggerDoc() map[string]string {
 
 var map_MetadataFile = map[string]string{
 	"":         "MetadataFile expresses information about a file holding pod metadata. NOTE: Deprecated in favor of DownwardAPIVolumeFile",
-	"name":     "Required: Name is the name of the file",
-	"fieldRef": "Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.",
+	"name":     "Name of the file to be created",
+	"fieldRef": "Selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace",
 }
 
 func (MetadataFile) SwaggerDoc() map[string]string {
@@ -791,8 +815,7 @@ func (NodeAddress) SwaggerDoc() map[string]string {
 }
 
 var map_NodeAffinity = map[string]string{
-	"": "Node affinity is a group of node affinity scheduling requirements. If RequiredDuringSchedulingRequiredDuringExecution and RequiredDuringSchedulingIgnoredDuringExecution are both set, then both node selectors must be satisfied.",
-	"requiredDuringSchedulingRequiredDuringExecution": "If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system will try to eventually evict the pod from its node.",
+	"": "Node affinity is a group of node affinity scheduling rules.",
 	"requiredDuringSchedulingIgnoredDuringExecution":  "If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system may or may not try to eventually evict the pod from its node.",
 	"preferredDuringSchedulingIgnoredDuringExecution": "The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node matches the corresponding matchExpressions; the node(s) with the highest sum are the most preferred.",
 }
@@ -832,6 +855,15 @@ var map_NodeList = map[string]string{
 
 func (NodeList) SwaggerDoc() map[string]string {
 	return map_NodeList
+}
+
+var map_NodeProxyOptions = map[string]string{
+	"":     "NodeProxyOptions is the query options to a Node's proxy call.",
+	"path": "Path is the URL path to use for the current proxy request to node.",
+}
+
+func (NodeProxyOptions) SwaggerDoc() map[string]string {
+	return map_NodeProxyOptions
 }
 
 var map_NodeSelector = map[string]string{
@@ -925,12 +957,14 @@ var map_ObjectMeta = map[string]string{
 	"selfLink":                   "SelfLink is a URL representing this object. Populated by the system. Read-only.",
 	"uid":                        "UID is the unique in time and space value for this object. It is typically generated by the server on successful creation of a resource and is not allowed to change on PUT operations.\n\nPopulated by the system. Read-only. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids",
 	"resourceVersion":            "An opaque value that represents the internal version of this object that can be used by clients to determine when objects have changed. May be used for optimistic concurrency, change detection, and the watch operation on a resource or set of resources. Clients must treat these values as opaque and passed unmodified back to the server. They may only be valid for a particular resource or set of resources.\n\nPopulated by the system. Read-only. Value must be treated as opaque by clients and . More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#concurrency-control-and-consistency",
-	"generation":                 "A sequence number representing a specific generation of the desired state. Currently only implemented by replication controllers. Populated by the system. Read-only.",
+	"generation":                 "A sequence number representing a specific generation of the desired state. Populated by the system. Read-only.",
 	"creationTimestamp":          "CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC.\n\nPopulated by the system. Read-only. Null for lists. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
 	"deletionTimestamp":          "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource will be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. Once the resource is deleted in the API, the Kubelet will send a hard termination signal to the container. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
 	"deletionGracePeriodSeconds": "Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only.",
 	"labels":                     "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md",
 	"annotations":                "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/HEAD/docs/user-guide/annotations.md",
+	"ownerReferences":            "List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected.",
+	"finalizers":                 "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed.",
 }
 
 func (ObjectMeta) SwaggerDoc() map[string]string {
@@ -950,6 +984,18 @@ var map_ObjectReference = map[string]string{
 
 func (ObjectReference) SwaggerDoc() map[string]string {
 	return map_ObjectReference
+}
+
+var map_OwnerReference = map[string]string{
+	"":           "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+	"apiVersion": "API version of the referent.",
+	"kind":       "Kind of the referent. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+	"name":       "Name of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names",
+	"uid":        "UID of the referent. More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids",
+}
+
+func (OwnerReference) SwaggerDoc() map[string]string {
+	return map_OwnerReference
 }
 
 var map_PersistentVolume = map[string]string{
@@ -1081,6 +1127,37 @@ func (Pod) SwaggerDoc() map[string]string {
 	return map_Pod
 }
 
+var map_PodAffinity = map[string]string{
+	"": "Pod affinity is a group of inter pod affinity scheduling rules.",
+	"requiredDuringSchedulingIgnoredDuringExecution":  "NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented. If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system will try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied. RequiredDuringSchedulingRequiredDuringExecution []PodAffinityTerm  `json:\"requiredDuringSchedulingRequiredDuringExecution,omitempty\"` If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.",
+	"preferredDuringSchedulingIgnoredDuringExecution": "The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.",
+}
+
+func (PodAffinity) SwaggerDoc() map[string]string {
+	return map_PodAffinity
+}
+
+var map_PodAffinityTerm = map[string]string{
+	"":              "Defines a set of pods (namely those matching the labelSelector relative to the given namespace(s)) that this pod should be co-located (affinity) or not co-located (anti-affinity) with, where co-located is defined as running on a node whose value of the label with key <topologyKey> tches that of any node on which a pod of the set of pods is running",
+	"labelSelector": "A label query over a set of resources, in this case pods.",
+	"namespaces":    "namespaces specifies which namespaces the labelSelector applies to (matches against); nil list means \"this pod's namespace,\" empty list means \"all namespaces\" The json tag here is not \"omitempty\" since we need to distinguish nil and empty. See https://golang.org/pkg/encoding/json/#Marshal for more details.",
+	"topologyKey":   "This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. For PreferredDuringScheduling pod anti-affinity, empty topologyKey is interpreted as \"all topologies\" (\"all topologies\" here means all the topologyKeys indicated by scheduler command-line argument --failure-domains); for affinity and for RequiredDuringScheduling pod anti-affinity, empty topologyKey is not allowed.",
+}
+
+func (PodAffinityTerm) SwaggerDoc() map[string]string {
+	return map_PodAffinityTerm
+}
+
+var map_PodAntiAffinity = map[string]string{
+	"": "Pod anti affinity is a group of inter pod anti affinity scheduling rules.",
+	"requiredDuringSchedulingIgnoredDuringExecution":  "NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented. If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system will try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied. RequiredDuringSchedulingRequiredDuringExecution []PodAffinityTerm  `json:\"requiredDuringSchedulingRequiredDuringExecution,omitempty\"` If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.",
+	"preferredDuringSchedulingIgnoredDuringExecution": "The scheduler will prefer to schedule pods to nodes that satisfy the anti-affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling anti-affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.",
+}
+
+func (PodAntiAffinity) SwaggerDoc() map[string]string {
+	return map_PodAntiAffinity
+}
+
 var map_PodAttachOptions = map[string]string{
 	"":          "PodAttachOptions is the query options to a Pod's remote attach call.",
 	"stdin":     "Stdin if true, redirects the standard input stream of the pod for this call. Defaults to false.",
@@ -1138,7 +1215,7 @@ var map_PodLogOptions = map[string]string{
 	"follow":       "Follow the log stream of the pod. Defaults to false.",
 	"previous":     "Return previous terminated container logs. Defaults to false.",
 	"sinceSeconds": "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
-	"sinceTime":    "An RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+	"sinceTime":    "An RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
 	"timestamps":   "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
 	"tailLines":    "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
 	"limitBytes":   "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
@@ -1179,7 +1256,7 @@ var map_PodSpec = map[string]string{
 	"activeDeadlineSeconds":         "Optional duration in seconds the pod may be active on the node relative to StartTime before the system will actively try to mark it failed and kill associated containers. Value must be a positive integer.",
 	"dnsPolicy":                     "Set DNS policy for containers within the pod. One of 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\".",
 	"nodeSelector":                  "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md",
-	"host":                          "DeprecatedHost is a request to schedule this pod onto a specific node",
+	"host":                          "A request to schedule this pod onto a specific node Deprecated: Use nodeName instead.",
 	"serviceAccountName":            "ServiceAccountName is the name of the ServiceAccount to use to run this pod. More info: http://releases.k8s.io/HEAD/docs/design/service_accounts.md",
 	"serviceAccount":                "DeprecatedServiceAccount is a depreciated alias for ServiceAccountName. Deprecated: Use serviceAccountName instead.",
 	"nodeName":                      "NodeName is a request to schedule this pod onto a specific node. If it is non-empty, the scheduler simply schedules this pod onto that node, assuming that it fits resource requirements.",
@@ -1188,6 +1265,8 @@ var map_PodSpec = map[string]string{
 	"hostIPC":                       "Use the host's ipc namespace. Optional: Default to false.",
 	"securityContext":               "SecurityContext holds pod-level security attributes and common container settings. Optional: Defaults to empty.  See type description for default values of each field.",
 	"imagePullSecrets":              "ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec. If specified, these secrets will be passed to individual puller implementations for them to use. For example, in the case of docker, only DockerConfig type secrets are honored. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod",
+	"hostname":                      "Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value.",
+	"subdomain":                     "If specified, the fully qualified Pod hostname will be \"<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>\". If not specified, the pod will not have a domainname at all.",
 }
 
 func (PodSpec) SwaggerDoc() map[string]string {
@@ -1248,6 +1327,15 @@ var map_PodTemplateSpec = map[string]string{
 
 func (PodTemplateSpec) SwaggerDoc() map[string]string {
 	return map_PodTemplateSpec
+}
+
+var map_Preconditions = map[string]string{
+	"":    "Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.",
+	"uid": "Specifies the target UID.",
+}
+
+func (Preconditions) SwaggerDoc() map[string]string {
+	return map_Preconditions
 }
 
 var map_PreferredSchedulingTerm = map[string]string{
@@ -1333,9 +1421,10 @@ func (ReplicationControllerSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ReplicationControllerStatus = map[string]string{
-	"":                   "ReplicationControllerStatus represents the current status of a replication controller.",
-	"replicas":           "Replicas is the most recently oberved number of replicas. More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller",
-	"observedGeneration": "ObservedGeneration reflects the generation of the most recently observed replication controller.",
+	"":                     "ReplicationControllerStatus represents the current status of a replication controller.",
+	"replicas":             "Replicas is the most recently oberved number of replicas. More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller",
+	"fullyLabeledReplicas": "The number of pods that have labels matching the labels of the pod template of the replication controller.",
+	"observedGeneration":   "ObservedGeneration reflects the generation of the most recently observed replication controller.",
 }
 
 func (ReplicationControllerStatus) SwaggerDoc() map[string]string {
@@ -1467,12 +1556,13 @@ func (SecretVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_SecurityContext = map[string]string{
-	"":               "SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.",
-	"capabilities":   "The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime.",
-	"privileged":     "Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.",
-	"seLinuxOptions": "The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
-	"runAsUser":      "The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
-	"runAsNonRoot":   "Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
+	"":                       "SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.",
+	"capabilities":           "The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime.",
+	"privileged":             "Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.",
+	"seLinuxOptions":         "The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
+	"runAsUser":              "The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
+	"runAsNonRoot":           "Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
+	"readOnlyRootFilesystem": "Whether this container has a read-only root filesystem. Default is false.",
 }
 
 func (SecurityContext) SwaggerDoc() map[string]string {
@@ -1487,6 +1577,7 @@ var map_SecurityContextConstraints = map[string]string{
 	"requiredDropCapabilities": "RequiredDropCapabilities are the capabilities that will be dropped from the container.  These are required to be dropped and cannot be added.",
 	"allowedCapabilities":      "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.",
 	"allowHostDirVolumePlugin": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin",
+	"volumes":                  "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.",
 	"allowHostNetwork":         "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
 	"allowHostPorts":           "AllowHostPorts determines if the policy allows host ports in the containers.",
 	"allowHostPID":             "AllowHostPID determines if the policy allows host pid in the containers.",
@@ -1495,6 +1586,7 @@ var map_SecurityContextConstraints = map[string]string{
 	"runAsUser":                "RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.",
 	"supplementalGroups":       "SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
 	"fsGroup":                  "FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.",
+	"readOnlyRootFilesystem":   "ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file system.  If the container specifically requests to run with a non-read only root file system the SCC should deny the pod. If set to false the container may run with a read only root file system if it wishes but it will not be forced to.",
 	"users":                    "The users who have permissions to use this security context constraints",
 	"groups":                   "The groups that have permission to use this security context constraints",
 }
@@ -1563,7 +1655,7 @@ func (ServiceList) SwaggerDoc() map[string]string {
 }
 
 var map_ServicePort = map[string]string{
-	"":           "ServicePort conatins information on service's port.",
+	"":           "ServicePort contains information on service's port.",
 	"name":       "The name of this port within the service. This must be a DNS_LABEL. All ports within a ServiceSpec must have unique names. This maps to the 'Name' field in EndpointPort objects. Optional if only one ServicePort is defined on this service.",
 	"protocol":   "The IP protocol for this port. Supports \"TCP\" and \"UDP\". Default is TCP.",
 	"port":       "The port that will be exposed by this service.",
@@ -1575,11 +1667,20 @@ func (ServicePort) SwaggerDoc() map[string]string {
 	return map_ServicePort
 }
 
+var map_ServiceProxyOptions = map[string]string{
+	"":     "ServiceProxyOptions is the query options to a Service's proxy call.",
+	"path": "Path is the part of URLs that include service endpoints, suffixes, and parameters to use for the current proxy request to service. For example, the whole request URL is http://localhost/api/v1/namespaces/kube-system/services/elasticsearch-logging/_search?q=user:kimchy. Path is _search?q=user:kimchy.",
+}
+
+func (ServiceProxyOptions) SwaggerDoc() map[string]string {
+	return map_ServiceProxyOptions
+}
+
 var map_ServiceSpec = map[string]string{
 	"":                    "ServiceSpec describes the attributes that a user creates on a service.",
 	"ports":               "The list of ports that are exposed by this service. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#virtual-ips-and-service-proxies",
 	"selector":            "This service will route traffic to pods having labels matching this selector. Label keys and values that must match in order to receive traffic for this service. If empty, all pods are selected, if not specified, endpoints must be manually specified. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#overview",
-	"portalIP":            "DeprecatedPortalIP",
+	"portalIP":            "The IP Address of the service. Deprecated: Use clusterIP instead.",
 	"clusterIP":           "ClusterIP is usually assigned by the master and is the IP address of the service. If specified, it will be allocated to the service if it is unused or else creation of the service will fail. Valid values are None, empty string (\"\"), or a valid IP address. 'None' can be specified for a headless service when proxying is not required. Cannot be updated. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#virtual-ips-and-service-proxies",
 	"type":                "Type of exposed service. Must be ClusterIP, NodePort, or LoadBalancer. Defaults to ClusterIP. More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#external-services",
 	"externalIPs":         "externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system.  A previous form of this functionality exists as the deprecatedPublicIPs field.  When using this field, callers should also clear the deprecatedPublicIPs field.",
@@ -1633,7 +1734,8 @@ var map_VolumeMount = map[string]string{
 	"":          "VolumeMount describes a mounting of a Volume within a container.",
 	"name":      "This must match the Name of a Volume.",
 	"readOnly":  "Mounted read-only if true, read-write otherwise (false or unspecified). Defaults to false.",
-	"mountPath": "Path within the container at which the volume should be mounted.",
+	"mountPath": "Path within the container at which the volume should be mounted.  Must not contain ':'.",
+	"subPath":   "Path within the volume from which the container's volume should be mounted. Defaults to \"\" (volume's root).",
 }
 
 func (VolumeMount) SwaggerDoc() map[string]string {
@@ -1660,11 +1762,22 @@ var map_VolumeSource = map[string]string{
 	"downwardAPI": "DownwardAPI represents downward API about the pod that should populate this volume",
 	"fc":          "FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.",
 	"azureFile":   "AzureFile represents an Azure File Service mount on the host and bind mount to the pod.",
-	"metadata":    "Metadata represents metadata about the pod that should populate this volume NOTE: Deprecated in favor of DownwardAPI",
+	"configMap":   "ConfigMap represents a configMap that should populate this volume",
+	"metadata":    "Metadata represents metadata about the pod that should populate this volume Deprecated: Use downwardAPI instead.",
 }
 
 func (VolumeSource) SwaggerDoc() map[string]string {
 	return map_VolumeSource
+}
+
+var map_WeightedPodAffinityTerm = map[string]string{
+	"":                "The weights of all of the matched WeightedPodAffinityTerm fields are added per-node to find the most preferred node(s)",
+	"weight":          "weight associated with matching the corresponding podAffinityTerm, in the range 1-100.",
+	"podAffinityTerm": "Required. A pod affinity term, associated with the corresponding weight.",
+}
+
+func (WeightedPodAffinityTerm) SwaggerDoc() map[string]string {
+	return map_WeightedPodAffinityTerm
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

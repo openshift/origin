@@ -1,6 +1,11 @@
 package api
 
-import "github.com/openshift/origin/pkg/util/namer"
+import (
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/validation"
+
+	"github.com/openshift/origin/pkg/util/namer"
+)
 
 const (
 	// BuildPodSuffix is the suffix used to append to a build pod name given a build name
@@ -20,6 +25,8 @@ func StrategyType(strategy BuildStrategy) string {
 		return "Custom"
 	case strategy.SourceStrategy != nil:
 		return "Source"
+	case strategy.JenkinsPipelineStrategy != nil:
+		return "JenkinsPipeline"
 	}
 	return ""
 }
@@ -42,4 +49,20 @@ func SourceType(source BuildSource) string {
 		sourceType = sourceType + "Binary"
 	}
 	return sourceType
+}
+
+// LabelValue returns a string to use as a value for the Build
+// label in a pod. If the length of the string parameter exceeds
+// the maximum label length, the value will be truncated.
+func LabelValue(name string) string {
+	if len(name) <= validation.DNS1123LabelMaxLength {
+		return name
+	}
+	return name[:validation.DNS1123LabelMaxLength]
+}
+
+// GetBuildName returns the name of a Build associated with the
+// given Pod.
+func GetBuildName(pod *kapi.Pod) string {
+	return pod.Annotations[BuildAnnotation]
 }

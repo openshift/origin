@@ -24,8 +24,8 @@ import (
 	"time"
 
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/client/testing/fake"
 
 	"github.com/stretchr/testify/assert"
 
@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
+	podtest "k8s.io/kubernetes/pkg/kubelet/pod/testing"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -68,7 +69,7 @@ func (m *manager) testSyncBatch() {
 }
 
 func newTestManager(kubeClient clientset.Interface) *manager {
-	podManager := kubepod.NewBasicPodManager(kubepod.NewFakeMirrorClient())
+	podManager := kubepod.NewBasicPodManager(podtest.NewFakeMirrorClient())
 	podManager.AddPod(getTestPod())
 	return NewManager(kubeClient, podManager).(*manager)
 }
@@ -92,7 +93,7 @@ func verifyActions(t *testing.T, kubeClient clientset.Interface, expectedActions
 	for i := 0; i < len(actions); i++ {
 		e := expectedActions[i]
 		a := actions[i]
-		if !a.Matches(e.GetVerb(), e.GetResource()) || a.GetSubresource() != e.GetSubresource() {
+		if !a.Matches(e.GetVerb(), e.GetResource().Resource) || a.GetSubresource() != e.GetSubresource() {
 			t.Errorf("unexpected actions, got: %+v expected: %+v", actions, expectedActions)
 		}
 	}
@@ -205,8 +206,9 @@ func TestChangedStatusKeepsStartTime(t *testing.T) {
 	if finalStatus.StartTime.IsZero() {
 		t.Errorf("StartTime should not be zero")
 	}
-	if !finalStatus.StartTime.Time.Equal(now.Time) {
-		t.Errorf("Expected %v, but got %v", now.Time, finalStatus.StartTime.Time)
+	expected := now.Rfc3339Copy()
+	if !finalStatus.StartTime.Equal(expected) {
+		t.Errorf("Expected %v, but got %v", expected, finalStatus.StartTime)
 	}
 }
 
@@ -289,7 +291,7 @@ func TestSyncBatchIgnoresNotFound(t *testing.T) {
 	syncer.testSyncBatch()
 
 	verifyActions(t, syncer.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
 	})
 }
 
@@ -300,8 +302,8 @@ func TestSyncBatch(t *testing.T) {
 	syncer.SetPodStatus(testPod, getRandomPodStatus())
 	syncer.testSyncBatch()
 	verifyActions(t, syncer.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	},
 	)
 }
@@ -318,7 +320,7 @@ func TestSyncBatchChecksMismatchedUID(t *testing.T) {
 	syncer.SetPodStatus(differentPod, getRandomPodStatus())
 	syncer.testSyncBatch()
 	verifyActions(t, syncer.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
 	})
 }
 
@@ -344,8 +346,8 @@ func TestSyncBatchNoDeadlock(t *testing.T) {
 
 	pod.Status.ContainerStatuses = []api.ContainerStatus{{State: api.ContainerState{Running: &api.ContainerStateRunning{}}}}
 
-	getAction := core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}}
-	updateAction := core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}}
+	getAction := core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}}
+	updateAction := core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}}
 
 	// Pod not found.
 	ret = *pod
@@ -409,8 +411,8 @@ func TestStaleUpdates(t *testing.T) {
 	t.Logf("First sync pushes latest status.")
 	m.testSyncBatch()
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 	client.ClearActions()
 
@@ -430,8 +432,8 @@ func TestStaleUpdates(t *testing.T) {
 	m.SetPodStatus(pod, status)
 	m.testSyncBatch()
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 
 	// Nothing stuck in the pipe.
@@ -464,8 +466,10 @@ func TestStatusEquality(t *testing.T) {
 		oldPodStatus := api.PodStatus{
 			ContainerStatuses: shuffle(podStatus.ContainerStatuses),
 		}
+		normalizeStatus(&oldPodStatus)
+		normalizeStatus(&podStatus)
 		if !isStatusEqual(&oldPodStatus, &podStatus) {
-			t.Fatalf("Order of container statuses should not affect equality.")
+			t.Fatalf("Order of container statuses should not affect normalized equality.")
 		}
 	}
 }
@@ -494,14 +498,15 @@ func TestStaticPodStatus(t *testing.T) {
 
 	m.SetPodStatus(staticPod, status)
 	retrievedStatus := expectPodStatus(t, m, staticPod)
+	normalizeStatus(&status)
 	assert.True(t, isStatusEqual(&status, &retrievedStatus), "Expected: %+v, Got: %+v", status, retrievedStatus)
 	retrievedStatus, _ = m.GetPodStatus(mirrorPod.UID)
 	assert.True(t, isStatusEqual(&status, &retrievedStatus), "Expected: %+v, Got: %+v", status, retrievedStatus)
 	// Should translate mirrorPod / staticPod UID.
 	m.testSyncBatch()
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 	updateAction := client.Actions()[1].(core.UpdateActionImpl)
 	updatedPod := updateAction.Object.(*api.Pod)
@@ -521,8 +526,8 @@ func TestStaticPodStatus(t *testing.T) {
 	// Expect update to new mirrorPod.
 	m.testSyncBatch()
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 	updateAction = client.Actions()[1].(core.UpdateActionImpl)
 	updatedPod = updateAction.Object.(*api.Pod)
@@ -531,8 +536,8 @@ func TestStaticPodStatus(t *testing.T) {
 }
 
 func TestSetContainerReadiness(t *testing.T) {
-	cID1 := kubecontainer.ContainerID{"test", "1"}
-	cID2 := kubecontainer.ContainerID{"test", "2"}
+	cID1 := kubecontainer.ContainerID{Type: "test", ID: "1"}
+	cID2 := kubecontainer.ContainerID{Type: "test", ID: "2"}
 	containerStatuses := []api.ContainerStatus{
 		{
 			Name:        "c1",
@@ -578,9 +583,11 @@ func TestSetContainerReadiness(t *testing.T) {
 	}
 
 	m := newTestManager(&fake.Clientset{})
+	// Add test pod because the container spec has been changed.
+	m.podManager.AddPod(pod)
 
 	t.Log("Setting readiness before status should fail.")
-	m.SetContainerReadiness(pod, cID1, true)
+	m.SetContainerReadiness(pod.UID, cID1, true)
 	verifyUpdates(t, m, 0)
 	if status, ok := m.GetPodStatus(pod.UID); ok {
 		t.Errorf("Unexpected PodStatus: %+v", status)
@@ -593,25 +600,25 @@ func TestSetContainerReadiness(t *testing.T) {
 	verifyReadiness("initial", &status, false, false, false)
 
 	t.Log("Setting unchanged readiness should do nothing.")
-	m.SetContainerReadiness(pod, cID1, false)
+	m.SetContainerReadiness(pod.UID, cID1, false)
 	verifyUpdates(t, m, 0)
 	status = expectPodStatus(t, m, pod)
 	verifyReadiness("unchanged", &status, false, false, false)
 
 	t.Log("Setting container readiness should generate update but not pod readiness.")
-	m.SetContainerReadiness(pod, cID1, true)
+	m.SetContainerReadiness(pod.UID, cID1, true)
 	verifyUpdates(t, m, 1)
 	status = expectPodStatus(t, m, pod)
 	verifyReadiness("c1 ready", &status, true, false, false)
 
 	t.Log("Setting both containers to ready should update pod readiness.")
-	m.SetContainerReadiness(pod, cID2, true)
+	m.SetContainerReadiness(pod.UID, cID2, true)
 	verifyUpdates(t, m, 1)
 	status = expectPodStatus(t, m, pod)
 	verifyReadiness("all ready", &status, true, true, true)
 
 	t.Log("Setting non-existant container readiness should fail.")
-	m.SetContainerReadiness(pod, kubecontainer.ContainerID{"test", "foo"}, true)
+	m.SetContainerReadiness(pod.UID, kubecontainer.ContainerID{Type: "test", ID: "foo"}, true)
 	verifyUpdates(t, m, 0)
 	status = expectPodStatus(t, m, pod)
 	verifyReadiness("ignore non-existant", &status, true, true, true)
@@ -667,7 +674,7 @@ func TestReconcilePodStatus(t *testing.T) {
 
 	podStatus, ok := syncer.GetPodStatus(testPod.UID)
 	if !ok {
-		t.Fatal("Should find pod status for pod: %+v", testPod)
+		t.Fatalf("Should find pod status for pod: %+v", testPod)
 	}
 	testPod.Status = podStatus
 
@@ -704,8 +711,8 @@ func TestReconcilePodStatus(t *testing.T) {
 	client.ClearActions()
 	syncer.syncBatch()
 	verifyActions(t, client, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 }
 
@@ -733,9 +740,9 @@ func TestDeletePods(t *testing.T) {
 	m.testSyncBatch()
 	// Expect to see an delete action.
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
-		core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: "pods"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
+		core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
 	})
 }
 
@@ -767,7 +774,7 @@ func TestDoNotDeleteMirrorPods(t *testing.T) {
 	m.testSyncBatch()
 	// Expect not to see an delete action.
 	verifyActions(t, m.kubeClient, []core.Action{
-		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: "pods"}},
-		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: "pods", Subresource: "status"}},
+		core.GetActionImpl{ActionImpl: core.ActionImpl{Verb: "get", Resource: unversioned.GroupVersionResource{Resource: "pods"}}},
+		core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "pods"}, Subresource: "status"}},
 	})
 }

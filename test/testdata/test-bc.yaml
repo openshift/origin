@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: test-buildconfig
+spec:
+  output: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: git://github.com/openshift/ruby-hello-world.git
+    secrets: null
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-22-centos7
+    type: Source
+  triggers: []
+status:
+  lastVersion: 0

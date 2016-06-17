@@ -24,33 +24,32 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/thirdpartyresourcedata"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for ThirdPartyResourceDatas against etcd
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 	kind string
 }
 
 // NewREST returns a registry which will store ThirdPartyResourceData in the given helper
-func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator, group, kind string) *REST {
+func NewREST(opts generic.RESTOptions, group, kind string) *REST {
 	prefix := "/ThirdPartyResourceData/" + group + "/" + strings.ToLower(kind) + "s"
 
 	// We explicitly do NOT do any decoration here yet.
-	storageInterface := s
+	storageInterface := opts.Storage
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &extensions.ThirdPartyResourceData{} },
 		NewListFunc: func() runtime.Object { return &extensions.ThirdPartyResourceDataList{} },
 		KeyRootFunc: func(ctx api.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx api.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
+			return registry.NamespaceKeyFunc(ctx, prefix, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*extensions.ThirdPartyResourceData).Name, nil
@@ -58,16 +57,18 @@ func NewREST(s storage.Interface, storageDecorator generic.StorageDecorator, gro
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return thirdpartyresourcedata.Matcher(label, field)
 		},
-		QualifiedResource: extensions.Resource("thirdpartyresourcedatas"),
-		CreateStrategy:    thirdpartyresourcedata.Strategy,
-		UpdateStrategy:    thirdpartyresourcedata.Strategy,
+		QualifiedResource:       extensions.Resource("thirdpartyresourcedatas"),
+		DeleteCollectionWorkers: opts.DeleteCollectionWorkers,
+		CreateStrategy:          thirdpartyresourcedata.Strategy,
+		UpdateStrategy:          thirdpartyresourcedata.Strategy,
+		DeleteStrategy:          thirdpartyresourcedata.Strategy,
 
 		Storage: storageInterface,
 	}
 
 	return &REST{
-		Etcd: store,
-		kind: kind,
+		Store: store,
+		kind:  kind,
 	}
 }
 

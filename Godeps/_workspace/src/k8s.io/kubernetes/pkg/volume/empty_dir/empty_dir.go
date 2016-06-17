@@ -71,11 +71,11 @@ func (plugin *emptyDirPlugin) CanSupport(spec *volume.Spec) bool {
 	return false
 }
 
-func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
-	return plugin.newBuilderInternal(spec, pod, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()}, opts)
+func (plugin *emptyDirPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Mounter, error) {
+	return plugin.newMounterInternal(spec, pod, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()}, opts)
 }
 
-func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions) (volume.Builder, error) {
+func (plugin *emptyDirPlugin) newMounterInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions) (volume.Mounter, error) {
 	medium := api.StorageMediumDefault
 	if spec.Volume.EmptyDir != nil { // Support a non-specified source as EmptyDir.
 		medium = spec.Volume.EmptyDir.Medium
@@ -92,12 +92,12 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 	}, nil
 }
 
-func (plugin *emptyDirPlugin) NewCleaner(volName string, podUID types.UID) (volume.Cleaner, error) {
+func (plugin *emptyDirPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newCleanerInternal(volName, podUID, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()})
+	return plugin.newUnmounterInternal(volName, podUID, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()})
 }
 
-func (plugin *emptyDirPlugin) newCleanerInternal(volName string, podUID types.UID, mounter mount.Interface, mountDetector mountDetector) (volume.Cleaner, error) {
+func (plugin *emptyDirPlugin) newUnmounterInternal(volName string, podUID types.UID, mounter mount.Interface, mountDetector mountDetector) (volume.Unmounter, error) {
 	ed := &emptyDir{
 		pod:             &api.Pod{ObjectMeta: api.ObjectMeta{UID: podUID}},
 		volName:         volName,
@@ -200,7 +200,7 @@ func (ed *emptyDir) SetUpAt(dir string, fsGroup *int64) error {
 
 // setupTmpfs creates a tmpfs mount at the specified directory with the
 // specified SELinux context.
-func (ed *emptyDir) setupTmpfs(dir string, selinuxContext string) error {
+func (ed *emptyDir) setupTmpfs(dir string, selinux string) error {
 	if ed.mounter == nil {
 		return fmt.Errorf("memory storage requested, but mounter is nil")
 	}
@@ -221,8 +221,8 @@ func (ed *emptyDir) setupTmpfs(dir string, selinuxContext string) error {
 	// By default a tmpfs mount will receive a different SELinux context
 	// which is not readable from the SELinux context of a docker container.
 	var opts []string
-	if selinuxContext != "" {
-		opts = []string{fmt.Sprintf("rootcontext=\"%v\"", selinuxContext)}
+	if selinux != "" {
+		opts = []string{fmt.Sprintf("rootcontext=\"%v\"", selinux)}
 	} else {
 		opts = []string{}
 	}

@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coreos/go-etcd/etcd"
+	"golang.org/x/net/context"
+
+	etcd "github.com/coreos/etcd/client"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -21,16 +23,18 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/admission/testutil"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/util/restoptions"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
 type fakeSubjectAccessReviewRegistry struct {
 }
@@ -41,18 +45,24 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*etcd.Client, *etcdtesting.EtcdTestServer, *REST) {
+func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := etcd.NewClient(server.ClientURLs.StringSlice())
+	etcdClient := etcd.NewKeysAPI(server.Client)
 
-	imageStorage := imageetcd.NewREST(etcdStorage)
-	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(etcdStorage, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), testDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	storage := NewREST(imageRegistry, imageStreamRegistry)
+	storage := NewREST(imageRegistry, imageStreamRegistry, testDefaultRegistry)
 
 	return etcdClient, server, storage
 }
@@ -145,7 +155,11 @@ func TestCreateSuccessWithName(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), initialRepo), 0)
+	_, err := client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/somerepo"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), initialRepo),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -223,12 +237,19 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo), 0)
+	_, err := client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/somerepo"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	_, err = client.Create(etcdtest.AddPrefix("/images/default/"+imageID), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage), 0)
+	_, err = client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/images/default/"+imageID), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -285,12 +306,20 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/somerepo"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo), 0)
+	_, err := client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/somerepo"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingRepo),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	_, err = client.Create(etcdtest.AddPrefix("/images/default/existingImage"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage), 0)
+	_, err = client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/images/default/existingImage"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), existingImage),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -360,7 +389,11 @@ func TestTrackingTags(t *testing.T) {
 		},
 	}
 
-	_, err := client.Create(etcdtest.AddPrefix("/imagestreams/default/stream"), runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), stream), 0)
+	_, err := client.Create(
+		context.TODO(),
+		etcdtest.AddPrefix("/imagestreams/default/stream"),
+		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), stream),
+	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -422,6 +455,7 @@ func TestTrackingTags(t *testing.T) {
 // using failing registry update calls will return an error.
 func TestCreateRetryUnrecoverable(t *testing.T) {
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil
@@ -455,6 +489,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 	firstUpdate := true
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil
@@ -497,6 +532,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 	firstGet := true
 	firstUpdate := true
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil

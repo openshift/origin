@@ -21,7 +21,11 @@ func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, err
 	if err != nil {
 		return nil, err
 	}
-	if image.OnBuild {
+	config.HasOnBuild = image.OnBuild
+
+	// if we're blocking onbuild, just do a normal s2i build flow
+	// which won't do a docker build and invoke the onbuild commands
+	if image.OnBuild && !config.BlockOnBuild {
 		return onbuild.New(config, overrides)
 	}
 	return sti.New(config, overrides)

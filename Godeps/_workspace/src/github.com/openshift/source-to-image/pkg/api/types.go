@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
@@ -79,7 +81,7 @@ type Config struct {
 	PreserveWorkingDir bool
 
 	// DisableRecursive disables the --recursive option for the git clone that
-	// allows to use the GIT without requiring the git submodule to be called.
+	// allows to use the Git without requiring the git submodule to be called.
 	DisableRecursive bool
 
 	// Source URL describing the location of sources used to build the result image.
@@ -116,7 +118,7 @@ type Config struct {
 	RemovePreviousImage bool
 
 	// Environment is a map of environment variables to be passed to the image.
-	Environment map[string]string
+	Environment EnvironmentList
 
 	// EnvironmentFile provides the path to a file with list of environment
 	// variables.
@@ -148,6 +150,11 @@ type Config struct {
 	// (default: false).
 	Quiet bool
 
+	// ForceCopy results in only the file SCM plugin being used (i.e. no `git clone`); allows for empty directories to be included
+	// in resulting image (since git does not support that).
+	// (default: false).
+	ForceCopy bool
+
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
@@ -170,7 +177,7 @@ type Config struct {
 	// Injections specifies a list source/destination folders that are injected to
 	// the container that runs assemble.
 	// All files we inject will be truncated after the assemble script finishes.
-	Injections InjectionList
+	Injections VolumeList
 
 	// CGroupLimits describes the cgroups limits that will be applied to any containers
 	// run by s2i.
@@ -178,8 +185,45 @@ type Config struct {
 
 	// DropCapabilities contains a list of capabilities to drop when executing containers
 	DropCapabilities []string
+
+	// ScriptDownloadProxyConfig optionally specifies the http and https proxy
+	// to use when downloading scripts
+	ScriptDownloadProxyConfig *ProxyConfig
+
+	// ExcludeRegExp contains a string representation of the regular expression desired for
+	// deciding which files to exclude from the tar stream
+	ExcludeRegExp string
+
+	// BlockOnBuild prevents s2i from performing a docker build operation
+	// if one is necessary to execute ONBUILD commands, or to layer source code into
+	// the container for images that don't have a tar binary available, if the
+	// image contains ONBUILD commands that would be executed.
+	BlockOnBuild bool
+
+	// HasOnBuild will be set to true if the builder image contains ONBUILD instructions
+	HasOnBuild bool
+
+	// BuildVolumes specifies a list of volumes to mount to container running the
+	// build.
+	BuildVolumes VolumeList
 }
 
+// EnvironmentSpec specifies a single environment variable.
+type EnvironmentSpec struct {
+	Name  string
+	Value string
+}
+
+// EnvironmentList contains list of environment variables.
+type EnvironmentList []EnvironmentSpec
+
+// ProxyConfig holds proxy configuration.
+type ProxyConfig struct {
+	HTTPProxy  *url.URL
+	HTTPSProxy *url.URL
+}
+
+// CGroupLimits holds limits used to constrain container resources.
 type CGroupLimits struct {
 	MemoryLimitBytes int64
 	CPUShares        int64
@@ -188,14 +232,14 @@ type CGroupLimits struct {
 	MemorySwap       int64
 }
 
-// InjectPath contains definition of source directory and the injection path.
-type InjectPath struct {
-	SourcePath     string
-	DestinationDir string
+// VolumeSpec represents a single volume mount point.
+type VolumeSpec struct {
+	Source      string
+	Destination string
 }
 
-// InjectionList contains list of InjectPath.
-type InjectionList []InjectPath
+// VolumeList contains list of VolumeSpec.
+type VolumeList []VolumeSpec
 
 // DockerConfig contains the configuration for a Docker connection.
 type DockerConfig struct {
@@ -246,15 +290,19 @@ type InstallResult struct {
 
 	// Error describes last error encountered during install operation
 	Error error
+
+	// FailedSources is a list of sources that were attempted but failed
+	// when downloading this script
+	FailedSources []string
 }
 
 // SourceInfo stores information about the source code
 type SourceInfo struct {
-	// Ref represents a commit SHA-1, valid GIT branch name or a GIT tag
+	// Ref represents a commit SHA-1, valid Git branch name or a Git tag
 	// The output image will contain this information as 'io.openshift.build.commit.ref' label.
 	Ref string
 
-	// CommitID represents an arbitrary extended object reference in GIT as SHA-1
+	// CommitID represents an arbitrary extended object reference in Git as SHA-1
 	// The output image will contain this information as 'io.openshift.build.commit.id' label.
 	CommitID string
 
@@ -361,7 +409,7 @@ func IsInvalidFilename(name string) bool {
 // This function parses the string that contains source:destination pair.
 // When the destination is not specified, the source get copied into current
 // working directory in container.
-func (il *InjectionList) Set(value string) error {
+func (l *VolumeList) Set(value string) error {
 	mount := strings.Split(value, ":")
 	switch len(mount) {
 	case 0:
@@ -375,24 +423,64 @@ func (il *InjectionList) Set(value string) error {
 	default:
 		return fmt.Errorf("invalid source:path definition")
 	}
-	s := InjectPath{SourcePath: filepath.Clean(mount[0]), DestinationDir: filepath.Clean(mount[1])}
-	if IsInvalidFilename(s.SourcePath) || IsInvalidFilename(s.DestinationDir) {
+	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.Clean(mount[1])}
+	if IsInvalidFilename(s.Source) || IsInvalidFilename(s.Destination) {
 		return fmt.Errorf("invalid characters in filename: %q", value)
 	}
-	*il = append(*il, s)
+	*l = append(*l, s)
 	return nil
 }
 
 // String implements the String() function of pflags.Value interface.
-func (il *InjectionList) String() string {
+func (l *VolumeList) String() string {
 	result := []string{}
-	for _, i := range *il {
-		result = append(result, strings.Join([]string{i.SourcePath, i.DestinationDir}, ":"))
+	for _, i := range *l {
+		result = append(result, strings.Join([]string{i.Source, i.Destination}, ":"))
 	}
 	return strings.Join(result, ",")
 }
 
 // Type implements the Type() function of pflags.Value interface.
-func (il *InjectionList) Type() string {
+func (l *VolumeList) Type() string {
 	return "string"
+}
+
+// Set implements the Set() function of pflags.Value interface.
+func (e *EnvironmentList) Set(value string) error {
+	parts := strings.SplitN(value, "=", 2)
+	if len(parts) != 2 || len(parts[0]) == 0 {
+		return fmt.Errorf("invalid environment format %q, must be NAME=VALUE", value)
+	}
+	if strings.Contains(parts[1], ",") && strings.Contains(parts[1], "=") {
+		glog.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", value)
+	}
+	*e = append(*e, EnvironmentSpec{
+		Name:  strings.TrimSpace(parts[0]),
+		Value: strings.TrimSpace(parts[1]),
+	})
+	return nil
+}
+
+// String implements the String() function of pflags.Value interface.
+func (e *EnvironmentList) String() string {
+	result := []string{}
+	for _, i := range *e {
+		result = append(result, strings.Join([]string{i.Name, i.Value}, "="))
+	}
+	return strings.Join(result, ",")
+}
+
+// Type implements the Type() function of pflags.Value interface.
+func (e *EnvironmentList) Type() string {
+	return "string"
+}
+
+// AsBinds converts the list of volume definitions to go-dockerclient compatible
+// list of bind mounts.
+func (l *VolumeList) AsBinds() []string {
+	result := make([]string, len(*l))
+	for index, v := range *l {
+		result[index] = strings.Join([]string{v.Source, v.Destination}, ":")
+	}
+	return result
 }

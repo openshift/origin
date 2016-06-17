@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"testing"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -156,12 +156,17 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				j.RollingUpdate = &rollingUpdate
 			}
 		},
-		func(j *extensions.JobSpec, c fuzz.Continue) {
+		func(j *batch.JobSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
-			completions := int(c.Rand.Int31())
-			parallelism := int(c.Rand.Int31())
+			completions := int32(c.Rand.Int31())
+			parallelism := int32(c.Rand.Int31())
 			j.Completions = &completions
 			j.Parallelism = &parallelism
+			if c.Rand.Int31()%2 == 0 {
+				j.ManualSelector = newBool(true)
+			} else {
+				j.ManualSelector = nil
+			}
 		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -175,28 +180,14 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			if true { //c.RandBool() {
 				*j = &runtime.Unknown{
 					// We do not set TypeMeta here because it is not carried through a round trip
-					RawJSON: []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
+					Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
+					ContentType: runtime.ContentTypeJSON,
 				}
 			} else {
 				types := []runtime.Object{&api.Pod{}, &api.ReplicationController{}}
 				t := types[c.Rand.Intn(len(types))]
 				c.Fuzz(t)
 				*j = t
-			}
-		},
-		func(pb map[docker.Port][]docker.PortBinding, c fuzz.Continue) {
-			// This is necessary because keys with nil values get omitted.
-			// TODO: Is this a bug?
-			pb[docker.Port(c.RandString())] = []docker.PortBinding{
-				{c.RandString(), c.RandString()},
-				{c.RandString(), c.RandString()},
-			}
-		},
-		func(pm map[string]docker.PortMapping, c fuzz.Continue) {
-			// This is necessary because keys with nil values get omitted.
-			// TODO: Is this a bug?
-			pm[c.RandString()] = docker.PortMapping{
-				c.RandString(): c.RandString(),
 			}
 		},
 		func(q *api.ResourceRequirements, c fuzz.Continue) {
@@ -387,30 +378,41 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			c.FuzzNoCustom(s)
 			s.Allocatable = s.Capacity
 		},
-		func(s *extensions.APIVersion, c fuzz.Continue) {
-			// We can't use c.RandString() here because it may generate empty
-			// string, which will cause tests failure.
-			s.APIGroup = "something"
-		},
 		func(s *extensions.HorizontalPodAutoscalerSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
-			minReplicas := int(c.Rand.Int31())
+			minReplicas := int32(c.Rand.Int31())
 			s.MinReplicas = &minReplicas
-			s.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: int(int32(c.RandUint64()))}
+			s.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: int32(c.RandUint64())}
 		},
-		func(s *extensions.DaemonSetUpdateStrategy, c fuzz.Continue) {
-			c.FuzzNoCustom(s)
-			s.Type = extensions.RollingUpdateDaemonSetStrategyType
-			s.RollingUpdate = &extensions.RollingUpdateDaemonSet{
-				MaxUnavailable: intstr.FromInt(10),
-			}
+		func(s *extensions.SubresourceReference, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+			s.Subresource = "scale"
 		},
 		func(psp *extensions.PodSecurityPolicySpec, c fuzz.Continue) {
 			c.FuzzNoCustom(psp) // fuzz self without calling this function again
-			userTypes := []extensions.RunAsUserStrategy{extensions.RunAsUserStrategyMustRunAsNonRoot, extensions.RunAsUserStrategyMustRunAs, extensions.RunAsUserStrategyRunAsAny}
-			psp.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
-			seLinuxTypes := []extensions.SELinuxContextStrategy{extensions.SELinuxStrategyRunAsAny, extensions.SELinuxStrategyMustRunAs}
-			psp.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			runAsUserRules := []extensions.RunAsUserStrategy{extensions.RunAsUserStrategyMustRunAsNonRoot, extensions.RunAsUserStrategyMustRunAs, extensions.RunAsUserStrategyRunAsAny}
+			psp.RunAsUser.Rule = runAsUserRules[c.Rand.Intn(len(runAsUserRules))]
+			seLinuxRules := []extensions.SELinuxStrategy{extensions.SELinuxStrategyRunAsAny, extensions.SELinuxStrategyMustRunAs}
+			psp.SELinux.Rule = seLinuxRules[c.Rand.Intn(len(seLinuxRules))]
+		},
+		func(s *extensions.Scale, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+			// TODO: Implement a fuzzer to generate valid keys, values and operators for
+			// selector requirements.
+			if s.Status.Selector != nil {
+				s.Status.Selector = &unversioned.LabelSelector{
+					MatchLabels: map[string]string{
+						"testlabelkey": "testlabelval",
+					},
+					MatchExpressions: []unversioned.LabelSelectorRequirement{
+						{
+							Key:      "testkey",
+							Operator: unversioned.LabelSelectorOpIn,
+							Values:   []string{"val1", "val2", "val3"},
+						},
+					},
+				}
+			}
 		},
 		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
 			c.FuzzNoCustom(scc) // fuzz self without calling this function again
@@ -422,7 +424,36 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
 			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
 			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+
+			// when fuzzing the volume types ensure it is set to avoid the defaulter's expansion.
+			// Do not use FSTypeAll or host dir setting to steer clear of defaulting mechanics
+			// which are covered in specific unit tests.
+			volumeTypes := []api.FSType{api.FSTypeAWSElasticBlockStore,
+				api.FSTypeAzureFile,
+				api.FSTypeCephFS,
+				api.FSTypeCinder,
+				api.FSTypeDownwardAPI,
+				api.FSTypeEmptyDir,
+				api.FSTypeFC,
+				api.FSTypeFlexVolume,
+				api.FSTypeFlocker,
+				api.FSTypeGCEPersistentDisk,
+				api.FSTypeGitRepo,
+				api.FSTypeGlusterfs,
+				api.FSTypeISCSI,
+				api.FSTypeNFS,
+				api.FSTypePersistentVolumeClaim,
+				api.FSTypeRBD,
+				api.FSTypeSecret}
+			scc.Volumes = []api.FSType{volumeTypes[c.Rand.Intn(len(volumeTypes))]}
+
 		},
 	)
 	return f
+}
+
+func newBool(val bool) *bool {
+	p := new(bool)
+	*p = val
+	return p
 }

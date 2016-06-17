@@ -2,7 +2,6 @@ package imagestreamtag
 
 import (
 	"fmt"
-	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -41,15 +40,8 @@ func (r *REST) NewList() runtime.Object {
 // nameAndTag splits a string into its name component and tag component, and returns an error
 // if the string is not in the right form.
 func nameAndTag(id string) (name string, tag string, err error) {
-	segments := strings.Split(id, ":")
-	switch len(segments) {
-	case 2:
-		name = segments[0]
-		tag = segments[1]
-		if len(name) == 0 || len(tag) == 0 {
-			err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
-		}
-	default:
+	name, tag, err = api.ParseImageStreamTagName(id)
+	if err != nil {
 		err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 	}
 	return

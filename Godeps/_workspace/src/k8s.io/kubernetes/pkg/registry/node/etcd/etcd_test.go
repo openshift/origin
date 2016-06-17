@@ -39,8 +39,9 @@ func (fakeConnectionInfoGetter) GetConnectionInfo(ctx api.Context, nodeName stri
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _ := NewREST(etcdStorage, generic.UndecoratedStorage, fakeConnectionInfoGetter{}, nil)
-	return storage, server
+	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
+	storage := NewStorage(restOptions, fakeConnectionInfoGetter{}, nil)
+	return storage.Node, server
 }
 
 func validNewNode() *api.Node {
@@ -66,7 +67,7 @@ func validNewNode() *api.Node {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	node := validNewNode()
 	node.ObjectMeta = api.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
@@ -82,7 +83,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestUpdate(
 		// valid
 		validNewNode(),
@@ -98,28 +99,28 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestDelete(validNewNode())
 }
 
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(validNewNode())
 }
 
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(validNewNode())
 }
 
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestWatch(
 		validNewNode(),
 		// matching labels

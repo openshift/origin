@@ -8,27 +8,29 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/observe"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for authorize tokens against etcd
 type REST struct {
-	// Cannot inline because we don't want the Update function
-	store *etcdgeneric.Etcd
+	*registry.Store
 }
 
 const EtcdPrefix = "/oauth/authorizetokens"
 
 // NewREST returns a RESTStorage object that will work against authorize tokens
-func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
+	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
@@ -50,10 +52,13 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 		},
 		QualifiedResource: api.Resource("oauthauthorizetokens"),
 
-		Storage: s,
+		CreateStrategy: strategy,
+		UpdateStrategy: strategy,
 	}
 
-	store.CreateStrategy = oauthauthorizetoken.Strategy
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+		return nil, err
+	}
 
 	if len(backends) > 0 {
 		// Build identical stores that talk to a single etcd, so we can verify the token is distributed after creation
@@ -64,36 +69,12 @@ func NewREST(s storage.Interface, backends ...storage.Interface) *REST {
 			watchers = append(watchers, &watcher)
 		}
 		// Observe the cluster for the particular resource version, requiring at least one backend to succeed
-		observer := observe.NewClusterObserver(s.Versioner(), watchers, 1)
+		observer := observe.NewClusterObserver(store.Storage.Versioner(), watchers, 1)
 		// After creation, wait for the new token to propagate
 		store.AfterCreate = func(obj runtime.Object) error {
 			return observer.ObserveResourceVersion(obj.(*api.OAuthAuthorizeToken).ResourceVersion, 5*time.Second)
 		}
 	}
 
-	return &REST{store}
-}
-
-func (r *REST) New() runtime.Object {
-	return r.store.NewFunc()
-}
-
-func (r *REST) NewList() runtime.Object {
-	return r.store.NewListFunc()
-}
-
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Get(ctx, name)
-}
-
-func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	return r.store.List(ctx, options)
-}
-
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	return r.store.Create(ctx, obj)
-}
-
-func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	return r.store.Delete(ctx, name, options)
+	return &REST{store}, nil
 }

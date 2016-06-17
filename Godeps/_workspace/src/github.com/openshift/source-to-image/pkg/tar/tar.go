@@ -22,9 +22,9 @@ import (
 // connections in which it would wait for a long time to untar and nothing would happen
 const defaultTimeout = 30 * time.Second
 
-// defaultExclusionPattern is the pattern of files that will not be included in a tar
+// DefaultExclusionPattern is the pattern of files that will not be included in a tar
 // file when creating one. By default it is any file inside a .git metadata directory
-var defaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
+var DefaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
 
 // Tar can create and extract tar files used in an STI build
 type Tar interface {
@@ -74,7 +74,7 @@ type Tar interface {
 // New creates a new Tar
 func New() Tar {
 	return &stiTar{
-		exclude: defaultExclusionPattern,
+		exclude: DefaultExclusionPattern,
 		timeout: defaultTimeout,
 	}
 }
@@ -108,7 +108,7 @@ func (t *stiTar) StreamDirAsTar(source, dest string, writer io.Writer) error {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
-	if err := fs.Copy(source, tmpDir); err != nil {
+	if err = fs.Copy(source, tmpDir); err != nil {
 		return err
 	}
 	// Skip chmod if on windows OS
@@ -174,7 +174,7 @@ func (t *stiTar) CreateTarFile(base, dir string) (string, error) {
 }
 
 func (t *stiTar) shouldExclude(path string) bool {
-	return t.exclude != nil && t.exclude.MatchString(path)
+	return t.exclude != nil && t.exclude.String() != "" && t.exclude.MatchString(path)
 }
 
 // CreateTarStream calls CreateTarStreamWithLogging with a nil logger
@@ -198,7 +198,10 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 		if !info.IsDir() && !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
-				if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+				if dir == path {
+					return nil
+				}
+				if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
 				return err
@@ -211,7 +214,7 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 				return nil
 			}
 			defer file.Close()
-			if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+			if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 				glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				return err
 			}
@@ -330,9 +333,9 @@ func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logge
 		select {
 		case err := <-errorChannel:
 			if err != nil {
-				glog.Errorf("Error extracting tar stream")
+				glog.Error("Error extracting tar stream")
 			} else {
-				glog.V(2).Infof("Done extracting tar stream")
+				glog.V(2).Info("Done extracting tar stream")
 			}
 			return err
 		case <-timeoutTimer.C:
@@ -356,13 +359,13 @@ func extractFile(dir string, header *tar.Header, tarReader io.Reader) error {
 	glog.V(3).Infof("Creating %s", path)
 
 	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
 	// The file times need to be modified after it's been closed thus this function
 	// is deferred after the file close (LIFO order for defer)
 	defer os.Chtimes(path, time.Now(), header.FileInfo().ModTime())
 	defer file.Close()
-	if err != nil {
-		return err
-	}
 	glog.V(3).Infof("Extracting/writing %s", path)
 	written, err := io.Copy(file, tarReader)
 	if err != nil {

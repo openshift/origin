@@ -56,6 +56,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				// we don't want to create an imagestream for "scratch", so treat
 				// it as a local only image.
 				LocalOnly: true,
+				Virtual:   true,
 			})
 			return componentMatches, errs
 		}

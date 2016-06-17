@@ -34,6 +34,8 @@ const (
 	// MissingTLSTerminationTypeErr is returned when a route with a tls config doesn't
 	// specify a tls termination type.
 	RouteNotAdmittedTypeErr = "RouteNotAdmitted"
+	// MissingRequiredRouterErr is returned when no router has been setup.
+	MissingRequiredRouterErr = "MissingRequiredRouter"
 )
 
 // FindPortMappingIssues checks all routes and reports any issues related to their ports.
@@ -176,6 +178,28 @@ func FindRouteAdmissionFailures(g osgraph.Graph, f osgraph.Namer) []osgraph.Mark
 				})
 				break Route
 			}
+		}
+	}
+
+	return markers
+}
+
+// FindMissingRouter creates markers for all routes in case there is no running router.
+func FindMissingRouter(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
+		routeNode := uncastRouteNode.(*routegraph.RouteNode)
+
+		if len(routeNode.Route.Status.Ingress) == 0 {
+			markers = append(markers, osgraph.Marker{
+				Node: routeNode,
+
+				Severity:   osgraph.ErrorSeverity,
+				Key:        MissingRequiredRouterErr,
+				Message:    fmt.Sprintf("%s is routing traffic to svc/%s, but either the administrator has not installed a router or the router is not selecting this route.", f.ResourceName(routeNode), routeNode.Spec.To.Name),
+				Suggestion: osgraph.Suggestion("oc adm router -h"),
+			})
 		}
 	}
 

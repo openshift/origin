@@ -26,7 +26,7 @@ This command validates that a configuration file intended to be used for a maste
 `
 
 	validateMasterConfigExample = ` // Validate master server configuration file
-  $ %s openshift.local.config/master/master-config.yaml`
+  %s openshift.local.config/master/master-config.yaml`
 
 	validateMasterConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics MasterConfigCheck --master-config=path/to/config.yaml' instead.`
 )

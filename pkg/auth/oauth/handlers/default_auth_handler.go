@@ -15,13 +15,13 @@ import (
 // unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 type unionAuthenticationHandler struct {
 	challengers      map[string]AuthenticationChallenger
-	redirectors      map[string]AuthenticationRedirector
+	redirectors      *AuthenticationRedirectors
 	errorHandler     AuthenticationErrorHandler
 	selectionHandler AuthenticationSelectionHandler
 }
 
 // NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
-func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors map[string]AuthenticationRedirector, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler) AuthenticationHandler {
+func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors *AuthenticationRedirectors, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler) AuthenticationHandler {
 	challengers := passedChallengers
 	if challengers == nil {
 		challengers = make(map[string]AuthenticationChallenger, 1)
@@ -29,7 +29,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 
 	redirectors := passedRedirectors
 	if redirectors == nil {
-		redirectors = make(map[string]AuthenticationRedirector, 1)
+		redirectors = new(AuthenticationRedirectors)
 	}
 
 	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler}
@@ -135,8 +135,8 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	// See if a single provider was selected
 	redirectHandlerName := req.URL.Query().Get(useRedirectParam)
 	if len(redirectHandlerName) > 0 {
-		redirectHandler := authHandler.redirectors[redirectHandlerName]
-		if redirectHandler == nil {
+		redirectHandler, ok := authHandler.redirectors.Get(redirectHandlerName)
+		if !ok {
 			return false, fmt.Errorf("Unable to locate redirect handler: %v", redirectHandlerName)
 		}
 		err := redirectHandler.AuthenticationRedirect(w, req)
@@ -149,7 +149,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	// Delegate to provider selection
 	if authHandler.selectionHandler != nil {
 		providers := []ProviderInfo{}
-		for name := range authHandler.redirectors {
+		for _, name := range authHandler.redirectors.GetNames() {
 			u := *req.URL
 			q := u.Query()
 			q.Set(useRedirectParam, name)
@@ -168,8 +168,8 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 			return handled, nil
 		}
 		if selectedProvider != nil {
-			redirectHandler := authHandler.redirectors[selectedProvider.Name]
-			if redirectHandler == nil {
+			redirectHandler, ok := authHandler.redirectors.Get(selectedProvider.Name)
+			if !ok {
 				return false, fmt.Errorf("Unable to locate redirect handler: %v", selectedProvider.Name)
 			}
 			err := redirectHandler.AuthenticationRedirect(w, req)
@@ -182,16 +182,19 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	}
 
 	// Otherwise, automatically select a single provider, and error on multiple
-	if (len(authHandler.redirectors)) == 1 {
-		// there has to be a better way
-		for _, redirectHandler := range authHandler.redirectors {
-			err := redirectHandler.AuthenticationRedirect(w, req)
-			if err != nil {
-				return authHandler.errorHandler.AuthenticationError(err, w, req)
-			}
-			return true, nil
+	if authHandler.redirectors.Count() == 1 {
+		redirectHandler, ok := authHandler.redirectors.Get(authHandler.redirectors.GetNames()[0])
+		if !ok {
+			return authHandler.errorHandler.AuthenticationError(fmt.Errorf("No valid redirectors"), w, req)
 		}
-	} else if len(authHandler.redirectors) > 1 {
+
+		err := redirectHandler.AuthenticationRedirect(w, req)
+		if err != nil {
+			return authHandler.errorHandler.AuthenticationError(err, w, req)
+		}
+		return true, nil
+
+	} else if authHandler.redirectors.Count() > 1 {
 		// TODO this clearly doesn't work right.  There should probably be a redirect to an interstitial page.
 		// however, this is just as good as we have now.
 		return false, fmt.Errorf("Too many potential redirect handlers: %v", authHandler.redirectors)

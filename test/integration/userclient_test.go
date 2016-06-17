@@ -10,19 +10,18 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/user/api"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -78,19 +77,19 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	etcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
+	restOptsGetter := restoptions.NewConfigGetter(*masterConfig)
+
+	userStorage, err := useretcd.NewREST(restOptsGetter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	userRegistry := userregistry.NewRegistry(userStorage)
 
-	storageVersion := unversioned.GroupVersion{Group: "", Version: masterConfig.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, storageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	identityStorage, err := identityetcd.NewREST(restOptsGetter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))
-	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
+	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
 	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup)
 	if err != nil {

@@ -9,25 +9,29 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	_ "github.com/openshift/origin/pkg/build/api/install"
 )
 
 func TestBuildValidationSuccess(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -40,23 +44,206 @@ func TestBuildValidationSuccess(t *testing.T) {
 	}
 }
 
+func checkDockerStrategyEmptySourceError(result field.ErrorList) bool {
+	for _, err := range result {
+		if err.Type == field.ErrorTypeInvalid && strings.Contains(err.Field, "spec.source") && strings.Contains(err.Detail, "must provide a value for at least one of source, binary, images, or dockerfile") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestBuildEmptySource(t *testing.T) {
+	builds := []buildapi.Build{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			Spec: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseNew,
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			Spec: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						CustomStrategy: &buildapi.CustomBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseNew,
+			},
+		},
+	}
+	for _, build := range builds {
+		if result := ValidateBuild(&build); len(result) > 0 {
+			t.Errorf("Unexpected validation error returned %v", result)
+		}
+	}
+
+	badBuild := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		Spec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
+	}
+	if result := ValidateBuild(badBuild); len(result) == 0 {
+		t.Error("An error should have occurred with a DockerStrategy / no source combo")
+	} else {
+		if !checkDockerStrategyEmptySourceError(result) {
+			t.Errorf("The correct error was not found: %v", result)
+		}
+	}
+
+}
+
+func TestBuildConfigEmptySource(t *testing.T) {
+	buildConfigs := []buildapi.BuildConfig{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			Spec: buildapi.BuildConfigSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			Spec: buildapi.BuildConfigSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						CustomStrategy: &buildapi.CustomBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "myimage:tag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, buildConfig := range buildConfigs {
+		if result := ValidateBuildConfig(&buildConfig); len(result) > 0 {
+			t.Errorf("Unexpected validation error returned %v", result)
+		}
+	}
+
+	badBuildConfig := buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+	}
+	if result := ValidateBuildConfig(&badBuildConfig); len(result) == 0 {
+		t.Error("An error should have occurred with a DockerStrategy / no source combo")
+	} else {
+		if !checkDockerStrategyEmptySourceError(result) {
+			t.Errorf("The correct error was not found: %v", result)
+		}
+	}
+
+}
+
 func TestBuildValidationFailure(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -71,19 +258,21 @@ func TestBuildValidationFailure(t *testing.T) {
 
 func newDefaultParameters() buildapi.BuildSpec {
 	return buildapi.BuildSpec{
-		Source: buildapi.BuildSource{
-			Git: &buildapi.GitBuildSource{
-				URI: "http://github.com/my/repository",
+		CommonSpec: buildapi.CommonSpec{
+			Source: buildapi.BuildSource{
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+				ContextDir: "context",
 			},
-			ContextDir: "context",
-		},
-		Strategy: buildapi.BuildStrategy{
-			DockerStrategy: &buildapi.DockerBuildStrategy{},
-		},
-		Output: buildapi.BuildOutput{
-			To: &kapi.ObjectReference{
-				Kind: "DockerImage",
-				Name: "repository/data",
+			Strategy: buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
 	}
@@ -212,7 +401,8 @@ func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI:        "git://github.com/my/repository",
@@ -252,7 +442,8 @@ func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -295,7 +486,8 @@ func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -566,7 +758,8 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 		buildConfig := &buildapi.BuildConfig{
 			ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
 			Spec: buildapi.BuildConfigSpec{
-				BuildSpec: buildapi.BuildSpec{
+				RunPolicy: buildapi.BuildRunPolicySerial,
+				CommonSpec: buildapi.CommonSpec{
 					Source: buildapi.BuildSource{
 						Git: &buildapi.GitBuildSource{
 							URI: "http://github.com/my/repository",
@@ -610,7 +803,8 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: ""},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -969,7 +1163,7 @@ func TestValidateSource(t *testing.T) {
 		},
 	}
 	for i, tc := range errorCases {
-		errors := validateSource(tc.source, false, false, nil)
+		errors := validateSource(tc.source, false, false, false, nil)
 		switch len(errors) {
 		case 0:
 			if !tc.ok {
@@ -997,7 +1191,7 @@ func TestValidateSource(t *testing.T) {
 	}
 
 	errorCases[11].source.ContextDir = "."
-	validateSource(errorCases[11].source, false, false, nil)
+	validateSource(errorCases[11].source, false, false, false, nil)
 	if len(errorCases[11].source.ContextDir) != 0 {
 		t.Errorf("ContextDir was not cleaned: %s", errorCases[11].source.ContextDir)
 	}
@@ -1016,9 +1210,10 @@ func TestValidateStrategy(t *testing.T) {
 			t:    field.ErrorTypeInvalid,
 			path: "",
 			strategy: &buildapi.BuildStrategy{
-				SourceStrategy: &buildapi.SourceBuildStrategy{},
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-				CustomStrategy: &buildapi.CustomBuildStrategy{},
+				SourceStrategy:          &buildapi.SourceBuildStrategy{},
+				DockerStrategy:          &buildapi.DockerBuildStrategy{},
+				CustomStrategy:          &buildapi.CustomBuildStrategy{},
+				JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
 			},
 		},
 	}
@@ -1051,18 +1246,17 @@ func TestValidateStrategy(t *testing.T) {
 	}
 }
 
-func TestValidateBuildSpec(t *testing.T) {
+func TestValidateCommonSpec(t *testing.T) {
 	zero := int64(0)
 	longString := strings.Repeat("1234567890", 100*61)
-	//shortString := "FROM foo"
 	errorCases := []struct {
 		err string
-		*buildapi.BuildSpec
+		buildapi.CommonSpec
 	}{
 		// 0
 		{
 			string(field.ErrorTypeInvalid) + "output.to.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1083,7 +1277,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 1
 		{
 			string(field.ErrorTypeInvalid) + "output.to.kind",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1104,7 +1298,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 2
 		{
 			string(field.ErrorTypeRequired) + "output.to.kind",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1122,7 +1316,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 3
 		{
 			string(field.ErrorTypeRequired) + "output.to.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1142,7 +1336,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 4
 		{
 			string(field.ErrorTypeInvalid) + "output.to.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1164,7 +1358,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 5
 		{
 			string(field.ErrorTypeInvalid) + "output.to.namespace",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1188,7 +1382,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// sti strategy definition
 		{
 			string(field.ErrorTypeRequired) + "strategy.sourceStrategy.from.kind",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1209,7 +1403,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// Invalid because from.name is not specified
 		{
 			string(field.ErrorTypeRequired) + "strategy.sourceStrategy.from.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1234,7 +1428,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// invalid because from name is a bad format
 		{
 			string(field.ErrorTypeInvalid) + "strategy.sourceStrategy.from.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1258,7 +1452,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// custom strategy definition
 		{
 			string(field.ErrorTypeRequired) + "strategy.customStrategy.from.kind",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1280,7 +1474,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// custom strategy definition
 		{
 			string(field.ErrorTypeInvalid) + "strategy.customStrategy.from.name",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1302,7 +1496,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 11
 		{
 			string(field.ErrorTypeInvalid) + "source.dockerfile",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Dockerfile: &longString,
 				},
@@ -1314,7 +1508,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// 12
 		{
 			string(field.ErrorTypeInvalid) + "source.dockerfile",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Dockerfile: &longString,
 					Git: &buildapi.GitBuildSource{
@@ -1330,7 +1524,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// invalid because CompletionDeadlineSeconds <= 0
 		{
 			string(field.ErrorTypeInvalid) + "completionDeadlineSeconds",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1353,7 +1547,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// must provide some source input
 		{
 			string(field.ErrorTypeInvalid) + "source",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{},
 				Strategy: buildapi.BuildStrategy{
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
@@ -1370,7 +1564,7 @@ func TestValidateBuildSpec(t *testing.T) {
 		// dockerfilePath can't be an absolute path
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1391,10 +1585,10 @@ func TestValidateBuildSpec(t *testing.T) {
 			},
 		},
 		// 16
-		// dockerfilePath can't start with ..
+		// dockerfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1415,9 +1609,57 @@ func TestValidateBuildSpec(t *testing.T) {
 			},
 		},
 		// 17
+		// dockerfilePath can't reference a path outside of the dir
+		{
+			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "someDockerfile/../../..",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 17
+		// dockerfilePath can't equal ..
+		{
+			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						DockerfilePath: "..",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 18
 		{
 			string(field.ErrorTypeInvalid) + "postCommit",
-			&buildapi.BuildSpec{
+			buildapi.CommonSpec{
 				PostCommit: buildapi.BuildPostCommitSpec{
 					Command: []string{"rake", "test"},
 					Script:  "rake test",
@@ -1432,10 +1674,115 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
+		// 19
+		{
+			string(field.ErrorTypeInvalid) + "source.git",
+			buildapi.CommonSpec{
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+				},
+			},
+		},
+		// 20
+		{
+			string(field.ErrorTypeInvalid) + "source.git",
+			buildapi.CommonSpec{
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "b",
+					},
+				},
+			},
+		},
+		// 21
+		// jenkinsfilePath can't be an absolute path
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "/myJenkinsfile",
+					},
+				},
+			},
+		},
+		// 22
+		// jenkinsfilePath can't start with ../
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "../someJenkinsfile",
+					},
+				},
+			},
+		},
+		// 23
+		// jenkinsfilePath can't be a reference a path outside of the dir
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "someJenkinsfile/../../../",
+					},
+				},
+			},
+		},
+		// 24
+		// jenkinsfilePath can't be equal to ..
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						JenkinsfilePath: "..",
+					},
+				},
+			},
+		},
+		// 25
+		// path must be shorter than 100k
+		{
+			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+						Jenkinsfile: longString + longString,
+					},
+				},
+			},
+		},
 	}
 
 	for count, config := range errorCases {
-		errors := validateBuildSpec(config.BuildSpec, nil)
+		errors := validateCommonSpec(&config.CommonSpec, nil)
 		if len(errors) != 1 {
 			t.Errorf("Test[%d] %s: Unexpected validation result: %v", count, config.err, errors)
 			continue
@@ -1448,14 +1795,14 @@ func TestValidateBuildSpec(t *testing.T) {
 	}
 }
 
-func TestValidateBuildSpecSuccess(t *testing.T) {
+func TestValidateCommonSpecSuccess(t *testing.T) {
 	shortString := "FROM foo"
 	testCases := []struct {
-		*buildapi.BuildSpec
+		buildapi.CommonSpec
 	}{
 		// 0
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1479,7 +1826,7 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		},
 		// 1
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1503,7 +1850,7 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		},
 		// 2
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1522,7 +1869,7 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		},
 		// 3
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1546,7 +1893,7 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		},
 		// 4
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Dockerfile: &shortString,
 					Git: &buildapi.GitBuildSource{
@@ -1571,7 +1918,7 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 		},
 		// 5
 		{
-			&buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -1595,14 +1942,12 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 			},
 		},
 	}
-
 	for count, config := range testCases {
-		errors := validateBuildSpec(config.BuildSpec, nil)
+		errors := validateCommonSpec(&config.CommonSpec, nil)
 		if len(errors) != 0 {
 			t.Errorf("Test[%d] Unexpected validation error: %v", count, errors)
 		}
 	}
-
 }
 
 func TestValidateDockerfilePath(t *testing.T) {
@@ -1647,6 +1992,48 @@ func TestValidateDockerfilePath(t *testing.T) {
 	}
 }
 
+func TestValidateJenkinsfilePath(t *testing.T) {
+	tests := []struct {
+		strategy                *buildapi.JenkinsPipelineBuildStrategy
+		expectedJenkinsfilePath string
+	}{
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: ".",
+			},
+			expectedJenkinsfilePath: "",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/..",
+			},
+			expectedJenkinsfilePath: "",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/../somedockerfile",
+			},
+			expectedJenkinsfilePath: "somedockerfile",
+		},
+		{
+			strategy: &buildapi.JenkinsPipelineBuildStrategy{
+				JenkinsfilePath: "somedir/somedockerfile",
+			},
+			expectedJenkinsfilePath: "somedir/somedockerfile",
+		},
+	}
+
+	for count, test := range tests {
+		errors := validateJenkinsPipelineStrategy(test.strategy, nil)
+		if len(errors) != 0 {
+			t.Errorf("Test[%d] Unexpected validation error: %v", count, errors)
+		}
+		if test.strategy.JenkinsfilePath != test.expectedJenkinsfilePath {
+			t.Errorf("Test[%d] Unexpected JenkinsfilePath: %v (expected: %s)", count, test.strategy.JenkinsfilePath, test.expectedJenkinsfilePath)
+		}
+	}
+}
+
 func TestValidateTrigger(t *testing.T) {
 	tests := map[string]struct {
 		trigger  buildapi.BuildTriggerPolicy
@@ -1681,6 +2068,16 @@ func TestValidateTrigger(t *testing.T) {
 				},
 			},
 			expected: []*field.Error{field.Required(field.NewPath("github"), "")},
+		},
+		"GitHub trigger with allow env": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
+					Secret:   "secret101",
+					AllowEnv: true,
+				},
+			},
+			expected: []*field.Error{field.Invalid(field.NewPath("github", "allowEnv"), "", "")},
 		},
 		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
@@ -1922,6 +2319,85 @@ func TestValidatePostCommit(t *testing.T) {
 	for _, tt := range tests {
 		if got := validatePostCommit(tt.spec, path); !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("validatePostCommitSpec(%+v) = %v, want %v", tt.spec, got, tt.want)
+		}
+	}
+}
+
+func TestDiffBuildSpec(t *testing.T) {
+	tests := []struct {
+		name         string
+		older, newer buildapi.BuildSpec
+		expected     string
+	}{
+		{
+			name: "context dir",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						ContextDir: "context-dir",
+					},
+				},
+			},
+			expected: `{"spec":{"source":{"contextDir":"context-dir"}}}`,
+		},
+		{
+			name: "same git build source",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			expected: "{}",
+		},
+		{
+			name: "different git build source",
+			older: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/openshift/origin.git",
+						},
+					},
+				},
+			},
+			newer: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Git: &buildapi.GitBuildSource{
+							Ref: "https://github.com/ose/origin.git",
+						},
+					},
+				},
+			},
+			expected: `{"spec":{"source":{"git":{"ref":"https://github.com/ose/origin.git"}}}}`,
+		},
+	}
+	for _, test := range tests {
+		diff, err := diffBuildSpec(test.newer, test.older)
+		if err != nil {
+			t.Errorf("%s: unexpected: %v", test.name, err)
+			continue
+		}
+		if diff != test.expected {
+			t.Errorf("%s: expected: %s, got: %s", test.name, test.expected, diff)
 		}
 	}
 }

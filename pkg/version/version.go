@@ -2,6 +2,8 @@ package version
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	etcdversion "github.com/coreos/etcd/version"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,6 +52,32 @@ func (info Info) String() string {
 		version = "unknown"
 	}
 	return version
+}
+
+var (
+	reCommitSegment   = regexp.MustCompile(`^g[0-9a-f]{6,10}$`)
+	reCommitIncrement = regexp.MustCompile(`^[0-9a-f]+$`)
+)
+
+// LastSemanticVersion attempts to return a semantic version from the GitVersion - which
+// is either <semver>-<increment>-g<commit> or <semver> on release boundaries.
+func (info Info) LastSemanticVersion() string {
+	version := info.GitVersion
+	parts := strings.Split(version, "-")
+	// strip the modifier
+	if len(parts) > 1 && parts[len(parts)-1] == "dirty" {
+		parts = parts[:len(parts)-1]
+	}
+	// strip the Git commit
+	if len(parts) > 1 && reCommitSegment.MatchString(parts[len(parts)-1]) {
+		parts = parts[:len(parts)-1]
+		// strip a version increment, but only if we found the commit
+		if len(parts) > 1 && reCommitIncrement.MatchString(parts[len(parts)-1]) {
+			parts = parts[:len(parts)-1]
+		}
+	}
+
+	return strings.Join(parts, "-")
 }
 
 // NewVersionCommand creates a command for displaying the version of this binary

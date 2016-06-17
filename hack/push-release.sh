@@ -12,7 +12,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -49,6 +49,7 @@ images=(
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
   openshift/origin-f5-router
+  openshift/origin-egress-router
   openshift/origin-recycler
   openshift/origin-gitserver
   openshift/hello-openshift

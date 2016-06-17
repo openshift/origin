@@ -70,8 +70,10 @@ type ScopeNamer interface {
 type RequestScope struct {
 	Namer ScopeNamer
 	ContextFunc
+
 	Serializer runtime.NegotiatedSerializer
 	runtime.ParameterCodec
+
 	Creater   runtime.ObjectCreater
 	Convertor runtime.ObjectConvertor
 
@@ -197,7 +199,7 @@ func ConnectResource(connecter rest.Connecter, scope RequestScope, admit admissi
 			}
 			userInfo, _ := api.UserFrom(ctx)
 
-			err = admit.Admit(admission.NewAttributesRecord(connectRequest, scope.Kind.GroupKind(), namespace, name, scope.Resource.GroupResource(), scope.Subresource, admission.Connect, userInfo))
+			err = admit.Admit(admission.NewAttributesRecord(connectRequest, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Connect, userInfo))
 			if err != nil {
 				scope.err(err, res.ResponseWriter, req.Request)
 				return
@@ -388,7 +390,7 @@ func createHandler(r rest.NamedCreater, scope RequestScope, typer runtime.Object
 		if admit != nil && admit.Handles(admission.Create) {
 			userInfo, _ := api.UserFrom(ctx)
 
-			err = admit.Admit(admission.NewAttributesRecord(obj, scope.Kind.GroupKind(), namespace, name, scope.Resource.GroupResource(), scope.Subresource, admission.Create, userInfo))
+			err = admit.Admit(admission.NewAttributesRecord(obj, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, userInfo))
 			if err != nil {
 				scope.err(err, res.ResponseWriter, req.Request)
 				return
@@ -491,7 +493,7 @@ func PatchResource(r rest.Patcher, scope RequestScope, typer runtime.ObjectTyper
 		updateAdmit := func(updatedObject runtime.Object) error {
 			if admit != nil && admit.Handles(admission.Update) {
 				userInfo, _ := api.UserFrom(ctx)
-				return admit.Admit(admission.NewAttributesRecord(updatedObject, scope.Kind.GroupKind(), namespace, name, scope.Resource.GroupResource(), scope.Subresource, admission.Update, userInfo))
+				return admit.Admit(admission.NewAttributesRecord(updatedObject, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, userInfo))
 			}
 
 			return nil
@@ -567,11 +569,11 @@ func patchResource(ctx api.Context, admit updateAdmissionFunc, timeout time.Dura
 				return nil, err
 			}
 
-			currentPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, currentObjectJS, patcher.New())
+			currentPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, currentObjectJS, versionedObj)
 			if err != nil {
 				return nil, err
 			}
-			originalPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, originalPatchedObjJS, patcher.New())
+			originalPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, originalPatchedObjJS, versionedObj)
 			if err != nil {
 				return nil, err
 			}
@@ -589,6 +591,7 @@ func patchResource(ctx api.Context, admit updateAdmissionFunc, timeout time.Dura
 				return nil, err
 			}
 			if hasConflicts {
+				glog.V(4).Infof("patchResource failed for resource %s, becauase there is a meaningful conflict.\n diff1=%v\n, diff2=%v\n", name, diff1, diff2)
 				return updateObject, updateErr
 			}
 
@@ -666,7 +669,7 @@ func UpdateResource(r rest.Updater, scope RequestScope, typer runtime.ObjectType
 		if admit != nil && admit.Handles(admission.Update) {
 			userInfo, _ := api.UserFrom(ctx)
 
-			err = admit.Admit(admission.NewAttributesRecord(obj, scope.Kind.GroupKind(), namespace, name, scope.Resource.GroupResource(), scope.Subresource, admission.Update, userInfo))
+			err = admit.Admit(admission.NewAttributesRecord(obj, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, userInfo))
 			if err != nil {
 				scope.err(err, res.ResponseWriter, req.Request)
 				return
@@ -749,7 +752,7 @@ func DeleteResource(r rest.GracefulDeleter, checkBody bool, scope RequestScope, 
 		if admit != nil && admit.Handles(admission.Delete) {
 			userInfo, _ := api.UserFrom(ctx)
 
-			err = admit.Admit(admission.NewAttributesRecord(nil, scope.Kind.GroupKind(), namespace, name, scope.Resource.GroupResource(), scope.Subresource, admission.Delete, userInfo))
+			err = admit.Admit(admission.NewAttributesRecord(nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Delete, userInfo))
 			if err != nil {
 				scope.err(err, res.ResponseWriter, req.Request)
 				return
@@ -810,7 +813,7 @@ func DeleteCollection(r rest.CollectionDeleter, checkBody bool, scope RequestSco
 		if admit != nil && admit.Handles(admission.Delete) {
 			userInfo, _ := api.UserFrom(ctx)
 
-			err = admit.Admit(admission.NewAttributesRecord(nil, scope.Kind.GroupKind(), namespace, "", scope.Resource.GroupResource(), scope.Subresource, admission.Delete, userInfo))
+			err = admit.Admit(admission.NewAttributesRecord(nil, scope.Kind, namespace, "", scope.Resource, scope.Subresource, admission.Delete, userInfo))
 			if err != nil {
 				scope.err(err, res.ResponseWriter, req.Request)
 				return

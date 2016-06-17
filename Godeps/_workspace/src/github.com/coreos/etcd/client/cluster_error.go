@@ -21,11 +21,7 @@ type ClusterError struct {
 }
 
 func (ce *ClusterError) Error() string {
-	s := ce.Detail()
-	if len(s) > 0 {
-		return s
-	}
-	return "ClusterError without any details"
+	return ErrClusterUnavailable.Error()
 }
 
 func (ce *ClusterError) Detail() string {

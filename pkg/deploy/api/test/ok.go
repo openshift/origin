@@ -3,10 +3,28 @@ package test
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+const (
+	ImageStreamName      = "test-image-stream"
+	ImageID              = "00000000000000000000000000000001"
+	DockerImageReference = "registry:5000/openshift/test-image-stream@sha256:00000000000000000000000000000001"
+)
+
+func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
+	return &deployapi.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "config",
+		},
+		Spec:   OkDeploymentConfigSpec(),
+		Status: OkDeploymentConfigStatus(version),
+	}
+}
 
 func OkDeploymentConfigSpec() deployapi.DeploymentConfigSpec {
 	return deployapi.DeploymentConfigSpec{
@@ -16,11 +34,12 @@ func OkDeploymentConfigSpec() deployapi.DeploymentConfigSpec {
 		Template: OkPodTemplate(),
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			OkImageChangeTrigger(),
+			OkConfigChangeTrigger(),
 		},
 	}
 }
 
-func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
+func OkDeploymentConfigStatus(version int64) deployapi.DeploymentConfigStatus {
 	return deployapi.DeploymentConfigStatus{
 		LatestVersion: version,
 	}
@@ -28,18 +47,18 @@ func OkDeploymentConfigStatus(version int) deployapi.DeploymentConfigStatus {
 
 func OkImageChangeDetails() *deployapi.DeploymentDetails {
 	return &deployapi.DeploymentDetails{
-		Causes: []*deployapi.DeploymentCause{{
+		Causes: []deployapi.DeploymentCause{{
 			Type: deployapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
-					Name: imageapi.JoinImageStreamTag("test-image-stream", imageapi.DefaultImageTag),
+					Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
 					Kind: "ImageStreamTag",
 				}}}}}
 }
 
 func OkConfigChangeDetails() *deployapi.DeploymentDetails {
 	return &deployapi.DeploymentDetails{
-		Causes: []*deployapi.DeploymentCause{{
+		Causes: []deployapi.DeploymentCause{{
 			Type: deployapi.DeploymentTriggerOnConfigChange,
 		}}}
 }
@@ -141,6 +160,24 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 	}
 }
 
+func OkPodTemplateChanged() *kapi.PodTemplateSpec {
+	template := OkPodTemplate()
+	template.Spec.Containers[0].Image = DockerImageReference
+	return template
+}
+
+func OkPodTemplateMissingImage(missing ...string) *kapi.PodTemplateSpec {
+	set := sets.NewString(missing...)
+	template := OkPodTemplate()
+	for i, c := range template.Spec.Containers {
+		if set.Has(c.Name) {
+			// rememeber that slices use copies, so have to ref array entry explicitly
+			template.Spec.Containers[i].Image = ""
+		}
+	}
+	return template
+}
+
 func OkConfigChangeTrigger() deployapi.DeploymentTriggerPolicy {
 	return deployapi.DeploymentTriggerPolicy{
 		Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -157,23 +194,63 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 			},
 			From: kapi.ObjectReference{
 				Kind: "ImageStreamTag",
-				Name: imageapi.JoinImageStreamTag("test-image-stream", imageapi.DefaultImageTag),
+				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
 			},
 		},
 	}
 }
 
-func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "config",
-		},
-		Spec:   OkDeploymentConfigSpec(),
-		Status: OkDeploymentConfigStatus(version),
-	}
+func OkTriggeredImageChange() deployapi.DeploymentTriggerPolicy {
+	ict := OkImageChangeTrigger()
+	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
+	return ict
+}
+
+func OkNonAutomaticICT() deployapi.DeploymentTriggerPolicy {
+	ict := OkImageChangeTrigger()
+	ict.ImageChangeParams.Automatic = false
+	return ict
+}
+
+func OkTriggeredNonAutomatic() deployapi.DeploymentTriggerPolicy {
+	ict := OkNonAutomaticICT()
+	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
+	return ict
 }
 
 func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
 	config.Spec.Test = true
 	return config
+}
+
+func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *extensions.HorizontalPodAutoscaler {
+	newMin := int32(min)
+	return &extensions.HorizontalPodAutoscaler{
+		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
+		Spec: extensions.HorizontalPodAutoscalerSpec{
+			ScaleRef: extensions.SubresourceReference{
+				Name: config.Name,
+				Kind: "DeploymentConfig",
+			},
+			MinReplicas: &newMin,
+			MaxReplicas: int32(max),
+		},
+	}
+}
+
+func RemoveTriggerTypes(config *deployapi.DeploymentConfig, triggerTypes ...deployapi.DeploymentTriggerType) {
+	types := sets.NewString()
+	for _, triggerType := range triggerTypes {
+		types.Insert(string(triggerType))
+	}
+
+	remaining := []deployapi.DeploymentTriggerPolicy{}
+	for _, trigger := range config.Spec.Triggers {
+		if types.Has(string(trigger.Type)) {
+			continue
+		}
+		remaining = append(remaining, trigger)
+	}
+
+	config.Spec.Triggers = remaining
 }

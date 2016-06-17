@@ -19,7 +19,7 @@ const controllersLong = `Start the master controllers
 
 This command starts the controllers for the master.  Running
 
-  $ %[1]s start master %[2]s
+  %[1]s start master %[2]s
 
 will start the controllers that manage the master state, including the scheduler. The controllers
 will run in the foreground until you terminate the process.`

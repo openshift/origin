@@ -43,11 +43,11 @@ You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker in
 Here's how to get set up:
 
 1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
-** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
+** http://golang.org/doc/install[Installing Go]. Currently, OpenShift supports building using Go 1.6.x. Do NOT use $HOME/go for Go installation, save that for the Go workspace below.
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
 ** https://docs.docker.com/installation/[Installing Docker].
 +
-NOTE: As of now, OpenShift requires Docker 1.8.2 or higher.
+NOTE: As of now, OpenShift requires Docker 1.9 or higher.
 The exact version requirement is documented https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
 2. Next, create a Go workspace directory: +
@@ -94,11 +94,10 @@ export OS_OUTPUT_GOPATH=1
 +
 NOTE: Replace "linux/amd64" with the appropriate value for your platform/architecture.
 
-10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands:
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ ./oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
 
@@ -172,11 +171,10 @@ NOTE: This will generate three directories in /home/vagrant (openshift.local.con
 NOTE: By default your origin directory (on your host machine) will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`.
 
 
-10.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+10.  Deploy the private docker registry within OpenShift with the following commands:
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
 
 
 11.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
@@ -339,6 +337,10 @@ openshift.local.config) can be supplied instead:
 
         $ OPENSHIFT_CONFIG_ROOT=[cluster config root] test/extended/networking.sh
 
+It's also possible to supply the path to a kubeconfig file:
+
+        $ OPENSHIFT_TEST_KUBECONFIG=./admin.kubeconfig test/extended/networking.sh
+
 See the script's inline documentation for further details.
 
 ==== Running Kubernetes e2e tests
@@ -366,7 +368,8 @@ Right now you can see what's happening with OpenShift development at:
 
 https://github.com/openshift/origin[github.com/openshift/origin]
 
-Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
+Ready to play with some code? Hop down and read up on our link:#the-roadmap[roadmap] for ideas on where you can contribute.
+You can also try to take a stab at any issue tagged with the https://github.com/openshift/origin/issues?q=is%3Aissue+is%3Aopen+label%3Ahelp-wanted[help-wanted] label.
 
 *If you are interested in contributing to Kubernetes directly:* +
 https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].

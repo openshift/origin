@@ -9,18 +9,13 @@ import (
 
 // MongoDB is a MongoDB helper for executing commands.
 type MongoDB struct {
-	podName       string
-	masterPodName string
+	podName string
 }
 
 // NewMongoDB creates a new util.Database instance.
-func NewMongoDB(podName, masterPodName string) util.Database {
-	if masterPodName == "" {
-		masterPodName = podName
-	}
+func NewMongoDB(podName string) util.Database {
 	return &MongoDB{
-		podName:       podName,
-		masterPodName: masterPodName,
+		podName: podName,
 	}
 }
 
@@ -53,7 +48,19 @@ func (m MongoDB) QueryPrivileged(oc *util.CLI, query string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-// TestRemoteLogin tests wheather it is possible to remote login to hostAddress.
+// TestRemoteLogin tests whether it is possible to remote login to hostAddress.
 func (m MongoDB) TestRemoteLogin(oc *util.CLI, hostAddress string) error {
 	return errors.New("not implemented")
+}
+
+// // QueryPrimary queries the database on primary node as a regular user.
+func (m MongoDB) QueryPrimary(oc *util.CLI, query string) (string, error) {
+	return executeShellCommand(
+		oc,
+		m.podName,
+		fmt.Sprintf(
+			`mongo --quiet "$MONGODB_DATABASE" --username "$MONGODB_USER" --password "$MONGODB_PASSWORD" --host "$MONGODB_REPLICA_NAME/localhost" --eval '%s'`,
+			query,
+		),
+	)
 }

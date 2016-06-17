@@ -8,9 +8,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
-
 	// uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -70,7 +70,39 @@ func needsNormalizing(in string) bool {
 }
 
 func (r PolicyRule) String() string {
-	return fmt.Sprintf("PolicyRule{Verbs:%v, APIGroups:%v, Resources:%v, ResourceNames:%v, Restrictions:%v}", r.Verbs.List(), r.APIGroups, r.Resources.List(), r.ResourceNames.List(), r.AttributeRestrictions)
+	return "PolicyRule" + r.CompactString()
+}
+
+// CompactString exposes a compact string representation for use in escalation error messages
+func (r PolicyRule) CompactString() string {
+	formatStringParts := []string{}
+	formatArgs := []interface{}{}
+	if len(r.Verbs) > 0 {
+		formatStringParts = append(formatStringParts, "Verbs:%q")
+		formatArgs = append(formatArgs, r.Verbs.List())
+	}
+	if len(r.APIGroups) > 0 {
+		formatStringParts = append(formatStringParts, "APIGroups:%q")
+		formatArgs = append(formatArgs, r.APIGroups)
+	}
+	if len(r.Resources) > 0 {
+		formatStringParts = append(formatStringParts, "Resources:%q")
+		formatArgs = append(formatArgs, r.Resources.List())
+	}
+	if len(r.ResourceNames) > 0 {
+		formatStringParts = append(formatStringParts, "ResourceNames:%q")
+		formatArgs = append(formatArgs, r.ResourceNames.List())
+	}
+	if r.AttributeRestrictions != nil {
+		formatStringParts = append(formatStringParts, "Restrictions:%q")
+		formatArgs = append(formatArgs, r.AttributeRestrictions)
+	}
+	if len(r.NonResourceURLs) > 0 {
+		formatStringParts = append(formatStringParts, "NonResourceURLs:%q")
+		formatArgs = append(formatArgs, r.NonResourceURLs.List())
+	}
+	formatString := "{" + strings.Join(formatStringParts, ", ") + "}"
+	return fmt.Sprintf(formatString, formatArgs...)
 }
 
 func getRoleBindingValues(roleBindingMap map[string]*RoleBinding) []*RoleBinding {
@@ -210,4 +242,96 @@ func SubjectsStrings(currentNamespace string, subjects []kapi.ObjectReference) (
 	}
 
 	return users, groups, sas, others
+}
+
+func AddUserToSAR(user user.Info, sar *SubjectAccessReview) *SubjectAccessReview {
+	origScopes := user.GetExtra()[ScopesKey]
+	scopes := make([]string, len(origScopes), len(origScopes))
+	copy(scopes, origScopes)
+
+	sar.User = user.GetName()
+	sar.Groups = sets.NewString(user.GetGroups()...)
+	sar.Scopes = scopes
+	return sar
+}
+func AddUserToLSAR(user user.Info, lsar *LocalSubjectAccessReview) *LocalSubjectAccessReview {
+	origScopes := user.GetExtra()[ScopesKey]
+	scopes := make([]string, len(origScopes), len(origScopes))
+	copy(scopes, origScopes)
+
+	lsar.User = user.GetName()
+	lsar.Groups = sets.NewString(user.GetGroups()...)
+	lsar.Scopes = scopes
+	return lsar
+}
+
+// +gencopy=false
+// PolicyRuleBuilder let's us attach methods.  A no-no for API types
+type PolicyRuleBuilder struct {
+	PolicyRule PolicyRule
+}
+
+func NewRule(verbs ...string) *PolicyRuleBuilder {
+	return &PolicyRuleBuilder{
+		PolicyRule: PolicyRule{
+			Verbs:         sets.NewString(verbs...),
+			Resources:     sets.String{},
+			ResourceNames: sets.String{},
+		},
+	}
+}
+
+func (r *PolicyRuleBuilder) Groups(groups ...string) *PolicyRuleBuilder {
+	r.PolicyRule.APIGroups = append(r.PolicyRule.APIGroups, groups...)
+	return r
+}
+
+func (r *PolicyRuleBuilder) Resources(resources ...string) *PolicyRuleBuilder {
+	r.PolicyRule.Resources.Insert(resources...)
+	return r
+}
+
+func (r *PolicyRuleBuilder) Names(names ...string) *PolicyRuleBuilder {
+	r.PolicyRule.ResourceNames.Insert(names...)
+	return r
+}
+
+func (r *PolicyRuleBuilder) RuleOrDie() PolicyRule {
+	ret, err := r.Rule()
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func (r *PolicyRuleBuilder) Rule() (PolicyRule, error) {
+	if len(r.PolicyRule.Verbs) == 0 {
+		return PolicyRule{}, fmt.Errorf("verbs are required: %#v", r.PolicyRule)
+	}
+
+	switch {
+	case len(r.PolicyRule.NonResourceURLs) > 0:
+		if len(r.PolicyRule.APIGroups) != 0 || len(r.PolicyRule.Resources) != 0 || len(r.PolicyRule.ResourceNames) != 0 {
+			return PolicyRule{}, fmt.Errorf("non-resource rule may not have apiGroups, resources, or resourceNames: %#v", r.PolicyRule)
+		}
+	case len(r.PolicyRule.Resources) > 0:
+		if len(r.PolicyRule.NonResourceURLs) != 0 {
+			return PolicyRule{}, fmt.Errorf("resource rule may not have nonResourceURLs: %#v", r.PolicyRule)
+		}
+		if len(r.PolicyRule.APIGroups) == 0 {
+			return PolicyRule{}, fmt.Errorf("resource rule must have apiGroups: %#v", r.PolicyRule)
+		}
+	default:
+		return PolicyRule{}, fmt.Errorf("a rule must have either nonResourceURLs or resources: %#v", r.PolicyRule)
+	}
+
+	return r.PolicyRule, nil
+}
+
+type SortableRuleSlice []PolicyRule
+
+func (s SortableRuleSlice) Len() int      { return len(s) }
+func (s SortableRuleSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s SortableRuleSlice) Less(i, j int) bool {
+	return strings.Compare(s[i].String(), s[j].String()) < 0
 }

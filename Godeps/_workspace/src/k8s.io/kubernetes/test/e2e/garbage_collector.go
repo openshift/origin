@@ -17,23 +17,23 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // This test requires that --terminated-pod-gc-threshold=100 be set on the controller manager
 //
 // Slow by design (7 min)
-var _ = Describe("Garbage collector [Slow]", func() {
-	f := NewFramework("garbage-collector")
+var _ = framework.KubeDescribe("Garbage collector [Feature:GarbageCollector] [Slow]", func() {
+	f := framework.NewDefaultFramework("garbage-collector")
 	It("should handle the creation of 1000 pods", func() {
-		SkipUnlessProviderIs("gce")
-
 		var count int
 		for count < 1000 {
 			pod, err := createTerminatingPod(f)
@@ -41,35 +41,53 @@ var _ = Describe("Garbage collector [Slow]", func() {
 			pod.Status.Phase = api.PodFailed
 			pod, err = f.Client.Pods(f.Namespace.Name).UpdateStatus(pod)
 			if err != nil {
-				Failf("err failing pod: %v", err)
+				framework.Failf("err failing pod: %v", err)
 			}
 
 			count++
 			if count%50 == 0 {
-				Logf("count: %v", count)
+				framework.Logf("count: %v", count)
 			}
 		}
 
-		Logf("created: %v", count)
-		// This sleep has to be longer than the gcCheckPeriod defined
-		// in pkg/controller/gc/gc_controller.go which is currently
-		// 20 seconds.
-		time.Sleep(30 * time.Second)
+		framework.Logf("created: %v", count)
 
-		pods, err := f.Client.Pods(f.Namespace.Name).List(api.ListOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pods.Items)).To(BeNumerically("==", 100))
+		// The gc controller polls every 30s and fires off a goroutine per
+		// pod to terminate.
+		var err error
+		var pods *api.PodList
+		timeout := 2 * time.Minute
+		gcThreshold := 100
+
+		By(fmt.Sprintf("Waiting for gc controller to gc all but %d pods", gcThreshold))
+		pollErr := wait.Poll(1*time.Minute, timeout, func() (bool, error) {
+			pods, err = f.Client.Pods(f.Namespace.Name).List(api.ListOptions{})
+			if err != nil {
+				framework.Logf("Failed to list pod %v", err)
+				return false, nil
+			}
+			if len(pods.Items) != gcThreshold {
+				framework.Logf("Number of observed pods %v, waiting for %v", len(pods.Items), gcThreshold)
+				return false, nil
+			}
+			return true, nil
+		})
+		if pollErr != nil {
+			framework.Failf("Failed to GC pods within %v, %v pods remaining, error: %v", timeout, len(pods.Items), err)
+		}
 	})
 })
 
-func createTerminatingPod(f *Framework) (*api.Pod, error) {
+func createTerminatingPod(f *framework.Framework) (*api.Pod, error) {
 	uuid := util.NewUUID()
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name: string(uuid),
+			Annotations: map[string]string{
+				"scheduler.alpha.kubernetes.io/name": "please don't schedule my pods",
+			},
 		},
 		Spec: api.PodSpec{
-			NodeName: "nonexistant-node",
 			Containers: []api.Container{
 				{
 					Name:  string(uuid),

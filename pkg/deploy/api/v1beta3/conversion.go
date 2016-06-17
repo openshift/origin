@@ -13,7 +13,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTrigger
 	return nil
 }
 
-func convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTrigger
 	return nil
 }
 
-func convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds
@@ -82,7 +82,7 @@ func convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 	return nil
 }
 
-func convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *RollingDeploymentStrategyParams, s conversion.Scope) error {
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds
@@ -125,11 +125,11 @@ func convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStr
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
-		convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
-		convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTriggerImageChangeParams,
+		Convert_v1beta3_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
+		Convert_api_DeploymentTriggerImageChangeParams_To_v1beta3_DeploymentTriggerImageChangeParams,
 
-		convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
-		convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams,
+		Convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
+		Convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams,
 	)
 	if err != nil {
 		panic(err)

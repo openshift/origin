@@ -7,13 +7,15 @@ import (
 	"strings"
 	"time"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-
 	"github.com/docker/docker/pkg/parsers"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util/interrupt"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
+
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 var (
@@ -55,12 +57,18 @@ type DockerClient interface {
 // If any other scenario the push will fail, without retries.
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	repository, tag := docker.ParseRepositoryTag(name)
-	opts := docker.PushImageOptions{
-		Name: repository,
-		Tag:  tag,
+	logProgress := func(s string) {
+		glog.V(0).Infof("%s", s)
 	}
-	if glog.V(5) {
+	opts := docker.PushImageOptions{
+		Name:          repository,
+		Tag:           tag,
+		OutputStream:  imageprogress.NewPushWriter(logProgress),
+		RawJSONStream: true,
+	}
+	if glog.Is(5) {
 		opts.OutputStream = os.Stderr
+		opts.RawJSONStream = false
 	}
 	var err error
 	var retriableError = false
@@ -83,7 +91,6 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		}
 
 		utilruntime.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
-		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}
 	return err
@@ -156,40 +163,42 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 
 	containerName := containerNameOrID(c)
 
-	// Container was created, so we defer its removal.
-	defer func() {
+	removeContainer := func() {
 		glog.V(4).Infof("Removing container %q ...", containerName)
 		if err := client.RemoveContainer(docker.RemoveContainerOptions{ID: c.ID}); err != nil {
-			glog.Warningf("Failed to remove container %q: %v", containerName, err)
+			glog.V(0).Infof("warning: Failed to remove container %q: %v", containerName, err)
 		} else {
 			glog.V(4).Infof("Removed container %q", containerName)
 		}
-	}()
-
-	// Start the container.
-	glog.V(4).Infof("Starting container %q ...", containerName)
-	if err := client.StartContainer(c.ID, nil); err != nil {
-		return fmt.Errorf("start container %q: %v", containerName, err)
 	}
+	startWaitContainer := func() error {
+		// Start the container.
+		glog.V(4).Infof("Starting container %q ...", containerName)
+		if err := client.StartContainer(c.ID, nil); err != nil {
+			return fmt.Errorf("start container %q: %v", containerName, err)
+		}
 
-	// Stream container logs.
-	glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
-	logsOpts.Container = c.ID
-	if err := client.Logs(logsOpts); err != nil {
-		return fmt.Errorf("streaming logs of %q: %v", containerName, err)
-	}
+		// Stream container logs.
+		logsOpts.Container = c.ID
+		glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
+		if err := client.Logs(logsOpts); err != nil {
+			return fmt.Errorf("streaming logs of %q: %v", containerName, err)
+		}
 
-	// Return an error if the exit code of the container is non-zero.
-	glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
-	exitCode, err := client.WaitContainer(c.ID)
-	if err != nil {
-		return fmt.Errorf("waiting for container %q to stop: %v", containerName, err)
+		// Return an error if the exit code of the container is non-zero.
+		glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
+		exitCode, err := client.WaitContainer(c.ID)
+		if err != nil {
+			return fmt.Errorf("waiting for container %q to stop: %v", containerName, err)
+		}
+		if exitCode != 0 {
+			return fmt.Errorf("container %q returned non-zero exit code: %d", containerName, exitCode)
+		}
+		return nil
 	}
-	if exitCode != 0 {
-		return fmt.Errorf("container %q returned non-zero exit code: %d", containerName, exitCode)
-	}
-
-	return nil
+	// the interrupt handler acts as a super-defer which will guarantee removeContainer is executed
+	// either when startWaitContainer finishes, or when a SIGQUIT/SIGINT/SIGTERM is received.
+	return interrupt.New(nil, removeContainer).Run(startWaitContainer)
 }
 
 func containerNameOrID(c *docker.Container) string {

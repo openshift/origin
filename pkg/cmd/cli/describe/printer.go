@@ -59,7 +59,7 @@ var (
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns   = []string{"NAME", "NETID"}
-	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
+	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -187,8 +187,13 @@ func printTemplate(t *templateapi.Template, w io.Writer, opts kctl.PrintOptions)
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", t.Name, description, params, len(t.Objects))
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d", t.Name, description, params, len(t.Objects)); err != nil {
+		return err
+	}
+	if err := appendItemLabels(t.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printTemplateList(list *templateapi.TemplateList, w io.Writer, opts kctl.PrintOptions) error {
@@ -214,16 +219,21 @@ func printBuild(build *buildapi.Build, w io.Writer, opts kctl.PrintOptions) erro
 	if build.Status.Duration > 0 {
 		duration = build.Status.Duration.String()
 	}
-	from := describeSourceShort(build.Spec)
+	from := describeSourceShort(build.Spec.CommonSpec)
 	status := string(build.Status.Phase)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", build.Name, buildapi.StrategyType(build.Spec.Strategy), from, status, created, duration)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", build.Name, buildapi.StrategyType(build.Spec.Strategy), from, status, created, duration); err != nil {
+		return err
+	}
+	if err := appendItemLabels(build.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
-func describeSourceShort(spec buildapi.BuildSpec) string {
+func describeSourceShort(spec buildapi.CommonSpec) string {
 	var from string
 	switch source := spec.Source; {
 	case source.Binary != nil:
@@ -251,7 +261,7 @@ func describeSourceShort(spec buildapi.BuildSpec) string {
 
 var nonCommitRev = regexp.MustCompile("[^a-fA-F0-9]")
 
-func describeSourceGitRevision(spec buildapi.BuildSpec) string {
+func describeSourceGitRevision(spec buildapi.CommonSpec) string {
 	var rev string
 	if spec.Revision != nil && spec.Revision.Git != nil {
 		rev = spec.Revision.Git.Commit
@@ -283,15 +293,20 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kctl.PrintOpti
 		return err
 	}
 
-	from := describeSourceShort(bc.Spec.BuildSpec)
+	from := describeSourceShort(bc.Spec.CommonSpec)
 
 	if opts.WithNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, buildapi.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", bc.Name, buildapi.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion); err != nil {
+		return err
+	}
+	if err := appendItemLabels(bc.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer, opts kctl.PrintOptions) error {
@@ -315,8 +330,13 @@ func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, opts kctl.Pr
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.Image.Name)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", ist.Name, ist.Image.DockerImageReference, created, ist.Image.Name); err != nil {
+		return err
+	}
+	if err := appendItemLabels(ist.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printImageStreamTagList(list *imageapi.ImageStreamTagList, w io.Writer, opts kctl.PrintOptions) error {
@@ -335,8 +355,13 @@ func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, opts kct
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.Image.Name)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", isi.Name, isi.Image.DockerImageReference, created, isi.Image.Name); err != nil {
+		return err
+	}
+	if err := appendItemLabels(isi.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printImageList(images *imageapi.ImageList, w io.Writer, opts kctl.PrintOptions) error {
@@ -383,8 +408,13 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kctl.Print
 	if len(repo) == 0 {
 		repo = stream.Status.DockerImageRepository
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, repo, tags, latestTime)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", stream.Name, repo, tags, latestTime); err != nil {
+		return err
+	}
+	if err := appendItemLabels(stream.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts kctl.PrintOptions) error {
@@ -487,9 +517,10 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	if route.Spec.Port != nil {
 		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-		route.Name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels))
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", route.Name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintOptions) error {
@@ -549,8 +580,14 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kct
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s\n", dc.Name, dc.Status.LatestVersion, scale, trigger)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s", dc.Name, dc.Status.LatestVersion, scale, trigger); err != nil {
+		return err
+	}
+	if err := appendItemLabels(dc.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer, opts kctl.PrintOptions) error {
@@ -574,8 +611,13 @@ func printPolicy(policy *authorizationapi.Policy, w io.Writer, opts kctl.PrintOp
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policy.Name, rolesString, policy.LastModified)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", policy.Name, rolesString, policy.LastModified); err != nil {
+		return err
+	}
+	if err := appendItemLabels(policy.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printPolicyList(list *authorizationapi.PolicyList, w io.Writer, opts kctl.PrintOptions) error {
@@ -599,8 +641,13 @@ func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writ
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policyBinding.Name, roleBindingsString, policyBinding.LastModified)
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", policyBinding.Name, roleBindingsString, policyBinding.LastModified); err != nil {
+		return err
+	}
+	if err := appendItemLabels(policyBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer, opts kctl.PrintOptions) error {
@@ -655,8 +702,13 @@ func printRole(role *authorizationapi.Role, w io.Writer, opts kctl.PrintOptions)
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\n", role.Name)
-	return err
+	if _, err := fmt.Fprintf(w, "%s", role.Name); err != nil {
+		return err
+	}
+	if err := appendItemLabels(role.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printRoleList(list *authorizationapi.RoleList, w io.Writer, opts kctl.PrintOptions) error {
@@ -677,8 +729,13 @@ func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, op
 	}
 	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, strings.Join(users, ", "), strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", "))
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, strings.Join(users, ", "), strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", ")); err != nil {
+		return err
+	}
+	if err := appendItemLabels(roleBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printRoleBindingList(list *authorizationapi.RoleBindingList, w io.Writer, opts kctl.PrintOptions) error {
@@ -696,8 +753,13 @@ func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer, opts kctl.Print
 	if client.RespondWithChallenges {
 		challenge = "TRUE"
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", client.Name, client.Secret, challenge, strings.Join(client.RedirectURIs, ","))
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v", client.Name, client.Secret, challenge, strings.Join(client.RedirectURIs, ",")); err != nil {
+		return err
+	}
+	if err := appendItemLabels(client.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printOAuthClientList(list *oauthapi.OAuthClientList, w io.Writer, opts kctl.PrintOptions) error {
@@ -831,7 +893,7 @@ func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, opts kctl
 }
 
 func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, opts kctl.PrintOptions) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 	return err
 }
 
@@ -840,6 +902,16 @@ func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, opts 
 		if err := printClusterNetwork(&item, w, opts); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func appendItemLabels(itemLabels map[string]string, w io.Writer, columnLabels []string, showLabels bool) error {
+	if _, err := fmt.Fprint(w, kctl.AppendLabels(itemLabels, columnLabels)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprint(w, kctl.AppendAllLabels(showLabels, itemLabels)); err != nil {
+		return err
 	}
 	return nil
 }

@@ -3,7 +3,7 @@ package clientcmd
 import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
@@ -15,7 +15,7 @@ type ShortcutExpander struct {
 
 var _ meta.RESTMapper = &ShortcutExpander{}
 
-func NewShortcutExpander(discoveryClient kclient.DiscoveryInterface, delegate meta.RESTMapper) ShortcutExpander {
+func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate meta.RESTMapper) ShortcutExpander {
 	defaultMapper := ShortcutExpander{RESTMapper: delegate}
 
 	// this assumes that legacy kube versions and legacy origin versions are the same, probably fair
@@ -63,10 +63,6 @@ func (e ShortcutExpander) ResourcesFor(resource unversioned.GroupVersionResource
 
 func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionResource, error) {
 	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
-}
-
-func (e ShortcutExpander) ResourceIsValid(resource unversioned.GroupVersionResource) bool {
-	return e.RESTMapper.ResourceIsValid(expandResourceShortcut(resource))
 }
 
 func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {

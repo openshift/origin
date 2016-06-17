@@ -2,7 +2,6 @@ package onbuild
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -48,15 +47,15 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 		t.Errorf("%v", fs.WriteFileError)
 	}
 	if fs.WriteFileName != "upload/src/Dockerfile" {
-		t.Errorf("Expected Dockerfile in 'upload/src/Dockerfile', got %v", fs.WriteFileName)
+		t.Errorf("Expected Dockerfile in 'upload/src/Dockerfile', got %q", fs.WriteFileName)
 	}
 	if !strings.Contains(fs.WriteFileContent, `ENTRYPOINT ["./run"]`) {
-		t.Errorf("The Dockerfile does not set correct entrypoint:\n %s\n", fs.WriteFileContent)
+		t.Errorf("The Dockerfile does not set correct entrypoint, file content:\n%s", fs.WriteFileContent)
 	}
 
 	buf := bytes.NewBuffer([]byte(fs.WriteFileContent))
 	if _, err := parser.Parse(buf); err != nil {
-		t.Errorf("cannot parse new Dockerfile: " + err.Error())
+		t.Errorf("cannot parse new Dockerfile: %v", err)
 	}
 
 }
@@ -64,14 +63,17 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 func TestCreateDockerfile(t *testing.T) {
 	fakeRequest := &api.Config{
 		BuilderImage: "fake:onbuild",
-		Environment:  map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
+		Environment: api.EnvironmentList{
+			{Name: "FOO", Value: "BAR"},
+			{Name: "TEST", Value: "A VALUE"},
+		},
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -89,10 +91,10 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
-			&test.FakeFile{"assemble", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
+			&test.FakeFile{FileName: "assemble", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -102,7 +104,7 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 	}
 	checkDockerfile(fakeFs, t)
 	if !strings.Contains(fakeFs.WriteFileContent, `RUN sh assemble`) {
-		t.Errorf("The Dockerfile does not run assemble:\n%s\n", fakeFs.WriteFileContent)
+		t.Errorf("The Dockerfile does not run assemble, file content:\n%s", fakeFs.WriteFileContent)
 	}
 }
 
@@ -114,9 +116,9 @@ func TestBuild(t *testing.T) {
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
 		Files: []os.FileInfo{
-			&test.FakeFile{"config.ru", false, 0600},
-			&test.FakeFile{"app.rb", false, 0600},
-			&test.FakeFile{"run", false, 0777},
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
 		},
 	}
 	b.fs = fakeFs
@@ -128,5 +130,26 @@ func TestBuild(t *testing.T) {
 		t.Errorf("Expected successfull build, got: %v", result)
 	}
 	checkDockerfile(fakeFs, t)
-	fmt.Printf("result: %v\n", result)
+	t.Logf("result: %v", result)
+}
+
+func TestBuildOnBuildBlocked(t *testing.T) {
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Tag:          "fakeapp",
+		BlockOnBuild: true,
+	}
+	b := newFakeOnBuild()
+	fakeFs := &test.FakeFileSystem{
+		Files: []os.FileInfo{
+			&test.FakeFile{FileName: "config.ru", FMode: 0600},
+			&test.FakeFile{FileName: "app.rb", FMode: 0600},
+			&test.FakeFile{FileName: "run", FMode: 0777},
+		},
+	}
+	b.fs = fakeFs
+	_, err := b.Build(fakeRequest)
+	if err == nil || !strings.Contains(err.Error(), "builder image uses ONBUILD instructions but ONBUILD is not allowed") {
+		t.Errorf("expected error from onbuild due to blocked ONBUILD, got: %v", err)
+	}
 }

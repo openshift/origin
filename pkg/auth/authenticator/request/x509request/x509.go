@@ -3,11 +3,14 @@ package x509request
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"net/http"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/user"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
@@ -68,10 +71,14 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 type Verifier struct {
 	opts x509.VerifyOptions
 	auth authenticator.Request
+
+	// allowedCommonNames contains the common names which a verified certificate is allowed to have.
+	// If empty, all verified certificates are allowed.
+	allowedCommonNames sets.String
 }
 
-func NewVerifier(opts x509.VerifyOptions, auth authenticator.Request) authenticator.Request {
-	return &Verifier{opts, auth}
+func NewVerifier(opts x509.VerifyOptions, auth authenticator.Request, allowedCommonNames sets.String) authenticator.Request {
+	return &Verifier{opts, auth, allowedCommonNames}
 }
 
 // AuthenticateRequest verifies the presented client certificates, then delegates to the wrapped auth
@@ -82,14 +89,30 @@ func (a *Verifier) AuthenticateRequest(req *http.Request) (user.Info, bool, erro
 
 	var errlist []error
 	for _, cert := range req.TLS.PeerCertificates {
-		_, err := cert.Verify(a.opts)
-		if err != nil {
+		if _, err := cert.Verify(a.opts); err != nil {
+			errlist = append(errlist, err)
+			continue
+		}
+		if err := a.verifySubject(cert.Subject); err != nil {
 			errlist = append(errlist, err)
 			continue
 		}
 		return a.auth.AuthenticateRequest(req)
 	}
 	return nil, false, kerrors.NewAggregate(errlist)
+}
+
+func (a *Verifier) verifySubject(subject pkix.Name) error {
+	// No CN restrictions
+	if len(a.allowedCommonNames) == 0 {
+		return nil
+	}
+	// Enforce CN restrictions
+	if a.allowedCommonNames.Has(subject.CommonName) {
+		return nil
+	}
+	glog.Warningf("x509: subject with cn=%s is not in the allowed list: %v", subject.CommonName, a.allowedCommonNames.List())
+	return fmt.Errorf("x509: subject with cn=%s is not allowed", subject.CommonName)
 }
 
 // DefaultVerifyOptions returns VerifyOptions that use the system root certificates, current time,

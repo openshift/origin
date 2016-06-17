@@ -25,6 +25,7 @@ import (
 type OSInterface interface {
 	Mkdir(path string, perm os.FileMode) error
 	Symlink(oldname string, newname string) error
+	Stat(path string) (os.FileInfo, error)
 }
 
 // RealOS is used to dispatch the real system level operaitons.
@@ -40,16 +41,7 @@ func (RealOS) Symlink(oldname string, newname string) error {
 	return os.Symlink(oldname, newname)
 }
 
-// FakeOS mocks out certain OS calls to avoid perturbing the filesystem
-// on the test machine.
-type FakeOS struct{}
-
-// MkDir is a fake call that just returns nil.
-func (FakeOS) Mkdir(path string, perm os.FileMode) error {
-	return nil
-}
-
-// Symlink is a fake call that just returns nil.
-func (FakeOS) Symlink(oldname string, newname string) error {
-	return nil
+// Stat will call os.Stat to get the FileInfo for a given path
+func (RealOS) Stat(path string) (os.FileInfo, error) {
+	return os.Stat(path)
 }

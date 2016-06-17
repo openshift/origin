@@ -35,8 +35,13 @@ func checkAdd(t *testing.T, s1, s2, expected []string) {
 func TestCovers(t *testing.T) {
 	// Empty request
 	checkCovers(t, []string{}, []string{}, true)
-	checkCovers(t, []string{"A"}, []string{}, true)
-	checkCovers(t, []string{"B", "A"}, []string{}, true)
+	checkCovers(t, []string{"A"}, []string{}, false)
+	checkCovers(t, []string{"B", "A"}, []string{}, false)
+
+	// empty list is effectively everything and we have validation to keep people from doing an empty list
+	// but I'm not that we'll keep it like this (might add a "full" scope), so leave it failing in this
+	// direction too for now.
+	checkCovers(t, []string{}, []string{"B", "A"}, false)
 
 	// Equal request
 	checkCovers(t, []string{"A"}, []string{"A"}, true)

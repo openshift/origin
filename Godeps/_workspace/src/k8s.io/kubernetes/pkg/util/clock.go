@@ -27,6 +27,8 @@ type Clock interface {
 	Now() time.Time
 	Since(time.Time) time.Duration
 	After(d time.Duration) <-chan time.Time
+	Sleep(d time.Duration)
+	Tick(d time.Duration) <-chan time.Time
 }
 
 var (
@@ -53,6 +55,14 @@ func (RealClock) After(d time.Duration) <-chan time.Time {
 	return time.After(d)
 }
 
+func (RealClock) Tick(d time.Duration) <-chan time.Time {
+	return time.Tick(d)
+}
+
+func (RealClock) Sleep(d time.Duration) {
+	time.Sleep(d)
+}
+
 // FakeClock implements Clock, but returns an arbitrary time.
 type FakeClock struct {
 	lock sync.RWMutex
@@ -63,8 +73,10 @@ type FakeClock struct {
 }
 
 type fakeClockWaiter struct {
-	targetTime time.Time
-	destChan   chan<- time.Time
+	targetTime    time.Time
+	stepInterval  time.Duration
+	skipIfBlocked bool
+	destChan      chan<- time.Time
 }
 
 func NewFakeClock(t time.Time) *FakeClock {
@@ -100,7 +112,22 @@ func (f *FakeClock) After(d time.Duration) <-chan time.Time {
 	return ch
 }
 
-// Move clock by Duration, notify anyone that's called After
+func (f *FakeClock) Tick(d time.Duration) <-chan time.Time {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	tickTime := f.time.Add(d)
+	ch := make(chan time.Time, 1) // hold one tick
+	f.waiters = append(f.waiters, fakeClockWaiter{
+		targetTime:    tickTime,
+		stepInterval:  d,
+		skipIfBlocked: true,
+		destChan:      ch,
+	})
+
+	return ch
+}
+
+// Move clock by Duration, notify anyone that's called After or Tick
 func (f *FakeClock) Step(d time.Duration) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -121,7 +148,23 @@ func (f *FakeClock) setTimeLocked(t time.Time) {
 	for i := range f.waiters {
 		w := &f.waiters[i]
 		if !w.targetTime.After(t) {
-			w.destChan <- t
+
+			if w.skipIfBlocked {
+				select {
+				case w.destChan <- t:
+				default:
+				}
+			} else {
+				w.destChan <- t
+			}
+
+			if w.stepInterval > 0 {
+				for !w.targetTime.After(t) {
+					w.targetTime = w.targetTime.Add(w.stepInterval)
+				}
+				newWaiters = append(newWaiters, *w)
+			}
+
 		} else {
 			newWaiters = append(newWaiters, f.waiters[i])
 		}
@@ -135,6 +178,10 @@ func (f *FakeClock) HasWaiters() bool {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 	return len(f.waiters) > 0
+}
+
+func (f *FakeClock) Sleep(d time.Duration) {
+	f.Step(d)
 }
 
 // IntervalClock implements Clock, but each invocation of Now steps the clock forward the specified duration
@@ -158,4 +205,14 @@ func (i *IntervalClock) Since(ts time.Time) time.Duration {
 // TODO: make interval clock use FakeClock so this can be implemented.
 func (*IntervalClock) After(d time.Duration) <-chan time.Time {
 	panic("IntervalClock doesn't implement After")
+}
+
+// Unimplemented, will panic.
+// TODO: make interval clock use FakeClock so this can be implemented.
+func (*IntervalClock) Tick(d time.Duration) <-chan time.Time {
+	panic("IntervalClock doesn't implement Tick")
+}
+
+func (*IntervalClock) Sleep(d time.Duration) {
+	panic("IntervalClock doesn't implement Sleep")
 }

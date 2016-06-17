@@ -21,17 +21,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/libcontainer"
 	"github.com/google/cadvisor/fs"
 	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/utils"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 )
 
 var ArgDockerEndpoint = flag.String("docker", "unix:///var/run/docker.sock", "docker endpoint")
@@ -46,9 +43,7 @@ var dockerRunDir = flag.String("docker_run", "/var/run/docker", "Absolute path t
 
 // Regexp that identifies docker cgroups, containers started with
 // --cgroup-parent have another prefix than 'docker'
-var dockerCgroupRegexp = regexp.MustCompile(`.+-([a-z0-9]{64})\.scope$`)
-
-var noSystemd = flag.Bool("nosystemd", false, "Explicitly disable systemd support for Docker containers")
+var dockerCgroupRegexp = regexp.MustCompile(`([a-z0-9]{64})`)
 
 var dockerEnvWhitelist = flag.String("docker_env_metadata_whitelist", "", "a comma-separated list of environment variable keys that needs to be collected for docker containers")
 
@@ -58,35 +53,9 @@ func DockerStateDir() string {
 	return libcontainer.DockerStateDir(*dockerRootDir)
 }
 
-// Whether the system is using Systemd.
-var useSystemd = false
-var check = sync.Once{}
-
 const (
 	dockerRootDirKey = "Root Dir"
 )
-
-func UseSystemd() bool {
-	check.Do(func() {
-		if *noSystemd {
-			return
-		}
-		// Check for system.slice in systemd and cpu cgroup.
-		for _, cgroupType := range []string{"name=systemd", "cpu"} {
-			mnt, err := cgroups.FindCgroupMountpoint(cgroupType)
-			if err == nil {
-				// systemd presence does not mean systemd controls cgroups.
-				// If system.slice cgroup exists, then systemd is taking control.
-				// This breaks if user creates system.slice manually :)
-				if utils.FileExists(path.Join(mnt, "system.slice")) {
-					useSystemd = true
-					break
-				}
-			}
-		}
-	})
-	return useSystemd
-}
 
 func RootDir() string {
 	return *dockerRootDir
@@ -117,6 +86,8 @@ type dockerFactory struct {
 	fsInfo fs.FsInfo
 
 	dockerVersion []int
+
+	ignoreMetrics container.MetricSet
 }
 
 func (self *dockerFactory) String() string {
@@ -142,6 +113,7 @@ func (self *dockerFactory) NewContainerHandler(name string, inHostNamespace bool
 		inHostNamespace,
 		metadataEnvs,
 		self.dockerVersion,
+		self.ignoreMetrics,
 	)
 	return
 }
@@ -150,21 +122,15 @@ func (self *dockerFactory) NewContainerHandler(name string, inHostNamespace bool
 func ContainerNameToDockerId(name string) string {
 	id := path.Base(name)
 
-	// Turn systemd cgroup name into Docker ID.
-	if UseSystemd() {
-		if matches := dockerCgroupRegexp.FindStringSubmatch(id); matches != nil {
-			id = matches[1]
-		}
+	if matches := dockerCgroupRegexp.FindStringSubmatch(id); matches != nil {
+		return matches[1]
 	}
 
 	return id
 }
 
 func isContainerName(name string) bool {
-	if UseSystemd() {
-		return dockerCgroupRegexp.MatchString(path.Base(name))
-	}
-	return true
+	return dockerCgroupRegexp.MatchString(path.Base(name))
 }
 
 // Docker handles all containers under /docker
@@ -197,6 +163,7 @@ var (
 	version_re            = regexp.MustCompile(version_regexp_string)
 )
 
+// TODO: switch to a semantic versioning library.
 func parseDockerVersion(full_version_string string) ([]int, error) {
 	matches := version_re.FindAllStringSubmatch(full_version_string, -1)
 	if len(matches) != 1 {
@@ -215,51 +182,21 @@ func parseDockerVersion(full_version_string string) ([]int, error) {
 }
 
 // Register root container before running this function!
-func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
-	if UseSystemd() {
-		glog.Infof("System is using systemd")
-	}
-
+func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo, ignoreMetrics container.MetricSet) error {
 	client, err := Client()
 	if err != nil {
 		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
 	}
-	var dockerVersion []int
-	if version, err := client.Version(); err != nil {
-		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
-	} else {
-		expected_version := []int{1, 0, 0}
-		version_string := version.Get("Version")
-		dockerVersion, err = parseDockerVersion(version_string)
-		if err != nil {
-			return fmt.Errorf("couldn't parse docker version: %v", err)
-		}
-		for index, number := range dockerVersion {
-			if number > expected_version[index] {
-				break
-			} else if number < expected_version[index] {
-				return fmt.Errorf("cAdvisor requires docker version %v or above but we have found version %v reported as \"%v\"", expected_version, dockerVersion, version_string)
-			}
-		}
-	}
 
-	information, err := client.Info()
+	dockerInfo, err := ValidateInfo()
 	if err != nil {
-		return fmt.Errorf("failed to detect Docker info: %v", err)
+		return fmt.Errorf("failed to validate Docker info: %v", err)
 	}
 
-	// Check that the libcontainer execdriver is used.
-	execDriver := information.Get("ExecutionDriver")
-	if !strings.HasPrefix(execDriver, "native") {
-		return fmt.Errorf("docker found, but not using native exec driver")
-	}
+	// Version already validated above, assume no error here.
+	dockerVersion, _ := parseDockerVersion(dockerInfo.ServerVersion)
 
-	sd := information.Get("Driver")
-	if sd == "" {
-		return fmt.Errorf("failed to find docker storage driver")
-	}
-
-	storageDir := information.Get("DockerRootDir")
+	storageDir := dockerInfo.DockerRootDir
 	if storageDir == "" {
 		storageDir = *dockerRootDir
 	}
@@ -275,9 +212,11 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo) error {
 		dockerVersion:      dockerVersion,
 		fsInfo:             fsInfo,
 		machineInfoFactory: factory,
-		storageDriver:      storageDriver(sd),
+		storageDriver:      storageDriver(dockerInfo.Driver),
 		storageDir:         storageDir,
+		ignoreMetrics:      ignoreMetrics,
 	}
+
 	container.RegisterContainerHandlerFactory(f)
 	return nil
 }

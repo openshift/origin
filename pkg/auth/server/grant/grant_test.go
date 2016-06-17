@@ -12,6 +12,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
@@ -35,9 +36,13 @@ func badAuth(err error) *testAuth {
 	return &testAuth{Success: false, User: nil, Err: err}
 }
 
-func goodClientRegistry(clientID string, redirectURIs []string) *test.ClientRegistry {
+func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) *test.ClientRegistry {
 	client := &oapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
 	client.Name = clientID
+	if len(literalScopes) > 0 {
+		client.ScopeRestrictions = []oapi.ScopeRestriction{{ExactValues: literalScopes}}
+	}
+
 	return &test.ClientRegistry{Client: client}
 }
 func badClientRegistry(err error) *test.ClientRegistry {
@@ -78,7 +83,7 @@ func TestGrant(t *testing.T) {
 		"display form": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant?client_id=myclient&scopes=myscope1%20myscope2&redirect_uri=/myredirect&then=/authorize",
 
@@ -132,7 +137,7 @@ func TestGrant(t *testing.T) {
 		"error when POST fails CSRF": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -180,7 +185,7 @@ func TestGrant(t *testing.T) {
 		"successful create grant with redirect": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -200,7 +205,7 @@ func TestGrant(t *testing.T) {
 		"successful create grant without redirect": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -222,7 +227,7 @@ func TestGrant(t *testing.T) {
 		"successful update grant with identical scopes": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   existingAuthRegistry([]string{"myscope2", "myscope1"}),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -242,7 +247,7 @@ func TestGrant(t *testing.T) {
 		"successful update grant with additional scopes": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"newscope1", "existingscope1", "existingscope2"}),
 			AuthRegistry:   existingAuthRegistry([]string{"existingscope2", "existingscope1"}),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -262,7 +267,7 @@ func TestGrant(t *testing.T) {
 		"successful reject grant": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           goodAuth("username"),
-			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}, []string{"myscope1", "myscope2"}),
 			AuthRegistry:   existingAuthRegistry([]string{"existingscope2", "existingscope1"}),
 			Path:           "/grant",
 			PostValues: url.Values{
@@ -352,7 +357,7 @@ func TestGrant(t *testing.T) {
 }
 
 func postForm(url string, body url.Values) (resp *http.Response, err error) {
-	tr := &http.Transport{}
+	tr := knet.SetTransportDefaults(&http.Transport{})
 	req, err := http.NewRequest("POST", url, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
@@ -362,7 +367,7 @@ func postForm(url string, body url.Values) (resp *http.Response, err error) {
 }
 
 func getURL(url string) (resp *http.Response, err error) {
-	tr := &http.Transport{}
+	tr := knet.SetTransportDefaults(&http.Transport{})
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

@@ -11,8 +11,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -42,7 +41,7 @@ fi
 gzip -f "${context}/archive.tar"
 
 # Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
+cat "${context}/archive.tar.gz" | docker run -e "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-}" -i --cidfile="${context}/cid" openshift/origin-release
 docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 docker rm $(cat ${context}/cid)

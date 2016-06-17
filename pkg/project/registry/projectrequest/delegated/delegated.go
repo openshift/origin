@@ -4,20 +4,22 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/client"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -32,15 +34,20 @@ type REST struct {
 
 	openshiftClient *client.Client
 	kubeClient      *kclient.Client
+
+	// policyBindings is an auth cache that is shared with the authorizer for the API server.
+	// we use this cache to detect when the authorizer has observed the change for the auth rules
+	policyBindings authorizationclient.PolicyBindingsReadOnlyNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache authorizationclient.PolicyBindingsReadOnlyNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
 		templateName:      templateName,
 		openshiftClient:   openshiftClient,
 		kubeClient:        kubeClient,
+		policyBindings:    policyBindingCache,
 	}
 }
 
@@ -104,15 +111,18 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	// one of the items in this list should be the project.  We are going to locate it, remove it from the list, create it separately
 	var projectFromTemplate *projectapi.Project
+	var lastRoleBinding *authorizationapi.RoleBinding
 	objectsToCreate := &kapi.List{}
 	for i := range list.Objects {
 		if templateProject, ok := list.Objects[i].(*projectapi.Project); ok {
 			projectFromTemplate = templateProject
+			// don't add this to the list to create.  We'll create the project separately.
+			continue
+		}
 
-			if len(list.Objects) > (i + 1) {
-				objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i+1:]...)
-			}
-			break
+		if roleBinding, ok := list.Objects[i].(*authorizationapi.RoleBinding); ok {
+			// keep track of the rolebinding, but still add it to the list
+			lastRoleBinding = roleBinding
 		}
 
 		objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i])
@@ -126,36 +136,53 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	var restMapper meta.MultiRESTMapper
-	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
-		if seenGroups.Has(gv.Group) {
-			continue
-		}
-		seenGroups.Insert(gv.Group)
-
-		groupMeta, err := registered.Group(gv.Group)
-		if err != nil {
-			continue
-		}
-		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
-	}
-
 	bulk := configcmd.Bulk{
-		Mapper: restMapper,
-		Typer:  kapi.Scheme,
-		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-			if latest.OriginKind(mapping.GroupVersionKind) {
-				return r.openshiftClient, nil
-			}
-			return r.kubeClient, nil
+		Mapper: &resource.Mapper{
+			RESTMapper:  client.DefaultMultiRESTMapper(),
+			ObjectTyper: kapi.Scheme,
+			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+				if latest.OriginKind(mapping.GroupVersionKind) {
+					return r.openshiftClient, nil
+				}
+				return r.kubeClient, nil
+			}),
 		},
+		Op: configcmd.Create,
 	}
-	if err := utilerrors.NewAggregate(bulk.Create(objectsToCreate, projectName)); err != nil {
+	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, projectName)); err != nil {
 		return nil, kapierror.NewInternalError(err)
 	}
 
+	// wait for a rolebinding if we created one
+	if lastRoleBinding != nil {
+		r.waitForRoleBinding(projectName, lastRoleBinding.Name)
+	}
+
 	return r.openshiftClient.Projects().Get(projectName)
+}
+
+func (r *REST) waitForRoleBinding(namespace, name string) {
+	// we have a rolebinding, the we check the cache we have to see if its been updated with this rolebinding
+	// if you share a cache with our authorizer (you should), then this will let you know when the authorizer is ready.
+	// doesn't matter if this failed.  When the call returns, return.  If we have access great.  If not, oh well.
+	backoff := kclient.DefaultBackoff
+	backoff.Steps = 6 // this effectively waits for 6-ish seconds
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		policyBindingList, _ := r.policyBindings.ReadOnlyPolicyBindings(namespace).List(nil)
+		for _, policyBinding := range policyBindingList.Items {
+			for roleBindingName := range policyBinding.RoleBindings {
+				if roleBindingName == name {
+					return true, nil
+				}
+			}
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		glog.V(4).Infof("authorization cache failed to update for %v %v: %v", namespace, name, err)
+	}
 }
 
 func (r *REST) getTemplate() (*templateapi.Template, error) {
@@ -176,15 +203,14 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
-	accessReview := &authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:     "create",
-			Group:    projectapi.GroupName,
-			Resource: "projectrequests",
-		},
-		User:   userInfo.GetName(),
-		Groups: sets.NewString(userInfo.GetGroups()...),
-	}
+	accessReview := authorizationapi.AddUserToSAR(userInfo,
+		&authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "create",
+				Group:    projectapi.GroupName,
+				Resource: "projectrequests",
+			},
+		})
 	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
 	if err != nil {
 		return nil, err

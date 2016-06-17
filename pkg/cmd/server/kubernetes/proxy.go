@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"net/url"
 
+	"k8s.io/kubernetes/pkg/client/restclient"
+
 	restful "github.com/emicklei/go-restful"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/util/httpproxy"
 )
 
 type ProxyConfig struct {
-	ClientConfig *kclient.Config
+	ClientConfig *restclient.Config
 }
 
 func (c *ProxyConfig) InstallAPI(container *restful.Container) ([]string, error) {

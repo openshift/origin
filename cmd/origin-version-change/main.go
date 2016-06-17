@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	kflag "k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -73,7 +74,7 @@ func changeObjectsVersion(items []kruntime.Object) {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	flag.CommandLine.SetNormalizeFunc(util.WordSepNormalizeFunc)
+	flag.CommandLine.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
 	flag.Parse()
 
 	if *rewrite != "" {

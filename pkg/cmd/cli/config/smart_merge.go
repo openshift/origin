@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/third_party/golang/netutil"
 
@@ -15,7 +15,7 @@ import (
 )
 
 // GetClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
-func GetClusterNicknameFromConfig(clientCfg *client.Config) (string, error) {
+func GetClusterNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 	return GetClusterNicknameFromURL(clientCfg.Host)
 }
 
@@ -33,7 +33,7 @@ func GetClusterNicknameFromURL(apiServerLocation string) (string, error) {
 
 // GetUserNicknameFromConfig returns "username(as known by the server)/GetClusterNicknameFromConfig".  This allows tab completion for switching users to
 // work easily and obviously.
-func GetUserNicknameFromConfig(clientCfg *client.Config) (string, error) {
+func GetUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 	client, err := osclient.New(clientCfg)
 	if err != nil {
 		return "", err
@@ -63,7 +63,7 @@ func GetUserNicknameFromCert(clusterNick string, chain ...*x509.Certificate) (st
 // GetContextNicknameFromConfig returns "namespace/GetClusterNicknameFromConfig/username(as known by the server)".  This allows tab completion for switching projects/context
 // to work easily.  First tab is the most selective on project.  Second stanza in the next most selective on cluster name.  The chances of a user trying having
 // one projects on a single server that they want to operate against with two identities is low, so username is last.
-func GetContextNicknameFromConfig(namespace string, clientCfg *client.Config) (string, error) {
+func GetContextNicknameFromConfig(namespace string, clientCfg *restclient.Config) (string, error) {
 	client, err := osclient.New(clientCfg)
 	if err != nil {
 		return "", err
@@ -87,7 +87,7 @@ func GetContextNickname(namespace, clusterNick, userNick string) string {
 }
 
 // CreateConfig takes a clientCfg and builds a config (kubeconfig style) from it.
-func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Config, error) {
+func CreateConfig(namespace string, clientCfg *restclient.Config) (*clientcmdapi.Config, error) {
 	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return nil, err

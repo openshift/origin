@@ -18,6 +18,9 @@ package metrics
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -58,6 +61,7 @@ var NecessaryKubeletMetrics = map[string][]string{
 	"container_network_transmit_packets_dropped_total":       {"id", "interface", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
 	"container_network_transmit_packets_total":               {"id", "interface", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
 	"container_scrape_error":                                 {},
+	"container_spec_cpu_period":                              {"id", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
 	"container_spec_cpu_shares":                              {"id", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
 	"container_spec_memory_limit_bytes":                      {"id", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
 	"container_spec_memory_swap_limit_bytes":                 {"id", "image", "kubernetes_container_name", "kubernetes_namespace", "kubernetes_pod_name", "name"},
@@ -69,7 +73,9 @@ var NecessaryKubeletMetrics = map[string][]string{
 	"kubelet_containers_per_pod_count":                       {"quantile"},
 	"kubelet_containers_per_pod_count_count":                 {},
 	"kubelet_containers_per_pod_count_sum":                   {},
-	"kubelet_docker_errors":                                  {"operation_type"},
+	"kubelet_docker_operations":                              {"operation_type"},
+	"kubelet_docker_operations_errors":                       {"operation_type"},
+	"kubelet_docker_operations_timeout":                      {"operation_type"},
 	"kubelet_docker_operations_latency_microseconds":         {"operation_type", "quantile"},
 	"kubelet_docker_operations_latency_microseconds_count":   {"operation_type"},
 	"kubelet_docker_operations_latency_microseconds_sum":     {"operation_type"},
@@ -124,6 +130,22 @@ func NewKubeletMetrics() KubeletMetrics {
 	return KubeletMetrics(result)
 }
 
+// GrabKubeletMetricsWithoutProxy retrieve metrics from the kubelet on the given node using a simple GET over http.
+// Currently only used in integration tests.
+func GrabKubeletMetricsWithoutProxy(nodeName string) (KubeletMetrics, error) {
+	metricsEndpoint := "http://%s/metrics"
+	resp, err := http.Get(fmt.Sprintf(metricsEndpoint, nodeName))
+	if err != nil {
+		return KubeletMetrics{}, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return KubeletMetrics{}, err
+	}
+	return parseKubeletMetrics(string(body))
+}
+
 func parseKubeletMetrics(data string) (KubeletMetrics, error) {
 	result := NewKubeletMetrics()
 	if err := parseMetrics(data, NecessaryKubeletMetrics, (*Metrics)(&result), nil); err != nil {
@@ -133,14 +155,27 @@ func parseKubeletMetrics(data string) (KubeletMetrics, error) {
 }
 
 func (g *MetricsGrabber) getMetricsFromNode(nodeName string, kubeletPort int) (string, error) {
-	rawOutput, err := g.client.Get().
-		Prefix("proxy").
-		Resource("nodes").
-		Name(fmt.Sprintf("%v:%v", nodeName, kubeletPort)).
-		Suffix("metrics").
-		Do().Raw()
-	if err != nil {
-		return "", err
+	// There's a problem with timing out during proxy. Wrapping this in a goroutine to prevent deadlock.
+	// Hanging goroutine will be leaked.
+	finished := make(chan struct{})
+	var err error
+	var rawOutput []byte
+	go func() {
+		rawOutput, err = g.client.Get().
+			Prefix("proxy").
+			Resource("nodes").
+			Name(fmt.Sprintf("%v:%v", nodeName, kubeletPort)).
+			Suffix("metrics").
+			Do().Raw()
+		finished <- struct{}{}
+	}()
+	select {
+	case <-time.After(ProxyTimeout):
+		return "", fmt.Errorf("Timed out when waiting for proxy to gather metrics from %v", nodeName)
+	case <-finished:
+		if err != nil {
+			return "", err
+		}
+		return string(rawOutput), nil
 	}
-	return string(rawOutput), nil
 }

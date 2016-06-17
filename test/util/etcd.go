@@ -24,8 +24,13 @@ func init() {
 		AllowPrivileged: true,
 	})
 	flag.Set("v", "5")
-	capnslog.SetGlobalLogLevel(capnslog.DEBUG)
-	capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	if len(os.Getenv("OS_TEST_VERBOSE_ETCD")) > 0 {
+		capnslog.SetGlobalLogLevel(capnslog.DEBUG)
+		capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	} else {
+		capnslog.SetGlobalLogLevel(capnslog.INFO)
+		capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	}
 }
 
 // url is the url for the launched etcd server
@@ -33,7 +38,7 @@ var url string
 
 // RequireEtcd verifies if the etcd is running and accessible for testing
 func RequireEtcd(t *testing.T) *etcdtest.EtcdTestServer {
-	s := etcdtest.NewEtcdTestClientServer(t)
+	s := etcdtest.NewUnsecuredEtcdTestClientServer(t)
 	url = s.Client.Endpoints()[0]
 	return s
 }

@@ -19,6 +19,7 @@ package v1
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	versionedwatch "k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 // GroupName is the group name use in this package
@@ -45,11 +46,13 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&ReplicationController{},
 		&ReplicationControllerList{},
 		&Service{},
+		&ServiceProxyOptions{},
 		&ServiceList{},
 		&Endpoints{},
 		&EndpointsList{},
 		&Node{},
 		&NodeList{},
+		&NodeProxyOptions{},
 		&Binding{},
 		&Event{},
 		&EventList{},
@@ -88,6 +91,9 @@ func addKnownTypes(scheme *runtime.Scheme) {
 
 	// Add common types
 	scheme.AddKnownTypes(SchemeGroupVersion, &unversioned.Status{})
+
+	// Add the watch version that applies
+	versionedwatch.AddToGroupVersion(scheme, SchemeGroupVersion)
 }
 
 func (obj *Pod) GetObjectKind() unversioned.ObjectKind                       { return &obj.TypeMeta }
@@ -103,6 +109,7 @@ func (obj *Endpoints) GetObjectKind() unversioned.ObjectKind                 { r
 func (obj *EndpointsList) GetObjectKind() unversioned.ObjectKind             { return &obj.TypeMeta }
 func (obj *Node) GetObjectKind() unversioned.ObjectKind                      { return &obj.TypeMeta }
 func (obj *NodeList) GetObjectKind() unversioned.ObjectKind                  { return &obj.TypeMeta }
+func (obj *NodeProxyOptions) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *Binding) GetObjectKind() unversioned.ObjectKind                   { return &obj.TypeMeta }
 func (obj *Event) GetObjectKind() unversioned.ObjectKind                     { return &obj.TypeMeta }
 func (obj *EventList) GetObjectKind() unversioned.ObjectKind                 { return &obj.TypeMeta }
@@ -127,6 +134,7 @@ func (obj *PodAttachOptions) GetObjectKind() unversioned.ObjectKind          { r
 func (obj *PodLogOptions) GetObjectKind() unversioned.ObjectKind             { return &obj.TypeMeta }
 func (obj *PodExecOptions) GetObjectKind() unversioned.ObjectKind            { return &obj.TypeMeta }
 func (obj *PodProxyOptions) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
+func (obj *ServiceProxyOptions) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
 func (obj *ComponentStatus) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
 func (obj *ComponentStatusList) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
 func (obj *SerializedReference) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }

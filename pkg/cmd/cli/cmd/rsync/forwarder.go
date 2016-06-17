@@ -1,6 +1,9 @@
 package rsync
 
 import (
+	"io"
+
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
@@ -13,7 +16,9 @@ type portForwarder struct {
 	Namespace string
 	PodName   string
 	Client    *kclient.Client
-	Config    *kclient.Config
+	Config    *restclient.Config
+	Out       io.Writer
+	ErrOut    io.Writer
 }
 
 // ensure that portForwarder implements the forwarder interface
@@ -32,7 +37,8 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 	if err != nil {
 		return err
 	}
-	fw, err := portforward.New(dialer, ports, stopChan)
+	// TODO: Make os.Stdout/Stderr configurable
+	fw, err := portforward.New(dialer, ports, stopChan, f.Out, f.ErrOut)
 	if err != nil {
 		return err
 	}
@@ -63,5 +69,7 @@ func newPortForwarder(f *clientcmd.Factory, o *RsyncOptions) (forwarder, error) 
 		PodName:   o.PodName(),
 		Client:    client,
 		Config:    config,
+		Out:       o.Out,
+		ErrOut:    o.ErrOut,
 	}, nil
 }

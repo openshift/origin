@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/version"
@@ -44,9 +44,13 @@ type Interface interface {
 	ResourceAccessReviews
 	SubjectAccessReviews
 	LocalSubjectAccessReviewsNamespacer
+	SelfSubjectRulesReviewsNamespacer
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
+	OAuthClientsInterface
+	OAuthClientAuthorizationsInterface
 	OAuthAccessTokensInterface
+	OAuthAuthorizeTokensInterface
 	PoliciesNamespacer
 	PolicyBindingsNamespacer
 	RolesNamespacer
@@ -222,9 +226,24 @@ func (c *Client) SubjectAccessReviews() SubjectAccessReviewInterface {
 	return newSubjectAccessReviews(c)
 }
 
-// OAuthAccessTokens provides a REST client for OAuthAccessTokens
+func (c *Client) SelfSubjectRulesReviews(namespace string) SelfSubjectRulesReviewInterface {
+	return newSelfSubjectRulesReviews(c, namespace)
+}
+
+func (c *Client) OAuthClients() OAuthClientInterface {
+	return newOAuthClients(c)
+}
+
+func (c *Client) OAuthClientAuthorizations() OAuthClientAuthorizationInterface {
+	return newOAuthClientAuthorizations(c)
+}
+
 func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
 	return newOAuthAccessTokens(c)
+}
+
+func (c *Client) OAuthAuthorizeTokens() OAuthAuthorizeTokenInterface {
+	return newOAuthAuthorizeTokens(c)
 }
 
 func (c *Client) ClusterPolicies() ClusterPolicyInterface {
@@ -245,18 +264,18 @@ func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
 
 // Client is an OpenShift client object
 type Client struct {
-	*kclient.RESTClient
+	*restclient.RESTClient
 }
 
 // New creates an OpenShift client for the given config. This client works with builds, deployments,
 // templates, routes, and images. It allows operations such as list, get, update and delete on these
 // objects. An error is returned if the provided configuration is not valid.
-func New(c *kclient.Config) (*Client, error) {
+func New(c *restclient.Config) (*Client, error) {
 	config := *c
 	if err := SetOpenShiftDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := kclient.RESTClientFor(&config)
+	client, err := restclient.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +285,7 @@ func New(c *kclient.Config) (*Client, error) {
 
 // SetOpenShiftDefaults sets the default settings on the passed
 // client configuration
-func SetOpenShiftDefaults(config *kclient.Config) error {
+func SetOpenShiftDefaults(config *restclient.Config) error {
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
@@ -283,6 +302,9 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	// if err != nil {
 	// 	return fmt.Errorf("API group %q is not recognized (valid values: %v)", config.GroupVersion.Group, latest.Versions)
 	// }
+	if config.NegotiatedSerializer == nil {
+		config.NegotiatedSerializer = kapi.Codecs
+	}
 
 	if config.Codec == nil {
 		config.Codec = kapi.Codecs.LegacyCodec(*config.GroupVersion)
@@ -292,7 +314,7 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 }
 
 // NewOrDie creates an OpenShift client and panics if the provided API version is not recognized.
-func NewOrDie(c *kclient.Config) *Client {
+func NewOrDie(c *restclient.Config) *Client {
 	client, err := New(c)
 	if err != nil {
 		panic(err)

@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
@@ -64,7 +64,7 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(-25),
+				UpdatePercent:       newInt32(-25),
 				Pre: &LifecycleHook{
 					FailurePolicy: LifecycleHookFailurePolicyIgnore,
 				},
@@ -76,7 +76,7 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(-25),
+				UpdatePercent:       newInt32(-25),
 				MaxSurge:            intstr.FromInt(0),
 				MaxUnavailable:      intstr.FromString("25%"),
 				Pre: &newer.LifecycleHook{
@@ -92,13 +92,13 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(25),
+				UpdatePercent:       newInt32(25),
 			},
 			out: &newer.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(25),
+				UpdatePercent:       newInt32(25),
 				MaxSurge:            intstr.FromString("25%"),
 				MaxUnavailable:      intstr.FromInt(0),
 			},
@@ -127,7 +127,7 @@ func Test_convert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeployme
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, util.ObjectDiff(test.out, out), util.ObjectGoPrintSideBySide(test.out, out))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, diff.ObjectDiff(test.out, out), diff.ObjectGoPrintSideBySide(test.out, out))
 		}
 	}
 }
@@ -142,7 +142,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(-25),
+				UpdatePercent:       newInt32(-25),
 				MaxSurge:            intstr.FromInt(0),
 				MaxUnavailable:      intstr.FromString("25%"),
 			},
@@ -150,7 +150,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(-25),
+				UpdatePercent:       newInt32(-25),
 				MaxSurge:            newIntOrString(intstr.FromInt(0)),
 				MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 			},
@@ -160,7 +160,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(25),
+				UpdatePercent:       newInt32(25),
 				MaxSurge:            intstr.FromString("25%"),
 				MaxUnavailable:      intstr.FromInt(0),
 			},
@@ -168,7 +168,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt(25),
+				UpdatePercent:       newInt32(25),
 				MaxSurge:            newIntOrString(intstr.FromString("25%")),
 				MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 			},
@@ -197,7 +197,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeployme
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, util.ObjectDiff(test.out, out), util.ObjectGoPrintSideBySide(test.out, out))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", out, test.out, diff.ObjectDiff(test.out, out), diff.ObjectGoPrintSideBySide(test.out, out))
 		}
 	}
 }
@@ -206,7 +206,7 @@ func newInt64(val int64) *int64 {
 	return &val
 }
 
-func newInt(val int) *int {
+func newInt32(val int32) *int32 {
 	return &val
 }
 

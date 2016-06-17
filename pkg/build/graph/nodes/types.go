@@ -33,6 +33,10 @@ func (n BuildConfigNode) String() string {
 	return string(BuildConfigNodeName(n.BuildConfig))
 }
 
+func (n BuildConfigNode) UniqueName() osgraph.UniqueName {
+	return BuildConfigNodeName(n.BuildConfig)
+}
+
 func (*BuildConfigNode) Kind() string {
 	return BuildConfigNodeKind
 }
@@ -75,6 +79,10 @@ func (n BuildNode) Object() interface{} {
 
 func (n BuildNode) String() string {
 	return string(BuildNodeName(n.Build))
+}
+
+func (n BuildNode) UniqueName() osgraph.UniqueName {
+	return BuildNodeName(n.Build)
 }
 
 func (*BuildNode) Kind() string {

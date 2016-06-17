@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 
 	"gopkg.in/ldap.v2"
 
@@ -40,10 +41,10 @@ func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	}
 
 	if len(schemaConfigsFound) > 1 {
-		validationResults.AddErrors(field.Invalid(nil, config, fmt.Sprintf("only one schema-specific config is allowed; found %v", schemaConfigsFound)))
+		validationResults.AddErrors(field.Invalid(field.NewPath("schema"), config, fmt.Sprintf("only one schema-specific config is allowed; found %v", schemaConfigsFound)))
 	}
 	if len(schemaConfigsFound) == 0 {
-		validationResults.AddErrors(field.Invalid(nil, config, fmt.Sprintf("exactly one schema-specific config is required;  one of %v", []string{"rfc2307", "activeDirectory", "augmentedActiveDirectory"})))
+		validationResults.AddErrors(field.Required(field.NewPath("schema"), fmt.Sprintf("exactly one schema-specific config is required;  one of %v", []string{"rfc2307", "activeDirectory", "augmentedActiveDirectory"})))
 	}
 
 	return validationResults
@@ -111,7 +112,8 @@ func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes"), ""))
 	}
 
-	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
+	isUserDNQuery := strings.TrimSpace(strings.ToLower(config.UserUIDAttribute)) == "dn"
+	validationResults.Append(validateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery"), isUserDNQuery))
 	if len(config.UserUIDAttribute) == 0 {
 		validationResults.AddErrors(field.Required(field.NewPath("userUIDAttribute"), ""))
 	}
@@ -147,7 +149,8 @@ func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectory
 		validationResults.AddErrors(field.Required(field.NewPath("groupMembershipAttributes"), ""))
 	}
 
-	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
+	isGroupDNQuery := strings.TrimSpace(strings.ToLower(config.GroupUIDAttribute)) == "dn"
+	validationResults.Append(validateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery"), isGroupDNQuery))
 	if len(config.GroupUIDAttribute) == 0 {
 		validationResults.AddErrors(field.Required(field.NewPath("groupUIDAttribute"), ""))
 	}
@@ -159,6 +162,9 @@ func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectory
 }
 
 func ValidateLDAPQuery(query api.LDAPQuery, fldPath *field.Path) ValidationResults {
+	return validateLDAPQuery(query, fldPath, false)
+}
+func validateLDAPQuery(query api.LDAPQuery, fldPath *field.Path, isDNOnly bool) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if _, err := ldap.ParseDN(query.BaseDN); err != nil {
@@ -183,6 +189,13 @@ func ValidateLDAPQuery(query api.LDAPQuery, fldPath *field.Path) ValidationResul
 	if query.TimeLimit < 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("timeout"), query.TimeLimit,
 			"timeout must be equal to or greater than zero"))
+	}
+
+	if isDNOnly {
+		if len(query.Filter) != 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("filter"), query.Filter, `cannot specify a filter when using "dn" as the UID attribute`))
+		}
+		return validationResults
 	}
 
 	if _, err := ldap.CompileFilter(query.Filter); err != nil {

@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: s2i build with a quota", func() {
+var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
@@ -17,7 +17,7 @@ var _ = g.Describe("builds: s2i build with a quota", func() {
 	)
 
 	var (
-		buildFixture = exutil.FixturePath("fixtures", "test-s2i-build-quota.json")
+		buildFixture = exutil.FixturePath("testdata", "test-s2i-build-quota.json")
 		oc           = exutil.NewCLI("s2i-build-quota", exutil.KubeConfigPath())
 	)
 
@@ -36,11 +36,14 @@ var _ = g.Describe("builds: s2i build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			_, err = oc.Run("start-build").Args("s2i-build-quota", "--from-dir", exutil.FixturePath("fixtures", "build-quota")).Output()
+			_, err = oc.Run("start-build").Args("s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota")).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "s2i-build-quota-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("s2i-build-quota", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build logs to contain the correct cgroups values")

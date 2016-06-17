@@ -5,6 +5,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
+const (
+	ClusterNetworkDefault = "default"
+)
+
 type ClusterNetwork struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
@@ -12,6 +16,7 @@ type ClusterNetwork struct {
 	Network          string
 	HostSubnetLength int
 	ServiceNetwork   string
+	PluginName       string
 }
 
 type ClusterNetworkList struct {

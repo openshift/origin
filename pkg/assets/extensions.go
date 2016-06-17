@@ -144,7 +144,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request, path, base string) {
 	content = bytes.Replace(content, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, base)), 1)
 
 	w.Header().Add("Cache-Control", "no-cache, no-store")
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
 	w.Write(content)
 }

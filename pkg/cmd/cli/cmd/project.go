@@ -8,9 +8,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -23,10 +23,10 @@ import (
 
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
-	Client       *client.Client
-	ClientConfig *kclient.Config
+	ClientConfig *restclient.Config
+	ClientFn     func() (*client.Client, error)
 	Out          io.Writer
-	PathOptions  *kubecmdconfig.PathOptions
+	PathOptions  *kclientcmd.PathOptions
 
 	ProjectName  string
 	ProjectOnly  bool
@@ -51,10 +51,10 @@ For advanced configuration, or to manage the contents of your config file, use t
 command.`
 
 	projectExample = `  # Switch to 'myapp' project
-  $ %[1]s myapp
+  %[1]s myapp
 
   # Display the project currently in use
-  $ %[1]s`
+  %[1]s`
 )
 
 // NewCmdProject implements the OpenShift cli rollback command
@@ -66,7 +66,6 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Short:   "Switch to another project",
 		Long:    projectLong,
 		Example: fmt.Sprintf(projectExample, fullName),
-		Aliases: []string{"projects"},
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
@@ -104,9 +103,9 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
-	if err != nil {
-		return err
+	o.ClientFn = func() (*client.Client, error) {
+		client, _, err := f.Clients()
+		return client, err
 	}
 
 	o.Out = out
@@ -123,19 +122,23 @@ func (o ProjectOptions) RunProject() error {
 	clientCfg := o.ClientConfig
 	out := o.Out
 
+	currentContext := config.Contexts[config.CurrentContext]
+	currentProject := currentContext.Namespace
+
 	// No argument provided, we will just print info
 	if len(o.ProjectName) == 0 {
-		currentContext := config.Contexts[config.CurrentContext]
-		currentProject := currentContext.Namespace
-
 		if len(currentProject) > 0 {
 			if o.DisplayShort {
 				fmt.Fprintln(out, currentProject)
 				return nil
 			}
 
-			_, err := o.Client.Projects().Get(currentProject)
+			client, err := o.ClientFn()
 			if err != nil {
+				return err
+			}
+
+			if _, err := client.Projects().Get(currentProject); err != nil {
 				if kapierrors.IsNotFound(err) {
 					return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
 				}
@@ -181,8 +184,12 @@ func (o ProjectOptions) RunProject() error {
 
 	} else {
 		if !o.SkipAccessValidation {
-			_, err := o.Client.Projects().Get(argument)
+			client, err := o.ClientFn()
 			if err != nil {
+				return err
+			}
+
+			if _, err := client.Projects().Get(argument); err != nil {
 				if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
 					var msg string
 					if isForbidden {
@@ -191,7 +198,7 @@ func (o ProjectOptions) RunProject() error {
 						msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
 					}
 
-					projects, err := getProjects(o.Client)
+					projects, err := getProjects(client)
 					if err == nil {
 						switch len(projects) {
 						case 0:
@@ -231,7 +238,7 @@ func (o ProjectOptions) RunProject() error {
 		contextInUse = merged.CurrentContext
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config, true); err != nil {
+	if err := kclientcmd.ModifyConfig(o.PathOptions, config, true); err != nil {
 		return err
 	}
 
@@ -248,6 +255,10 @@ func (o ProjectOptions) RunProject() error {
 	// if there is no namespace, then the only information we can provide is the context and server
 	case (len(namespaceInUse) == 0):
 		fmt.Fprintf(out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
+
+	// inform them that they are already in the project they are trying to switch to
+	case currentProject == namespaceInUse:
+		fmt.Fprintf(out, "Already on project %q on server %q.\n", currentProject, clientCfg.Host)
 
 	// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 	// a context name they didn't choose
@@ -271,7 +282,7 @@ func getProjects(oClient *client.Client) ([]api.Project, error) {
 	return projects.Items, nil
 }
 
-func clusterAndAuthEquality(clientCfg *kclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
+func clusterAndAuthEquality(clientCfg *restclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
 	return cluster.Server == clientCfg.Host &&
 		cluster.InsecureSkipTLSVerify == clientCfg.Insecure &&
 		cluster.CertificateAuthority == clientCfg.CAFile &&

@@ -9,6 +9,13 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -19,12 +26,6 @@ import (
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -358,7 +359,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 					continue
 				}
 
-				glog.V(4).Infof("Adding edge (kind=%d) from %q to %q", kind, imageStreamNode.UniqueName.UniqueName(), imageNode.UniqueName.UniqueName())
+				glog.V(4).Infof("Adding edge (kind=%s) from %q to %q", kind, imageStreamNode.UniqueName(), imageNode.UniqueName())
 				g.AddEdge(imageStreamNode, imageNode, kind)
 
 				glog.V(4).Infof("Adding stream->layer references")
@@ -495,7 +496,7 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
 func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) {
-	from := buildutil.GetImageStreamForStrategy(strategy)
+	from := buildutil.GetInputReference(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return
@@ -507,7 +508,7 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 
 	switch from.Kind {
 	case "ImageStreamImage":
-		_, id, err := imagestreamimage.ParseNameAndID(from.Name)
+		_, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			glog.V(2).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
 			return
@@ -600,11 +601,11 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 		func(g graph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKinds sets.String) bool {
-			if prunableImageIDs.Has(head.ID()) {
+		func(g graph.Interface, from, to gonum.Node, edgeKinds sets.String) bool {
+			if prunableImageIDs.Has(from.ID()) {
 				return false
 			}
-			if prunableImageIDs.Has(tail.ID()) {
+			if prunableImageIDs.Has(to.ID()) {
 				return false
 			}
 			return true
@@ -916,11 +917,24 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		}
 		defer resp.Body.Close()
 
+		// TODO: investigate why we're getting non-existent layers, for now we're logging
+		// them out and continue working
+		if resp.StatusCode == http.StatusNotFound {
+			glog.Warningf("Unable to prune layer %s, returned %v", url, resp.Status)
+			return nil
+		}
+		// non-2xx/3xx response doesn't cause an error, so we need to check for it
+		// manually and return it to caller
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
+			return fmt.Errorf(resp.Status)
+		}
 		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted {
 			glog.V(1).Infof("Unexpected status code in response: %d", resp.StatusCode)
-			decoder := json.NewDecoder(resp.Body)
 			var response errcode.Errors
-			decoder.Decode(&response)
+			decoder := json.NewDecoder(resp.Body)
+			if err := decoder.Decode(&response); err != nil {
+				return err
+			}
 			glog.V(1).Infof("Response: %#v", response)
 			return &response
 		}

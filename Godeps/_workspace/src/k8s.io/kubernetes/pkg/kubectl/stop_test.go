@@ -25,10 +25,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
+	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 )
 
 func TestReplicationControllerStop(t *testing.T) {
@@ -377,7 +379,7 @@ func TestReplicaSetStop(t *testing.T) {
 func TestJobStop(t *testing.T) {
 	name := "foo"
 	ns := "default"
-	zero := 0
+	zero := int32(0)
 	tests := []struct {
 		Name            string
 		Objs            []runtime.Object
@@ -387,26 +389,26 @@ func TestJobStop(t *testing.T) {
 		{
 			Name: "OnlyOneJob",
 			Objs: []runtime.Object{
-				&extensions.Job{ // GET
+				&batch.Job{ // GET
 					ObjectMeta: api.ObjectMeta{
 						Name:      name,
 						Namespace: ns,
 					},
-					Spec: extensions.JobSpec{
+					Spec: batch.JobSpec{
 						Parallelism: &zero,
 						Selector: &unversioned.LabelSelector{
 							MatchLabels: map[string]string{"k1": "v1"},
 						},
 					},
 				},
-				&extensions.JobList{ // LIST
-					Items: []extensions.Job{
+				&batch.JobList{ // LIST
+					Items: []batch.Job{
 						{
 							ObjectMeta: api.ObjectMeta{
 								Name:      name,
 								Namespace: ns,
 							},
-							Spec: extensions.JobSpec{
+							Spec: batch.JobSpec{
 								Parallelism: &zero,
 								Selector: &unversioned.LabelSelector{
 									MatchLabels: map[string]string{"k1": "v1"},
@@ -423,26 +425,26 @@ func TestJobStop(t *testing.T) {
 		{
 			Name: "JobWithDeadPods",
 			Objs: []runtime.Object{
-				&extensions.Job{ // GET
+				&batch.Job{ // GET
 					ObjectMeta: api.ObjectMeta{
 						Name:      name,
 						Namespace: ns,
 					},
-					Spec: extensions.JobSpec{
+					Spec: batch.JobSpec{
 						Parallelism: &zero,
 						Selector: &unversioned.LabelSelector{
 							MatchLabels: map[string]string{"k1": "v1"},
 						},
 					},
 				},
-				&extensions.JobList{ // LIST
-					Items: []extensions.Job{
+				&batch.JobList{ // LIST
+					Items: []batch.Job{
 						{
 							ObjectMeta: api.ObjectMeta{
 								Name:      name,
 								Namespace: ns,
 							},
-							Spec: extensions.JobSpec{
+							Spec: batch.JobSpec{
 								Parallelism: &zero,
 								Selector: &unversioned.LabelSelector{
 									MatchLabels: map[string]string{"k1": "v1"},
@@ -490,6 +492,105 @@ func TestJobStop(t *testing.T) {
 			}
 			if actions[i].GetResource() != action[1] {
 				t.Errorf("%s unexpected resource: %+v, expected %s", test.Name, actions[i], expAction)
+			}
+		}
+	}
+}
+
+func TestDeploymentStop(t *testing.T) {
+	name := "foo"
+	ns := "default"
+	deployment := extensions.Deployment{
+		ObjectMeta: api.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: extensions.DeploymentSpec{
+			Replicas: 0,
+			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+		},
+		Status: extensions.DeploymentStatus{
+			Replicas: 0,
+		},
+	}
+	template := deploymentutil.GetNewReplicaSetTemplate(&deployment)
+	tests := []struct {
+		Name            string
+		Objs            []runtime.Object
+		StopError       error
+		ExpectedActions []string
+	}{
+		{
+			Name: "SimpleDeployment",
+			Objs: []runtime.Object{
+				&extensions.Deployment{ // GET
+					ObjectMeta: api.ObjectMeta{
+						Name:      name,
+						Namespace: ns,
+					},
+					Spec: extensions.DeploymentSpec{
+						Replicas: 0,
+						Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+					},
+					Status: extensions.DeploymentStatus{
+						Replicas: 0,
+					},
+				},
+			},
+			StopError: nil,
+			ExpectedActions: []string{"get:deployments", "update:deployments",
+				"get:deployments", "list:replicasets", "delete:deployments"},
+		},
+		{
+			Name: "Deployment with single replicaset",
+			Objs: []runtime.Object{
+				&deployment, // GET
+				&extensions.ReplicaSetList{ // LIST
+					Items: []extensions.ReplicaSet{
+						{
+							ObjectMeta: api.ObjectMeta{
+								Name:      name,
+								Namespace: ns,
+							},
+							Spec: extensions.ReplicaSetSpec{
+								Template: template,
+							},
+						},
+					},
+				},
+			},
+			StopError: nil,
+			ExpectedActions: []string{"get:deployments", "update:deployments",
+				"get:deployments", "list:replicasets", "get:replicasets",
+				"get:replicasets", "update:replicasets", "get:replicasets",
+				"get:replicasets", "delete:replicasets", "delete:deployments"},
+		},
+	}
+
+	for _, test := range tests {
+		fake := testclient.NewSimpleFake(test.Objs...)
+		reaper := DeploymentReaper{fake, time.Millisecond, time.Millisecond}
+		err := reaper.Stop(ns, name, 0, nil)
+		if !reflect.DeepEqual(err, test.StopError) {
+			t.Errorf("%s unexpected error: %v", test.Name, err)
+			continue
+		}
+
+		actions := fake.Actions()
+		if len(actions) != len(test.ExpectedActions) {
+			t.Errorf("%s unexpected actions: %v, expected %d actions got %d", test.Name, actions, len(test.ExpectedActions), len(actions))
+			continue
+		}
+		for i, expAction := range test.ExpectedActions {
+			action := strings.Split(expAction, ":")
+			if actions[i].GetVerb() != action[0] {
+				t.Errorf("%s unexpected verb: %+v, expected %s", test.Name, actions[i], expAction)
+			}
+			if actions[i].GetResource() != action[1] {
+				t.Errorf("%s unexpected resource: %+v, expected %s", test.Name, actions[i], expAction)
+			}
+			if len(action) == 3 && actions[i].GetSubresource() != action[2] {
+				t.Errorf("%s unexpected subresource: %+v, expected %s", test.Name, actions[i], expAction)
 			}
 		}
 	}
@@ -604,7 +705,7 @@ func TestSimpleStop(t *testing.T) {
 		}
 		actions := fake.Actions()
 		if len(test.actions) != len(actions) {
-			t.Errorf("unexpected actions: %v; expected %v (%s)", fake.Actions, test.actions, test.test)
+			t.Errorf("unexpected actions: %v; expected %v (%s)", actions, test.actions, test.test)
 		}
 		for i, action := range actions {
 			testAction := test.actions[i]

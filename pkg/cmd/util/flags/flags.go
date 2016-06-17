@@ -59,6 +59,19 @@ func NewComponentFlag(mappings map[string][]string, allowed ...string) *Componen
 	}
 }
 
+// DefaultEnable resets the enabled components to only those provided that are also in the allowed
+// list.
+func (f *ComponentFlag) DefaultEnable(components ...string) *ComponentFlag {
+	f.enabled = strings.Join(f.allowed.Union(sets.NewString(components...)).List(), ",")
+	return f
+}
+
+// DefaultDisable resets the default enabled set to all allowed components except the provided.
+func (f *ComponentFlag) DefaultDisable(components ...string) *ComponentFlag {
+	f.enabled = strings.Join(f.allowed.Difference(sets.NewString(components...)).List(), ",")
+	return f
+}
+
 // Disable marks the provided components as disabled.
 func (f *ComponentFlag) Disable(components ...string) {
 	f.Calculated().Delete(components...)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -40,10 +41,10 @@ images.`
 
 	imagesExample = `  # See, what the prune command would delete if only images more than an hour old and obsoleted
   # by 3 newer revisions under the same tag were considered.
-  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
+  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
+  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
 )
 
 // PruneImagesOptions holds all the required options for prune images
@@ -411,7 +412,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 	// set the "password" to be the token
 	registryClientConfig.Password = token
 
-	tlsConfig, err := kclient.TLSConfigFor(&registryClientConfig)
+	tlsConfig, err := restclient.TLSConfigFor(&registryClientConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -435,7 +436,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 		TLSClientConfig: tlsConfig,
 	})
 
-	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, transport)
+	wrappedTransport, err := restclient.HTTPWrappersForConfig(&registryClientConfig, transport)
 	if err != nil {
 		return nil, nil, nil, err
 	}
