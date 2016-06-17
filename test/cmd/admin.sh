@@ -311,6 +311,7 @@ os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${U
 os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc env --list dc/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
 echo "registry: ok"
 os::test::junit::declare_suite_end
 

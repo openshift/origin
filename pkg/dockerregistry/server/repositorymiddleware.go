@@ -168,7 +168,7 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 
 	bs := r.Repository.Blobs(ctx)
 
-	if quotaEnforcing != nil {
+	if !quotaEnforcing.enforcementDisabled {
 		bs = &quotaRestrictedBlobStore{
 			BlobStore: bs,
 

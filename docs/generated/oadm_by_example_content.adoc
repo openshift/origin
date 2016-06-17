@@ -520,6 +520,9 @@ Install the integrated Docker registry
 
   # Use a different registry image
   oadm registry --images=myrepo/docker-registry:mytag
+
+  # Enforce quota and limits on images
+  oadm registry --enforce-quota
 ----
 ====
 

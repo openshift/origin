@@ -64,7 +64,10 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
   %[1]s %[2]s --replicas=2
 
   # Use a different registry image
-  %[1]s %[2]s --images=myrepo/docker-registry:mytag`
+  %[1]s %[2]s --images=myrepo/docker-registry:mytag
+
+  # Enforce quota and limits on images
+  %[1]s %[2]s --enforce-quota`
 )
 
 // RegistryOptions contains the configuration for the registry as well as any other
@@ -140,7 +143,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Volume:         "/registry",
 		ServiceAccount: "registry",
 		Replicas:       1,
-		EnforceQuota:   true,
+		EnforceQuota:   false,
 	}
 
 	cmd := &cobra.Command{
@@ -330,11 +333,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	env := app.Environment{}
 	env.Add(secretEnv)
 
-	enforceQuota := "false"
-	if opts.Config.EnforceQuota {
-		enforceQuota = "true"
-	}
-	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = enforceQuota
+	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = fmt.Sprintf("%t", opts.Config.EnforceQuota)
 	healthzPort := defaultPort
 	if len(opts.ports) > 0 {
 		healthzPort = opts.ports[0].ContainerPort

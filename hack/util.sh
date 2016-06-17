@@ -656,7 +656,7 @@ function install_registry() {
 	echo "[INFO] Installing the registry"
 	# For testing purposes, ensure the quota objects are always up to date in the registry by
 	# disabling project cache.
-	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" -o json | \
+	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
 		oc env -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
 		oc create -f -
 }
