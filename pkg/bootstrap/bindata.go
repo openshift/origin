@@ -2834,7 +2834,7 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('agent') {\nstage 'build'\ndef builder = new com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder(\"\", \"ruby-sample-build\", \"pipelineproject\", \"\", \"\", \"\", \"\", \"true\", \"\", \"\")\nstep builder\nstage 'deploy'\ndef deployer = new com.openshift.jenkins.plugins.pipeline.OpenShiftDeployer(\"\",\"frontend\",\"pipelineproject\",\"\",\"\")\nstep deployer\n}"
+            "jenkinsfile": "node('agent') {\nstage 'build'\nopenShiftBuild(buildConfig: 'ruby-sample-build', showBuildLogs: 'true')\nstage 'deploy'\nopenShiftDeploy(deploymentConfig: 'frontend')\n}"
           }
         }
       }
