@@ -37,6 +37,7 @@ import (
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
+	petsetcontroller "k8s.io/kubernetes/pkg/controller/petset"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
@@ -369,6 +370,12 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client *client.Client) {
 	if err := serviceController.Run(c.ControllerManager.ServiceSyncPeriod.Duration, c.ControllerManager.NodeSyncPeriod.Duration); err != nil {
 		glog.Fatalf("Unable to start service controller: %v", err)
 	}
+}
+
+// RunPetSetController starts the PetSet controller
+func (c *MasterConfig) RunPetSetController(client *client.Client) {
+	ps := petsetcontroller.NewPetSetController(c.Informers.Pods().Informer(), client, kctrlmgr.ResyncPeriod(c.ControllerManager)())
+	go ps.Run(1, utilwait.NeverStop)
 }
 
 func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
