@@ -1,9 +1,10 @@
-package cmd
+package login
 
 import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -107,7 +108,11 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		o.CommandName = "oc"
 	}
 
-	addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
+	parsedDefaultClusterURL, err := url.Parse(defaultClusterURL)
+	if err != nil {
+		return err
+	}
+	addr := flagtypes.Addr{Value: parsedDefaultClusterURL.Host, DefaultScheme: parsedDefaultClusterURL.Scheme, AllowPrefix: true}.Default()
 
 	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
 		if err := addr.Set(serverFlag); err != nil {
