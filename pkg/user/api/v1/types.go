@@ -8,6 +8,8 @@ import (
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
+// +genclient=true
+
 // User describes someone that makes requests to the API
 type User struct {
 	unversioned.TypeMeta `json:",inline"`

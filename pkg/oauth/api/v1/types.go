@@ -65,6 +65,8 @@ type OAuthAuthorizeToken struct {
 	UserUID string `json:"userUID,omitempty"`
 }
 
+// +genclient=true
+
 // OAuthClient describes an OAuth client
 type OAuthClient struct {
 	unversioned.TypeMeta `json:",inline"`
