@@ -1551,7 +1551,7 @@ func (b kubectlBuilder) Exec() (string, error) {
 	}
 	Logf("stderr: %q", stderr.String())
 	// TODO: trimspace should be unnecessary after switching to use kubectl binary directly
-	return strings.TrimSpace(stdout.String()), nil
+	return stdout.String(), nil
 }
 
 // RunKubectlOrDie is a convenience wrapper over kubectlBuilder
