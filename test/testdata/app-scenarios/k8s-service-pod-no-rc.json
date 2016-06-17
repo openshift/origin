@@ -1,11 +1,11 @@
 {
   "kind": "List",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {},
   "items": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "hello-openshift",
         "creationTimestamp": null,
@@ -35,7 +35,7 @@
     },
     {
       "kind": "Pod",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "hello-openshift",
         "creationTimestamp": null,
