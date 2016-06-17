@@ -6,8 +6,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -19,17 +21,17 @@ type DeploymentTriggerController struct {
 	dn osclient.DeploymentConfigsNamespacer
 	// rn is used for getting the latest deployment for a config.
 	rn kclient.ReplicationControllersNamespacer
+
+	// queue contains deployment configs that need to be synced.
+	queue workqueue.RateLimitingInterface
+
+	// dcStore provides a local cache for deployment configs.
+	dcStore oscache.StoreToDeploymentConfigLister
+	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
+	dcStoreSynced func() bool
+
 	// codec is used for decoding a config out of a deployment.
 	codec runtime.Codec
-}
-
-// NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(oc osclient.Interface, kc kclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
-	return &DeploymentTriggerController{
-		dn:    oc,
-		rn:    kc,
-		codec: codec,
-	}
 }
 
 // fatalError is an error which can't be retried.
@@ -59,7 +61,12 @@ func (c *DeploymentTriggerController) Handle(config *deployapi.DeploymentConfig)
 		return nil
 	}
 
-	return c.update(config, causes)
+	copied, err := deployutil.DeploymentConfigDeepCopy(config)
+	if err != nil {
+		return err
+	}
+
+	return c.update(copied, causes)
 }
 
 // decodeFromLatest will try to return the decoded version of the current deploymentconfig found

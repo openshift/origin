@@ -21,10 +21,6 @@ type ClusterPolicyInformer interface {
 	Lister() client.SyncedClusterPoliciesListerInterface
 }
 
-func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {
-	return &clusterPolicyInformer{sharedInformerFactory: f}
-}
-
 type clusterPolicyInformer struct {
 	*sharedInformerFactory
 }
@@ -77,10 +73,6 @@ type ClusterPolicyBindingInformer interface {
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedClusterPolicyBindingsListerInterface
-}
-
-func (f *sharedInformerFactory) ClusterPolicyBindings() ClusterPolicyBindingInformer {
-	return &clusterPolicyBindingInformer{sharedInformerFactory: f}
 }
 
 type clusterPolicyBindingInformer struct {
@@ -137,10 +129,6 @@ type PolicyInformer interface {
 	Lister() client.SyncedPoliciesListerNamespacer
 }
 
-func (f *sharedInformerFactory) Policies() PolicyInformer {
-	return &policyInformer{sharedInformerFactory: f}
-}
-
 type policyInformer struct {
 	*sharedInformerFactory
 }
@@ -193,10 +181,6 @@ type PolicyBindingInformer interface {
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedPolicyBindingsListerNamespacer
-}
-
-func (f *sharedInformerFactory) PolicyBindings() PolicyBindingInformer {
-	return &policyBindingInformer{sharedInformerFactory: f}
 }
 
 type policyBindingInformer struct {

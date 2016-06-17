@@ -28,6 +28,7 @@ type InformerFactory interface {
 	PolicyBindings() PolicyBindingInformer
 
 	DeploymentConfigs() DeploymentConfigInformer
+	ImageStreams() ImageStreamInformer
 }
 
 // ListerWatcherOverrides allows a caller to specify special behavior for particular ListerWatchers
@@ -73,12 +74,40 @@ func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
 	}
 }
 
-func (f *sharedInformerFactory) DeploymentConfigs() DeploymentConfigInformer {
-	return &deploymentConfigInformer{sharedInformerFactory: f}
-}
-
 func (f *sharedInformerFactory) StartCore(stopCh <-chan struct{}) {
 	for _, informer := range f.coreInformers {
 		go informer.Run(stopCh)
 	}
+}
+
+func (f *sharedInformerFactory) Pods() PodInformer {
+	return &podInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerInformer {
+	return &replicationControllerInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {
+	return &clusterPolicyInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) ClusterPolicyBindings() ClusterPolicyBindingInformer {
+	return &clusterPolicyBindingInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) Policies() PolicyInformer {
+	return &policyInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) PolicyBindings() PolicyBindingInformer {
+	return &policyBindingInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) DeploymentConfigs() DeploymentConfigInformer {
+	return &deploymentConfigInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) ImageStreams() ImageStreamInformer {
+	return &imageStreamInformer{sharedInformerFactory: f}
 }
