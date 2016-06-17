@@ -7,6 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+// +genclient=true
+
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
