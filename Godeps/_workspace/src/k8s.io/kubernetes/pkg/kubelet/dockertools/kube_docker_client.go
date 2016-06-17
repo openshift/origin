@@ -198,7 +198,7 @@ func (d *kubeDockerClient) PullImage(image string, auth dockertypes.AuthConfig, 
 	if err != nil {
 		return err
 	}
-	ctx, cancel := getDefaultContext()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	opts.RegistryAuth = base64Auth
 	resp, err := d.client.ImagePull(ctx, image, opts)
@@ -238,7 +238,7 @@ func (d *kubeDockerClient) RemoveImage(image string, opts dockertypes.ImageRemov
 }
 
 func (d *kubeDockerClient) Logs(id string, opts dockertypes.ContainerLogsOptions, sopts StreamOptions) error {
-	ctx, cancel := getDefaultContext()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp, err := d.client.ContainerLogs(ctx, id, opts)
 	if ctxErr := contextError(ctx); ctxErr != nil {
