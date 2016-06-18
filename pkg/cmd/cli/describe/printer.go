@@ -517,7 +517,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	if route.Spec.Port != nil {
 		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", route.Name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels)); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels)); err != nil {
 		return err
 	}
 	return nil
