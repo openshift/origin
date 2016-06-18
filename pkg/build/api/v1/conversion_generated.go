@@ -336,7 +336,7 @@ func Convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *build_api.BuildConfig
 }
 
 func autoConvert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *BuildConfigStatus, out *build_api.BuildConfigStatus, s conversion.Scope) error {
-	out.LastVersion = int64(in.LastVersion)
+	out.LastVersion = in.LastVersion
 	return nil
 }
 
@@ -345,7 +345,7 @@ func Convert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *BuildConfigStatus
 }
 
 func autoConvert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *build_api.BuildConfigStatus, out *BuildConfigStatus, s conversion.Scope) error {
-	out.LastVersion = int(in.LastVersion)
+	out.LastVersion = in.LastVersion
 	return nil
 }
 
@@ -678,7 +678,7 @@ func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *buil
 	if in.LastVersion != nil {
 		in, out := &in.LastVersion, &out.LastVersion
 		*out = new(int64)
-		**out = int64(**in)
+		**out = **in
 	} else {
 		out.LastVersion = nil
 	}
@@ -760,8 +760,8 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest,
 	}
 	if in.LastVersion != nil {
 		in, out := &in.LastVersion, &out.LastVersion
-		*out = new(int)
-		**out = int(**in)
+		*out = new(int64)
+		**out = **in
 	} else {
 		out.LastVersion = nil
 	}

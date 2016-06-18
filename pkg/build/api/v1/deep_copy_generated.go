@@ -320,7 +320,7 @@ func DeepCopy_v1_BuildRequest(in BuildRequest, out *BuildRequest, c *conversion.
 	}
 	if in.LastVersion != nil {
 		in, out := in.LastVersion, &out.LastVersion
-		*out = new(int)
+		*out = new(int64)
 		**out = *in
 	} else {
 		out.LastVersion = nil
