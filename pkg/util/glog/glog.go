@@ -78,7 +78,7 @@ type file struct {
 }
 
 func (f file) Is(level int) bool {
-	return level <= f.level
+	return level <= f.level || bool(glog.V(glog.Level(level)))
 }
 
 func (f file) V(level int) Logger {
