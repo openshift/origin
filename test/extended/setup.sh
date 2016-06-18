@@ -155,6 +155,7 @@ readonly EXCLUDED_TESTS=(
   "RollingUpdateDeployment should delete old pods and create new ones"
   "RecreateDeployment should delete old pods and create new ones"
 
+  "\[Feature:PodAffinity\]" # feature is disabled
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
   "Cinder"                # requires an OpenStack cluster
@@ -182,6 +183,7 @@ readonly EXCLUDED_TESTS=(
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
   "\[Feature:Example\]"      # may need to pre-pull images
   "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
+  "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE

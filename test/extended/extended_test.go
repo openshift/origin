@@ -3,6 +3,8 @@ package extended
 import (
 	"testing"
 
+	_ "k8s.io/kubernetes/test/e2e"
+
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/deployments"
