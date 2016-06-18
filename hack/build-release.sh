@@ -25,25 +25,18 @@ rm -rf "${context}"
 mkdir -p "${context}"
 mkdir -p "${OS_OUTPUT}"
 
-# Generate version definitions.
-# You can commit a specific version by specifying OS_GIT_COMMIT="" prior to build
-os::build::get_version_vars
-os::build::save_version_vars "${context}/os-version-defs"
-
-echo "++ Building release ${OS_GIT_VERSION}"
-
-# Create the input archive.
-git archive --format=tar -o "${context}/archive.tar" "${OS_GIT_COMMIT}"
-tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
-if [[ -n "${OVERRIDE_BUILD-}" ]]; then
-  tar -rf "${context}/archive.tar" -C "${context}" ${OVERRIDE_BUILD[@]}
-fi
-gzip -f "${context}/archive.tar"
+container="$( os::build::environment::create /bin/sh -c "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-} make build-cross" )"
+trap "os::build::environment::cleanup ${container}" EXIT
 
 # Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -e "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-}" -i --cidfile="${context}/cid" openshift/origin-release
-docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
+(
+  OS_GIT_TREE_STATE=clean # set this because we will be pulling from git archive
+  os::build::get_version_vars
+  echo "++ Building release ${OS_GIT_VERSION}"
+)
+os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
+# Get the command output
+docker cp "${container}:/go/src/github.com/openshift/origin/_output/local/releases" "${OS_OUTPUT}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
-docker rm $(cat ${context}/cid)
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

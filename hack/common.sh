@@ -21,6 +21,9 @@ readonly OS_ROOT=$(
   fi
 )
 
+readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.6}"
+readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
+
 readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
@@ -863,3 +866,106 @@ function os::build::find-binary() {
   echo "$path"
 }
 readonly -f os::build::find-binary
+
+# os::build::environment::create creates a docker container with the default variables.
+# arguments are passed directly to the container, OS_BUILD_ENV_GOLANG, OS_BUILD_ENV_IMAGE,
+# and OS_RELEASE_DOCKER_ARGS can be used to customize the container. The docker socket
+# is mounted by default and the output of the command is the container id.
+function os::build::environment::create() {
+  set -o errexit
+  local golang_version="${OS_BUILD_ENV_GOLANG}"
+  local release_image="${OS_BUILD_ENV_IMAGE}"
+  local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
+  if [[ -z "${additional_context}" && "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
+    additional_context="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+
+    if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
+      # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
+      # and set the running user to the current user
+      local workingdir
+      workingdir=$( os::build::environment::release::workingdir )
+      additional_context="${additional_context} -v ${OS_ROOT}:${workingdir} -u $(id -u)"
+    elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
+      # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
+      # successive iterations can reuse shared code.
+      local workingdir
+      workingdir=$( os::build::environment::release::workingdir )
+      name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
+      docker volume create --name "${name}" > /dev/null
+      additional_context="${additional_context} -v ${name}:${workingdir}"
+    fi
+  fi
+
+  # Create a new container to from the release environment
+  docker create ${additional_context} "${release_image}" "$@"
+}
+readonly -f os::build::environment::create
+
+# os::build::environment::release::workingdir calculates the working directory for the current
+# release image.
+function os::build::environment::release::workingdir() {
+  set -o errexit
+  # get working directory
+  local container
+  container="$(docker create "${release_image}")"
+  local workingdir
+  workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+  docker rm "${container}" > /dev/null
+  echo "${workingdir}"
+}
+readonly -f os::build::environment::release::workingdir
+
+# os::build::environment::cleanup stops and removes the container named in the argument
+# (unless OS_BUILD_ENV_LEAVE_CONTAINER is set, in which case it will only stop the container).
+function os::build::environment::cleanup() {
+  local container=$1
+  docker stop --time=0 "${container}" > /dev/null || true
+  if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
+    docker rm "${container}" > /dev/null
+  fi
+}
+readonly -f os::build::environment::cleanup
+
+# os::build::environment::withsource starts the container provided as the first argument
+# after copying in the contents of the current Git repository at HEAD (or, if specified,
+# the ref specified in the second argument).
+function os::build::environment::withsource() {
+  local container=$1
+  local commit=${2:-HEAD}
+
+  if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER:-}" ]]; then
+    # running locally, no change necessary
+    os::build::get_version_vars
+    os::build::save_version_vars "${OS_ROOT}/os-version-defs"
+  else
+    # Generate version definitions. Tree state is clean because we are pulling from git directly.
+    OS_GIT_TREE_STATE=clean os::build::get_version_vars
+    os::build::save_version_vars "/tmp/os-version-defs"
+
+    local workingdir
+    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+    tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
+    git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+  fi
+
+  docker start "${container}" > /dev/null
+  docker logs -f "${container}"
+}
+readonly -f os::build::environment::withsource
+
+# os::build::environment::run launches the container with the provided arguments and
+# the current commit (defaults to HEAD). The container is automatically cleaned up.
+function os::build::environment::run() {
+  local commit="${OS_GIT_COMMIT:-HEAD}"
+  local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
+  if [[ -z "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
+    volume="origin-build-$( git rev-parse "${commit}" )"
+  fi
+
+  local container
+  container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
+  trap "os::build::environment::cleanup ${container}" EXIT
+
+  os::build::environment::withsource "${container}" "${commit}"
+}
+readonly -f os::build::environment::run
