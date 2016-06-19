@@ -31,7 +31,6 @@ type BuildConfigReaper struct {
 // Stop deletes the build configuration and all of the associated builds.
 func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
 	noBcFound := false
-	noBuildFound := true
 
 	// Add deletion pending annotation to the build config
 	err := unversioned.RetryOnConflict(unversioned.DefaultRetry, func() error {
@@ -60,6 +59,10 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		return err
 	}
 
+	if noBcFound {
+		return kerrors.NewNotFound(buildapi.Resource("buildconfig"), name)
+	}
+
 	// Warn the user if the BuildConfig won't get deleted after this point.
 	bcDeleted := false
 	defer func() {
@@ -84,7 +87,6 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 				}
 			}
 		}
-		noBuildFound = false
 		if err := reaper.oc.Builds(namespace).Delete(build.Name); err != nil {
 			glog.Warningf("Cannot delete Build %s/%s: %v", build.Namespace, build.Name, err)
 			if !kerrors.IsNotFound(err) {
@@ -100,7 +102,6 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		return err
 	}
 	for _, build := range builds.Items {
-		noBuildFound = false
 		if err := reaper.oc.Builds(namespace).Delete(build.Name); err != nil {
 			glog.Warningf("Cannot delete Build %s/%s: %v", build.Namespace, build.Name, err)
 			if !kerrors.IsNotFound(err) {
@@ -121,10 +122,6 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		}
 	}
 	bcDeleted = true
-
-	if noBcFound && noBuildFound {
-		return kerrors.NewNotFound(buildapi.Resource("buildconfig"), name)
-	}
 
 	return nil
 }
