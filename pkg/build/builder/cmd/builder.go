@@ -63,7 +63,7 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 	masterVersion := os.Getenv(api.OriginVersion)
 	thisVersion := version.Get().String()
 	if len(masterVersion) != 0 && masterVersion != thisVersion {
-		fmt.Fprintf(cfg.out, "warning: OpenShift server version %q differs from this image %q\n", masterVersion, thisVersion)
+		glog.V(3).Infof("warning: OpenShift server version %q differs from this image %q\n", masterVersion, thisVersion)
 	} else {
 		glog.V(4).Infof("Master version %q, Builder version %q", masterVersion, thisVersion)
 	}

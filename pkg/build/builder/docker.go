@@ -116,7 +116,7 @@ func (d *DockerBuilder) Build() error {
 		if authPresent {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.V(0).Infof("Pushing image %s ...", pushTag)
+		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}

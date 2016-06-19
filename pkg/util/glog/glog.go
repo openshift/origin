@@ -47,7 +47,7 @@ func (glogger) V(level int) Logger {
 }
 
 func (glogger) Infof(format string, args ...interface{}) {
-	glog.Infof(format, args)
+	glog.Infof(format, args...)
 }
 
 // gverbose handles glog.V(x) calls
@@ -67,7 +67,7 @@ func (gverbose) V(level int) Logger {
 }
 
 func (g gverbose) Infof(format string, args ...interface{}) {
-	g.Verbose.Infof(format, args)
+	g.Verbose.Infof(format, args...)
 }
 
 // file logs the provided messages at level or below to the writer, or delegates
