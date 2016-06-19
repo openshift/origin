@@ -60,6 +60,11 @@ func (s routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	// Limit to kind/name
 	// TODO: convert to LocalObjectReference
 	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+	// Ignore attempts to clear the spec Host
+	// Prevents "immutable field" errors when applying the same route definition used to create
+	if len(route.Spec.Host) == 0 {
+		route.Spec.Host = oldRoute.Spec.Host
+	}
 }
 
 // allocateHost allocates a host name ONLY if the host name on the route is empty and an allocator
