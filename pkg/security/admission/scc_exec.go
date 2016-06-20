@@ -3,7 +3,10 @@ package admission
 import (
 	"io"
 
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/controller/shared"
 	"k8s.io/kubernetes/pkg/admission"
+	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
@@ -11,10 +14,12 @@ import (
 func init() {
 	admission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 		execAdmitter := NewSCCExecRestrictions(client)
-		execAdmitter.constraintAdmission.Run()
 		return execAdmitter, nil
 	})
 }
+
+var _ kadmission.Interface = &sccExecRestrictions{}
+var _ = oadmission.WantsInformers(&sccExecRestrictions{})
 
 // sccExecRestrictions is an implementation of admission.Interface which says no to a pod/exec on
 // a pod that the user would not be allowed to create
@@ -57,4 +62,14 @@ func NewSCCExecRestrictions(client clientset.Interface) *sccExecRestrictions {
 		constraintAdmission: NewConstraint(client),
 		client:              client,
 	}
+}
+
+// SetInformers implements WantsInformers interface for sccExecRestrictions.
+func (d *sccExecRestrictions) SetInformers(informers shared.InformerFactory) {
+	d.constraintAdmission.sccLister = informers.SecurityContextConstraints().Lister()
+}
+
+// Validate defines actions to validate sccExecRestrictions
+func (d *sccExecRestrictions) Validate() error {
+	return d.constraintAdmission.Validate()
 }
