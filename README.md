@@ -14,16 +14,11 @@ OpenShift Application Platform
 
 **Features:**
 
-**For developers:**
-
 * Easily build applications with integrated service discovery and persistent storage.
 * Quickly and easily scale applications to handle periods of increased demand.
   * Support for automatic high availability, load balancing, health checking, and failover.
 * Push source code to your Git repository and automatically deploy containerized applications.
 * Web console and command-line client for building and monitoring applications.
-
-**For system administrators:**
-
 * Centralized administration and management of an entire stack, team, or organization.
   * Create reusable templates for components of your system, and iteratively deploy them over time.
   * Roll out modifications to software stacks to your entire organization in a controlled fashion.
@@ -48,14 +43,14 @@ Getting Started
 
 ### Installation
 
-* If you intend to develop applications to run on an existing installation of the OpenShift platform, you can download the client tools and place the included binaries in your `PATH`.
+* If you intend to develop applications to run on an existing installation of the OpenShift platform, you can [download the client tools](https://github.com/openshift/origin/releases) and place the included binaries in your `PATH`.
 * For local development/test or product evaluation purposes, we recommend using the quick install as described in the [Getting Started Install guide](https://docs.openshift.org/latest/getting_started/administrators.html).
 * For production environments, we recommend using [Ansible](https://github.com/openshift/openshift-ansible) as described in the [Advanced Installation guide](https://docs.openshift.org/latest/install_config/install/advanced_install.html).
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc).
 
 ### Concepts
 
-The [Origin walkthrough](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md) is a step-by-step guide that demonstrates the core capabilities of OpenShift throughout the development, build, and test cycle.  The walkthrough is accompanied by a blog series on [blog.openshift.com](https://blog.openshift.com/openshift-v3-deep-dive-docker-kubernetes/) that goes into more detail.  It's a great place to start.
+The [Origin walkthrough](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md) is a step-by-step guide that demonstrates the core capabilities of OpenShift throughout the development, build, deploy, and test cycle.  The walkthrough is accompanied by a [blog series](https://blog.openshift.com/openshift-v3-deep-dive-docker-kubernetes/) that goes into more detail.  It's a great place to start.
 
 ### Origin API
 
@@ -79,7 +74,7 @@ FAQ
 
 1. How does Origin relate to Kubernetes?
 
-    Origin is a distribution of Kubernetes optimized for enterprise application development and deployment, and is the foundation of OpenShift 3 and Atomic Enterprise.  Origin extends Kubernetes with additional functionality, offering a simple, yet powerful, development and operational experience.  Both Origin and the upstream Kubernetes project focus on building and deploying applications in containers.
+    Origin is a distribution of Kubernetes optimized for enterprise application development and deployment, and is the foundation of OpenShift 3.  Origin extends Kubernetes with additional functionality, offering a simple, yet powerful, development and operational experience.  Both Origin and the upstream Kubernetes project focus on deploying applications in containers, but Origin additionally provides facilities to build container-based applications from source.
 
     You can run the core Kubernetes server components with `openshift start kube` and use `openshift kube` in place of `kubectl`.  Additionally, the Origin release archives include versions of `kubectl`, `kubelet`, `kube-apiserver`, and other core components.  You can see the version of Kubernetes included with Origin by invoking `openshift version`.
 
@@ -104,7 +99,7 @@ FAQ
     * [Node.js](https://github.com/openshift/sti-nodejs)
     * [PHP](https://github.com/openshift/sti-php)
     * [Perl](https://github.com/openshift/sti-perl)
-    * Other community-supported images, including [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
+    * [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
 
     Your application image can be easily extended with a database service with our [database images](https://docs.openshift.org/latest/using_images/db_images/overview.html). Our available database images are:
 
@@ -136,9 +131,9 @@ FAQ
 
 5. How do I get networking working?
 
-    The Origin and Kubernetes network model assigns each Pod (group of containers) an IP address that is expected to be reachable from all nodes in the cluster. The default configuration uses Open vSwitch to provide Software-Defined Networking (SDN) capabilities, which requires communication between nodes in the cluster using port 4679.  Additionally, the Origin master processes must be able to reach pods within the network, so they may require the SDN plugin.
+    The Origin and Kubernetes network model assigns each Pod (group of containers) an IP address that is expected to be reachable from all nodes in the cluster. The default configuration uses Open vSwitch (OVS) to provide Software-Defined Networking (SDN) capabilities, which requires communication between nodes in the cluster using port 4679.  Additionally, the Origin master processes must be able to reach pods within the network, so they may require the SDN plugin.
 
-    Other networking options are available such as Calico, Flannel, Nuage, and Weave. For a non-overlay networking solution, existing networks can be used by assigning a different subnet to each host, and ensuring routing rules deliver packets bound for that subnet to the host it belongs to. This is called [host subnet routing](https://docs.openshift.org/latest/admin_guide/native_container_routing.html).
+    Other networking options are available such as Calico, Flannel, Nuage, and Weave.  For a non-overlay networking solution, existing networks can be used by assigning a different subnet to each host, and ensuring routing rules deliver packets bound for that subnet to the host it belongs to. This is called [host subnet routing](https://docs.openshift.org/latest/admin_guide/native_container_routing.html).
 
 6. Why can't I run Origin in a Docker image on boot2docker or Ubuntu?
 
