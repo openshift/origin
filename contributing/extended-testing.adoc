@@ -1,0 +1,37 @@
+==== Running networking tests against any cluster
+
+It's possible to run networking tests against any cluster.  To target
+the default vm dev cluster:
+
+        $ OPENSHIFT_CONFIG_ROOT=dev test/extended/networking.sh
+
+To target an arbitrary cluster, the config root (parent of
+openshift.local.config) can be supplied instead:
+
+        $ OPENSHIFT_CONFIG_ROOT=[cluster config root] test/extended/networking.sh
+
+It's also possible to supply the path to a kubeconfig file:
+
+        $ OPENSHIFT_TEST_KUBECONFIG=./admin.kubeconfig test/extended/networking.sh
+
+See the script's inline documentation for further details.
+
+==== Running Kubernetes e2e tests
+
+It's possible to target the Kubernetes e2e tests against a running
+OpenShift cluster.  From the root of an origin repo:
+
+        $ pushd ..
+        $ git clone http://github.com/kubernetes/kubernetes/
+        $ pushd kubernetes/build
+        $ ./run hack/build-go.sh
+        $ popd && popd
+        $ export KUBE_ROOT=../kubernetes
+        $ hack/test-kube-e2e.sh --ginkgo.focus="[regex]"
+
+The previous sequence of commands will target a vagrant-based
+OpenShift cluster whose configuration is stored in the default
+location in the origin repo.  To target a dind cluster, an additional
+environment variable needs to be set before invoking test-kube-e2e.sh:
+
+        $ export OS_CONF_ROOT=/tmp/openshift-dind-cluster/openshift

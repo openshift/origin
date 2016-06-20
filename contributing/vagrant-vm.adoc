@@ -1,0 +1,116 @@
+=== Develop on virtual machine using Vagrant
+
+To facilitate rapid development we've put together a Vagrantfile you can use to stand up a development environment.
+
+1.  http://www.vagrantup.com/downloads.html[Install Vagrant]
+
+2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox` from the RPM Fusion repository)
+
+3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH: +
++
+----
+export GOPATH=$HOME/go
+----
+
+4.  Clone the project and change into the directory:
+
+        $ mkdir -p $GOPATH/src/github.com/openshift
+        $ cd $GOPATH/src/github.com/openshift
+        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ cd origin
+        $ git remote add upstream git://github.com/openshift/origin
+
+
+5.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 7 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
+
+        $ export OPENSHIFT_MEMORY=4192
+        $ vagrant up
++
+TIP: To ensure you get the latest image first run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
+
+6.  SSH in:
+
+        $ vagrant ssh
+
+7.  Run a build:
+
+        $ cd /data/src/github.com/openshift/origin
+        $ make clean build
+
+8.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  At this point you may want to update your $PATH:
+
+        # back to /home/vagrant
+        $ cd
+        # update path to include binaries for oc, oadm, etc
+        # this is temporary, to make it persistent add it to .bash_profile
+        $ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
+
+
+9.  Now start the OpenShift server:
+
+        # redirect the logs to  /home/vagrant/openshift.log for easier debugging
+        $ sudo `which openshift` start --public-master=localhost &> openshift.log &
+
++
+NOTE: This will generate three directories in /home/vagrant (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the openshift.log file.
+
++
+NOTE: By default your origin directory (on your host machine) will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`.
+
+
+10.  Deploy the private docker registry within OpenShift with the following commands:
+
+        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
+        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
+
+
+11.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
+
+        # load image stream
+        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
+        # load templates
+        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-stibuild.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
+        $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates --config=openshift.local.config/master/admin.kubeconfig
+
+
+12. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.
+
+
+13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+
+	# shut down openshift
+	$ sudo pkill openshift
+	# stop the docker containers
+	$ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+	# deleting all the internal config files, etcd, etc and starting openshift fresh
+	sudo rm -rf openshift.local.*
+	# if you used the --volume-dir=/home/vagrant/volumes flag, then run these
+
+TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
+
+==== Ensure virtual box interfaces are not managed by Network Manager
+
+If you are developing on a Linux host, then you need to ensure that Network Manager is ignoring the
+virtual box interfaces, otherwise they cause issues with multi-vm networking.
+
+Follow these steps to ensure that virtual box interfaces are unmanaged:
+
+1. Check the status of Network Manager devices:
+
+   $ nmcli d
+
+2. If any devices whose name start with vboxnet* are not unmanaged, then they need to be added to
+   NetworkManager configuration to be ignored.
+
+   $ cat /etc/NetworkManager/NetworkManager.conf
+
+        [keyfile]
+        unmanaged-devices=mac:0a:00:27:00:00:00;mac:0a:00:27:00:00:01;mac:0a:00:27:00:00:02
+
+3. One can use the following command to help generate the configuration:
+
+   $ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
+
+4. Reload the Network Manager configuration:
+
+    $ sudo nmcli con reload
