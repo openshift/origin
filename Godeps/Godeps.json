@@ -13,7 +13,7 @@
 		},
 		{
 			"ImportPath": "github.com/AaronO/go-git-http",
-			"Rev": "0ebecedc64b67a3a8674c56724082660be4821"
+			"Rev": "0ebecedc64b67a3a8674c56724082660be48216e"
 		},
 		{
 			"ImportPath": "github.com/AaronO/go-git-http/auth",
