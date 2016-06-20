@@ -183,16 +183,32 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 	// Wait for the hook pod to reach a terminal phase. Start reading logs as
 	// soon as the pod enters a usable phase.
 	var updatedPod *kapi.Pod
-	var once sync.Once
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+	restarts := int32(0)
+	alreadyRead := false
 waitLoop:
 	for {
 		updatedPod = nextPod()
 		switch updatedPod.Status.Phase {
 		case kapi.PodRunning:
 			completed = false
-			go once.Do(func() { e.readPodLogs(pod, wg) })
+
+			// We should read only the first time or in any container restart when we want to retry.
+			canRetry, restartCount := canRetryReading(updatedPod, restarts)
+			if alreadyRead && !canRetry {
+				break
+			}
+			// The hook container has restarted; we need to notify that we are retrying in the logs.
+			// TODO: Maybe log the container id
+			if restarts != restartCount {
+				wg.Add(1)
+				restarts = restartCount
+				fmt.Fprintf(e.out, "--> %s: Retrying hook pod (retry #%d)\n", label, restartCount)
+			}
+			alreadyRead = true
+			go e.readPodLogs(pod, wg)
+
 		case kapi.PodSucceeded, kapi.PodFailed:
 			if completed {
 				if updatedPod.Status.Phase == kapi.PodSucceeded {
@@ -204,7 +220,9 @@ waitLoop:
 			if !created {
 				fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
 			}
-			go once.Do(func() { e.readPodLogs(pod, wg) })
+			if !alreadyRead {
+				go e.readPodLogs(pod, wg)
+			}
 			break waitLoop
 		default:
 			completed = false
@@ -355,6 +373,14 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 	util.MergeInto(pod.Annotations, strategy.Annotations, 0)
 
 	return pod, nil
+}
+
+func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
+	if len(pod.Status.ContainerStatuses) == 0 {
+		return false, int32(0)
+	}
+	restartCount := pod.Status.ContainerStatuses[0].RestartCount
+	return pod.Spec.RestartPolicy == kapi.RestartPolicyOnFailure && restartCount > restarts, restartCount
 }
 
 // HookExecutorPodClient abstracts access to pods.
