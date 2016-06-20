@@ -330,9 +330,8 @@ func (c *MasterConfig) RunDeploymentController() {
 
 // RunDeployerPodController starts the deployer pod controller process.
 func (c *MasterConfig) RunDeployerPodController() {
-	osclient, kclient := c.DeployerPodControllerClients()
+	kclient := c.DeployerPodControllerClient()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
-		Client:     osclient,
 		KubeClient: kclient,
 		Codec:      c.EtcdHelper.Codec(),
 	}

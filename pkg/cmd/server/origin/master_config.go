@@ -576,9 +576,9 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 	return osClient, kClient
 }
 
-// DeployerPodControllerClients returns the deployer pod controller client objects
-func (c *MasterConfig) DeployerPodControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+// DeployerPodControllerClients returns the deployer pod controller client object
+func (c *MasterConfig) DeployerPodControllerClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentConfigClients returns deploymentConfig and deployment client objects
