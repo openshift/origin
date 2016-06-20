@@ -57,7 +57,7 @@ func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
 }
 
 func loggedInUserFactory() (*clientcmd.Factory, error) {
-	cfg, err := kclientcmd.LoadFromFile(config.RecommendedHomeFile)
+	cfg, err := config.NewOpenShiftClientConfigLoadingRules().Load()
 	if err != nil {
 		return nil, err
 	}

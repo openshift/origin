@@ -193,6 +193,8 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.originalFactory = f
 	c.command = cmd
 
+	c.addTask("Checking OpenShift client", c.CheckOpenShiftClient)
+
 	if c.ShouldCreateDockerMachine {
 		// Create a Docker machine first if flag specified
 		c.addTask("Create Docker machine", c.CreateDockerMachine)
@@ -301,6 +303,47 @@ func (c *ClientStartConfig) CreateDockerMachine(out io.Writer) error {
 	}
 	fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
 	return dockermachine.NewBuilder().Name(c.DockerMachine).Create()
+}
+
+// CheckOpenShiftClient ensures that the client can be configured
+// for the new server
+func (c *ClientStartConfig) CheckOpenShiftClient(out io.Writer) error {
+	kubeConfig := os.Getenv("KUBECONFIG")
+	if len(kubeConfig) == 0 {
+		return nil
+	}
+	var (
+		kubeConfigError error
+		f               *os.File
+	)
+	_, err := os.Stat(kubeConfig)
+	switch {
+	case os.IsNotExist(err):
+		err = os.MkdirAll(filepath.Dir(kubeConfig), 0755)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot make directory: %v", err)
+			break
+		}
+		f, err = os.Create(kubeConfig)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot create file: %v", err)
+			break
+		}
+		f.Close()
+	case err == nil:
+		f, err = os.OpenFile(kubeConfig, os.O_RDWR, 0644)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot open %s for write: %v", kubeConfig, err)
+			break
+		}
+		f.Close()
+	default:
+		kubeConfigError = fmt.Errorf("cannot access %s: %v", kubeConfig, err)
+	}
+	if kubeConfigError != nil {
+		return errors.ErrKubeConfigNotWriteable(kubeConfig, kubeConfigError)
+	}
+	return nil
 }
 
 // GetDockerClient will obtain a new Docker client from the environment or
