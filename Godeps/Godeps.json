@@ -319,11 +319,6 @@
 			"Rev": "8b320e7c550067b1dfb37bd1682e8067023e0751"
 		},
 		{
-			"ImportPath": "github.com/coreos/etcd/etcdserver/etcdhttp",
-			"Comment": "v2.3.0-282-g8b320e7",
-			"Rev": "8b320e7c550067b1dfb37bd1682e8067023e0751"
-		},
-		{
 			"ImportPath": "github.com/coreos/etcd/etcdserver/etcdserverpb",
 			"Comment": "v2.3.0-282-g8b320e7",
 			"Rev": "8b320e7c550067b1dfb37bd1682e8067023e0751"
@@ -1883,6 +1878,16 @@
 			"Rev": "2abf650e2e65008e5837266991ff4f2aed14bf39"
 		},
 		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/util/glog",
+			"Comment": "v1.0.9-39-g2abf650",
+			"Rev": "2abf650e2e65008e5837266991ff4f2aed14bf39"
+		},
+		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/util/interrupt",
+			"Comment": "v1.0.9-39-g2abf650",
+			"Rev": "2abf650e2e65008e5837266991ff4f2aed14bf39"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/user",
 			"Comment": "v1.0.8",
 			"Rev": "2abf650e2e65008e5837266991ff4f2aed14bf39"
@@ -2061,11 +2066,6 @@
 			"Rev": "1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1"
 		},
 		{
-			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
-			"Comment": "2.5.2d",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
-		},
-		{
 			"ImportPath": "github.com/skynetservices/skydns/cache",
 			"Comment": "2.5.2d",
 			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
@@ -2229,6 +2229,10 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
 			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		},
 		{
@@ -3526,11 +3530,6 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/registry/generic",
-			"Comment": "v1.3.0-alpha.3-599-g2746284",
-			"Rev": "686fe3889ed652b3907579c9e46f247484f52e8d"
-		},
-		{
-			"ImportPath": "k8s.io/kubernetes/pkg/registry/generic/etcd",
 			"Comment": "v1.3.0-alpha.3-599-g2746284",
 			"Rev": "686fe3889ed652b3907579c9e46f247484f52e8d"
 		},
