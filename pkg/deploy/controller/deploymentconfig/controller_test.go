@@ -4,12 +4,15 @@ import (
 	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -620,19 +623,15 @@ func TestHandleScenarios(t *testing.T) {
 		t.Logf("evaluating test: %s", test.name)
 
 		deployments := map[string]kapi.ReplicationController{}
+		toStore := []kapi.ReplicationController{}
 		for _, template := range test.before {
 			deployment := mkdeployment(template)
 			deployments[deployment.Name] = deployment
+			toStore = append(toStore, deployment)
 		}
 
+		oc := &testclient.Fake{}
 		kc := &ktestclient.Fake{}
-		kc.AddReactor("list", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			list := []kapi.ReplicationController{}
-			for _, deployment := range deployments {
-				list = append(list, deployment)
-			}
-			return true, &kapi.ReplicationControllerList{Items: list}, nil
-		})
 		kc.AddReactor("create", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			rc := action.(ktestclient.CreateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = *rc
@@ -643,15 +642,38 @@ func TestHandleScenarios(t *testing.T) {
 			deployments[rc.Name] = *rc
 			return true, rc, nil
 		})
+		codec := kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
 
-		oc := &testclient.Fake{}
+		dcInformer := framework.NewSharedIndexInformer(
+			&cache.ListWatch{
+				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
+				},
+				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+					return oc.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+				},
+			},
+			&deployapi.DeploymentConfig{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		rcInformer := framework.NewSharedIndexInformer(
+			&cache.ListWatch{
+				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+					return kc.ReplicationControllers(kapi.NamespaceAll).List(options)
+				},
+				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+					return kc.ReplicationControllers(kapi.NamespaceAll).Watch(options)
+				},
+			},
+			&kapi.ReplicationController{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, codec)
 
-		recorder := &record.FakeRecorder{}
-		controller := &DeploymentConfigController{
-			kubeClient: kc,
-			osClient:   oc,
-			codec:      kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
-			recorder:   recorder,
+		for i := range toStore {
+			c.rcStore.Add(&toStore[i])
 		}
 
 		config := deploytest.OkDeploymentConfig(test.newVersion)
@@ -659,9 +681,10 @@ func TestHandleScenarios(t *testing.T) {
 			config = deploytest.TestDeploymentConfig(config)
 		}
 		config.Spec.Replicas = test.replicas
-		err := controller.Handle(config)
-		if err != nil && !test.errExpected {
-			t.Fatalf("unexpected error: %s", err)
+
+		if err := c.Handle(config); err != nil && !test.errExpected {
+			t.Errorf("unexpected error: %s", err)
+			continue
 		}
 
 		expectedDeployments := []kapi.ReplicationController{}
@@ -677,21 +700,13 @@ func TestHandleScenarios(t *testing.T) {
 
 		if e, a := test.expectedReplicas, config.Spec.Replicas; e != a {
 			t.Errorf("expected config replicas to be %d, got %d", e, a)
-			// TODO: Disable as the recorder.Events is now `chan string`
-			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
+			continue
 		}
-		anyDeploymentMismatches := false
 		for i := 0; i < len(expectedDeployments); i++ {
 			expected, actual := expectedDeployments[i], actualDeployments[i]
 			if !kapi.Semantic.DeepEqual(expected, actual) {
-				anyDeploymentMismatches = true
 				t.Errorf("actual deployment don't match expected: %v", diff.ObjectDiff(expected, actual))
 			}
-		}
-		if anyDeploymentMismatches {
-			// TODO: Disable as the recorder.Events is now `chan string`
-			//t.Fatalf("events:\n%s", strings.Join(recorder.Events, "\t\n"))
-			t.Fatalf("deployment mismatches detected")
 		}
 	}
 }

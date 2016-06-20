@@ -8,14 +8,25 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+// fatalError is an error which can't be retried.
+type fatalError string
+
+func (e fatalError) Error() string {
+	return fmt.Sprintf("fatal error handling deployment config: %s", string(e))
+}
 
 // DeploymentConfigController is responsible for creating a new deployment
 // when:
@@ -32,48 +43,41 @@ import (
 // deployments will be cancelled. The controller will not attempt to scale
 // running deployments.
 type DeploymentConfigController struct {
-	// kubeClient provides acceess to Kube resources.
-	kubeClient kclient.Interface
-	// osClient provides access to OpenShift resources.
-	osClient osclient.Interface
+	// dn provides access to deploymentconfigs.
+	dn osclient.DeploymentConfigsNamespacer
+	// rn provides access to replication controllers.
+	rn kclient.ReplicationControllersNamespacer
+
+	// queue contains deployment configs that need to be synced.
+	queue workqueue.RateLimitingInterface
+
+	// dcStore provides a local cache for deployment configs.
+	dcStore oscache.StoreToDeploymentConfigLister
+	// rcStore provides a local cache for replication controllers.
+	rcStore cache.StoreToReplicationControllerLister
+	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
+	dcStoreSynced func() bool
+	// rcStoreSynced makes sure the rc store is synced before reconcling any deployment config.
+	rcStoreSynced func() bool
+
 	// codec is used to build deployments from configs.
 	codec runtime.Codec
 	// recorder is used to record events.
 	recorder record.EventRecorder
 }
 
-// fatalError is an error which can't be retried.
-type fatalError string
-
-// transientError is an error which should always be retried (indefinitely).
-type transientError string
-
-func (e fatalError) Error() string {
-	return fmt.Sprintf("fatal error handling deployment config: %s", string(e))
-}
-func (e transientError) Error() string {
-	return "transient error handling deployment config: " + string(e)
-}
-
-func NewDeploymentConfigController(kubeClient kclient.Interface, osClient osclient.Interface, codec runtime.Codec, recorder record.EventRecorder) *DeploymentConfigController {
-	return &DeploymentConfigController{
-		kubeClient: kubeClient,
-		osClient:   osClient,
-		codec:      codec,
-		recorder:   recorder,
-	}
-}
-
+// Handle implements the loop that processes deployment configs. Since this controller started
+// using caches, the provided config MUST be deep-copied beforehand (see work() in factory.go).
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
-	// There's nothing to reconcile until the version is nonzero.
-	if config.Status.LatestVersion == 0 {
-		glog.V(5).Infof("Waiting for first version of %q", deployutil.LabelForDeploymentConfig(config))
+	// There's nothing to reconcile until the version is nonzero or when the
+	// deployment config has been marked for deletion.
+	if config.Status.LatestVersion == 0 || config.DeletionTimestamp != nil {
 		return c.updateStatus(config)
 	}
 
-	// Find all deployments owned by the deploymentConfig.
-	sel := deployutil.ConfigSelector(config.Name)
-	existingDeployments, err := c.kubeClient.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: sel})
+	// Find all deployments owned by the deployment config.
+	selector := deployutil.ConfigSelector(config.Name)
+	existingDeployments, err := c.rcStore.ReplicationControllers(config.Namespace).List(selector)
 	if err != nil {
 		return err
 	}
@@ -83,7 +87,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// deployments to allow them to be superceded by the new config version.
 	awaitingCancellations := false
 	if !latestIsDeployed {
-		for _, deployment := range existingDeployments.Items {
+		for _, deployment := range existingDeployments {
 			// Skip deployments with an outcome.
 			if deployutil.IsTerminatedDeployment(&deployment) {
 				continue
@@ -93,7 +97,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			if !deployutil.IsDeploymentCancelled(&deployment) {
 				deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-				_, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
+				_, err := c.rn.ReplicationControllers(deployment.Namespace).Update(&deployment)
 				if err != nil {
 					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
@@ -106,8 +110,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// deployment to avoid competing with existing deployment processes.
 	if awaitingCancellations {
 		c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
-		// raise a transientError so that the deployment config can be re-queued
-		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
+		return fmt.Errorf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config))
 	}
 	// If the latest deployment already exists, reconcile existing deployments
 	// and return early.
@@ -130,7 +133,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	if err != nil {
 		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
-	created, err := c.kubeClient.ReplicationControllers(config.Namespace).Create(deployment)
+	created, err := c.rn.ReplicationControllers(config.Namespace).Create(deployment)
 	if err != nil {
 		// If the deployment was already created, just move on. The cache could be
 		// stale, or another process could have already handled this update.
@@ -157,7 +160,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 // directly. To continue supporting that old behavior we must detect when the
 // deployment has been directly manipulated, and if so, preserve the directly
 // updated value and sync the config with the deployment.
-func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *kapi.ReplicationControllerList, config *deployapi.DeploymentConfig) error {
+func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []kapi.ReplicationController, config *deployapi.DeploymentConfig) error {
 	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
 	if !latestIsDeployed {
 		// We shouldn't be reconciling if the latest deployment hasn't been
@@ -226,7 +229,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 		oldReplicas := config.Spec.Replicas
 		config.Spec.Replicas = activeReplicas
 		var err error
-		config, err = c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		config, err = c.dn.DeploymentConfigs(config.Namespace).Update(config)
 		if err != nil {
 			return err
 		}
@@ -235,7 +238,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
-	for _, deployment := range existingDeployments.Items {
+	for _, deployment := range existingDeployments {
 		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
 
 		oldReplicaCount := deployment.Spec.Replicas
@@ -259,7 +262,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 			copied.Spec.Replicas = newReplicaCount
 			copied.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
 
-			if _, err := c.kubeClient.ReplicationControllers(copied.Namespace).Update(copied); err != nil {
+			if _, err := c.rn.ReplicationControllers(copied.Namespace).Update(copied); err != nil {
 				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
 					"Failed to scale deployment %q from %d to %d: %v", copied.Name, oldReplicaCount, newReplicaCount, err)
 				return err
@@ -278,15 +281,40 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments *k
 }
 
 func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig) error {
-	if config.Generation > config.Status.ObservedGeneration {
-		config.Status.ObservedGeneration = config.Generation
+	// NOTE: We should update the status of the deployment config only if we need to, otherwise
+	// we hotloop between updates.
+	if !needsUpdate(config) {
+		return nil
 	}
-	if _, err := c.osClient.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
+	config.Status.ObservedGeneration = config.Generation
+	if _, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
 		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
-		return transientError(fmt.Sprintf("cannot update the status for %q - requeuing", deployutil.LabelForDeploymentConfig(config)))
+		return err
 	}
 	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
 	return nil
+}
+
+func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
+	if err == nil {
+		return
+	}
+	if _, isFatal := err.(fatalError); isFatal {
+		utilruntime.HandleError(err)
+		c.queue.Forget(key)
+		return
+	}
+
+	if c.queue.NumRequeues(key) < 10 {
+		c.queue.AddRateLimited(key)
+	} else {
+		glog.V(2).Infof(err.Error())
+		c.queue.Forget(key)
+	}
+}
+
+func needsUpdate(config *deployapi.DeploymentConfig) bool {
+	return config.Generation > config.Status.ObservedGeneration
 }
 
 func deploymentCopy(rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
