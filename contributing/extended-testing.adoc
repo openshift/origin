@@ -1,7 +1,8 @@
 ==== Running networking tests against any cluster
 
-It's possible to run networking tests against any cluster.  To target
-the default vm dev cluster:
+It's possible to run networking tests against any cluster.
+
+To target the DIND vm cluster:
 
         $ OPENSHIFT_CONFIG_ROOT=dev test/extended/networking.sh
 
