@@ -22,12 +22,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6c74cf1f49076b906e7a750bf8dd8efe46b31fd0
+%global commit 45459446465292391670ce8846b0af39306f5737
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.1.1-12-g6c74cf1 -X github.com/openshift/origin/pkg/version.commitFromGit 6c74cf1 -X k8s.io/kubernetes/pkg/version.gitCommit 6c74cf1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.1.2-7-g4545944 -X github.com/openshift/origin/pkg/version.commitFromGit 4545944 -X k8s.io/kubernetes/pkg/version.gitCommit 4545944 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.1.2
+Version:        3.2.1.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -486,6 +486,14 @@ fi
 
 
 %changelog
+* Mon Jun 20 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.3
+- add mutation cache (deads@redhat.com)
+- convert dockercfg secret generator to a work queue (deads@redhat.com)
+- UPSTREAM: 25091: partial - reduce conflict retries (deads@redhat.com)
+- Add bindata.go to pick up changes merged in
+  https://github.com/openshift/ose/pull/213 which addressed bug 1328016.
+  (sgoodwin@redhat.com)
+
 * Tue Jun 14 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.2
 - UPSTREAM: 27227: Counting pod volume towards PV limit even if PV/PVC is
   missing (abhgupta@redhat.com)
