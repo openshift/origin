@@ -336,7 +336,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer)
 				anyCancelled = true
 			} else {
 				fmt.Fprintf(out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
-				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
+				failedCancellations = append(failedCancellations, strconv.FormatInt(deployutil.DeploymentVersionFor(&deployment), 10))
 			}
 		}
 	}

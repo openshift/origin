@@ -11,6 +11,7 @@ var map_ClusterNetwork = map[string]string{
 	"network":          "Network is a CIDR string to specify the global overlay network's L3 space",
 	"hostsubnetlength": "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
 	"serviceNetwork":   "ServiceNetwork is the CIDR string to specify the service network",
+	"pluginName":       "PluginName is the name of the network plugin",
 }
 
 func (ClusterNetwork) SwaggerDoc() map[string]string {

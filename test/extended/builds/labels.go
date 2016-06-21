@@ -13,9 +13,9 @@ import (
 var _ = g.Describe("[builds][Slow] result image should have proper labels set", func() {
 	defer g.GinkgoRecover()
 	var (
-		imageStreamFixture = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")
-		stiBuildFixture    = exutil.FixturePath("fixtures", "test-s2i-build.json")
-		dockerBuildFixture = exutil.FixturePath("fixtures", "test-docker-build.json")
+		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
+		stiBuildFixture    = exutil.FixturePath("testdata", "test-s2i-build.json")
+		dockerBuildFixture = exutil.FixturePath("testdata", "test-docker-build.json")
 		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
 	)
 

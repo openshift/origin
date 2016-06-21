@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -169,6 +170,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, parentName+" create "+create.UserRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, parentName+" create "+create.UserIdentityMappingRecommendedName, f, out))
+	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, parentName+" create "+create.ImageStreamRecommendedName, f, out))
 
 	adjustCmdExamples(cmd, parentName, "create")
 
@@ -178,11 +180,11 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 const (
 	execLong = `Execute a command in a container`
 
-	execExample = `  # Get output from running 'date' in ruby-container from pod 123456-7890
-  %[1]s exec -p 123456-7890 -c ruby-container date
+	execExample = `  # Get output from running 'date' in ruby-container from pod 'mypod'
+  %[1]s exec mypod -c ruby-container date
 
-  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-  %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il`
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
+  %[1]s exec mypod -c ruby-container -i -t -- bash -il`
 )
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
@@ -191,6 +193,7 @@ func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, 
 	cmd.Use = "exec [options] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
 	cmd.Example = fmt.Sprintf(execExample, fullName)
+	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
@@ -198,23 +201,24 @@ const (
 	portForwardLong = `Forward 1 or more local ports to a pod`
 
 	portForwardExample = `  # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  %[1]s port-forward -p mypod 5000 6000
+  %[1]s port-forward mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod 8888:5000
+  %[1]s port-forward mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod :5000
+  %[1]s port-forward mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  %[1]s port-forward -p mypod 0:5000`
+  %[1]s port-forward mypod 0:5000`
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
-func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
-	cmd := kcmd.NewCmdPortForward(f.Factory)
+func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdPortForward(f.Factory, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
+	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
@@ -591,7 +595,7 @@ Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/
 )
 
 func NewCmdConfig(parentName, name string) *cobra.Command {
-	pathOptions := &config.PathOptions{
+	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
 		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,

@@ -7,13 +7,15 @@ import (
 	"strings"
 	"time"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	"github.com/docker/docker/pkg/parsers"
+	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
-	"github.com/docker/docker/pkg/parsers"
-	docker "github.com/fsouza/go-dockerclient"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
+
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 var (
@@ -55,12 +57,18 @@ type DockerClient interface {
 // If any other scenario the push will fail, without retries.
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	repository, tag := docker.ParseRepositoryTag(name)
+	logProgress := func(s string) {
+		glog.V(0).Infof("%s", s)
+	}
 	opts := docker.PushImageOptions{
-		Name: repository,
-		Tag:  tag,
+		Name:          repository,
+		Tag:           tag,
+		OutputStream:  imageprogress.NewPushWriter(logProgress),
+		RawJSONStream: true,
 	}
 	if glog.Is(5) {
 		opts.OutputStream = os.Stderr
+		opts.RawJSONStream = false
 	}
 	var err error
 	var retriableError = false

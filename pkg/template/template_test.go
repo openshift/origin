@@ -33,7 +33,7 @@ func makeParameter(name, value, generate string, required bool) api.Parameter {
 func TestAddParameter(t *testing.T) {
 	var template api.Template
 
-	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
 	json.Unmarshal(jsonData, &template)
 
 	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
@@ -270,31 +270,6 @@ func TestEvaluateLabels(t *testing.T) {
 			}`,
 			Labels: map[string]string{"key3": "v3"},
 		},
-		"when the root object has labels and no metadata": {
-			Input: `{
-				"kind":"Template", "apiVersion":"v1",
-				"objects": [
-					{
-						"kind": "Service", "apiVersion": "v1beta3",
-						"labels": {
-							"key1": "v1",
-							"key2": "v2"
-						}
-					}
-				]
-			}`,
-			Output: `{
-				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
-				"objects":[
-					{
-						"apiVersion":"v1beta3","kind":"Service",
-						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
-					}
-				],
-				"labels":{"key3":"v3"}
-			}`,
-			Labels: map[string]string{"key3": "v3"},
-		},
 		"when the root object has labels and metadata": {
 			Input: `{
 				"kind":"Template", "apiVersion":"v1",
@@ -383,12 +358,12 @@ func TestEvaluateLabels(t *testing.T) {
 
 func TestProcessTemplateParameters(t *testing.T) {
 	var template, expectedTemplate api.Template
-	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonData, &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook_list.json")
+	expectedData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook_list.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

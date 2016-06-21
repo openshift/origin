@@ -32,10 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
 	deployerpodcontroller "github.com/openshift/origin/pkg/deploy/controller/deployerpod"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
+	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
@@ -46,7 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uidallocator"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -353,10 +353,10 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	controller.Run()
 }
 
-// RunDeploymentConfigChangeController starts the deployment config change controller process.
-func (c *MasterConfig) RunDeploymentConfigChangeController() {
-	osclient, kclient := c.DeploymentConfigChangeControllerClients()
-	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
+// RunDeploymentTriggerController starts the deployment trigger controller process.
+func (c *MasterConfig) RunDeploymentTriggerController() {
+	osclient, kclient := c.DeploymentTriggerControllerClients()
+	factory := triggercontroller.DeploymentTriggerControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
 		Codec:      c.EtcdHelper.Codec(),
@@ -376,7 +376,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	controller, err := factory.NewMasterPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient)
+	controller, err := sdnfactory.NewMasterPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -486,7 +486,7 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	replenishmentSyncPeriodFunc := controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod)
 	if cm != nil {
 		// TODO: should these be part of os master config?
-		concurrentResourceQuotaSyncs = cm.ConcurrentResourceQuotaSyncs
+		concurrentResourceQuotaSyncs = int(cm.ConcurrentResourceQuotaSyncs)
 		resourceQuotaSyncPeriod = cm.ResourceQuotaSyncPeriod.Duration
 		replenishmentSyncPeriodFunc = kctrlmgr.ResyncPeriod(cm)
 	}

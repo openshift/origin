@@ -30,14 +30,16 @@ import (
 	image "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 	route "github.com/openshift/origin/pkg/route/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/origin/pkg/quota/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
@@ -523,36 +525,47 @@ var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	for kind, reflectType := range kapi.Scheme.KnownTypes(osapi.SchemeGroupVersion) {
-		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
-			continue
-		}
-		if nonInternalRoundTrippableTypes.Has(kind) {
-			continue
-		}
-		// Try a few times, since runTest uses random values.
-		for i := 0; i < fuzzIters; i++ {
-			item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
-			if err != nil {
-				t.Errorf("Couldn't make a %v? %v", kind, err)
-				continue
-			}
-			if _, err := meta.TypeAccessor(item); err != nil {
-				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
-			}
-			seed := rand.Int63()
+	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
+		osapi.SchemeGroupVersion:    {v1.SchemeGroupVersion},
+		quotaapi.SchemeGroupVersion: {quotaapiv1.SchemeGroupVersion},
+	}
 
-			if versions, ok := skipStandardVersions[kind]; ok {
-				for _, v := range versions {
-					t.Logf("About to test %v with %q", kind, v)
-					fuzzInternalObject(t, v, item, seed)
-					roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
-				}
+	for internalVersion, externalVersions := range internalVersionToExternalVersions {
+		for kind, reflectType := range kapi.Scheme.KnownTypes(internalVersion) {
+			if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
 				continue
 			}
-			t.Logf(`About to test %v with "v1"`, kind)
-			fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
-			roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
+			if nonInternalRoundTrippableTypes.Has(kind) {
+				continue
+			}
+
+			for _, externalVersion := range externalVersions {
+				// Try a few times, since runTest uses random values.
+				for i := 0; i < fuzzIters; i++ {
+					item, err := kapi.Scheme.New(internalVersion.WithKind(kind))
+					if err != nil {
+						t.Errorf("Couldn't make a %v? %v", kind, err)
+						continue
+					}
+					if _, err := meta.TypeAccessor(item); err != nil {
+						t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
+					}
+					seed := rand.Int63()
+
+					if versions, ok := skipStandardVersions[kind]; ok {
+						for _, v := range versions {
+							t.Logf("About to test %v with %q", kind, v)
+							fuzzInternalObject(t, v, item, seed)
+							roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
+						}
+						continue
+					}
+					t.Logf(`About to test %v with "v1"`, kind)
+					fuzzInternalObject(t, externalVersion, item, seed)
+					roundTrip(t, kapi.Codecs.LegacyCodec(externalVersion), item)
+				}
+			}
 		}
+
 	}
 }

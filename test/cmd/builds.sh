@@ -5,9 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 trap os::test::junit::reconcile_output EXIT
 
@@ -130,7 +128,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/setbuildhook"
 # Validate the set build-hook command
-arg="-f test/fixtures/test-bc.yaml"
+arg="-f test/testdata/test-bc.yaml"
 os::cmd::expect_failure_and_text "oc set build-hook" "error: one or more build configs"
 os::cmd::expect_failure_and_text "oc set build-hook ${arg}" "error: you must specify a type of hook"
 os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" 'postCommit:'
@@ -141,7 +139,7 @@ os::cmd::expect_success_and_not_text "oc set build-hook ${arg} --post-commit -o 
 os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit --command -o yaml -- echo 'hello world'" 'command:'
 os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml --script='echo \"hello world\"'" 'script: echo \"hello world\"'
 # Server object tests
-os::cmd::expect_success "oc create -f test/fixtures/test-bc.yaml"
+os::cmd::expect_success "oc create -f test/testdata/test-bc.yaml"
 os::cmd::expect_failure_and_text "oc set build-hook bc/test-buildconfig --post-commit" "you must specify either a script or command"
 os::cmd::expect_success_and_text "oc set build-hook test-buildconfig --post-commit -- echo 'hello world'" "updated"
 os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit -- echo 'hello world'" "was not changed"
@@ -157,7 +155,7 @@ echo "set build-hook: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/start-build"
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-buildcli.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
 started=$(oc start-build ruby-sample-build-invalidtag)

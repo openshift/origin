@@ -32,12 +32,14 @@ func (imageStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // It extracts the latest information from the manifest (if available) and sets that onto the object.
-func (imageStrategy) PrepareForCreate(obj runtime.Object) {
+func (s imageStrategy) PrepareForCreate(obj runtime.Object) {
 	newImage := obj.(*api.Image)
 	// ignore errors, change in place
 	if err := api.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
+
+	s.clearSignatureDetails(newImage)
 }
 
 // Validate validates a new image.
@@ -68,10 +70,10 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	oldImage := old.(*api.Image)
 
 	// image metadata cannot be altered
-	newImage.DockerImageReference = oldImage.DockerImageReference
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
+	newImage.Signatures = oldImage.Signatures
 
 	// allow an image update that results in the manifest matching the digest (the name)
 	newManifest := newImage.DockerImageManifest
@@ -93,6 +95,20 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 // ValidateUpdate is the default update validation for an end user.
 func (imageStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateImageUpdate(old.(*api.Image), obj.(*api.Image))
+}
+
+// clearSignatureDetails removes signature details from all the signatures of given image. It also clear all
+// the validation data. These data will be set by the server once the signature parsing support is added.
+func (imageStrategy) clearSignatureDetails(image *api.Image) {
+	for i := range image.Signatures {
+		signature := &image.Signatures[i]
+		signature.Conditions = nil
+		signature.ImageIdentity = ""
+		signature.SignedClaims = nil
+		signature.Created = nil
+		signature.IssuedBy = nil
+		signature.IssuedTo = nil
+	}
 }
 
 // MatchImage returns a generic matcher for a given label and field selector.

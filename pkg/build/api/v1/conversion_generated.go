@@ -10,7 +10,6 @@ import (
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -98,9 +97,6 @@ func init() {
 }
 
 func autoConvert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *BinaryBuildRequestOptions, out *build_api.BinaryBuildRequestOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BinaryBuildRequestOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -123,9 +119,6 @@ func Convert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *B
 }
 
 func autoConvert_api_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions(in *build_api.BinaryBuildRequestOptions, out *BinaryBuildRequestOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BinaryBuildRequestOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -148,9 +141,6 @@ func Convert_api_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions(in *b
 }
 
 func autoConvert_v1_BinaryBuildSource_To_api_BinaryBuildSource(in *BinaryBuildSource, out *build_api.BinaryBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BinaryBuildSource))(in)
-	}
 	out.AsFile = in.AsFile
 	return nil
 }
@@ -160,9 +150,6 @@ func Convert_v1_BinaryBuildSource_To_api_BinaryBuildSource(in *BinaryBuildSource
 }
 
 func autoConvert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in *build_api.BinaryBuildSource, out *BinaryBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BinaryBuildSource))(in)
-	}
 	out.AsFile = in.AsFile
 	return nil
 }
@@ -172,9 +159,6 @@ func Convert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in *build_api.BinaryB
 }
 
 func autoConvert_v1_Build_To_api_Build(in *Build, out *build_api.Build, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Build))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -196,9 +180,6 @@ func Convert_v1_Build_To_api_Build(in *Build, out *build_api.Build, s conversion
 }
 
 func autoConvert_api_Build_To_v1_Build(in *build_api.Build, out *Build, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.Build))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -220,9 +201,6 @@ func Convert_api_Build_To_v1_Build(in *build_api.Build, out *Build, s conversion
 }
 
 func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *build_api.BuildConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildConfig))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -240,9 +218,6 @@ func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *build_a
 }
 
 func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *build_api.BuildConfig, out *BuildConfig, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildConfig))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -264,9 +239,6 @@ func Convert_api_BuildConfig_To_v1_BuildConfig(in *build_api.BuildConfig, out *B
 }
 
 func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *BuildConfigList, out *build_api.BuildConfigList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildConfigList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -292,9 +264,6 @@ func Convert_v1_BuildConfigList_To_api_BuildConfigList(in *BuildConfigList, out 
 }
 
 func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *build_api.BuildConfigList, out *BuildConfigList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildConfigList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -320,9 +289,7 @@ func Convert_api_BuildConfigList_To_v1_BuildConfigList(in *build_api.BuildConfig
 }
 
 func autoConvert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *BuildConfigSpec, out *build_api.BuildConfigSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildConfigSpec))(in)
-	}
+	SetDefaults_BuildConfigSpec(in)
 	if in.Triggers != nil {
 		in, out := &in.Triggers, &out.Triggers
 		*out = make([]build_api.BuildTriggerPolicy, len(*in))
@@ -346,9 +313,6 @@ func Convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *BuildConfigSpec, out 
 }
 
 func autoConvert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *build_api.BuildConfigSpec, out *BuildConfigSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildConfigSpec))(in)
-	}
 	if in.Triggers != nil {
 		in, out := &in.Triggers, &out.Triggers
 		*out = make([]BuildTriggerPolicy, len(*in))
@@ -372,9 +336,6 @@ func Convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *build_api.BuildConfig
 }
 
 func autoConvert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *BuildConfigStatus, out *build_api.BuildConfigStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildConfigStatus))(in)
-	}
 	out.LastVersion = in.LastVersion
 	return nil
 }
@@ -384,9 +345,6 @@ func Convert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *BuildConfigStatus
 }
 
 func autoConvert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *build_api.BuildConfigStatus, out *BuildConfigStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildConfigStatus))(in)
-	}
 	out.LastVersion = in.LastVersion
 	return nil
 }
@@ -396,9 +354,6 @@ func Convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *build_api.BuildCo
 }
 
 func autoConvert_v1_BuildList_To_api_BuildList(in *BuildList, out *build_api.BuildList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -424,9 +379,6 @@ func Convert_v1_BuildList_To_api_BuildList(in *BuildList, out *build_api.BuildLi
 }
 
 func autoConvert_api_BuildList_To_v1_BuildList(in *build_api.BuildList, out *BuildList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -452,9 +404,6 @@ func Convert_api_BuildList_To_v1_BuildList(in *build_api.BuildList, out *BuildLi
 }
 
 func autoConvert_v1_BuildLog_To_api_BuildLog(in *BuildLog, out *build_api.BuildLog, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildLog))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -466,9 +415,6 @@ func Convert_v1_BuildLog_To_api_BuildLog(in *BuildLog, out *build_api.BuildLog, 
 }
 
 func autoConvert_api_BuildLog_To_v1_BuildLog(in *build_api.BuildLog, out *BuildLog, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildLog))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -480,9 +426,6 @@ func Convert_api_BuildLog_To_v1_BuildLog(in *build_api.BuildLog, out *BuildLog, 
 }
 
 func autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, out *build_api.BuildLogOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildLogOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -536,9 +479,6 @@ func Convert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, out 
 }
 
 func autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *build_api.BuildLogOptions, out *BuildLogOptions, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildLogOptions))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -592,9 +532,6 @@ func Convert_api_BuildLogOptions_To_v1_BuildLogOptions(in *build_api.BuildLogOpt
 }
 
 func autoConvert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *build_api.BuildOutput, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildOutput))(in)
-	}
 	if in.To != nil {
 		in, out := &in.To, &out.To
 		*out = new(api.ObjectReference)
@@ -619,9 +556,6 @@ func autoConvert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *build_a
 }
 
 func autoConvert_api_BuildOutput_To_v1_BuildOutput(in *build_api.BuildOutput, out *BuildOutput, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildOutput))(in)
-	}
 	if in.To != nil {
 		in, out := &in.To, &out.To
 		*out = new(api_v1.ObjectReference)
@@ -650,9 +584,6 @@ func Convert_api_BuildOutput_To_v1_BuildOutput(in *build_api.BuildOutput, out *B
 }
 
 func autoConvert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *BuildPostCommitSpec, out *build_api.BuildPostCommitSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildPostCommitSpec))(in)
-	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))
@@ -676,9 +607,6 @@ func Convert_v1_BuildPostCommitSpec_To_api_BuildPostCommitSpec(in *BuildPostComm
 }
 
 func autoConvert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *build_api.BuildPostCommitSpec, out *BuildPostCommitSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildPostCommitSpec))(in)
-	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))
@@ -702,9 +630,6 @@ func Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *build_api.Bui
 }
 
 func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *build_api.BuildRequest, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildRequest))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -752,7 +677,7 @@ func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *buil
 	}
 	if in.LastVersion != nil {
 		in, out := &in.LastVersion, &out.LastVersion
-		*out = new(int)
+		*out = new(int64)
 		**out = **in
 	} else {
 		out.LastVersion = nil
@@ -788,9 +713,6 @@ func Convert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *build_ap
 }
 
 func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest, out *BuildRequest, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildRequest))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -838,7 +760,7 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest,
 	}
 	if in.LastVersion != nil {
 		in, out := &in.LastVersion, &out.LastVersion
-		*out = new(int)
+		*out = new(int64)
 		**out = **in
 	} else {
 		out.LastVersion = nil
@@ -874,9 +796,7 @@ func Convert_api_BuildRequest_To_v1_BuildRequest(in *build_api.BuildRequest, out
 }
 
 func autoConvert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *build_api.BuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildSource))(in)
-	}
+	SetDefaults_BuildSource(in)
 	if in.Binary != nil {
 		in, out := &in.Binary, &out.Binary
 		*out = new(build_api.BinaryBuildSource)
@@ -943,9 +863,6 @@ func Convert_v1_BuildSource_To_api_BuildSource(in *BuildSource, out *build_api.B
 }
 
 func autoConvert_api_BuildSource_To_v1_BuildSource(in *build_api.BuildSource, out *BuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildSource))(in)
-	}
 	if in.Binary != nil {
 		in, out := &in.Binary, &out.Binary
 		*out = new(BinaryBuildSource)
@@ -1008,9 +925,6 @@ func autoConvert_api_BuildSource_To_v1_BuildSource(in *build_api.BuildSource, ou
 }
 
 func autoConvert_v1_BuildSpec_To_api_BuildSpec(in *BuildSpec, out *build_api.BuildSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildSpec))(in)
-	}
 	if err := Convert_v1_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
@@ -1033,9 +947,6 @@ func Convert_v1_BuildSpec_To_api_BuildSpec(in *BuildSpec, out *build_api.BuildSp
 }
 
 func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *build_api.BuildSpec, out *BuildSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildSpec))(in)
-	}
 	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
@@ -1058,9 +969,6 @@ func Convert_api_BuildSpec_To_v1_BuildSpec(in *build_api.BuildSpec, out *BuildSp
 }
 
 func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *build_api.BuildStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildStatus))(in)
-	}
 	out.Phase = build_api.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
 	out.Reason = build_api.StatusReason(in.Reason)
@@ -1103,9 +1011,6 @@ func Convert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *build_api.B
 }
 
 func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *build_api.BuildStatus, out *BuildStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildStatus))(in)
-	}
 	out.Phase = BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
 	out.Reason = StatusReason(in.Reason)
@@ -1148,9 +1053,7 @@ func Convert_api_BuildStatus_To_v1_BuildStatus(in *build_api.BuildStatus, out *B
 }
 
 func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *build_api.BuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildStrategy))(in)
-	}
+	SetDefaults_BuildStrategy(in)
 	if in.DockerStrategy != nil {
 		in, out := &in.DockerStrategy, &out.DockerStrategy
 		*out = new(build_api.DockerBuildStrategy)
@@ -1195,9 +1098,6 @@ func Convert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *build
 }
 
 func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *build_api.BuildStrategy, out *BuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildStrategy))(in)
-	}
 	if in.DockerStrategy != nil {
 		in, out := &in.DockerStrategy, &out.DockerStrategy
 		*out = new(DockerBuildStrategy)
@@ -1238,9 +1138,6 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *build_api.BuildStrate
 }
 
 func autoConvert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in *BuildTriggerCause, out *build_api.BuildTriggerCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildTriggerCause))(in)
-	}
 	out.Message = in.Message
 	if in.GenericWebHook != nil {
 		in, out := &in.GenericWebHook, &out.GenericWebHook
@@ -1277,9 +1174,6 @@ func Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in *BuildTriggerCause
 }
 
 func autoConvert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in *build_api.BuildTriggerCause, out *BuildTriggerCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildTriggerCause))(in)
-	}
 	out.Message = in.Message
 	if in.GenericWebHook != nil {
 		in, out := &in.GenericWebHook, &out.GenericWebHook
@@ -1316,9 +1210,7 @@ func Convert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in *build_api.BuildTr
 }
 
 func autoConvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *build_api.BuildTriggerPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*BuildTriggerPolicy))(in)
-	}
+	SetDefaults_BuildTriggerPolicy(in)
 	out.Type = build_api.BuildTriggerType(in.Type)
 	if in.GitHubWebHook != nil {
 		in, out := &in.GitHubWebHook, &out.GitHubWebHook
@@ -1351,9 +1243,6 @@ func autoConvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigge
 }
 
 func autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.BuildTriggerPolicy))(in)
-	}
 	out.Type = BuildTriggerType(in.Type)
 	if in.GitHubWebHook != nil {
 		in, out := &in.GitHubWebHook, &out.GitHubWebHook
@@ -1390,9 +1279,6 @@ func Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *build_api.Build
 }
 
 func autoConvert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *build_api.CommonSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*CommonSpec))(in)
-	}
 	out.ServiceAccount = in.ServiceAccount
 	if err := Convert_v1_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
 		return err
@@ -1434,9 +1320,6 @@ func Convert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *build_api.Comm
 }
 
 func autoConvert_api_CommonSpec_To_v1_CommonSpec(in *build_api.CommonSpec, out *CommonSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.CommonSpec))(in)
-	}
 	out.ServiceAccount = in.ServiceAccount
 	if err := Convert_api_BuildSource_To_v1_BuildSource(&in.Source, &out.Source, s); err != nil {
 		return err
@@ -1478,9 +1361,7 @@ func Convert_api_CommonSpec_To_v1_CommonSpec(in *build_api.CommonSpec, out *Comm
 }
 
 func autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *build_api.CustomBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*CustomBuildStrategy))(in)
-	}
+	SetDefaults_CustomBuildStrategy(in)
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -1525,9 +1406,6 @@ func autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBui
 }
 
 func autoConvert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build_api.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.CustomBuildStrategy))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -1576,9 +1454,7 @@ func Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build_api.Cus
 }
 
 func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *build_api.DockerBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DockerBuildStrategy))(in)
-	}
+	SetDefaults_DockerBuildStrategy(in)
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(api.ObjectReference)
@@ -1618,9 +1494,6 @@ func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBui
 }
 
 func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build_api.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.DockerBuildStrategy))(in)
-	}
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(api_v1.ObjectReference)
@@ -1664,9 +1537,6 @@ func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build_api.Doc
 }
 
 func autoConvert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHookCause, out *build_api.GenericWebHookCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GenericWebHookCause))(in)
-	}
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(build_api.SourceRevision)
@@ -1685,9 +1555,6 @@ func Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHoo
 }
 
 func autoConvert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in *build_api.GenericWebHookCause, out *GenericWebHookCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.GenericWebHookCause))(in)
-	}
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(SourceRevision)
@@ -1706,9 +1573,6 @@ func Convert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in *build_api.Gen
 }
 
 func autoConvert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWebHookEvent, out *build_api.GenericWebHookEvent, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GenericWebHookEvent))(in)
-	}
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
 		*out = new(build_api.GitInfo)
@@ -1738,9 +1602,6 @@ func Convert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWebHoo
 }
 
 func autoConvert_v1_GitBuildSource_To_api_GitBuildSource(in *GitBuildSource, out *build_api.GitBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GitBuildSource))(in)
-	}
 	out.URI = in.URI
 	out.Ref = in.Ref
 	if in.HTTPProxy != nil {
@@ -1765,9 +1626,6 @@ func Convert_v1_GitBuildSource_To_api_GitBuildSource(in *GitBuildSource, out *bu
 }
 
 func autoConvert_api_GitBuildSource_To_v1_GitBuildSource(in *build_api.GitBuildSource, out *GitBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.GitBuildSource))(in)
-	}
 	out.URI = in.URI
 	out.Ref = in.Ref
 	if in.HTTPProxy != nil {
@@ -1792,9 +1650,6 @@ func Convert_api_GitBuildSource_To_v1_GitBuildSource(in *build_api.GitBuildSourc
 }
 
 func autoConvert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCause, out *build_api.GitHubWebHookCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GitHubWebHookCause))(in)
-	}
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(build_api.SourceRevision)
@@ -1813,9 +1668,6 @@ func Convert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCa
 }
 
 func autoConvert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in *build_api.GitHubWebHookCause, out *GitHubWebHookCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.GitHubWebHookCause))(in)
-	}
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(SourceRevision)
@@ -1834,9 +1686,6 @@ func Convert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in *build_api.GitHu
 }
 
 func autoConvert_v1_GitInfo_To_api_GitInfo(in *GitInfo, out *build_api.GitInfo, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GitInfo))(in)
-	}
 	if err := Convert_v1_GitBuildSource_To_api_GitBuildSource(&in.GitBuildSource, &out.GitBuildSource, s); err != nil {
 		return err
 	}
@@ -1851,9 +1700,6 @@ func Convert_v1_GitInfo_To_api_GitInfo(in *GitInfo, out *build_api.GitInfo, s co
 }
 
 func autoConvert_v1_GitSourceRevision_To_api_GitSourceRevision(in *GitSourceRevision, out *build_api.GitSourceRevision, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GitSourceRevision))(in)
-	}
 	out.Commit = in.Commit
 	if err := Convert_v1_SourceControlUser_To_api_SourceControlUser(&in.Author, &out.Author, s); err != nil {
 		return err
@@ -1870,9 +1716,6 @@ func Convert_v1_GitSourceRevision_To_api_GitSourceRevision(in *GitSourceRevision
 }
 
 func autoConvert_api_GitSourceRevision_To_v1_GitSourceRevision(in *build_api.GitSourceRevision, out *GitSourceRevision, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.GitSourceRevision))(in)
-	}
 	out.Commit = in.Commit
 	if err := Convert_api_SourceControlUser_To_v1_SourceControlUser(&in.Author, &out.Author, s); err != nil {
 		return err
@@ -1889,9 +1732,6 @@ func Convert_api_GitSourceRevision_To_v1_GitSourceRevision(in *build_api.GitSour
 }
 
 func autoConvert_v1_ImageChangeCause_To_api_ImageChangeCause(in *ImageChangeCause, out *build_api.ImageChangeCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageChangeCause))(in)
-	}
 	out.ImageID = in.ImageID
 	if in.FromRef != nil {
 		in, out := &in.FromRef, &out.FromRef
@@ -1911,9 +1751,6 @@ func Convert_v1_ImageChangeCause_To_api_ImageChangeCause(in *ImageChangeCause, o
 }
 
 func autoConvert_api_ImageChangeCause_To_v1_ImageChangeCause(in *build_api.ImageChangeCause, out *ImageChangeCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.ImageChangeCause))(in)
-	}
 	out.ImageID = in.ImageID
 	if in.FromRef != nil {
 		in, out := &in.FromRef, &out.FromRef
@@ -1933,9 +1770,6 @@ func Convert_api_ImageChangeCause_To_v1_ImageChangeCause(in *build_api.ImageChan
 }
 
 func autoConvert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *ImageChangeTrigger, out *build_api.ImageChangeTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageChangeTrigger))(in)
-	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
 		in, out := &in.From, &out.From
@@ -1955,9 +1789,6 @@ func Convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *ImageChangeTrig
 }
 
 func autoConvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *build_api.ImageChangeTrigger, out *ImageChangeTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.ImageChangeTrigger))(in)
-	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
 		in, out := &in.From, &out.From
@@ -1977,9 +1808,6 @@ func Convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *build_api.Image
 }
 
 func autoConvert_v1_ImageSource_To_api_ImageSource(in *ImageSource, out *build_api.ImageSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageSource))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -2013,9 +1841,6 @@ func Convert_v1_ImageSource_To_api_ImageSource(in *ImageSource, out *build_api.I
 }
 
 func autoConvert_api_ImageSource_To_v1_ImageSource(in *build_api.ImageSource, out *ImageSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.ImageSource))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -2049,9 +1874,6 @@ func Convert_api_ImageSource_To_v1_ImageSource(in *build_api.ImageSource, out *I
 }
 
 func autoConvert_v1_ImageSourcePath_To_api_ImageSourcePath(in *ImageSourcePath, out *build_api.ImageSourcePath, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ImageSourcePath))(in)
-	}
 	out.SourcePath = in.SourcePath
 	out.DestinationDir = in.DestinationDir
 	return nil
@@ -2062,9 +1884,6 @@ func Convert_v1_ImageSourcePath_To_api_ImageSourcePath(in *ImageSourcePath, out 
 }
 
 func autoConvert_api_ImageSourcePath_To_v1_ImageSourcePath(in *build_api.ImageSourcePath, out *ImageSourcePath, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.ImageSourcePath))(in)
-	}
 	out.SourcePath = in.SourcePath
 	out.DestinationDir = in.DestinationDir
 	return nil
@@ -2075,9 +1894,6 @@ func Convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *build_api.ImageSource
 }
 
 func autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in *JenkinsPipelineBuildStrategy, out *build_api.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*JenkinsPipelineBuildStrategy))(in)
-	}
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
 	return nil
@@ -2088,9 +1904,6 @@ func Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy
 }
 
 func autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in *build_api.JenkinsPipelineBuildStrategy, out *JenkinsPipelineBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.JenkinsPipelineBuildStrategy))(in)
-	}
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
 	return nil
@@ -2101,9 +1914,6 @@ func Convert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy
 }
 
 func autoConvert_v1_SecretBuildSource_To_api_SecretBuildSource(in *SecretBuildSource, out *build_api.SecretBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SecretBuildSource))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Secret, &out.Secret, 0); err != nil {
 		return err
@@ -2117,9 +1927,6 @@ func Convert_v1_SecretBuildSource_To_api_SecretBuildSource(in *SecretBuildSource
 }
 
 func autoConvert_api_SecretBuildSource_To_v1_SecretBuildSource(in *build_api.SecretBuildSource, out *SecretBuildSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.SecretBuildSource))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.Secret, &out.Secret, 0); err != nil {
 		return err
@@ -2133,9 +1940,6 @@ func Convert_api_SecretBuildSource_To_v1_SecretBuildSource(in *build_api.SecretB
 }
 
 func autoConvert_v1_SecretSpec_To_api_SecretSpec(in *SecretSpec, out *build_api.SecretSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SecretSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.SecretSource, &out.SecretSource, 0); err != nil {
 		return err
@@ -2149,9 +1953,6 @@ func Convert_v1_SecretSpec_To_api_SecretSpec(in *SecretSpec, out *build_api.Secr
 }
 
 func autoConvert_api_SecretSpec_To_v1_SecretSpec(in *build_api.SecretSpec, out *SecretSpec, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.SecretSpec))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.SecretSource, &out.SecretSource, 0); err != nil {
 		return err
@@ -2165,9 +1966,7 @@ func Convert_api_SecretSpec_To_v1_SecretSpec(in *build_api.SecretSpec, out *Secr
 }
 
 func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *build_api.SourceBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SourceBuildStrategy))(in)
-	}
+	SetDefaults_SourceBuildStrategy(in)
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -2201,9 +2000,6 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 }
 
 func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.SourceBuildStrategy))(in)
-	}
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
@@ -2241,9 +2037,6 @@ func Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api.Sou
 }
 
 func autoConvert_v1_SourceControlUser_To_api_SourceControlUser(in *SourceControlUser, out *build_api.SourceControlUser, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SourceControlUser))(in)
-	}
 	out.Name = in.Name
 	out.Email = in.Email
 	return nil
@@ -2254,9 +2047,6 @@ func Convert_v1_SourceControlUser_To_api_SourceControlUser(in *SourceControlUser
 }
 
 func autoConvert_api_SourceControlUser_To_v1_SourceControlUser(in *build_api.SourceControlUser, out *SourceControlUser, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.SourceControlUser))(in)
-	}
 	out.Name = in.Name
 	out.Email = in.Email
 	return nil
@@ -2267,9 +2057,6 @@ func Convert_api_SourceControlUser_To_v1_SourceControlUser(in *build_api.SourceC
 }
 
 func autoConvert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *build_api.SourceRevision, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SourceRevision))(in)
-	}
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
 		*out = new(build_api.GitSourceRevision)
@@ -2287,9 +2074,6 @@ func Convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *bu
 }
 
 func autoConvert_api_SourceRevision_To_v1_SourceRevision(in *build_api.SourceRevision, out *SourceRevision, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.SourceRevision))(in)
-	}
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
 		*out = new(GitSourceRevision)
@@ -2303,9 +2087,6 @@ func autoConvert_api_SourceRevision_To_v1_SourceRevision(in *build_api.SourceRev
 }
 
 func autoConvert_v1_WebHookTrigger_To_api_WebHookTrigger(in *WebHookTrigger, out *build_api.WebHookTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*WebHookTrigger))(in)
-	}
 	out.Secret = in.Secret
 	out.AllowEnv = in.AllowEnv
 	return nil
@@ -2316,9 +2097,6 @@ func Convert_v1_WebHookTrigger_To_api_WebHookTrigger(in *WebHookTrigger, out *bu
 }
 
 func autoConvert_api_WebHookTrigger_To_v1_WebHookTrigger(in *build_api.WebHookTrigger, out *WebHookTrigger, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*build_api.WebHookTrigger))(in)
-	}
 	out.Secret = in.Secret
 	out.AllowEnv = in.AllowEnv
 	return nil

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	dockertypes "github.com/docker/engine-api/types"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -106,7 +107,7 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
-	dockerClient, dockerAddr, err := docker.GetClient()
+	dockerClient, dockerAddr, err := docker.GetKubeClient()
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to create a Docker client for %s - Docker must be installed and running to start containers.\n%v", dockerAddr, err))
 		return
@@ -132,16 +133,15 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 
 	glog.Infof("Connecting to Docker at %s", dockerAddr)
 
-	env, err := dockerClient.Version()
+	version, err := dockerClient.Version()
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
 		return
 	}
 
-	serverVersionString := env.Get("ApiVersion")
-	serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
+	serverVersion, err := dockerclient.NewAPIVersion(version.APIVersion)
 	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", serverVersionString, err))
+		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", version.APIVersion, err))
 		return
 	}
 
@@ -165,7 +165,7 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("error: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env([]string{"ApiVersion=1.18"})}
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockertypes.Version{APIVersion: "1.18"}}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -378,7 +378,7 @@ func (c *NodeConfig) RunProxy() {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
-		proxierIptables, err := iptables.NewProxier(iptInterface, execer, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, *c.ProxyConfig.IPTablesMasqueradeBit)
+		proxierIptables, err := iptables.NewProxier(iptInterface, execer, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, int(*c.ProxyConfig.IPTablesMasqueradeBit), c.ProxyConfig.ClusterCIDR)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -451,7 +451,7 @@ func (c *NodeConfig) RunProxy() {
 // TODO: more generic location
 func includesServicePort(ports []kapi.ServicePort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}
@@ -461,7 +461,7 @@ func includesServicePort(ports []kapi.ServicePort, port int, portName string) bo
 // TODO: more generic location
 func includesEndpointPort(ports []kapi.EndpointPort, port int) bool {
 	for _, p := range ports {
-		if p.Port == port {
+		if p.Port == int32(port) {
 			return true
 		}
 	}
@@ -497,7 +497,7 @@ func firstEndpointIPWithNamedPort(endpoints *kapi.Endpoints, port int, portName 
 // TODO: more generic location
 func includesNamedEndpointPort(ports []kapi.EndpointPort, port int, portName string) bool {
 	for _, p := range ports {
-		if p.Port == port && p.Name == portName {
+		if p.Port == int32(port) && p.Name == portName {
 			return true
 		}
 	}

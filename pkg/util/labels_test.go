@@ -83,8 +83,8 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
 			},
 			addLabels:      map[string]string{"foo": "second value"},
-			err:            true,
-			expectedLabels: map[string]string{"foo": "first value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "second value"},
 		},
 		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
 			obj: &kapi.ReplicationController{

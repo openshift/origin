@@ -14,6 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -89,13 +90,12 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 	jobTestcases := map[string]struct {
 		creator kclient.JobInterface
 	}{
-		"batch":      {creator: projectAdminKubeClient.Batch().Jobs(ns)},
-		"extensions": {creator: projectAdminKubeClient.Extensions().Jobs(ns)},
+		"batch": {creator: projectAdminKubeClient.Batch().Jobs(ns)},
 	}
 	for name, testcase := range jobTestcases {
-		job := extensions.Job{
+		job := batch.Job{
 			ObjectMeta: kapi.ObjectMeta{Name: name + "-job"},
-			Spec: extensions.JobSpec{
+			Spec: batch.JobSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
 						RestartPolicy: kapi.RestartPolicyNever,

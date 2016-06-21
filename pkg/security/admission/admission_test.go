@@ -1376,7 +1376,7 @@ func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
 func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// scc with high priority but very restrictive.
 	restricted := restrictiveSCC()
-	restrictedPriority := 100
+	restrictedPriority := int32(100)
 	restricted.Priority = &restrictedPriority
 
 	// sccs with matching priorities but one will have a higher point score (by the run as user strategy)
@@ -1387,7 +1387,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 		Type: kapi.RunAsUserStrategyMustRunAs,
 		UID:  &uidFive,
 	}
-	matchingPriority := 5
+	matchingPriority := int32(5)
 	matchingPrioritySCCOne.Priority = &matchingPriority
 
 	matchingPrioritySCCTwo := laxSCC()
@@ -1407,7 +1407,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 		Type: kapi.RunAsUserStrategyMustRunAs,
 		UID:  &uidSix,
 	}
-	matchingPriorityAndScorePriority := 1
+	matchingPriorityAndScorePriority := int32(1)
 	matchingPriorityAndScoreSCCOne.Priority = &matchingPriorityAndScorePriority
 
 	matchingPriorityAndScoreSCCTwo := laxSCC()

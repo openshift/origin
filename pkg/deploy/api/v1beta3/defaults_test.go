@@ -96,7 +96,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -114,7 +114,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
@@ -136,7 +136,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-50),
+							UpdatePercent:       newInt32(-50),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -154,7 +154,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-50),
+							UpdatePercent:       newInt32(-50),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("50%")),
 						},
@@ -210,7 +210,7 @@ func newInt64(val int64) *int64 {
 	return &val
 }
 
-func newInt(val int) *int {
+func newInt32(val int32) *int32 {
 	return &val
 }
 

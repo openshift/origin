@@ -427,8 +427,7 @@ func startServiceAccountTestServer(t *testing.T) (*clientset.Clientset, restclie
 		close(stopCh)
 		serviceAccountController.Stop()
 		serviceAccountAdmission.Stop()
-		// TODO: Uncomment when fix #19254
-		// apiServer.Close()
+		apiServer.Close()
 	}
 
 	return rootClientset, clientConfig, stop

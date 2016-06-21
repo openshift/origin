@@ -647,7 +647,7 @@ const (
 // BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatus struct {
 	// lastVersion is used to inform about number of last triggered build.
-	LastVersion int `json:"lastVersion"`
+	LastVersion int64 `json:"lastVersion"`
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
@@ -777,7 +777,7 @@ type BuildRequest struct {
 	// lastVersion (optional) is the LastVersion of the BuildConfig that was used
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
-	LastVersion *int `json:"lastVersion,omitempty"`
+	LastVersion *int64 `json:"lastVersion,omitempty"`
 
 	// env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`

@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -146,7 +147,7 @@ func (o *ImportImageOptions) Run() error {
 
 		// optimization, use the image stream returned by the call
 		d := describe.ImageStreamDescriber{Interface: o.osClient}
-		info, err := d.Describe(o.Namespace, stream.Name)
+		info, err := d.Describe(o.Namespace, stream.Name, kctl.DescriberSettings{})
 		if err != nil {
 			return err
 		}
@@ -191,7 +192,7 @@ func (o *ImportImageOptions) Run() error {
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
 	d := describe.ImageStreamDescriber{Interface: o.osClient}
-	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)
+	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kctl.DescriberSettings{})
 	if err != nil {
 		return err
 	}
@@ -329,8 +330,12 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 
 	// update ImageStream appropriately
 	if ok {
+		// disallow re-importing anything other than DockerImage
+		if existing.From != nil && existing.From.Kind != "DockerImage" {
+			return nil, fmt.Errorf("tag %q points to existing %s %q, it cannot be re-imported", tag, existing.From.Kind, existing.From.Name)
+		}
 		// disallow changing an existing tag
-		if existing.From == nil || existing.From.Kind != "DockerImage" {
+		if existing.From == nil {
 			return nil, fmt.Errorf("tag %q already exists - you must use the 'tag' command if you want to change the source to %q", tag, from)
 		}
 		if len(from) != 0 && from != existing.From.Name {

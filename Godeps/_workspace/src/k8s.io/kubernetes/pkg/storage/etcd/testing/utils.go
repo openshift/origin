@@ -29,7 +29,7 @@ import (
 
 	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/etcdserver"
-	"github.com/coreos/etcd/etcdserver/etcdhttp"
+	"github.com/coreos/etcd/etcdserver/api/v2http"
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"
@@ -75,7 +75,11 @@ func newSecuredLocalListener(t *testing.T, certFile, keyFile, caFile string) net
 		KeyFile:  keyFile,
 		CAFile:   caFile,
 	}
-	l, err = transport.NewKeepAliveListener(l, "https", tlsInfo)
+	tlscfg, err := tlsInfo.ServerConfig()
+	if err != nil {
+		t.Fatalf("unexpected serverConfig error: %v", err)
+	}
+	l, err = transport.NewKeepAliveListener(l, "https", tlscfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,8 +111,13 @@ func configureTestCluster(t *testing.T, name string, https bool) *EtcdTestServer
 		t.Fatal(err)
 	}
 
+	baseDir := os.Getenv("TEST_ETCD_DIR")
+	if len(baseDir) == 0 {
+		baseDir = os.TempDir()
+	}
+
 	if https {
-		m.CertificatesDir, err = ioutil.TempDir(os.TempDir(), "etcd_certificates")
+		m.CertificatesDir, err = ioutil.TempDir(baseDir, "etcd_certificates")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +150,7 @@ func configureTestCluster(t *testing.T, name string, https bool) *EtcdTestServer
 	}
 
 	m.Name = name
-	m.DataDir, err = ioutil.TempDir(os.TempDir(), "etcd")
+	m.DataDir, err = ioutil.TempDir(baseDir, "etcd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +177,7 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	}
 	m.s.SyncTicker = time.Tick(500 * time.Millisecond)
 	m.s.Start()
-	m.raftHandler = &testutil.PauseableHandler{Next: etcdhttp.NewPeerHandler(m.s)}
+	m.raftHandler = &testutil.PauseableHandler{Next: v2http.NewPeerHandler(m.s)}
 	for _, ln := range m.PeerListeners {
 		hs := &httptest.Server{
 			Listener: ln,
@@ -180,7 +189,7 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	for _, ln := range m.ClientListeners {
 		hs := &httptest.Server{
 			Listener: ln,
-			Config:   &http.Server{Handler: etcdhttp.NewClientHandler(m.s, m.ServerConfig.ReqTimeout())},
+			Config:   &http.Server{Handler: v2http.NewClientHandler(m.s, m.ServerConfig.ReqTimeout())},
 		}
 		hs.Start()
 		m.hss = append(m.hss, hs)
@@ -217,8 +226,7 @@ func (m *EtcdTestServer) Terminate(t *testing.T) {
 	time.Sleep(250 * time.Millisecond)
 	for _, hs := range m.hss {
 		hs.CloseClientConnections()
-		// TODO: Uncomment when fix #19254
-		// hs.Close()
+		hs.Close()
 	}
 	if err := os.RemoveAll(m.ServerConfig.DataDir); err != nil {
 		t.Fatal(err)
@@ -238,6 +246,7 @@ func NewEtcdTestClientServer(t *testing.T) *EtcdTestServer {
 		t.Fatalf("Failed to start etcd server error=%v", err)
 		return nil
 	}
+
 	cfg := etcd.Config{
 		Endpoints: server.ClientURLs.StringSlice(),
 		Transport: newHttpTransport(t, server.CertFile, server.KeyFile, server.CAFile),
@@ -261,7 +270,7 @@ func NewUnsecuredEtcdTestClientServer(t *testing.T) *EtcdTestServer {
 	server := configureTestCluster(t, "foo", false)
 	err := server.launch(t)
 	if err != nil {
-		t.Fatal("Failed to start etcd server error=%v", err)
+		t.Fatalf("Failed to start etcd server error=%v", err)
 		return nil
 	}
 	cfg := etcd.Config{

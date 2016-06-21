@@ -16,23 +16,24 @@ fi
 export SHELLOPTS
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
+#
+# The EmptyDir test is a canary; it will fail if mount propagation is
+# not properly configured on the host.
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
-  # Skip tests that require secrets.  Secrets are not supported by
-  # dind without docker >= 1.10.
-  "Networking should function for intra-pod"
+  # TODO(marun) This should work with docker >= 1.10
   "openshift router"
+
+  # Panicing, needs investigation
+  "Networking IPerf"
 
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"

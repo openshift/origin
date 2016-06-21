@@ -5,9 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # Cleanup cluster resources created by this test
@@ -43,10 +41,10 @@ os::cmd::expect_failure_and_text 'oc process template-name --value=key=value --v
 os::cmd::expect_failure_and_text 'oc process template-name key=value --value=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --value=key=value --value=other=baz' 'provided more than once: key, other'
 
-required_params="${OS_ROOT}/test/fixtures/template_required_params.yaml"
+required_params="${OS_ROOT}/test/testdata/template_required_params.yaml"
 
 # providing something other than a template is not OK
-os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/fixtures/basic-users-binding.json'" 'not a valid Template but'
+os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/testdata/basic-users-binding.json'" 'not a valid Template but'
 
 # not providing required parameter should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'

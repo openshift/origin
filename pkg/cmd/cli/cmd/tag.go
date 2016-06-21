@@ -26,11 +26,12 @@ type TagOptions struct {
 	out      io.Writer
 	osClient client.Interface
 
-	deleteTag   bool
-	aliasTag    bool
-	scheduleTag bool
-	insecureTag bool
-	namespace   string
+	deleteTag    bool
+	aliasTag     bool
+	scheduleTag  bool
+	insecureTag  bool
+	referenceTag bool
+	namespace    string
 
 	ref            imageapi.DockerImageReference
 	sourceKind     string
@@ -86,6 +87,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
 	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags")
 	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
+	cmd.Flags().BoolVar(&opts.referenceTag, "reference", false, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate.")
 
@@ -357,6 +359,7 @@ func (o TagOptions) RunTag() error {
 					targetRef = imageapi.TagReference{}
 				}
 
+				targetRef.Reference = o.referenceTag
 				targetRef.ImportPolicy.Insecure = o.insecureTag
 				targetRef.ImportPolicy.Scheduled = o.scheduleTag
 				targetRef.From = &kapi.ObjectReference{

@@ -8,7 +8,6 @@ import (
 	user_api "github.com/openshift/origin/pkg/user/api"
 	api "k8s.io/kubernetes/pkg/api"
 	conversion "k8s.io/kubernetes/pkg/conversion"
-	reflect "reflect"
 )
 
 func init() {
@@ -34,9 +33,6 @@ func init() {
 }
 
 func autoConvert_v1_Group_To_api_Group(in *Group, out *user_api.Group, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Group))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -59,9 +55,6 @@ func Convert_v1_Group_To_api_Group(in *Group, out *user_api.Group, s conversion.
 }
 
 func autoConvert_api_Group_To_v1_Group(in *user_api.Group, out *Group, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.Group))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -84,9 +77,6 @@ func Convert_api_Group_To_v1_Group(in *user_api.Group, out *Group, s conversion.
 }
 
 func autoConvert_v1_GroupList_To_api_GroupList(in *GroupList, out *user_api.GroupList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*GroupList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -112,9 +102,6 @@ func Convert_v1_GroupList_To_api_GroupList(in *GroupList, out *user_api.GroupLis
 }
 
 func autoConvert_api_GroupList_To_v1_GroupList(in *user_api.GroupList, out *GroupList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.GroupList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -140,9 +127,6 @@ func Convert_api_GroupList_To_v1_GroupList(in *user_api.GroupList, out *GroupLis
 }
 
 func autoConvert_v1_Identity_To_api_Identity(in *Identity, out *user_api.Identity, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Identity))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -173,9 +157,6 @@ func Convert_v1_Identity_To_api_Identity(in *Identity, out *user_api.Identity, s
 }
 
 func autoConvert_api_Identity_To_v1_Identity(in *user_api.Identity, out *Identity, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.Identity))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -206,9 +187,6 @@ func Convert_api_Identity_To_v1_Identity(in *user_api.Identity, out *Identity, s
 }
 
 func autoConvert_v1_IdentityList_To_api_IdentityList(in *IdentityList, out *user_api.IdentityList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*IdentityList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -234,9 +212,6 @@ func Convert_v1_IdentityList_To_api_IdentityList(in *IdentityList, out *user_api
 }
 
 func autoConvert_api_IdentityList_To_v1_IdentityList(in *user_api.IdentityList, out *IdentityList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.IdentityList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -262,9 +237,6 @@ func Convert_api_IdentityList_To_v1_IdentityList(in *user_api.IdentityList, out 
 }
 
 func autoConvert_v1_User_To_api_User(in *User, out *user_api.User, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*User))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -295,9 +267,6 @@ func Convert_v1_User_To_api_User(in *User, out *user_api.User, s conversion.Scop
 }
 
 func autoConvert_api_User_To_v1_User(in *user_api.User, out *User, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.User))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -328,9 +297,6 @@ func Convert_api_User_To_v1_User(in *user_api.User, out *User, s conversion.Scop
 }
 
 func autoConvert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityMapping, out *user_api.UserIdentityMapping, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*UserIdentityMapping))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -354,9 +320,6 @@ func Convert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityM
 }
 
 func autoConvert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *user_api.UserIdentityMapping, out *UserIdentityMapping, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.UserIdentityMapping))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -380,9 +343,6 @@ func Convert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *user_api.User
 }
 
 func autoConvert_v1_UserList_To_api_UserList(in *UserList, out *user_api.UserList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*UserList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -408,9 +368,6 @@ func Convert_v1_UserList_To_api_UserList(in *UserList, out *user_api.UserList, s
 }
 
 func autoConvert_api_UserList_To_v1_UserList(in *user_api.UserList, out *UserList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*user_api.UserList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}

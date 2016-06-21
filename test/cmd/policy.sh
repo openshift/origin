@@ -5,9 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 trap os::test::junit::reconcile_output EXIT
 
@@ -21,6 +19,7 @@ os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
 os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
+os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc new-project foo'
@@ -92,7 +91,7 @@ os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
 workingdir=$(mktemp -d)
-cp ${OS_ROOT}/test/fixtures/bootstrappolicy/cluster_admin_1.0.yaml ${workingdir}
+cp ${OS_ROOT}/test/testdata/bootstrappolicy/cluster_admin_1.0.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION//g" ${workingdir}/cluster_admin_1.0.yaml
 os::cmd::expect_success "oc create -f ${workingdir}/cluster_admin_1.0.yaml"
 os::cmd::expect_success 'oadm policy add-cluster-role-to-user alternate-cluster-admin alternate-cluster-admin-user'
@@ -105,21 +104,21 @@ os::cmd::expect_success "oc login -u alternate-cluster-admin-user -p anything --
 # alternate-cluster-admin should default to having star rights, so he should be able to update his role to that
 os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
-cp ${OS_ROOT}/test/fixtures/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
+cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
 os::cmd::expect_success "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml"
 
 # alternate-cluster-admin can restrict himself to no groups
 os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
-cp ${OS_ROOT}/test/fixtures/bootstrappolicy/cluster_admin_without_apigroups.yaml ${workingdir}
+cp ${OS_ROOT}/test/testdata/bootstrappolicy/cluster_admin_without_apigroups.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/cluster_admin_without_apigroups.yaml
 os::cmd::expect_success "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/cluster_admin_without_apigroups.yaml"
 
 # alternate-cluster-admin should NOT have the power add back star now
 os::cmd::try_until_failure "oc policy who-can update hpa.extensions | grep -q alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
-cp ${OS_ROOT}/test/fixtures/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
+cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
 os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "cannot grant extra privileges"
 

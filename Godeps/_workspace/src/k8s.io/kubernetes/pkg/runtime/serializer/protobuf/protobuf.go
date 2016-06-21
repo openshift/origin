@@ -1,5 +1,3 @@
-// +build proto
-
 /*
 Copyright 2015 The Kubernetes Authors All rights reserved.
 
@@ -23,17 +21,17 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"sync"
 
 	"github.com/gogo/protobuf/proto"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/framer"
 )
 
 var (
 	// protoEncodingPrefix serves as a magic number for an encoded protobuf message on this serializer. All
-	// proto messages serialized by this schema will be preceeded by the bytes 0x6b 0x38 0x73, with the fourth
+	// proto messages serialized by this schema will be precedeed by the bytes 0x6b 0x38 0x73, with the fourth
 	// byte being reserved for the encoding style. The only encoding style defined is 0x00, which means that
 	// the rest of the byte stream is a message of type k8s.io.kubernetes.pkg.runtime.Unknown (proto2).
 	//
@@ -41,11 +39,6 @@ var (
 	//
 	// This encoding scheme is experimental, and is subject to change at any time.
 	protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
-
-	bufferSize       = uint64(16384)
-	availableBuffers = sync.Pool{New: func() interface{} {
-		return make([]byte, bufferSize)
-	}}
 )
 
 type errNotMarshalable struct {
@@ -76,9 +69,10 @@ func NewSerializer(creater runtime.ObjectCreater, typer runtime.Typer, defaultCo
 }
 
 type Serializer struct {
-	prefix  []byte
-	creater runtime.ObjectCreater
-	typer   runtime.Typer
+	prefix      []byte
+	creater     runtime.ObjectCreater
+	typer       runtime.Typer
+	contentType string
 }
 
 var _ runtime.Serializer = &Serializer{}
@@ -168,7 +162,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *unversioned.GroupVersionKi
 		return nil, actual, runtime.NewMissingVersionErr(fmt.Sprintf("%#v", unk.TypeMeta))
 	}
 
-	return unmarshalToObject(s.typer, s.creater, actual, into)
+	return unmarshalToObject(s.typer, s.creater, actual, into, unk.Raw)
 }
 
 // EncodeToStream serializes the provided object to the given writer. Overrides is ignored.
@@ -374,13 +368,13 @@ func (s *RawSerializer) Decode(originalData []byte, gvk *unversioned.GroupVersio
 		return nil, actual, runtime.NewMissingVersionErr("<protobuf encoded body - must provide default type>")
 	}
 
-	return unmarshalToObject(s.typer, s.creater, actual, into)
+	return unmarshalToObject(s.typer, s.creater, actual, into, data)
 }
 
 // unmarshalToObject is the common code between decode in the raw and normal serializer.
-func unmarshalToObject(typer runtime.Typer, creater runtime.ObjectCreater, actual *unversioned.GroupVersionKind, into runtime.Object) (runtime.Object, *unversioned.GroupVersionKind, error) {
+func unmarshalToObject(typer runtime.Typer, creater runtime.ObjectCreater, actual *unversioned.GroupVersionKind, into runtime.Object, data []byte) (runtime.Object, *unversioned.GroupVersionKind, error) {
 	// use the target if necessary
-	obj, err := runtime.UseOrCreateObject(s.typer, s.creater, *actual, into)
+	obj, err := runtime.UseOrCreateObject(typer, creater, *actual, into)
 	if err != nil {
 		return nil, actual, err
 	}
@@ -425,8 +419,16 @@ func (s *RawSerializer) EncodeToStream(obj runtime.Object, w io.Writer, override
 	}
 }
 
-// RecognizesData implements the RecognizingDecoder interface - objects encoded with this serializer
-// have no innate identifying information and so cannot be recognized.
-func (s *RawSerializer) RecognizesData(peek io.Reader) (bool, error) {
-	return false, nil
+var LengthDelimitedFramer = lengthDelimitedFramer{}
+
+type lengthDelimitedFramer struct{}
+
+// NewFrameWriter implements stream framing for this serializer
+func (lengthDelimitedFramer) NewFrameWriter(w io.Writer) io.Writer {
+	return framer.NewLengthDelimitedFrameWriter(w)
+}
+
+// NewFrameReader implements stream framing for this serializer
+func (lengthDelimitedFramer) NewFrameReader(r io.ReadCloser) io.ReadCloser {
+	return framer.NewLengthDelimitedFrameReader(r)
 }

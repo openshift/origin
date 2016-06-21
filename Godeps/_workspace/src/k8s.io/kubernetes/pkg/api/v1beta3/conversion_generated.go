@@ -33,7 +33,7 @@ func convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStor
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -169,8 +169,8 @@ func convert_api_ContainerPort_To_v1beta3_ContainerPort(in *api.ContainerPort, o
 		defaulting.(func(*api.ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int(in.HostPort)
+	out.ContainerPort = int(in.ContainerPort)
 	out.Protocol = Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -207,7 +207,7 @@ func convert_api_ContainerStatus_To_v1beta3_ContainerStatus(in *api.ContainerSta
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -218,7 +218,7 @@ func convert_api_DaemonEndpoint_To_v1beta3_DaemonEndpoint(in *api.DaemonEndpoint
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	return nil
 }
 
@@ -293,7 +293,7 @@ func convert_api_EndpointPort_To_v1beta3_EndpointPort(in *api.EndpointPort, out 
 		defaulting.(func(*api.EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	out.Protocol = Protocol(in.Protocol)
 	return nil
 }
@@ -431,7 +431,7 @@ func convert_api_Event_To_v1beta3_Event(in *api.Event, out *Event, s conversion.
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int(in.Count)
 	return nil
 }
 
@@ -494,7 +494,7 @@ func convert_api_FCVolumeSource_To_v1beta3_FCVolumeSource(in *api.FCVolumeSource
 	}
 	if in.Lun != nil {
 		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		*out.Lun = int(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -517,7 +517,7 @@ func convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolum
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -599,7 +599,7 @@ func convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in *api.ISCSIVol
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int(in.Lun)
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -1717,7 +1717,7 @@ func convert_api_ReplicationControllerStatus_To_v1beta3_ReplicationControllerSta
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -2158,11 +2158,11 @@ func convert_api_ServicePort_To_v1beta3_ServicePort(in *api.ServicePort, out *Se
 	}
 	out.Name = in.Name
 	out.Protocol = Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int(in.NodePort)
 	return nil
 }
 
@@ -2222,7 +2222,7 @@ func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStor
 	}
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2358,8 +2358,8 @@ func convert_v1beta3_ContainerPort_To_api_ContainerPort(in *ContainerPort, out *
 		defaulting.(func(*ContainerPort))(in)
 	}
 	out.Name = in.Name
-	out.HostPort = in.HostPort
-	out.ContainerPort = in.ContainerPort
+	out.HostPort = int32(in.HostPort)
+	out.ContainerPort = int32(in.ContainerPort)
 	out.Protocol = api.Protocol(in.Protocol)
 	out.HostIP = in.HostIP
 	return nil
@@ -2396,7 +2396,7 @@ func convert_v1beta3_ContainerStatus_To_api_ContainerStatus(in *ContainerStatus,
 		return err
 	}
 	out.Ready = in.Ready
-	out.RestartCount = in.RestartCount
+	out.RestartCount = int32(in.RestartCount)
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
@@ -2407,7 +2407,7 @@ func convert_v1beta3_DaemonEndpoint_To_api_DaemonEndpoint(in *DaemonEndpoint, ou
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*DaemonEndpoint))(in)
 	}
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	return nil
 }
 
@@ -2482,7 +2482,7 @@ func convert_v1beta3_EndpointPort_To_api_EndpointPort(in *EndpointPort, out *api
 		defaulting.(func(*EndpointPort))(in)
 	}
 	out.Name = in.Name
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	out.Protocol = api.Protocol(in.Protocol)
 	return nil
 }
@@ -2620,7 +2620,7 @@ func convert_v1beta3_Event_To_api_Event(in *Event, out *api.Event, s conversion.
 	if err := s.Convert(&in.LastTimestamp, &out.LastTimestamp, 0); err != nil {
 		return err
 	}
-	out.Count = in.Count
+	out.Count = int32(in.Count)
 	return nil
 }
 
@@ -2682,8 +2682,8 @@ func convert_v1beta3_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, ou
 		out.TargetWWNs = nil
 	}
 	if in.Lun != nil {
-		out.Lun = new(int)
-		*out.Lun = *in.Lun
+		out.Lun = new(int32)
+		*out.Lun = int32(*in.Lun)
 	} else {
 		out.Lun = nil
 	}
@@ -2706,7 +2706,7 @@ func convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolum
 	}
 	out.PDName = in.PDName
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -2788,7 +2788,7 @@ func convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in *ISCSIVolumeS
 	}
 	out.TargetPortal = in.TargetPortal
 	out.IQN = in.IQN
-	out.Lun = in.Lun
+	out.Lun = int32(in.Lun)
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -3815,8 +3815,8 @@ func convert_v1beta3_Probe_To_api_Probe(in *Probe, out *api.Probe, s conversion.
 	if err := convert_v1beta3_Handler_To_api_Handler(&in.Handler, &out.Handler, s); err != nil {
 		return err
 	}
-	out.InitialDelaySeconds = int(in.InitialDelaySeconds)
-	out.TimeoutSeconds = int(in.TimeoutSeconds)
+	out.InitialDelaySeconds = int32(in.InitialDelaySeconds)
+	out.TimeoutSeconds = int32(in.TimeoutSeconds)
 	return nil
 }
 
@@ -3906,7 +3906,7 @@ func convert_v1beta3_ReplicationControllerStatus_To_api_ReplicationControllerSta
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
-	out.Replicas = in.Replicas
+	out.Replicas = int32(in.Replicas)
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -4347,11 +4347,11 @@ func convert_v1beta3_ServicePort_To_api_ServicePort(in *ServicePort, out *api.Se
 	}
 	out.Name = in.Name
 	out.Protocol = api.Protocol(in.Protocol)
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
 		return err
 	}
-	out.NodePort = in.NodePort
+	out.NodePort = int32(in.NodePort)
 	return nil
 }
 

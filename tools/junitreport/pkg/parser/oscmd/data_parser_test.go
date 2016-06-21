@@ -46,8 +46,8 @@ func TestExtractTestName(t *testing.T) {
 		},
 		{
 			name:         "test conclusion success",
-			testLine:     `SUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension' expecting success`,
-			expectedName: `hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension' expecting success`,
+			testLine:     `SUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension' expecting success`,
+			expectedName: `hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension' expecting success`,
 		},
 		{
 			name:         "test conclusion failure",
@@ -56,8 +56,8 @@ func TestExtractTestName(t *testing.T) {
 		},
 		{
 			name:         "failed print: test conclusion success",
-			testLine:     `some other textSUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension' expecting success`,
-			expectedName: `hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension' expecting success`,
+			testLine:     `some other textSUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension' expecting success`,
+			expectedName: `hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension' expecting success`,
 		},
 	}
 
@@ -116,7 +116,7 @@ func TestExtractDuration(t *testing.T) {
 	}{
 		{
 			name:             "test conclusion success",
-			testLine:         `SUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension' expecting success`,
+			testLine:         `SUCCESS after 0.041s: hack/../test/cmd/basicresources.sh:21: executing 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension' expecting success`,
 			expectedDuration: "0.041s",
 		},
 		{

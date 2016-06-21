@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
 
 // StatusRecommendedName is the recommended command name.
@@ -160,7 +161,7 @@ func (o StatusOptions) RunStatus() error {
 		if err != nil {
 			return err
 		}
-		data, err := dot.Marshal(g, o.namespace, "", "  ", false)
+		data, err := dot.Marshal(g, dotutil.Quote(o.namespace), "", "  ", false)
 		if err != nil {
 			return err
 		}

@@ -126,6 +126,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter r
 	case UserIndicator + UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
 	case UserIndicator + UserListProject:
 		return []authorizationapi.PolicyRule{
@@ -214,8 +215,7 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 		return []authorizationapi.PolicyRule{}, nil
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
-	policy, err := clusterPolicyGetter.GetClusterPolicy(ctx, "default")
+	policy, err := clusterPolicyGetter.GetClusterPolicy(kapi.NewContext(), "default")
 	if err != nil {
 		return nil, err
 	}

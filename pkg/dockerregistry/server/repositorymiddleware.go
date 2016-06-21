@@ -168,7 +168,7 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 
 	bs := r.Repository.Blobs(ctx)
 
-	if quotaEnforcing != nil {
+	if !quotaEnforcing.enforcementDisabled {
 		bs = &quotaRestrictedBlobStore{
 			BlobStore: bs,
 
@@ -478,7 +478,7 @@ func (r *repository) fillImageWithMetadata(manifest *schema1.SignedManifest, ima
 			context.GetLogger(r.ctx).Errorf("failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
 			return err
 		}
-		layer.Size = desc.Size
+		layer.LayerSize = desc.Size
 		// count empty layer just once (empty layer may actually have non-zero size)
 		if !layerSet.Has(layer.Name) {
 			size += desc.Size

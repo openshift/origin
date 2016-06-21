@@ -1,14 +1,16 @@
 package validation
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	"github.com/openshift/origin/pkg/image/api"
 )
 
 func TestValidateImageOK(t *testing.T) {
@@ -66,6 +68,149 @@ func TestValidateImageMissingFields(t *testing.T) {
 			t.Errorf("%s: expected errors to have field %s and type %s: %v", k, v.F, v.T, errs)
 		}
 	}
+}
+
+func TestValidateImageSignature(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		signature api.ImageSignature
+		expected  field.ErrorList
+	}{
+		{
+			name: "valid",
+			signature: api.ImageSignature{
+				Type:    "valid",
+				Content: []byte("blob"),
+			},
+			expected: field.ErrorList{},
+		},
+
+		{
+			name: "valid trusted",
+			signature: api.ImageSignature{
+				Type:    "valid",
+				Content: []byte("blob"),
+				Conditions: []api.SignatureCondition{
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionTrue,
+					},
+					{
+						Type:   api.SignatureForImage,
+						Status: kapi.ConditionTrue,
+					},
+				},
+				ImageIdentity: "registry.company.ltd/app/core:v1.2",
+			},
+			expected: field.ErrorList{},
+		},
+
+		{
+			name: "valid untrusted",
+			signature: api.ImageSignature{
+				Type:    "valid",
+				Content: []byte("blob"),
+				Conditions: []api.SignatureCondition{
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionTrue,
+					},
+					{
+						Type:   api.SignatureForImage,
+						Status: kapi.ConditionFalse,
+					},
+					// compare the latest condition
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionFalse,
+					},
+				},
+				ImageIdentity: "registry.company.ltd/app/core:v1.2",
+			},
+			expected: field.ErrorList{},
+		},
+
+		{
+			name: "missing type",
+			signature: api.ImageSignature{
+				Content: []byte("blob"),
+			},
+			expected: field.ErrorList{
+				field.Required(field.NewPath("type"), ""),
+			},
+		},
+
+		{
+			name: "missing content",
+			signature: api.ImageSignature{
+				Type: "invalid",
+			},
+			expected: field.ErrorList{
+				field.Required(field.NewPath("content"), ""),
+			},
+		},
+
+		{
+			name: "missing ForImage condition",
+			signature: api.ImageSignature{
+				Type:    "invalid",
+				Content: []byte("blob"),
+				Conditions: []api.SignatureCondition{
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionTrue,
+					},
+				},
+				ImageIdentity: "registry.company.ltd/app/core:v1.2",
+			},
+			expected: field.ErrorList{field.Invalid(field.NewPath("conditions"),
+				[]api.SignatureCondition{
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionTrue,
+					},
+				},
+				fmt.Sprintf("missing %q condition type", api.SignatureForImage))},
+		},
+
+		{
+			name: "filled metadata for unknown signature state",
+			signature: api.ImageSignature{
+				Type:    "invalid",
+				Content: []byte("blob"),
+				Conditions: []api.SignatureCondition{
+					{
+						Type:   api.SignatureTrusted,
+						Status: kapi.ConditionUnknown,
+					},
+					{
+						Type:   api.SignatureForImage,
+						Status: kapi.ConditionUnknown,
+					},
+				},
+				ImageIdentity: "registry.company.ltd/app/core:v1.2",
+				SignedClaims:  map[string]string{"claim": "value"},
+				IssuedBy: &api.SignatureIssuer{
+					SignatureGenericEntity: api.SignatureGenericEntity{Organization: "org"},
+				},
+				IssuedTo: &api.SignatureSubject{PublicKeyID: "id"},
+			},
+			expected: field.ErrorList{
+				field.Invalid(field.NewPath("imageIdentity"), "registry.company.ltd/app/core:v1.2", "must be unset for unknown signature state"),
+				field.Invalid(field.NewPath("signedClaims"), map[string]string{"claim": "value"}, "must be unset for unknown signature state"),
+				field.Invalid(field.NewPath("issuedBy"), &api.SignatureIssuer{
+					SignatureGenericEntity: api.SignatureGenericEntity{Organization: "org"},
+				}, "must be unset for unknown signature state"),
+				field.Invalid(field.NewPath("issuedTo"), &api.SignatureSubject{PublicKeyID: "id"}, "must be unset for unknown signature state"),
+			},
+		},
+	} {
+		errs := validateImageSignature(&tc.signature, nil)
+		if e, a := tc.expected, errs; !reflect.DeepEqual(a, e) {
+			t.Errorf("[%s] unexpected errors: %s", tc.name, diff.ObjectDiff(e, a))
+		}
+	}
+
 }
 
 func TestValidateImageStreamMappingNotOK(t *testing.T) {

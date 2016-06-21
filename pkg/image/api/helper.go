@@ -33,6 +33,19 @@ const (
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
 )
 
+// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
+type DefaultRegistry interface {
+	DefaultRegistry() (string, bool)
+}
+
+// DefaultRegistryFunc implements DefaultRegistry for a simple function.
+type DefaultRegistryFunc func() (string, bool)
+
+// DefaultRegistry implements the DefaultRegistry interface for a function.
+func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
+	return fn()
+}
+
 // parseRepositoryTag splits a string into its name component and either tag or id if present.
 // TODO remove
 func parseRepositoryTag(repos string) (base string, tag string, id string) {
@@ -419,14 +432,14 @@ func ImageWithMetadata(image *Image) error {
 			image.DockerImageLayers[i].Name = layer.DockerBlobSum
 		}
 		if len(manifest.History) == len(image.DockerImageLayers) {
-			image.DockerImageLayers[0].Size = v1Metadata.Size
+			image.DockerImageLayers[0].LayerSize = v1Metadata.Size
 			var size = DockerV1CompatibilityImageSize{}
 			for i, obj := range manifest.History[1:] {
 				size.Size = 0
 				if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
 					continue
 				}
-				image.DockerImageLayers[i+1].Size = size.Size
+				image.DockerImageLayers[i+1].LayerSize = size.Size
 			}
 		} else {
 			glog.V(4).Infof("Imported image has mismatched layer count and history count, not updating image metadata: %s", image.Name)
@@ -449,7 +462,7 @@ func ImageWithMetadata(image *Image) error {
 		if len(image.DockerImageLayers) > 0 {
 			size := int64(0)
 			for _, layer := range image.DockerImageLayers {
-				size += layer.Size
+				size += layer.LayerSize
 			}
 			image.DockerImageMetadata.Size = size
 		} else {
@@ -615,7 +628,7 @@ func tagsChanged(new, old []TagEvent) (changed bool, deleted bool) {
 	case len(old) == 0:
 		return true, false
 	default:
-		return new[0] == old[0], false
+		return new[0] != old[0], false
 	}
 }
 

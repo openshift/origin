@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -12,11 +11,15 @@ import (
 	"runtime"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/credentialprovider"
+
 	"github.com/docker/docker/builder/parser"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 // ClientExecutor can run Docker builds from a Docker client.
@@ -51,7 +54,7 @@ type ClientExecutor struct {
 
 	// AuthFn will handle authenticating any docker pulls if Image
 	// is set to nil.
-	AuthFn func(name string) ([]docker.AuthConfiguration, bool)
+	AuthFn func(name string) ([]credentialprovider.LazyAuthConfiguration, bool)
 	// HostConfig is used to start the container (if necessary).
 	HostConfig *docker.HostConfig
 	// LogFn is an optional command to log information to the end user
@@ -236,17 +239,11 @@ func (e *ClientExecutor) Cleanup() error {
 // CreateScratchImage creates a new, zero byte layer that is identical to "scratch"
 // except that the resulting image will have two layers.
 func (e *ClientExecutor) CreateScratchImage() (string, error) {
-	random := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, random); err != nil {
+	random, err := randSeq(imageSafeCharacters, 24)
+	if err != nil {
 		return "", err
 	}
-	s := strings.Map(func(r rune) rune {
-		if r == '-' || r == '_' {
-			return 'a'
-		}
-		return r
-	}, strings.TrimRight(base64.URLEncoding.EncodeToString(random), "="))
-	name := strings.ToLower(fmt.Sprintf("scratch-%s", s))
+	name := fmt.Sprintf("scratch-%s", random)
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
@@ -257,6 +254,26 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 		Source:      "-",
 		InputStream: buf,
 	})
+}
+
+// imageSafeCharacters are characters allowed to be part of a Docker image name.
+const imageSafeCharacters = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+// randSeq returns a sequence of random characters drawn from source. It returns
+// an error if cryptographic randomness is not available or source is more than 255
+// characters.
+func randSeq(source string, n int) (string, error) {
+	if len(source) > 255 {
+		return "", fmt.Errorf("source must be less than 256 bytes long")
+	}
+	random := make([]byte, n)
+	if _, err := io.ReadFull(rand.Reader, random); err != nil {
+		return "", err
+	}
+	for i := range random {
+		random[i] = source[random[i]%byte(len(source))]
+	}
+	return string(random), nil
 }
 
 // CleanupImage attempts to remove the provided image.
@@ -290,7 +307,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	// TODO: we may want to abstract looping over multiple credentials
 	auth, _ := e.AuthFn(repository)
 	if len(auth) == 0 {
-		auth = append(auth, docker.AuthConfiguration{})
+		auth = append(auth, credentialprovider.LazyAuthConfiguration{})
 	}
 
 	if e.LogFn != nil {
@@ -298,10 +315,23 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	}
 
 	var lastErr error
+	outputProgress := func(s string) {
+		e.LogFn("%s", s)
+	}
 	for _, config := range auth {
 		// TODO: handle IDs?
-		// TODO: use RawJSONStream:true and handle the output nicely
-		if err = e.Client.PullImage(docker.PullImageOptions{Repository: from, OutputStream: e.Out, Tag: tag}, config); err == nil {
+		pullImageOptions := docker.PullImageOptions{
+			Repository:    from,
+			Tag:           tag,
+			OutputStream:  imageprogress.NewPullWriter(outputProgress),
+			RawJSONStream: true,
+		}
+		if glog.V(5) {
+			pullImageOptions.OutputStream = os.Stderr
+			pullImageOptions.RawJSONStream = false
+		}
+		authConfig := docker.AuthConfiguration{Username: config.Username, ServerAddress: config.ServerAddress, Password: config.Password}
+		if err = e.Client.PullImage(pullImageOptions, authConfig); err == nil {
 			break
 		}
 		lastErr = err

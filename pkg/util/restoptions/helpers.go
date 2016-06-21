@@ -3,12 +3,12 @@ package restoptions
 import (
 	"fmt"
 
-	genericetcd "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 )
 
 // ApplyOptions updates the given generic storage from the provided rest options
 // TODO: remove need for etcdPrefix once Decorator interface is refactored upstream
-func ApplyOptions(optsGetter Getter, store *genericetcd.Etcd, etcdPrefix string) error {
+func ApplyOptions(optsGetter Getter, store *registry.Store, etcdPrefix string) error {
 	if store.QualifiedResource.IsEmpty() {
 		return fmt.Errorf("store must have a non-empty qualified resource")
 	}

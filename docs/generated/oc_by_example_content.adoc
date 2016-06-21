@@ -520,6 +520,9 @@ Install the integrated Docker registry
 
   # Use a different registry image
   oc adm registry --images=myrepo/docker-registry:mytag
+
+  # Enforce quota and limits on images
+  oc adm registry --enforce-quota
 ----
 ====
 
@@ -839,13 +842,13 @@ Create a configMap from a local file, directory or literal value.
 [options="nowrap"]
 ----
   # Create a new configmap named my-config with keys for each file in folder bar
-  oc create configmap generic my-config --from-file=path/to/bar
+  oc create configmap my-config --from-file=path/to/bar
   
   # Create a new configmap named my-config with specified keys instead of names on disk
-  oc create configmap generic my-config --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
+  oc create configmap my-config --from-file=key1=/path/to/bar/file1.txt --from-file=key2=/path/to/bar/file2.txt
   
   # Create a new configMap named my-config with key1=config1 and key2=config2
-  oc create configmap generic my-config --from-literal=key1=config1 --from-literal=key2=config2
+  oc create configmap my-config --from-literal=key1=config1 --from-literal=key2=config2
 ----
 ====
 
@@ -872,6 +875,19 @@ Manually create an identity (only needed if automatic creation is disabled).
 ----
   # Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
   oc create identity acme_ldap:adamjones
+----
+====
+
+
+== oc create imagestream
+Create a new empty image stream.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new image stream
+  oc create imagestream mysql
 ----
 ====
 
@@ -1181,7 +1197,7 @@ Perform a direct Docker build
 [options="nowrap"]
 ----
   # Build the current directory into a single layer and tag
-  oc dockerbuild . myimage:latest
+  oc ex dockerbuild . myimage:latest
 ----
 ====
 
@@ -1193,11 +1209,11 @@ Execute a command in a container.
 
 [options="nowrap"]
 ----
-  # Get output from running 'date' in ruby-container from pod 123456-7890
-  oc exec -p 123456-7890 -c ruby-container date
+  # Get output from running 'date' in ruby-container from pod 'mypod'
+  oc exec mypod -c ruby-container date
 
-  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-  oc exec -p 123456-7890 -c ruby-container -i -t -- bash -il
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
+  oc exec mypod -c ruby-container -i -t -- bash -il
 ----
 ====
 
@@ -1560,16 +1576,16 @@ Forward one or more local ports to a pod.
 [options="nowrap"]
 ----
   # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-  oc port-forward -p mypod 5000 6000
+  oc port-forward mypod 5000 6000
 
   # Listens on port 8888 locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod 8888:5000
+  oc port-forward mypod 8888:5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod :5000
+  oc port-forward mypod :5000
 
   # Listens on a random port locally, forwarding to 5000 in the pod
-  oc port-forward -p mypod 0:5000
+  oc port-forward mypod 0:5000
 ----
 ====
 
@@ -1598,9 +1614,6 @@ Process a template into list of resources
 
   # Convert template.json into resource list
   cat template.json | oc process -f -
-
-  # Combine multiple templates into single resource list
-  cat template.json second_template.json | oc process -f -
 ----
 ====
 
@@ -1617,6 +1630,19 @@ Switch to another project
 
   # Display the project currently in use
   oc project
+----
+====
+
+
+== oc projects
+Display existing projects
+
+====
+
+[options="nowrap"]
+----
+  # Display the projects that currently exist
+  oc
 ----
 ====
 

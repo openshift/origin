@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -113,6 +114,11 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 	return api.NamespaceDefault, false, nil
 }
 
+// ConfigAccess implements ClientConfig
+func (c defaultingClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return c.nested.ConfigAccess()
+}
+
 // ClientConfig returns a complete client config
 func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 	cfg, err := c.nested.ClientConfig()
@@ -130,7 +136,7 @@ func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 		return icc, nil
 	}
 
-	return nil, fmt.Errorf(`No configuration file found, please login or point to an existing file:
+	return nil, fmt.Errorf(`Missing or incomplete configuration info.  Please login or point to an existing, complete config file:
 
   1. Via the command-line flag --config
   2. Via the KUBECONFIG environment variable
@@ -417,6 +423,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.EditorEnvs = func() []string {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
+	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
 
 	return w
 }
@@ -438,7 +445,7 @@ func getPorts(spec api.PodSpec) []string {
 	result := []string{}
 	for _, container := range spec.Containers {
 		for _, port := range container.Ports {
-			result = append(result, strconv.Itoa(port.ContainerPort))
+			result = append(result, strconv.Itoa(int(port.ContainerPort)))
 		}
 	}
 	return result
@@ -559,7 +566,7 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 			return &t.Spec.Template, err
 		case *extensions.DaemonSet:
 			return &t.Spec.Template, err
-		case *extensions.Job:
+		case *batch.Job:
 			return &t.Spec.Template, err
 		}
 		return nil, err
@@ -638,7 +645,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
-func podNameForJob(job *extensions.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
+func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
 	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err

@@ -52,7 +52,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"empty service": {
-			Path: "../../../../test/fixtures/app-scenarios/k8s-service-with-nothing.json",
+			Path: "../../../../test/testdata/app-scenarios/k8s-service-with-nothing.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -67,7 +67,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"service with RC": {
-			Path: "../../../../test/fixtures/app-scenarios/k8s-unserviced-rc.json",
+			Path: "../../../../test/testdata/app-scenarios/k8s-unserviced-rc.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -140,7 +140,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"unstarted build": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-no-build.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-no-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -196,7 +196,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"running build": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-one-build.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-one-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -215,7 +215,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"a/b test DeploymentConfig": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-two-deployment-configs.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -235,7 +235,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"with real deployments": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-deployed-app.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-deployed-app.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -294,7 +294,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"monopod": {
-			Path: "../../../../test/fixtures/app-scenarios/k8s-lonely-pod.json",
+			Path: "../../../../test/testdata/app-scenarios/k8s-lonely-pod.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -308,7 +308,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"deploys single pod": {
-			Path: "../../../../test/fixtures/simple-deployment.yaml",
+			Path: "../../../../test/testdata/simple-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},

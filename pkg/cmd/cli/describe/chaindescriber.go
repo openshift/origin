@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	dotutil "github.com/openshift/origin/pkg/util/dot"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
 
@@ -106,7 +107,7 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImag
 
 	switch strings.ToLower(d.outputFormat) {
 	case "dot":
-		data, err := dot.Marshal(partitioned, fmt.Sprintf("%q", ist.Name), "", "  ", false)
+		data, err := dot.Marshal(partitioned, dotutil.Quote(ist.Name), "", "  ", false)
 		if err != nil {
 			return "", err
 		}

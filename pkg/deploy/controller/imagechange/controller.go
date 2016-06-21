@@ -104,7 +104,6 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 	// Attempt to regenerate all configs which may contain image updates
 	anyFailed := false
 	for _, config := range configsToUpdate {
-		instantiate(config)
 		if _, err := c.client.DeploymentConfigs(config.Namespace).Update(config); err != nil {
 			anyFailed = true
 			glog.V(2).Infof("Couldn't update deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
@@ -127,26 +126,4 @@ func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.D
 	}
 	name, _, ok := imageapi.SplitImageStreamTag(params.From.Name)
 	return stream.Namespace == namespace && stream.Name == name && ok
-}
-
-// instantiate the deployment config if it has no config change trigger and all of its
-// image change triggers are set to automatic.
-func instantiate(config *deployapi.DeploymentConfig) {
-	if deployutil.HasChangeTrigger(config) {
-		return
-	}
-
-	shouldInstantiate := true
-	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type != deployapi.DeploymentTriggerOnImageChange {
-			continue
-		}
-		if !trigger.ImageChangeParams.Automatic {
-			shouldInstantiate = false
-		}
-	}
-
-	if shouldInstantiate {
-		deployutil.Instantiate(config)
-	}
 }

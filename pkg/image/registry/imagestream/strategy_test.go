@@ -518,6 +518,7 @@ func TestLimitVerifier(t *testing.T) {
 			limitVerifier: &testutil.FakeImageStreamLimitVerifier{
 				ImageStreamEvaluator: tc.isEvaluator,
 			},
+			defaultRegistry: &fakeDefaultRegistry{},
 		}
 
 		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
@@ -1038,6 +1039,12 @@ func TestTagsChanged(t *testing.T) {
 				Tags: test.existingTagHistory,
 			},
 		}
+		// we can't reuse the same map twice, it causes both to be modified during updates
+		var previousTagHistory = test.existingTagHistory
+		if previousTagHistory != nil {
+			obj, _ := kapi.Scheme.DeepCopy(previousTagHistory)
+			previousTagHistory, _ = obj.(map[string]api.TagEventList)
+		}
 		previousStream := &api.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "stream",
@@ -1047,14 +1054,16 @@ func TestTagsChanged(t *testing.T) {
 			},
 			Status: api.ImageStreamStatus{
 				DockerImageRepository: test.stream,
-				Tags: test.existingTagHistory,
+				Tags: previousTagHistory,
 			},
 		}
 		if test.previous == nil {
 			previousStream = nil
 		}
 
-		s := &Strategy{}
+		s := &Strategy{
+			defaultRegistry: &fakeDefaultRegistry{},
+		}
 		s.ImageStreamGetter = &fakeImageStreamGetter{test.otherStream}
 		err := s.tagsChanged(previousStream, stream)
 		if len(err) > 0 {

@@ -46,7 +46,7 @@ func TestIntegrationPullCreateStartLogs(t *testing.T) {
 		t.Error(err)
 	}
 	if status != 0 {
-		t.Error("WaitContainer(%q): wrong status. Want 0. Got %d", container.ID, status)
+		t.Errorf("WaitContainer(%q): wrong status. Want 0. Got %d", container.ID, status)
 	}
 	var stdout, stderr bytes.Buffer
 	logsOpts := LogsOptions{

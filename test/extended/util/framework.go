@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -27,7 +28,7 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -573,6 +574,23 @@ func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicat
 		}
 	}
 	return podNames, nil
+}
+
+func WaitForAJob(c kclient.JobInterface, name string, timeout time.Duration) error {
+	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
+		j, e := c.Get(name)
+		if e != nil {
+			return true, e
+		}
+		// TODO soltysh: replace this with a function once such exist, currently
+		// it's private in the controller
+		for _, c := range j.Status.Conditions {
+			if (c.Type == batch.JobComplete || c.Type == batch.JobFailed) && c.Status == kapi.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 }
 
 // WaitForPods waits until given number of pods that match the label selector and

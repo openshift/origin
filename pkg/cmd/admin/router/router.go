@@ -110,7 +110,7 @@ type RouterConfig struct {
 	Ports string
 
 	// Replicas specifies the initial replica count for the router.
-	Replicas int
+	Replicas int32
 
 	// Labels specifies the label or labels that will be assigned to the router
 	// pod.
@@ -248,7 +248,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
-	cmd.Flags().IntVar(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
+	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "Use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
@@ -487,11 +487,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if cfg.StatsPort > 0 {
 		port := kapi.ContainerPort{
 			Name:          "stats",
-			ContainerPort: cfg.StatsPort,
+			ContainerPort: int32(cfg.StatsPort),
 			Protocol:      kapi.ProtocolTCP,
 		}
 		if cfg.HostPorts {
-			port.HostPort = cfg.StatsPort
+			port.HostPort = int32(cfg.StatsPort)
 		}
 		ports = append(ports, port)
 	}
@@ -711,7 +711,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			},
 		)
 	}
-	updatePercent := int(-25)
+	updatePercent := int32(-25)
 	objects = append(objects, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,

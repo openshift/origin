@@ -387,19 +387,19 @@ func (o *ProbeOptions) updateProbe(probe *kapi.Probe) {
 		probe.Handler = kapi.Handler{TCPSocket: &kapi.TCPSocketAction{Port: intOrString(o.OpenTCPSocket)}}
 	}
 	if o.InitialDelaySeconds != nil {
-		probe.InitialDelaySeconds = *o.InitialDelaySeconds
+		probe.InitialDelaySeconds = int32(*o.InitialDelaySeconds)
 	}
 	if o.SuccessThreshold != nil {
-		probe.SuccessThreshold = *o.SuccessThreshold
+		probe.SuccessThreshold = int32(*o.SuccessThreshold)
 	}
 	if o.FailureThreshold != nil {
-		probe.FailureThreshold = *o.FailureThreshold
+		probe.FailureThreshold = int32(*o.FailureThreshold)
 	}
 	if o.TimeoutSeconds != nil {
-		probe.TimeoutSeconds = *o.TimeoutSeconds
+		probe.TimeoutSeconds = int32(*o.TimeoutSeconds)
 	}
 	if o.PeriodSeconds != nil {
-		probe.PeriodSeconds = *o.PeriodSeconds
+		probe.PeriodSeconds = int32(*o.PeriodSeconds)
 	}
 }
 

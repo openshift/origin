@@ -10,7 +10,6 @@ import (
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
-	reflect "reflect"
 )
 
 func init() {
@@ -63,6 +62,8 @@ func init() {
 		Convert_api_RoleList_To_v1_RoleList,
 		Convert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview,
 		Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview,
+		Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec,
+		Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec,
 		Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		Convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
@@ -76,9 +77,6 @@ func init() {
 }
 
 func autoConvert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in *AuthorizationAttributes, out *authorization_api.AuthorizationAttributes, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*AuthorizationAttributes))(in)
-	}
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -96,9 +94,6 @@ func Convert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in *Autho
 }
 
 func autoConvert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in *authorization_api.AuthorizationAttributes, out *AuthorizationAttributes, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.AuthorizationAttributes))(in)
-	}
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -116,9 +111,6 @@ func Convert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in *autho
 }
 
 func autoConvert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *ClusterPolicyBindingList, out *authorization_api.ClusterPolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterPolicyBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -144,9 +136,6 @@ func Convert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *Clu
 }
 
 func autoConvert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *authorization_api.ClusterPolicyBindingList, out *ClusterPolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterPolicyBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -172,9 +161,6 @@ func Convert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *aut
 }
 
 func autoConvert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *ClusterPolicyList, out *authorization_api.ClusterPolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterPolicyList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -200,9 +186,6 @@ func Convert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *ClusterPolicyList
 }
 
 func autoConvert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *authorization_api.ClusterPolicyList, out *ClusterPolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterPolicyList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -228,9 +211,6 @@ func Convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *authorization_api
 }
 
 func autoConvert_v1_ClusterRole_To_api_ClusterRole(in *ClusterRole, out *authorization_api.ClusterRole, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterRole))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -257,9 +237,6 @@ func Convert_v1_ClusterRole_To_api_ClusterRole(in *ClusterRole, out *authorizati
 }
 
 func autoConvert_api_ClusterRole_To_v1_ClusterRole(in *authorization_api.ClusterRole, out *ClusterRole, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterRole))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -286,9 +263,6 @@ func Convert_api_ClusterRole_To_v1_ClusterRole(in *authorization_api.ClusterRole
 }
 
 func autoConvert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *authorization_api.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterRoleBinding))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -316,9 +290,6 @@ func autoConvert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *authorizati
 }
 
 func autoConvert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *ClusterRoleBindingList, out *authorization_api.ClusterRoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterRoleBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -344,9 +315,6 @@ func Convert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *Cluster
 }
 
 func autoConvert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *authorization_api.ClusterRoleBindingList, out *ClusterRoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterRoleBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -372,9 +340,6 @@ func Convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *authori
 }
 
 func autoConvert_v1_ClusterRoleList_To_api_ClusterRoleList(in *ClusterRoleList, out *authorization_api.ClusterRoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ClusterRoleList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -400,9 +365,6 @@ func Convert_v1_ClusterRoleList_To_api_ClusterRoleList(in *ClusterRoleList, out 
 }
 
 func autoConvert_api_ClusterRoleList_To_v1_ClusterRoleList(in *authorization_api.ClusterRoleList, out *ClusterRoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.ClusterRoleList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -428,9 +390,6 @@ func Convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *authorization_api.Clu
 }
 
 func autoConvert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *IsPersonalSubjectAccessReview, out *authorization_api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*IsPersonalSubjectAccessReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -442,9 +401,6 @@ func Convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessRevi
 }
 
 func autoConvert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(in *authorization_api.IsPersonalSubjectAccessReview, out *IsPersonalSubjectAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.IsPersonalSubjectAccessReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -456,9 +412,6 @@ func Convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessRevi
 }
 
 func autoConvert_v1_PolicyBindingList_To_api_PolicyBindingList(in *PolicyBindingList, out *authorization_api.PolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PolicyBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -484,9 +437,6 @@ func Convert_v1_PolicyBindingList_To_api_PolicyBindingList(in *PolicyBindingList
 }
 
 func autoConvert_api_PolicyBindingList_To_v1_PolicyBindingList(in *authorization_api.PolicyBindingList, out *PolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.PolicyBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -512,9 +462,6 @@ func Convert_api_PolicyBindingList_To_v1_PolicyBindingList(in *authorization_api
 }
 
 func autoConvert_v1_PolicyList_To_api_PolicyList(in *PolicyList, out *authorization_api.PolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PolicyList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -540,9 +487,6 @@ func Convert_v1_PolicyList_To_api_PolicyList(in *PolicyList, out *authorization_
 }
 
 func autoConvert_api_PolicyList_To_v1_PolicyList(in *authorization_api.PolicyList, out *PolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.PolicyList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -568,9 +512,6 @@ func Convert_api_PolicyList_To_v1_PolicyList(in *authorization_api.PolicyList, o
 }
 
 func autoConvert_v1_Role_To_api_Role(in *Role, out *authorization_api.Role, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*Role))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -597,9 +538,6 @@ func Convert_v1_Role_To_api_Role(in *Role, out *authorization_api.Role, s conver
 }
 
 func autoConvert_api_Role_To_v1_Role(in *authorization_api.Role, out *Role, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.Role))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -626,9 +564,6 @@ func Convert_api_Role_To_v1_Role(in *authorization_api.Role, out *Role, s conver
 }
 
 func autoConvert_api_RoleBinding_To_v1_RoleBinding(in *authorization_api.RoleBinding, out *RoleBinding, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.RoleBinding))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -656,9 +591,6 @@ func autoConvert_api_RoleBinding_To_v1_RoleBinding(in *authorization_api.RoleBin
 }
 
 func autoConvert_v1_RoleBindingList_To_api_RoleBindingList(in *RoleBindingList, out *authorization_api.RoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RoleBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -684,9 +616,6 @@ func Convert_v1_RoleBindingList_To_api_RoleBindingList(in *RoleBindingList, out 
 }
 
 func autoConvert_api_RoleBindingList_To_v1_RoleBindingList(in *authorization_api.RoleBindingList, out *RoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.RoleBindingList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -712,9 +641,6 @@ func Convert_api_RoleBindingList_To_v1_RoleBindingList(in *authorization_api.Rol
 }
 
 func autoConvert_v1_RoleList_To_api_RoleList(in *RoleList, out *authorization_api.RoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RoleList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -740,9 +666,6 @@ func Convert_v1_RoleList_To_api_RoleList(in *RoleList, out *authorization_api.Ro
 }
 
 func autoConvert_api_RoleList_To_v1_RoleList(in *authorization_api.RoleList, out *RoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.RoleList))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -768,10 +691,10 @@ func Convert_api_RoleList_To_v1_RoleList(in *authorization_api.RoleList, out *Ro
 }
 
 func autoConvert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in *SelfSubjectRulesReview, out *authorization_api.SelfSubjectRulesReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SelfSubjectRulesReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
@@ -785,10 +708,10 @@ func Convert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview(in *SelfSub
 }
 
 func autoConvert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *authorization_api.SelfSubjectRulesReview, out *SelfSubjectRulesReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.SelfSubjectRulesReview))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	if err := Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
@@ -801,10 +724,37 @@ func Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *authori
 	return autoConvert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in, out, s)
 }
 
-func autoConvert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *SubjectAccessReviewResponse, out *authorization_api.SubjectAccessReviewResponse, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SubjectAccessReviewResponse))(in)
+func autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *authorization_api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
 	}
+	return nil
+}
+
+func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *authorization_api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s)
+}
+
+func autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *authorization_api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
+	}
+	return nil
+}
+
+func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *authorization_api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s)
+}
+
+func autoConvert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *SubjectAccessReviewResponse, out *authorization_api.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -819,9 +769,6 @@ func Convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(i
 }
 
 func autoConvert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(in *authorization_api.SubjectAccessReviewResponse, out *SubjectAccessReviewResponse, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.SubjectAccessReviewResponse))(in)
-	}
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -836,9 +783,6 @@ func Convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(i
 }
 
 func autoConvert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in *SubjectRulesReviewStatus, out *authorization_api.SubjectRulesReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SubjectRulesReviewStatus))(in)
-	}
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]authorization_api.PolicyRule, len(*in))
@@ -859,9 +803,6 @@ func Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in *Sub
 }
 
 func autoConvert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in *authorization_api.SubjectRulesReviewStatus, out *SubjectRulesReviewStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorization_api.SubjectRulesReviewStatus))(in)
-	}
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]PolicyRule, len(*in))

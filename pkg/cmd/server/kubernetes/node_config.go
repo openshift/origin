@@ -14,6 +14,7 @@ import (
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -27,8 +28,9 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
-	"github.com/openshift/openshift-sdn/plugins/osdn/factory"
-	"github.com/openshift/openshift-sdn/plugins/osdn/ovs"
+	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	sdnovs "github.com/openshift/openshift-sdn/plugins/osdn/ovs"
+	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -36,6 +38,7 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/dns"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -134,6 +137,11 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
 
+	options.NetworkConfig.NetworkPluginName, err = validateAndGetNetworkPluginName(originClient, options.NetworkConfig.NetworkPluginName)
+	if err != nil {
+		return nil, err
+	}
+
 	// Defaults are tested in TestKubeletDefaults
 	server := kubeletoptions.NewKubeletServer()
 	// Adjust defaults
@@ -166,8 +174,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		server.ResolverConfig = ""
 	}
 
-	switch server.NetworkPluginName {
-	case ovs.SingleTenantPluginName, ovs.MultiTenantPluginName:
+	if sdnovs.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 		server.ConfigureCBR0 = false
@@ -271,7 +278,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	sdnPlugin, err := factory.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod)
+	sdnPlugin, err := sdnfactory.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}
@@ -279,7 +286,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		cfg.NetworkPlugins = append(cfg.NetworkPlugins, sdnPlugin)
 	}
 
-	endpointFilter, err := factory.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	endpointFilter, err := sdnfactory.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
@@ -362,7 +369,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	proxyconfig.HealthzBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
-	oomScoreAdj := 0
+	oomScoreAdj := int32(0)
 	proxyconfig.OOMScoreAdj = &oomScoreAdj
 	proxyconfig.ResourceContainer = ""
 
@@ -408,4 +415,33 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	}
 
 	return proxyconfig, nil
+}
+
+func validateAndGetNetworkPluginName(originClient *osclient.Client, pluginName string) (string, error) {
+	if sdnovs.IsOpenShiftNetworkPlugin(pluginName) {
+		// Detect any plugin mismatches between node and master
+		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+		if kerrs.IsNotFound(err) {
+			return "", fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
+		} else if err != nil {
+			return "", fmt.Errorf("cannot fetch %q cluster network: %v", sdnapi.ClusterNetworkDefault, err)
+		}
+
+		if clusterNetwork.PluginName != strings.ToLower(pluginName) {
+			if len(clusterNetwork.PluginName) != 0 {
+				return "", fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
+			} else {
+				// Do not return error in this case
+				glog.Warningf(`either there is network plugin mismatch between OpenShift node(%q) and master or OpenShift master is running an older version where we did not persist plugin name`, pluginName)
+			}
+		}
+	} else if pluginName == "" {
+		// Auto detect network plugin configured by master
+		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+		if err == nil {
+			return clusterNetwork.PluginName, nil
+		}
+	}
+
+	return pluginName, nil
 }

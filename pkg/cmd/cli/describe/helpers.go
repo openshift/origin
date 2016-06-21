@@ -249,7 +249,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			}
 			scheduled, insecure = tagRef.ImportPolicy.Scheduled, tagRef.ImportPolicy.Insecure
 			hasScheduled = hasScheduled || scheduled
-			hasInsecure = hasScheduled || insecure
+			hasInsecure = hasInsecure || insecure
 		} else {
 			specTag = "<pushed>"
 		}
@@ -325,6 +325,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)
 		}
 	}
+
 	if hasInsecure || hasScheduled {
 		fmt.Fprintln(out)
 		if hasScheduled {

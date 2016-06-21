@@ -6,11 +6,7 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/text.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 
 # Go to the top of the tree.
@@ -69,6 +65,9 @@ os::log::start_system_logger
 function exectest() {
 	echo "Running $1..."
 
+	export TEST_ETCD_DIR="${TMPDIR:-/tmp}/etcd-${1}"
+	rm -fr "${TEST_ETCD_DIR}"
+	mkdir -p "${TEST_ETCD_DIR}"
 	result=1
 	if [ -n "${DEBUG-}" ]; then
 		dlv exec "${testexec}" -- -test.run="^$1$" "${@:2}"
@@ -86,10 +85,12 @@ function exectest() {
 
 	if [[ ${result} -eq 0 ]]; then
 		os::text::print_green "ok      $1"
+		# Remove the etcd directory to cleanup the space.
+		rm -rf "${TEST_ETCD_DIR}"
 		exit 0
 	else
 		os::text::print_red "failed  $1"
-		echo "${out}"
+		echo "${out:-}"
 
 		exit 1
 	fi

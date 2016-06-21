@@ -8,14 +8,9 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
-
-source "${OS_ROOT}/hack/lib/util/environment.sh"
 os::util::environment::setup_time_vars
-
-source "${OS_ROOT}/hack/lib/test/junit.sh"
 trap os::test::junit::reconcile_output EXIT
 
 TEST_ASSETS="${TEST_ASSETS:-false}"
@@ -192,12 +187,12 @@ os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kube
 
 echo "[INFO] Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
-os::cmd::expect_success "oc create -f ${OS_ROOT}/test/fixtures/complete-dc-hooks.yaml"
+os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml"
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 # test the pre hook on a rolling deployment
-oc create -f test/fixtures/failing-dc.yaml
+oc create -f test/testdata/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
 wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
@@ -210,7 +205,7 @@ os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:
 os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:34:56Z --loglevel=6 dc/failing-dc 2>&1' 'test pre hook executed'
 oc delete dc/failing-dc
 # test the mid hook on a recreate deployment and the health check
-oc create -f test/fixtures/failing-dc-mid.yaml
+oc create -f test/testdata/failing-dc-mid.yaml
 tryuntil oc get rc/failing-dc-mid-1
 oc logs -f dc/failing-dc-mid
 wait_for_command "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
@@ -252,7 +247,7 @@ os::cmd::expect_success 'oc logs buildconfig/ruby-sample-build --loglevel=6'
 echo "logs: ok"
 
 echo "[INFO] Starting a deployment to test scaling and image tag..."
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 # scaling which might conflict with the deployment should work
 os::cmd::expect_success 'oc scale dc/test-deployment-config --replicas=2'
 os::cmd::try_until_text 'oc get rc/test-deployment-config-1 -o yaml' 'Complete'
@@ -341,11 +336,11 @@ echo "[INFO] Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 os::cmd::expect_success "openshift admin new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
 NODE_NAME=`oc get node --no-headers | awk '{print $1}'`
-os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}' -f test/fixtures/node-selector/pods.json | oc create -n node-selector -f -"
+os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
-os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+NodeSelectorMismatching' $((20*TIME_SEC))
+os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+MatchNodeSelector' $((20*TIME_SEC))
 
 
 # Image pruning

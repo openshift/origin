@@ -2565,10 +2565,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "annotations": {
-          "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
-          "service.openshift.io/infrastructure": "true"
-        },
         "creationTimestamp": null
       },
       "spec": {
@@ -2621,10 +2617,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
                   {
                     "name": "KUBERNETES_MASTER",
                     "value": "https://kubernetes.default:443"
-                  },
-                  {
-                    "name": "KUBERNETES_NAMESPACE",
-                    "value": "${PROJECT}"
                   },
                   {
                     "name": "KUBERNETES_TRUST_CERTIFICATES",
@@ -2719,6 +2711,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
        "apiVersion": "v1",
        "metadata": {
          "name": "${JENKINS_SERVICE_NAME}",
+         "annotations": {
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.openshift.io/infrastructure": "true"
+         },
          "creationTimestamp": null
        },
        "spec": {
@@ -2752,12 +2748,6 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
       "value": "openshift"
-    },
-    {
-      "name": "PROJECT",
-      "displayName": "Project",
-      "description": "The target project where jenkins pipeline operations should be performed/slaves launched.",
-      "value": "pipelineproject"
     },
     {
       "name": "JENKINS_SERVICE_NAME",
@@ -2815,6 +2805,9 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "creationTimestamp": null,
         "labels": {
           "name": "sample-pipeline"
+        },
+        "annotations": {
+          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"frontend\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
         }
       },
       "spec": {
@@ -2841,7 +2834,7 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('agent') {\nstage 'build'\ndef builder = new com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder(\"\", \"ruby-sample-build\", \"pipelineproject\", \"\", \"\", \"\", \"\", \"true\", \"\", \"\")\nstep builder\nstage 'deploy'\ndef deployer = new com.openshift.jenkins.plugins.pipeline.OpenShiftDeployer(\"\",\"frontend\",\"pipelineproject\",\"\",\"\")\nstep deployer\n}"
+            "jenkinsfile": "node('agent') {\nstage 'build'\nopenShiftBuild(buildConfig: 'ruby-sample-build', showBuildLogs: 'true')\nstage 'deploy'\nopenShiftDeploy(deploymentConfig: 'frontend')\n}"
           }
         }
       }

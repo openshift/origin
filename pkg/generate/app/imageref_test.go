@@ -221,7 +221,7 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 		}
 		remaining := test.expectedPorts
 		for _, port := range container.Ports {
-			proto, ok := remaining[port.ContainerPort]
+			proto, ok := remaining[int(port.ContainerPort)]
 			if !ok {
 				t.Errorf("%s: got unexpected port: %v", test.name, port)
 				continue
@@ -229,7 +229,7 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 			if kapi.Protocol(proto) != port.Protocol {
 				t.Errorf("%s: got unexpected protocol %s for port %v", test.name, port.Protocol, port)
 			}
-			delete(remaining, port.ContainerPort)
+			delete(remaining, int(port.ContainerPort))
 		}
 		if len(remaining) > 0 {
 			t.Errorf("%s: did not find expected ports: %#v", test.name, remaining)

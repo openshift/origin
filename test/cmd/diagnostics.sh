@@ -5,8 +5,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 os::log::install_errexit
 trap os::test::junit::reconcile_output EXIT
 

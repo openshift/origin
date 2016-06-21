@@ -426,14 +426,14 @@ func checkPortSpecSegment(s string) (port kapi.ContainerPort, ok bool) {
 		if err != nil {
 			return
 		}
-		return kapi.ContainerPort{ContainerPort: container, HostPort: host}, true
+		return kapi.ContainerPort{ContainerPort: int32(container), HostPort: int32(host)}, true
 	}
 
 	container, err := strconv.Atoi(s)
 	if err != nil {
 		return
 	}
-	return kapi.ContainerPort{ContainerPort: container}, true
+	return kapi.ContainerPort{ContainerPort: int32(container)}, true
 }
 
 // LabelsFromSpec turns a set of specs NAME=VALUE or NAME- into a map of labels,

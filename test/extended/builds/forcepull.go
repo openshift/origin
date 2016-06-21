@@ -87,7 +87,7 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		exutil.DumpImage(corruptor)
 
 		// create the image streams and build configs for a test case specific builders
-		setupPath := exutil.FixturePath("fixtures", "forcepull-setup.json")
+		setupPath := exutil.FixturePath("testdata", "forcepull-setup.json")
 		err := exutil.CreateResource(setupPath, oc)
 
 		// kick off the build for the new builder image just for force pull so we can corrupt them without conflicting with
@@ -114,7 +114,7 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 
 		//update the build configs in the json for the app/lang builds to point to the builder images in the internal docker registry
 		// and then create the build config resources
-		pre := exutil.FixturePath("fixtures", "forcepull-test.json")
+		pre := exutil.FixturePath("testdata", "forcepull-test.json")
 		post := exutil.ArtifactPath("forcepull-test.json")
 		varSubDest = authCfg.ServerAddress + "/" + oc.Namespace()
 		err = exutil.VarSubOnFile(pre, post, varSubSrc, varSubDest)

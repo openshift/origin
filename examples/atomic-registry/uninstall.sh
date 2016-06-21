@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMD="chroot /host docker exec -it origin"
+CMD="chroot /host docker exec -i origin"
 
 # let's make sure we're logged in as admin/default
 $CMD oc login -u system:admin

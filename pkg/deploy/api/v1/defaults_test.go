@@ -143,7 +143,10 @@ func TestDefaults(t *testing.T) {
 								{
 									Name: "test",
 									TerminationMessagePath: "/dev/termination-log",
-									ImagePullPolicy:        kapiv1.PullAlways,
+									// The pull policy will be "PullAlways" only when the
+									// image tag is 'latest'. In other case it will be
+									// "PullIfNotPresent".
+									ImagePullPolicy: kapiv1.PullIfNotPresent,
 								},
 							},
 						},
@@ -160,7 +163,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -178,7 +181,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
@@ -200,7 +203,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-25),
+							UpdatePercent:       newInt32(-25),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -218,7 +221,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-25),
+							UpdatePercent:       newInt32(-25),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
@@ -273,7 +276,7 @@ func newInt64(val int64) *int64 {
 	return &val
 }
 
-func newInt(val int) *int {
+func newInt32(val int32) *int32 {
 	return &val
 }
 

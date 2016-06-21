@@ -13,7 +13,7 @@ LABEL name="projectatomic/atomic-registry-quickstart" \
       url="https://projectatomic.io/registry" \
       summary="Quickstart image for Atomic Registry" \
       description="This is a quickstart image to install Atomic Registry on a single host. It is an open source enterprise registry solution based on the Origin project featuring single sign-on (SSO) user experience, a robust web interface and advanced role-based access control (RBAC)." \
-      INSTALL='docker run -it --rm \
+      INSTALL='docker run -i --rm \
                 --privileged --net=host \
                 -v /var/run:/var/run:rw \
                 -v /sys:/sys \
@@ -25,7 +25,7 @@ LABEL name="projectatomic/atomic-registry-quickstart" \
                 -e KUBECONFIG=/etc/origin/master/admin.kubeconfig \
                 --entrypoint /container/bin/install.sh \
                 $IMAGE' \
-      RUN='docker run -it --rm --privileged \
+      RUN='docker run -i --rm --privileged \
                 --net=host \
                 -v /:/host \
                 -v /var/lib/docker:/var/lib/docker:rw \
@@ -34,7 +34,7 @@ LABEL name="projectatomic/atomic-registry-quickstart" \
                 -e KUBECONFIG=/etc/origin/master/admin.kubeconfig \
                 --entrypoint /container/bin/run.sh \
                 $IMAGE' \
-      UNINSTALL='docker run -it --rm --privileged \
+      UNINSTALL='docker run -i --rm --privileged \
                 -v /:/host \
                 --entrypoint /container/bin/uninstall.sh \
                 $IMAGE'

@@ -671,11 +671,11 @@ func TestImageWithMetadata(t *testing.T) {
 				},
 				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
 				DockerImageLayers: []ImageLayer{
-					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
-					{Name: "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd", Size: 188097705},
-					{Name: "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171", Size: 194533},
-					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", Size: 1895},
-					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", LayerSize: 0},
+					{Name: "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd", LayerSize: 188097705},
+					{Name: "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171", LayerSize: 194533},
+					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", LayerSize: 1895},
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", LayerSize: 0},
 				},
 				DockerImageMetadata: DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
@@ -1409,5 +1409,46 @@ func TestPrioritizeTags(t *testing.T) {
 	PrioritizeTags(tags)
 	if !reflect.DeepEqual(tags, []string{"latest", "v6", "5", "5.6", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"}) {
 		t.Errorf("unexpected order: %v", tags)
+	}
+}
+
+func TestTagsChanged(t *testing.T) {
+	tests := map[string]struct {
+		new     []TagEvent
+		old     []TagEvent
+		changed bool
+		deleted bool
+	}{
+		"both empty": {
+			new:     []TagEvent{},
+			old:     []TagEvent{},
+			changed: false,
+			deleted: false,
+		},
+		"new image": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{},
+			changed: true,
+			deleted: false,
+		},
+		"image deleted": {
+			new:     []TagEvent{},
+			old:     []TagEvent{{Image: "oldimage"}},
+			changed: true,
+			deleted: true,
+		},
+		"image changed": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{{Image: "oldImage"}},
+			changed: true,
+			deleted: false,
+		},
+	}
+	for name, test := range tests {
+		changed, deleted := tagsChanged(test.new, test.old)
+		if changed != test.changed || deleted != test.deleted {
+			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
+				name, test.changed, test.deleted, changed, deleted)
+		}
 	}
 }

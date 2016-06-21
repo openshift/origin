@@ -38,6 +38,7 @@ func init() {
 		DeepCopy_api_RoleBindingList,
 		DeepCopy_api_RoleList,
 		DeepCopy_api_SelfSubjectRulesReview,
+		DeepCopy_api_SelfSubjectRulesReviewSpec,
 		DeepCopy_api_SubjectAccessReview,
 		DeepCopy_api_SubjectAccessReviewResponse,
 		DeepCopy_api_SubjectRulesReviewStatus,
@@ -598,8 +599,22 @@ func DeepCopy_api_SelfSubjectRulesReview(in SelfSubjectRulesReview, out *SelfSub
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
+	if err := DeepCopy_api_SelfSubjectRulesReviewSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
 	if err := DeepCopy_api_SubjectRulesReviewStatus(in.Status, &out.Status, c); err != nil {
 		return err
+	}
+	return nil
+}
+
+func DeepCopy_api_SelfSubjectRulesReviewSpec(in SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, c *conversion.Cloner) error {
+	if in.Scopes != nil {
+		in, out := in.Scopes, &out.Scopes
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.Scopes = nil
 	}
 	return nil
 }

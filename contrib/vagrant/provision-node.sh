@@ -5,7 +5,7 @@ source $(dirname $0)/provision-config.sh
 # Provided index is 1-based, array is 0 based
 NODE_NAME=${NODE_NAMES[${NODE_INDEX}-1]}
 
-os::provision::base-provision "${ORIGIN_ROOT}"
+os::provision::base-provision "${OS_ROOT}"
 
 # Waiting for node config to exist before deploying allows vm
 # provisioning to safely execute in parallel.
@@ -21,7 +21,7 @@ os::provision::copy-config "${CONFIG_ROOT}"
 
 # Binaries are expected to have been built by the time node
 # configuration is available.
-os::provision::base-install "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
+os::provision::base-install "${OS_ROOT}" "${DEPLOYED_CONFIG_ROOT}"
 
 echo "Launching openshift daemon"
 os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" "${NODE_NAME}"

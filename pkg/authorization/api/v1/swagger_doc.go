@@ -294,11 +294,21 @@ func (RoleList) SwaggerDoc() map[string]string {
 
 var map_SelfSubjectRulesReview = map[string]string{
 	"":       "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
+	"spec":   "Spec adds information about how to conduct the check",
 	"status": "Status is completed by the server to tell which permissions you have",
 }
 
 func (SelfSubjectRulesReview) SwaggerDoc() map[string]string {
 	return map_SelfSubjectRulesReview
+}
+
+var map_SelfSubjectRulesReviewSpec = map[string]string{
+	"":       "SelfSubjectRulesReviewSpec adds information about how to conduct the check",
+	"scopes": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil means \"use the scopes on this request\".",
+}
+
+func (SelfSubjectRulesReviewSpec) SwaggerDoc() map[string]string {
+	return map_SelfSubjectRulesReviewSpec
 }
 
 var map_SubjectAccessReview = map[string]string{

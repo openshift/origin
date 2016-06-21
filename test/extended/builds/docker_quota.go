@@ -17,7 +17,7 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 	)
 
 	var (
-		buildFixture = exutil.FixturePath("fixtures", "test-docker-build-quota.json")
+		buildFixture = exutil.FixturePath("testdata", "test-docker-build-quota.json")
 		oc           = exutil.NewCLI("docker-build-quota", exutil.KubeConfigPath())
 	)
 
@@ -36,7 +36,7 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			_, err = oc.Run("start-build").Args("docker-build-quota", "--from-dir", exutil.FixturePath("fixtures", "build-quota")).Output()
+			_, err = oc.Run("start-build").Args("docker-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota")).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Failed phase")

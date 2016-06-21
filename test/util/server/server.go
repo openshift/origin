@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"testing"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,15 +40,6 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 // is available for the admission control cache to catch up and allow pod creation
 const PodCreationWaitTimeout = 10 * time.Second
 
-// RequireServer verifies if the etcd and the OpenShift server are
-// available and you can successfully connect to them.
-func RequireServer(t *testing.T) {
-	util.RequireEtcd(t)
-	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
-		os.Exit(1)
-	}
-}
-
 // FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
 // If lowPort is 0, an ephemeral port is allocated.
 func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
@@ -79,7 +69,14 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 
 	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
-	masterArgs.EtcdDir = path.Join(basedir, "etcd")
+
+	// Allows to override the default etcd directory from the shell script.
+	etcdDir := os.Getenv("TEST_ETCD_DIR")
+	if len(etcdDir) == 0 {
+		etcdDir = path.Join(basedir, "etcd")
+	}
+
+	masterArgs.EtcdDir = etcdDir
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()

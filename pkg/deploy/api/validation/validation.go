@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -39,6 +40,9 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
+		originalContainerImageNames := getContainerImageNames(spec.Template)
+		defer setContainerImageNames(spec.Template, originalContainerImageNames)
+		handleEmptyImageReferences(spec.Template, spec.Triggers)
 		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(spec.Template, specPath.Child("template"))...)
 	}
 	if spec.Replicas < 0 {
@@ -48,6 +52,63 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, "selector cannot be empty"))
 	}
 	return allErrs
+}
+
+func getContainerImageNames(template *kapi.PodTemplateSpec) []string {
+	originalContainerImageNames := make([]string, len(template.Spec.Containers))
+	for i := range template.Spec.Containers {
+		originalContainerImageNames[i] = template.Spec.Containers[i].Image
+	}
+	return originalContainerImageNames
+}
+
+func setContainerImageNames(template *kapi.PodTemplateSpec, originalNames []string) {
+	for i := range template.Spec.Containers {
+		template.Spec.Containers[i].Image = originalNames[i]
+	}
+}
+
+func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deployapi.DeploymentTriggerPolicy) {
+	// if we have both an ICT defined and an empty Template->PodSpec->Container->Image field, we are going
+	// to modify this method's local copy (a pointer was NOT used for the parameter) by setting the field to a non-empty value to
+	// work around the k8s validation as our ICT will supply the image field value
+	containerEmptyImageInICT := make(map[string]bool)
+	for _, container := range template.Spec.Containers {
+		if len(container.Image) == 0 {
+			containerEmptyImageInICT[container.Name] = false
+		}
+	}
+
+	if len(containerEmptyImageInICT) == 0 {
+		return
+	}
+
+	needToChangeImageField := false
+	for _, trigger := range triggers {
+		// note, the validateTrigger call above will add an error if ImageChangeParams is nil, but
+		// we can still fall down this path so account for it being nil
+		if trigger.Type != deployapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil {
+			continue
+		}
+
+		for _, container := range trigger.ImageChangeParams.ContainerNames {
+			if _, ok := containerEmptyImageInICT[container]; ok {
+				needToChangeImageField = true
+				containerEmptyImageInICT[container] = true
+			}
+		}
+	}
+
+	if needToChangeImageField {
+		for i, container := range template.Spec.Containers {
+			// only update containers listed in the ict
+			match, ok := containerEmptyImageInICT[container.Name]
+			if match && ok {
+				template.Spec.Containers[i].Image = "unset"
+			}
+		}
+	}
+
 }
 
 func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) field.ErrorList {
@@ -142,7 +203,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	}
 
 	if strategy.Labels != nil {
-		errs = append(errs, validation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
+		errs = append(errs, unversionedvalidation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
 	}
 	if strategy.Annotations != nil {
 		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, fldPath.Child("annotations"))...)

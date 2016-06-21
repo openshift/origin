@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
@@ -26,8 +25,8 @@ const (
 )
 
 var (
-	testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "test", true })
-	noDefaultRegistry   = imagestream.DefaultRegistryFunc(func() (string, bool) { return "", false })
+	testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "test", true })
+	noDefaultRegistry   = api.DefaultRegistryFunc(func() (string, bool) { return "", false })
 )
 
 type fakeSubjectAccessReviewRegistry struct {
@@ -81,7 +80,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
 	)

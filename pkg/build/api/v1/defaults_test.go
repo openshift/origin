@@ -94,7 +94,7 @@ func TestDefaults(t *testing.T) {
 			Ok: func(out runtime.Object) bool {
 				obj := out.(*api.BuildConfig)
 				// conversion drops this trigger because it has no type
-				return len(obj.Spec.Triggers) == 0
+				return (len(obj.Spec.Triggers) == 0) && (obj.Spec.RunPolicy == api.BuildRunPolicySerial)
 			},
 		},
 	}

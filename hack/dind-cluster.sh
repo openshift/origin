@@ -121,7 +121,7 @@ function build-images() {
   # separation of image build from cluster creation.
   if [[ "${BUILD_IMAGES}" = "1" ]]; then
     echo "Building container images"
-    build-image "${ORIGIN_ROOT}/images/dind" "${DIND_IMAGE}"
+    build-image "${OS_ROOT}/images/dind" "${DIND_IMAGE}"
   fi
 }
 
@@ -159,7 +159,7 @@ function start() {
 
   ## Create containers
   echo "Launching containers"
-  local root_volume="-v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
+  local root_volume="-v ${OS_ROOT}:${DEPLOYED_ROOT}"
   local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
   local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
 
@@ -224,7 +224,7 @@ ${DEPLOYED_CONFIG_ROOT}"
 
   local rc_file="dind-${INSTANCE_PREFIX}.rc"
   local admin_config="$(os::provision::get-admin-config ${CONFIG_ROOT})"
-  local bin_path="$(os::build::get-bin-output-path "${ORIGIN_ROOT}")"
+  local bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
   cat >"${rc_file}" <<EOF
 export KUBECONFIG=${admin_config}
 export PATH=\$PATH:${bin_path}
@@ -233,7 +233,7 @@ EOF
   # Disable the sdn node as late as possible to allow time for the
   # node to register itself.
   if [[ "${SDN_NODE}" = "true" ]]; then
-    os::provision::disable-node "${ORIGIN_ROOT}" "${CONFIG_ROOT}" \
+    os::provision::disable-node "${OS_ROOT}" "${CONFIG_ROOT}" \
         "${SDN_NODE_NAME}"
   fi
 
@@ -269,17 +269,15 @@ function stop() {
   # The container will have created configuration as root
   sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
 
-  # Volume cleanup is not compatible with SELinux
-  check-selinux
-
   # Cleanup orphaned volumes
   #
   # See: https://github.com/jpetazzo/dind#important-warning-about-disk-usage
   #
   echo "Cleaning up volumes used by docker-in-docker daemons"
-  ${DOCKER_CMD} run -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes
-
+  local volume_ids=$(${DOCKER_CMD} volume ls -qf dangling=true)
+  if [[ "${volume_ids}" ]]; then
+    ${DOCKER_CMD} volume rm ${volume_ids}
+  fi
 }
 
 # Build and deploy openshift binaries to an existing cluster
@@ -368,7 +366,7 @@ case "${1:-""}" in
     build-images
     ;;
   config-host)
-    os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
+    os::provision::set-os-env "${OS_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|redeploy|wait-for-cluster|build-images|config-host}"

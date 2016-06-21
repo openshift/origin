@@ -14,7 +14,7 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 CONSOLE_REPO_PATH=${CONSOLE_REPO_PATH:-$OS_ROOT/../origin-web-console}
 if [[ ! -d "$CONSOLE_REPO_PATH" ]]; then

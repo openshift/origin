@@ -39,19 +39,25 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 	}
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = images
-	cfg := &registry.RegistryConfig{
-		Name:           "registry",
-		Type:           "docker-registry",
-		ImageTemplate:  imageTemplate,
-		Ports:          "5000",
-		Replicas:       1,
-		Labels:         "docker-registry=default",
-		Volume:         "/registry",
-		ServiceAccount: "registry",
+	opts := &registry.RegistryOptions{
+		Config: &registry.RegistryConfig{
+			Name:           "registry",
+			Type:           "docker-registry",
+			ImageTemplate:  imageTemplate,
+			Ports:          "5000",
+			Replicas:       1,
+			Labels:         "docker-registry=default",
+			Volume:         "/registry",
+			ServiceAccount: "registry",
+		},
 	}
 	cmd := registry.NewCmdRegistry(f, "", "registry", out)
 	output := &bytes.Buffer{}
-	err = registry.RunCmdRegistry(f, cmd, output, cfg, []string{})
+	err = opts.Complete(f, cmd, output, []string{})
+	if err != nil {
+		return errors.NewError("error completing the registry configuration").WithCause(err)
+	}
+	err = opts.RunCmdRegistry()
 	glog.V(4).Infof("Registry command output:\n%s", output.String())
 	if err != nil {
 		return errors.NewError("cannot install registry").WithCause(err).WithDetails(h.OriginLog())
@@ -61,7 +67,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, out io.Writer) error {
-	_, err := kubeClient.Services("default").Get("router")
+	_, err := kubeClient.Services("default").Get(svcRouter)
 	if err == nil {
 		// Router service already exists, nothing to do
 		return nil

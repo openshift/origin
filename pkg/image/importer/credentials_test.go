@@ -6,16 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	docker "github.com/fsouza/go-dockerclient"
-
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestCredentialsForSecrets(t *testing.T) {
-	data, err := ioutil.ReadFile("../../../test/fixtures/image-secrets.json")
+	data, err := ioutil.ReadFile("../../../test/testdata/image-secrets.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +33,7 @@ type mockKeyring struct {
 	calls []string
 }
 
-func (k *mockKeyring) Lookup(image string) ([]docker.AuthConfiguration, bool) {
+func (k *mockKeyring) Lookup(image string) ([]credentialprovider.LazyAuthConfiguration, bool) {
 	k.calls = append(k.calls, image)
 	return nil, false
 }

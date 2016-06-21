@@ -3,6 +3,8 @@ package project
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/golang/glog"
@@ -28,6 +30,26 @@ type Event struct {
 	EventType   EventType
 	ServiceName string
 	Data        map[string]string
+}
+
+// AddEnvironmentLookUp adds mechanism for extracting environment
+// variables, from operating system or .env file
+func AddEnvironmentLookUp(context *Context) error {
+	if context.EnvironmentLookup == nil {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		context.EnvironmentLookup = &ComposableEnvLookup{
+			Lookups: []EnvironmentLookup{
+				&EnvfileLookup{
+					Path: filepath.Join(cwd, ".env"),
+				},
+				&OsEnvLookup{},
+			},
+		}
+	}
+	return nil
 }
 
 // NewProject create a new project with the specified context.

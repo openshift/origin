@@ -7,6 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 
 	gson "encoding/json"
+
 	dockerClient "github.com/fsouza/go-dockerclient"
 	tutil "github.com/openshift/origin/test/util"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -115,7 +116,8 @@ func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfigur
 						authConfs[0].ServerAddress = credKey
 					}
 					g.By(fmt.Sprintf("dockercfg with svrAddr %s user %s pass %s email %s ", authConfs[0].ServerAddress, authConfs[0].Username, authConfs[0].Password, authConfs[0].Email))
-					return &authConfs[0], err
+					c := dockerClient.AuthConfiguration{Username: authConfs[0].Username, ServerAddress: authConfs[0].ServerAddress, Password: authConfs[0].Password}
+					return &c, err
 				}
 			}
 		}

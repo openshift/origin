@@ -2,34 +2,38 @@ package dockerhelper
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/blang/semver"
+	dockerclient "github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types/registry"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
 
 	starterrors "github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/cmd/util/pullprogress"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 const openShiftInsecureCIDR = "172.30.0.0/16"
 
 // Helper provides utility functions to help with Docker
 type Helper struct {
-	client *docker.Client
+	client          *docker.Client
+	engineAPIClient *dockerclient.Client
 }
 
 // NewHelper creates a new Helper
-func NewHelper(client *docker.Client) *Helper {
+func NewHelper(client *docker.Client, engineAPIClient *dockerclient.Client) *Helper {
 	return &Helper{
-		client: client,
+		client:          client,
+		engineAPIClient: engineAPIClient,
 	}
 }
 
@@ -37,29 +41,11 @@ type RegistryConfig struct {
 	InsecureRegistryCIDRs []string
 }
 
-func getRegistryConfig(env *docker.Env) (*RegistryConfig, error) {
-	for _, entry := range *env {
-		if !strings.HasPrefix(entry, "RegistryConfig=") {
-			continue
-		}
-		glog.V(5).Infof("Found RegistryConfig entry: %s", entry)
-		value := strings.TrimPrefix(entry, "RegistryConfig=")
-		config := &RegistryConfig{}
-		err := json.Unmarshal([]byte(value), config)
-		if err != nil {
-			glog.V(2).Infof("Error unmarshalling RegistryConfig: %v", err)
-			return nil, err
-		}
-		glog.V(5).Infof("Unmarshalled registry config to %#v", config)
-		return config, nil
-	}
-	return nil, nil
-}
-
-func hasCIDR(cidr string, listOfCIDRs []string) bool {
+func hasCIDR(cidr string, listOfCIDRs []*registry.NetIPNet) bool {
 	glog.V(5).Infof("Looking for %q in %#v", cidr, listOfCIDRs)
 	for _, candidate := range listOfCIDRs {
-		if candidate == cidr {
+		candidateStr := (*net.IPNet)(candidate).String()
+		if candidateStr == cidr {
 			glog.V(5).Infof("Found %q", cidr)
 			return true
 		}
@@ -72,13 +58,18 @@ func hasCIDR(cidr string, listOfCIDRs []string) bool {
 // the appropriate insecure registry argument
 func (h *Helper) HasInsecureRegistryArg() (bool, error) {
 	glog.V(5).Infof("Retrieving Docker daemon info")
-	env, err := h.client.Info()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if h.engineAPIClient == nil {
+		return false, fmt.Errorf("the Docker engine API client is not initialized")
+	}
+	info, err := h.engineAPIClient.Info(ctx)
+	defer cancel()
 	if err != nil {
 		glog.V(2).Infof("Could not retrieve Docker info: %v", err)
 		return false, err
 	}
-	glog.V(5).Infof("Docker daemon info: %#v", env)
-	registryConfig, err := getRegistryConfig(env)
+	glog.V(5).Infof("Docker daemon info: %#v", info)
+	registryConfig := info.RegistryConfig
 	if err != nil {
 		return false, err
 	}
@@ -120,31 +111,11 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	}
 	glog.V(5).Infof("Image %q not found. Pulling", image)
 	fmt.Fprintf(out, "Pulling image %s\n", image)
-	extracting := false
-	var outputStream io.Writer
-	writeProgress := func(r *pullprogress.ProgressReport) {
-		if extracting {
-			return
-		}
-		if r.Downloading == 0 && r.Waiting == 0 && r.Extracting > 0 {
-			fmt.Fprintf(out, "Extracting\n")
-			extracting = true
-			return
-		}
-		plural := "s"
-		if r.Downloading == 1 {
-			plural = " "
-		}
-		fmt.Fprintf(out, "Downloading %d layer%s (%3.0f%%)", r.Downloading, plural, r.DownloadPct)
-		if r.Waiting > 0 {
-			fmt.Fprintf(out, ", %d waiting\n", r.Waiting)
-		} else {
-			fmt.Fprintf(out, "\n")
-		}
+	logProgress := func(s string) {
+		fmt.Fprintf(out, "%s\n", s)
 	}
-	if !glog.V(5) {
-		outputStream = pullprogress.NewPullProgressWriter(writeProgress)
-	} else {
+	outputStream := imageprogress.NewPullWriter(logProgress)
+	if glog.V(5) {
 		outputStream = out
 	}
 	err = h.client.PullImage(docker.PullImageOptions{
@@ -155,7 +126,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
-	fmt.Fprintf(out, "Image pull comlete\n")
+	fmt.Fprintf(out, "Image pull complete\n")
 	return nil
 }
 
@@ -240,7 +211,9 @@ func (h *Helper) ListContainerNames() ([]string, error) {
 	}
 	names := []string{}
 	for _, c := range containers {
-		names = append(names, c.Names[0])
+		if len(c.Names) > 0 {
+			names = append(names, c.Names[0])
+		}
 	}
 	return names, nil
 }

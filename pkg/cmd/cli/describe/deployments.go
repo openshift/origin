@@ -45,7 +45,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 }
 
 // Describe returns the description of a DeploymentConfig
-func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
+func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	var deploymentConfig *deployapi.DeploymentConfig
 	if d.config != nil {
 		// If a deployment config is already provided use that.
@@ -65,7 +65,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 		if deploymentConfig.Status.LatestVersion == 0 {
 			formatString(out, "Latest Version", "Not deployed")
 		} else {
-			formatString(out, "Latest Version", strconv.Itoa(deploymentConfig.Status.LatestVersion))
+			formatString(out, "Latest Version", strconv.FormatInt(deploymentConfig.Status.LatestVersion, 10))
 		}
 
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)

@@ -6,8 +6,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/blang/semver"
+	dockerclient "github.com/docker/engine-api/client"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -126,6 +128,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
+	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	return cmd
 }
 
@@ -145,8 +148,7 @@ type ClientStartConfig struct {
 	DockerMachine             string
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
-	InstallLogAggregation     bool
-	InstallMetrics            bool
+	ShouldInstallMetrics      bool
 
 	UseNsenterMount bool
 	Out             io.Writer
@@ -168,6 +170,7 @@ type ClientStartConfig struct {
 	ServerLogLevel    int
 
 	dockerClient    *docker.Client
+	engineAPIClient *dockerclient.Client
 	dockerHelper    *dockerhelper.Helper
 	hostHelper      *host.HostHelper
 	openShiftHelper *openshift.Helper
@@ -189,6 +192,8 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.TaskPrinter = NewTaskPrinter(c.Out)
 	c.originalFactory = f
 	c.command = cmd
+
+	c.addTask("Checking OpenShift client", c.CheckOpenShiftClient)
 
 	if c.ShouldCreateDockerMachine {
 		// Create a Docker machine first if flag specified
@@ -243,6 +248,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Install a router
 	c.addTask("Installing router", c.InstallRouter)
 
+	// Install metrics
+	if c.ShouldInstallMetrics {
+		c.addTask("Install Metrics", c.InstallMetrics)
+	}
+
 	// Import default image streams
 	c.addTask("Importing image streams", c.ImportImageStreams)
 
@@ -295,6 +305,47 @@ func (c *ClientStartConfig) CreateDockerMachine(out io.Writer) error {
 	return dockermachine.NewBuilder().Name(c.DockerMachine).Create()
 }
 
+// CheckOpenShiftClient ensures that the client can be configured
+// for the new server
+func (c *ClientStartConfig) CheckOpenShiftClient(out io.Writer) error {
+	kubeConfig := os.Getenv("KUBECONFIG")
+	if len(kubeConfig) == 0 {
+		return nil
+	}
+	var (
+		kubeConfigError error
+		f               *os.File
+	)
+	_, err := os.Stat(kubeConfig)
+	switch {
+	case os.IsNotExist(err):
+		err = os.MkdirAll(filepath.Dir(kubeConfig), 0755)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot make directory: %v", err)
+			break
+		}
+		f, err = os.Create(kubeConfig)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot create file: %v", err)
+			break
+		}
+		f.Close()
+	case err == nil:
+		f, err = os.OpenFile(kubeConfig, os.O_RDWR, 0644)
+		if err != nil {
+			kubeConfigError = fmt.Errorf("cannot open %s for write: %v", kubeConfig, err)
+			break
+		}
+		f.Close()
+	default:
+		kubeConfigError = fmt.Errorf("cannot access %s: %v", kubeConfig, err)
+	}
+	if kubeConfigError != nil {
+		return errors.ErrKubeConfigNotWriteable(kubeConfig, kubeConfigError)
+	}
+	return nil
+}
+
 // GetDockerClient will obtain a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
 func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
@@ -302,7 +353,7 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 
 	if len(c.DockerMachine) > 0 {
 		glog.V(2).Infof("Getting client for Docker machine %q", c.DockerMachine)
-		c.dockerClient, err = getDockerMachineClient(c.DockerMachine, out)
+		c.dockerClient, c.engineAPIClient, err = getDockerMachineClient(c.DockerMachine, out)
 		if err != nil {
 			return errors.ErrNoDockerMachineClient(c.DockerMachine, err)
 		}
@@ -332,7 +383,18 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
 	}
-
+	// FIXME: Workaround for docker engine API client on OS X - sets the default to
+	// the wrong DOCKER_HOST string
+	if runtime.GOOS == "darwin" {
+		dockerHost := os.Getenv("DOCKER_HOST")
+		if len(dockerHost) == 0 {
+			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
+		}
+	}
+	c.engineAPIClient, err = dockerclient.NewEnvClient()
+	if err != nil {
+		return errors.ErrNoDockerClient(err)
+	}
 	if err = c.dockerClient.Ping(); err != nil {
 		return errors.ErrCannotPingDocker(err)
 	}
@@ -471,6 +533,9 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		LogLevel:          c.ServerLogLevel,
 		DNSPort:           c.DNSPort,
 	}
+	if c.ShouldInstallMetrics {
+		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
+	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
 	return err
 }
@@ -518,15 +583,19 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 }
 
 /*
-// TODO: implement these
+// TODO: implement this
 func (c *ClientStartConfig) InstallLogging() error {
 	return nil
 }
-
-func (c *ClientStartConfig) InstallMetrics() error {
-	return nil
-}
 */
+
+func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
+}
 
 // Login logs into the new server and sets up a default user and project
 func (c *ClientStartConfig) Login(out io.Writer) error {
@@ -542,15 +611,21 @@ func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 
 // ServerInfo displays server information after a successful start
 func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
+	metricsInfo := ""
+	if c.ShouldInstallMetrics {
+		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
+			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+	}
 	fmt.Fprintf(out, "OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n"+
+		"    %s\n\n%s"+
 		"You are logged in as:\n"+
 		"    User:     %s\n"+
 		"    Password: %s\n\n"+
 		"To login as administrator:\n"+
 		"    oc login -u system:admin\n\n",
 		c.OpenShiftHelper().Master(c.ServerIP),
+		metricsInfo,
 		initialUser,
 		initialPassword)
 	return nil
@@ -597,7 +672,7 @@ func (c *ClientStartConfig) HostHelper() *host.HostHelper {
 // DockerHelper returns a helper object to work with the Docker client
 func (c *ClientStartConfig) DockerHelper() *dockerhelper.Helper {
 	if c.dockerHelper == nil {
-		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient)
+		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient, c.engineAPIClient)
 	}
 	return c.dockerHelper
 }
@@ -621,12 +696,12 @@ func (c *ClientStartConfig) openShiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
-func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, error) {
+func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *dockerclient.Client, error) {
 	if !dockermachine.IsRunning(machine) {
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
-			return nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
+			return nil, nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
 		}
 		fmt.Fprintf(out, "Started Docker machine '%s'\n", machine)
 	}

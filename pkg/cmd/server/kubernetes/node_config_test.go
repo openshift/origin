@@ -112,11 +112,12 @@ func TestProxyConfig(t *testing.T) {
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in buildKubeProxyConfig(), update this expected default to match the new upstream defaults
-	oomScoreAdj := -999
-	ipTablesMasqueratebit := 14
+	oomScoreAdj := int32(-999)
+	ipTablesMasqueratebit := int32(14)
 	expectedDefaultConfig := &proxyoptions.ProxyServerConfig{
 		KubeProxyConfiguration: componentconfig.KubeProxyConfiguration{
 			BindAddress:        "0.0.0.0",
+			ClusterCIDR:        "",
 			HealthzPort:        10249,         // disabled
 			HealthzBindAddress: "127.0.0.1",   // disabled
 			OOMScoreAdj:        &oomScoreAdj,  // disabled

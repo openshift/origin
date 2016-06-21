@@ -29,8 +29,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer/streaming"
 	"k8s.io/kubernetes/pkg/watch"
-	watchjson "k8s.io/kubernetes/pkg/watch/json"
+	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 func getJSON(version, kind, name string) []byte {
@@ -45,11 +46,6 @@ func getListJSON(version, kind string, items ...[]byte) []byte {
 
 func getObject(version, kind, name string) *runtime.Unstructured {
 	return &runtime.Unstructured{
-		TypeMeta: runtime.TypeMeta{
-			APIVersion: version,
-			Kind:       kind,
-		},
-		Name: name,
 		Object: map[string]interface{}{
 			"apiVersion": version,
 			"kind":       kind,
@@ -88,9 +84,9 @@ func TestList(t *testing.T) {
 				getJSON("vTest", "rTest", "item1"),
 				getJSON("vTest", "rTest", "item2")),
 			want: &runtime.UnstructuredList{
-				TypeMeta: runtime.TypeMeta{
-					APIVersion: "vTest",
-					Kind:       "rTestList",
+				Object: map[string]interface{}{
+					"apiVersion": "vTest",
+					"kind":       "rTestList",
 				},
 				Items: []*runtime.Unstructured{
 					getObject("vTest", "rTest", "item1"),
@@ -106,9 +102,9 @@ func TestList(t *testing.T) {
 				getJSON("vTest", "rTest", "item1"),
 				getJSON("vTest", "rTest", "item2")),
 			want: &runtime.UnstructuredList{
-				TypeMeta: runtime.TypeMeta{
-					APIVersion: "vTest",
-					Kind:       "rTestList",
+				Object: map[string]interface{}{
+					"apiVersion": "vTest",
+					"kind":       "rTestList",
 				},
 				Items: []*runtime.Unstructured{
 					getObject("vTest", "rTest", "item1"),
@@ -454,7 +450,7 @@ func TestWatch(t *testing.T) {
 				t.Errorf("Watch(%q) got path %s. wanted %s", tc.name, r.URL.Path, tc.path)
 			}
 
-			enc := watchjson.NewEncoder(w, dynamicCodec{})
+			enc := versioned.NewEncoder(streaming.NewEncoder(w, dynamicCodec{}), dynamicCodec{})
 			for _, e := range tc.events {
 				enc.Encode(&e)
 			}

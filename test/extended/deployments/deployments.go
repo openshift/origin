@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -23,11 +23,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "deployment-simple.yaml")
-		customDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "custom-deployment.yaml")
-		generationFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment.yaml")
-		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "paused-deployment.yaml")
+		deploymentFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
+		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
+		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -175,14 +175,15 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 				out, err = oc.Run("logs").Args("-f", "dc/deployment-test").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("verifying the deployment is marked complete and scaled to zero")
+				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
 				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
 				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
-
-				g.By("verifying the deployment is marked complete and scaled to zero")
-				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 			}
 		})
 	})
@@ -196,6 +197,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			out, err = oc.Run("logs").Args("-f", "dc/custom-deployment").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
 			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
@@ -204,9 +209,6 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("Halfway"))
 			o.Expect(out).To(o.ContainSubstring("Finished"))
 			o.Expect(out).To(o.ContainSubstring("--> Success"))
-
-			g.By("verifying the deployment is marked complete")
-			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 	})
 
@@ -279,19 +281,19 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
 			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
 
 			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
 
 			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deploymentconfig"))
+			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deployment config"))
 
 			dc, rcs, _, err := deploymentInfo(oc, name)
 			o.Expect(err).NotTo(o.HaveOccurred())

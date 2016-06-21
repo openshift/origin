@@ -2,12 +2,13 @@ package ovs
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"net"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
@@ -362,7 +363,7 @@ func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) erro
 
 	otx := ovs.NewTransaction(BR)
 	for _, port := range service.Spec.Ports {
-		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, port.Port))
+		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()
 		if err != nil {
 			return fmt.Errorf("Error adding OVS flows for service: %v, netid: %d, %v", service, netID, err)
@@ -380,7 +381,7 @@ func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service) error {
 
 	otx := ovs.NewTransaction(BR)
 	for _, port := range service.Spec.Ports {
-		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, port.Port))
+		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()
 		if err != nil {
 			return fmt.Errorf("Error deleting OVS flows for service: %v, %v", service, err)
