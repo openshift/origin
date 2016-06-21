@@ -46,7 +46,7 @@ list-pods: List all/selected pods on given/selected nodes. It can list the outpu
 var schedulable, evacuate, listpods bool
 
 // NewCommandManageNode implements the OpenShift cli manage-node command
-func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, out io.Writer) *cobra.Command {
+func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, out, errout io.Writer) *cobra.Command {
 	opts := &NodeOptions{}
 	schedulableOp := &SchedulableOptions{Options: opts}
 	evacuateOp := NewEvacuateOptions(opts)
@@ -63,7 +63,7 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
-			if err := opts.Complete(f, c, args, out); err != nil {
+			if err := opts.Complete(f, c, args, out, errout); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 
