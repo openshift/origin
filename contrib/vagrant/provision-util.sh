@@ -32,7 +32,7 @@ os::provision::build-etcd() {
   local origin_root=$1
   local skip_build=$2
 
-  if [[ -f "${origin_root}/_tools/etcd/bin/etcd" &&
+  if [[ -f "${origin_root}/_output/tools/etcd/bin/etcd" &&
           "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
   # Etcd is required for integration testing which isn't a use case

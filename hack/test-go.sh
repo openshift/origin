@@ -130,7 +130,6 @@ function list_test_packages_under() {
         \(                                    \
               -path 'Godeps'                  \
               -o -path '*_output'             \
-              -o -path '*_tools'              \
               -o -path '*.git'                \
               -o -path '*openshift.local.*'   \
               -o -path '*Godeps/*'            \

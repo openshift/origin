@@ -5,7 +5,7 @@ go:
   - tip
 
 install:
-  - export PATH=$GOPATH/bin:./_tools/etcd/bin:$PATH
+  - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH
   - make install-travis
 
 script:
