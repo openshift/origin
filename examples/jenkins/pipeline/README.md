@@ -31,7 +31,10 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
 
-5. View/Manage Jenkins
+5. View/Manage Jenkins (optional)
+
+    You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
+    here are the steps to do so:
 
     If you have a router running (`oc cluster up` provides one), run:
 
@@ -42,23 +45,6 @@ jenkins template represented by jenkinstemplate.json by running these commands a
     If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
     The login/password are `admin/password`.
-
-    Change the OpenShift project under which the Jenkins slave pods will be launched:
-
-    * Go to Manage Jenkins -> Configure System
-    * Under the kubernetes plugin in the Cloud section, change the Kubernetes Namespace to `pipelineproject`.
-
-    This is also a good time to approve the Jenkinsfile that will be executed:
-
-    * Go to Manage Jenkins -> In-process Script Approval
-    * Click approve on the waiting approval.
-
-    We're working on removing the need to approve scripts. More information from Jenkins:
-
-	https://wiki.jenkins-ci.org/display/JENKINS/Script+Security+Plugin
-	An administrator may now go to Manage Jenkins » In-process Script Approval where a list of scripts
-	pending approval will be shown. Assuming nothing dangerous-looking is being requested, just click Approve
-	to let the script be run henceforth.
 
 6. Launch a new build
 
