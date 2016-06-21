@@ -573,6 +573,23 @@ func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.Env
 	return false, fmt.Errorf("object does not contain any environment variables")
 }
 
+// ExtractFileContents returns a map of keys to contents, false if the object cannot support such an
+// operation, or an error.
+func (f *Factory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
+	switch t := obj.(type) {
+	case *api.Secret:
+		return t.Data, true, nil
+	case *api.ConfigMap:
+		out := make(map[string][]byte)
+		for k, v := range t.Data {
+			out[k] = []byte(v)
+		}
+		return out, true, nil
+	default:
+		return nil, false, nil
+	}
+}
+
 // UpdatePodSpecForObject update the pod specification for the provided object
 // TODO: move to upstream
 func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {

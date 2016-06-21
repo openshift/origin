@@ -3,56 +3,40 @@
 
 .SH NAME
 .PP
-oc export \- Export resources so they can be used elsewhere
+oc extract \- Extract secrets or config maps to disk
 
 
 .SH SYNOPSIS
 .PP
-\fBoc export\fP [OPTIONS]
+\fBoc extract\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Export resources so they can be used elsewhere
+Extract files out of secrets and config maps
 
 .PP
-The export command makes it easy to take existing objects and convert them to configuration files
-for backups or for creating elsewhere in the cluster. Fields that cannot be specified on create
-will be set to empty, and any field which is assigned on creation (like a service's clusterIP, or
-a deployment config's latestVersion). The status part of objects is also cleared.
+The extract command makes it easy to download the contents of a config map or secret into a directory.
+Each key in the config map or secret is created as a separate file with the name of the key, as it
+is when you mount a secret or config map into a container.
 
 .PP
-Some fields like clusterIP may be useful when exporting an application from one cluster to apply
-to another \- assuming another service on the destination cluster does not already use that IP.
-The \-\-exact flag will instruct export to not clear fields that might be useful. You may also use
-\-\-raw to get the exact values for an object \- useful for converting a file on disk between API
-versions.
-
-.PP
-Another use case for export is to create reusable templates for applications. Pass \-\-as\-template
-to generate the API structure for a template to which you can add parameters and object labels.
+You can limit which keys are extracted with the \-\-only=NAME flag, or set the directory to extract to
+with \-\-to=DIRECTORY.
 
 
 .SH OPTIONS
 .PP
-\fB\-\-all\fP=true
-    DEPRECATED: all is ignored, specifying a resource without a name selects all the instances of that resource
-
-.PP
-\fB\-\-all\-namespaces\fP=false
-    If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
-
-.PP
-\fB\-\-as\-template\fP=""
-    Output a Template object with specified name instead of a List or single object.
-
-.PP
-\fB\-\-exact\fP=false
-    Preserve fields that may be cluster specific, such as service portalIPs or generated names
+\fB\-\-confirm\fP=false
+    Overwrite files that already exist.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file for the resource to export.
+    Filename, directory, or URL to file to identify to extract the resource.
+
+.PP
+\fB\-\-keys\fP=[]
+    An optional list of keys to extract (default is all keys).
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -67,14 +51,6 @@ to generate the API structure for a template to which you can add parameters and
 .PP
 \fB\-\-output\-version\fP=""
     Output the formatted object with the given group version (for ex: 'extensions/v1beta1').
-
-.PP
-\fB\-\-raw\fP=false
-    If true, do not alter the resources in any way after they are loaded.
-
-.PP
-\fB\-l\fP, \fB\-\-selector\fP=""
-    Selector (label query) to filter on
 
 .PP
 \fB\-a\fP, \fB\-\-show\-all\fP=true
@@ -92,6 +68,10 @@ to generate the API structure for a template to which you can add parameters and
 \fB\-\-template\fP=""
     Template string or path to template file to use when \-o=go\-template, \-o=go\-template\-file. The template format is golang templates [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]].
+
+.PP
+\fB\-\-to\fP=""
+    Directory to extract files to.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -165,14 +145,14 @@ to generate the API structure for a template to which you can add parameters and
 .RS
 
 .nf
-  # export the services and deployment configurations labeled name=test
-  oc export svc,dc \-l name=test
+  # extract the secret "test" to the current directory
+  oc extract secret/test
 
-  # export all services to a template
-  oc export service \-\-as\-template=test
+  # extract the config map "nginx" to the /tmp directory
+  oc extract configmap/nginx \-\-to=/tmp
 
-  # export to JSON
-  oc export service \-o json
+  # extract only the key "nginx.conf" from config map "nginx" to the /tmp directory
+  oc extract configmap/nginx \-\-to=/tmp \-\-keys=nginx.conf
 
 .fi
 .RE

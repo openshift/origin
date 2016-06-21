@@ -201,6 +201,7 @@ openshift-cli-exec.1
 openshift-cli-explain.1
 openshift-cli-export.1
 openshift-cli-expose.1
+openshift-cli-extract.1
 openshift-cli-get.1
 openshift-cli-import-app.json.1
 openshift-cli-import-docker-compose.1
