@@ -1,12 +1,14 @@
 package clientcmd
 
 import (
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -14,15 +16,96 @@ import (
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
+type fakeLimiter struct {
+	FakeSaturation float64
+}
+
+func (t *fakeLimiter) TryAccept() bool {
+	return true
+}
+
+func (t *fakeLimiter) Saturation() float64 {
+	return t.FakeSaturation
+}
+
+func (t *fakeLimiter) Stop() {}
+
+func (t *fakeLimiter) Accept() {}
+
+type fakeCodec struct{}
+
+func (c *fakeCodec) Decode([]byte, *unversioned.GroupVersionKind, runtime.Object) (runtime.Object, *unversioned.GroupVersionKind, error) {
+	return nil, nil, nil
+}
+
+func (c *fakeCodec) EncodeToStream(obj runtime.Object, stream io.Writer, overrides ...unversioned.GroupVersion) error {
+	return nil
+}
+
+type fakeRoundTripper struct{}
+
+func (r *fakeRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, nil
+}
+
+var fakeWrapperFunc = func(http.RoundTripper) http.RoundTripper {
+	return &fakeRoundTripper{}
+}
+
+type fakeNegotiatedSerializer struct{}
+
+func (n *fakeNegotiatedSerializer) SupportedMediaTypes() []string {
+	return []string{}
+}
+
+func (n *fakeNegotiatedSerializer) SerializerForMediaType(mediaType string, params map[string]string) (s runtime.SerializerInfo, ok bool) {
+	return runtime.SerializerInfo{}, true
+}
+
+func (n *fakeNegotiatedSerializer) SupportedStreamingMediaTypes() []string {
+	return []string{}
+}
+
+func (n *fakeNegotiatedSerializer) StreamingSerializerForMediaType(mediaType string, params map[string]string) (s runtime.StreamSerializerInfo, ok bool) {
+	return runtime.StreamSerializerInfo{}, true
+}
+
+func (n *fakeNegotiatedSerializer) EncoderForVersion(serializer runtime.Encoder, gv unversioned.GroupVersion) runtime.Encoder {
+	return &fakeCodec{}
+}
+
+func (n *fakeNegotiatedSerializer) DecoderToVersion(serializer runtime.Decoder, gv unversioned.GroupVersion) runtime.Decoder {
+	return &fakeCodec{}
+}
+
 func TestAnonymousConfig(t *testing.T) {
 	f := fuzz.New().NilChance(0.0).NumElements(1, 1)
 	f.Funcs(
-		func(r *runtime.Codec, f fuzz.Continue) {},
-		func(r *http.RoundTripper, f fuzz.Continue) {},
-		func(fn *func(http.RoundTripper) http.RoundTripper, f fuzz.Continue) {},
+		func(r *runtime.Codec, f fuzz.Continue) {
+			codec := &fakeCodec{}
+			f.Fuzz(codec)
+			*r = codec
+		},
+		func(r *http.RoundTripper, f fuzz.Continue) {
+			roundTripper := &fakeRoundTripper{}
+			f.Fuzz(roundTripper)
+			*r = roundTripper
+		},
+		func(fn *func(http.RoundTripper) http.RoundTripper, f fuzz.Continue) {
+			*fn = fakeWrapperFunc
+		},
+		func(r *runtime.NegotiatedSerializer, f fuzz.Continue) {
+			serializer := &fakeNegotiatedSerializer{}
+			f.Fuzz(serializer)
+			*r = serializer
+		},
+		func(r *flowcontrol.RateLimiter, f fuzz.Continue) {
+			limiter := &fakeLimiter{}
+			f.Fuzz(limiter)
+			*r = limiter
+		},
+		// Authentication does not require fuzzer
 		func(r *restclient.AuthProviderConfigPersister, f fuzz.Continue) {},
-		func(r *runtime.NegotiatedSerializer, f fuzz.Continue) {},
-		func(r *flowcontrol.RateLimiter, f fuzz.Continue) {},
 		func(r *api.AuthProviderConfig, f fuzz.Continue) {
 			r.Config = map[string]string{}
 		},
@@ -45,6 +128,15 @@ func TestAnonymousConfig(t *testing.T) {
 		expected.TLSClientConfig.CertFile = ""
 		expected.TLSClientConfig.KeyData = nil
 		expected.TLSClientConfig.KeyFile = ""
+
+		// The DeepEqual cannot handle the func comparison, so we just verify if the
+		// function return the expected object.
+		if actual.WrapTransport == nil || !reflect.DeepEqual(expected.WrapTransport(nil), &fakeRoundTripper{}) {
+			t.Fatalf("AnonymousClientConfig dropped the WrapTransport field")
+		} else {
+			actual.WrapTransport = nil
+			expected.WrapTransport = nil
+		}
 
 		if !reflect.DeepEqual(actual, expected) {
 			t.Fatalf("AnonymousClientConfig dropped unexpected fields, identify whether they are security related or not: %s", diff.ObjectGoPrintDiff(expected, actual))
