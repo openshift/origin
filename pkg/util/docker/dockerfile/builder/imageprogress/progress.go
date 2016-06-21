@@ -1,9 +1,14 @@
 package imageprogress
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"regexp"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,6 +22,7 @@ type progressLine struct {
 	ID     string          `json:"id"`
 	Status string          `json:"status"`
 	Detail *progressDetail `json:"progressDetail"`
+	Error  string          `json:"error"`
 }
 
 // progressDetail is the progressDetail structure in a Docker pull progress line
@@ -94,33 +100,47 @@ func (r report) totalCount() int {
 	return cnt
 }
 
+// String is used for test output
+func (r report) String() string {
+	result := &bytes.Buffer{}
+	fmt.Fprintf(result, "{")
+	for k := range r {
+		var status string
+		switch k {
+		case statusPending:
+			status = "pending"
+		case statusDownloading:
+			status = "downloading"
+		case statusExtracting:
+			status = "extracting"
+		case statusComplete:
+			status = "complete"
+		}
+		fmt.Fprintf(result, "%s:{Count: %d, Current: %d, Total: %d}, ", status, r[k].Count, r[k].Current, r[k].Total)
+	}
+	fmt.Fprintf(result, "}")
+	return result.String()
+}
+
 // newWriter creates a writer that periodically reports
 // on pull/push progress of a Docker image. It only reports when the state of the
 // different layers has changed and uses time thresholds to limit the
 // rate of the reports.
 func newWriter(reportFn func(report), layersChangedFn func(report, report) bool) io.Writer {
-	pipeIn, pipeOut := io.Pipe()
 	writer := &imageProgressWriter{
-		Writer:                 pipeOut,
-		decoder:                json.NewDecoder(pipeIn),
+		mutex:                  &sync.Mutex{},
 		layerStatus:            map[string]progressLine{},
 		reportFn:               reportFn,
 		layersChangedFn:        layersChangedFn,
 		progressTimeThreshhold: defaultProgressTimeThreshhold,
 		stableThreshhold:       defaultStableThreshhold,
 	}
-	go func() {
-		err := writer.readProgress()
-		if err != nil {
-			pipeIn.CloseWithError(err)
-		}
-	}()
 	return writer
 }
 
 type imageProgressWriter struct {
-	io.Writer
-	decoder                *json.Decoder
+	mutex                  *sync.Mutex
+	internalWriter         io.Writer
 	layerStatus            map[string]progressLine
 	lastLayerCount         int
 	stableLines            int
@@ -132,10 +152,32 @@ type imageProgressWriter struct {
 	layersChangedFn        func(report, report) bool
 }
 
-func (w *imageProgressWriter) readProgress() error {
+func (w *imageProgressWriter) ReadFrom(reader io.Reader) (int64, error) {
+	decoder := json.NewDecoder(reader)
+	return 0, w.readProgress(decoder)
+}
+
+func (w *imageProgressWriter) Write(data []byte) (int, error) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	if w.internalWriter == nil {
+		var pipeIn *io.PipeReader
+		pipeIn, w.internalWriter = io.Pipe()
+		decoder := json.NewDecoder(pipeIn)
+		go func() {
+			err := w.readProgress(decoder)
+			if err != nil {
+				pipeIn.CloseWithError(err)
+			}
+		}()
+	}
+	return w.internalWriter.Write(data)
+}
+
+func (w *imageProgressWriter) readProgress(decoder *json.Decoder) error {
 	for {
 		line := &progressLine{}
-		err := w.decoder.Decode(line)
+		err := decoder.Decode(line)
 		if err == io.EOF {
 			break
 		}
@@ -151,6 +193,11 @@ func (w *imageProgressWriter) readProgress() error {
 }
 
 func (w *imageProgressWriter) processLine(line *progressLine) error {
+
+	if err := getError(line); err != nil {
+		return err
+	}
+
 	// determine if it's a line we want to process
 	if !islayerStatus(line) {
 		return nil
@@ -212,7 +259,18 @@ func islayerStatus(line *progressLine) bool {
 	if !layerIDRegexp.MatchString(line.ID) {
 		return false
 	}
+	// ignore retrying status
+	if strings.HasPrefix(line.Status, "Retrying") {
+		return false
+	}
 	return true
+}
+
+func getError(line *progressLine) error {
+	if len(line.Error) > 0 {
+		return errors.New(line.Error)
+	}
+	return nil
 }
 
 func createReport(dockerProgress map[string]progressLine) report {
