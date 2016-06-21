@@ -248,7 +248,7 @@ func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir st
 					result = append(result, *r)
 					installed = true
 					detected = true
-					glog.Infof("Using %q installed from %q", script, r.URL)
+					glog.V(4).Infof("Using %q installed from %q", script, r.URL)
 				}
 			}
 			if detected {

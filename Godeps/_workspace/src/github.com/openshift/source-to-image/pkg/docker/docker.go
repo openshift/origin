@@ -30,7 +30,7 @@ const (
 	LocationEnvironment = "STI_LOCATION"
 
 	// ScriptsURLLabel is the name of the Docker image LABEL that tells S2I where
-	// to look for the S2I scripts. This label is also copied into the ouput
+	// to look for the S2I scripts. This label is also copied into the output
 	// image.
 	// The previous name of this label was 'io.s2i.scripts-url'. This is now
 	// deprecated.
@@ -347,16 +347,30 @@ func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 // and returns the image metadata
 func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 	name = getImageName(name)
+	displayName := name
+
+	if !glog.Is(3) {
+		// For less verbose log levels (less than 3), shorten long iamge names like:
+		//     "centos/php-56-centos7@sha256:51c3e2b08bd9fadefccd6ec42288680d6d7f861bdbfbd2d8d24960621e4e27f5"
+		// to include just enough characters to differentiate the build from others in the docker repository:
+		//     "centos/php-56-centos7@sha256:51c3e2b08bd..."
+		// 18 characters is somewhat arbitrary, but should be enough to avoid a name collision.
+		split := strings.Split(name, "@")
+		if len(split) > 1 && len(split[1]) > 18 {
+			displayName = split[0] + "@" + split[1][:18] + "..."
+		}
+	}
+
 	image, err := d.CheckImage(name)
 	if err != nil && err.(errors.Error).Details != docker.ErrNoSuchImage {
 		return nil, err
 	}
 	if image == nil {
-		glog.V(0).Infof("Image %q not available locally, pulling ...", name)
+		glog.V(1).Infof("Image %q not available locally, pulling ...", displayName)
 		return d.PullImage(name)
 	}
 
-	glog.V(1).Infof("Using locally available image %q", name)
+	glog.V(1).Infof("Using locally available image %q", displayName)
 	return image, nil
 }
 
@@ -445,7 +459,7 @@ func getVariable(image *docker.Image, name string) string {
 	return ""
 }
 
-// GetScriptsURL finds a scripts-url label in the given image's metadata
+// GetScriptsURL finds a scripts-url label on the given image.
 func (d *stiDocker) GetScriptsURL(image string) (string, error) {
 	imageMetadata, err := d.CheckAndPullImage(image)
 	if err != nil {
@@ -463,20 +477,21 @@ func getScriptsURL(image *docker.Image) string {
 	if len(scriptsURL) == 0 {
 		scriptsURL = getLabel(image, "io.s2i.scripts-url")
 		if len(scriptsURL) > 0 {
-			glog.V(0).Infof("warning: The 'io.s2i.scripts-url' label is deprecated. Use %q instead.", ScriptsURLLabel)
+			glog.V(0).Infof("warning: Image %s uses deprecated label 'io.s2i.scripts-url', please migrate it to %s instead!",
+				image.ID, ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
 		scriptsURL = getVariable(image, ScriptsURLEnvironment)
 		if len(scriptsURL) != 0 {
-			glog.V(0).Infof("warning: BuilderImage uses deprecated environment variable %s, please migrate it to %s label instead!",
-				ScriptsURLEnvironment, ScriptsURLLabel)
+			glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
+				image.ID, ScriptsURLEnvironment, ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
-		glog.V(0).Infof("warning: Image does not contain a value for the %s label", ScriptsURLLabel)
+		glog.V(0).Infof("warning: Image %s does not contain a value for the %s label", image.ID, ScriptsURLLabel)
 	} else {
-		glog.V(2).Infof("Image contains %s set to '%s'", ScriptsURLLabel, scriptsURL)
+		glog.V(2).Infof("Image %s contains %s set to %q", image.ID, ScriptsURLLabel, scriptsURL)
 	}
 
 	return scriptsURL
@@ -489,12 +504,13 @@ func getDestination(image *docker.Image) string {
 	}
 	// For backward compatibility, support the old label schema
 	if val := getLabel(image, "io.s2i.destination"); len(val) != 0 {
-		glog.V(0).Infof("warning: The 'io.s2i.destination' label is deprecated. Use %q instead.", DestinationLabel)
+		glog.V(0).Infof("warning: Image %s uses deprecated label 'io.s2i.destination', please migrate it to %s instead!",
+			image.ID, DestinationLabel)
 		return val
 	}
 	if val := getVariable(image, LocationEnvironment); len(val) != 0 {
-		glog.V(0).Infof("warning: BuilderImage uses deprecated environment variable %s, please migrate it to %s label instead!",
-			LocationEnvironment, DestinationLabel)
+		glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
+			image.ID, LocationEnvironment, DestinationLabel)
 		return val
 	}
 

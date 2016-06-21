@@ -203,7 +203,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 		}
 	}
 
-	// fetch sources, for their .sti/bin might contain sti scripts
+	// fetch sources, for their .s2i/bin might contain s2i scripts
 	if len(config.Source) > 0 {
 		if builder.sourceInfo, err = builder.source.Download(config); err != nil {
 			return err

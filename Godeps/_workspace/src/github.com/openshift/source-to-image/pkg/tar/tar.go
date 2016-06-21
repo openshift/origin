@@ -91,17 +91,21 @@ func (t *stiTar) SetExclusionPattern(p *regexp.Regexp) {
 	t.exclude = p
 }
 
-// StreamFileAsTar streams the source file as a tar archive.
+// StreamDirAsTar streams the source directory as a tar archive.
 // The permissions of the file is changed to 0666.
 func (t *stiTar) StreamDirAsTar(source, dest string, writer io.Writer) error {
 	f, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	if info, _ := f.Stat(); !info.IsDir() {
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
 		return fmt.Errorf("the source %q has to be directory, not a file", source)
 	}
-	defer f.Close()
 	fs := util.NewFileSystem()
 	tmpDir, err := ioutil.TempDir("", "s2i-")
 	if err != nil {
@@ -136,10 +140,14 @@ func (t *stiTar) StreamFileAsTar(source, name string, writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if info, _ := f.Stat(); info.IsDir() {
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
 		return fmt.Errorf("the source %q has to be regular file, not directory", source)
 	}
-	defer f.Close()
 	fs := util.NewFileSystem()
 	tmpDir, err := ioutil.TempDir("", "s2i-")
 	if err != nil {
