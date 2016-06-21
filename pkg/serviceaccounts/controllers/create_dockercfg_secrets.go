@@ -356,6 +356,14 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 
 	// Save the secret
 	createdSecret, err := e.client.Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
+	if err != nil {
+		// Clean up the generated token secret if we're not going to use it
+		glog.V(2).Infof("deleting unused token secret %s/%s, error creating dockercfgSecret: %v", tokenSecret.Namespace, tokenSecret.Name, err)
+		if deleteErr := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (deleteErr != nil) && !kapierrors.IsNotFound(deleteErr) {
+			utilruntime.HandleError(deleteErr)
+		}
+		return nil, err
+	}
 
 	return createdSecret, err
 }
