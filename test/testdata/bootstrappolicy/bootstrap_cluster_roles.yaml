@@ -1160,6 +1160,7 @@ items:
     - /osapi
     - /osapi/
     - /version
+    - /version/*
     resources: []
     verbs:
     - get
@@ -1705,6 +1706,7 @@ items:
     - /osapi
     - /osapi/
     - /version
+    - /version/*
     resources: []
     verbs:
     - get

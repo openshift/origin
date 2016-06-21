@@ -43,7 +43,7 @@ var DiscoveryRule = PolicyRule{
 	Verbs: sets.NewString("get"),
 	NonResourceURLs: sets.NewString(
 		// Server version checking
-		"/version",
+		"/version", "/version/*",
 
 		// API discovery/negotiation
 		"/api", "/api/*",
