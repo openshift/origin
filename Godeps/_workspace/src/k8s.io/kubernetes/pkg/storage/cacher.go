@@ -130,6 +130,10 @@ func NewCacher(
 		ResourcePrefix: resourcePrefix,
 		NewListFunc:    newListFunc,
 	}
+
+	if config.CacheCapacity == -1 {
+		config.CacheCapacity = 0
+	}
 	if scopeStrategy.NamespaceScoped() {
 		config.KeyFunc = func(obj runtime.Object) (string, error) {
 			return NamespaceKeyFunc(resourcePrefix, obj)
