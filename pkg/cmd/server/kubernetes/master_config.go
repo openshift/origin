@@ -47,6 +47,8 @@ import (
 	"github.com/openshift/origin/pkg/controller"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 )
 
 // AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
@@ -253,7 +255,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		CAFile:     options.EtcdClientInfo.CA,
 		DeserializationCacheSize: genericapiserver.DefaultDeserializationCacheSize,
 	}
-	storageFactory := genericapiserver.NewDefaultStorageFactory(etcdConfig, "", kapi.Codecs, resourceEncodingConfig, master.DefaultAPIResourceConfigSource())
+	enabledStorage := master.DefaultAPIResourceConfigSource()
+	enabledStorage.EnableVersions(quotaapiv1.SchemeGroupVersion)
+	storageFactory := genericapiserver.NewDefaultStorageFactory(etcdConfig, "", kapi.Codecs, resourceEncodingConfig, enabledStorage)
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
@@ -318,6 +322,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		EnableCoreControllers: true,
 
 		DeleteCollectionWorkers: server.DeleteCollectionWorkers,
+
+		RESTStorageProviders: map[string]master.RESTStorageProvider{},
 	}
 
 	if server.EnableWatchCache {
@@ -373,6 +379,8 @@ func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIRe
 			resourceConfig.DisableVersions(gv)
 		}
 	}
+
+	resourceConfig.EnableVersions(quotaapiv1.SchemeGroupVersion)
 
 	return resourceConfig
 }
