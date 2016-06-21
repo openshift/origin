@@ -2276,6 +2276,13 @@ items:
     - get
     - list
     - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - endpoints/restricted
+    verbs:
+    - create
 - apiVersion: v1
   kind: ClusterRole
   metadata:

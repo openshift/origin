@@ -53,7 +53,7 @@ func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 
 	admit, reject := []*net.IPNet{}, []*net.IPNet{}
 	if cidrs := masterConfig.NetworkConfig.ExternalIPNetworkCIDRs; cidrs != nil {
-		reject, admit, err = admission.ParseCIDRRules(cidrs)
+		reject, admit, err = admission.ParseRejectAdmitCIDRRules(cidrs)
 		if err != nil {
 			r.Error("DH2007", err, fmt.Sprintf("Could not parse master config NetworkConfig.ExternalIPNetworkCIDRs: (%[1]T) %[1]v", err))
 			return r

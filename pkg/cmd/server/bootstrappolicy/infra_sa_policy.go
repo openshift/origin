@@ -676,6 +676,12 @@ func init() {
 					Verbs:     sets.NewString("get", "list", "create", "update", "delete"),
 					Resources: sets.NewString("endpoints"),
 				},
+				// Permission for RestrictedEndpointsAdmission
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("endpoints/restricted"),
+				},
 			},
 		},
 	)

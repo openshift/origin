@@ -307,6 +307,7 @@ var (
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
+		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -335,6 +336,7 @@ var (
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
+		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -451,12 +453,21 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
-			reject, admit, err := serviceadmit.ParseCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
+			reject, admit, err := serviceadmit.ParseRejectAdmitCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err
 			}
 			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
+
+		case serviceadmit.RestrictedEndpointsPluginName:
+			// we need to set some customer parameters, so create by hand
+			restrictedNetworks, err := serviceadmit.ParseSimpleCIDRRules([]string{options.NetworkConfig.ClusterNetworkCIDR, options.NetworkConfig.ServiceNetworkCIDR})
+			if err != nil {
+				// should have been caught with validation
+				return nil, err
+			}
+			plugins = append(plugins, serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks))
 
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
