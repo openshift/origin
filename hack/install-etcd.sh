@@ -30,11 +30,17 @@ else
   pushd etcd >/dev/null
 fi
 
+# setup a private GOPATH so the build can succeed
+export GOPATH="${PWD}/gopath"
+rm -f "${GOPATH}/src/github.com/coreos/etcd"
+mkdir -p "${GOPATH}/src/github.com/coreos"
+ln -s "${PWD}" "${GOPATH}/src/github.com/coreos/etcd"
+
 ./build
 
 echo
 echo Installed coreos/etcd ${etcd_version} into:
-echo export PATH=$(pwd):\$PATH
+echo export PATH=${PWD}/bin:\$PATH
 
 popd >/dev/null
 exit 0
