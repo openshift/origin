@@ -1250,6 +1250,9 @@ View, start, cancel, or retry a deployment
   # Start a new deployment based on the 'database'
   oc deploy database --latest
 
+  # Start a new deployment and follow its log
+  oc deploy database --latest --follow
+
   # Retry the latest failed deployment based on 'frontend'
   # The deployer pod and any hook pods are deleted for the latest failed deployment
   oc deploy frontend --retry
