@@ -390,7 +390,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	activeDeployment, inactiveDeployments := deployedges.RelevantDeployments(g, dcNode)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(f, dcNode, activeDeployment, inactiveDeployments, d.count)
+		descriptions := describeDeployments(f, dcNode, activeDeployment, inactiveDeployments, int32(0), d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}
