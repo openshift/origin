@@ -92,10 +92,10 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	return cmd
 }
 
-func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error {
-	for key := range labels {
-		if value, found := meta.Labels[key]; found {
-			return fmt.Errorf("'%s' already has a value (%s), and --overwrite is false", key, value)
+func validateNoOverwrites(existing []kapi.EnvVar, env []kapi.EnvVar) error {
+	for _, e := range env {
+		if current, exists := findEnv(existing, e.Name); exists && current.Value != e.Value {
+			return fmt.Errorf("'%s' already has a value (%s), and --overwrite is false", current.Name, current.Value)
 		}
 	}
 	return nil
@@ -116,7 +116,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	list := kcmdutil.GetFlagBool(cmd, "list")
 	selector := kcmdutil.GetFlagString(cmd, "selector")
 	all := kcmdutil.GetFlagBool(cmd, "all")
-	//overwrite := kcmdutil.GetFlagBool(cmd, "overwrite")
+	overwrite := kcmdutil.GetFlagBool(cmd, "overwrite")
 	resourceVersion := kcmdutil.GetFlagString(cmd, "resource-version")
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 
@@ -177,6 +177,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	skipped := 0
+	errored := 0
 	for _, info := range infos {
 		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, containerMatch)
@@ -185,6 +186,13 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 				return nil
 			}
 			for _, c := range containers {
+				if !overwrite {
+					if err := validateNoOverwrites(c.Env, env); err != nil {
+						errored++
+						return err
+					}
+				}
+
 				c.Env = updateEnv(c.Env, env, remove)
 
 				if list {
@@ -207,6 +215,12 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 				if vars == nil {
 					return fmt.Errorf("no environment variables provided")
 				}
+				if !overwrite {
+					if err := validateNoOverwrites(*vars, env); err != nil {
+						errored++
+						return err
+					}
+				}
 				*vars = updateEnv(*vars, env, remove)
 				if list {
 					fmt.Fprintf(out, "# %s %s\n", info.Mapping.Resource, info.Name)
@@ -228,6 +242,9 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 	if one && skipped == len(infos) {
 		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+	}
+	if errored == len(infos) {
+		return fmt.Errorf("no environment variable has been set")
 	}
 
 	if list {
