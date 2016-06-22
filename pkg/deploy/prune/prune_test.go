@@ -12,17 +12,19 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-type mockPruneRecorder struct {
+type mockDeleteRecorder struct {
 	set sets.String
 	err error
 }
 
-func (m *mockPruneRecorder) Handler(deployment *kapi.ReplicationController) error {
+var _ DeploymentDeleter = &mockDeleteRecorder{}
+
+func (m *mockDeleteRecorder) DeleteDeployment(deployment *kapi.ReplicationController) error {
 	m.set.Insert(deployment.Name)
 	return m.err
 }
 
-func (m *mockPruneRecorder) Verify(t *testing.T, expected sets.String) {
+func (m *mockDeleteRecorder) Verify(t *testing.T, expected sets.String) {
 	if len(m.set) != len(expected) || !m.set.HasAll(expected.List()...) {
 		expectedValues := expected.List()
 		actualValues := m.set.List()
@@ -87,14 +89,25 @@ func TestPruneTask(t *testing.T) {
 				}
 			}
 			expectedDeployments, err := resolver.Resolve()
+			if err != nil {
+				t.Errorf("Unexpected error %v", err)
+			}
 			for _, item := range expectedDeployments {
 				expectedValues.Insert(item.Name)
 			}
 
-			recorder := &mockPruneRecorder{set: sets.String{}}
-			task := NewPruneTasker(deploymentConfigs, deployments, keepYoungerThan, orphans, keepComplete, keepFailed, recorder.Handler)
-			err = task.PruneTask()
-			if err != nil {
+			recorder := &mockDeleteRecorder{set: sets.String{}}
+
+			options := PrunerOptions{
+				KeepYoungerThan:   keepYoungerThan,
+				Orphans:           orphans,
+				KeepComplete:      keepComplete,
+				KeepFailed:        keepFailed,
+				DeploymentConfigs: deploymentConfigs,
+				Deployments:       deployments,
+			}
+			pruner := NewPruner(options)
+			if err := pruner.Prune(recorder); err != nil {
 				t.Errorf("Unexpected error %v", err)
 			}
 			recorder.Verify(t, expectedValues)
