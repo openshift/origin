@@ -20,7 +20,7 @@ if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
 fi
 
 source "${OS_ROOT}/hack/lib/init.sh"
-os::log::install_errexit
+os::log::stacktrace::install
 
 ensure_iptables_or_die
 

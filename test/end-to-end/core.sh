@@ -9,7 +9,7 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/lib/init.sh"
-os::log::install_errexit
+os::log::stacktrace::install
 os::util::environment::setup_time_vars
 trap os::test::junit::reconcile_output EXIT
 
