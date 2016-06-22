@@ -66,22 +66,6 @@ func TestValidationRegistration(t *testing.T) {
 	}
 }
 
-// TestAllOpenShiftResourceCoverage checks to make sure that the openshift all group actually contains all openshift resources
-func TestAllOpenShiftResourceCoverage(t *testing.T) {
-	allOpenshift := authorizationapi.NormalizeResources(sets.NewString(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
-
-	config := fakeMasterConfig()
-
-	storageMap := config.GetRestStorage()
-	for key := range storageMap {
-		if allOpenshift.Has(strings.ToLower(key)) {
-			continue
-		}
-
-		t.Errorf("authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName] is missing %v.  Check pkg/authorization/api/types.go.", strings.ToLower(key))
-	}
-}
-
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
 	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)

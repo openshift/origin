@@ -46,74 +46,43 @@ items:
     attributeRestrictions: null
     resources:
     - bindings
-    - buildconfigs
-    - buildconfigs/instantiate
-    - buildconfigs/instantiatebinary
-    - buildconfigs/webhooks
-    - buildlogs
-    - builds
-    - builds/clone
-    - builds/details
-    - builds/log
-    - clusternetworks
-    - clusterpolicies
-    - clusterpolicybindings
-    - clusterrolebindings
-    - clusterroles
+    - componentstatuses
     - configmaps
-    - deploymentconfigrollbacks
-    - deploymentconfigs
-    - deploymentconfigs/log
-    - deploymentconfigs/scale
-    - deploymentconfigs/status
     - endpoints
     - events
-    - generatedeploymentconfigs
-    - groups
-    - hostsubnets
-    - identities
-    - images
-    - imagestreamimages
-    - imagestreamimports
-    - imagestreammappings
-    - imagestreams
-    - imagestreams/status
-    - imagestreamtags
     - limitranges
-    - localresourceaccessreviews
-    - localsubjectaccessreviews
-    - minions
     - namespaces
-    - netnamespaces
+    - namespaces/status
     - nodes
-    - oauthclientauthorizations
-    - oauthclients
+    - nodes/status
     - persistentvolumeclaims
+    - persistentvolumeclaims/status
     - persistentvolumes
+    - persistentvolumes/status
     - pods
+    - pods/binding
     - pods/log
-    - policies
-    - policybindings
-    - processedtemplates
-    - projectrequests
-    - projects
+    - pods/status
+    - podtemplates
     - replicationcontrollers
-    - resourceaccessreviews
+    - replicationcontrollers/scale
+    - replicationcontrollers/status
     - resourcequotas
-    - resourcequotausages
-    - rolebindings
-    - roles
-    - routes
-    - routes/status
+    - resourcequotas/status
     - securitycontextconstraints
-    - selfsubjectrulesreviews
     - serviceaccounts
     - services
-    - subjectaccessreviews
-    - templateconfigs
-    - templates
-    - useridentitymappings
-    - users
+    - services/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
+    - petsets/status
     verbs:
     - get
     - list
@@ -123,6 +92,7 @@ items:
     attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
+    - horizontalpodautoscalers/status
     verbs:
     - get
     - list
@@ -132,6 +102,7 @@ items:
     attributeRestrictions: null
     resources:
     - jobs
+    - jobs/status
     verbs:
     - get
     - list
@@ -141,9 +112,23 @@ items:
     attributeRestrictions: null
     resources:
     - daemonsets
+    - daemonsets/status
+    - deployments
+    - deployments/scale
+    - deployments/status
     - horizontalpodautoscalers
+    - horizontalpodautoscalers/status
+    - ingresses
+    - ingresses/status
     - jobs
+    - jobs/status
+    - podsecuritypolicies
+    - replicasets
+    - replicasets/scale
+    - replicasets/status
+    - replicationcontrollers
     - replicationcontrollers/scale
+    - thirdpartyresources
     verbs:
     - get
     - list
@@ -152,7 +137,134 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - clusterpolicies
+    - clusterpolicybindings
+    - clusterrolebindings
+    - clusterroles
+    - policies
+    - policybindings
+    - rolebindings
+    - roles
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    - buildconfigs/webhooks
+    - builds
+    - builds/details
+    - builds/log
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    - deploymentconfigs/log
+    - deploymentconfigs/scale
+    - deploymentconfigs/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - images
+    - imagestreamimages
+    - imagestreams
+    - imagestreams/status
+    - imagestreamtags
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - oauthclientauthorizations
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - projectrequests
+    - projects
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes
+    - routes/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - clusternetworks
+    - hostsubnets
+    - netnamespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - processedtemplates
+    - templateconfigs
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - groups
+    - identities
+    - useridentitymappings
+    - users
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - localresourceaccessreviews
+    - localsubjectaccessreviews
     - resourceaccessreviews
+    - selfsubjectrulesreviews
     - subjectaccessreviews
     verbs:
     - create
@@ -178,6 +290,24 @@ items:
     resources: []
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildlogs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotausages
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
