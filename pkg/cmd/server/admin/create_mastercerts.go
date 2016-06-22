@@ -112,6 +112,9 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP that server certs should be valid for (comma-delimited list)")
 	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
 
+	// set dynamic value annotation - allows man pages  to be generated and verified
+	flags.SetAnnotation("signer-name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
+
 	// autocompletion hints
 	cmd.MarkFlagFilename("cert-dir")
 	cmd.MarkFlagFilename("certificate-authority")
