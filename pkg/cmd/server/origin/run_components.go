@@ -330,9 +330,8 @@ func (c *MasterConfig) RunDeploymentController() {
 
 // RunDeployerPodController starts the deployer pod controller process.
 func (c *MasterConfig) RunDeployerPodController() {
-	osclient, kclient := c.DeployerPodControllerClients()
+	kclient := c.DeployerPodControllerClient()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
-		Client:     osclient,
 		KubeClient: kclient,
 		Codec:      c.EtcdHelper.Codec(),
 	}
@@ -343,14 +342,15 @@ func (c *MasterConfig) RunDeployerPodController() {
 
 // RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
+	dcInfomer := c.Informers.DeploymentConfigs().Informer()
+	rcInformer := c.Informers.ReplicationControllers().Informer()
 	osclient, kclient := c.DeploymentConfigControllerClients()
-	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
-		Client:     osclient,
-		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec(),
-	}
-	controller := factory.Create()
-	controller.Run()
+
+	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, osclient, kclient, c.EtcdHelper.Codec())
+	// TODO: Make the stop channel actually work.
+	stopCh := make(chan struct{})
+	// TODO: Make the number of workers configurable.
+	go controller.Run(5, stopCh)
 }
 
 // RunDeploymentTriggerController starts the deployment trigger controller process.

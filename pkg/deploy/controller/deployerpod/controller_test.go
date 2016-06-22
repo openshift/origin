@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -407,66 +406,5 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 		if _, got := updatedDeployment.Annotations[deployapi.DesiredReplicasAnnotation]; got != test.expected {
 			t.Errorf("%s: expected annotation: %t, got %t", test.name, test.expected, got)
 		}
-	}
-}
-
-// TestHandle_canceledDeploymentTrigger ensures that a canceled deployment
-// will trigger a reconciliation of its deploymentconfig (via an annotation
-// update) so that rolling back can happen on the spot and not rely on the
-// deploymentconfig cache resync interval.
-func TestHandle_canceledDeploymentTriggerTest(t *testing.T) {
-	var (
-		updatedDeployment *kapi.ReplicationController
-		updatedConfig     *deployapi.DeploymentConfig
-	)
-
-	initial := deploytest.OkDeploymentConfig(1)
-	// Canceled deployment
-	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(initial), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-
-	kFake := &ktestclient.Fake{}
-	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, deployment, nil
-	})
-	kFake.PrependReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updatedDeployment = deployment
-		return true, deployment, nil
-	})
-	fake := &testclient.Fake{}
-	fake.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		config := initial
-		return true, config, nil
-	})
-	fake.PrependReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
-		updatedConfig = updated
-		return true, updated, nil
-	})
-
-	controller := &DeployerPodController{
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.UniversalDecoder())
-		},
-		store:   cache.NewStore(cache.MetaNamespaceKeyFunc),
-		client:  fake,
-		kClient: kFake,
-	}
-
-	err := controller.Handle(terminatedPod(deployment))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if updatedDeployment == nil {
-		t.Fatalf("expected deployment update")
-	}
-
-	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
-		t.Fatalf("expected updated deployment status %s, got %s", e, a)
-	}
-
-	if updatedConfig == nil {
-		t.Fatalf("expected config update")
 	}
 }

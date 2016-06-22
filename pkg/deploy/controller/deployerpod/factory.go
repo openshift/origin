@@ -12,7 +12,6 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -21,8 +20,6 @@ import (
 // DeployerPodControllerFactory can create a DeployerPodController which
 // handles processing deployer pods.
 type DeployerPodControllerFactory struct {
-	// Client is an OpenShift client.
-	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
 	KubeClient kclient.Interface
 	// Codec is used for encoding/decoding.
@@ -65,7 +62,6 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 
 	podController := &DeployerPodController{
 		store:   deploymentStore,
-		client:  factory.Client,
 		kClient: factory.KubeClient,
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)

@@ -22,22 +22,22 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 // LatestDeploymentInfo returns info about the latest deployment for a config,
 // or nil if there is no latest deployment. The latest deployment is not
 // always the same as the active deployment.
-func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, *api.ReplicationController) {
-	if config.Status.LatestVersion == 0 || len(deployments.Items) == 0 {
+func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.ReplicationController) (bool, *api.ReplicationController) {
+	if config.Status.LatestVersion == 0 || len(deployments) == 0 {
 		return false, nil
 	}
-	sort.Sort(ByLatestVersionDesc(deployments.Items))
-	candidate := &deployments.Items[0]
+	sort.Sort(ByLatestVersionDesc(deployments))
+	candidate := &deployments[0]
 	return DeploymentVersionFor(candidate) == config.Status.LatestVersion, candidate
 }
 
 // ActiveDeployment returns the latest complete deployment, or nil if there is
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
-func ActiveDeployment(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) *api.ReplicationController {
-	sort.Sort(ByLatestVersionDesc(deployments.Items))
+func ActiveDeployment(config *deployapi.DeploymentConfig, deployments []api.ReplicationController) *api.ReplicationController {
+	sort.Sort(ByLatestVersionDesc(deployments))
 	var activeDeployment *api.ReplicationController
-	for _, deployment := range deployments.Items {
+	for _, deployment := range deployments {
 		if DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
 			activeDeployment = &deployment
 			break
