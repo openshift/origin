@@ -7,8 +7,8 @@ import (
 )
 
 func TestEscalating(t *testing.T) {
-	escalatingResources := NormalizeResources(sets.NewString(GroupsToResources[EscalatingResourcesGroupName]...))
-	nonEscalatingResources := NormalizeResources(sets.NewString(GroupsToResources[NonEscalatingResourcesGroupName]...))
+	escalatingResources := NormalizeResources(sets.NewString(groupsToResources[escalatingResourcesGroupName]...))
+	nonEscalatingResources := NormalizeResources(sets.NewString(groupsToResources[nonescalatingResourcesGroupName]...))
 	if len(nonEscalatingResources) <= len(escalatingResources) {
 		t.Errorf("groups look bad: escalating=%v nonescalating=%v", escalatingResources.List(), nonEscalatingResources.List())
 	}
@@ -23,7 +23,7 @@ func TestNormalizeResources(t *testing.T) {
 		{"capA", "capA", "capa"},
 		{"capH", "capH", "caph"},
 		{"capZ", "capZ", "capz"},
-		{"group", BuildGroupName, "builds"},
+		{"group", buildGroupName, "builds"},
 	}
 
 	for _, test := range tests {
@@ -52,7 +52,7 @@ func TestNeedsNormalization(t *testing.T) {
 		{"/", "/", false},
 		{"-", "-", false},
 		{".", ".", false},
-		{ResourceGroupPrefix, ResourceGroupPrefix, true},
+		{resourceGroupPrefix, resourceGroupPrefix, true},
 	}
 
 	for _, test := range tests {
