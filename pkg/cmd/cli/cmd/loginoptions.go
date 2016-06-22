@@ -318,6 +318,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	case 1:
 		o.Project = projectsItems[0].Name
+		fmt.Fprintf(o.Out, "You have one project on this server: %q\n\n", o.Project)
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 
 	default:
@@ -344,9 +345,9 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
 		for _, p := range projects.List() {
 			if o.Project == p {
-				fmt.Fprintf(o.Out, "  * %s (current)\n", p)
-			} else {
 				fmt.Fprintf(o.Out, "  * %s\n", p)
+			} else {
+				fmt.Fprintf(o.Out, "    %s\n", p)
 			}
 		}
 		fmt.Fprintln(o.Out)
