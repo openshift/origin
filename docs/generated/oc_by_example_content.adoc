@@ -1700,12 +1700,16 @@ Run a proxy to the Kubernetes API server
 
 [options="nowrap"]
 ----
-  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+  # Run a proxy to the api server on port 8011, serving static content from ./local/www/
   oc proxy --port=8011 --www=./local/www/
 
-  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
-  oc proxy --api-prefix=k8s-api
+  # Run a proxy to the api server on an arbitrary local port.
+  # The chosen port for the server will be output to stdout.
+  oc proxy --port=0
+
+  # Run a proxy to the api server, changing the api prefix to my-api
+  # This makes e.g. the pods api available at localhost:8011/my-api/api/v1/pods/
+  oc proxy --api-prefix=/my-api
 ----
 ====
 

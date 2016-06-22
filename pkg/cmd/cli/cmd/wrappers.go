@@ -268,14 +268,18 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 const (
-	proxyLong = `Run a proxy to the Kubernetes API server`
+	proxyLong = `Run a proxy to the API server`
 
-	proxyExample = `  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+	proxyExample = `  # Run a proxy to the api server on port 8011, serving static content from ./local/www/
   %[1]s proxy --port=8011 --www=./local/www/
 
-  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
-  %[1]s proxy --api-prefix=k8s-api`
+  # Run a proxy to the api server on an arbitrary local port.
+  # The chosen port for the server will be output to stdout.
+  %[1]s proxy --port=0
+
+  # Run a proxy to the api server, changing the api prefix to my-api
+  # This makes e.g. the pods api available at localhost:8011/my-api/api/v1/pods/
+  %[1]s proxy --api-prefix=/my-api`
 )
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
