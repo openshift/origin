@@ -57,7 +57,7 @@ func GetEnvironment(config *api.Config) ([]Environment, error) {
 		result = append(result, e)
 	}
 
-	glog.Infof("Setting %d environment variables provided by environment file in sources", len(result))
+	glog.V(1).Infof("Setting %d environment variables provided by environment file in sources", len(result))
 	return result, scanner.Err()
 }
 
