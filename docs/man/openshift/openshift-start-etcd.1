@@ -1,0 +1,53 @@
+.TH "OPENSHIFT START" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift start etcd \- Launch etcd server
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift start etcd\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start an etcd server for testing.
+
+.PP
+This command starts an etcd server based on the config for testing.  It is not
+Intended for production use.  Running
+
+.PP
+openshift start etcd
+
+.PP
+will start the server listening for incoming requests. The server
+will run in the foreground until you terminate the process.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-config\fP=""
+    Location of the master configuration file to run from.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-start(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

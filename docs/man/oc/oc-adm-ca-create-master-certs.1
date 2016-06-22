@@ -1,0 +1,181 @@
+.TH "OC ADM CA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oc adm ca create\-master\-certs \- Create certificates and keys for a master
+
+
+.SH SYNOPSIS
+.PP
+\fBoc adm ca create\-master\-certs\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Create keys and certificates for a master
+
+.PP
+This command creates keys and certs necessary to run a secure master.
+It also creates keys, certificates, and configuration necessary for most
+related infrastructure components that are clients to the master.
+See the related "create\-node\-config" command for generating per\-node config.
+
+.PP
+All files are expected or created in standard locations under the cert\-dir.
+
+.PP
+.RS
+
+.nf
+openshift.local.config/master/
+    ca.{crt,key,serial.txt}
+    master.server.{crt,key}
+    openshift\-router.{crt,key,kubeconfig}
+    admin.{crt,key,kubeconfig}
+    ...
+
+.fi
+.RE
+
+.PP
+Note that the certificate authority (CA aka "signer") generated automatically
+is self\-signed. In production usage, administrators are more likely to
+want to generate signed certificates separately rather than rely on a
+generated CA. Alternatively, start with an existing signed CA and
+have this command use it to generate valid certificates.
+
+.PP
+This command would usually only be used once at installation. If you
+need to regenerate the master server cert, DO NOT use \-\-overwrite as this
+would recreate ALL certs including the CA cert, invalidating any existing
+infrastructure or client configuration. Instead, delete/rename the existing
+server cert and run the command to fill it in:
+
+.PP
+.RS
+
+.nf
+mv openshift.local.config/master/master.server.crt{,.old}
+oc adm ca create\-master\-certs \-\-cert\-dir=... \\
+        \-\-master=https://internal.master.fqdn:8443 \\
+        \-\-public\-master=https://external.master.fqdn:8443 \\
+        \-\-hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
+
+.fi
+.RE
+
+.PP
+Alternatively, use the related "ca create\-server\-cert" command to explicitly
+create a certificate.
+
+.PP
+Regardless of \-\-overwrite, the master server key/cert will be updated
+if \-\-hostnames does not match the current certificate.
+Regardless of \-\-overwrite, .kubeconfig files will be updated every time this
+command is run, so always specify \-\-master (and if needed, \-\-public\-master).
+This is designed to match the behavior of "start" which rewrites certs/confs
+for certain configuration changes.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-cert\-dir\fP="openshift.local.config/master"
+    The certificate data directory.
+
+.PP
+\fB\-\-certificate\-authority\fP=[]
+    Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.
+
+.PP
+\fB\-\-hostnames\fP=[]
+    Every hostname or IP that server certs should be valid for (comma\-delimited list)
+
+.PP
+\fB\-\-master\fP="
+\[la]https://localhost:8443"\[ra]
+    The API server's URL.
+
+.PP
+\fB\-\-overwrite\fP=false
+    Overwrite all existing cert/key/config files (WARNING: includes signer/CA)
+
+.PP
+\fB\-\-public\-master\fP=""
+    The API public facing server's URL (if applicable).
+
+.PP
+\fB\-\-signer\-name\fP="openshift\-signer@<current_timestamp>"
+    The name to use for the generated signer.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH SEE ALSO
+.PP
+\fBoc\-adm\-ca(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

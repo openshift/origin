@@ -1,0 +1,94 @@
+.TH "OPENSHIFT START" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift start node \- Launch a node
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift start node\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start a node
+
+.PP
+This command helps you launch a node.  Running
+
+.PP
+openshift start node \-\-config=<node-config>
+
+.PP
+will start a node with given configuration file. The node will run in the
+foreground until you terminate the process.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-config\fP=""
+    Location of the node configuration file to run from. When running from a configuration file, all other command\-line arguments are ignored.
+
+.PP
+\fB\-\-disable\fP=""
+    The set of node components to disable
+
+.PP
+\fB\-\-enable\fP="kubelet,plugins,proxy"
+    The set of node components to enable
+
+.PP
+\fB\-\-hostname\fP="<hostname>"
+    The hostname to identify this node with the master.
+
+.PP
+\fB\-\-images\fP="openshift/origin\-${component}:${version}"
+    When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.
+
+.PP
+\fB\-\-kubeconfig\fP=""
+    Path to the kubeconfig file to use for requests to the Kubernetes API.
+
+.PP
+\fB\-\-kubernetes\fP="
+\[la]https://localhost:8443"\[ra]
+    removed in favor of \-\-kubeconfig
+
+.PP
+\fB\-\-latest\-images\fP=false
+    If true, attempt to use the latest images for the cluster instead of the latest release.
+
+.PP
+\fB\-\-listen\fP="
+\[la]https://0.0.0.0:8443"\[ra]
+    The address to listen for connections on (scheme://host:port).
+
+.PP
+\fB\-\-network\-plugin\fP=""
+    The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
+
+.PP
+\fB\-\-volume\-dir\fP="openshift.local.volumes"
+    The volume storage directory.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-start(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

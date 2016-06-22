@@ -1,0 +1,177 @@
+.TH "OPENSHIFT INFRA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift infra f5\-router \- Start an F5 route synchronizer
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift infra f5\-router\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start an F5 route synchronizer
+
+.PP
+This command launches a process that will synchronize an F5 to the route configuration of your master.
+
+.PP
+You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has
+access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all
+namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note
+that you must have a cluster\-wide administrative role to view all namespaces.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-f5\-host\fP=""
+    The host of F5 BIG\-IP's management interface
+
+.PP
+\fB\-\-f5\-http\-vserver\fP="ose\-vserver"
+    The F5 BIG\-IP virtual server for HTTP connections
+
+.PP
+\fB\-\-f5\-https\-vserver\fP="https\-ose\-vserver"
+    The F5 BIG\-IP virtual server for HTTPS connections
+
+.PP
+\fB\-\-f5\-insecure\fP=false
+    Skip strict certificate verification
+
+.PP
+\fB\-\-f5\-partition\-path\fP="/Common"
+    The F5 BIG\-IP partition path to use
+
+.PP
+\fB\-\-f5\-password\fP=""
+    The password for F5 BIG\-IP's management utility
+
+.PP
+\fB\-\-f5\-private\-key\fP=""
+    The path to the F5 BIG\-IP SSH private key file
+
+.PP
+\fB\-\-f5\-username\fP=""
+    The username for F5 BIG\-IP's management utility
+
+.PP
+\fB\-\-fields\fP=""
+    A field selector to apply to routes to watch
+
+.PP
+\fB\-\-hostname\-template\fP=""
+    If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}\-${namespace}.myapps.mycompany.com')
+
+.PP
+\fB\-\-include\-udp\-endpoints\fP=false
+    If true, UDP endpoints will be considered as candidates for routing
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-kubernetes\fP="
+\[la]http://localhost:8080"\[ra]
+    The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.
+
+.PP
+\fB\-\-labels\fP=""
+    A label selector to apply to the routes to watch
+
+.PP
+\fB\-\-master\fP="
+\[la]http://localhost:8080"\[ra]
+    The address the master can be reached on (host, host:port, or URL).
+
+.PP
+\fB\-\-name\fP="public"
+    The name the router will identify itself with in the route status
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-namespace\-labels\fP=""
+    A label selector to apply to namespaces to watch
+
+.PP
+\fB\-\-override\-hostname\fP=false
+    Override the spec.host value for a route with \-\-hostname\-template
+
+.PP
+\fB\-\-project\-labels\fP=""
+    A label selector to apply to projects to watch; if '*' watches all projects the client can access
+
+.PP
+\fB\-\-resync\-interval\fP=0
+    The interval at which the route list should be fully refreshed
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-infra(1)\fP, \fBopenshift\-infra\-f5\-router\-version(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

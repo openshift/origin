@@ -1,0 +1,163 @@
+.TH "OC" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oc rollback \- Revert part of an application back to a previous deployment
+
+
+.SH SYNOPSIS
+.PP
+\fBoc rollback\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Revert an application back to a previous deployment
+
+.PP
+When you run this command your deployment configuration will be updated to
+match a previous deployment. By default only the pod and container
+configuration will be changed and scaling or trigger settings will be left as\-
+is. Note that environment variables and volumes are included in rollbacks, so
+if you've recently updated security credentials in your environment your
+previous deployment may not have the correct values.
+
+.PP
+Any image triggers present in the rolled back configuration will be disabled
+with a warning. This is to help prevent your rolled back deployment from being
+replaced by a triggered deployment soon after your rollback. To re\-enable the
+triggers, use the 'deploy' command.
+
+.PP
+If you would like to review the outcome of the rollback, pass '\-\-dry\-run' to print
+a human\-readable representation of the updated deployment configuration instead of
+executing the rollback. This is useful if you're not quite sure what the outcome
+will be.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-change\-scaling\-settings\fP=false
+    Include the previous deployment's replicationController replica count and selector in the rollback
+
+.PP
+\fB\-\-change\-strategy\fP=false
+    Include the previous deployment's strategy in the rollback
+
+.PP
+\fB\-\-change\-triggers\fP=false
+    Include the previous deployment's triggers in the rollback
+
+.PP
+\fB\-d\fP, \fB\-\-dry\-run\fP=false
+    Instead of performing the rollback, describe what the rollback will look like in human\-readable form
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Instead of performing the rollback, print the updated deployment configuration in the specified format (json|yaml|name|template|templatefile)
+
+.PP
+\fB\-t\fP, \fB\-\-template\fP=""
+    Template string or path to template file to use when \-o=template or \-o=templatefile.
+
+.PP
+\fB\-\-to\-version\fP=0
+    A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto\-detected). This option is ignored when specifying a deployment.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Perform a rollback to the last successfully completed deployment for a deploymentconfig
+  oc rollback frontend
+
+  # See what a rollback to version 3 will look like, but don't perform the rollback
+  oc rollback frontend \-\-to\-version=3 \-\-dry\-run
+
+  # Perform a rollback to a specific deployment
+  oc rollback frontend\-2
+
+  # Perform the rollback manually by piping the JSON of the new config back to oc
+  oc rollback frontend \-o json | oc replace dc/frontend \-f \-
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoc(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator
