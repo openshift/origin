@@ -28,6 +28,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
 		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
 		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
+		failedHookFixture       = exutil.FixturePath("..", "extended", "testdata", "failing-pre-hook.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -306,6 +307,23 @@ var _ = g.Describe("deploymentconfigs", func() {
 			// TODO: Retry on update conflicts
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Describe("with failing hook", func() {
+		g.It("should get all logs from retried hooks [Conformance]", func() {
+			resource, name, err := createFixture(oc, failedHookFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentPreHookRetried)).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("logs").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("no such file or directory"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
 		})
 	})
 })

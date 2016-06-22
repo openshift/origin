@@ -161,7 +161,7 @@ func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []kapi.Replic
 	return nil
 }
 
-func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error) {
+func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
@@ -189,7 +189,7 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 	return true, nil
 }
 
-func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error) {
+func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
@@ -218,6 +218,24 @@ func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationCon
 	}
 }
 
+func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+	var preHook *kapi.Pod
+	for i := range pods {
+		pod := pods[i]
+		if !strings.HasSuffix(pod.Name, "-pre") {
+			continue
+		}
+		preHook = &pod
+		break
+	}
+
+	if preHook == nil || len(preHook.Status.ContainerStatuses) == 0 {
+		return false, nil
+	}
+
+	return preHook.Status.ContainerStatuses[0].RestartCount > 0, nil
+}
+
 func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []kapi.ReplicationController, []kapi.Pod, error) {
 	dc, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
 	if err != nil {
@@ -241,7 +259,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 	return dc, rcs.Items, pods.Items, nil
 }
 
-type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error)
+type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
 	return wait.Poll(200*time.Millisecond, timeout, func() (bool, error) {
@@ -252,7 +270,7 @@ func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, 
 		if err := checkDeploymentInvariants(dc, rcs, pods); err != nil {
 			return false, err
 		}
-		return fn(dc, rcs)
+		return fn(dc, rcs, pods)
 	})
 }
 
