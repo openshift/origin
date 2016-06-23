@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -774,3 +775,57 @@ func (c *clientCache) ClientForVersion(version *unversioned.GroupVersion) (*clie
 	c.clients[config.GroupVersion.String()] = client
 	return client, nil
 }
+
+// FindAllCanonicalResources returns all resource names that map directly to their kind (Kind -> Resource -> Kind)
+// and are not subresources. This is the closest mapping possible from the client side to resources that can be
+// listed and updated. Note that this may return some virtual resources (like imagestreamtags) that can be otherwise
+// represented.
+// TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
+// TODO: fallback to the scheme when discovery is not possible.
+func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]unversioned.GroupResource, error) {
+	set := make(map[unversioned.GroupResource]struct{})
+	all, err := d.ServerResources()
+	if err != nil {
+		return nil, err
+	}
+	for apiVersion, v := range all {
+		gv, err := unversioned.ParseGroupVersion(apiVersion)
+		if err != nil {
+			continue
+		}
+		for _, r := range v.APIResources {
+			// ignore subresources
+			if strings.Contains(r.Name, "/") {
+				continue
+			}
+			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
+			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
+			// lookup (KindsFor) does not error.
+			if mapping, err := m.RESTMapping(unversioned.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+				if _, err := m.KindsFor(mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)); err == nil {
+					set[unversioned.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}] = struct{}{}
+				}
+			}
+		}
+	}
+	var groupResources []unversioned.GroupResource
+	for k := range set {
+		groupResources = append(groupResources, k)
+	}
+	sort.Sort(groupResourcesByName(groupResources))
+	return groupResources, nil
+}
+
+type groupResourcesByName []unversioned.GroupResource
+
+func (g groupResourcesByName) Len() int { return len(g) }
+func (g groupResourcesByName) Less(i, j int) bool {
+	if g[i].Resource < g[j].Resource {
+		return true
+	}
+	if g[i].Resource > g[j].Resource {
+		return false
+	}
+	return g[i].Group < g[j].Group
+}
+func (g groupResourcesByName) Swap(i, j int) { g[i], g[j] = g[j], g[i] }

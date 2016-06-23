@@ -41,9 +41,8 @@ func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (r
 		// ignore 403 or 404 error to be compatible with an v1.0 server.
 		if groupVersion == "v1" && (errors.IsNotFound(err) || errors.IsForbidden(err)) {
 			return parentList, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	parentList.APIResources = append(parentList.APIResources, originResources.APIResources...)

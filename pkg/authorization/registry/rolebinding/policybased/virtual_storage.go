@@ -194,6 +194,10 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 		return nil, false, errors.New("roleBinding.RoleRef may not be modified")
 	}
 
+	if kapi.Semantic.DeepEqual(previousRoleBinding, roleBinding) {
+		return roleBinding, false, nil
+	}
+
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
 	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
 	policyBinding.LastModified = unversioned.Now()
