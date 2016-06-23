@@ -111,7 +111,6 @@ import (
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 )
@@ -455,17 +454,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
-	// TODO collapse onto common cache once we've gotten shared informers from kube
-	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, clusterPolicyRegistry)
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		policyRegistry,
-		policyBindingRegistry,
-		clusterPolicyRegistry,
-		clusterPolicyBindingRegistry,
-	)
+	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver)
 	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
@@ -534,7 +526,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient, c.PolicyCache)
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient, c.Informers.PolicyBindings().Lister())
 
 	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(

@@ -167,11 +167,6 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
 }
 
-// RunPolicyCache starts the policy cache
-func (c *MasterConfig) RunPolicyCache() {
-	c.PolicyCache.Run()
-}
-
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
 

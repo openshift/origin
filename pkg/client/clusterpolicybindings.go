@@ -21,6 +21,18 @@ type ClusterPolicyBindingInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
+type ClusterPolicyBindingsListerInterface interface {
+	ClusterPolicyBindings() ClusterPolicyBindingLister
+}
+type ClusterPolicyBindingLister interface {
+	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
+}
+type SyncedClusterPolicyBindingsListerInterface interface {
+	ClusterPolicyBindingsListerInterface
+	LastSyncResourceVersion() string
+}
+
 type clusterPolicyBindings struct {
 	r *Client
 }

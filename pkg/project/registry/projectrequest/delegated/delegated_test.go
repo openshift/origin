@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/client"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -57,12 +57,12 @@ type testReadOnlyPolicyBinding struct {
 	lock    sync.Mutex
 }
 
-func (t *testReadOnlyPolicyBinding) ReadOnlyPolicyBindings(namespace string) authorizationclient.ReadOnlyPolicyBindingInterface {
+func (t *testReadOnlyPolicyBinding) PolicyBindings(namespace string) client.PolicyBindingLister {
 	return t
 }
 
 // ReadOnlyPolicyBindingInterface exposes methods on PolicyBindings resources
-func (t *testReadOnlyPolicyBinding) List(options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (t *testReadOnlyPolicyBinding) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 

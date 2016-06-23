@@ -19,7 +19,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/client"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -37,10 +36,10 @@ type REST struct {
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
-	policyBindings authorizationclient.PolicyBindingsReadOnlyNamespacer
+	policyBindings client.PolicyBindingsListerNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache authorizationclient.PolicyBindingsReadOnlyNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -168,7 +167,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := kclient.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		policyBindingList, _ := r.policyBindings.ReadOnlyPolicyBindings(namespace).List(nil)
+		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(kapi.ListOptions{})
 		for _, policyBinding := range policyBindingList.Items {
 			for roleBindingName := range policyBinding.RoleBindings {
 				if roleBindingName == name {

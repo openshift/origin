@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -18,7 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/controller"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
@@ -167,6 +170,7 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
 		EtcdHelper:          etcdHelper,
+		Informers:           controller.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), controller.DefaultListerWatcherOverrides{}, 1*time.Second),
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}
