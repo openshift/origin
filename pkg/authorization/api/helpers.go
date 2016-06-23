@@ -44,12 +44,12 @@ func NormalizeResources(rawResources sets.String) sets.String {
 		}
 		visited.Insert(currResource)
 
-		if !strings.HasPrefix(currResource, ResourceGroupPrefix) {
+		if !strings.HasPrefix(currResource, resourceGroupPrefix) {
 			ret.Insert(strings.ToLower(currResource))
 			continue
 		}
 
-		if resourceTypes, exists := GroupsToResources[currResource]; exists {
+		if resourceTypes, exists := groupsToResources[currResource]; exists {
 			toVisit = append(toVisit, resourceTypes...)
 		}
 	}
@@ -58,7 +58,7 @@ func NormalizeResources(rawResources sets.String) sets.String {
 }
 
 func needsNormalizing(in string) bool {
-	if strings.HasPrefix(in, ResourceGroupPrefix) {
+	if strings.HasPrefix(in, resourceGroupPrefix) {
 		return true
 	}
 	for _, r := range in {
