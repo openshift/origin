@@ -59,13 +59,31 @@ func init() {
 
 		case *watchv1.Event:
 			switch b := objB.(type) {
+			case *watchv1.InternalEvent:
+				return true, watchv1.Convert_versioned_Event_to_versioned_InternalEvent(a, b, s)
 			case *watchapi.Event:
 				return true, watchv1.Convert_versioned_Event_to_watch_Event(a, b, s)
+			}
+		case *watchv1.InternalEvent:
+			switch b := objB.(type) {
+			case *watchv1.Event:
+				return true, watchv1.Convert_versioned_InternalEvent_to_versioned_Event(a, b, s)
 			}
 		case *watchapi.Event:
 			switch b := objB.(type) {
 			case *watchv1.Event:
 				return true, watchv1.Convert_watch_Event_to_versioned_Event(a, b, s)
+			}
+
+		case *kapi.ListOptions:
+			switch b := objB.(type) {
+			case *kv1.ListOptions:
+				return true, kv1.Convert_api_ListOptions_To_v1_ListOptions(a, b, s)
+			}
+		case *kv1.ListOptions:
+			switch b := objB.(type) {
+			case *kapi.ListOptions:
+				return true, kv1.Convert_v1_ListOptions_To_api_ListOptions(a, b, s)
 			}
 
 		case *kv1.ServiceAccount:
@@ -406,6 +424,17 @@ func init() {
 			switch b := objB.(type) {
 			case *authorizationv1.RoleBinding:
 				return true, authorizationv1.Convert_api_RoleBinding_To_v1_RoleBinding(a, b, s)
+			}
+
+		case *authorizationv1.IsPersonalSubjectAccessReview:
+			switch b := objB.(type) {
+			case *authorizationapi.IsPersonalSubjectAccessReview:
+				return true, authorizationv1.Convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(a, b, s)
+			}
+		case *authorizationapi.IsPersonalSubjectAccessReview:
+			switch b := objB.(type) {
+			case *authorizationv1.IsPersonalSubjectAccessReview:
+				return true, authorizationv1.Convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(a, b, s)
 			}
 
 		case *userv1.User:
