@@ -154,14 +154,14 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyListerNamespacer{registry: policyRegistry},
 		policyBindingListerNamespacer{registry: policyBindingRegistry},
-		clusterPolicyLister{registry: clusterPolicyRegistry},
-		clusterPolicyBindingLister{registry: clusterPolicyBindingRegistry},
+		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
 	)
 
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver)
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver)
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, ruleResolver)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyBindingRegistry, ruleResolver)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
@@ -280,28 +280,4 @@ func (s policyBindingLister) List(options kapi.ListOptions) (*authorizationapi.P
 
 func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
 	return s.registry.GetPolicyBinding(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
-}
-
-type clusterPolicyLister struct {
-	registry clusterpolicyregistry.Registry
-}
-
-func (s clusterPolicyLister) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return s.registry.ListClusterPolicies(kapi.WithNamespace(kapi.NewContext(), ""), &options)
-}
-
-func (s clusterPolicyLister) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return s.registry.GetClusterPolicy(kapi.WithNamespace(kapi.NewContext(), ""), name)
-}
-
-type clusterPolicyBindingLister struct {
-	registry clusterpolicybindingregistry.Registry
-}
-
-func (s clusterPolicyBindingLister) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return s.registry.ListClusterPolicyBindings(kapi.WithNamespace(kapi.NewContext(), ""), &options)
-}
-
-func (s clusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	return s.registry.GetClusterPolicyBinding(kapi.WithNamespace(kapi.NewContext(), ""), name)
 }
