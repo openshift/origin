@@ -29,6 +29,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -59,6 +60,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("User"):                          &UserDescriber{c},
 		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
+		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 	}
 	return m
 }
@@ -1402,4 +1404,50 @@ func squashGitInfo(sourceRevision *buildapi.SourceRevision, out *tabwriter.Write
 			formatString(out, "Committer", rev.Committer.Name)
 		}
 	}
+}
+
+type ClusterQuotaDescriber struct {
+	client.Interface
+}
+
+func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	quota, err := d.ClusterResourceQuotas().Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, quota.ObjectMeta)
+		fmt.Fprintf(out, "Selector:\t%s\n", selector)
+		if len(quota.Spec.Quota.Scopes) > 0 {
+			scopes := []string{}
+			for _, scope := range quota.Spec.Quota.Scopes {
+				scopes = append(scopes, string(scope))
+			}
+			sort.Strings(scopes)
+			fmt.Fprintf(out, "Scopes:\t%s\n", strings.Join(scopes, ", "))
+		}
+		fmt.Fprintf(out, "Resource\tUsed\tHard\n")
+		fmt.Fprintf(out, "--------\t----\t----\n")
+
+		resources := []kapi.ResourceName{}
+		for resource := range quota.Status.Total.Hard {
+			resources = append(resources, resource)
+		}
+		sort.Sort(kctl.SortableResourceNames(resources))
+
+		msg := "%v\t%v\t%v\n"
+		for i := range resources {
+			resource := resources[i]
+			hardQuantity := quota.Status.Total.Hard[resource]
+			usedQuantity := quota.Status.Total.Used[resource]
+			fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+		}
+		return nil
+	})
 }

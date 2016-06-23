@@ -59,6 +59,7 @@ type Interface interface {
 	ClusterPolicyBindingsInterface
 	ClusterRolesInterface
 	ClusterRoleBindingsInterface
+	ClusterResourceQuotasInterface
 }
 
 // Builds provides a REST client for Builds
@@ -260,6 +261,10 @@ func (c *Client) ClusterRoles() ClusterRoleInterface {
 
 func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
 	return newClusterRoleBindings(c)
+}
+
+func (c *Client) ClusterResourceQuotas() ClusterResourceQuotaInterface {
+	return newClusterResourceQuotas(c)
 }
 
 // Client is an OpenShift client object
