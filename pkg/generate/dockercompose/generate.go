@@ -398,6 +398,9 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 		objects = append(objects, accepted...)
 	}
 
+	// Get a mapping of ContainerPort to ServicePort
+	containerToService := containerPortToServicePort(p.Configs)
+
 	// create services for each object with a name based on alias.
 	containers := make(map[string]*kapi.Container)
 	var services []*kapi.Service
@@ -414,7 +417,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 			if aliases[svc.Name].Len() == 1 {
 				svc.Name = aliases[svc.Name].List()[0]
 			}
-			svc.Spec.Ports = ports
+			svc.Spec.Ports = addServicePorts(ports, containerToService)
 			services = append(services, svc)
 
 			// take a reference to each container
@@ -453,6 +456,35 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 	}
 
 	return template, nil
+}
+
+// containerPortToServicePort reads the config parsed by docker comapose file
+// loops over the services and extracts what container port should be mapped to what
+// service port.
+func containerPortToServicePort(configs map[string]*project.ServiceConfig) map[int32]int32 {
+	// container port to service port
+	ctos := make(map[int32]int32)
+	for svc := range configs {
+		// These ports can be of the form HOST:CONTAINER
+		for _, val := range configs[svc].Ports {
+			c, h := extractFirstPorts(val)
+			container, _ := strconv.ParseInt(c, 10, 0)
+			host, _ := strconv.ParseInt(h, 10, 0)
+			ctos[int32(container)] = int32(host)
+		}
+	}
+	return ctos
+}
+
+// addServicePorts reads the ports extracted from containers and then assigns them the
+// according to the map created already from docker compose file
+func addServicePorts(ports []kapi.ServicePort, ctos map[int32]int32) []kapi.ServicePort {
+	var resultPorts []kapi.ServicePort
+	for _, val := range ports {
+		val.Port = ctos[val.Port]
+		resultPorts = append(resultPorts, val)
+	}
+	return resultPorts
 }
 
 // extractFirstPorts converts a Docker compose port spec (CONTAINER, HOST:CONTAINER, or
