@@ -120,9 +120,6 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	roleBinding := obj.(*authorizationapi.RoleBinding)
 
-	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
-		return nil, err
-	}
 	if !allowEscalation {
 		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
 			return nil, err
@@ -172,9 +169,6 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 		return nil, false, err
 	}
 
-	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
-		return nil, false, err
-	}
 	if !allowEscalation {
 		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
 			return nil, false, err
@@ -206,14 +200,6 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 		return nil, false, err
 	}
 	return roleBinding, false, nil
-}
-
-func (m *VirtualStorage) validateReferentialIntegrity(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	if _, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding)); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
