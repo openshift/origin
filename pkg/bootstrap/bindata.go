@@ -9,7 +9,7 @@
 // examples/db-templates/postgresql-ephemeral-template.json
 // examples/db-templates/postgresql-persistent-template.json
 // examples/jenkins/pipeline/jenkinstemplate.json
-// examples/jenkins/pipeline/pipelinetemplate.json
+// examples/jenkins/pipeline/samplepipeline.json
 // examples/quickstarts/cakephp-mysql.json
 // examples/quickstarts/dancer-mysql.json
 // examples/quickstarts/django-postgresql.json
@@ -2573,6 +2573,20 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
         },
         "triggers": [
           {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "jenkins:1",
+                "namespace": "openshift"
+              }
+            }
+          },
+          {
             "type": "ConfigChange"
           }
         ],
@@ -2592,7 +2606,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
             "containers": [
               {
                 "name": "jenkins",
-                "image": "openshift/jenkins-1-centos7:dev",
+                "image": " ",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,
@@ -2784,16 +2798,16 @@ func examplesJenkinsPipelineJenkinstemplateJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
+var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "ruby-helloworld-sample",
+    "name": "jenkins-pipeline-example",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This example shows how to create a simple ruby application in openshift origin v3",
-      "iconClass": "icon-ruby",
-      "tags": "instant-app,ruby,mysql"
+      "description": "This example showcases the new Jenkins Pipeline integration in OpenShift, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,ruby,mysql,jenkins"
     }
   },
   "objects": [
@@ -2905,20 +2919,6 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
       }
     },
     {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-22-centos7",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
-      },
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
@@ -2954,7 +2954,8 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby:2.2",
+              "namespace": "openshift"
             },
             "env": [
               {
@@ -3193,6 +3194,20 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         },
         "triggers": [
           {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld-database"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mysql:5.6",
+                "namespace": "openshift"
+              }
+            }
+          },
+          {
             "type": "ConfigChange"
           }
         ],
@@ -3211,7 +3226,7 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "openshift/mysql-55-centos7:latest",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -3298,22 +3313,22 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
     }
   ],
   "labels": {
-    "template": "application-template-stibuild"
+    "template": "application-template-sample-pipeline"
   }
 }
 `)
 
-func examplesJenkinsPipelinePipelinetemplateJsonBytes() ([]byte, error) {
-	return _examplesJenkinsPipelinePipelinetemplateJson, nil
+func examplesJenkinsPipelineSamplepipelineJsonBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineSamplepipelineJson, nil
 }
 
-func examplesJenkinsPipelinePipelinetemplateJson() (*asset, error) {
-	bytes, err := examplesJenkinsPipelinePipelinetemplateJsonBytes()
+func examplesJenkinsPipelineSamplepipelineJson() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineSamplepipelineJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/jenkins/pipeline/pipelinetemplate.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/samplepipeline.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -5779,7 +5794,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
 	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
 	"examples/jenkins/pipeline/jenkinstemplate.json": examplesJenkinsPipelineJenkinstemplateJson,
-	"examples/jenkins/pipeline/pipelinetemplate.json": examplesJenkinsPipelinePipelinetemplateJson,
+	"examples/jenkins/pipeline/samplepipeline.json": examplesJenkinsPipelineSamplepipelineJson,
 	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
 	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
 	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
@@ -5852,7 +5867,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"pipeline": &bintree{nil, map[string]*bintree{
 				"jenkinstemplate.json": &bintree{examplesJenkinsPipelineJenkinstemplateJson, map[string]*bintree{
 				}},
-				"pipelinetemplate.json": &bintree{examplesJenkinsPipelinePipelinetemplateJson, map[string]*bintree{
+				"samplepipeline.json": &bintree{examplesJenkinsPipelineSamplepipelineJson, map[string]*bintree{
 				}},
 			}},
 		}},

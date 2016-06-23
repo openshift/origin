@@ -45,6 +45,20 @@
         },
         "triggers": [
           {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "jenkins:1",
+                "namespace": "openshift"
+              }
+            }
+          },
+          {
             "type": "ConfigChange"
           }
         ],
@@ -64,7 +78,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "openshift/jenkins-1-centos7:dev",
+                "image": " ",
                 "readinessProbe": {
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 3,
