@@ -1,8 +1,10 @@
 package run
 
 import (
+	"archive/tar"
 	"bytes"
 	"fmt"
+	"io"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -35,6 +37,7 @@ type Runner struct {
 	config          *docker.Config
 	hostConfig      *docker.HostConfig
 	removeContainer bool
+	copies          map[string][]byte
 }
 
 // Name sets the name of the container to create
@@ -75,6 +78,11 @@ func (h *Runner) Entrypoint(cmd ...string) *Runner {
 // Command sets the command to run
 func (h *Runner) Command(cmd ...string) *Runner {
 	h.config.Cmd = cmd
+	return h
+}
+
+func (h *Runner) Copy(contents map[string][]byte) *Runner {
+	h.copies = contents
 	return h
 }
 
@@ -126,6 +134,9 @@ func (h *Runner) Start() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if err := h.copy(id); err != nil {
+		return id, err
+	}
 	return id, h.startContainer(id)
 }
 
@@ -153,6 +164,46 @@ func (h *Runner) Create() (string, error) {
 	glog.V(5).Infof("Container created with id %q", container.ID)
 	glog.V(5).Infof("Container: %#v", container)
 	return container.ID, nil
+}
+
+func (h *Runner) copy(id string) error {
+	if len(h.copies) == 0 {
+		return nil
+	}
+	archive := streamingArchive(h.copies)
+	defer archive.Close()
+	err := h.client.UploadToContainer(id, docker.UploadToContainerOptions{
+		InputStream:          archive,
+		Path:                 "/",
+		NoOverwriteDirNonDir: true,
+	})
+	return err
+}
+
+// streamingArchive returns a ReadCloser containing a tar archive with contents serialized as files.
+func streamingArchive(contents map[string][]byte) io.ReadCloser {
+	r, w := io.Pipe()
+	go func() {
+		archive := tar.NewWriter(w)
+		for k, v := range contents {
+			if err := archive.WriteHeader(&tar.Header{
+				Name:     k,
+				Mode:     0644,
+				Size:     int64(len(v)),
+				Typeflag: tar.TypeReg,
+			}); err != nil {
+				w.CloseWithError(err)
+				return
+			}
+			if _, err := archive.Write(v); err != nil {
+				w.CloseWithError(err)
+				return
+			}
+		}
+		archive.Close()
+		w.Close()
+	}()
+	return r
 }
 
 func (h *Runner) startContainer(id string) error {
