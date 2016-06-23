@@ -46,7 +46,7 @@ const (
 	Pods          ResourceName = "Pods"
 )
 
-func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
+func newRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
 		oClient: osClient,
 		kClient: kClient,
@@ -167,7 +167,7 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	return err
 }
 
-func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
+func validateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
@@ -201,7 +201,7 @@ func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
 		return nil, err
 	}
 
-	registry.NetworkInfo, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
+	registry.NetworkInfo, err = validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
 	if err != nil {
 		return nil, err
 	}
@@ -293,6 +293,30 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.Even
 	// Existing items in the event queue will have watch.Modified event type
 	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
 	return eventQueue
+}
+
+func (registry *Registry) ValidateNodeIP(nodeIP string) error {
+	if nodeIP == "" || nodeIP == "127.0.0.1" {
+		return fmt.Errorf("Invalid node IP %q", nodeIP)
+	}
+
+	ni, err := registry.GetNetworkInfo()
+	if err != nil {
+		return fmt.Errorf("Failed to get network information: %v", err)
+	}
+
+	// Ensure each node's NodeIP is not contained by the cluster network,
+	// which could cause a routing loop. (rhbz#1295486)
+	ipaddr := net.ParseIP(nodeIP)
+	if ipaddr == nil {
+		return fmt.Errorf("Failed to parse node IP %s", nodeIP)
+	}
+
+	if ni.ClusterNetwork.Contains(ipaddr) {
+		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
+	}
+
+	return nil
 }
 
 func clusterNetworkToString(n *osapi.ClusterNetwork) string {
