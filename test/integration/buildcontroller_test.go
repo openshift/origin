@@ -35,7 +35,7 @@ var (
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
-	BuildControllersWatchTimeout = 10 * time.Second
+	BuildControllersWatchTimeout = 60 * time.Second
 )
 
 type controllerCount struct {
