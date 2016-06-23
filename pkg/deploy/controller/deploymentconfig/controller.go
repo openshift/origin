@@ -100,7 +100,8 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// deployments to allow them to be superceded by the new config version.
 	awaitingCancellations := false
 	if !latestIsDeployed {
-		for _, deployment := range existingDeployments {
+		for i := range existingDeployments {
+			deployment := existingDeployments[i]
 			// Skip deployments with an outcome.
 			if deployutil.IsTerminatedDeployment(&deployment) {
 				continue
@@ -108,12 +109,20 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Cancel running deployments.
 			awaitingCancellations = true
 			if !deployutil.IsDeploymentCancelled(&deployment) {
-				deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-				_, err := c.rn.ReplicationControllers(deployment.Namespace).Update(&deployment)
+				copied, err := deploymentCopy(&deployment)
+				if err != nil {
+					return err
+				}
+
+				copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+				copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
+
+				updatedDeployment, err := c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 				if err != nil {
 					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
+					// replace the current deployment with the updated copy so that a future update has a chance at working
+					existingDeployments[i] = *updatedDeployment
 					c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
 				}
 			}
