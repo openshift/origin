@@ -2,6 +2,7 @@ package deploymentconfig
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -55,10 +57,15 @@ type DeploymentConfigController struct {
 	dcStore oscache.StoreToDeploymentConfigLister
 	// rcStore provides a local cache for replication controllers.
 	rcStore cache.StoreToReplicationControllerLister
+	// podStore provides a local cache for pods.
+	podStore cache.StoreToPodLister
+
 	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
 	dcStoreSynced func() bool
 	// rcStoreSynced makes sure the rc store is synced before reconcling any deployment config.
 	rcStoreSynced func() bool
+	// podStoreSynced makes sure the pod store is synced before reconcling any deployment config.
+	podStoreSynced func() bool
 
 	// codec is used to build deployments from configs.
 	codec runtime.Codec
@@ -69,10 +76,9 @@ type DeploymentConfigController struct {
 // Handle implements the loop that processes deployment configs. Since this controller started
 // using caches, the provided config MUST be deep-copied beforehand (see work() in factory.go).
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
-	// There's nothing to reconcile until the version is nonzero or when the
-	// deployment config has been marked for deletion.
-	if config.Status.LatestVersion == 0 || config.DeletionTimestamp != nil {
-		return c.updateStatus(config)
+	// There's nothing to reconcile until the version is nonzero.
+	if config.Status.LatestVersion == 0 {
+		return c.updateStatus(config, []kapi.ReplicationController{})
 	}
 
 	// Find all deployments owned by the deployment config.
@@ -80,6 +86,13 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	existingDeployments, err := c.rcStore.ReplicationControllers(config.Namespace).List(selector)
 	if err != nil {
 		return err
+	}
+
+	// In case the deployment config has been marked for deletion, merely update its status with
+	// the latest available information. Some deletions make take some time to complete so there
+	// is value in doing this.
+	if config.DeletionTimestamp != nil {
+		return c.updateStatus(config, existingDeployments)
 	}
 
 	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
@@ -118,14 +131,14 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
 		if !deployutil.IsTerminatedDeployment(latestDeployment) {
-			return c.updateStatus(config)
+			return c.updateStatus(config, existingDeployments)
 		}
 		return c.reconcileDeployments(existingDeployments, config)
 	}
 	// If the config is paused we shouldn't create new deployments for it.
 	// TODO: Make sure cleanup policy will work for paused configs.
 	if config.Spec.Paused {
-		return c.updateStatus(config)
+		return c.updateStatus(config, existingDeployments)
 	}
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
@@ -138,14 +151,14 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the deployment was already created, just move on. The cache could be
 		// stale, or another process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			return c.updateStatus(config)
+			return c.updateStatus(config, existingDeployments)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
 
-	return c.updateStatus(config)
+	return c.updateStatus(config, existingDeployments)
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -166,7 +179,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		// We shouldn't be reconciling if the latest deployment hasn't been
 		// created; this is enforced on the calling side, but double checking
 		// can't hurt.
-		return nil
+		return c.updateStatus(config, existingDeployments)
 	}
 	activeDeployment := deployutil.ActiveDeployment(config, existingDeployments)
 	// Compute the replica count for the active deployment (even if the active
@@ -238,7 +251,11 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
-	for _, deployment := range existingDeployments {
+	var updatedDeployments []kapi.ReplicationController
+	for i := range existingDeployments {
+		deployment := existingDeployments[i]
+		toAppend := deployment
+
 		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
 
 		oldReplicaCount := deployment.Spec.Replicas
@@ -274,25 +291,69 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 			} else {
 				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(copied), newReplicaCount)
 			}
+			toAppend = *copied
 		}
+
+		updatedDeployments = append(updatedDeployments, toAppend)
 	}
 
-	return c.updateStatus(config)
+	return c.updateStatus(config, updatedDeployments)
 }
 
-func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig) error {
+func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig, deployments []kapi.ReplicationController) error {
+	newStatus, err := c.calculateStatus(*config, deployments)
+	if err != nil {
+		glog.V(2).Infof("Cannot calculate the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return err
+	}
+
 	// NOTE: We should update the status of the deployment config only if we need to, otherwise
 	// we hotloop between updates.
-	if !needsUpdate(config) {
+	if reflect.DeepEqual(newStatus, config.Status) {
 		return nil
 	}
-	config.Status.ObservedGeneration = config.Generation
+
+	config.Status = newStatus
 	if _, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
 		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
 		return err
 	}
 	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
 	return nil
+}
+
+func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []kapi.ReplicationController) (deployapi.DeploymentConfigStatus, error) {
+	// TODO: Implement MinReadySeconds for deploymentconfigs: https://github.com/openshift/origin/issues/7114
+	minReadSeconds := int32(0)
+	selector := labels.Set(config.Spec.Selector).AsSelector()
+	pods, err := c.podStore.Pods(config.Namespace).List(selector)
+	if err != nil {
+		return config.Status, err
+	}
+	available := deployutil.GetAvailablePods(pods.Items, minReadSeconds)
+
+	// UpdatedReplicas represents the replicas that use the deployment config template which means
+	// we should inform about the replicas of the latest deployment and not the active.
+	latestReplicas := int32(0)
+	for _, deployment := range deployments {
+		if deployment.Name == deployutil.LatestDeploymentNameForConfig(&config) {
+			updatedDeployment := []kapi.ReplicationController{deployment}
+			latestReplicas = deployutil.GetStatusReplicaCountForDeployments(updatedDeployment)
+			break
+		}
+	}
+
+	total := deployutil.GetReplicaCountForDeployments(deployments)
+
+	return deployapi.DeploymentConfigStatus{
+		LatestVersion:       config.Status.LatestVersion,
+		Details:             config.Status.Details,
+		ObservedGeneration:  config.Generation,
+		Replicas:            deployutil.GetStatusReplicaCountForDeployments(deployments),
+		UpdatedReplicas:     latestReplicas,
+		AvailableReplicas:   available,
+		UnavailableReplicas: total - available,
+	}, nil
 }
 
 func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
@@ -311,10 +372,6 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 		glog.V(2).Infof(err.Error())
 		c.queue.Forget(key)
 	}
-}
-
-func needsUpdate(config *deployapi.DeploymentConfig) bool {
-	return config.Generation > config.Status.ObservedGeneration
 }
 
 func deploymentCopy(rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {

@@ -189,6 +189,33 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.Describe("with enhanced status", func() {
+		g.It("should include various info in status [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that status.replicas is set")
+			replicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.replicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(replicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.updatedReplicas is set")
+			updatedReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.updatedReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(updatedReplicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.availableReplicas is set")
+			availableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.availableReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(availableReplicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.unavailableReplicas is set")
+			unavailableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.unavailableReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(unavailableReplicas).To(o.ContainSubstring("0"))
+		})
+	})
+
 	g.Describe("with custom deployments", func() {
 		g.It("should run the custom deployment steps [Conformance]", func() {
 			out, err := oc.Run("create").Args("-f", customDeploymentFixture).Output()

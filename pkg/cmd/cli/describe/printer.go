@@ -36,8 +36,7 @@ var (
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
-	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
-	deploymentConfigColumns = []string{"NAME", "REVISION", "REPLICAS", "TRIGGERED BY"}
+	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
@@ -533,11 +532,11 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintO
 }
 
 func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kctl.PrintOptions) error {
-	var scale string
+	var desired string
 	if dc.Spec.Test {
-		scale = fmt.Sprintf("%d (during test)", dc.Spec.Replicas)
+		desired = fmt.Sprintf("%d (during test)", dc.Spec.Replicas)
 	} else {
-		scale = fmt.Sprintf("%d", dc.Spec.Replicas)
+		desired = fmt.Sprintf("%d", dc.Spec.Replicas)
 	}
 
 	containers := sets.NewString()
@@ -580,14 +579,11 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kct
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s", dc.Name, dc.Status.LatestVersion, scale, trigger); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%d\t%s\t%d\t%s", dc.Name, dc.Status.LatestVersion, desired, dc.Status.UpdatedReplicas, trigger); err != nil {
 		return err
 	}
-	if err := appendItemLabels(dc.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
-		return err
-	}
-
-	return nil
+	err := appendItemLabels(dc.Labels, w, opts.ColumnLabels, opts.ShowLabels)
+	return err
 }
 
 func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer, opts kctl.PrintOptions) error {

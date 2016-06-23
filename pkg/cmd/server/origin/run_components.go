@@ -344,9 +344,10 @@ func (c *MasterConfig) RunDeployerPodController() {
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
 	rcInformer := c.Informers.ReplicationControllers().Informer()
+	podInformer := c.Informers.Pods().Informer()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
-	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, osclient, kclient, c.EtcdHelper.Codec())
+	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.EtcdHelper.Codec())
 	// TODO: Make the stop channel actually work.
 	stopCh := make(chan struct{})
 	// TODO: Make the number of workers configurable.

@@ -27,7 +27,7 @@ const (
 )
 
 // NewDeploymentConfigController creates a new DeploymentConfigController.
-func NewDeploymentConfigController(dcInformer, rcInformer framework.SharedIndexInformer, oc osclient.Interface, kc kclient.Interface, codec runtime.Codec) *DeploymentConfigController {
+func NewDeploymentConfigController(dcInformer, rcInformer, podInformer framework.SharedIndexInformer, oc osclient.Interface, kc kclient.Interface, codec runtime.Codec) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(kc.Events(""))
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deploymentconfig-controller"})
@@ -48,16 +48,17 @@ func NewDeploymentConfigController(dcInformer, rcInformer framework.SharedIndexI
 		UpdateFunc: c.updateDeploymentConfig,
 		DeleteFunc: c.deleteDeploymentConfig,
 	})
-
 	c.rcStore.Indexer = rcInformer.GetIndexer()
 	rcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
 		AddFunc:    c.addReplicationController,
 		UpdateFunc: c.updateReplicationController,
 		DeleteFunc: c.deleteReplicationController,
 	})
+	c.podStore.Indexer = podInformer.GetIndexer()
 
 	c.dcStoreSynced = dcInformer.HasSynced
 	c.rcStoreSynced = rcInformer.HasSynced
+	c.podStoreSynced = podInformer.HasSynced
 
 	return c
 }
@@ -87,8 +88,8 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 func (c *DeploymentConfigController) waitForSyncedStores(ready chan struct{}) {
 	defer utilruntime.HandleCrash()
 
-	for !c.dcStoreSynced() || !c.rcStoreSynced() {
-		glog.V(4).Infof("Waiting for the dc and rc controllers to sync before starting the deployment config controller workers")
+	for !c.dcStoreSynced() || !c.rcStoreSynced() || !c.podStoreSynced() {
+		glog.V(4).Infof("Waiting for the dc, rc, and pod caches to sync before starting the deployment config controller workers")
 		time.Sleep(StoreSyncedPollPeriod)
 	}
 	close(ready)

@@ -420,6 +420,11 @@ func Convert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_api.
 
 func autoConvert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *DeploymentConfigStatus, out *deploy_api.DeploymentConfigStatus, s conversion.Scope) error {
 	out.LatestVersion = in.LatestVersion
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Replicas = in.Replicas
+	out.UpdatedReplicas = in.UpdatedReplicas
+	out.AvailableReplicas = in.AvailableReplicas
+	out.UnavailableReplicas = in.UnavailableReplicas
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
 		*out = new(deploy_api.DeploymentDetails)
@@ -429,7 +434,6 @@ func autoConvert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *Dep
 	} else {
 		out.Details = nil
 	}
-	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
@@ -439,6 +443,11 @@ func Convert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *Deploym
 
 func autoConvert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *deploy_api.DeploymentConfigStatus, out *DeploymentConfigStatus, s conversion.Scope) error {
 	out.LatestVersion = in.LatestVersion
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Replicas = in.Replicas
+	out.UpdatedReplicas = in.UpdatedReplicas
+	out.AvailableReplicas = in.AvailableReplicas
+	out.UnavailableReplicas = in.UnavailableReplicas
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
 		*out = new(DeploymentDetails)
@@ -448,7 +457,6 @@ func autoConvert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *dep
 	} else {
 		out.Details = nil
 	}
-	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
