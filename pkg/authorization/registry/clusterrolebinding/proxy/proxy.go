@@ -6,7 +6,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
@@ -17,15 +16,8 @@ type ClusterRoleBindingStorage struct {
 	roleBindingStorage rolebindingstorage.VirtualStorage
 }
 
-func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleBindingStorage {
+func NewClusterRoleBindingStorage(clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleBindingStorage {
 	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterPolicyBindingRegistry)
-
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		nil,
-		nil,
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
-	)
 
 	return &ClusterRoleBindingStorage{
 		rolebindingstorage.VirtualStorage{
