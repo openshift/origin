@@ -8,8 +8,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
