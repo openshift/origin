@@ -186,28 +186,34 @@ const (
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
   %[1]s exec mypod -c ruby-container -i -t -- bash -il`
+)
 
-	completionLong = `This command prints shell code which must be evaluation to provide interactive
-completion of openshift cli commands.`
+func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmdHelpString := "openshift cli"
+	cmdHelpName := fullName
 
-	completionExample = `  # Generate the openshift cli completion code for bash
-  source <(oc completion bash)
+	if strings.HasSuffix(fullName, "admin") || strings.HasSuffix(fullName, "oadm") {
+		cmdHelpString = "openshift admin"
+	} else if strings.HasSuffix(fullName, "completion") {
+		cmdHelpName = "openshift"
+		cmdHelpString = "openshift"
+	}
+
+	cmd := kcmd.NewCmdCompletion(f.Factory, out)
+	cmd.Long = `This command prints shell code which must be evaluated to provide interactive
+completion of ` + cmdHelpString + ` commands.`
+	cmd.Example = `  # Generate the ` + cmdHelpString + ` completion code for bash
+  source <(` + cmdHelpName + ` completion bash)
 
   # The above example depends on the bash-completion
 framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
-  source <(oc completion bash)
+  source <(` + cmdHelpName + ` completion bash)
 
   # In zsh, the following will load openshift cli zsh completion:
-  source <(oc completion zsh)`
-)
-
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdCompletion(f.Factory, out)
-	cmd.Long = completionLong
-	cmd.Example = completionExample
+  source <(` + cmdHelpName + ` completion zsh)`
 	return cmd
 }
 
