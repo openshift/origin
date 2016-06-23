@@ -245,9 +245,6 @@ const (
 	// DeploymentReplicasAnnotation is for internal use only and is for
 	// detecting external modifications to deployment replica counts.
 	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
-	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
-	// The annotation value does not matter and its mere presence indicates instantiation.
-	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 	// PostHookPodSuffix is the suffix added to all pre hook pods
 	PreHookPodSuffix = "hook-pre"
 	// PostHookPodSuffix is the suffix added to all mid hook pods

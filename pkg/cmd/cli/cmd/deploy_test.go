@@ -65,8 +65,8 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 		if updatedConfig == nil {
 			t.Fatalf("expected updated config")
 		}
-		if !deployutil.IsInstantiated(updatedConfig) {
-			t.Fatalf("expected deployment config instantiation")
+		if exp, got := updatedConfig.Status.LatestVersion, int64(2); exp != got {
+			t.Fatalf("expected deployment config version: %d, got: %d", exp, got)
 		}
 	}
 }
