@@ -3,6 +3,7 @@ package support
 import (
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -42,12 +45,15 @@ type HookExecutor struct {
 	podLogStream func(namespace, name string, opts *kapi.PodLogOptions) (io.ReadCloser, error)
 	// decoder is used for encoding/decoding.
 	decoder runtime.Decoder
+	// recorder is used to emit events from hooks
+	events record.EventSink
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, out io.Writer, decoder runtime.Decoder) *HookExecutor {
+func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, events record.EventSink, out io.Writer, decoder runtime.Decoder) *HookExecutor {
 	return &HookExecutor{
-		tags: tags,
+		tags:   tags,
+		events: events,
 		podClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return client.Pods(namespace).Create(pod)
@@ -64,27 +70,72 @@ func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsN
 	}
 }
 
+func (e *HookExecutor) emitEvent(deployment *kapi.ReplicationController, eventType, reason, msg string) {
+	t := unversioned.Time{Time: time.Now()}
+	var ref *kapi.ObjectReference
+	if config, err := deployutil.DecodeDeploymentConfig(deployment, e.decoder); err != nil {
+		glog.Errorf("Unable to decode deployment %s/%s to replication contoller: %v", deployment.Namespace, deployment.Name, err)
+		if ref, err = kapi.GetReference(deployment); err != nil {
+			glog.Errorf("Unable to get reference for %#v: %v", deployment, err)
+			return
+		}
+	} else {
+		if ref, err = kapi.GetReference(config); err != nil {
+			glog.Errorf("Unable to get reference for %#v: %v", config, err)
+			return
+		}
+	}
+	event := &kapi.Event{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
+			Namespace: ref.Namespace,
+		},
+		InvolvedObject: *ref,
+		Reason:         reason,
+		Message:        msg,
+		FirstTimestamp: t,
+		LastTimestamp:  t,
+		Count:          1,
+		Type:           eventType,
+	}
+	if _, err := e.events.Create(event); err != nil {
+		glog.Errorf("Could not send event '%#v': %v", event, err)
+	}
+}
+
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
 func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 	var err error
 	switch {
 	case len(hook.TagImages) > 0:
+		tagEventMessages := []string{}
+		for _, t := range hook.TagImages {
+			image, ok := findContainerImage(deployment, t.ContainerName)
+			if ok {
+				tagEventMessages = append(tagEventMessages, fmt.Sprintf("image %q as %q", image, t.To.Name))
+			}
+		}
+		e.emitEvent(deployment, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (TagImages) %s for deployment %s/%s", label, strings.Join(tagEventMessages, ","), deployment.Namespace, deployment.Name))
 		err = e.tagImages(hook, deployment, suffix, label)
 	case hook.ExecNewPod != nil:
+		e.emitEvent(deployment, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (%q) for deployment %s/%s", label, strings.Join(hook.ExecNewPod.Command, " "), deployment.Namespace, deployment.Name))
 		err = e.executeExecNewPod(hook, deployment, suffix, label)
 	}
 
 	if err == nil {
+		e.emitEvent(deployment, kapi.EventTypeNormal, "Completed", fmt.Sprintf("The %s-hook for deployment %s/%s completed successfully", label, deployment.Namespace, deployment.Name))
 		return nil
 	}
 
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
 	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
-		return fmt.Errorf("%s hook failed, aborting deployment: %s", label, err)
+		e.emitEvent(deployment, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v, aborting deployment %s/%s", label, err, deployment.Namespace, deployment.Name))
+		return fmt.Errorf("the %s hook failed: %v, aborting deployment: %s/%s", label, err, deployment.Namespace, deployment.Name)
 	case deployapi.LifecycleHookFailurePolicyIgnore:
-		fmt.Fprintf(e.out, "warning: %s hook failed, deployment will continue: %v\n", label, err)
+		e.emitEvent(deployment, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v (ignore), deployment %s/%s will continue", label, err, deployment.Namespace, deployment.Name))
+		fmt.Fprintf(e.out, "the %s hook failed: %v (ignore), deployment %s/%s will continue", label, err, deployment.Namespace, deployment.Name)
 		return nil
 	default:
 		return err
@@ -231,6 +282,7 @@ waitLoop:
 	// The pod is finished, wait for all logs to be consumed before returning.
 	wg.Wait()
 	if updatedPod.Status.Phase == kapi.PodFailed {
+		fmt.Fprintf(e.out, "--> %s: Failed\n", label)
 		return fmt.Errorf(updatedPod.Status.Message)
 	}
 	// Only show this message if we created the pod ourselves, or we saw
